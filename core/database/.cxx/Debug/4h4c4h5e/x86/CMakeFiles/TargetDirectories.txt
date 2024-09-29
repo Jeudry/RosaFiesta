@@ -1,0 +1,3 @@
+/Users/sargon/AndroidStudioProjects/RosaFiesta/core/database/.cxx/Debug/4h4c4h5e/x86/CMakeFiles/database.dir
+/Users/sargon/AndroidStudioProjects/RosaFiesta/core/database/.cxx/Debug/4h4c4h5e/x86/CMakeFiles/edit_cache.dir
+/Users/sargon/AndroidStudioProjects/RosaFiesta/core/database/.cxx/Debug/4h4c4h5e/x86/CMakeFiles/rebuild_cache.dir

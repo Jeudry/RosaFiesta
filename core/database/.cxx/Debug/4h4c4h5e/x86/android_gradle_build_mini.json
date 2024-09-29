@@ -1,0 +1,27 @@
+{
+  "buildFiles": [
+    "/Users/sargon/AndroidStudioProjects/RosaFiesta/core/database/src/main/cpp/CMakeLists.txt"
+  ],
+  "cleanCommandsComponents": [
+    [
+      "/Users/sargon/Library/Android/sdk/cmake/3.22.1/bin/ninja",
+      "-C",
+      "/Users/sargon/AndroidStudioProjects/RosaFiesta/core/database/.cxx/Debug/4h4c4h5e/x86",
+      "clean"
+    ]
+  ],
+  "buildTargetsCommandComponents": [
+    "/Users/sargon/Library/Android/sdk/cmake/3.22.1/bin/ninja",
+    "-C",
+    "/Users/sargon/AndroidStudioProjects/RosaFiesta/core/database/.cxx/Debug/4h4c4h5e/x86",
+    "{LIST_OF_TARGETS_TO_BUILD}"
+  ],
+  "libraries": {
+    "database::@6890427a1f51a3e7e1df": {
+      "artifactName": "database",
+      "abi": "x86",
+      "output": "/Users/sargon/AndroidStudioProjects/RosaFiesta/core/database/build/intermediates/cxx/Debug/4h4c4h5e/obj/x86/libdatabase.so",
+      "runtimeFiles": []
+    }
+  }
+}
