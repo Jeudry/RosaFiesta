@@ -40,7 +40,7 @@ fun RFScaffold(
 
 @Preview
 @Composable
-fun RFScaffoldPreview() {
+private fun RFScaffoldPreview() {
   RFTheme {
     RFScaffold(
       modifier = Modifier,

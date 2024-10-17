@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="delete">Eliminar</string>
+    <string name="product_image">Imagen de producto</string>
+    <string name="error_couldnt_load_image">Error, no se pudo cargar la imagen.</string>
+    <string name="created">Creado</string>
+    <string name="name">Nombre del producto</string>
+    <string name="price">Precio</string>
+    <string name="description">Descripcion</string>
+    <string name="stock">Cantidad disponible</string>
+    <string name="rental_price">Precio de Renta</string>
+    <string name="products_list">Lista de Productos</string>
+    <string name="product_already_exist">El producto a crear ya existe.</string>
+    <string name="product_added_successfully">El producto fue agregado sastifactoriamente.</string>
+    <string name="must_be_a_valid_name">Debe ser un nombre valido.</string>
+    <string name="add_product">Agregar producto.</string>
+    <string name="must_be_a_valid_price">Debe ser un precio valido.</string>
+    <string name="must_be_a_valid_stock">Debe ser un stock valido.</string>
+</resources>

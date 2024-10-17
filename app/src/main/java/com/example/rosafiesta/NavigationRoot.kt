@@ -1,5 +1,6 @@
 package com.example.rosafiesta
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavGraphBuilder
@@ -11,7 +12,11 @@ import androidx.navigation.navigation
 import com.example.auth.presentation.intro.IntroScreenRoot
 import com.example.auth.presentation.login.LoginScreenRoot
 import com.example.auth.presentation.register.RegisterScreenRoot
+import com.example.home.presentation.DashboardScreenRoot
+import com.example.products.presentation.views.ProductAddSR
+import com.example.products.presentation.views.ProductsListSR
 
+@ExperimentalFoundationApi
 @Composable
 fun NavigationRoot(
   navController: NavHostController,
@@ -23,6 +28,7 @@ fun NavigationRoot(
   ) {
     authGraph(navController)
     homeGraph(navController)
+    productGraph(navController)
   }
 }
 
@@ -40,7 +46,7 @@ private fun NavGraphBuilder.authGraph(
         }
       )
     }
-    
+
     composable(route = "register") {
       RegisterScreenRoot(
         onSignInClick = {
@@ -57,7 +63,7 @@ private fun NavGraphBuilder.authGraph(
         }
       )
     }
-    
+
     composable("login") {
       LoginScreenRoot(
         onLoginSuccess = {
@@ -89,18 +95,36 @@ private fun NavGraphBuilder.homeGraph(
     route = "home"
   ) {
     composable("dashboard") {
-      RunOverviewScreenRoot(
-        onStartRunClick = {
-          navController.navigate("")
+      DashboardScreenRoot(
+        onProductsList = {
+          navController.navigate("products-list")
         },
-        onLogoutClick = {
-          navController.navigate("auth") {
-            popUpTo("run") {
-              inclusive = true
-            }
-          }
+        onProductDetail = {
+          navController.navigate("product-detail")
+        },
+        onProductAdd = {
+          navController.navigate("products-add")
         }
       )
+    }
+  }
+}
+
+@ExperimentalFoundationApi
+private fun NavGraphBuilder.productGraph(navController: NavHostController) {
+  navigation(
+    startDestination = "products-list",
+    route = "products"
+  ) {
+    composable("products-add"){
+       ProductAddSR(
+         onSuccessfulAdd = {
+           navController.navigate("dashboard")
+         }
+       )
+    }
+    composable("products-list"){
+      ProductsListSR()
     }
   }
 }

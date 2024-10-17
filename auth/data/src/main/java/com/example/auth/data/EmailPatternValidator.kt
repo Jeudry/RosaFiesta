@@ -1,7 +1,7 @@
 package com.example.auth.data
 
 import android.util.Patterns
-import com.example.auth.domain.PatternValidator
+import com.example.core.domain.validators.PatternValidator
 
 object EmailPatternValidator : PatternValidator {
 
