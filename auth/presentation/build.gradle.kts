@@ -7,6 +7,11 @@ android {
 }
 
 dependencies {
+
+  implementation(libs.coil.compose)
+  implementation(libs.androidx.activity.compose)
+  implementation(libs.timber)
+
   implementation(projects.auth.domain)
   implementation(projects.core.domain)
 }

@@ -41,6 +41,10 @@
             <option value="$PROJECT_DIR$/home/location" />
             <option value="$PROJECT_DIR$/home/network" />
             <option value="$PROJECT_DIR$/home/presentation" />
+            <option value="$PROJECT_DIR$/products" />
+            <option value="$PROJECT_DIR$/products/data" />
+            <option value="$PROJECT_DIR$/products/domain" />
+            <option value="$PROJECT_DIR$/products/presentation" />
           </set>
         </option>
         <option name="resolveExternalAnnotations" value="false" />

@@ -1,5 +1,7 @@
 package com.example.auth.domain
 
+import com.example.core.domain.validators.PatternValidator
+
 class UserDataValidator(
   private val patternValidator: PatternValidator
 ) {
