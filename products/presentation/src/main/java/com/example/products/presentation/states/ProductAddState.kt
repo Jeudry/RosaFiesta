@@ -4,13 +4,11 @@ package com.example.products.presentation.states
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.text2.input.TextFieldState
-import com.example.auth.domain.PasswordValidationState
 import com.example.products.domain.validators.ProductDescriptionVS
 import com.example.products.domain.validators.ProductNameVS
 import com.example.products.domain.validators.ProductPriceVS
 import com.example.products.domain.validators.ProductRentalPriceVS
 import com.example.products.domain.validators.ProductStockVS
-import java.time.ZonedDateTime
 
 data class ProductAddState(
     val name: TextFieldState = TextFieldState(),

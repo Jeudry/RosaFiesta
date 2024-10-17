@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Query
 import androidx.room.Upsert
+import com.example.core.domain.product.Product
 import com.example.core.domain.product.ProductId
 import com.example.database.entity.ProductEntity
 import kotlinx.coroutines.flow.Flow
@@ -18,4 +19,7 @@ interface ProductDao {
 
     @Query("DELETE FROM productentity WHERE id=:productId")
     suspend fun deleteProduct(productId: ProductId)
+
+    @Query("SELECT * FROM productentity WHERE id=:productId")
+    suspend fun getProduct(productId: ProductId): Product
 }

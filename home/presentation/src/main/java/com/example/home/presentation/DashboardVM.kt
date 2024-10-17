@@ -5,12 +5,19 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.core.domain.utils.DataError
+import com.example.core.presentation.ui.UiText
+import com.example.core.presentation.ui.asUiText
+import com.example.home.presentation.events.DashboardEvent
 import com.example.products.domain.repositories.ProductsRepository
 import com.example.products.presentation.model.mapper.toProductUi
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
+import com.example.core.domain.utils.Result as ResultResponse
 
 /**
  * ViewModel for the dashboard.
@@ -28,6 +35,9 @@ class DashboardVM(
   var state by mutableStateOf(DashboardState())
     private set
 
+  private val eventChannel = Channel<DashboardEvent>()
+  val eventsFlow = eventChannel.receiveAsFlow()
+
   init {
     productsRepository.getProducts().onEach { runs ->
       val productsUi = runs.map {productMap ->
@@ -41,7 +51,14 @@ class DashboardVM(
     when (action) {
       is DashboardAction.OnProductDelete -> {
         viewModelScope.launch {
-          productsRepository.deleteProduct(action.productId)
+          when(val result = productsRepository.deleteProduct(action.productId)) {
+            is ResultResponse.Error -> {
+                eventChannel.send(DashboardEvent.Error(result.error.asUiText()))
+            }
+            is ResultResponse.Success -> {
+              eventChannel.send(DashboardEvent.DeleteSuccess)
+            }
+          }
         }
       }
       else -> Unit
