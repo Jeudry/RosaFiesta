@@ -3,12 +3,14 @@ package com.example.products.presentation.views
 import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -94,7 +96,7 @@ private fun ProductAddScreen(
         topAppBar = {
             RFToolbar(
                 showBackButton = false,
-                title = stringResource(id = R.string.products_list),
+                title = stringResource(id = R.string.product_add),
                 scrollBehavior = scrollBehavior,
                 startContent = {
                     Icon(
@@ -113,17 +115,18 @@ private fun ProductAddScreen(
                     onAction(ProductAddAction.OnAddClick)
                 }
             )
+        },
+        content = { padding ->
+            Column(
+                modifier = Modifier.padding(padding).fillMaxSize().verticalScroll(rememberScrollState())
+            ){
+                ProductForm(
+                    state = state,
+                    onAction = onAction
+                )
+            }
         }
-    ) { padding ->
-        Row(
-            modifier = Modifier.padding(padding)
-        ){
-            ProductForm(
-                state = state,
-                onAction = onAction
-            )
-        }
-    }
+    )
 }
 
 @ExperimentalFoundationApi
@@ -132,7 +135,11 @@ private fun ProductForm(
     state: ProductAddState,
     onAction: (ProductAddAction) -> Unit
 ){
-    Column() {
+    Column(
+        modifier = Modifier.padding(
+            horizontal = 18.dp
+        )
+    ) {
         RFTextField(
             state = state.name,
             startIcon = EmailIcon,
@@ -197,6 +204,28 @@ private fun ProductForm(
             endIcon = CheckIcon,
             hint = stringResource(id = R.string.product_image),
             title = stringResource(id = R.string.product_image),
+            modifier = Modifier.fillMaxWidth(),
+            keyboardType = KeyboardType.Text
+        )
+        Spacer(modifier = Modifier.height(32.dp))
+        
+        RFTextField(
+            state = state.color,
+            startIcon = EmailIcon,
+            endIcon = if (state.isColorValid.isValid) CheckIcon else null,
+            hint = stringResource(id = R.string.color),
+            title = stringResource(id = R.string.color),
+            modifier = Modifier.fillMaxWidth(),
+            keyboardType = KeyboardType.Text
+        )
+        Spacer(modifier = Modifier.height(32.dp))
+        
+        RFTextField(
+            state = state.size,
+            startIcon = EmailIcon,
+            endIcon = if (state.isSizeValid.isValid) CheckIcon else null,
+            hint = stringResource(id = R.string.size),
+            title = stringResource(id = R.string.size),
             modifier = Modifier.fillMaxWidth(),
             keyboardType = KeyboardType.Text
         )

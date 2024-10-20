@@ -1,5 +1,6 @@
 package com.example.products.presentation.model
 
+import androidx.compose.ui.graphics.Color
 import java.time.ZonedDateTime
 
 data class ProductUi (
@@ -8,6 +9,9 @@ data class ProductUi (
     val description: String?,
     val price: Double,
     val rentalPrice: Double?,
+    val color: Color,
+    val size: Double,
+    val rating: Double,
     val imageUrl: String?,
     val stock: Int,
     val created: ZonedDateTime

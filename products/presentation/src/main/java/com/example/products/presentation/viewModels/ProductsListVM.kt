@@ -27,4 +27,11 @@ class ProductsListVM(
             state = state.copy(productsList = productsUi)
         }.launchIn(viewModelScope)
     }
+
+    fun onAction(action: ProductsListAction) {
+        when (action) {
+            is ProductsListAction.OnProductDelete -> TODO()
+            is ProductsListAction.OnProductDetail -> TODO()
+        }
+    }
 }

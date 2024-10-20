@@ -24,7 +24,6 @@ import com.example.core.presentation.designsystem.components.GradientBackground
 import com.example.core.presentation.designsystem.components.RFActionButton
 import com.example.core.presentation.designsystem.components.RFOutlinedActionButton
 
-
 @Composable
 fun IntroScreenRoot(
   onSignUpClick: () -> Unit,

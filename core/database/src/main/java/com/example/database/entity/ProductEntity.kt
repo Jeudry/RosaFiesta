@@ -13,7 +13,10 @@ data class ProductEntity(
     val description: String?,
     val price: Double,
     val rentalPrice: Double?,
+    val color: Long,
+    val size: Double,
+    val rating: Double = 0.0,
     val imageUrl: String?,
-    val stock: Int,
+    val stock: Int = 0,
     val created: String
 )

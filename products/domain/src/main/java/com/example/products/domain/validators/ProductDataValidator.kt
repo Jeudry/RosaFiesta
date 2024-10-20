@@ -1,7 +1,6 @@
 package com.example.products.domain.validators
 
-import com.example.core.domain.validators.PatternValidator
-import java.util.prefs.Preferences.MAX_NAME_LENGTH
+import java.awt.Color
 
 class ProductDataValidator{
 
@@ -66,6 +65,24 @@ class ProductDataValidator{
             positiveValue = positiveValue
         )
     }
+    
+    fun isValidColor(color: Long): ProductColorVS {
+        val positiveValue = color > 0
+        
+        return ProductColorVS(
+            positiveValue = positiveValue
+        )
+    }
+    
+    fun isValidSize(size: Double): ProductSizeVS {
+        val positiveValue = size > 0
+        val maxLengthValid = size <= MAX_SIZE_LENGTH
+        
+        return ProductSizeVS(
+            positiveValue = positiveValue,
+            maxLengthValid = maxLengthValid
+        )
+    }
 
     companion object {
         const val MIN_NAME_LENGTH = 3
@@ -73,5 +90,6 @@ class ProductDataValidator{
         const val MIN_DESCRIPTION_LENGTH = 5
         const val MAX_DESCRIPTION_LENGTH = 10000
         const val MIN_PRICE_LENGTH = 5
+        const val MAX_SIZE_LENGTH = 99999
     }
 }

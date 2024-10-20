@@ -41,6 +41,8 @@ import com.example.core.presentation.designsystem.components.RFTextField
 import com.example.core.presentation.ui.ObserveAsEvents
 import org.koin.androidx.compose.koinViewModel
 
+const val LOGIN_ROUTE = "login"
+
 @Composable
 fun LoginScreenRoot(
   onLoginSuccess: () -> Unit,

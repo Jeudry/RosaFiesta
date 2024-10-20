@@ -313,7 +313,10 @@ private fun RunListItemPreview() {
                 price = 50.0,
                 stock = 10,
                 created = ZonedDateTime.now(),
-                imageUrl = ""
+                imageUrl = "",
+                color = 0,
+                size = 0.0,
+                rating = 0.0
             ).toProductUi(),
             onDeleteClick = { }
         )
