@@ -3,6 +3,7 @@ package com.example.rosafiesta.navigation
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
+import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -10,12 +11,12 @@ import androidx.navigation.NavHostController
 import com.example.rosafiesta.navigation.models.BottomNavigationItem
 
 @Composable
-fun NavigationBar(
+fun NavigationBarComposable(
   bottomNavigationItems: List<BottomNavigationItem>,
   route: String,
   navController: NavHostController
 ){
-  androidx.compose.material3.NavigationBar {
+  NavigationBar {
     bottomNavigationItems.forEach { item ->
       val selected = route == item.route
       NavigationBarItem(

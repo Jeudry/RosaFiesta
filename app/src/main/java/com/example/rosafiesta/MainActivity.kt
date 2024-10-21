@@ -35,9 +35,7 @@ class MainActivity : ComponentActivity() {
           modifier = Modifier.fillMaxSize(),
           color = MaterialTheme.colorScheme.background
         ) {
-          if (!viewModel.state.isCheckingAuth) {
             RFLayout(viewModel)
-          }
         }
       }
     }

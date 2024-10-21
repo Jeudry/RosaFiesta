@@ -12,15 +12,16 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.rememberNavController
 import com.example.core.presentation.designsystem.LogoIcon
 import com.example.core.presentation.designsystem.components.RFScaffold
 import com.example.core.presentation.designsystem.components.RFToolbar
-import com.example.rosafiesta.navigation.NavigationBar
+import com.example.core.presentation.ui.UiText
+import com.example.rosafiesta.navigation.NavigationBarComposable
 import com.example.rosafiesta.navigation.NavigationRoot
 import com.example.rosafiesta.navigation.getBottomNavigationItems
 import com.example.rosafiesta.navigation.models.NavHostData
@@ -33,68 +34,72 @@ fun RFLayout(
   viewModel: MainViewModel
 ) {
   val bottomNavigationItems = getBottomNavigationItems()
+  
+  val current =  LocalContext.current
+  
   val startDestination = if (
     viewModel.state.isLoggedIn
   ){
     NavState(
-      route = stringResource(R.string.home_route),
-      title = stringResource(R.string.home_title),
+      route = UiText.StringResource(R.string.home_route).asString(current),
+      title = UiText.StringResource(R.string.home_title).asString(current),
       showBackBtn = false
     )
   } else {
     NavState(
-      route = stringResource(R.string.intro_route),
-      title = stringResource(R.string.intro_title)
+      route = UiText.StringResource(R.string.home_route).asString(current),
+      title = UiText.StringResource(R.string.home_title).asString(current),
     )
   }
   
-  viewModel.setNavigationState(startDestination)
+  LaunchedEffect(Unit){
+    viewModel.setNavigationState(startDestination)
+  }
   
   val navController = rememberNavController()
-  
-  lifecycleScope
-  val navigationBar = NavigationBar(
-    bottomNavigationItems = bottomNavigationItems,
-    route = viewModel.state.navState!!.route,
-    navController = navController
-  )
   
   val topAppBarState = rememberTopAppBarState()
   val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(
     state = topAppBarState
   )
-  RFScaffold(
-    bottomBar = {navigationBar},
-    topAppBar = {
-      RFToolbar(
-        showBackButton = viewModel.state.navState!!.showBackBtn,
-        title = viewModel.state.navState!!.title,
-        scrollBehavior = scrollBehavior,
-        startContent = {
-          Icon(
-            imageVector = LogoIcon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(30.dp)
-          )
-        }
-      )
-    },
-    floatingActionButton = { viewModel.state.navState!!.addBtn }
-  ) { padding ->
-    Column(
-      modifier = Modifier
-        .padding(padding)
-    ) {
-      NavigationRoot(
-        navHostData = NavHostData(
-          navController = navController,
-          mainViewModel = viewModel,
-          startDestination = startDestination.route,
-          context = LocalContext.current,
-          scrollBehavior = scrollBehavior
+  if(viewModel.state.navState != null ) {
+    RFScaffold(
+      bottomBar = {NavigationBarComposable(
+        bottomNavigationItems = bottomNavigationItems,
+        route = viewModel.state.navState!!.route,
+        navController = navController
+      )},
+      topAppBar = {
+        RFToolbar(
+          showBackButton = viewModel.state.navState!!.showBackBtn,
+          title = viewModel.state.navState!!.title,
+          scrollBehavior = scrollBehavior,
+          startContent = {
+            Icon(
+              imageVector = LogoIcon,
+              contentDescription = null,
+              tint = MaterialTheme.colorScheme.primary,
+              modifier = Modifier.size(30.dp)
+            )
+          }
         )
-      )
+      },
+      floatingActionButton = viewModel.state.navState!!.addBtn
+    ) { padding ->
+      Column(
+        modifier = Modifier
+          .padding(padding)
+      ) {
+        NavigationRoot(
+          navHostData = NavHostData(
+            navController = navController,
+            mainViewModel = viewModel,
+            startDestination = startDestination.route,
+            context = LocalContext.current,
+            scrollBehavior = scrollBehavior
+          )
+        )
+      }
     }
   }
 }

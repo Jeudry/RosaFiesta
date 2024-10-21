@@ -35,6 +35,7 @@ dependencies {
   // Core
 
   implementation(libs.androidx.lifecycle.runtime.ktx)
+  implementation(libs.androidx.lifecycle.viewmodel.ktx)
   implementation(libs.androidx.core.ktx)
 
   // Coil

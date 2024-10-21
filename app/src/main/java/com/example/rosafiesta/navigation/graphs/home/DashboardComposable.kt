@@ -25,7 +25,7 @@ fun NavGraphBuilder.dashboardComposable(navHostData: NavHostData) {
       navHostData.mainViewModel.setNavigationState(
         NavState(
           route = route,
-          title = "tuhna",
+          title = UiText.StringResource(R.string.dashboard_title).asString(navHostData.navController.context),
           showBackBtn = false,
           addBtn = {
             RFFloatingActionBtn(
