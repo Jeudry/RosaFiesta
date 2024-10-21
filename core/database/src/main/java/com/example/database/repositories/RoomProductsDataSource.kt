@@ -33,7 +33,21 @@ class RoomProductsDataSource(
         }
     }
 
-    override suspend fun deleteProduct(productId: ProductId) {
-        productDao.deleteProduct(productId)
+    override suspend fun deleteProduct(productId: ProductId): Result<ProductId, DataError.Local> {
+        return try {
+            productDao.deleteProduct(productId)
+            ResultResponse.Success(productId)
+        } catch (e: SQLiteFullException) {
+            ResultResponse.Error(DataError.Local.DISK_FULL)
+        }
+    }
+
+    override suspend fun getProduct(productId: ProductId): Result<Product, DataError.Local> {
+        return try {
+            val entity = productDao.getProduct(productId)
+            ResultResponse.Success(entity)
+        } catch (e: SQLiteFullException) {
+            ResultResponse.Error(DataError.Local.DISK_FULL)
+        }
     }
 }

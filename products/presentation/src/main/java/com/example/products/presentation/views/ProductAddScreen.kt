@@ -3,17 +3,12 @@ package com.example.products.presentation.views
 import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -24,14 +19,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.core.presentation.designsystem.CheckIcon
 import com.example.core.presentation.designsystem.EmailIcon
-import com.example.core.presentation.designsystem.LogoIcon
 import com.example.core.presentation.designsystem.RFTheme
-import com.example.core.presentation.designsystem.RunIcon
 import com.example.core.presentation.designsystem.components.RFActionButton
-import com.example.core.presentation.designsystem.components.RFFloatingActionBtn
-import com.example.core.presentation.designsystem.components.RFScaffold
 import com.example.core.presentation.designsystem.components.RFTextField
-import com.example.core.presentation.designsystem.components.RFToolbar
 import com.example.core.presentation.ui.ObserveAsEvents
 import com.example.products.presentation.R
 import com.example.products.presentation.actions.ProductAddAction
@@ -85,44 +75,13 @@ private fun ProductAddScreen(
     state: ProductAddState,
     onAction: (ProductAddAction) -> Unit
 ) {
-    val topAppBarState = rememberTopAppBarState()
-    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(
-        state = topAppBarState
-    )
-
-    RFScaffold(
-        topAppBar = {
-            RFToolbar(
-                showBackButton = false,
-                title = stringResource(id = R.string.products_list),
-                scrollBehavior = scrollBehavior,
-                startContent = {
-                    Icon(
-                        imageVector = LogoIcon,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(30.dp)
-                    )
-                }
-            )
-        },
-        floatingActionButton = {
-            RFFloatingActionBtn(
-                icon = RunIcon,
-                onClick = {
-                    onAction(ProductAddAction.OnAddClick)
-                }
-            )
-        }
-    ) { padding ->
-        Row(
-            modifier = Modifier.padding(padding)
-        ){
-            ProductForm(
-                state = state,
-                onAction = onAction
-            )
-        }
+    Column(
+        modifier = Modifier.fillMaxSize()
+    ){
+        ProductForm(
+            state = state,
+            onAction = onAction
+        )
     }
 }
 
@@ -132,7 +91,11 @@ private fun ProductForm(
     state: ProductAddState,
     onAction: (ProductAddAction) -> Unit
 ){
-    Column() {
+    Column(
+        modifier = Modifier.padding(
+            horizontal = 18.dp
+        )
+    ) {
         RFTextField(
             state = state.name,
             startIcon = EmailIcon,
@@ -197,6 +160,28 @@ private fun ProductForm(
             endIcon = CheckIcon,
             hint = stringResource(id = R.string.product_image),
             title = stringResource(id = R.string.product_image),
+            modifier = Modifier.fillMaxWidth(),
+            keyboardType = KeyboardType.Text
+        )
+        Spacer(modifier = Modifier.height(32.dp))
+        
+        RFTextField(
+            state = state.color,
+            startIcon = EmailIcon,
+            endIcon = if (state.isColorValid.isValid) CheckIcon else null,
+            hint = stringResource(id = R.string.color),
+            title = stringResource(id = R.string.color),
+            modifier = Modifier.fillMaxWidth(),
+            keyboardType = KeyboardType.Text
+        )
+        Spacer(modifier = Modifier.height(32.dp))
+        
+        RFTextField(
+            state = state.size,
+            startIcon = EmailIcon,
+            endIcon = if (state.isSizeValid.isValid) CheckIcon else null,
+            hint = stringResource(id = R.string.size),
+            title = stringResource(id = R.string.size),
             modifier = Modifier.fillMaxWidth(),
             keyboardType = KeyboardType.Text
         )

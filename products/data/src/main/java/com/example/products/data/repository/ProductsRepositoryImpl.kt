@@ -1,11 +1,13 @@
 package com.example.products.data.repository
 
+import android.database.SQLException
 import com.example.core.domain.SessionStorage
 import com.example.core.domain.product.Product
 import com.example.core.domain.product.ProductId
 import com.example.core.domain.product.ProductsDataSource
 import com.example.core.domain.utils.DataError
 import com.example.core.domain.utils.EmptyResult
+import com.example.core.domain.utils.Result
 import com.example.core.domain.utils.asEmptyDataResult
 import com.example.products.domain.repositories.ProductsRepository
 import io.ktor.client.HttpClient
@@ -28,7 +30,11 @@ class ProductsRepositoryImpl(
         return productsDataSource.upsertProduct(product).asEmptyDataResult()
     }
 
-    override suspend fun deleteProduct(productId: ProductId) {
-        productsDataSource.deleteProduct(productId)
+    override suspend fun deleteProduct(productId: ProductId): Result<ProductId, DataError.Local>  {
+        return productsDataSource.deleteProduct(productId)
+    }
+
+    override suspend fun getProduct(productId: ProductId): Result<Product, DataError.Local> {
+        return productsDataSource.getProduct(productId)
     }
 }

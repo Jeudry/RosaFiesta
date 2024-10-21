@@ -19,6 +19,8 @@ fun ProductEntity.toProduct(): Product {
         stock = stock,
         created = Instant.parse(created)
             .atZone(ZoneId.of("UTC")),
+        color = color,
+        size = size
     )
 }
 
@@ -32,5 +34,7 @@ fun Product.toProductEntity(): ProductEntity {
         imageUrl = imageUrl,
         stock = stock,
         created = created.toInstant().toString(),
+        color = color,
+        size = size
     )
 }

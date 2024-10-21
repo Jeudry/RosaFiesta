@@ -1,3 +1,27 @@
 <resources>
     <string name="app_name">RosaFiesta</string>
+    <string name="home_title">Inicio</string>
+    <string name="products">Productos</string>
+    <string name="analytics">Analytica</string>
+    <string name="menu">Menu</string>
+    <string name="dashboard_route">dashboard</string>
+    <string name="products_list_route">products_list</string>
+    <string name="product_add_title">Añadir producto</string>
+    <string name="products_list_title">Lista de Productos</string>
+    <string name="products_route">products</string>
+    <string name="intro_route">intro</string>
+    <string name="intro_title">Pantalla de Inicio</string>
+    <string name="register_route">register</string>
+    <string name="register_title">Registrarse</string>
+    <string name="login_route">login</string>
+    <string name="home_route">home</string>
+    <string name="auth_route">auth</string>
+    <string name="login_title">Autentificación</string>
+    <string name="product_detail_route">product_detail/{productId}</string>
+    <string name="product_detail_route_navigate">product_detail/</string>
+    <string name="product_add_route">product_add</string>
+    <string name="dashboard_title">Dashboard</string>
+    <string name="analytics_route">analytics</string>
+    <string name="product_detail_title">Detalle de Producto</string>
+    <string name="product_id">productId</string>
 </resources>

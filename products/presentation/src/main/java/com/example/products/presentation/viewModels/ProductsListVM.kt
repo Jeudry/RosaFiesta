@@ -30,11 +30,7 @@ class ProductsListVM(
 
     fun onAction(action: ProductsListAction) {
         when (action) {
-            is ProductsListAction.OnProductDelete -> {
-                viewModelScope.launch {
-                    productsRepository.deleteProduct(action.productId)
-                }
-            }
+            is ProductsListAction.OnProductDelete -> TODO()
             is ProductsListAction.OnProductDetail -> TODO()
         }
     }

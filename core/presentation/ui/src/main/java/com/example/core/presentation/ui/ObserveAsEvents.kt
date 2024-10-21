@@ -16,6 +16,7 @@ fun <T> ObserveAsEvents(
   key2: Any? = null,
   onEvent: (T) -> Unit
 ) {
+  
   val lifecycleOwner = LocalLifecycleOwner.current
   LaunchedEffect(flow, lifecycleOwner.lifecycle, key1, key2) {
     lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {

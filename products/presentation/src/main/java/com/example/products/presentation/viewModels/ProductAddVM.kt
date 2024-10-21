@@ -3,6 +3,7 @@
 
 package com.example.products.presentation.viewModels
 
+import android.icu.util.UniversalTimeScale.toLong
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.text2.input.textAsFlow
 import androidx.compose.runtime.getValue
@@ -59,8 +60,10 @@ class ProductAddVM (
                 rentalPrice = state.rentalPrice.text.toString().toDoubleOrNull(),
                 imageUrl = state.imageUrl.text.toString(),
                 stock = state.stock.text.toString().toInt(),
+                color = state.color.text.toString().toLongOrNull() ?: 0,
+                size = state.size.text.toString().toDouble(),
                 created = ZonedDateTime.now()
-                .withZoneSameInstant(ZoneId.of("UTC")),
+                .withZoneSameInstant(ZoneId.of("UTC"))
             )
 
             val result = productsRepository.upsertProduct(product)
@@ -127,6 +130,24 @@ class ProductAddVM (
                 val validator = productDataValidator.isValidStock(stock.toString().toIntOrNull() ?: 0)
                 state = state.copy(
                     isStockValid = validator,
+                    canAdd = state.isValid()
+                )
+            }.launchIn(viewModelScope)
+        
+        state.color.textAsFlow()
+            .onEach { color ->
+                val validator = productDataValidator.isValidColor(color.toString().toLongOrNull(16) ?:0)
+                state = state.copy(
+                    isColorValid = validator,
+                    canAdd = state.isValid()
+                )
+            }.launchIn(viewModelScope)
+        
+        state.size.textAsFlow()
+            .onEach { size ->
+                val validator = productDataValidator.isValidSize(size.toString().toDoubleOrNull() ?: 0.0)
+                state = state.copy(
+                    isSizeValid = validator,
                     canAdd = state.isValid()
                 )
             }.launchIn(viewModelScope)

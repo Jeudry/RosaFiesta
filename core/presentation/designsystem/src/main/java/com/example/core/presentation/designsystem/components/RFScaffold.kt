@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
+@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3Api::class)
 
 package com.example.core.presentation.designsystem.components
 
@@ -20,13 +20,15 @@ fun RFScaffold(
   topAppBar: @Composable () -> Unit = {},
   floatingActionButton: @Composable () -> Unit = {},
   scrollBehavior: TopAppBarScrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(),
+  bottomBar:@Composable () -> Unit = {},
   content: @Composable (PaddingValues) -> Unit = {},
-) {
+  ) {
   Scaffold(
     topBar = topAppBar,
     floatingActionButton = floatingActionButton,
     modifier = modifier,
-    floatingActionButtonPosition = FabPosition.Center
+    floatingActionButtonPosition = FabPosition.Center,
+    bottomBar = bottomBar,
   ) { padding ->
     if (withGradient) {
       GradientBackground {
@@ -48,7 +50,8 @@ private fun RFScaffoldPreview() {
       topAppBar = {},
       floatingActionButton = {},
       scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(),
-      content = {}
+      content = {},
+      bottomBar = {}
     )
   }
 }

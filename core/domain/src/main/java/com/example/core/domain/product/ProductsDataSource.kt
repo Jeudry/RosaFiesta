@@ -12,5 +12,6 @@ typealias ProductId = String
 interface ProductsDataSource {
     fun getProducts(): Flow<List<Product>>
     suspend fun upsertProduct(product: Product): Result<ProductId, DataError.Local>
-    suspend fun deleteProduct(productId: ProductId)
+    suspend fun deleteProduct(productId: ProductId): Result<ProductId, DataError.Local>
+    suspend fun getProduct(productId: ProductId): Result<Product, DataError.Local>
 }

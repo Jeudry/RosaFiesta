@@ -45,33 +45,36 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.SubcomposeAsyncImage
+import com.example.core.domain.product.Product
 import com.example.core.presentation.designsystem.CalendarIcon
 import com.example.core.presentation.designsystem.RFTheme
 import com.example.core.presentation.designsystem.RunOutlinedIcon
-import com.example.core.domain.product.Product
 import com.example.products.presentation.R
 import com.example.products.presentation.model.ProductDataUi
 import com.example.products.presentation.model.ProductUi
 import com.example.products.presentation.model.mapper.toProductUi
-import java.time.ZonedDateTime
 import kotlin.math.max
+import java.time.ZonedDateTime
 
 @Composable
 fun ProductListItem(
     productUi: ProductUi,
     onDeleteClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
 ) {
     var showDropDown by remember {
         mutableStateOf(false)
     }
-    Box {
+    Box{
         Column(
             modifier = modifier
                 .clip(RoundedCornerShape(15.dp))
                 .background(MaterialTheme.colorScheme.surface)
                 .combinedClickable(
-                    onClick = {},
+                    onClick = {
+                        onClick()
+                    },
                     onLongClick = {
                         showDropDown = true
                     }
@@ -313,9 +316,14 @@ private fun RunListItemPreview() {
                 price = 50.0,
                 stock = 10,
                 created = ZonedDateTime.now(),
-                imageUrl = ""
+                imageUrl = "",
+                color = 0,
+                size = 0.0
             ).toProductUi(),
-            onDeleteClick = { }
+            onDeleteClick = { },
+            onClick = {
+            
+            }
         )
     }
 }

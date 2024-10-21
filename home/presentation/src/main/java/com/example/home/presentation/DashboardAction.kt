@@ -6,6 +6,5 @@ import com.example.products.presentation.model.ProductUi
 sealed interface DashboardAction {
     data class OnProductDetail(val productId: ProductId): DashboardAction
     data object OnProductsList: DashboardAction
-    data object OnProductAdd: DashboardAction
     data class OnProductDelete(val productId: ProductId): DashboardAction
 }

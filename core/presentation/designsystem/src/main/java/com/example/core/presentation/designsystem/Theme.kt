@@ -3,6 +3,7 @@ package com.example.core.presentation.designsystem
 import android.app.Activity
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.platform.LocalView
@@ -22,11 +23,27 @@ val DarkColorScheme = darkColorScheme(
   error = RFDarkRed
 )
 
+val LightColorScheme = lightColorScheme(
+  primary = RFAccent,
+  background = RFWhite,
+  surface = RFShadow,
+  secondary = RFBlack,
+  secondaryContainer = RFAccent,
+  tertiary = RFTertiary,
+  primaryContainer = RFGreen30,
+  onPrimary = RFDarkGray,
+  onBackground = RFBlack,
+  onSurface = RFBlack,
+  onSecondary = RFWhite,
+  onSurfaceVariant = RFLightGray,
+  error = RFDarkRed
+)
+
 @Composable
 fun RFTheme(
   content: @Composable () -> Unit
 ) {
-  val colorScheme = DarkColorScheme
+  val colorScheme = LightColorScheme
 
   val view = LocalView.current
   if (!view.isInEditMode) {

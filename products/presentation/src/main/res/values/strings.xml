@@ -16,4 +16,10 @@
     <string name="add_product">Agregar producto.</string>
     <string name="must_be_a_valid_price">Debe ser un precio valido.</string>
     <string name="must_be_a_valid_stock">Debe ser un stock valido.</string>
+    <string name="product_detail">Detalle de Producto</string>
+    <string name="color">Color</string>
+    <string name="size">Size</string>
+    <string name="product_add">Add product</string>
+    <string name="sizes">Tamaños:</string>
+    <string name="colors">Colores:</string>
 </resources>

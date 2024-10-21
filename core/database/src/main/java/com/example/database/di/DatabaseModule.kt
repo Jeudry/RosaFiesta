@@ -19,14 +19,14 @@ val databaseModule = module {
             androidApplication(),
             RunDatabase::class.java,
             "run.db"
-        ).build()
+        ).fallbackToDestructiveMigration().build()
     }
     single {
         Room.databaseBuilder(
             androidApplication(),
             ProductDatabase::class.java,
             "product.db"
-        ).build()
+        ).fallbackToDestructiveMigration().build()
     }
 
     single { get<RunDatabase>().runDao }

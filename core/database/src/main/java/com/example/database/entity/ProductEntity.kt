@@ -3,7 +3,6 @@ package com.example.database.entity
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import org.bson.types.ObjectId
-import java.time.ZonedDateTime
 
 @Entity
 data class ProductEntity(
@@ -13,7 +12,9 @@ data class ProductEntity(
     val description: String?,
     val price: Double,
     val rentalPrice: Double?,
+    val color: Long,
+    val size: Double,
     val imageUrl: String?,
-    val stock: Int,
+    val stock: Int = 0,
     val created: String
 )

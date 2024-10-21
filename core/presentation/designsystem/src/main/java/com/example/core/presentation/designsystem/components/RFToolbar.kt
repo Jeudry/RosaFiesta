@@ -33,6 +33,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.core.presentation.designsystem.AnalyticsIcon
 import com.example.core.presentation.designsystem.ArrowLeftIcon
 import com.example.core.presentation.designsystem.LogoIcon
@@ -51,7 +52,7 @@ fun RFToolbar(
   onMenuItemClick: (Int) -> Unit = {},
   onBackClick: () -> Unit = {},
   scrollBehavior: TopAppBarScrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(),
-  startContent: (@Composable () -> Unit)? = null
+  startContent: @Composable() (() -> Unit)? = null
 ) {
   var isDropdownOpen by rememberSaveable {
     mutableStateOf(false)
@@ -63,12 +64,15 @@ fun RFToolbar(
         verticalAlignment = Alignment.CenterVertically
       ) {
         startContent?.invoke()
-        Spacer(modifier = Modifier.width(8.dp))
+        if(startContent != null) {
+          Spacer(modifier = Modifier.width(8.dp))
+        }
         Text(
           text = title,
           fontWeight = FontWeight.SemiBold,
           color = MaterialTheme.colorScheme.onBackground,
-          fontFamily = Poppins
+          fontFamily = Poppins,
+          fontSize = 28.sp
         )
       }
     },
@@ -132,22 +136,26 @@ fun RFToolbar(
 
 @Preview
 @Composable
-private fun RFToolbarPreview() {
+private fun RFToolbarPreview(
+  showLogo: Boolean = true
+) {
   RFTheme {
     RFToolbar(
-      title = "Title",
-      startContent = {
-        Icon(
-          imageVector = LogoIcon,
-          contentDescription = null,
-          tint = RFGreen,
-          modifier = Modifier.size(35.dp)
-        )
-      },
       modifier = Modifier.fillMaxWidth(),
+      title = "Title",
       menuItems = listOf(
         DropdownItem(AnalyticsIcon, "Analytics")
-      )
+      ),
+      startContent = {
+        if(showLogo) {
+          Icon(
+            imageVector = LogoIcon,
+            contentDescription = null,
+            tint = RFGreen,
+            modifier = Modifier.size(35.dp)
+          )
+        }
+      }
     )
   }
 }
