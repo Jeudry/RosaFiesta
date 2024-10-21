@@ -17,7 +17,7 @@ import com.example.rosafiesta.navigation.models.NavState
 fun NavGraphBuilder.dashboardComposable(navHostData: NavHostData) {
   val route = UiText.StringResource(R.string.dashboard_route).asString(navHostData.navController.context)
   val productsListRoute = UiText.StringResource(R.string.products_list_route).asString(navHostData.navController.context)
-  val productDetailRoute = UiText.StringResource(R.string.product_detail_route).asString(navHostData.navController.context)
+  val productDetailRouteNavigate = UiText.StringResource(R.string.product_detail_route_navigate).asString(navHostData.navController.context)
   val productAddRoute = UiText.StringResource(R.string.product_add_route).asString(navHostData.navController.context)
   
   return composable(route) {
@@ -41,10 +41,9 @@ fun NavGraphBuilder.dashboardComposable(navHostData: NavHostData) {
       onProductsList = {
         navHostData.navController.navigate(productsListRoute)
       },
-      onProductDetail = {
-        navHostData.navController.navigate(productDetailRoute)
-      },
-      scrollBehavior = navHostData.scrollBehavior
+      onProductDetail = { productId ->
+        navHostData.navController.navigate("${productDetailRouteNavigate}${productId}")
+      }
     )
   }
 }

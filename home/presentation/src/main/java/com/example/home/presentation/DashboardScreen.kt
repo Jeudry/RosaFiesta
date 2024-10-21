@@ -10,13 +10,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.core.domain.product.ProductId
 import com.example.core.presentation.designsystem.RFTheme
 import com.example.products.presentation.components.ProductListItem
 import org.koin.androidx.compose.koinViewModel
@@ -25,21 +24,19 @@ import org.koin.androidx.compose.koinViewModel
 fun DashboardScreenRoot(
   viewModel: DashboardVM = koinViewModel(),
   onProductsList: () -> Unit,
-  onProductDetail: (Int) -> Unit,
-  scrollBehavior: TopAppBarScrollBehavior
+  onProductDetail: (ProductId) -> Unit
 ) {
   DashboardScreen(
     state = viewModel.state,
     onAction = { action ->
       when (action) {
         DashboardAction.OnProductsList -> onProductsList()
-        is DashboardAction.OnProductDetail -> TODO()
+        is DashboardAction.OnProductDetail -> onProductDetail(action.productId)
         else -> Unit
       }
 
       viewModel.onAction(action)
-    },
-    scrollBehavior = scrollBehavior
+    }
   )
 }
 
@@ -47,13 +44,11 @@ fun DashboardScreenRoot(
 @Composable
 fun DashboardScreen(
   state: DashboardState,
-  onAction: (DashboardAction) -> Unit,
-  scrollBehavior: TopAppBarScrollBehavior
+  onAction: (DashboardAction) -> Unit
 ) {
   LazyColumn(
     modifier = Modifier
       .fillMaxSize()
-      .nestedScroll(scrollBehavior.nestedScrollConnection)
       .padding(horizontal = 16.dp),
     verticalArrangement = Arrangement.spacedBy(16.dp)
   ) {
@@ -65,6 +60,9 @@ fun DashboardScreen(
         productUi = productUi,
         onDeleteClick = {
           onAction(DashboardAction.OnProductDelete(productUi.id))
+        },
+        onClick = {
+          onAction(DashboardAction.OnProductDetail(productUi.id))
         },
         modifier = Modifier
           .animateItemPlacement()
@@ -84,8 +82,7 @@ private fun DashboardScreenPreview() {
   RFTheme {
     DashboardScreen(
       state = DashboardState(),
-      onAction = {},
-      scrollBehavior = scrollBehavior
+      onAction = {}
     )
   }
 }

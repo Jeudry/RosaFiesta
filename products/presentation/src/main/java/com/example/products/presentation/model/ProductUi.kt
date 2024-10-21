@@ -11,7 +11,6 @@ data class ProductUi (
     val rentalPrice: Double?,
     val color: Color,
     val size: Double,
-    val rating: Double,
     val imageUrl: String?,
     val stock: Int,
     val created: ZonedDateTime

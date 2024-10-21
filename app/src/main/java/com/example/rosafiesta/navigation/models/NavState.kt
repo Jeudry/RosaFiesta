@@ -6,5 +6,6 @@ data class NavState(
   val route: String,
   val title: String,
   val showBackBtn: Boolean = true,
+  val showLogo: Boolean = true,
   val addBtn: @Composable () -> Unit = {},
 )

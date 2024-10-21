@@ -11,7 +11,6 @@ data class Product (
   val rentalPrice: Double?,
   val color: Long,
   val size: Double,
-  val rating: Double = 0.0,
   val imageUrl: String?,
   val stock: Int = 0,
   val created: ZonedDateTime = ZonedDateTime.now()

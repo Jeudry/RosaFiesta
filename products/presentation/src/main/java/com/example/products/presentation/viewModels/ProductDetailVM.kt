@@ -4,25 +4,22 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
-import com.example.core.domain.product.ProductId
-import com.example.products.domain.repositories.ProductsRepository
-import com.example.products.presentation.model.ProductUi
-import com.example.products.presentation.states.ProductDetailState
 import androidx.lifecycle.viewModelScope
+import com.example.core.domain.product.ProductId
 import com.example.core.domain.utils.Result
-import com.example.core.domain.utils.map
 import com.example.core.presentation.ui.asUiText
+import com.example.products.domain.repositories.ProductsRepository
 import com.example.products.presentation.actions.ProductDetailAction
 import com.example.products.presentation.events.ProductDetailEvent
 import com.example.products.presentation.model.mapper.toProductUi
+import com.example.products.presentation.states.ProductDetailState
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import com.example.core.domain.utils.Result as ResultResponse
 
 class ProductDetailVM(
-    private val productsRepository: ProductsRepository,
-    productId: ProductId
+    private val productsRepository: ProductsRepository
 ): ViewModel() {
     var state by mutableStateOf<ProductDetailState?>(null)
         private set
@@ -30,7 +27,7 @@ class ProductDetailVM(
     private val eventChannel = Channel<ProductDetailEvent>()
     val events = eventChannel.receiveAsFlow()
 
-    init {
+    fun retrieveProduct(productId: ProductId) {
         viewModelScope.launch {
             when(val result = productsRepository.getProduct(productId)) {
                 is ResultResponse.Error -> {
@@ -58,7 +55,6 @@ class ProductDetailVM(
                     }
                 }
             }
-            else -> Unit
         }
     }
 }

@@ -11,7 +11,7 @@ import com.example.database.entity.ProductEntity
     entities = [
         ProductEntity::class
     ],
-    version = 2
+    version = 3
 )
 @TypeConverters(Converters::class)
 

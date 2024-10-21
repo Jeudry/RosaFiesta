@@ -22,8 +22,6 @@ fun NavGraphBuilder.productsListComposable(navHostData: NavHostData) {
         )
       )
     }
-    ProductsListSR(
-      scrollBehavior = navHostData.scrollBehavior
-    )
+    ProductsListSR()
   }
 }

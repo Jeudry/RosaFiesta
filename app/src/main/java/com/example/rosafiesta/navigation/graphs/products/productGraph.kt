@@ -13,7 +13,8 @@ fun NavGraphBuilder.productGraph(navHostData: NavHostData) {
     startDestination = UiText.StringResource(R.string.products_list_route).asString(navHostData.context),
     route = UiText.StringResource(R.string.products_route).asString(navHostData.context)
   ) {
-    productAddComposable(navHostData)
     productsListComposable(navHostData)
+    productAddComposable(navHostData)
+    productDetailComposable(navHostData)
   }
 }

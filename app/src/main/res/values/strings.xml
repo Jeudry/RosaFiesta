@@ -17,8 +17,11 @@
     <string name="home_route">home</string>
     <string name="auth_route">auth</string>
     <string name="login_title">Autentificación</string>
-    <string name="product_detail_route">product_detail</string>
+    <string name="product_detail_route">product_detail/{productId}</string>
+    <string name="product_detail_route_navigate">product_detail/</string>
     <string name="product_add_route">product_add</string>
     <string name="dashboard_title">Dashboard</string>
     <string name="analytics_route">analytics</string>
+    <string name="product_detail_title">Detalle de Producto</string>
+    <string name="product_id">productId</string>
 </resources>

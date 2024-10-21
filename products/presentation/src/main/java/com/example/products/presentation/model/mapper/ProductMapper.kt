@@ -2,7 +2,6 @@ package com.example.products.presentation.model.mapper
 
 import androidx.compose.ui.graphics.Color
 import com.example.core.domain.product.Product
-import com.example.core.domain.run.Run
 import com.example.products.presentation.model.ProductUi
 
 /**
@@ -20,7 +19,6 @@ fun Product.toProductUi(): ProductUi {
         created = created,
         stock = stock,
         color = Color(color),
-        size = size,
-        rating = rating
+        size = size
     )
 }

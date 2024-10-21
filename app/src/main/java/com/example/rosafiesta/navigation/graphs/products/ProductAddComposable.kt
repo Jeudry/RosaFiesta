@@ -12,6 +12,7 @@ import com.example.rosafiesta.R
 import com.example.rosafiesta.navigation.models.NavHostData
 import com.example.rosafiesta.navigation.models.NavState
 
+@OptIn(ExperimentalFoundationApi::class)
 fun NavGraphBuilder.productAddComposable(navHostData: NavHostData) {
   val route = UiText.StringResource(R.string.product_add_route).asString(navHostData.navController.context)
   val productsListRoute = UiText.StringResource(R.string.products_list_route).asString(navHostData.navController.context)

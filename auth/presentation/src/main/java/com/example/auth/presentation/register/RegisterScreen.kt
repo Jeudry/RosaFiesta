@@ -10,9 +10,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.ClickableText
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -41,9 +40,9 @@ import com.example.core.presentation.designsystem.RFDarkRed
 import com.example.core.presentation.designsystem.RFGreen
 import com.example.core.presentation.designsystem.RFTheme
 import com.example.core.presentation.designsystem.components.GradientBackground
+import com.example.core.presentation.designsystem.components.RFActionButton
 import com.example.core.presentation.designsystem.components.RFPasswordTextField
 import com.example.core.presentation.designsystem.components.RFTextField
-import com.example.core.presentation.designsystem.components.RFActionButton
 import com.example.core.presentation.ui.ObserveAsEvents
 import org.koin.androidx.compose.koinViewModel
 
@@ -91,11 +90,13 @@ fun RegisterScreenRoot(
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun RegisterScreen(state: RegisterState, onAction: (RegisterAction) -> Unit) {
+fun RegisterScreen(
+  state: RegisterState,
+  onAction: (RegisterAction) -> Unit
+) {
   GradientBackground {
     Column(
       modifier = Modifier
-        .verticalScroll(rememberScrollState())
         .fillMaxSize()
         .padding(horizontal = 16.dp)
         .padding(vertical = 32.dp)
@@ -225,8 +226,7 @@ fun PasswordRequirement(
   }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
-@Suppress("OPT_IN_USAGE_FUTURE_ERROR")
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Preview
 @Composable
 private fun RegisterScreenPreview() {

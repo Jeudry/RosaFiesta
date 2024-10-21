@@ -20,4 +20,6 @@
     <string name="color">Color</string>
     <string name="size">Size</string>
     <string name="product_add">Add product</string>
+    <string name="sizes">Tamaños:</string>
+    <string name="colors">Colores:</string>
 </resources>
