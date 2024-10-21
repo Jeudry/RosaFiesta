@@ -1,2 +1,2 @@
 # RosaFiesta
-Android Kotlin Modular App
+Android Kotlin Modular App for practice
