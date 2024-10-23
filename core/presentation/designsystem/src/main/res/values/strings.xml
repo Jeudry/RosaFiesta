@@ -4,4 +4,5 @@
     <string name="hide_password">Hide password</string>
     <string name="go_back">Go back</string>
     <string name="open_menu">Open menu</string>
+    <string name="add_btn">Add</string>
 </resources>

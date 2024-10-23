@@ -6,8 +6,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.LaunchedEffect
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
-import com.example.core.presentation.designsystem.RunIcon
-import com.example.core.presentation.designsystem.components.RFFloatingActionBtn
+import com.example.core.presentation.designsystem.components.RFFloatingAddBtn
 import com.example.core.presentation.ui.UiText
 import com.example.home.presentation.DashboardScreenRoot
 import com.example.rosafiesta.R
@@ -28,12 +27,9 @@ fun NavGraphBuilder.dashboardComposable(navHostData: NavHostData) {
           title = UiText.StringResource(R.string.dashboard_title).asString(navHostData.navController.context),
           showBackBtn = false,
           addBtn = {
-            RFFloatingActionBtn(
-              icon = RunIcon,
-              onClick = {
-                navHostData.navController.navigate(productAddRoute)
-              }
-            )
+            RFFloatingAddBtn(onClick = {
+              navHostData.navController.navigate(productAddRoute)
+            })
           }
         ))
     }

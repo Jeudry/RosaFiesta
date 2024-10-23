@@ -9,15 +9,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.core.domain.product.ProductId
 import com.example.core.presentation.designsystem.RFTheme
-import com.example.products.presentation.components.ProductListItem
+import com.example.core.presentation.ui.BaseProductAction
+import com.example.core.presentation.ui.ProductAction
+import com.example.products.presentation.components.ProductSmallCard
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
@@ -28,10 +28,10 @@ fun DashboardScreenRoot(
 ) {
   DashboardScreen(
     state = viewModel.state,
-    onAction = { action ->
+    onAction = { action: BaseProductAction ->
       when (action) {
-        DashboardAction.OnProductsList -> onProductsList()
-        is DashboardAction.OnProductDetail -> onProductDetail(action.productId)
+        is ProductAction.OnProductDetail -> onProductDetail(action.productId)
+        is DashboardAction.OnProductsList -> onProductsList()
         else -> Unit
       }
 
@@ -40,11 +40,11 @@ fun DashboardScreenRoot(
   )
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun DashboardScreen(
   state: DashboardState,
-  onAction: (DashboardAction) -> Unit
+  onAction: (BaseProductAction) -> Unit
 ) {
   LazyColumn(
     modifier = Modifier
@@ -56,16 +56,12 @@ fun DashboardScreen(
       items = state.productsList,
       key = { it.id }
     ) { productUi ->
-      ProductListItem(
-        productUi = productUi,
-        onDeleteClick = {
-          onAction(DashboardAction.OnProductDelete(productUi.id))
-        },
-        onClick = {
-          onAction(DashboardAction.OnProductDetail(productUi.id))
-        },
+      ProductSmallCard(
         modifier = Modifier
-          .animateItemPlacement()
+          .padding(bottom = 16.dp)
+          .animateItemPlacement(),
+        product = productUi,
+        onAction = onAction
       )
     }
   }
@@ -74,11 +70,6 @@ fun DashboardScreen(
 @Preview
 @Composable
 private fun DashboardScreenPreview() {
-  val topAppBarState = rememberTopAppBarState()
-  val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(
-    state = topAppBarState
-  )
-  
   RFTheme {
     DashboardScreen(
       state = DashboardState(),
