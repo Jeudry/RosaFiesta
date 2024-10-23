@@ -1,10 +1,8 @@
 package com.example.home.presentation
 
-import com.example.core.domain.product.ProductId
-import com.example.products.presentation.model.ProductUi
+import com.example.core.presentation.ui.BaseProductAction
 
-sealed interface DashboardAction {
-    data class OnProductDetail(val productId: ProductId): DashboardAction
+sealed interface DashboardAction: BaseProductAction {
+    
     data object OnProductsList: DashboardAction
-    data class OnProductDelete(val productId: ProductId): DashboardAction
 }

@@ -5,8 +5,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.core.domain.utils.DataError
-import com.example.core.presentation.ui.UiText
+import com.example.core.presentation.ui.BaseProductAction
+import com.example.core.presentation.ui.ProductAction
 import com.example.core.presentation.ui.asUiText
 import com.example.home.presentation.events.DashboardEvent
 import com.example.products.domain.repositories.ProductsRepository
@@ -47,9 +47,9 @@ class DashboardVM(
     }.launchIn(viewModelScope)
   }
 
-  fun onAction(action: DashboardAction) {
+  fun onAction(action: BaseProductAction) {
     when (action) {
-      is DashboardAction.OnProductDelete -> {
+      is ProductAction.OnProductDelete -> {
         viewModelScope.launch {
           when(val result = productsRepository.deleteProduct(action.productId)) {
             is ResultResponse.Error -> {
@@ -63,9 +63,5 @@ class DashboardVM(
       }
       else -> Unit
     }
-  }
-
-  private fun logout(){
-    applicationScope
   }
 }

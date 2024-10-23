@@ -6,8 +6,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FabPosition
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
@@ -19,7 +17,7 @@ fun RFScaffold(
   withGradient: Boolean = true,
   topAppBar: @Composable () -> Unit = {},
   floatingActionButton: @Composable () -> Unit = {},
-  scrollBehavior: TopAppBarScrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(),
+  floatingBtnPosition: FabPosition = FabPosition.End,
   bottomBar:@Composable () -> Unit = {},
   content: @Composable (PaddingValues) -> Unit = {},
   ) {
@@ -27,7 +25,7 @@ fun RFScaffold(
     topBar = topAppBar,
     floatingActionButton = floatingActionButton,
     modifier = modifier,
-    floatingActionButtonPosition = FabPosition.Center,
+    floatingActionButtonPosition = floatingBtnPosition,
     bottomBar = bottomBar,
   ) { padding ->
     if (withGradient) {
@@ -49,7 +47,6 @@ private fun RFScaffoldPreview() {
       withGradient = true,
       topAppBar = {},
       floatingActionButton = {},
-      scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(),
       content = {},
       bottomBar = {}
     )
