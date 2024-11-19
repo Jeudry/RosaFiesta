@@ -1,9 +1,9 @@
 package com.example.data.services.auth
 
+import org.apache.commons.codec.digest.DigestUtils
 import com.example.core.services.HashingService
 import com.example.data.models.SaltedHash
 import org.apache.commons.codec.binary.Hex
-import org.apache.commons.codec.digest.DigestUtils
 import java.security.SecureRandom
 
 class SHA256HashingService: HashingService {

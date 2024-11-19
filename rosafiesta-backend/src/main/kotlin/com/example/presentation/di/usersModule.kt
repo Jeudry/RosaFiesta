@@ -2,6 +2,7 @@ package com.example.presentation.di
 
 import com.example.core.services.HashingService
 import com.example.core.services.JwtService
+import com.example.core.services.JwtServiceImpl
 import com.example.core.services.UserServiceImpl
 import com.example.data.repositories.PostgresUserRepository
 import com.example.data.services.auth.SHA256HashingService
@@ -14,5 +15,5 @@ val usersModule = module {
     singleOf(::UserServiceImpl).bind(UserServiceImpl::class)
     singleOf(::PostgresUserRepository).bind(UserRepository::class)
     singleOf(::SHA256HashingService).bind(HashingService::class)
-    singleOf(::JwtTokenService).bind(JwtService::class)
+    singleOf(::JwtServiceImpl).bind(JwtService::class)
 }

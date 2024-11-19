@@ -16,7 +16,6 @@ fun Application.configureSecurity(
 ) {
     val jwtService: JwtService by inject<JwtService>()
 
-
     /*install(Authentication) {
         firebase {
             adminFile = File("path/to/admin/file.json")

@@ -16,7 +16,7 @@ fun main(args: Array<String>) {
 }
 
 fun Application.module() {
-    configureAdministration()
+//    configureAdministration()
     configureSockets()
     configureFrameworks()
     configureSerialization()

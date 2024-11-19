@@ -7,6 +7,7 @@ kotlin-version = "2.0.21"
 ktor-version = "3.0.1"
 logback-version = "1.4.14"
 postgres-version = "42.7.4"
+apache-commons = "1.17.1"
 
 [libraries]
 ktor-server-task-scheduling-core = { module = "io.github.flaxoos:ktor-server-task-scheduling-core", version = "2.1.1" }
@@ -40,9 +41,9 @@ firebase-auth-provider = { module = "com.kborowy:firebase-auth-provider", versio
 ktor-server-auth-jwt = { module = "io.ktor:ktor-server-auth-jwt-jvm", version.ref = "ktor-version" }
 ktor-server-netty = { module = "io.ktor:ktor-server-netty-jvm", version.ref = "ktor-version" }
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback-version" }
-ktor-server-config-yaml = { module = "io.ktor:ktor-server-config-yaml-jvm", version.ref = "ktor-version" }
+ktor-server-config-yaml = { module = "io.ktor:ktor-server-config-yaml", version.ref = "ktor-version" }
 ktor-server-test-host = { module = "io.ktor:ktor-server-test-host-jvm", version.ref = "ktor-version" }
-apache-commons-codec = { module = "commons-codec:commons-codec", version = "1.15" }
+apache-commons-codec = { module = "commons-codec:commons-codec", version.ref = "apache-commons" }
 kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin-version" }
 
 [plugins]

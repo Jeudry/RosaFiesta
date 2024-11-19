@@ -1,6 +1,7 @@
 package com.example.presentation.plugins
 
 import com.example.presentation.di.productsModule
+import com.example.presentation.di.usersModule
 import io.ktor.server.application.*
 import org.koin.dsl.module
 import org.koin.ktor.plugin.Koin
@@ -10,7 +11,13 @@ fun Application.configureFrameworks() {
     install(Koin) {
         slf4jLogger()
         modules(
-            productsModule
+            usersModule,
+            productsModule,
+            module {
+                single {
+                    environment
+                }
+            }
         )
     }
 }

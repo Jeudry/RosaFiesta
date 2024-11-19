@@ -8,21 +8,23 @@ import com.example.data.models.TokenConfig
 import com.example.database.models.UserTable.userName
 import com.example.domain.repository.UserRepository
 import io.ktor.server.application.Application
+import io.ktor.server.application.ApplicationEnvironment
 import io.ktor.server.auth.jwt.JWTCredential
 import io.ktor.server.auth.jwt.JWTPrincipal
+import io.ktor.server.engine.applicationEnvironment
 import java.util.Date
 
 class JwtServiceImpl(
-    private val application: Application,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val enviroment: ApplicationEnvironment
 ): JwtService {
      override val jwtConfig = TokenConfig(
-        issuer = getConfigProperty("jwt.issuer"),
         audience = getConfigProperty("jwt.audience"),
         domain = getConfigProperty("jwt.domain"),
         secret = getConfigProperty("jwt.secret"),
-        realm = getConfigProperty("jwt.realm")
-    )
+        realm = getConfigProperty("jwt.realm"),
+         issuer = getConfigProperty("jwt.issuer")
+         )
 
     override val jwtVerifier: JWTVerifier = JWT
         .require(Algorithm.HMAC256(jwtConfig.secret))
@@ -72,6 +74,7 @@ class JwtServiceImpl(
         return credential.payload.getClaim("username").asString()
     }
 
-    private fun getConfigProperty(path: String) =
-        application.environment.config.property(path).getString()
+    private fun getConfigProperty(path: String): String {
+        return enviroment.config.property(path).getString()
+    }
 }
