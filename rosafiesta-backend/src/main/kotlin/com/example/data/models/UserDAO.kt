@@ -27,7 +27,7 @@ class UserDAO(id: EntityID<UUID>) : UUIDEntity(id) {
     var phoneNumber by UserTable.phoneNumber
     var bornDate by UserTable.bornDate
     var created by UserTable.created
-    var avatar by UserTable.avatar
+    var avatar: String? by UserTable.avatar
     var password by UserTable.password
     var salt by UserTable.salt
 }

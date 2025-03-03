@@ -1,5 +1,6 @@
 package com.example.presentation.plugins
 
+import com.example.presentation.di.appModule
 import com.example.presentation.di.productsModule
 import com.example.presentation.di.usersModule
 import io.ktor.server.application.*
@@ -13,6 +14,7 @@ fun Application.configureFrameworks() {
         modules(
             usersModule,
             productsModule,
+            appModule,
             module {
                 single {
                     environment

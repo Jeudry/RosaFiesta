@@ -1,5 +1,6 @@
 package com.example.presentation.plugins
 
+import com.example.domain.repository.DatabaseService
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
@@ -8,18 +9,13 @@ import io.ktor.server.routing.*
 import java.sql.*
 import kotlinx.coroutines.*
 import org.jetbrains.exposed.sql.*
+import org.koin.ktor.ext.inject
 
 fun Application.configureDatabases() {
-    val url = environment.config.property("postgres.url").getString()
-    val user = environment.config.property("postgres.user").getString()
-    val password = environment.config.property("postgres.password").getString()
-
-    val dbConnection: Connection = connectToPostgres(embedded = true)
-    Database.connect(
-        url,
-        user = user,
-        password = password
-    )
+    val databaseService: DatabaseService by inject()
+    launch {
+        databaseService.initialize()
+    }
 }
 
 /**
