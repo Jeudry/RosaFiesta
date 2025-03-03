@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.ktor)
     alias(libs.plugins.kotlin.plugin.serialization)
+    alias(libs.plugins.flywaydb)
 }
 
 group = "com.example"
@@ -34,10 +35,20 @@ dependencies {
     implementation(libs.ktor.server.content.negotiation)
     implementation(libs.postgresql)
     implementation(libs.h2)
+
+    // DataBase
+    implementation(libs.flyway.core)
+    implementation(libs.flyway.database.postgresql)
+    implementation(libs.exposed.dao)
     implementation(libs.exposed.core)
     implementation(libs.exposed.jdbc)
+    implementation(libs.zaxxer)
+
+    // Monitoring
     implementation(libs.ktor.server.metrics)
     implementation(libs.ktor.server.call.logging)
+
+    // Http
     implementation(libs.ktor.server.swagger)
     implementation(libs.ktor.server.openapi)
     implementation(libs.ktor.server.http.redirect)
@@ -47,9 +58,12 @@ dependencies {
     implementation(libs.ktor.server.status.pages)
     implementation(libs.ktor.server.resources)
     implementation(libs.ktor.server.auto.head.response)
+
+    // Security
     implementation(libs.ktor.server.auth)
     implementation(libs.firebase.auth.provider)
     implementation(libs.ktor.server.auth.jwt)
+
     implementation(libs.ktor.server.netty)
     implementation(libs.logback.classic)
     implementation(libs.ktor.server.config.yaml)
