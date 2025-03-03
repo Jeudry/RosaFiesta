@@ -1,32 +1,19 @@
 package com.example.data.repositories
 
 import com.example.data.db.suspendTransaction
-import com.example.data.models.ProductDAO
 import com.example.data.models.UserDAO
 import com.example.data.models.toModel
-import com.example.database.models.ProductTable
 import com.example.database.models.UserTable
-import com.example.database.models.UserTable.avatar
-import com.example.database.models.UserTable.bornDate
-import com.example.database.models.UserTable.email
-import com.example.database.models.UserTable.firstName
-import com.example.database.models.UserTable.lastName
-import com.example.database.models.UserTable.password
-import com.example.database.models.UserTable.phoneNumber
-import com.example.database.models.UserTable.userName
-import com.example.domain.models.Product
 import com.example.domain.models.User
-import com.example.domain.repository.ProductsRepository
 import com.example.domain.repository.UserRepository
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.deleteWhere
-import java.util.UUID
+import java.util.*
 
 class PostgresUserRepository: UserRepository {
     override suspend fun retrieveAll(): List<User> = suspendTransaction {
         UserDAO.all().map{ it.toModel() }
     }
-
 
     override suspend fun retrieveById(id: UUID): User? = suspendTransaction {
         UserDAO.find { (UserTable.id eq id) }

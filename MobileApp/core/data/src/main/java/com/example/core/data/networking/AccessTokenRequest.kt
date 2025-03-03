@@ -7,3 +7,7 @@ class AccessTokenRequest(
   val refreshToken: String,
   val userId: String
 )
+
+fun Create(postModel: PostModel) {
+  return nil
+}

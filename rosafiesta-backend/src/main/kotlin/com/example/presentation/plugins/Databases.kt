@@ -1,7 +1,5 @@
 package com.example.presentation.plugins
 
-import com.example.ExposedUser
-import com.example.UserService
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
@@ -12,11 +10,15 @@ import kotlinx.coroutines.*
 import org.jetbrains.exposed.sql.*
 
 fun Application.configureDatabases() {
+    val url = environment.config.property("postgres.url").getString()
+    val user = environment.config.property("postgres.user").getString()
+    val password = environment.config.property("postgres.password").getString()
+
     val dbConnection: Connection = connectToPostgres(embedded = true)
     Database.connect(
-        "jdbc:postgresql://localhost:5432/rosafiesta",
-        user = "postgres",
-        password = "password"
+        url,
+        user = user,
+        password = password
     )
 }
 
