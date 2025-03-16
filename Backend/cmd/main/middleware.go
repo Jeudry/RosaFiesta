@@ -1,0 +1,185 @@
+package main
+
+import (
+	"Backend/internal/store/models"
+	"context"
+	"encoding/base64"
+	"fmt"
+	"github.com/golang-jwt/jwt/v5"
+	"net/http"
+	"strconv"
+	"strings"
+)
+
+func (app *Application) CheckPostOwnerShip(role string, next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		user := GetUserFromCtx(r)
+		post := GetPostFromCtx(r)
+
+		if post.UserID == user.ID {
+			next(w, r)
+			return
+		}
+
+		allowed, err := app.checkRolePrecedence(r.Context(), user, role)
+
+		if err != nil {
+			app.internalServerError(w, r, err)
+			return
+		}
+
+		if !allowed {
+			app.forbidden(w, r, fmt.Errorf("you do not have permission to access this resource"))
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	}
+}
+
+func (app *Application) checkRolePrecedence(ctx context.Context, user *models.User, roleName string) (bool, error) {
+	role, err := app.Store.Roles.RetrieveByName(ctx, roleName)
+
+	if err != nil {
+		return false, err
+	}
+
+	return role.Level >= user.Role.Level, nil
+}
+
+func (app *Application) AuthTokenMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authHeader := r.Header.Get("Authorization")
+
+		if authHeader == "" {
+			app.unauthorized(w, r, fmt.Errorf("authorization header required"))
+			return
+		}
+
+		parts := strings.Split(authHeader, " ")
+
+		if len(parts) != 2 || parts[0] != "Bearer" {
+			app.unauthorized(w, r, fmt.Errorf("authorization header format must be 'Bearer token'"))
+			return
+		}
+
+		token := parts[1]
+
+		app.Logger.Infow("token", "token", token)
+
+		jwtToken, err := app.Auth.ValidateToken(token)
+
+		app.Logger.Infow("jwtToken", "jwtToken", jwtToken)
+
+		if err != nil {
+			app.unauthorized(w, r, err)
+			return
+		}
+
+		claims, _ := jwtToken.Claims.(jwt.MapClaims)
+
+		userID, err := strconv.ParseInt(fmt.Sprintf("%.f", claims["sub"]), 10, 64)
+
+		if err != nil {
+			app.unauthorized(w, r, err)
+			return
+		}
+
+		ctx := r.Context()
+
+		user, err := app.GetUser(ctx, userID)
+
+		if err != nil {
+			app.unauthorized(w, r, err)
+			return
+		}
+
+		ctx = context.WithValue(r.Context(), UserCtx, user)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+func (app *Application) BasicAuthMiddleware() func(handler http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			authHeader := r.Header.Get("Authorization")
+			if authHeader == "" {
+				app.basicUnauthorized(w, r, fmt.Errorf("no authorization header provided"))
+				return
+			}
+
+			parts := strings.Split(authHeader, " ")
+			if len(parts) != 2 || parts[0] != "Basic" {
+				app.basicUnauthorized(w, r, fmt.Errorf("authorization header format must be 'Basic base64encodedstring'"))
+				return
+			}
+
+			decoded, err := base64.StdEncoding.DecodeString(parts[1])
+
+			if err != nil {
+				app.basicUnauthorized(w, r, err)
+				return
+			}
+
+			userName := app.Config.Auth.Basic.User
+			password := app.Config.Auth.Basic.Pass
+
+			creds := strings.SplitN(string(decoded), ":", 2)
+
+			if len(creds) != 2 {
+				app.basicUnauthorized(w, r, fmt.Errorf("authorization header must contain a username and password separated by a colon"))
+				return
+			}
+
+			if creds[0] != userName || creds[1] != password {
+				app.basicUnauthorized(w, r, fmt.Errorf("invalid credentials"))
+				return
+			}
+
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+func (app *Application) GetUser(ctx context.Context, userID int64) (*models.User, error) {
+	if !app.Config.Redis.Enabled {
+		user, err := app.Store.Users.RetrieveById(ctx, userID)
+		if err != nil {
+			return nil, err
+		}
+		return user, nil
+	}
+
+	user, err := app.CacheStorage.Users.Get(ctx, userID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if user == nil {
+		user, err = app.Store.Users.RetrieveById(ctx, userID)
+		if err != nil {
+			return nil, err
+		}
+
+		err = app.CacheStorage.Users.Set(ctx, user)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return user, nil
+}
+
+func (app *Application) RateLimiterMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if app.Config.RateLimiter.Enabled {
+			if allow, retryAfter := app.RateLimiter.Allow(r.RemoteAddr); !allow {
+				app.rateLimitExceededResponse(w, r, retryAfter.String())
+				return
+			}
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}

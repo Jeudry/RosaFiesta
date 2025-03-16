@@ -1,0 +1,2 @@
+ALTER TABLE users DROP COLUMN phoneNumber;
+ALTER TABLE users DROP COLUMN bornDate;
