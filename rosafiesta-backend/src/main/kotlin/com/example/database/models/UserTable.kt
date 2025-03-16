@@ -2,7 +2,7 @@ package com.example.database.models
 
 import org.jetbrains.exposed.dao.id.UUIDTable
 
-object UserTable : UUIDTable("products") {
+object UserTable : UUIDTable("Users") {
     val userName = varchar("userName", 256).index()
     val firstName = varchar("firstName", 256)
     val lastName = varchar("lastName", 256)

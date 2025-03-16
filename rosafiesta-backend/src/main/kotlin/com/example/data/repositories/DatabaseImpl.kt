@@ -8,6 +8,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.flywaydb.core.Flyway
 import org.flywaydb.core.api.FlywayException
+import org.h2.jdbc.JdbcConnection
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.sql.Connection
@@ -15,6 +16,12 @@ import java.sql.DriverManager
 import java.sql.SQLException
 import javax.sql.DataSource
 import kotlin.coroutines.CoroutineContext
+
+import liquibase.Liquibase
+import liquibase.database.DatabaseFactory
+import liquibase.resource.FileSystemResourceAccessor
+import java.io.File
+
 
 class DatabaseImpl(
     private val ioContext: CoroutineContext = Dispatchers.IO,
@@ -33,7 +40,7 @@ class DatabaseImpl(
 
         Database.connect(dataSource)
 
-        migrate(dataSource)
+        migrateDatabaseSchema(dataSource)
     }
 
     // Move all db queries to io thread and wrap within a DB transaction
@@ -41,7 +48,7 @@ class DatabaseImpl(
         transaction { block() }
     }
 
-    private fun postgresDataSource(): DataSource {
+    private fun postgresDataSource(): HikariDataSource {
         val database = environment.config.property("postgres.database").getString()
         val baseUrl = environment.config.property("postgres.baseUrl").getString()
         val user = environment.config.property("postgres.user").getString()
@@ -59,6 +66,20 @@ class DatabaseImpl(
                 validate()
             }
         )
+    }
+
+    fun migrateDatabaseSchema(datasource: HikariDataSource){
+        val database = DatabaseFactory.getInstance()
+            .findCorrectDatabaseImplementation(
+                liquibase.database.jvm.JdbcConnection(datasource.connection)
+            )
+        val liquibase = Liquibase(
+            "/db/changelog.sql",
+            FileSystemResourceAccessor(File("src/main/resources")),
+            database
+        )
+        liquibase.update("")
+        liquibase.close()
     }
 
     private fun migrate(dataSource: DataSource) {
