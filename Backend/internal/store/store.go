@@ -17,6 +17,10 @@ var (
 type Storage struct {
 	Products interface {
 		Create(context.Context, *models.Product) error
+		GetById(context.Context, int64) (*models.Product, error)
+		Update(context.Context, *models.Product) error
+		Delete(context.Context, *models.Product) error
+		GetAll(context.Context) ([]models.Product, error)
 	}
 	Posts interface {
 		Create(context.Context, *models.Post) error
@@ -44,6 +48,7 @@ type Storage struct {
 
 func NewStorage(db *sql.DB) Storage {
 	return Storage{
+		Products: &ProductsStore{db: db},
 		Posts:    &PostsStore{db: db},
 		Users:    &UsersStore{db: db},
 		Comments: &CommentsStore{db: db},

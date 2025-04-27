@@ -44,6 +44,39 @@ definitions:
       version:
         type: integer
     type: object
+  models.Product:
+    properties:
+      color:
+        type: integer
+      created:
+        type: string
+      created_by:
+        type: string
+      deleted:
+        type: string
+      deleted_by:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      image_url:
+        type: string
+      name:
+        type: string
+      price:
+        type: number
+      rental_price:
+        type: number
+      size:
+        type: number
+      stock:
+        type: integer
+      updated:
+        type: string
+      updated_by:
+        type: string
+    type: object
   models.Role:
     properties:
       description:
@@ -103,6 +136,33 @@ definitions:
     required:
     - title
     type: object
+  view_models.CreateProductPayload:
+    properties:
+      color:
+        maximum: 4294967295
+        minimum: 0
+        type: integer
+      description:
+        maxLength: 3000
+        type: string
+      image_url:
+        maxLength: 3000
+        type: string
+      name:
+        maxLength: 128
+        type: string
+      price:
+        type: number
+      rental_price:
+        type: number
+      size:
+        type: number
+      stock:
+        maximum: 100000000
+        type: integer
+    required:
+    - name
+    type: object
   view_models.CreateUserTokenPayload:
     properties:
       email:
@@ -141,6 +201,33 @@ definitions:
       title:
         maxLength: 100
         type: string
+    type: object
+  view_models.UpdateProductPayload:
+    properties:
+      color:
+        maximum: 4294967295
+        minimum: 0
+        type: integer
+      description:
+        maxLength: 3000
+        type: string
+      image_url:
+        maxLength: 3000
+        type: string
+      name:
+        maxLength: 128
+        type: string
+      price:
+        type: number
+      rental_price:
+        type: number
+      size:
+        type: number
+      stock:
+        maximum: 100000000
+        type: integer
+    required:
+    - name
     type: object
   view_models.UserWithToken:
     properties:
@@ -398,6 +485,155 @@ paths:
       summary: Create a new comment for a post
       tags:
       - comments
+  /products:
+    get:
+      consumes:
+      - application/json
+      description: Get all products
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of products
+          schema:
+            items:
+              $ref: '#/definitions/models.Product'
+            type: array
+        "500":
+          description: Internal server error
+          schema: {}
+      security:
+      - ApiKeyAuth: []
+      summary: Get all Products
+      tags:
+      - products
+    post:
+      consumes:
+      - application/json
+      description: Creates a new product with the provided info
+      parameters:
+      - description: Product creation payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/view_models.CreateProductPayload'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created product
+          schema:
+            $ref: '#/definitions/models.Product'
+        "400":
+          description: Bad request
+          schema: {}
+        "500":
+          description: Internal server error
+          schema: {}
+      security:
+      - ApiKeyAuth: []
+      summary: Creates Product
+      tags:
+      - products
+  /products/{id}:
+    put:
+      consumes:
+      - application/json
+      description: Update a product with the provided info
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Product update payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/view_models.UpdateProductPayload'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Updated product
+          schema:
+            $ref: '#/definitions/models.Product'
+        "400":
+          description: Bad request
+          schema: {}
+        "500":
+          description: Internal server error
+          schema: {}
+      security:
+      - ApiKeyAuth: []
+      summary: Update Product
+      tags:
+      - products
+  /products/{productId}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a product by its ID
+      parameters:
+      - description: Product ID
+        in: path
+        name: productId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Product deleted successfully
+          schema:
+            type: string
+        "400":
+          description: Bad request
+          schema: {}
+        "404":
+          description: Product not found
+          schema: {}
+        "500":
+          description: Internal server error
+          schema: {}
+      security:
+      - ApiKeyAuth: []
+      summary: Delete Product
+      tags:
+      - products
+    get:
+      consumes:
+      - application/json
+      description: Get a product by its ID
+      parameters:
+      - description: Product ID
+        in: path
+        name: productId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Product
+          schema:
+            $ref: '#/definitions/models.Product'
+        "400":
+          description: Bad request
+          schema: {}
+        "404":
+          description: Product not found
+          schema: {}
+        "500":
+          description: Internal server error
+          schema: {}
+      security:
+      - ApiKeyAuth: []
+      summary: Get Product
+      tags:
+      - products
   /users/{id}:
     get:
       consumes:

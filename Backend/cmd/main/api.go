@@ -49,7 +49,7 @@ func (app *Application) Mount() http.Handler {
 		r.Get("/swagger/*", httpSwagger.Handler(httpSwagger.URL(docsUrl)))
 
 		r.Route("/posts", func(r chi.Router) {
-			r.Use(app.AuthTokenMiddleware)
+			r.Use(app.AuthTokenMiddleware())
 			r.Post("/", app.createPostHandler)
 
 			r.Route("/{postId}", func(r chi.Router) {
@@ -62,14 +62,16 @@ func (app *Application) Mount() http.Handler {
 		})
 
 		r.Route("/products", func(r chi.Router) {
-			r.Use(app.AuthTokenMiddleware)
-			r.Post("/", app.createProductHandler)
+			r.Use(app.AuthTokenMiddleware())
+			r.Post("/", app.CheckRole("moderator", app.createProductHandler))
+			r.Get("/", app.getAllProductsHandler)
 
 			r.Route("/{productId}", func(r chi.Router) {
-				/*r.Use(app.productsContextMiddleware)
+				r.Use(app.productsContextMiddleware)
+				r.Use(app.RoleMiddleware("moderator"))
 				r.Get("/", app.getProductHandler)
-				r.Put("/", app.CheckProductOwnerShip("moderator", app.updateProductHandler))
-				r.Delete("/", app.CheckProductOwnerShip("admin", app.deleteProductHandler))*/
+				r.Put("/", app.updateProductHandler)
+				r.Delete("/", app.deleteProductHandler)
 			})
 		})
 
@@ -77,12 +79,12 @@ func (app *Application) Mount() http.Handler {
 			r.Put("/active/{token}", app.activateUserHandler)
 
 			r.Route("/{userId}", func(r chi.Router) {
-				r.Use(app.AuthTokenMiddleware)
+				r.Use(app.AuthTokenMiddleware())
 				r.Get("/", app.getUserHandler)
 			})
 
 			r.Group(func(r chi.Router) {
-				r.Use(app.AuthTokenMiddleware)
+				r.Use(app.AuthTokenMiddleware())
 				r.Get("/feed", app.getUserFeedHandler)
 			})
 		})

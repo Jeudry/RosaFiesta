@@ -11,6 +11,26 @@ import (
 	"strings"
 )
 
+func (app *Application) CheckRole(role string, next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		user := GetUserFromCtx(r)
+
+		allowed, err := app.checkRolePrecedence(r.Context(), user, role)
+
+		if err != nil {
+			app.internalServerError(w, r, err)
+			return
+		}
+
+		if !allowed {
+			app.forbidden(w, r, fmt.Errorf("you do not have permission to access this resource"))
+			return
+		}
+
+		next(w, r)
+	}
+}
+
 func (app *Application) CheckPostOwnerShip(role string, next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		user := GetUserFromCtx(r)
@@ -44,61 +64,88 @@ func (app *Application) checkRolePrecedence(ctx context.Context, user *models.Us
 		return false, err
 	}
 
-	return role.Level >= user.Role.Level, nil
+	return role.Level <= user.Role.Level, nil
 }
 
-func (app *Application) AuthTokenMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		authHeader := r.Header.Get("Authorization")
+func (app *Application) RoleMiddleware(roles ...string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			user := GetUserFromCtx(r)
 
-		if authHeader == "" {
-			app.unauthorized(w, r, fmt.Errorf("authorization header required"))
-			return
-		}
+			for _, role := range roles {
+				allowed, err := app.checkRolePrecedence(r.Context(), user, role)
+				if err != nil || !allowed {
+					app.forbidden(w, r, fmt.Errorf("you do not have permission to access this resource"))
+					return
+				}
+			}
 
-		parts := strings.Split(authHeader, " ")
-
-		if len(parts) != 2 || parts[0] != "Bearer" {
-			app.unauthorized(w, r, fmt.Errorf("authorization header format must be 'Bearer token'"))
-			return
-		}
-
-		token := parts[1]
-
-		app.Logger.Infow("token", "token", token)
-
-		jwtToken, err := app.Auth.ValidateToken(token)
-
-		app.Logger.Infow("jwtToken", "jwtToken", jwtToken)
-
-		if err != nil {
-			app.unauthorized(w, r, err)
-			return
-		}
-
-		claims, _ := jwtToken.Claims.(jwt.MapClaims)
-
-		userID, err := strconv.ParseInt(fmt.Sprintf("%.f", claims["sub"]), 10, 64)
-
-		if err != nil {
-			app.unauthorized(w, r, err)
-			return
-		}
-
-		ctx := r.Context()
-
-		user, err := app.GetUser(ctx, userID)
-
-		if err != nil {
-			app.unauthorized(w, r, err)
-			return
-		}
-
-		ctx = context.WithValue(r.Context(), UserCtx, user)
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
+func (app *Application) AuthTokenMiddleware(roles ...string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			authHeader := r.Header.Get("Authorization")
+
+			if authHeader == "" {
+				app.unauthorized(w, r, fmt.Errorf("authorization header required"))
+				return
+			}
+
+			parts := strings.Split(authHeader, " ")
+
+			if len(parts) != 2 || parts[0] != "Bearer" {
+				app.unauthorized(w, r, fmt.Errorf("authorization header format must be 'Bearer token'"))
+				return
+			}
+
+			token := parts[1]
+
+			app.Logger.Infow("token", "token", token)
+
+			jwtToken, err := app.Auth.ValidateToken(token)
+
+			app.Logger.Infow("jwtToken", "jwtToken", jwtToken)
+
+			if err != nil {
+				app.unauthorized(w, r, err)
+				return
+			}
+
+			claims, _ := jwtToken.Claims.(jwt.MapClaims)
+
+			userID, err := strconv.ParseInt(fmt.Sprintf("%.f", claims["sub"]), 10, 64)
+
+			if err != nil {
+				app.unauthorized(w, r, err)
+				return
+			}
+
+			ctx := r.Context()
+
+			user, err := app.GetUser(ctx, userID)
+
+			if err != nil {
+				app.unauthorized(w, r, err)
+				return
+			}
+
+			for _, role := range roles {
+				allowed, err := app.checkRolePrecedence(ctx, user, role)
+				if err != nil || !allowed {
+					app.forbidden(w, r, fmt.Errorf("you do not have permission to access this resource"))
+					return
+				}
+			}
+
+			ctx = context.WithValue(r.Context(), UserCtx, user)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
 func (app *Application) BasicAuthMiddleware() func(handler http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
