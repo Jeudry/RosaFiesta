@@ -33,7 +33,6 @@ class MainViewModel(
           isCheckingAuth = false
         )
       } catch (e: Exception) {
-        // En caso de error, asumimos que no está autenticado
         state = state.copy(
           isLoggedIn = false,
           isCheckingAuth = false

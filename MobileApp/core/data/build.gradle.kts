@@ -11,7 +11,7 @@ dependencies {
   // Timber
   implementation(libs.timber)
   implementation(libs.bundles.koin)
-  implementation(libs.jwt.decode)
+  implementation(libs.java.jwt)
   implementation(projects.core.domain)
   implementation(projects.core.database)
 }
