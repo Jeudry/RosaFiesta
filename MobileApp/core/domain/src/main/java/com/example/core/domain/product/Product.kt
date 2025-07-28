@@ -4,7 +4,7 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 
 data class Product (
-  val id: String?,
+  val id: ProductId?,
   val name: String,
   val description: String?,
   val price: Double,

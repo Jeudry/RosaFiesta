@@ -1,22 +1,25 @@
 package models
 
-import "golang.org/x/crypto/bcrypt"
+import (
+	"github.com/google/uuid"
+	"golang.org/x/crypto/bcrypt"
+)
 
 type User struct {
-	ID          int64    `json:"id"`
-	UserName    string   `json:"userName"`
-	FirstName   string   `json:"firstName"`
-	LastName    string   `json:"lastName"`
-	Email       string   `json:"email"`
-	PhoneNumber string   `json:"phone_number"`
-	Password    password `json:"-"`
-	Avatar      string   `json:"avatar"`
-	BornDate    string   `json:"born_date"`
-	CreatedAt   string   `json:"created_at"`
-	UpdatedAt   string   `json:"updated_at"`
-	IsActive    bool     `json:"is_active"`
-	RoleID      int64    `json:"role_id"`
-	Role        Role     `json:"role"`
+	ID          uuid.UUID `json:"id"`
+	UserName    string    `json:"userName"`
+	FirstName   string    `json:"firstName"`
+	LastName    string    `json:"lastName"`
+	Email       string    `json:"email"`
+	PhoneNumber string    `json:"phone_number"`
+	Password    password  `json:"-"`
+	Avatar      string    `json:"avatar"`
+	BornDate    string    `json:"born_date"`
+	CreatedAt   string    `json:"created_at"`
+	UpdatedAt   string    `json:"updated_at"`
+	IsActive    bool      `json:"is_active"`
+	RoleID      uuid.UUID `json:"role_id"`
+	Role        Role      `json:"role"`
 }
 
 type password struct {

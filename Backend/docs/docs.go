@@ -24,19 +24,22 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/authentication/token": {
+        "/authentication/refresh": {
             "post": {
-                "description": "Create a new token",
+                "description": "Create a new token\nGet a new access token using a refresh token",
                 "consumes": [
+                    "application/json",
                     "application/json"
                 ],
                 "produces": [
+                    "application/json",
                     "application/json"
                 ],
                 "tags": [
+                    "authentication",
                     "authentication"
                 ],
-                "summary": "Create a new token",
+                "summary": "Refresh an access token",
                 "parameters": [
                     {
                         "description": "User credentials",
@@ -46,13 +49,22 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/view_models.CreateUserTokenPayload"
                         }
+                    },
+                    {
+                        "description": "Refresh token",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/view_models.RefreshTokenRequest"
+                        }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "New tokens",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/view_models.LoginResponse"
                         }
                     },
                     "400": {
@@ -70,7 +82,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/authentication/user": {
+        "/authentication/register": {
             "post": {
                 "description": "Register a new user",
                 "consumes": [
@@ -103,6 +115,64 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad request",
+                        "schema": {}
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {}
+                    }
+                }
+            }
+        },
+        "/authentication/token": {
+            "post": {
+                "description": "Create a new token\nGet a new access token using a refresh token",
+                "consumes": [
+                    "application/json",
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json",
+                    "application/json"
+                ],
+                "tags": [
+                    "authentication",
+                    "authentication"
+                ],
+                "summary": "Refresh an access token",
+                "parameters": [
+                    {
+                        "description": "User credentials",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/view_models.CreateUserTokenPayload"
+                        }
+                    },
+                    {
+                        "description": "Refresh token",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/view_models.RefreshTokenRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "New tokens",
+                        "schema": {
+                            "$ref": "#/definitions/view_models.LoginResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {}
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {}
                     },
                     "500": {
@@ -745,10 +815,10 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "id": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "post_id": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "updated_at": {
                     "type": "string"
@@ -757,7 +827,7 @@ const docTemplate = `{
                     "$ref": "#/definitions/models.User"
                 },
                 "user_id": {
-                    "type": "integer"
+                    "type": "string"
                 }
             }
         },
@@ -777,7 +847,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "id": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "tags": {
                     "type": "array",
@@ -795,7 +865,7 @@ const docTemplate = `{
                     "$ref": "#/definitions/models.User"
                 },
                 "user_id": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "version": {
                     "type": "integer"
@@ -859,7 +929,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "id": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "level": {
                     "type": "integer"
@@ -888,7 +958,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "id": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "is_active": {
                     "type": "boolean"
@@ -903,7 +973,7 @@ const docTemplate = `{
                     "$ref": "#/definitions/models.Role"
                 },
                 "role_id": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "updated_at": {
                     "type": "string"
@@ -995,6 +1065,34 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 72,
                     "minLength": 3
+                }
+            }
+        },
+        "view_models.LoginResponse": {
+            "type": "object",
+            "properties": {
+                "accessToken": {
+                    "type": "string"
+                },
+                "accessTokenExpirationTimestamp": {
+                    "type": "integer"
+                },
+                "refreshToken": {
+                    "type": "string"
+                },
+                "userId": {
+                    "type": "string"
+                }
+            }
+        },
+        "view_models.RefreshTokenRequest": {
+            "type": "object",
+            "required": [
+                "refreshToken"
+            ],
+            "properties": {
+                "refreshToken": {
+                    "type": "string"
                 }
             }
         },
@@ -1091,7 +1189,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "id": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "is_active": {
                     "type": "boolean"
@@ -1106,7 +1204,7 @@ const docTemplate = `{
                     "$ref": "#/definitions/models.Role"
                 },
                 "role_id": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "token": {
                     "type": "string"

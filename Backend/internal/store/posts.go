@@ -5,6 +5,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"github.com/google/uuid"
 	"github.com/lib/pq"
 )
 
@@ -12,7 +13,7 @@ type PostsStore struct {
 	db *sql.DB
 }
 
-func (s *PostsStore) GetUserFeed(ctx context.Context, userId int64, fq models.PaginatedFeedQueryModel) ([]models.PostWithMetadata, error) {
+func (s *PostsStore) GetUserFeed(ctx context.Context, userId uuid.UUID, fq models.PaginatedFeedQueryModel) ([]models.PostWithMetadata, error) {
 	var query string
 
 	baseQuery := `SELECT p.id, p.user_id, p.title, p.content, p.created_at, 
@@ -109,7 +110,7 @@ func (s *PostsStore) Create(ctx context.Context, post *models.Post) error {
 	return err
 }
 
-func (s *PostsStore) RetrieveById(ctx context.Context, id int64) (*models.Post, error) {
+func (s *PostsStore) RetrieveById(ctx context.Context, id uuid.UUID) (*models.Post, error) {
 	query := `SELECT id, content, title, user_id, tags, created_at, updated_at, version FROM posts WHERE id = $1`
 
 	var post models.Post
@@ -151,7 +152,7 @@ func (s *PostsStore) Update(ctx context.Context, postUpdated *models.Post) error
 	return err
 }
 
-func (s *PostsStore) Delete(ctx context.Context, id int64) error {
+func (s *PostsStore) Delete(ctx context.Context, id uuid.UUID) error {
 	query := `DELETE FROM posts WHERE id = $1`
 
 	ctx, timeout := context.WithTimeout(ctx, QueryTimeoutDuration)

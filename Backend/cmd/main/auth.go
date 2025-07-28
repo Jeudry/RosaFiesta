@@ -1,7 +1,7 @@
 package main
 
 import (
-	"Backend/cmd/main/view_models"
+	"Backend/cmd/main/view_models/users"
 	"Backend/internal/mailer"
 	"Backend/internal/store"
 	"Backend/internal/store/models"
@@ -26,9 +26,9 @@ import (
 //	@Success		201		{object}	view_models.UserWithToken		"User registered"
 //	@Failure		400		{object}	error							"Bad request"
 //	@Failure		500		{object}	error							"Internal server error"
-//	@Router			/authentication/user [post]
+//	@Router			/authentication/register [post]
 func (app *Application) registerUserHandler(w http.ResponseWriter, r *http.Request) {
-	var payload view_models.RegisterUserPayload
+	var payload users.RegisterUserPayload
 
 	if err := readJson(w, r, &payload); err != nil {
 		app.badRequest(w, r, err)
@@ -75,7 +75,7 @@ func (app *Application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	userWithToken := view_models.UserWithToken{
+	userWithToken := users.UserWithToken{
 		User:  user,
 		Token: plainToken,
 	}
@@ -112,6 +112,93 @@ func (app *Application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 	}
 }
 
+// refreshTokenHandler godoc
+//
+//	@Summary		Refresh an access token
+//	@Description	Get a new access token using a refresh token
+//	@Tags			authentication
+//	@Accept			json
+//	@Produce		json
+//	@Param			payload	body		view_models.RefreshTokenRequest	true	"Refresh token"
+//	@Success		200		{object}	view_models.LoginResponse		"New tokens"
+//	@Failure		400		{object}	error							"Bad request"
+//	@Failure		401		{object}	error							"Unauthorized"
+//	@Failure		500		{object}	error							"Internal server error"
+//	@Router			/authentication/refresh [post]
+func (app *Application) refreshTokenHandler(w http.ResponseWriter, r *http.Request) {
+	var payload users.RefreshTokenRequest
+	if err := readJson(w, r, &payload); err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	if err := Validate.Struct(payload); err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	// Get refresh token from database
+	refreshToken, err := app.Store.RefreshTokens.GetByToken(r.Context(), payload.RefreshToken)
+	if err != nil {
+		app.unauthorized(w, r, errors.New("invalid refresh token"))
+		return
+	}
+
+	user, err := app.Store.Users.RetrieveById(r.Context(), refreshToken.UserID)
+	if err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+
+	if err := app.Store.RefreshTokens.Delete(r.Context(), refreshToken.Token); err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+
+	accessTokenExpiration := time.Now().Add(app.Config.Auth.Token.Exp)
+	claims := jwt.MapClaims{
+		"sub": user.ID,
+		"exp": accessTokenExpiration.Unix(),
+		"iat": time.Now().Unix(),
+		"iss": app.Config.Auth.Token.Iss,
+		"nbf": time.Now().Unix(),
+		"aud": app.Config.Auth.Token.Aud,
+	}
+
+	accessToken, err := app.Auth.GenerateToken(claims)
+	if err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+
+	// Generate new refresh token
+	newRefreshTokenStr := uuid.New().String()
+	refreshTokenExpiration := time.Now().Add(30 * 24 * time.Hour) // 30 days
+
+	newRefreshToken := &models.RefreshToken{
+		UserID:    user.ID,
+		Token:     newRefreshTokenStr,
+		ExpiresAt: refreshTokenExpiration,
+	}
+
+	// Store new refresh token in database
+	if err := app.Store.RefreshTokens.Create(r.Context(), newRefreshToken); err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+
+	response := users.LoginResponse{
+		AccessToken:                    accessToken,
+		UserId:                         user.ID,
+		AccessTokenExpirationTimestamp: accessTokenExpiration.Unix(),
+		RefreshToken:                   newRefreshTokenStr,
+	}
+
+	if err := app.jsonResponse(w, http.StatusOK, response); err != nil {
+		app.internalServerError(w, r, err)
+	}
+}
+
 // createTokenHandler godoc
 //
 //	@Summary		Create a new token
@@ -119,14 +206,14 @@ func (app *Application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 //	@Tags			authentication
 //	@Accept			json
 //	@Produce		json
-//	@Param			payload	body		view_models.CreateUserTokenPayload	true	"User credentials"
+//	@Param			payload	body	view_models.CreateUserTokenPayload	true	"User credentials"
 //	@Success		200		{string}	token
 //	@Failure		400		{object}	error	"Bad request"
 //	@Failure		500		{object}	error	"Internal server error"
 //	@Failure		401		{object}	error	"Unauthorized"
 //	@Router			/authentication/token [post]
 func (app *Application) createTokenHandler(w http.ResponseWriter, r *http.Request) {
-	var payload view_models.CreateUserTokenPayload
+	var payload users.CreateUserTokenPayload
 	if err := readJson(w, r, &payload); err != nil {
 		app.badRequest(w, r, err)
 		return
@@ -154,23 +241,48 @@ func (app *Application) createTokenHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	// Generate access token
+	accessTokenExpiration := time.Now().Add(app.Config.Auth.Token.Exp)
 	claims := jwt.MapClaims{
 		"sub": user.ID,
-		"exp": time.Now().Add(app.Config.Auth.Token.Exp).Unix(),
+		"exp": accessTokenExpiration.Unix(),
 		"iat": time.Now().Unix(),
 		"iss": app.Config.Auth.Token.Iss,
 		"nbf": time.Now().Unix(),
 		"aud": app.Config.Auth.Token.Aud,
 	}
 
-	token, err := app.Auth.GenerateToken(claims)
+	accessToken, err := app.Auth.GenerateToken(claims)
 
 	if err != nil {
 		app.internalServerError(w, r, err)
 		return
 	}
 
-	if err := app.jsonResponse(w, http.StatusOK, token); err != nil {
+	// Generate refresh token
+	refreshTokenStr := uuid.New().String()
+	refreshTokenExpiration := time.Now().Add(30 * 24 * time.Hour) // 30 days
+
+	refreshToken := &models.RefreshToken{
+		UserID:    user.ID,
+		Token:     refreshTokenStr,
+		ExpiresAt: refreshTokenExpiration,
+	}
+
+	// Store refresh token in database
+	if err := app.Store.RefreshTokens.Create(r.Context(), refreshToken); err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+
+	response := users.LoginResponse{
+		AccessToken:                    accessToken,
+		UserId:                         user.ID,
+		AccessTokenExpirationTimestamp: accessTokenExpiration.Unix(),
+		RefreshToken:                   refreshTokenStr,
+	}
+
+	if err := app.jsonResponse(w, http.StatusOK, response); err != nil {
 		app.internalServerError(w, r, err)
 	}
 }

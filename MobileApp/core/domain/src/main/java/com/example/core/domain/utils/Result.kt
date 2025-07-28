@@ -18,4 +18,18 @@ fun <T, E : ErrorInterface> Result<T, E>.asEmptyDataResult(): EmptyResult<E> {
   return map { }
 }
 
+inline fun <D, E : ErrorInterface> Result<D, E>.onSuccess(action: (D) -> Unit): Result<D, E> {
+  if (this is Result.Success) {
+    action(data)
+  }
+  return this
+}
+
+inline fun <D, E : ErrorInterface> Result<D, E>.onError(action: (E) -> Unit): Result<D, E> {
+  if (this is Result.Error) {
+    action(error)
+  }
+  return this
+}
+
 typealias EmptyResult<E> = Result<Unit, E>

@@ -1,4 +1,4 @@
-package view_models
+package posts
 
 type CreatePostPayload struct {
 	Title   string   `json:"title" validate:"required,max=100"`

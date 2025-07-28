@@ -2,16 +2,11 @@ package com.example.core.data.networking
 
 import com.example.core.data.BuildConfig
 import com.example.core.domain.utils.DataError
-import io.ktor.client.HttpClient
-import io.ktor.client.call.body
-import io.ktor.client.request.delete
-import io.ktor.client.request.get
-import io.ktor.client.request.parameter
-import io.ktor.client.request.post
-import io.ktor.client.request.setBody
-import io.ktor.client.request.url
-import io.ktor.client.statement.HttpResponse
-import io.ktor.util.network.UnresolvedAddressException
+import io.ktor.client.*
+import io.ktor.client.call.*
+import io.ktor.client.request.*
+import io.ktor.client.statement.*
+import io.ktor.util.network.*
 import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.SerializationException
 import com.example.core.domain.utils.Result as ResultResponse
@@ -56,7 +51,7 @@ suspend inline fun <reified Request, reified Response : Any> HttpClient.post(
   }
 }
 
-suspend inline fun <reified T> safeCall(execute: () -> HttpResponse): ResultResponse<T, DataError.Network> {
+suspend inline fun <reified Response> safeCall(execute: () -> HttpResponse): ResultResponse<Response, DataError.Network> {
   val response = try {
     execute()
   } catch (e: UnresolvedAddressException) {

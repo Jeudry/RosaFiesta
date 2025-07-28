@@ -32,12 +32,14 @@ class ProductsListVM(
     val eventsFlow = eventChannel.receiveAsFlow()
     
     init {
-        productsRepository.getProducts().onEach { runs ->
-            val productsUi = runs.map {productMap ->
-                productMap.toProductUi()
-            }
-            state = state.copy(productsList = productsUi)
-        }.launchIn(viewModelScope)
+        viewModelScope.launch {
+            productsRepository.getProducts().onEach { runs ->
+                val productsUi = runs.map { productMap ->
+                    productMap.toProductUi()
+                }
+                state = state.copy(productsList = productsUi)
+            }.launchIn(viewModelScope)
+        }
     }
 
     fun onAction(action: BaseProductAction) {

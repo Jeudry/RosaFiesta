@@ -6,8 +6,8 @@ import (
 	"encoding/base64"
 	"fmt"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"net/http"
-	"strconv"
 	"strings"
 )
 
@@ -117,7 +117,7 @@ func (app *Application) AuthTokenMiddleware(roles ...string) func(http.Handler) 
 
 			claims, _ := jwtToken.Claims.(jwt.MapClaims)
 
-			userID, err := strconv.ParseInt(fmt.Sprintf("%.f", claims["sub"]), 10, 64)
+			userID, err := uuid.Parse(claims["sub"].(string))
 
 			if err != nil {
 				app.unauthorized(w, r, err)
@@ -188,7 +188,7 @@ func (app *Application) BasicAuthMiddleware() func(handler http.Handler) http.Ha
 	}
 }
 
-func (app *Application) GetUser(ctx context.Context, userID int64) (*models.User, error) {
+func (app *Application) GetUser(ctx context.Context, userID uuid.UUID) (*models.User, error) {
 	if !app.Config.Redis.Enabled {
 		user, err := app.Store.Users.RetrieveById(ctx, userID)
 		if err != nil {

@@ -9,7 +9,10 @@ import com.example.rosafiesta.navigation.models.NavHostData
 fun NavGraphBuilder.authGraph(
   navHostData: NavHostData
 ) {
-  return navigation(startDestination = UiText.StringResource(R.string.intro_route).asString(navHostData.context), route = UiText.StringResource(R.string.auth_route).asString(navHostData.context)) {
+  return navigation(
+    startDestination = UiText.StringResource(R.string.intro_route).asString(navHostData.context),
+    route = UiText.StringResource(R.string.auth_route).asString(navHostData.context)
+  ) {
     introComposable(navHostData)
     registerComposable(navHostData)
     loginComposable(navHostData)

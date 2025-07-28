@@ -1,10 +1,11 @@
 package com.example.products.presentation.model
 
 import androidx.compose.ui.graphics.Color
+import com.example.core.domain.product.ProductId
 import java.time.ZonedDateTime
 
 data class ProductUi (
-    val id: String,
+    val id: ProductId,
     val name: String,
     val description: String? = null,
     val price: Double,

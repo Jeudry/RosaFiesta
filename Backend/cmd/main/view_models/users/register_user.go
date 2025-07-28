@@ -1,4 +1,4 @@
-package view_models
+package users
 
 type RegisterUserPayload struct {
 	Username string `json:"username" validate:"required,max=100"`

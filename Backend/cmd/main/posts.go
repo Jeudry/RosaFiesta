@@ -1,12 +1,12 @@
 package main
 
 import (
-	"Backend/cmd/main/view_models"
+	"Backend/cmd/main/view_models/posts"
 	"Backend/internal/store/models"
 	"context"
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"net/http"
-	"strconv"
 )
 
 type postKey string
@@ -27,7 +27,7 @@ const postCtx postKey = "post"
 //	@Router			/posts [post]
 
 func (app *Application) createPostHandler(w http.ResponseWriter, r *http.Request) {
-	var payload view_models.CreatePostPayload
+	var payload posts.CreatePostPayload
 
 	if err := readJson(w, r, &payload); err != nil {
 		app.badRequest(w, r, err)
@@ -105,7 +105,7 @@ func (app *Application) getPostHandler(w http.ResponseWriter, r *http.Request) {
 // @Router			/posts/{postId}/comments [post]
 func (app *Application) createPostCommentHandler(w http.ResponseWriter, r *http.Request) {
 	idParam := chi.URLParam(r, "postId")
-	idAsInt, err := strconv.ParseInt(idParam, 10, 64)
+	postID, err := uuid.Parse(idParam)
 
 	if err != nil {
 		app.internalServerError(w, r, err)
@@ -114,7 +114,7 @@ func (app *Application) createPostCommentHandler(w http.ResponseWriter, r *http.
 
 	ctx := r.Context()
 
-	var payload view_models.CreatePostCommentPayload
+	var payload posts.CreatePostCommentPayload
 
 	if err := readJson(w, r, &payload); err != nil {
 		app.badRequest(w, r, err)
@@ -127,8 +127,8 @@ func (app *Application) createPostCommentHandler(w http.ResponseWriter, r *http.
 
 	comment := &models.Comment{
 		Content: payload.Comment,
-		UserID:  1,
-		PostID:  idAsInt,
+		UserID:  GetUserFromCtx(r).ID,
+		PostID:  postID,
 	}
 
 	err = app.Store.Comments.CreatePostComment(ctx, comment)
@@ -160,7 +160,7 @@ func (app *Application) createPostCommentHandler(w http.ResponseWriter, r *http.
 func (app *Application) updatePostHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	var payload view_models.UpdatePostPayload
+	var payload posts.UpdatePostPayload
 
 	if err := readJson(w, r, &payload); err != nil {
 		app.badRequest(w, r, err)
@@ -206,7 +206,7 @@ func (app *Application) updatePostHandler(w http.ResponseWriter, r *http.Request
 // @Router			/posts/{postId} [delete]
 func (app *Application) deletePostHandler(w http.ResponseWriter, r *http.Request) {
 	idParam := chi.URLParam(r, "postId")
-	idAsInt, err := strconv.ParseInt(idParam, 10, 64)
+	postID, err := uuid.Parse(idParam)
 
 	if err != nil {
 		app.internalServerError(w, r, err)
@@ -215,7 +215,7 @@ func (app *Application) deletePostHandler(w http.ResponseWriter, r *http.Request
 
 	ctx := r.Context()
 
-	if err := app.Store.Posts.Delete(ctx, idAsInt); err != nil {
+	if err := app.Store.Posts.Delete(ctx, postID); err != nil {
 		app.handleError(w, r, err)
 	}
 
@@ -227,7 +227,7 @@ func (app *Application) deletePostHandler(w http.ResponseWriter, r *http.Request
 func (app *Application) postsContextMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		idParam := chi.URLParam(r, "postId")
-		idAsInt, err := strconv.ParseInt(idParam, 10, 64)
+		postID, err := uuid.Parse(idParam)
 
 		if err != nil {
 			app.internalServerError(w, r, err)
@@ -236,7 +236,7 @@ func (app *Application) postsContextMiddleware(next http.Handler) http.Handler {
 
 		ctx := r.Context()
 
-		post, err := app.Store.Posts.RetrieveById(ctx, idAsInt)
+		post, err := app.Store.Posts.RetrieveById(ctx, postID)
 
 		if err != nil {
 			app.handleError(w, r, err)

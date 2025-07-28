@@ -4,6 +4,7 @@ import (
 	models "Backend/internal/store/models"
 	"context"
 	"database/sql"
+	"github.com/google/uuid"
 	_ "github.com/lib/pq"
 )
 
@@ -28,7 +29,7 @@ func (s *CommentsStore) CreatePostComment(ctx context.Context, comment *models.C
 	return nil
 }
 
-func (s *CommentsStore) RetrieveCommentsByPostId(ctx context.Context, id int64) ([]models.Comment, error) {
+func (s *CommentsStore) RetrieveCommentsByPostId(ctx context.Context, id uuid.UUID) ([]models.Comment, error) {
 	query := `
 		SELECT c.id, c.content, c.post_id, c.user_id, c.created_at, c.updated_at, users.user_name, users.id FROM comments c
 		JOIN users ON c.user_id = users.id

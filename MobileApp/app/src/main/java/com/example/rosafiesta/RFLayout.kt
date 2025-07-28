@@ -43,8 +43,8 @@ fun RFLayout(
     )
   } else {
     NavState(
-      route = UiText.StringResource(R.string.home_route).asString(current),
-      title = UiText.StringResource(R.string.home_title).asString(current),
+      route = UiText.StringResource(R.string.auth_route).asString(current),
+      title = UiText.StringResource(R.string.intro_title).asString(current),
     )
   }
   

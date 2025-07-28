@@ -1,12 +1,10 @@
 package com.example.database.mappers
 
 import com.example.core.domain.product.Product
-import com.example.core.domain.run.Run
 import com.example.database.entity.ProductEntity
-import com.plcoding.core.database.entity.RunEntity
-import org.bson.types.ObjectId
 import java.time.Instant
 import java.time.ZoneId
+import java.util.*
 
 fun ProductEntity.toProduct(): Product {
     return Product(
@@ -26,7 +24,7 @@ fun ProductEntity.toProduct(): Product {
 
 fun Product.toProductEntity(): ProductEntity {
     return ProductEntity(
-        id = id ?: ObjectId().toHexString(),
+        id = id ?: UUID.randomUUID(),
         name = name,
         description = description,
         price = price,

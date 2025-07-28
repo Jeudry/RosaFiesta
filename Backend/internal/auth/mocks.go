@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"github.com/google/uuid"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -13,7 +14,7 @@ const secret = "test"
 var testClaims = jwt.MapClaims{
 	"aud": "test-aud",
 	"iss": "test-aud",
-	"sub": int64(1),
+	"sub": uuid.New().String(),
 	"exp": time.Now().Add(time.Hour).Unix(),
 }
 

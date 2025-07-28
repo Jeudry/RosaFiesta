@@ -1,4 +1,4 @@
-package view_models
+package posts
 
 type UpdatePostPayload struct {
 	Title   *string `json:"title" validate:"omitempty,max=100"`

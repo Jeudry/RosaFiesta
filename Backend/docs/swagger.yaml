@@ -7,15 +7,15 @@ definitions:
       created_at:
         type: string
       id:
-        type: integer
+        type: string
       post_id:
-        type: integer
+        type: string
       updated_at:
         type: string
       user:
         $ref: '#/definitions/models.User'
       user_id:
-        type: integer
+        type: string
     type: object
   models.Post:
     properties:
@@ -28,7 +28,7 @@ definitions:
       created_at:
         type: string
       id:
-        type: integer
+        type: string
       tags:
         items:
           type: string
@@ -40,7 +40,7 @@ definitions:
       user:
         $ref: '#/definitions/models.User'
       user_id:
-        type: integer
+        type: string
       version:
         type: integer
     type: object
@@ -82,7 +82,7 @@ definitions:
       description:
         type: string
       id:
-        type: integer
+        type: string
       level:
         type: integer
       name:
@@ -101,7 +101,7 @@ definitions:
       firstName:
         type: string
       id:
-        type: integer
+        type: string
       is_active:
         type: boolean
       lastName:
@@ -111,7 +111,7 @@ definitions:
       role:
         $ref: '#/definitions/models.Role'
       role_id:
-        type: integer
+        type: string
       updated_at:
         type: string
       userName:
@@ -175,6 +175,24 @@ definitions:
     required:
     - email
     - password
+    type: object
+  view_models.LoginResponse:
+    properties:
+      accessToken:
+        type: string
+      accessTokenExpirationTimestamp:
+        type: integer
+      refreshToken:
+        type: string
+      userId:
+        type: string
+    type: object
+  view_models.RefreshTokenRequest:
+    properties:
+      refreshToken:
+        type: string
+    required:
+    - refreshToken
     type: object
   view_models.RegisterUserPayload:
     properties:
@@ -242,7 +260,7 @@ definitions:
       firstName:
         type: string
       id:
-        type: integer
+        type: string
       is_active:
         type: boolean
       lastName:
@@ -252,7 +270,7 @@ definitions:
       role:
         $ref: '#/definitions/models.Role'
       role_id:
-        type: integer
+        type: string
       token:
         type: string
       updated_at:
@@ -272,11 +290,14 @@ info:
   termsOfService: http://swagger.io/terms/
   title: Swagger Example API
 paths:
-  /authentication/token:
+  /authentication/refresh:
     post:
       consumes:
       - application/json
-      description: Create a new token
+      - application/json
+      description: |-
+        Create a new token
+        Get a new access token using a refresh token
       parameters:
       - description: User credentials
         in: body
@@ -284,13 +305,20 @@ paths:
         required: true
         schema:
           $ref: '#/definitions/view_models.CreateUserTokenPayload'
+      - description: Refresh token
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/view_models.RefreshTokenRequest'
       produces:
+      - application/json
       - application/json
       responses:
         "200":
-          description: OK
+          description: New tokens
           schema:
-            type: string
+            $ref: '#/definitions/view_models.LoginResponse'
         "400":
           description: Bad request
           schema: {}
@@ -300,10 +328,11 @@ paths:
         "500":
           description: Internal server error
           schema: {}
-      summary: Create a new token
+      summary: Refresh an access token
       tags:
       - authentication
-  /authentication/user:
+      - authentication
+  /authentication/register:
     post:
       consumes:
       - application/json
@@ -330,6 +359,48 @@ paths:
           schema: {}
       summary: Register a new user
       tags:
+      - authentication
+  /authentication/token:
+    post:
+      consumes:
+      - application/json
+      - application/json
+      description: |-
+        Create a new token
+        Get a new access token using a refresh token
+      parameters:
+      - description: User credentials
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/view_models.CreateUserTokenPayload'
+      - description: Refresh token
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/view_models.RefreshTokenRequest'
+      produces:
+      - application/json
+      - application/json
+      responses:
+        "200":
+          description: New tokens
+          schema:
+            $ref: '#/definitions/view_models.LoginResponse'
+        "400":
+          description: Bad request
+          schema: {}
+        "401":
+          description: Unauthorized
+          schema: {}
+        "500":
+          description: Internal server error
+          schema: {}
+      summary: Refresh an access token
+      tags:
+      - authentication
       - authentication
   /health:
     get:

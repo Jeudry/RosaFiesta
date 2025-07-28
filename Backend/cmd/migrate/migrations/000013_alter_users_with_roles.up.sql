@@ -1,5 +1,5 @@
 ALTER TABLE IF EXISTS users
-ADD COLUMN role_id INT REFERENCES roles(id) DEFAULT 3;
+ADD COLUMN role_id UUID REFERENCES roles(id) DEFAULT uuid_generate_v4();
 
 UPDATE users SET role_id = (SELECT id FROM roles WHERE name = 'user');
 

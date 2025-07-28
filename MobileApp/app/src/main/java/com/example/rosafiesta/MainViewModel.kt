@@ -5,12 +5,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.core.domain.SessionStorage
+import com.example.core.domain.AuthService
 import com.example.rosafiesta.navigation.models.NavState
 import kotlinx.coroutines.launch
 
 class MainViewModel(
-  private val sessionStorage: SessionStorage
+  private val authService: AuthService
 ) : ViewModel() {
   
   var state by mutableStateOf(MainState(
@@ -19,13 +19,33 @@ class MainViewModel(
     private set
 
   init {
+    checkAuthenticationStatus()
+  }
+
+  private fun checkAuthenticationStatus() {
     viewModelScope.launch {
       state = state.copy(isCheckingAuth = true)
-      state = state.copy(isLoggedIn = sessionStorage.get() != null)
-      state = state.copy(isCheckingAuth = false)
+
+      try {
+        val isAuthenticated = authService.isUserAuthenticated()
+        state = state.copy(
+          isLoggedIn = isAuthenticated,
+          isCheckingAuth = false
+        )
+      } catch (e: Exception) {
+        // En caso de error, asumimos que no está autenticado
+        state = state.copy(
+          isLoggedIn = false,
+          isCheckingAuth = false
+        )
+      }
     }
   }
-  
+
+  fun refreshAuthStatus() {
+    checkAuthenticationStatus()
+  }
+
   fun setTitle(
     title: String
   ){

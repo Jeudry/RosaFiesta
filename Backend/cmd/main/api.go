@@ -30,9 +30,9 @@ func (app *Application) Mount() http.Handler {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{app.Config.Cors.AllowedOrigins},
+		AllowedOrigins:   []string{"*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-AccessToken"},
 		ExposedHeaders:   []string{"Link"},
 		AllowCredentials: true,
 		MaxAge:           300,
@@ -90,8 +90,9 @@ func (app *Application) Mount() http.Handler {
 		})
 
 		r.Route("/authentication", func(r chi.Router) {
-			r.Post("/user", app.registerUserHandler)
+			r.Post("/register", app.registerUserHandler)
 			r.Post("/token", app.createTokenHandler)
+			r.Post("/refresh", app.refreshTokenHandler)
 		})
 	})
 

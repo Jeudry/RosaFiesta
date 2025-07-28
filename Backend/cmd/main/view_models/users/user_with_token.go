@@ -1,4 +1,4 @@
-package view_models
+package users
 
 import "Backend/internal/store/models"
 

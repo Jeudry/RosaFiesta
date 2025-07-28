@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS comments (
-    id BIGSERIAL PRIMARY KEY,
-    post_id BIGSERIAL NOT NULL,
-    user_id BIGSERIAL NOT NULL,
+    id UUID    PRIMARY KEY DEFAULT uuid_generate_v4(),
+    post_id UUID NOT NULL,
+    user_id UUID NOT NULL,
     content TEXT NOT NULL,
     created_at TIMESTAMP(0) WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP(0) WITH TIME ZONE NOT NULL DEFAULT NOW()

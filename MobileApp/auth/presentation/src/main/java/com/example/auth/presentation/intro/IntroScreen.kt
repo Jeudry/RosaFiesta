@@ -1,11 +1,6 @@
 package com.example.auth.presentation.intro
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -59,13 +54,13 @@ fun IntroScreen(
         .padding(bottom = 48.dp)
     ) {
       Text(
-        text = stringResource(id = R.string.welcome_to_runique),
+        text = stringResource(id = R.string.welcome_to_rosafiesta),
         color = MaterialTheme.colorScheme.onBackground,
         fontSize = 20.sp,
       )
       Spacer(modifier = Modifier.height(8.dp))
       Text(
-        text = stringResource(id = R.string.runique_description),
+        text = stringResource(id = R.string.rosafiesta_description),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onBackground
       )
@@ -105,7 +100,7 @@ private fun RFLogoVertical(
     )
     Spacer(modifier = Modifier.height(12.dp))
     Text(
-      text = stringResource(id = R.string.runique),
+      text = stringResource(id = R.string.rosafiesta),
       fontSize = 24.sp,
       fontWeight = FontWeight.Medium,
       color = MaterialTheme.colorScheme.onBackground

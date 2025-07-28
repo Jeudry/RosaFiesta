@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 )
 
 type ProductsStore struct {
@@ -80,7 +81,7 @@ func (s *ProductsStore) Create(ctx context.Context, product *models.Product) err
 	return nil
 }
 
-func (s *ProductsStore) GetById(ctx context.Context, id int64) (*models.Product, error) {
+func (s *ProductsStore) GetById(ctx context.Context, id uuid.UUID) (*models.Product, error) {
 	query := `
 	  SELECT id, created_by, name, description, price, rental_price, color, size, image_url, stock, created, updated
 	  FROM products

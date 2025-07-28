@@ -1,12 +1,12 @@
 package main
 
 import (
-	"Backend/cmd/main/view_models"
+	"Backend/cmd/main/view_models/products"
 	"Backend/internal/store/models"
 	"context"
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"net/http"
-	"strconv"
 )
 
 type productKey string
@@ -25,7 +25,7 @@ const productCtx postKey = "product"
 // @Failure		500	{object}	error			"Internal server error"
 // @Router			/products [post]
 func (app *Application) createProductHandler(w http.ResponseWriter, r *http.Request) {
-	var payload view_models.CreateProductPayload
+	var payload products.CreateProductPayload
 
 	if err := readJson(w, r, &payload); err != nil {
 		app.badRequest(w, r, err)
@@ -78,7 +78,7 @@ func (app *Application) createProductHandler(w http.ResponseWriter, r *http.Requ
 // @Failure		500	{object}	error			"Internal server error"
 // @Router			/products/{id} [put]
 func (app *Application) updateProductHandler(w http.ResponseWriter, r *http.Request) {
-	var payload view_models.UpdateProductPayload
+	var payload products.UpdateProductPayload
 
 	if err := readJson(w, r, &payload); err != nil {
 		app.badRequest(w, r, err)
@@ -189,7 +189,7 @@ func (app *Application) getProductHandler(w http.ResponseWriter, r *http.Request
 func (app *Application) productsContextMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		idParam := chi.URLParam(r, "productId")
-		idAsInt, err := strconv.ParseInt(idParam, 10, 64)
+		idAsInt, err := uuid.Parse(idParam)
 
 		if err != nil {
 			app.internalServerError(w, r, err)

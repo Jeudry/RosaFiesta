@@ -14,4 +14,5 @@ dependencies {
   implementation(projects.core.domain)
   implementation(projects.core.database)
   implementation(projects.products.domain)
+  implementation(projects.core.data)
 }

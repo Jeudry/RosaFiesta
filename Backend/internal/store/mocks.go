@@ -4,6 +4,7 @@ import (
 	"Backend/internal/store/models"
 	"context"
 	"database/sql"
+	"github.com/google/uuid"
 	"time"
 )
 
@@ -19,7 +20,7 @@ func (m *MockUserStore) Create(ctx context.Context, tx *sql.Tx, u *models.User) 
 	return nil
 }
 
-func (m *MockUserStore) RetrieveById(ctx context.Context, userID int64) (*models.User, error) {
+func (m *MockUserStore) RetrieveById(ctx context.Context, userID uuid.UUID) (*models.User, error) {
 	return &models.User{ID: userID}, nil
 }
 
@@ -35,6 +36,6 @@ func (m *MockUserStore) Activate(ctx context.Context, t string) error {
 	return nil
 }
 
-func (m *MockUserStore) Delete(ctx context.Context, id int64) error {
+func (m *MockUserStore) Delete(ctx context.Context, id uuid.UUID) error {
 	return nil
 }

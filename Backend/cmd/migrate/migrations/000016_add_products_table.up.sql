@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS products (
-    id SERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name TEXT NOT NULL,
     description TEXT,
     price DECIMAL(10, 2) NOT NULL,

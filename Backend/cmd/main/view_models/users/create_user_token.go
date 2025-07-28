@@ -1,4 +1,4 @@
-package view_models
+package users
 
 type CreateUserTokenPayload struct {
 	Email    string `json:"email" validate:"required,email,max=255"`

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/go-redis/redis/v8"
+	"github.com/google/uuid"
 	"log"
 )
 
@@ -16,7 +17,7 @@ type UserStore struct {
 
 const UserExpTime = 60 * 60 * 60
 
-func (u *UserStore) Get(ctx context.Context, userID int64) (*models.User, error) {
+func (u *UserStore) Get(ctx context.Context, userID uuid.UUID) (*models.User, error) {
 	cacheKey := fmt.Sprintf("user-%v", userID)
 
 	data, err := u.rdb.Get(ctx, cacheKey).Result()

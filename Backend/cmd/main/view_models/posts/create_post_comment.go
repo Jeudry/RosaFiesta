@@ -1,4 +1,4 @@
-package view_models
+package posts
 
 type CreatePostCommentPayload struct {
 	Comment string `json:"comment"`

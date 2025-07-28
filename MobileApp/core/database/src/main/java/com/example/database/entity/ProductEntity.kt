@@ -2,12 +2,12 @@ package com.example.database.entity
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import org.bson.types.ObjectId
+import java.util.*
 
 @Entity
 data class ProductEntity(
     @PrimaryKey(autoGenerate = false)
-    val id: String = ObjectId().toHexString(),
+    val id: UUID = UUID.randomUUID(),
     val name: String,
     val description: String?,
     val price: Double,

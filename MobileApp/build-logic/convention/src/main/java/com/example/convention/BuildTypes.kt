@@ -3,10 +3,8 @@ package com.example.convention
 import com.android.build.api.dsl.ApplicationExtension
 import com.android.build.api.dsl.CommonExtension
 import com.android.build.gradle.LibraryExtension
-import com.android.build.gradle.ProguardFiles.getDefaultProguardFile
 import com.android.build.gradle.internal.cxx.configure.gradleLocalProperties
 import org.gradle.api.Project
-import org.gradle.api.internal.BuildType
 import org.gradle.kotlin.dsl.configure
 import com.android.build.api.dsl.BuildType as BuildTypeDsl
 
@@ -20,26 +18,28 @@ internal fun Project.configureBuildTypes(
             buildConfig = true
         }
 
-        val apiKey = gradleLocalProperties(rootDir, providers).getProperty("API_KEY")
+        val localProperties = gradleLocalProperties(rootDir, providers)
+        val apiKey = localProperties.getProperty("API_KEY")
+        val baseUrl = localProperties.getProperty("BASE_URL")
 
         when(extensionType){
             ExtensionType.APPLICATION -> extensions.configure<ApplicationExtension> {
                 buildTypes {
                     debug {
-                        configureDebugBuildType(apiKey)
+                        configureDebugBuildType(apiKey, baseUrl)
                     }
                     release {
-                        configureReleaseBuildType(commonExtension, apiKey)
+                        configureReleaseBuildType(commonExtension, apiKey, baseUrl)
                     }
                 }
             }
             ExtensionType.LIBRARY -> extensions.configure<LibraryExtension> {
                 buildTypes {
                     debug {
-                        configureDebugBuildType(apiKey)
+                        configureDebugBuildType(apiKey, baseUrl)
                     }
                     release {
-                        configureReleaseBuildType(commonExtension, apiKey)
+                        configureReleaseBuildType(commonExtension, apiKey, baseUrl)
                     }
                 }
             }
@@ -47,17 +47,18 @@ internal fun Project.configureBuildTypes(
     }
 }
 
-private fun BuildTypeDsl.configureDebugBuildType(apiKey: String) {
+private fun BuildTypeDsl.configureDebugBuildType(apiKey: String, baseUrl: String) {
     buildConfigField("String", "API_KEY", "\"$apiKey\"")
-    buildConfigField("String", "BASE_URL", "\"https://runique.pl-coding.com:8080\"")
+    buildConfigField("String", "BASE_URL", "\"$baseUrl\"")
 }
 
 private fun BuildTypeDsl.configureReleaseBuildType(
     commonExtension: CommonExtension<*, *, *, *, *, *>,
-    apiKey: String
+    apiKey: String,
+    baseUrl: String
 ) {
     buildConfigField("String", "API_KEY", "\"$apiKey\"")
-    buildConfigField("String", "BASE_URL", "\"https://runique.pl-coding.com:8080\"")
+    buildConfigField("String", "BASE_URL", "\"$baseUrl\"")
 
     isMinifyEnabled = false
     proguardFiles(

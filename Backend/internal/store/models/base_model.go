@@ -1,9 +1,12 @@
 package models
 
-import "time"
+import (
+	"github.com/google/uuid"
+	"time"
+)
 
 type BaseModel struct {
-	ID        *string    `json:"id,omitempty"`
+	ID        uuid.UUID  `json:"id"`
 	Created   *time.Time `json:"created"`
 	CreatedBy *string    `json:"created_by,omitempty"`
 	Updated   *time.Time `json:"updated,omitempty"`

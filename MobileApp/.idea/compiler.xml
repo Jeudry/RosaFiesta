@@ -1,6 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="CompilerConfiguration">
-    <bytecodeTargetLevel target="11" />
+    <bytecodeTargetLevel target="11">
+      <module name="app" target="17" />
+      <module name="auth-data" target="17" />
+      <module name="auth-presentation" target="17" />
+      <module name="convention" target="17" />
+      <module name="convention_main" target="17" />
+      <module name="convention_test" target="17" />
+      <module name="core-data" target="17" />
+      <module name="database" target="17" />
+      <module name="designsystem" target="17" />
+      <module name="home-data" target="17" />
+      <module name="home-presentation" target="17" />
+      <module name="location" target="17" />
+      <module name="network" target="17" />
+      <module name="products-data" target="17" />
+      <module name="products-presentation" target="17" />
+      <module name="ui" target="17" />
+    </bytecodeTargetLevel>
   </component>
 </project>

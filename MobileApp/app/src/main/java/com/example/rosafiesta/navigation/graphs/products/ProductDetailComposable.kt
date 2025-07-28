@@ -10,6 +10,7 @@ import com.example.products.presentation.views.ProductDetailSR
 import com.example.rosafiesta.R
 import com.example.rosafiesta.navigation.models.NavHostData
 import com.example.rosafiesta.navigation.models.NavState
+import java.util.*
 
 fun NavGraphBuilder.productDetailComposable(navHostData: NavHostData) {
   val route = UiText.StringResource(R.string.product_detail_route).asString(navHostData.navController.context)
@@ -31,7 +32,7 @@ fun NavGraphBuilder.productDetailComposable(navHostData: NavHostData) {
     
     val productId = backStackEntry.arguments?.getString(productIdString)
     if(productId != null){
-      ProductDetailSR(productId = productId,
+      ProductDetailSR(productId = UUID.fromString(productId),
         onProductName = {navHostData.mainViewModel.setTitle(it)
       })
     } else {
