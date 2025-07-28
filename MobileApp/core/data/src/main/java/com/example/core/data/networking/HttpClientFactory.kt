@@ -46,38 +46,48 @@ class HttpClientFactory(
         bearer {
           loadTokens {
             val info = sessionStorage.get()
-            BearerTokens(
-              accessToken = info?.accessToken ?: "",
-              refreshToken = info?.refreshToken ?: ""
-            )
+            if (info?.accessToken.isNullOrEmpty()) {
+              null
+            } else {
+              BearerTokens(
+                accessToken = info?.accessToken ?: "",
+                refreshToken = info?.refreshToken ?: ""
+              )
+            }
           }
           refreshTokens {
             val info = sessionStorage.get()
             val response = client.post<AccessTokenRequest, AccessTokenResponse>(
-              route = "/accessToken",
+              route = "/v1/authentication/refresh",
               body = AccessTokenRequest(
                 refreshToken = info?.refreshToken ?: "",
                 userId = info?.userId ?: ""
               )
             )
-            if (response is Result.Success) {
-              val newAuthInfo = AuthInfo(
-                accessToken = response.data.accessToken,
-                refreshToken = info?.refreshToken ?: "",
-                userId = info?.userId ?: ""
-              )
-              sessionStorage.set(newAuthInfo)
+            when (response) {
+              is Result.Success -> {
+                val newAuthInfo = AuthInfo(
+                  accessToken = response.data.accessToken,
+                  refreshToken = info?.refreshToken ?: "",
+                  userId = info?.userId ?: ""
+                )
+                sessionStorage.set(newAuthInfo)
 
-              BearerTokens(
-                accessToken = newAuthInfo.accessToken,
-                refreshToken = newAuthInfo.refreshToken
-              )
-            } else {
-              BearerTokens(
-                accessToken = "",
-                refreshToken = ""
-              )
+                BearerTokens(
+                  accessToken = newAuthInfo.accessToken,
+                  refreshToken = newAuthInfo.refreshToken
+                )
+              }
+              is Result.Error -> {
+                // En caso de error, limpiar la sesión
+                sessionStorage.set(null)
+                null
+              }
             }
+          }
+          sendWithoutRequest { request ->
+            // Solo enviar el token para endpoints que lo requieran (no para login/register)
+            !request.url.pathSegments.contains("authentication")
           }
         }
       }

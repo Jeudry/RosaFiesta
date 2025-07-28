@@ -22,8 +22,8 @@ import (
 //	@Tags			authentication
 //	@Accept			json
 //	@Produce		json
-//	@Param			payload	body		view_models.RegisterUserPayload	true	"User credentials"
-//	@Success		201		{object}	view_models.UserWithToken		"User registered"
+//	@Param			payload	body		users.RegisterUserPayload	true	"User credentials"
+//	@Success		201		{object}	users.UserWithToken		"User registered"
 //	@Failure		400		{object}	error							"Bad request"
 //	@Failure		500		{object}	error							"Internal server error"
 //	@Router			/authentication/register [post]
@@ -119,8 +119,8 @@ func (app *Application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 //	@Tags			authentication
 //	@Accept			json
 //	@Produce		json
-//	@Param			payload	body		view_models.RefreshTokenRequest	true	"Refresh token"
-//	@Success		200		{object}	view_models.LoginResponse		"New tokens"
+//	@Param			payload	body		users.RefreshTokenRequest	true	"Refresh token"
+//	@Success		200		{object}	users.LoginResponse		"New tokens"
 //	@Failure		400		{object}	error							"Bad request"
 //	@Failure		401		{object}	error							"Unauthorized"
 //	@Failure		500		{object}	error							"Internal server error"
@@ -206,7 +206,7 @@ func (app *Application) refreshTokenHandler(w http.ResponseWriter, r *http.Reque
 //	@Tags			authentication
 //	@Accept			json
 //	@Produce		json
-//	@Param			payload	body	view_models.CreateUserTokenPayload	true	"User credentials"
+//	@Param			payload	body	users.CreateUserTokenPayload	true	"User credentials"
 //	@Success		200		{string}	token
 //	@Failure		400		{object}	error	"Bad request"
 //	@Failure		500		{object}	error	"Internal server error"
