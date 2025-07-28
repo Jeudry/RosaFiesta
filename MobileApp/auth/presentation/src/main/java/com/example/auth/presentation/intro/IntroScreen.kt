@@ -74,6 +74,7 @@ fun IntroScreen(
         })
       Spacer(modifier = Modifier.height(16.dp))
       RFActionButton(
+        textColor = MaterialTheme.colorScheme.onSecondary,
         text = stringResource(id = R.string.sign_up),
         isLoading = false,
         modifier = Modifier.fillMaxWidth(),

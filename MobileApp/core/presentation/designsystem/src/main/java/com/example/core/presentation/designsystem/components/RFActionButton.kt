@@ -17,6 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -26,6 +27,7 @@ import com.example.core.presentation.designsystem.RFTheme
 
 @Composable
 fun RFActionButton(
+  textColor: Color = MaterialTheme.colorScheme.onPrimary,
   text: String,
   isLoading: Boolean,
   modifier: Modifier = Modifier,
@@ -59,6 +61,7 @@ fun RFActionButton(
       )
       Text(
         text = text,
+        color = textColor,
         modifier = Modifier.alpha(if (isLoading) 0f else 1f),
         fontWeight = FontWeight.Medium
       )
