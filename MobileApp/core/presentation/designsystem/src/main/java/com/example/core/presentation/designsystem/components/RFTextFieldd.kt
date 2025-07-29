@@ -50,6 +50,7 @@ fun RFTextField(
   endIcon: ImageVector?,
   hint: String,
   title: String?,
+  titleColor: Color = MaterialTheme.colorScheme.onPrimary,
   modifier: Modifier = Modifier,
   error: String? = null,
   keyboardType: KeyboardType = KeyboardType.Text,
@@ -70,20 +71,7 @@ fun RFTextField(
       if (title != null) {
         Text(
           text = title,
-          color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-      }
-      if (error != null) {
-        Text(
-          text = error,
-          color = MaterialTheme.colorScheme.error,
-          fontSize = 12.sp
-        )
-      } else if (additionalInfo != null) {
-        Text(
-          text = additionalInfo,
-          color = MaterialTheme.colorScheme.onSurfaceVariant,
-          fontSize = 12.sp
+          color = titleColor
         )
       }
     }
@@ -131,7 +119,7 @@ fun RFTextField(
             Icon(
               imageVector = startIcon,
               contentDescription = null,
-              tint = MaterialTheme.colorScheme.onSurfaceVariant
+              tint = MaterialTheme.colorScheme.onPrimary
             )
             Spacer(
               modifier = Modifier.width(16.dp)
@@ -144,7 +132,7 @@ fun RFTextField(
             if (state.text.isEmpty() && !isFocused) {
               Text(
                 text = hint,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                color = MaterialTheme.colorScheme.onPrimary.copy(
                   alpha = 0.4f
                 ),
                 modifier = Modifier
@@ -160,13 +148,28 @@ fun RFTextField(
             Icon(
               imageVector = endIcon,
               contentDescription = null,
-              tint = MaterialTheme.colorScheme.onSurfaceVariant,
+              tint = MaterialTheme.colorScheme.onPrimary,
               modifier = Modifier.padding(end = 8.dp)
             )
           }
         }
       }
     )
+    if (error != null) {
+      Spacer(modifier = Modifier.height(4.dp))
+      Text(
+        text = error,
+        color = MaterialTheme.colorScheme.error,
+        fontSize = 12.sp
+      )
+    } else if (additionalInfo != null) {
+      Spacer(modifier = Modifier.height(4.dp))
+      Text(
+        text = additionalInfo,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        fontSize = 12.sp
+      )
+    }
   }
 }
 

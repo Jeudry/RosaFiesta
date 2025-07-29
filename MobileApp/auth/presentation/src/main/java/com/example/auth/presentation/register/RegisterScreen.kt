@@ -104,13 +104,14 @@ fun RegisterScreen(
     ) {
       Text(
         text = stringResource(id = R.string.create_account),
-        style = MaterialTheme.typography.headlineMedium
+        style = MaterialTheme.typography.headlineMedium,
+        color = MaterialTheme.colorScheme.onPrimary,
       )
       val annotatedString = buildAnnotatedString {
         withStyle(
           style = SpanStyle(
             fontFamily = Poppins,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.onPrimary
           )
         ) {
           append(stringResource(id = R.string.already_have_an_account) + " ")

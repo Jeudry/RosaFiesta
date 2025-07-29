@@ -98,11 +98,12 @@ fun LoginScreen(state: LoginState, onAction: (LoginAction) -> Unit) {
         text = stringResource(id = R.string.hi_there),
         fontWeight = FontWeight.SemiBold,
         style = MaterialTheme.typography.headlineMedium,
+        color = MaterialTheme.colorScheme.secondary
       )
       Text(
         text = stringResource(id = R.string.runique_welcome_text),
         fontSize = 12.sp,
-        color = MaterialTheme.colorScheme.onSurfaceVariant
+        color = MaterialTheme.colorScheme.onPrimary
       )
       Spacer(modifier = Modifier.height(48.dp))
 
@@ -134,7 +135,8 @@ fun LoginScreen(state: LoginState, onAction: (LoginAction) -> Unit) {
       RFActionButton(
         text = stringResource(R.string.login),
         isLoading = state.isLoggingIn,
-        enabled = state.canLogin && !state.isLoggingIn
+        enabled = state.canLogin && !state.isLoggingIn,
+        textColor = MaterialTheme.colorScheme.onSecondary,
       ) {
         onAction(LoginAction.OnLoginClick)
       }
@@ -143,7 +145,7 @@ fun LoginScreen(state: LoginState, onAction: (LoginAction) -> Unit) {
         withStyle(
           style = SpanStyle(
             fontFamily = Poppins,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.onPrimary
           )
         ) {
           append(stringResource(id = R.string.dont_have_an_account) + " ")
