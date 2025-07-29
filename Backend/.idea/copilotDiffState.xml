@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CopilotDiffPersistence">
+    <option name="pendingDiffs">
+      <map>
+        <entry key="$PROJECT_DIR$/cmd/main/view_models/products/create_product.go">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="$PROJECT_DIR$/cmd/main/view_models/products/create_product.go" />
+              <option name="originalContent" value="package products&#10;&#10;type CreateProductPayload struct {&#10;&#9;Name        string   `json:&quot;name&quot; validate:&quot;required,min=3,max=256&quot;`&#10;&#9;Description *string  `json:&quot;description,omitempty&quot; validate:&quot;omitempty,max=3000&quot;`&#10;&#9;Price       float64  `json:&quot;price&quot; validate:&quot;gt=0,lt=10000000&quot;`&#10;&#9;RentalPrice *float64 `json:&quot;rental_price,omitempty&quot; validate:&quot;omitempty,gt=0,lt=10000000&quot;`&#10;&#9;Color       uint64   `json:&quot;color&quot; validate:&quot;gte=0,lte=4294967295&quot;`&#10;&#9;Size        float64  `json:&quot;size&quot;`&#10;&#9;ImageURL    *string  `json:&quot;image_url,omitempty&quot; validate:&quot;omitempty,max=3000&quot;`&#10;&#9;Stock       int      `json:&quot;stock&quot; validate:&quot;max=100000000&quot;`&#10;}&#10;" />
+              <option name="updatedContent" value="package products&#10;&#10;type CreateProductPayload struct {&#10;&#9;Name        string   `json:&quot;name&quot; validate:&quot;required,min=3,max=256&quot;`&#10;&#9;Description *string  `json:&quot;description,omitempty&quot; validate:&quot;omitempty,min=5,max=20000&quot;`&#10;&#9;Price       float64  `json:&quot;price&quot; validate:&quot;gt=5,lt=10000000&quot;`&#10;&#9;RentalPrice *float64 `json:&quot;rental_price,omitempty&quot; validate:&quot;omitempty,gt=5,lt=10000000&quot;`&#10;&#9;Color       uint64   `json:&quot;color&quot; validate:&quot;gte=0,lte=4294967295&quot;`&#10;&#9;Size        float64  `json:&quot;size&quot; validate:&quot;lte=99999&quot;`&#10;&#9;ImageURL    *string  `json:&quot;image_url,omitempty&quot; validate:&quot;omitempty,max=3000&quot;`&#10;&#9;Stock       int      `json:&quot;stock&quot; validate:&quot;max=100000000&quot;`&#10;}" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
+        <entry key="$PROJECT_DIR$/cmd/main/view_models/products/update_product.go">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="$PROJECT_DIR$/cmd/main/view_models/products/update_product.go" />
+              <option name="originalContent" value="package products&#10;&#10;type UpdateProductPayload struct {&#10;&#9;Name        string   `json:&quot;name&quot; validate:&quot;required,min=3,max=256&quot;`&#10;&#9;Description *string  `json:&quot;description,omitempty&quot; validate:&quot;omitempty,max=3000&quot;`&#10;&#9;Price       float64  `json:&quot;price&quot; validate:&quot;gt=0,lt=10000000&quot;`&#10;&#9;RentalPrice *float64 `json:&quot;rental_price,omitempty&quot; validate:&quot;omitempty,gt=0,lt=10000000&quot;`&#10;&#9;Color       uint64   `json:&quot;color&quot; validate:&quot;gte=0,lte=4294967295&quot;`&#10;&#9;Size        float64  `json:&quot;size&quot;`&#10;&#9;ImageURL    *string  `json:&quot;image_url,omitempty&quot; validate:&quot;omitempty,max=3000&quot;`&#10;&#9;Stock       int      `json:&quot;stock&quot; validate:&quot;max=100000000&quot;`&#10;}&#10;" />
+              <option name="updatedContent" value="package products&#10;&#10;type UpdateProductPayload struct {&#10;&#9;Name        string   `json:&quot;name&quot; validate:&quot;required,min=3,max=256&quot;`&#10;&#9;Description *string  `json:&quot;description,omitempty&quot; validate:&quot;omitempty,min=5,max=20000&quot;`&#10;&#9;Price       float64  `json:&quot;price&quot; validate:&quot;gt=5,lt=10000000&quot;`&#10;&#9;RentalPrice *float64 `json:&quot;rental_price,omitempty&quot; validate:&quot;omitempty,gt=5,lt=10000000&quot;`&#10;&#9;Color       uint64   `json:&quot;color&quot; validate:&quot;gte=0,lte=4294967295&quot;`&#10;&#9;Size        float64  `json:&quot;size&quot; validate:&quot;lte=99999&quot;`&#10;&#9;ImageURL    *string  `json:&quot;image_url,omitempty&quot; validate:&quot;omitempty,max=3000&quot;`&#10;&#9;Stock       int      `json:&quot;stock&quot; validate:&quot;max=100000000&quot;`&#10;}" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
+        <entry key="$PROJECT_DIR$/cmd/migrate/migrations/000016_add_products_table.up.sql">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="$PROJECT_DIR$/cmd/migrate/migrations/000016_add_products_table.up.sql" />
+              <option name="originalContent" value="CREATE TABLE IF NOT EXISTS products (&#10;    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),&#10;    name TEXT NOT NULL CHECK (char_length(name) &gt;= 3 AND char_length(name) &lt;= 256),&#10;    description TEXT CHECK (description IS NULL OR char_length(description) &lt;= 3000),&#10;    price DECIMAL(10, 2) NOT NULL CHECK (price &gt; 0 AND price &lt; 10000000),&#10;    rental_price DECIMAL(10, 2) CHECK (rental_price IS NULL OR (rental_price &gt; 0 AND rental_price &lt; 10000000)),&#10;    color BIGINT NOT NULL CHECK (color &gt;= 0 AND color &lt;= 4294967295),&#10;    size DECIMAL(10, 2) NOT NULL,&#10;    image_url TEXT CHECK (image_url IS NULL OR char_length(image_url) &lt;= 3000),&#10;    stock INT NOT NULL DEFAULT 0 CHECK (stock &lt;= 100000000),&#10;    created TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()&#10;);" />
+              <option name="updatedContent" value="CREATE TABLE IF NOT EXISTS products (&#10;    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),&#10;    name TEXT NOT NULL CHECK (char_length(name) &gt;= 3 AND char_length(name) &lt;= 256),&#10;    description TEXT CHECK (description IS NULL OR (char_length(description) &gt;= 5 AND char_length(description) &lt;= 20000)),&#10;    price DECIMAL(10, 2) NOT NULL CHECK (price &gt; 5 AND price &lt; 10000000),&#10;    rental_price DECIMAL(10, 2) CHECK (rental_price IS NULL OR (rental_price &gt; 5 AND rental_price &lt; 10000000)),&#10;    color BIGINT NOT NULL CHECK (color &gt;= 0 AND color &lt;= 4294967295),&#10;    size DECIMAL(10, 2) NOT NULL CHECK (size &lt;= 99999),&#10;    image_url TEXT CHECK (image_url IS NULL OR char_length(image_url) &lt;= 3000),&#10;    stock INT NOT NULL DEFAULT 0 CHECK (stock &lt;= 100000000),&#10;    created TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()&#10;);" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+</project>
