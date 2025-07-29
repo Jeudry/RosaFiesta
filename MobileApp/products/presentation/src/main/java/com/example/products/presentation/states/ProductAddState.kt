@@ -4,41 +4,36 @@ package com.example.products.presentation.states
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.text2.input.TextFieldState
-import com.example.products.domain.validators.ProductColorVS
-import com.example.products.domain.validators.ProductDescriptionVS
-import com.example.products.domain.validators.ProductNameVS
-import com.example.products.domain.validators.ProductPriceVS
-import com.example.products.domain.validators.ProductRentalPriceVS
-import com.example.products.domain.validators.ProductSizeVS
-import com.example.products.domain.validators.ProductStockVS
+import com.example.core.domain.validators.NumericValidationResult
+import com.example.core.domain.validators.TextValidationResult
+,import com.example.products.domain.validators.ProductDescriptionVS
 
 data class ProductAddState(
     val name: TextFieldState = TextFieldState(),
-    val isNameValid: ProductNameVS = ProductNameVS(),
+    val isNameValid: TextValidationResult = TextValidationResult(),
     val description: TextFieldState = TextFieldState(),
     val isDescriptionValid: ProductDescriptionVS = ProductDescriptionVS(),
     val price: TextFieldState = TextFieldState(),
-    val isPriceValid: ProductPriceVS = ProductPriceVS(),
+    val isPriceValid: NumericValidationResult = NumericValidationResult(),
     val rentalPrice: TextFieldState = TextFieldState(),
-    val isRentalPriceValid: ProductRentalPriceVS = ProductRentalPriceVS(),
+    val isRentalPriceValid: NumericValidationResult = NumericValidationResult(),
     val imageUrl: TextFieldState = TextFieldState(),
     val stock: TextFieldState = TextFieldState(),
-    val isStockValid: ProductStockVS = ProductStockVS(),
+    val isStockValid: NumericValidationResult = NumericValidationResult(),
     val color: TextFieldState = TextFieldState(),
-    val isColorValid: ProductColorVS = ProductColorVS(),
+    val isColorValid: NumericValidationResult = NumericValidationResult(),
     val size: TextFieldState = TextFieldState(),
-    val isSizeValid: ProductSizeVS = ProductSizeVS(),
+    val isSizeValid: NumericValidationResult = NumericValidationResult(),
     val isAdding: Boolean = false,
     val canAdd: Boolean = false
-){
+) {
     fun isValid(): Boolean {
-        return isNameValid.isValid
-                && isDescriptionValid.isValid
-                && isPriceValid.isValid
-                && isRentalPriceValid.isValid
-                && isStockValid.isValid
-                && isColorValid.isValid
-                && isSizeValid.isValid
-                && !isAdding
+        return isNameValid.isValid &&
+                isDescriptionValid.isValid &&
+                isPriceValid.isValid &&
+                isRentalPriceValid.isValid &&
+                isStockValid.isValid &&
+                isColorValid.isValid &&
+                isSizeValid.isValid && !isAdding
     }
 }

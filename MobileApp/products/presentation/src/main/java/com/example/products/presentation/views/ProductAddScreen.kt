@@ -29,6 +29,7 @@ import com.example.products.presentation.R
 import com.example.products.presentation.actions.ProductAddAction
 import com.example.products.presentation.events.ProductAddEvent
 import com.example.products.presentation.states.ProductAddState
+import com.example.products.presentation.utils.toErrorMessage
 import com.example.products.presentation.viewModels.ProductAddVM
 import org.koin.androidx.compose.koinViewModel
 
@@ -107,8 +108,8 @@ private fun ProductForm(
             hint = stringResource(id = R.string.name),
             title = stringResource(id = R.string.name),
             modifier = Modifier.fillMaxWidth(),
-            additionalInfo = stringResource(id = R.string.must_be_a_valid_name),
-            keyboardType = KeyboardType.Text
+            keyboardType = KeyboardType.Text,
+            error = state.isNameValid.toErrorMessage()
         )
         Spacer(modifier = Modifier.height(32.dp))
 
@@ -119,7 +120,8 @@ private fun ProductForm(
             hint = stringResource(id = R.string.description),
             title = stringResource(id = R.string.description),
             modifier = Modifier.fillMaxWidth(),
-            keyboardType = KeyboardType.Text
+            keyboardType = KeyboardType.Text,
+            error = state.isDescriptionValid.toErrorMessage()
         )
         Spacer(modifier = Modifier.height(32.dp))
 
@@ -131,7 +133,7 @@ private fun ProductForm(
             title = stringResource(id = R.string.price),
             modifier = Modifier.fillMaxWidth(),
             keyboardType = KeyboardType.Number,
-            additionalInfo = stringResource(id = R.string.must_be_a_valid_price)
+            error = state.isPriceValid.toErrorMessage()
         )
         Spacer(modifier = Modifier.height(32.dp))
 
@@ -143,7 +145,7 @@ private fun ProductForm(
             title = stringResource(id = R.string.stock),
             modifier = Modifier.fillMaxWidth(),
             keyboardType = KeyboardType.Number,
-            additionalInfo = stringResource(id = R.string.must_be_a_valid_stock)
+            error = state.isStockValid.toErrorMessage()
         )
         Spacer(modifier = Modifier.height(32.dp))
 
@@ -154,7 +156,8 @@ private fun ProductForm(
             hint = stringResource(id = R.string.rental_price),
             title = stringResource(id = R.string.rental_price),
             modifier = Modifier.fillMaxWidth(),
-            keyboardType = KeyboardType.Text
+            keyboardType = KeyboardType.Number,
+            error = state.isRentalPriceValid.toErrorMessage()
         )
         Spacer(modifier = Modifier.height(32.dp))
 
@@ -176,7 +179,8 @@ private fun ProductForm(
             hint = stringResource(id = R.string.color),
             title = stringResource(id = R.string.color),
             modifier = Modifier.fillMaxWidth(),
-            keyboardType = KeyboardType.Text
+            keyboardType = KeyboardType.Text,
+            error = state.isColorValid.toErrorMessage()
         )
         Spacer(modifier = Modifier.height(32.dp))
         
@@ -187,7 +191,8 @@ private fun ProductForm(
             hint = stringResource(id = R.string.size),
             title = stringResource(id = R.string.size),
             modifier = Modifier.fillMaxWidth(),
-            keyboardType = KeyboardType.Text
+            keyboardType = KeyboardType.Text,
+            error = state.isSizeValid.toErrorMessage()
         )
         Spacer(modifier = Modifier.height(32.dp))
 

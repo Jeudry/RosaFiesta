@@ -22,4 +22,15 @@
     <string name="product_add">Add product</string>
     <string name="sizes">Tamaños:</string>
     <string name="colors">Colores:</string>
+
+    <!-- Error messages with native Android interpolation -->
+    <string name="error_field_required">Este campo es requerido</string>
+    <string name="error_field_not_empty">Este campo no puede estar vacío</string>
+    <string name="error_min_length">Este campo debe tener mínimo %1$d caracteres (actual: %2$d)</string>
+    <string name="error_max_length">Este campo debe tener máximo %1$d caracteres (actual: %2$d)</string>
+    <string name="error_min_value">El valor debe ser mínimo %1$s (actual: %2$s)</string>
+    <string name="error_max_value">El valor debe ser máximo %1$s (actual: %2$s)</string>
+    <string name="error_invalid_format">El formato no es válido</string>
+    <string name="error_positive_value">El valor debe ser positivo</string>
+    <string name="error_negative_value">El valor debe ser negativo</string>
 </resources>

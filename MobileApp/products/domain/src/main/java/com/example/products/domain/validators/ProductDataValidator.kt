@@ -1,46 +1,119 @@
 package com.example.products.domain.validators
 
-class ProductDataValidator{
+import com.example.core.domain.validators.TextValidationResult
+import com.example.core.domain.validators.NumericValidationResult
 
-    fun isValidName(name: String): ProductNameVS {
-        return ProductNameVS.create(
-            value = name,
-            minLength = MIN_NAME_LENGTH,
-            maxLength = MAX_NAME_LENGTH
+class ProductDataValidator {
+
+    fun isValidName(name: String): TextValidationResult {
+        val text = name.trim()
+        val notEmpty = text.isNotEmpty()
+        val minLengthValid = text.length >= MIN_NAME_LENGTH
+        val maxLengthValid = text.length <= MAX_NAME_LENGTH
+
+        return TextValidationResult(
+            notEmpty = notEmpty,
+            minLengthValid = minLengthValid,
+            maxLengthValid = maxLengthValid,
+            patternValid = true,
+            required = true,
+            actualLength = text.length,
+            requiredMinLength = MIN_NAME_LENGTH,
+            requiredMaxLength = MAX_NAME_LENGTH
         )
     }
 
     fun isValidDescription(description: String?): ProductDescriptionVS {
-        return ProductDescriptionVS.create(
-            value = description,
-            minLength = MIN_DESCRIPTION_LENGTH,
-            maxLength = MAX_DESCRIPTION_LENGTH
+        val text = description?.trim() ?: ""
+        val notEmpty = text.isNotEmpty()
+        val minLengthValid = if (text.isNotEmpty()) text.length >= MIN_DESCRIPTION_LENGTH else true
+        val maxLengthValid = text.length <= MAX_DESCRIPTION_LENGTH
+
+        return ProductDescriptionVS(
+            notEmpty = notEmpty,
+            minLengthValid = minLengthValid,
+            maxLengthValid = maxLengthValid,
+            actualLength = text.length,
+            requiredMinLength = MIN_DESCRIPTION_LENGTH,
+            requiredMaxLength = MAX_DESCRIPTION_LENGTH
         )
     }
 
-    fun isValidPrice(price: Double): ProductPriceVS {
-        return ProductPriceVS(
-            value = price,
-            minValue = MIN_PRICE_LENGTH
+    fun isValidPrice(price: Double): NumericValidationResult {
+        val positiveValue = price > 0
+        val minRangeValid = price >= MIN_PRICE_LENGTH
+
+        return NumericValidationResult(
+            positiveValue = positiveValue,
+            minRangeValid = minRangeValid,
+            maxRangeValid = true,
+            required = true,
+            hasValue = true,
+            actualValue = price,
+            requiredMinValue = MIN_PRICE_LENGTH,
+            requiredMaxValue = Double.MAX_VALUE
         )
     }
 
-    fun isValidRentalPrice(price: Double?): ProductRentalPriceVS {
-        return ProductRentalPriceVS(value = price)
+    fun isValidRentalPrice(price: Double?): NumericValidationResult {
+        val hasValue = price != null
+        val positiveValue = price?.let { it > 0 } ?: true
+
+        return NumericValidationResult(
+            positiveValue = positiveValue,
+            minRangeValid = true,
+            maxRangeValid = true,
+            required = false, // Precio de renta es opcional
+            hasValue = hasValue,
+            actualValue = price ?: 0.0,
+            requiredMinValue = 0.0,
+            requiredMaxValue = Double.MAX_VALUE
+        )
     }
 
-    fun isValidStock(stock: Int): ProductStockVS {
-        return ProductStockVS(value = stock)
+    fun isValidStock(stock: Int): NumericValidationResult {
+        val positiveValue = stock > 0
+
+        return NumericValidationResult(
+            positiveValue = positiveValue,
+            minRangeValid = true,
+            maxRangeValid = true,
+            required = true,
+            hasValue = true,
+            actualValue = stock,
+            requiredMinValue = 1,
+            requiredMaxValue = Int.MAX_VALUE
+        )
     }
-    
-    fun isValidColor(color: Long): ProductColorVS {
-        return ProductColorVS(value = color)
+
+    fun isValidColor(color: Long): NumericValidationResult {
+        val positiveValue = color > 0
+
+        return NumericValidationResult(
+            positiveValue = positiveValue,
+            minRangeValid = true,
+            maxRangeValid = true,
+            required = true,
+            hasValue = true,
+            actualValue = color,
+            requiredMinValue = 1,
+            requiredMaxValue = Long.MAX_VALUE
+        )
     }
-    
-    fun isValidSize(size: Double): ProductSizeVS {
-        return ProductSizeVS(
-            value = size,
-            maxValue = MAX_SIZE_LENGTH
+
+    fun isValidSize(size: Double): NumericValidationResult {
+        val positiveValue = size > 0
+        val maxRangeValid = size <= MAX_SIZE_LENGTH
+
+        return NumericValidationResult(
+            positiveValue = positiveValue,
+            minRangeValid = true,
+            maxRangeValid = maxRangeValid,
+            required = true,
+            hasValue = true,
+            actualValue = size,
+            requiredMinValue = 0.0,
+            requiredMaxValue = MAX_SIZE_LENGTH
         )
     }
 
