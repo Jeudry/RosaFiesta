@@ -6,7 +6,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.text2.input.TextFieldState
 import com.example.core.domain.validators.NumericValidationResult
 import com.example.core.domain.validators.TextValidationResult
-,import com.example.products.domain.validators.ProductDescriptionVS
+import com.example.products.domain.validators.ProductDescriptionVS
 
 data class ProductAddState(
     val name: TextFieldState = TextFieldState(),
