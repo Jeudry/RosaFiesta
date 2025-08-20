@@ -49,7 +49,7 @@ fun RFPasswordTextField(
   state: TextFieldState,
   hint: String,
   title: String?,
-  textColor: Color = MaterialTheme.colorScheme.onPrimary,
+  textColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
   modifier: Modifier = Modifier,
   isVisible: Boolean = false,
   onTogglePasswordVisibility: () -> Unit
@@ -113,7 +113,7 @@ fun RFPasswordTextField(
           Icon(
             imageVector = LockIcon,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onPrimary
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
           )
           Spacer(
             modifier = Modifier.width(16.dp)
@@ -125,7 +125,7 @@ fun RFPasswordTextField(
             if (state.text.isEmpty() && !isFocused) {
               Text(
                 text = hint,
-                color = MaterialTheme.colorScheme.onPrimary.copy(
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(
                   alpha = 0.4f
                 ),
                 modifier = Modifier
@@ -148,7 +148,7 @@ fun RFPasswordTextField(
               } else {
                 stringResource(id = R.string.hide_password)
               },
-              tint = MaterialTheme.colorScheme.onPrimary
+              tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
           }
         }

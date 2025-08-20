@@ -35,10 +35,8 @@ import com.example.auth.presentation.R
 import com.example.core.presentation.designsystem.CheckIcon
 import com.example.core.presentation.designsystem.CrossIcon
 import com.example.core.presentation.designsystem.EmailIcon
-import com.example.core.presentation.designsystem.Poppins
-import com.example.core.presentation.designsystem.RFDarkRed
-import com.example.core.presentation.designsystem.RFGreen
 import com.example.core.presentation.designsystem.RFTheme
+import com.example.core.presentation.designsystem.bodyFontFamily
 import com.example.core.presentation.designsystem.components.GradientBackground
 import com.example.core.presentation.designsystem.components.RFActionButton
 import com.example.core.presentation.designsystem.components.RFPasswordTextField
@@ -94,7 +92,6 @@ fun RegisterScreen(
   state: RegisterState,
   onAction: (RegisterAction) -> Unit
 ) {
-  GradientBackground {
     Column(
       modifier = Modifier
         .fillMaxSize()
@@ -105,13 +102,13 @@ fun RegisterScreen(
       Text(
         text = stringResource(id = R.string.create_account),
         style = MaterialTheme.typography.headlineMedium,
-        color = MaterialTheme.colorScheme.onPrimary,
+        color = MaterialTheme.colorScheme.onBackground,
       )
       val annotatedString = buildAnnotatedString {
         withStyle(
           style = SpanStyle(
-            fontFamily = Poppins,
-            color = MaterialTheme.colorScheme.onPrimary
+            fontFamily = bodyFontFamily,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
           )
         ) {
           append(stringResource(id = R.string.already_have_an_account) + " ")
@@ -123,7 +120,7 @@ fun RegisterScreen(
             style = SpanStyle(
               fontWeight = FontWeight.SemiBold,
               color = MaterialTheme.colorScheme.primary,
-              fontFamily = Poppins
+              fontFamily = bodyFontFamily
             )
           ) {
             append(stringResource(id = R.string.login))
@@ -201,7 +198,6 @@ fun RegisterScreen(
         onAction(RegisterAction.OnRegisterClick)
       }
     }
-  }
 }
 
 @Composable
@@ -216,7 +212,8 @@ fun PasswordRequirement(
   ) {
     Icon(
       imageVector = if (isValid) CheckIcon else CrossIcon, contentDescription = null,
-      tint = if (isValid) RFGreen else RFDarkRed
+      tint = if (isValid) MaterialTheme.colorScheme.primary
+      else MaterialTheme.colorScheme.error
     )
     Spacer(modifier = Modifier.width(16.dp))
     Text(

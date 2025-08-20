@@ -18,7 +18,7 @@ fun RFFloatingAddBtn(
   onClick: () -> Unit
 ) {
   FloatingActionButton(
-    containerColor =  MaterialTheme.colorScheme.primary,
+    containerColor =  MaterialTheme.colorScheme.primaryContainer,
     contentColor =  MaterialTheme.colorScheme.onPrimary,
     modifier = Modifier.padding(end = 8.dp, bottom = 16.dp).size(
       75.dp
@@ -27,7 +27,7 @@ fun RFFloatingAddBtn(
   ) {
     Icon(Icons.Filled.Add, stringResource(R.string.add_btn),
       Modifier.size(40.dp),
-      tint = MaterialTheme.colorScheme.onSecondary
+      tint = MaterialTheme.colorScheme.onPrimaryContainer
       )
   }
 }

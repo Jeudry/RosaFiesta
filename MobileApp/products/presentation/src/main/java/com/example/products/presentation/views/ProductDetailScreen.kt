@@ -290,7 +290,7 @@ fun ProductDetailContent(state: ProductDetailState) {
             modifier = Modifier
               .padding(top = 24.dp),
             text = state.product.description!!,
-            color = MaterialTheme.colorScheme.onPrimary,
+            color = MaterialTheme.colorScheme.onBackground,
             lineHeight = 20.sp,
             fontSize = 16.sp,
             fontWeight = FontWeight.Light,
@@ -342,7 +342,7 @@ fun ProductSizeCard(
 ) {
   val backgroundColor =
     if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface
-  val textColor = if (isSelected) Color.White else MaterialTheme.colorScheme.onPrimary
+  val textColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
   val border = if (isSelected) 0.dp else 0.8.dp
   
   Text(

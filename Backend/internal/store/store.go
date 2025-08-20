@@ -23,6 +23,13 @@ type Storage struct {
 		Delete(context.Context, *models.Product) error
 		GetAll(context.Context) ([]models.Product, error)
 	}
+	Categories interface {
+		Create(context.Context, *models.Category) error
+		GetById(context.Context, uuid.UUID) (*models.Category, error)
+		Update(context.Context, *models.Category) error
+		Delete(context.Context, *models.Category) error
+		GetAll(context.Context) ([]models.Category, error)
+	}
 	Posts interface {
 		Create(context.Context, *models.Post) error
 		RetrieveById(context.Context, uuid.UUID) (*models.Post, error)
@@ -56,6 +63,7 @@ type Storage struct {
 func NewStorage(db *sql.DB) Storage {
 	return Storage{
 		Products:      &ProductsStore{db: db},
+		Categories:    &CategoriesStore{db: db},
 		Posts:         &PostsStore{db: db},
 		Users:         &UsersStore{db: db},
 		Comments:      &CommentsStore{db: db},

@@ -28,13 +28,7 @@ fun RFScaffold(
     floatingActionButtonPosition = floatingBtnPosition,
     bottomBar = bottomBar,
   ) { padding ->
-    if (withGradient) {
-      GradientBackground {
-        content(padding)
-      }
-    } else {
       content(padding)
-    }
   }
 }
 

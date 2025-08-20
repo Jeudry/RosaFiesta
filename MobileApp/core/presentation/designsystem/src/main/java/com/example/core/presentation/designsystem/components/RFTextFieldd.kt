@@ -50,7 +50,7 @@ fun RFTextField(
   endIcon: ImageVector?,
   hint: String,
   title: String?,
-  titleColor: Color = MaterialTheme.colorScheme.onPrimary,
+  titleColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
   modifier: Modifier = Modifier,
   error: String? = null,
   keyboardType: KeyboardType = KeyboardType.Text,
@@ -119,7 +119,7 @@ fun RFTextField(
             Icon(
               imageVector = startIcon,
               contentDescription = null,
-              tint = MaterialTheme.colorScheme.onPrimary
+              tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(
               modifier = Modifier.width(16.dp)
@@ -132,7 +132,7 @@ fun RFTextField(
             if (state.text.isEmpty() && !isFocused) {
               Text(
                 text = hint,
-                color = MaterialTheme.colorScheme.onPrimary.copy(
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(
                   alpha = 0.4f
                 ),
                 modifier = Modifier
@@ -148,7 +148,7 @@ fun RFTextField(
             Icon(
               imageVector = endIcon,
               contentDescription = null,
-              tint = MaterialTheme.colorScheme.onPrimary,
+              tint = MaterialTheme.colorScheme.onSurfaceVariant,
               modifier = Modifier.padding(end = 8.dp)
             )
           }

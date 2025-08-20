@@ -21,8 +21,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.example.core.presentation.designsystem.RFBlack
-import com.example.core.presentation.designsystem.RFGray
 import com.example.core.presentation.designsystem.RFTheme
 
 @Composable
@@ -40,8 +38,8 @@ fun RFActionButton(
     colors = ButtonDefaults.buttonColors(
       containerColor = MaterialTheme.colorScheme.primary,
       contentColor = MaterialTheme.colorScheme.onPrimary,
-      disabledContainerColor = RFGray,
-      disabledContentColor = RFBlack
+      disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+      disabledContentColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.5f)
     ),
     shape = RoundedCornerShape(100f),
     modifier = modifier.height(IntrinsicSize.Min)
@@ -61,7 +59,7 @@ fun RFActionButton(
       )
       Text(
         text = text,
-        color = textColor,
+        color = MaterialTheme.colorScheme.onPrimary,
         modifier = Modifier.alpha(if (isLoading) 0f else 1f),
         fontWeight = FontWeight.Medium
       )
@@ -81,12 +79,12 @@ fun RFOutlinedActionButton(
     onClick = onClick,
     enabled = enabled,
     colors = ButtonDefaults.buttonColors(
-      contentColor = MaterialTheme.colorScheme.onBackground,
-      containerColor = MaterialTheme.colorScheme.background,
+      contentColor = MaterialTheme.colorScheme.onSurface,
+      containerColor = Color.Transparent,
     ),
     border = BorderStroke(
       width = 1.5.dp,
-      MaterialTheme.colorScheme.onBackground
+      MaterialTheme.colorScheme.outline
     ),
     shape = RoundedCornerShape(100f),
     modifier = modifier.height(IntrinsicSize.Min)
@@ -102,12 +100,13 @@ fun RFOutlinedActionButton(
           .size(15.dp)
           .alpha(if (isLoading) 1f else 0f),
         strokeWidth = 1.5.dp,
-        color = MaterialTheme.colorScheme.onBackground
+        color = MaterialTheme.colorScheme.onSurface
       )
       Text(
         text = text,
         modifier = Modifier.alpha(if (isLoading) 0f else 1f),
         fontWeight = FontWeight.Medium,
+        color = MaterialTheme.colorScheme.onSurface
       )
     }
   }

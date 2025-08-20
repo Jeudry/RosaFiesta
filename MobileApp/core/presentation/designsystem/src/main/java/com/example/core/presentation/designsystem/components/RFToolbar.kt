@@ -37,10 +37,9 @@ import androidx.compose.ui.unit.sp
 import com.example.core.presentation.designsystem.AnalyticsIcon
 import com.example.core.presentation.designsystem.ArrowLeftIcon
 import com.example.core.presentation.designsystem.LogoIcon
-import com.example.core.presentation.designsystem.Poppins
 import com.example.core.presentation.designsystem.R
-import com.example.core.presentation.designsystem.RFGreen
 import com.example.core.presentation.designsystem.RFTheme
+import com.example.core.presentation.designsystem.bodyFontFamily
 import com.example.core.presentation.designsystem.components.utils.DropdownItem
 
 @Composable
@@ -71,7 +70,7 @@ fun RFToolbar(
           text = title,
           fontWeight = FontWeight.SemiBold,
           color = MaterialTheme.colorScheme.onBackground,
-          fontFamily = Poppins,
+          fontFamily = bodyFontFamily,
           fontSize = 28.sp
         )
       }
@@ -109,13 +108,14 @@ fun RFToolbar(
               ) {
                 Icon(
                   imageVector = item.icon,
-                  contentDescription = item.title
+                  contentDescription = item.title,
+                  tint = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                   text = item.title,
-
-                  )
+                  color = MaterialTheme.colorScheme.onSurface
+                )
               }
             }
           }
@@ -151,7 +151,7 @@ private fun RFToolbarPreview(
           Icon(
             imageVector = LogoIcon,
             contentDescription = null,
-            tint = RFGreen,
+            tint = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.size(35.dp)
           )
         }

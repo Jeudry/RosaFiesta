@@ -25,7 +25,7 @@ fun GetToolBar(navState: NavState, scrollBehavior: TopAppBarScrollBehavior, onBa
           Icon(
             imageVector = LogoIcon,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
+            tint = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.size(30.dp)
           )
         }

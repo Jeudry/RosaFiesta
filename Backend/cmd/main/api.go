@@ -75,6 +75,20 @@ func (app *Application) Mount() http.Handler {
 			})
 		})
 
+		r.Route("/categories", func(r chi.Router) {
+			r.Use(app.AuthTokenMiddleware())
+			r.Post("/", app.CheckRole("moderator", app.createCategoryHandler))
+			r.Get("/", app.getAllCategoriesHandler)
+
+			r.Route("/{categoryId}", func(r chi.Router) {
+				r.Use(app.categoriesContextMiddleware)
+				r.Use(app.RoleMiddleware("moderator"))
+				r.Get("/", app.getCategoryHandler)
+				r.Put("/", app.updateCategoryHandler)
+				r.Delete("/", app.deleteCategoryHandler)
+			})
+		})
+
 		r.Route("/users", func(r chi.Router) {
 			r.Put("/active/{token}", app.activateUserHandler)
 

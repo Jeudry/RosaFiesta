@@ -24,10 +24,10 @@ open class TextValidationResult(
     override val isValid: Boolean get() = 
         if (required) notEmpty && minLengthValid && maxLengthValid && patternValid
         else !notEmpty || (minLengthValid && maxLengthValid && patternValid)
-
+    
     override val errors: Map<String, Any> get() {
         val errorMap = mutableMapOf<String, Any>()
-
+        
         if (required && !notEmpty) {
             errorMap["required"] = true
         }
@@ -48,7 +48,7 @@ open class TextValidationResult(
                 errorMap["pattern"] = true
             }
         }
-
+        
         return errorMap
     }
 }
@@ -69,10 +69,10 @@ open class NumericValidationResult(
     override val isValid: Boolean get() = 
         if (required) hasValue && positiveValue && minRangeValid && maxRangeValid
         else !hasValue || (positiveValue && minRangeValid && maxRangeValid)
-
+    
     override val errors: Map<String, Any> get() {
         val errorMap = mutableMapOf<String, Any>()
-
+        
         if (required && !hasValue) {
             errorMap["required"] = true
         }
@@ -93,7 +93,7 @@ open class NumericValidationResult(
                 )
             }
         }
-
+        
         return errorMap
     }
 }

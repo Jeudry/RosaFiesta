@@ -20,7 +20,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.core.presentation.designsystem.CheckIcon
-import com.example.core.presentation.designsystem.EmailIcon
 import com.example.core.presentation.designsystem.RFTheme
 import com.example.core.presentation.designsystem.components.RFActionButton
 import com.example.core.presentation.designsystem.components.RFTextField
@@ -103,7 +102,7 @@ private fun ProductForm(
     ) {
         RFTextField(
             state = state.name,
-            startIcon = EmailIcon,
+            startIcon = null,
             endIcon = if (state.isNameValid.isValid) CheckIcon else null,
             hint = stringResource(id = R.string.name),
             title = stringResource(id = R.string.name),
@@ -115,7 +114,7 @@ private fun ProductForm(
 
         RFTextField(
             state = state.description,
-            startIcon = EmailIcon,
+            startIcon = null,
             endIcon = if (state.isDescriptionValid.isValid) CheckIcon else null,
             hint = stringResource(id = R.string.description),
             title = stringResource(id = R.string.description),
@@ -127,7 +126,7 @@ private fun ProductForm(
 
         RFTextField(
             state = state.price,
-            startIcon = EmailIcon,
+            startIcon = null,
             endIcon = if (state.isPriceValid.isValid) CheckIcon else null,
             hint = stringResource(id = R.string.price),
             title = stringResource(id = R.string.price),
@@ -139,7 +138,7 @@ private fun ProductForm(
 
         RFTextField(
             state = state.stock,
-            startIcon = EmailIcon,
+            startIcon = null,
             endIcon = if (state.isStockValid.isValid) CheckIcon else null,
             hint = stringResource(id = R.string.stock),
             title = stringResource(id = R.string.stock),
@@ -151,7 +150,7 @@ private fun ProductForm(
 
         RFTextField(
             state = state.rentalPrice,
-            startIcon = EmailIcon,
+            startIcon = null,
             endIcon = if (state.isRentalPriceValid.isValid) CheckIcon else null,
             hint = stringResource(id = R.string.rental_price),
             title = stringResource(id = R.string.rental_price),
@@ -163,7 +162,7 @@ private fun ProductForm(
 
         RFTextField(
             state = state.imageUrl,
-            startIcon = EmailIcon,
+            startIcon = null,
             endIcon = CheckIcon,
             hint = stringResource(id = R.string.product_image),
             title = stringResource(id = R.string.product_image),
@@ -174,7 +173,7 @@ private fun ProductForm(
         
         RFTextField(
             state = state.color,
-            startIcon = EmailIcon,
+            startIcon = null,
             endIcon = if (state.isColorValid.isValid) CheckIcon else null,
             hint = stringResource(id = R.string.color),
             title = stringResource(id = R.string.color),
@@ -186,7 +185,7 @@ private fun ProductForm(
         
         RFTextField(
             state = state.size,
-            startIcon = EmailIcon,
+            startIcon = null,
             endIcon = if (state.isSizeValid.isValid) CheckIcon else null,
             hint = stringResource(id = R.string.size),
             title = stringResource(id = R.string.size),
