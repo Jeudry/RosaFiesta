@@ -46,17 +46,20 @@ import kotlin.random.Random
 
 @Composable
 fun Login1(onLogin: (email: String, password: String, remember: Boolean) -> Unit = { _, _, _ -> }) {
-    // Nueva paleta rosa refinada (menos blanco arriba, transición más rica)
+    // Paleta centrada en #EB9DFF
+    val pinkBase = Color(0xFFEB9DFF)
+    val pinkLight = Color(0xFFF7E6FF)
+    val pinkDark = Color(0xFFD17BFF)
     val gradientTop = listOf(
-        Color(0xFFFFD6E7), // claro pero no tan blanco
-        Color(0xFFFFA3C6), // transición media
-        Color(0xFFFF6FAF)  // intenso abajo
+        pinkLight,    // claro arriba
+        pinkBase,     // medio
+        pinkDark      // más intenso abajo
     )
-    val primaryColor = Color(0xFFF0448C)
-    val accentText = primaryColor
-    val checkboxChecked = primaryColor
-    val labelColor = Color(0xFF7A3352)
-    val subtleBorder = Color(0xFFF5D9E5)
+    val primaryColor = pinkBase
+    val accentText = pinkDark
+    val checkboxChecked = pinkBase
+    val labelColor = Color(0xFF5E3A73)
+    val subtleBorder = Color(0xFFE8D3F3)
     val cardShape = RoundedCornerShape(24.dp)
 
     var email by remember { mutableStateOf("") }
@@ -64,9 +67,26 @@ fun Login1(onLogin: (email: String, password: String, remember: Boolean) -> Unit
     var rememberMe by remember { mutableStateOf(false) }
     var showPassword by remember { mutableStateOf(false) }
 
-    val pink = Color(0xFFFF4F8B)
+    val pink = pinkBase
 
-    Box(modifier = Modifier.fillMaxSize().background(Color.White)) {
+    // Fondo base lavanda-blush (nuevo) que contrasta suavemente con el rosa superior
+    val baseBackground = Brush.verticalGradient(
+        listOf(
+            Color(0xFFF4F0FF), // lavanda muy clara
+            Color(0xFFF9EFFF), // transición cálida
+            Color(0xFFFFE8F5)  // blush suave cercano al rosa pero distinto
+        )
+    )
+    /* Opciones alternativas rápidas:
+       // Turquesa suave (anterior menta refinada)
+       // val baseBackground = Brush.verticalGradient(listOf(Color(0xFFF2FFFD), Color(0xFFE9FCF8), Color(0xFFE1F7F3)))
+       // Beige melocotón
+       // val baseBackground = Brush.verticalGradient(listOf(Color(0xFFFFF9F4), Color(0xFFFFF1E4), Color(0xFFFFE4D3)))
+       // Gris rosado neutro
+       // val baseBackground = Brush.verticalGradient(listOf(Color(0xFFFAF8FA), Color(0xFFF3EFF3), Color(0xFFECE5EC)))
+    */
+
+    Box(modifier = Modifier.fillMaxSize().background(baseBackground)) {
         // Fondo diagonal (sin bordes redondeados) + partículas
         DiagonalPinkBackground(gradientTop)
         ParticleSystem()
@@ -135,10 +155,10 @@ fun Login1(onLogin: (email: String, password: String, remember: Boolean) -> Unit
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(48.dp),
-                        shape = RoundedCornerShape(6.dp),
+                        shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = pink,
-                            disabledContainerColor = pink.copy(alpha = 0.35f)
+                            containerColor = pinkBase,
+                            disabledContainerColor = pinkBase.copy(alpha = 0.35f)
                         )
                     ) {
                         BasicText(
@@ -166,7 +186,7 @@ fun Login1(onLogin: (email: String, password: String, remember: Boolean) -> Unit
 @Composable
 private fun DiagonalPinkBackground(gradientColors: List<Color>) {
     Canvas(modifier = Modifier.fillMaxSize()) {
-        drawRect(Color.White)
+        // Eliminado drawRect(Color.White) para dejar ver el gradiente base
         val path = Path().apply {
             moveTo(0f, 0f)
             lineTo(size.width, 0f)
@@ -174,7 +194,6 @@ private fun DiagonalPinkBackground(gradientColors: List<Color>) {
             lineTo(0f, size.height * 0.37f)
             close()
         }
-        // Gradiente: color[0] (claro) arriba; color[1] (intenso) más abajo
         drawPath(
             path = path,
             brush = Brush.linearGradient(

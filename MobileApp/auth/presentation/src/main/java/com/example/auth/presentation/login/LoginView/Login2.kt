@@ -34,18 +34,28 @@ import androidx.compose.ui.unit.sp
 fun Login2() {
     // Paleta de colores (autocontenida)
     val aqua = Color(0xFF29D7E8)
-    val pink = Color(0xFFFF4F8B)
-    val darkText = Color(0xFF222222)
-    val hint = Color(0xFF777B85)
+    val pinkBase = Color(0xFFEB9DFF) // nuevo tono central solicitado
+    val pinkDark = Color(0xFFD077F5)
+    val pinkLight = Color(0xFFF5DFFF)
+    val darkText = Color(0xFF221A29)
+    val hint = Color(0xFF7E6B8A)
     val cardBackground = Color.White
-    val accent = pink
+    val accent = pinkBase
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Brush.horizontalGradient(listOf(aqua, pink)))
+            .background(
+                Brush.horizontalGradient(
+                    listOf(
+                        aqua.copy(alpha = 0.95f),
+                        pinkLight,
+                        pinkBase,
+                        pinkDark
+                    )
+                )
+            )
     ) {
-        // Burbujas decorativas
         DecorativeBubbles()
 
         // Contenido principal centrado
@@ -58,7 +68,7 @@ fun Login2() {
         ) {
             LoginCard(
                 aqua = aqua,
-                pink = pink,
+                pink = pinkBase,
                 darkText = darkText,
                 hint = hint,
                 cardBackground = cardBackground,
@@ -245,23 +255,19 @@ private fun WaveHeader(height: Dp, aqua: Color, pink: Color) {
             lineTo(size.width, 0f)
             lineTo(size.width, hPx * 0.55f)
             // Curva ondulada hacia la izquierda
-            quadraticBezierTo(
-                size.width * 0.75f, hPx * 0.25f,
-                size.width * 0.52f, hPx * 0.42f
-            )
-            quadraticBezierTo(
-                size.width * 0.35f, hPx * 0.55f,
-                size.width * 0.15f, hPx * 0.35f
-            )
-            quadraticBezierTo(
-                size.width * 0.05f, hPx * 0.25f,
-                0f, hPx * 0.38f
-            )
+            quadraticBezierTo(size.width * 0.75f, hPx * 0.25f, size.width * 0.52f, hPx * 0.42f)
+            quadraticBezierTo(size.width * 0.35f, hPx * 0.55f, size.width * 0.15f, hPx * 0.35f)
+            quadraticBezierTo(size.width * 0.05f, hPx * 0.25f, 0f, hPx * 0.38f)
             close()
         }
         drawPath(
             path = path,
-            brush = Brush.horizontalGradient(listOf(aqua, pink))
+            brush = Brush.horizontalGradient(
+                listOf(
+                    aqua.copy(alpha = 0.9f),
+                    pink.copy(alpha = 0.9f)
+                )
+            )
         )
     }
 }
