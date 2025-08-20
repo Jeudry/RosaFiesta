@@ -16,6 +16,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.ClickableText
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -44,8 +46,12 @@ import kotlin.random.Random
 
 @Composable
 fun Login1(onLogin: (email: String, password: String, remember: Boolean) -> Unit = { _, _, _ -> }) {
-    // Nueva paleta rosa refinada
-    val gradientTop = listOf(Color(0xFFFF6FAF), Color(0xFFFFD5E8)) // rosa vivo a rosa pastel
+    // Nueva paleta rosa refinada (menos blanco arriba, transición más rica)
+    val gradientTop = listOf(
+        Color(0xFFFFD6E7), // claro pero no tan blanco
+        Color(0xFFFFA3C6), // transición media
+        Color(0xFFFF6FAF)  // intenso abajo
+    )
     val primaryColor = Color(0xFFF0448C)
     val accentText = primaryColor
     val checkboxChecked = primaryColor
@@ -57,6 +63,8 @@ fun Login1(onLogin: (email: String, password: String, remember: Boolean) -> Unit
     var password by remember { mutableStateOf("") }
     var rememberMe by remember { mutableStateOf(false) }
     var showPassword by remember { mutableStateOf(false) }
+
+    val pink = Color(0xFFFF4F8B)
 
     Box(modifier = Modifier.fillMaxSize().background(Color.White)) {
         // Fondo diagonal (sin bordes redondeados) + partículas
@@ -121,14 +129,17 @@ fun Login1(onLogin: (email: String, password: String, remember: Boolean) -> Unit
                         )
                     }
                     Spacer(Modifier.height(24.dp))
-                    Box(
+                    Button(
+                        onClick = { /* acción login */ },
+                        enabled = email.isNotBlank() && password.isNotBlank(),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(48.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(primaryColor)
-                            .clickable { onLogin(email, password, rememberMe) },
-                        contentAlignment = Alignment.Center
+                            .height(48.dp),
+                        shape = RoundedCornerShape(6.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = pink,
+                            disabledContainerColor = pink.copy(alpha = 0.35f)
+                        )
                     ) {
                         BasicText(
                             text = "Login",
@@ -155,24 +166,49 @@ fun Login1(onLogin: (email: String, password: String, remember: Boolean) -> Unit
 @Composable
 private fun DiagonalPinkBackground(gradientColors: List<Color>) {
     Canvas(modifier = Modifier.fillMaxSize()) {
-        // Fondo base blanco (ya hay Box blanco, pero aseguramos)
         drawRect(Color.White)
         val path = Path().apply {
             moveTo(0f, 0f)
             lineTo(size.width, 0f)
-            // línea inferior diagonal: izquierda más alta, derecha más baja
             lineTo(size.width, size.height * 0.52f)
             lineTo(0f, size.height * 0.37f)
             close()
         }
+        // Gradiente: color[0] (claro) arriba; color[1] (intenso) más abajo
         drawPath(
             path = path,
             brush = Brush.linearGradient(
                 colors = gradientColors,
-                start = Offset(x = size.width * 0.3f, y = 0f),
-                end = Offset(x = size.width * 0.7f, y = size.height * 0.62f)
+                start = Offset(x = size.width * 0.5f, y = 0f),
+                end = Offset(x = size.width * 0.5f, y = size.height * 0.65f)
             )
         )
+        // Círculos decorativos translúcidos
+        val circles = listOf(
+            Triple(0.18f, 0.18f, size.minDimension * 0.17f),
+            Triple(0.82f, 0.12f, size.minDimension * 0.22f),
+            Triple(0.08f, 0.42f, size.minDimension * 0.12f),
+            Triple(0.92f, 0.45f, size.minDimension * 0.10f),
+            Triple(0.65f, 0.30f, size.minDimension * 0.14f)
+        )
+        circles.forEach { (xf, yf, r) ->
+            val center = Offset(size.width * xf, size.height * yf)
+            // halo suave con radial gradient
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(Color.White.copy(alpha = 0.30f), Color.White.copy(alpha = 0.04f), Color.Transparent),
+                    center = center,
+                    radius = r * 1.4f
+                ),
+                radius = r * 1.4f,
+                center = center
+            )
+            drawCircle(
+                color = Color.White.copy(alpha = 0.20f),
+                radius = r,
+                center = center
+            )
+        }
     }
 }
 
