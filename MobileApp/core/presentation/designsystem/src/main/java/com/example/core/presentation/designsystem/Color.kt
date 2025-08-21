@@ -296,15 +296,3 @@ val customColor11DarkHighContrast = Color(0xFFB7FFDF)
 val onCustomColor11DarkHighContrast = Color(0xFF000000)
 val customColor11ContainerDarkHighContrast = Color(0xFF87D2B2)
 val onCustomColor11ContainerDarkHighContrast = Color(0xFF000E08)
-
-// Nuevos colores para el diseño de login
-val turquoise = Color(0xFF40E0D0)
-val brightPink = Color(0xFFFF69B4)
-val lightTurquoise = Color(0xFFE8F8F5)
-val darkGray = Color(0xFF2C3E50)
-val mediumGray = Color(0xFF7F8C8D)
-val lightGray = Color(0xFFBDC3C7)
-
-// Colores para redes sociales
-val facebookBlue = Color(0xFF3B5998)
-val twitterBlue = Color(0xFF1DA1F2)

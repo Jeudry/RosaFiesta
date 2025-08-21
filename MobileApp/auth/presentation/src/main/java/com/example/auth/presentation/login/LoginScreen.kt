@@ -66,6 +66,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -77,7 +78,10 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.auth.presentation.R
+import com.example.core.presentation.designsystem.EmailIcon
 import com.example.core.presentation.designsystem.RFTheme
+import com.example.core.presentation.designsystem.components.RFPasswordTextField
+import com.example.core.presentation.designsystem.components.RFTextField
 import com.example.core.presentation.ui.ObserveAsEvents
 import org.koin.androidx.compose.koinViewModel
 import kotlin.random.Random
@@ -129,14 +133,6 @@ fun LoginScreenRoot(
 
 @Composable
 fun LoginScreen(state: LoginState, onAction: (LoginAction) -> Unit) {
-    // Sin estado local duplicado; se refleja el contenido de TextFieldState
-    var emailText by remember { mutableStateOf(state.email.text.toString()) }
-    var passwordText by remember { mutableStateOf(state.password.text.toString()) }
-
-    // Mantener sincronía cuando state (objeto) se re-crea pero TextFieldState conserva contenido
-    LaunchedEffect(state.email) { emailText = state.email.text.toString() }
-    LaunchedEffect(state.password) { passwordText = state.password.text.toString() }
-
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -151,36 +147,16 @@ fun LoginScreen(state: LoginState, onAction: (LoginAction) -> Unit) {
                 )
             )
     ) {
-        // Partículas animadas (nuevo)
         ParticleLayer()
-        // Fondo de burbujas estáticas
         DecorativeBubbles()
-
-        // Status Bar
         StatusBar()
-
-        // Login Form - Centered
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
             LoginForm(
-                email = emailText,
-                password = passwordText,
-                isPasswordVisible = state.isPasswordVisible,
-                canLogin = state.canLogin,
-                isLoading = state.isLoggingIn,
-                onEmailChange = { value ->
-                    emailText = value
-                    state.email.edit { replace(0, length, value) }
-                },
-                onPasswordChange = { value ->
-                    passwordText = value
-                    state.password.edit { replace(0, length, value) }
-                },
-                onPasswordVisibilityToggle = { onAction(LoginAction.OnTogglePasswordVisibility) },
-                onLoginClick = { onAction(LoginAction.OnLoginClick) },
-                onRegisterClick = { onAction(LoginAction.OnRegisterClick) }
+                state = state,
+                onAction = onAction
             )
         }
     }
@@ -365,16 +341,8 @@ private fun DecorativeBubbles() {
 
 @Composable
 fun LoginForm(
-    email: String,
-    password: String,
-    isPasswordVisible: Boolean,
-    canLogin: Boolean,
-    isLoading: Boolean,
-    onEmailChange: (String) -> Unit,
-    onPasswordChange: (String) -> Unit,
-    onPasswordVisibilityToggle: () -> Unit,
-    onLoginClick: () -> Unit,
-    onRegisterClick: () -> Unit
+    state: LoginState,
+    onAction: (LoginAction) -> Unit
 ) {
     Card(
         modifier = Modifier
@@ -408,46 +376,47 @@ fun LoginForm(
                 lineHeight = 20.sp
             )
 
-            // Email field
-            CustomTextField(
-                value = email,
-                onValueChange = onEmailChange,
-                placeholder = "Email",
-                trailingIcon = Icons.Default.Check,
-                trailingIconTint = Color(0xFF5EECF5),
-                keyboardType = KeyboardType.Email
+            RFTextField(
+                state = state.email,
+                startIcon = EmailIcon,
+                endIcon = null,
+                keyboardType = KeyboardType.Email,
+                hint = stringResource(id = R.string.example_email),
+                title = stringResource(id = R.string.email),
+                modifier = Modifier.fillMaxWidth()
             )
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Password field
-            CustomTextField(
-                value = password,
-                onValueChange = onPasswordChange,
-                placeholder = "Password",
-                trailingIcon = if (isPasswordVisible) Icons.Default.Check else Icons.Default.Person,
-                trailingIconTint = Color(0xFFBDC3C7),
-                onTrailingIconClick = onPasswordVisibilityToggle,
-                visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                keyboardType = KeyboardType.Password
+            RFPasswordTextField(
+                state = state.password,
+                onTogglePasswordVisibility = {
+                    onAction(
+                        LoginAction.OnTogglePasswordVisibility
+                    )
+                },
+                isVisible = state.isPasswordVisible,
+                modifier = Modifier.fillMaxWidth(),
+                hint = stringResource(id = R.string.password),
+                title = stringResource(id = R.string.password),
             )
 
             Spacer(modifier = Modifier.height(30.dp))
 
             // Sign In Button
             Button(
-                onClick = onLoginClick,
-                enabled = canLogin && !isLoading,
+                onClick = { onAction(LoginAction.OnLoginClick) },
+                enabled = state.canLogin && !state.isLoggingIn,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp),
                 shape = RoundedCornerShape(25.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (canLogin) Color(0xFFFE709B) else Color(0x55FE709B),
+                    containerColor = if (state.canLogin) Color(0xFFFE709B) else Color(0x55FE709B),
                     disabledContainerColor = Color(0x33FE709B)
                 )
             ) {
-                if (isLoading) {
+                if (state.isLoggingIn) {
                     CircularProgressIndicator(
                         color = Color.White,
                         strokeWidth = 2.dp,
@@ -546,52 +515,11 @@ fun LoginForm(
                     color = Color(0xFFFE709B),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium,
-                    modifier = Modifier.clickable { onRegisterClick() }
+                    modifier = Modifier.clickable { onAction(LoginAction.OnRegisterClick) }
                 )
             }
         }
     }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun CustomTextField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    placeholder: String,
-    trailingIcon: ImageVector? = null,
-    trailingIconTint: Color = Color.Gray,
-    onTrailingIconClick: (() -> Unit)? = null,
-    visualTransformation: VisualTransformation = VisualTransformation.None,
-    keyboardType: KeyboardType = KeyboardType.Text
-) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        modifier = Modifier.fillMaxWidth(),
-        placeholder = { Text(placeholder) },
-        trailingIcon = {
-            trailingIcon?.let { icon ->
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = trailingIconTint,
-                    modifier = Modifier
-                        .size(18.dp)
-                        .clickable { onTrailingIconClick?.invoke() }
-                )
-            }
-        },
-        visualTransformation = visualTransformation,
-        keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = Color(0xFF5EECF5),
-            unfocusedBorderColor = Color(0xFFECF0F1),
-            focusedTextColor = Color(0xFF2C3E50),
-            unfocusedTextColor = Color(0xFF2C3E50)
-        ),
-        singleLine = true
-    )
 }
 
 @Composable

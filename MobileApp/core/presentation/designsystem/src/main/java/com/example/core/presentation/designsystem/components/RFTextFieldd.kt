@@ -54,7 +54,8 @@ fun RFTextField(
   modifier: Modifier = Modifier,
   error: String? = null,
   keyboardType: KeyboardType = KeyboardType.Text,
-  additionalInfo: String? = null
+  additionalInfo: String? = null,
+  onChange: (String) -> Unit = {}
 ) {
   var isFocused by remember {
     mutableStateOf(false)
