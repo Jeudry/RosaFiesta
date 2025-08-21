@@ -2,7 +2,9 @@
 <resources>
     <string name="rosafiesta">RosaFiesta</string>
     <string name="welcome_to_rosafiesta">¡Bienvenido a RosaFiesta!</string>
-    <string name="rosafiesta_description">Gestiona tus productos, pedidos y clientes, establece metas y alcanza tus objetivos con nuestra intuitiva aplicación.</string>
+    <string name="rosafiesta_description">Gestiona tus productos, pedidos y clientes, establece metas y alcanza tus
+        objetivos con nuestra intuitiva aplicación.
+    </string>
     <string name="sign_up">Registrarse</string>
     <string name="sign_in">Iniciar sesión</string>
     <string name="create_account">Crear cuenta</string>
@@ -20,8 +22,11 @@
     <string name="error_email_exists">Ya existe un usuario con ese correo electrónico.</string>
     <string name="registration_successful">¡Registro exitoso! Ahora puedes iniciar sesión.</string>
     <string name="hi_there">¡Hola!</string>
-    <string name="runique_welcome_text">¡Bienvenido a tu compañero definitivo para asistirte! Gestiona, analiza y conquista tus clientes.</string>
+    <string name="runique_welcome_text">¡Bienvenido a tu compañero definitivo para asistirte! Gestiona, analiza y
+        conquista tus clientes.
+    </string>
     <string name="dont_have_an_account">¿No tienes una cuenta?</string>
     <string name="youre_logged_in">Has iniciado sesión.</string>
     <string name="error_email_password_incorrect">El correo electrónico o la contraseña son incorrectos.</string>
+    <string name="title_activity_login_view2">LoginView2</string>
 </resources>

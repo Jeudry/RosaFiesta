@@ -43,23 +43,24 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.style.TextAlign
 import kotlin.math.min
 import kotlin.random.Random
+import androidx.compose.ui.graphics.lerp
 
 @Composable
 fun Login1(onLogin: (email: String, password: String, remember: Boolean) -> Unit = { _, _, _ -> }) {
-    // Paleta centrada en #EB9DFF
-    val pinkBase = Color(0xFFEB9DFF)
-    val pinkLight = Color(0xFFF7E6FF)
-    val pinkDark = Color(0xFFD17BFF)
+    // Nueva paleta rosa refinada (menos blanco arriba, transición más rica)
     val gradientTop = listOf(
-        pinkLight,    // claro arriba
-        pinkBase,     // medio
-        pinkDark      // más intenso abajo
+        Color(0xFFFFE4EF), // más etéreo
+        Color(0xFFFFB6D2),
+        Color(0xFFFF63A8)
     )
-    val primaryColor = pinkBase
-    val accentText = pinkDark
-    val checkboxChecked = pinkBase
-    val labelColor = Color(0xFF5E3A73)
-    val subtleBorder = Color(0xFFE8D3F3)
+    // Fondo aqua pastel suavizado (antes más saturado)
+    val baseCyanLight = Color(0xFFDDFBFE) // pastel aireado
+    val baseCyanMid = Color(0xFF9EE8F1)   // transición suave
+    val primaryColor = Color(0xFFF0448C)
+    val accentText = primaryColor
+    val checkboxChecked = primaryColor
+    val labelColor = Color(0xFF7A3352)
+    val subtleBorder = Color(0xFFF5D9E5)
     val cardShape = RoundedCornerShape(24.dp)
 
     var email by remember { mutableStateOf("") }
@@ -67,28 +68,12 @@ fun Login1(onLogin: (email: String, password: String, remember: Boolean) -> Unit
     var rememberMe by remember { mutableStateOf(false) }
     var showPassword by remember { mutableStateOf(false) }
 
-    val pink = pinkBase
+    val pink = Color(0xFFFF4F8B)
+    val aqua = baseCyanMid
 
-    // Fondo base lavanda-blush (nuevo) que contrasta suavemente con el rosa superior
-    val baseBackground = Brush.verticalGradient(
-        listOf(
-            Color(0xFFF4F0FF), // lavanda muy clara
-            Color(0xFFF9EFFF), // transición cálida
-            Color(0xFFFFE8F5)  // blush suave cercano al rosa pero distinto
-        )
-    )
-    /* Opciones alternativas rápidas:
-       // Turquesa suave (anterior menta refinada)
-       // val baseBackground = Brush.verticalGradient(listOf(Color(0xFFF2FFFD), Color(0xFFE9FCF8), Color(0xFFE1F7F3)))
-       // Beige melocotón
-       // val baseBackground = Brush.verticalGradient(listOf(Color(0xFFFFF9F4), Color(0xFFFFF1E4), Color(0xFFFFE4D3)))
-       // Gris rosado neutro
-       // val baseBackground = Brush.verticalGradient(listOf(Color(0xFFFAF8FA), Color(0xFFF3EFF3), Color(0xFFECE5EC)))
-    */
-
-    Box(modifier = Modifier.fillMaxSize().background(baseBackground)) {
+    Box(modifier = Modifier.fillMaxSize().background(baseCyanMid)) {
         // Fondo diagonal (sin bordes redondeados) + partículas
-        DiagonalPinkBackground(gradientTop)
+        DiagonalPinkBackground(gradientTop, baseCyanLight, baseCyanMid)
         ParticleSystem()
 
         Column(
@@ -149,22 +134,76 @@ fun Login1(onLogin: (email: String, password: String, remember: Boolean) -> Unit
                         )
                     }
                     Spacer(Modifier.height(24.dp))
+                    val loginEnabled = email.isNotBlank() && password.isNotBlank()
                     Button(
-                        onClick = { /* acción login */ },
-                        enabled = email.isNotBlank() && password.isNotBlank(),
+                        onClick = { onLogin(email, password, rememberMe) },
+                        enabled = loginEnabled,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(48.dp),
                         shape = RoundedCornerShape(12.dp),
+                        contentPadding = PaddingValues(),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = pinkBase,
-                            disabledContainerColor = pinkBase.copy(alpha = 0.35f)
+                            containerColor = Color.Transparent,
+                            disabledContainerColor = Color.Transparent,
+                            contentColor = Color.White,
+                            disabledContentColor = Color.White.copy(alpha = 0.6f)
                         )
                     ) {
-                        BasicText(
-                            text = "Login",
-                            style = TextStyle(color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Medium)
-                        )
+                        val gradientEnabled = remember(pink, aqua) {
+                            val c2 = lerp(pink, aqua, 0.35f)
+                            val c3 = lerp(pink, aqua, 0.55f)
+                            val c4 = lerp(pink, aqua, 0.75f)
+                            Brush.horizontalGradient(
+                                colorStops = arrayOf(
+                                    0.00f to pink.copy(alpha = 0.95f),
+                                    0.25f to c2.copy(alpha = 0.93f),
+                                    0.55f to c3.copy(alpha = 0.92f),
+                                    0.85f to c4.copy(alpha = 0.94f),
+                                    1.00f to aqua.copy(alpha = 0.98f)
+                                )
+                            )
+                        }
+                        val gradientDisabled = remember(pink, aqua) {
+                            val c2 = lerp(pink, aqua, 0.35f)
+                            val c3 = lerp(pink, aqua, 0.55f)
+                            val c4 = lerp(pink, aqua, 0.75f)
+                            Brush.horizontalGradient(
+                                colorStops = arrayOf(
+                                    0.00f to pink.copy(alpha = 0.35f),
+                                    0.25f to c2.copy(alpha = 0.30f),
+                                    0.55f to c3.copy(alpha = 0.28f),
+                                    0.85f to c4.copy(alpha = 0.30f),
+                                    1.00f to aqua.copy(alpha = 0.34f)
+                                )
+                            )
+                        }
+                        Box(
+                            Modifier
+                                .fillMaxSize()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(if (loginEnabled) gradientEnabled else gradientDisabled)
+                        ) {
+                            // Highlight suave superior
+                            Canvas(Modifier.matchParentSize()) {
+                                drawRect(
+                                    brush = Brush.verticalGradient(
+                                        listOf(
+                                            Color.White.copy(alpha = 0.18f),
+                                            Color.Transparent
+                                        ),
+                                        startY = 0f,
+                                        endY = size.height * 0.60f
+                                    ),
+                                    size = Size(size.width, size.height * 0.60f)
+                                )
+                            }
+                            BasicText(
+                                text = "Login",
+                                modifier = Modifier.align(Alignment.Center),
+                                style = TextStyle(color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                            )
+                        }
                     }
                     Spacer(Modifier.height(26.dp))
                     OrDivider()
@@ -184,14 +223,21 @@ fun Login1(onLogin: (email: String, password: String, remember: Boolean) -> Unit
 
 // Fondo diagonal rosa
 @Composable
-private fun DiagonalPinkBackground(gradientColors: List<Color>) {
+private fun DiagonalPinkBackground(gradientColors: List<Color>, baseTop: Color = Color.White, baseBottom: Color = Color.White) {
     Canvas(modifier = Modifier.fillMaxSize()) {
-        // Eliminado drawRect(Color.White) para dejar ver el gradiente base
+        // Fondo base degradado
+        drawRect(
+            brush = Brush.verticalGradient(
+                colors = listOf(baseTop, baseBottom),
+                startY = 0f,
+                endY = size.height
+            )
+        )
         val path = Path().apply {
             moveTo(0f, 0f)
             lineTo(size.width, 0f)
-            lineTo(size.width, size.height * 0.52f)
-            lineTo(0f, size.height * 0.37f)
+            lineTo(size.width, size.height * 0.56f)
+            lineTo(0f, size.height * 0.43f)
             close()
         }
         drawPath(
@@ -202,20 +248,29 @@ private fun DiagonalPinkBackground(gradientColors: List<Color>) {
                 end = Offset(x = size.width * 0.5f, y = size.height * 0.65f)
             )
         )
+        // Halo central suave para un look más "soft"
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(Color.White.copy(alpha = 0.35f), Color.Transparent),
+                center = Offset(size.width * 0.5f, size.height * 0.58f),
+                radius = size.minDimension * 0.85f
+            ),
+            radius = size.minDimension * 0.85f,
+            center = Offset(size.width * 0.5f, size.height * 0.58f)
+        )
         // Círculos decorativos translúcidos
         val circles = listOf(
             Triple(0.18f, 0.18f, size.minDimension * 0.17f),
             Triple(0.82f, 0.12f, size.minDimension * 0.22f),
-            Triple(0.08f, 0.42f, size.minDimension * 0.12f),
-            Triple(0.92f, 0.45f, size.minDimension * 0.10f),
-            Triple(0.65f, 0.30f, size.minDimension * 0.14f)
+            Triple(0.10f, 0.44f, size.minDimension * 0.12f),
+            Triple(0.90f, 0.47f, size.minDimension * 0.10f),
+            Triple(0.63f, 0.30f, size.minDimension * 0.14f)
         )
         circles.forEach { (xf, yf, r) ->
             val center = Offset(size.width * xf, size.height * yf)
-            // halo suave con radial gradient
             drawCircle(
                 brush = Brush.radialGradient(
-                    colors = listOf(Color.White.copy(alpha = 0.30f), Color.White.copy(alpha = 0.04f), Color.Transparent),
+                    colors = listOf(Color.White.copy(alpha = 0.28f), Color.White.copy(alpha = 0.05f), Color.Transparent),
                     center = center,
                     radius = r * 1.4f
                 ),
@@ -223,7 +278,7 @@ private fun DiagonalPinkBackground(gradientColors: List<Color>) {
                 center = center
             )
             drawCircle(
-                color = Color.White.copy(alpha = 0.20f),
+                color = Color.White.copy(alpha = 0.18f),
                 radius = r,
                 center = center
             )
