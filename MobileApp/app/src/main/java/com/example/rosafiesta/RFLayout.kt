@@ -29,8 +29,6 @@ import com.example.rosafiesta.navigation.models.NavState
 fun RFLayout(
   viewModel: MainViewModel
 ) {
-  val bottomNavigationItems = getBottomNavigationItems()
-  
   val current =  LocalContext.current
   
   val startDestination = if (
@@ -39,12 +37,13 @@ fun RFLayout(
     NavState(
       route = UiText.StringResource(R.string.home_route).asString(current),
       title = UiText.StringResource(R.string.home_title).asString(current),
-      showBackBtn = false
+      showBackBtn = false,
+      bottomNavItems = getBottomNavigationItems()
     )
   } else {
     NavState(
       route = UiText.StringResource(R.string.auth_route).asString(current),
-      title = UiText.StringResource(R.string.intro_title).asString(current),
+      title = UiText.StringResource(R.string.intro_title).asString(current)
     )
   }
   
@@ -59,22 +58,27 @@ fun RFLayout(
     state = topAppBarState
   )
   if(viewModel.state.navState != null ) {
+    val navState = viewModel.state.navState!!
     RFScaffold(
       bottomBar = {
-        GetNavigationBottomBar(
-        bottomNavigationItems = bottomNavigationItems,
-        route = viewModel.state.navState!!.route,
-        navController = navController
-      )
+        if (navState.isBottomNavVisible) {
+          GetNavigationBottomBar(
+            bottomNavigationItems = navState.bottomNavItems,
+            route = navState.route,
+            navController = navController
+          )
+        }
       },
       topAppBar = {
-        GetToolBar(
-          viewModel.state.navState!!,
-          scrollBehavior,
-          onBackClick = { navController.popBackStack() }
-        )
+        if(navState.isTopVisible){
+          GetToolBar(
+            navState,
+            scrollBehavior,
+            onBackClick = { navController.popBackStack() }
+          )
+        }
       },
-      floatingActionButton = viewModel.state.navState!!.addBtn
+      floatingActionButton = navState.addBtn
     ) { padding ->
       Column(
         modifier = Modifier.padding(padding).nestedScroll(scrollBehavior.nestedScrollConnection)

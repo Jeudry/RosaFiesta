@@ -18,7 +18,7 @@ fun RFScaffold(
   topAppBar: @Composable () -> Unit = {},
   floatingActionButton: @Composable () -> Unit = {},
   floatingBtnPosition: FabPosition = FabPosition.End,
-  bottomBar:@Composable () -> Unit = {},
+  bottomBar: @Composable () -> Unit = {},
   content: @Composable (PaddingValues) -> Unit = {},
   ) {
   Scaffold(

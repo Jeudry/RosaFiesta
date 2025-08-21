@@ -7,5 +7,10 @@ data class NavState(
   val title: String,
   val showBackBtn: Boolean = true,
   val showLogo: Boolean = true,
+  val bottomNavItems: List<BottomNavigationItem> = emptyList(),
+  val isTopVisible: Boolean = true,
   val addBtn: @Composable () -> Unit = {},
-)
+){
+    val isBottomNavVisible: Boolean
+        get() = bottomNavItems.isNotEmpty()
+}

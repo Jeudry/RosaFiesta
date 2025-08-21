@@ -29,4 +29,13 @@
     <string name="youre_logged_in">Has iniciado sesión.</string>
     <string name="error_email_password_incorrect">El correo electrónico o la contraseña son incorrectos.</string>
     <string name="title_activity_login_view2">LoginView2</string>
+    <string name="sign_in_title_placeholder">Iniciar sesión</string>
+    <string name="sign_in_subtitle_placeholder">Por favor inicia sesión en tu cuenta primero</string>
+    <string name="sign_in_button_placeholder">Iniciar sesión</string>
+    <string name="forgot_password_placeholder">¿Olvidaste tu contraseña?</string>
+    <string name="or_sign_in_using_placeholder">O inicia sesión usando:</string>
+    <string name="dont_have_account_placeholder">¿Aún no tienes una cuenta? </string>
+    <string name="sign_up_action_placeholder">Regístrate.</string>
+    <string name="remember_me">Recuérdame</string>
+    <string name="forgot_password_short">Olvidé la contraseña</string>
 </resources>

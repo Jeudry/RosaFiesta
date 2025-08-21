@@ -23,7 +23,9 @@ fun NavGraphBuilder.loginComposable(
         NavState(
           route = route,
           title = UiText.StringResource(R.string.login_title).asString(navHostData.context),
-          showBackBtn = false
+          showBackBtn = false,
+          isTopVisible = false,
+          bottomNavItems = emptyList()
         )
       )
     }

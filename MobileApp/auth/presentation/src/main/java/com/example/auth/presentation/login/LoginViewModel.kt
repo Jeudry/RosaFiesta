@@ -39,7 +39,9 @@ class LoginViewModel(
           isPasswordVisible = !state.isPasswordVisible
         )
       }
-
+      LoginAction.OnToggleRememberMe -> {
+        state = state.copy(rememberMe = !state.rememberMe)
+      }
       else -> Unit
     }
   }
