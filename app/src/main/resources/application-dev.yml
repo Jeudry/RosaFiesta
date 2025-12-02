@@ -1,0 +1,38 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: update
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_FROM_EMAIL}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+          ssl:
+            trust: smtp.gmail.com
+
+jwt:
+  expiration_minutes: 1000
+nginx:
+  require-proxy: false
+
+adventist:
+  web-socket:
+    allowedOrigins:
+      - "http://localhost:8080"
+      - "ws://localhost:8080"
+  email:
+    url: "http://localhost:8080"
+  ip:
+    rate-limit:
+      apply-limit: true
+      
+logging:
+  level:
+    com.adventist.adventist: DEBUG

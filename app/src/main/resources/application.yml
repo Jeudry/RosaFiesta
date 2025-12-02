@@ -1,0 +1,108 @@
+spring:
+  application:
+    name: chirp
+
+  datasource:
+    url: jdbc:postgresql://aws-1-us-east-2.pooler.supabase.com:5432/postgres?sslmode=require
+    username: postgres.aqotufsmvyrfeuvfnjhv
+    password: ${POSTGRES_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 20000
+      idle-timeout: 300000
+      max-lifetime: 12000000
+      validation-timeout: 5000
+      pool-name: SpringBootHikariCP
+      data-source-properties:
+        prepareThreshold: 5
+        preparedStatementCacheQueries: 256
+        preparedStatementCacheSizeMiB: 5
+
+        tcpKeepAlive: true
+        socketTimeout: 30
+        connectTimeout: 10
+
+  data:
+    redis:
+      host: "redis-15726.c279.us-central1-1.gce.redns.redis-cloud.com"
+      port: 15726
+      password: ${REDIS_PASSWORD}
+      username: "default"
+      connection-timeout: 5000
+      timeout: 2000ms
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        show_sql: true
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_FROM_EMAIL}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+          ssl:
+            trust: smtp.gmail.com
+
+  rabbitmq:
+    host: horse.lmq.cloudamqp.com
+    password: ${RABBITMQ_PASSWORD}
+    username: nzmxwrke
+    ssl:
+      enabled: true
+    virtual-host: nzmxwrke
+    listener:
+      simple:
+        acknowledge-mode: auto
+        concurrency: 1
+        max-concurrency: 3
+        prefetch: 10
+        default-requeue-rejected: true
+        retry:
+          enabled: true
+          initial-interval: 1000ms
+          max-interval: 10000ms
+          max-attempts: 3
+          multiplier: 1
+
+jwt:
+  secret: ${JWT_SECRET_BASE64}
+
+adventist:
+  email:
+    from: ${MAIL_FROM_EMAIL}
+    verification:
+      expiry-hours: 24
+    reset-password:
+      expiry-minutes: 30
+
+nginx:
+  trustedIps:
+    - "178.156.204.95"
+    - "152.167.110.92"
+    - "127.0.0.1" #nginx from same machine
+    - "::1" #IPV6 localhost
+    - "172.17.0.0/16" #nginx container ips when using docker
+    - "10.0.0.5/32" #nginx server ip
+      
+supabase:
+  url: "https://aqotufsmvyrfeuvfnjhv.supabase.co"
+  service-key: ${SUPABASE_SERVICE_KEY}
+  
+firebase:
+  credentials-path: "classpath:firebase-credentials/adventist-firebase-adminsdk.json"
+  
+server:
+  port: 8080
