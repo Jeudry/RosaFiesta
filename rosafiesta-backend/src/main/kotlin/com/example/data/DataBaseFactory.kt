@@ -1,3 +1,0 @@
-interface DatabaseFactory {
-    fun connect()
-}
