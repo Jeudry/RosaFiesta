@@ -84,3 +84,14 @@ replay_pid*
 # Mobile Tools for Java (J2ME) - kept from original
 .mtj.tmp/
 *.ctxt
+# Flutter
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+.pub-cache/
+.pub/
+flutter_*.png
+flutter_*.jpg
+
