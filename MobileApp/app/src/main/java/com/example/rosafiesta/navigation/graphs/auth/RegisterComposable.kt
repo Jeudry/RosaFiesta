@@ -23,7 +23,9 @@ fun NavGraphBuilder.registerComposable(
         NavState(
           route = route,
           title = UiText.StringResource(R.string.register_title)
-            .asString(navHostData.navController.context)
+            .asString(navHostData.navController.context),
+          bottomNavItems = emptyList(),
+          isTopVisible = false
         )
       )
     }

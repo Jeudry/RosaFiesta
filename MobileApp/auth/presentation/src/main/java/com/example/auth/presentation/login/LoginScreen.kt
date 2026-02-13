@@ -28,7 +28,6 @@ import com.example.auth.presentation.ui.AuthTitleBlock
 import com.example.core.presentation.designsystem.EmailIcon
 import com.example.core.presentation.designsystem.RFColors
 import com.example.core.presentation.designsystem.RFTheme
-import com.example.core.presentation.designsystem.components.RFInlineActionTextRow
 import com.example.core.presentation.designsystem.components.RFLabeledDivider
 import com.example.core.presentation.designsystem.components.RFParticleBackground
 import com.example.core.presentation.designsystem.components.RFPasswordTextField
@@ -163,7 +162,7 @@ fun LoginForm(
             Checkbox(
               checked = state.rememberMe,
               onCheckedChange = { onAction(LoginAction.OnToggleRememberMe) },
-              modifier = Modifier.size(20.dp) // tamaño visual sin padding extra
+              modifier = Modifier.size(20.dp)
             )
           }
           Text(
@@ -227,11 +226,26 @@ fun LoginForm(
 
       Spacer(modifier = Modifier.height(25.dp))
 
-      RFInlineActionTextRow(
-        prefixText = stringResource(id = R.string.dont_have_account_placeholder, "Don't have an account yet? "),
-        actionText = stringResource(id = R.string.sign_up_action_placeholder, "Sign up."),
+      // Reemplazo de RFInlineActionTextRow por dos líneas centradas
+      Column(
         modifier = Modifier.fillMaxWidth(),
-      ) { onAction(LoginAction.OnRegisterClick) }
+        horizontalAlignment = Alignment.CenterHorizontally
+      ) {
+        Text(
+          text = stringResource(id = R.string.dont_have_account_placeholder, "Don't have an account yet?"),
+          color = RFColors.Subtitle,
+          fontSize = 13.sp,
+          textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+          text = stringResource(id = R.string.sign_up_action_placeholder, "Sign up."),
+          color = RFColors.Link,
+          fontSize = 13.sp,
+          modifier = Modifier.clickable { onAction(LoginAction.OnRegisterClick) },
+          textAlign = TextAlign.Center
+        )
+      }
     }
   }
 }

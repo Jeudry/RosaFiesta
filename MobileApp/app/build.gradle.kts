@@ -42,7 +42,6 @@ dependencies {
   implementation(libs.coil.compose)
 
   // Icons
-  implementation(libs.androidx.material.icons.extended)
 
   // Crypto
   implementation(libs.androidx.security.crypto.ktx)

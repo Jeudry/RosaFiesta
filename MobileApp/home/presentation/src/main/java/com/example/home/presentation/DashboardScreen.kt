@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.core.domain.product.ProductId
@@ -18,7 +19,10 @@ import com.example.core.presentation.designsystem.RFTheme
 import com.example.core.presentation.ui.BaseProductAction
 import com.example.core.presentation.ui.ProductAction
 import com.example.products.presentation.components.ProductSmallCard
+import com.example.products.presentation.model.ProductUi
 import org.koin.androidx.compose.koinViewModel
+import java.time.ZonedDateTime
+import java.util.UUID
 
 @Composable
 fun DashboardScreenRoot(
@@ -71,8 +75,24 @@ fun DashboardScreen(
 @Composable
 private fun DashboardScreenPreview() {
   RFTheme {
+    Layout
     DashboardScreen(
-      state = DashboardState(),
+      state = DashboardState(
+        productsList = listOf(
+          ProductUi(
+            color = Color(0xFFE0E0E0),
+            id = UUID.randomUUID(),
+            name = "Product 1",
+            description = "Description 1",
+            price = 10.0,
+            size = 10.0,
+            stock = 5,
+            imageUrl = null,
+            created = ZonedDateTime.now(),
+            rentalPrice = 2.0
+          )
+        )
+      ),
       onAction = {}
     )
   }

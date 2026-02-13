@@ -1,10 +1,12 @@
 package main
 
 import (
+	"net/http"
+
 	"Backend/internal/store/models"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"net/http"
 )
 
 type userKey string
@@ -16,7 +18,7 @@ const UserCtx userKey = "user"
 // @Tags			users
 // @Accept			json
 // @Produce		json
-// @Param			id	path		int	true	"User ID"
+// @Param			id	path		string	true	"User ID"
 // @Success		200	{object}	models.User
 // @Failure		400	{object}	error
 // @Failure		404	{object}	error
@@ -25,7 +27,6 @@ const UserCtx userKey = "user"
 // @Router			/users/{id} [get]
 func (app *Application) getUserHandler(w http.ResponseWriter, r *http.Request) {
 	userId, err := uuid.Parse(chi.URLParam(r, "userId"))
-
 	if err != nil {
 		app.badRequest(w, r, err)
 		return
@@ -33,7 +34,6 @@ func (app *Application) getUserHandler(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 	user, err := app.GetUser(ctx, userId)
-
 	if err != nil {
 		app.handleError(w, r, err)
 		return
@@ -62,7 +62,6 @@ func (app *Application) activateUserHandler(w http.ResponseWriter, r *http.Reque
 	token := chi.URLParam(r, "token")
 
 	err := app.Store.Users.Activate(r.Context(), token)
-
 	if err != nil {
 		app.handleError(w, r, err)
 		return

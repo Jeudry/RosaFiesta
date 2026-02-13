@@ -1,1 +1,0 @@
-/Users/sargon/AndroidStudioProjects/RosaFiesta/core/database/src/main/cpp/CMakeLists.txt

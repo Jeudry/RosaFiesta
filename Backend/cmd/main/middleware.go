@@ -1,14 +1,16 @@
 package main
 
 import (
-	"Backend/internal/store/models"
 	"context"
 	"encoding/base64"
 	"fmt"
-	"github.com/golang-jwt/jwt/v5"
-	"github.com/google/uuid"
 	"net/http"
 	"strings"
+
+	"Backend/internal/store/models"
+
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 )
 
 func (app *Application) CheckRole(role string, next http.HandlerFunc) http.HandlerFunc {
@@ -16,7 +18,6 @@ func (app *Application) CheckRole(role string, next http.HandlerFunc) http.Handl
 		user := GetUserFromCtx(r)
 
 		allowed, err := app.checkRolePrecedence(r.Context(), user, role)
-
 		if err != nil {
 			app.internalServerError(w, r, err)
 			return
@@ -42,7 +43,6 @@ func (app *Application) CheckPostOwnerShip(role string, next http.HandlerFunc) h
 		}
 
 		allowed, err := app.checkRolePrecedence(r.Context(), user, role)
-
 		if err != nil {
 			app.internalServerError(w, r, err)
 			return
@@ -59,7 +59,6 @@ func (app *Application) CheckPostOwnerShip(role string, next http.HandlerFunc) h
 
 func (app *Application) checkRolePrecedence(ctx context.Context, user *models.User, roleName string) (bool, error) {
 	role, err := app.Store.Roles.RetrieveByName(ctx, roleName)
-
 	if err != nil {
 		return false, err
 	}
@@ -81,6 +80,44 @@ func (app *Application) RoleMiddleware(roles ...string) func(http.Handler) http.
 			}
 
 			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+func (app *Application) APIKeyMiddleware() func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			apiKeyHeader := app.Config.Auth.ApiKey.Header
+			apiKeyValue := app.Config.Auth.ApiKey.Value
+
+			if apiKeyHeader == "" || apiKeyValue == "" {
+				app.Logger.Warn("API Key authentication is not properly configured")
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			requestKey := r.Header.Get(apiKeyHeader)
+
+			if requestKey == "" {
+				app.unauthorized(w, r, fmt.Errorf("missing API key in header %s", apiKeyHeader))
+				return
+			}
+
+			if requestKey != apiKeyValue {
+				app.unauthorized(w, r, fmt.Errorf("invalid API key"))
+				return
+			}
+
+			// Provide a virtual user for auditing purposes
+			virtualUser := &models.User{
+				UserName: "API-Key-User",
+				Role: models.Role{
+					Name:  "admin",
+					Level: 2, // Admin level
+				},
+			}
+			ctx := context.WithValue(r.Context(), UserCtx, virtualUser)
+			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
 }
@@ -118,7 +155,6 @@ func (app *Application) AuthTokenMiddleware(roles ...string) func(http.Handler) 
 			claims, _ := jwtToken.Claims.(jwt.MapClaims)
 
 			userID, err := uuid.Parse(claims["sub"].(string))
-
 			if err != nil {
 				app.unauthorized(w, r, err)
 				return
@@ -127,7 +163,6 @@ func (app *Application) AuthTokenMiddleware(roles ...string) func(http.Handler) 
 			ctx := r.Context()
 
 			user, err := app.GetUser(ctx, userID)
-
 			if err != nil {
 				app.unauthorized(w, r, err)
 				return
@@ -146,6 +181,7 @@ func (app *Application) AuthTokenMiddleware(roles ...string) func(http.Handler) 
 		})
 	}
 }
+
 func (app *Application) BasicAuthMiddleware() func(handler http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -162,7 +198,6 @@ func (app *Application) BasicAuthMiddleware() func(handler http.Handler) http.Ha
 			}
 
 			decoded, err := base64.StdEncoding.DecodeString(parts[1])
-
 			if err != nil {
 				app.basicUnauthorized(w, r, err)
 				return
@@ -198,7 +233,6 @@ func (app *Application) GetUser(ctx context.Context, userID uuid.UUID) (*models.
 	}
 
 	user, err := app.CacheStorage.Users.Get(ctx, userID)
-
 	if err != nil {
 		return nil, err
 	}

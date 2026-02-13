@@ -1,12 +1,14 @@
 package main
 
 import (
+	"context"
+	"net/http"
+
 	"Backend/cmd/main/view_models/posts"
 	"Backend/internal/store/models"
-	"context"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"net/http"
 )
 
 type postKey string
@@ -18,7 +20,7 @@ const postCtx postKey = "post"
 //	@Tags			posts
 //	@Accept			json
 //	@Produce		json
-//	@Param			payload	body	view_models.CreatePostPayload	true	"Post creation payload"
+//	@Param			payload	body	posts.CreatePostPayload	true	"Post creation payload"
 //	@Security		ApiKeyAuth
 //	@Header			Authorization
 //	@Success		201	{object}	models.Post	"Created post"
@@ -64,7 +66,7 @@ func (app *Application) createPostHandler(w http.ResponseWriter, r *http.Request
 // @Tags			posts
 // @Accept			json
 // @Produce		json
-// @Param			payload	body	view_models.CreatePostPayload	true	"Post creation payload"
+// @Param			payload	body	posts.CreatePostPayload	true	"Post creation payload"
 //
 // @Security		ApiKeyAuth
 //
@@ -76,7 +78,6 @@ func (app *Application) getPostHandler(w http.ResponseWriter, r *http.Request) {
 	post := GetPostFromCtx(r)
 
 	comments, err := app.Store.Comments.RetrieveCommentsByPostId(r.Context(), post.ID)
-
 	if err != nil {
 		app.internalServerError(w, r, err)
 		return
@@ -94,8 +95,8 @@ func (app *Application) getPostHandler(w http.ResponseWriter, r *http.Request) {
 // @Tags			comments
 // @Accept			json
 // @Produce		json
-// @Param			postId	path	int										true	"Post ID"
-// @Param			payload	body	view_models.CreatePostCommentPayload	true	"Comment creation payload"
+// @Param			postId	path	string							true	"Post ID"
+// @Param			payload	body	posts.CreatePostCommentPayload	true	"Comment creation payload"
 //
 // @Security		ApiKeyAuth
 //
@@ -106,7 +107,6 @@ func (app *Application) getPostHandler(w http.ResponseWriter, r *http.Request) {
 func (app *Application) createPostCommentHandler(w http.ResponseWriter, r *http.Request) {
 	idParam := chi.URLParam(r, "postId")
 	postID, err := uuid.Parse(idParam)
-
 	if err != nil {
 		app.internalServerError(w, r, err)
 		return
@@ -132,7 +132,6 @@ func (app *Application) createPostCommentHandler(w http.ResponseWriter, r *http.
 	}
 
 	err = app.Store.Comments.CreatePostComment(ctx, comment)
-
 	if err != nil {
 		app.internalServerError(w, r, err)
 	}
@@ -147,8 +146,8 @@ func (app *Application) createPostCommentHandler(w http.ResponseWriter, r *http.
 // @Tags			posts
 // @Accept			json
 // @Produce		json
-// @Param			postId	path	int								true	"Post ID"
-// @Param			payload	body	view_models.UpdatePostPayload	true	"Post update payload"
+// @Param			postId	path	string					true	"Post ID"
+// @Param			payload	body	posts.UpdatePostPayload	true	"Post update payload"
 //
 // @Security		ApiKeyAuth
 //
@@ -198,7 +197,7 @@ func (app *Application) updatePostHandler(w http.ResponseWriter, r *http.Request
 //
 // @Security		ApiKeyAuth
 //
-// @Param			postId	path		int		true	"Post ID"
+// @Param			postId	path		string	true	"Post ID"
 // @Success		200		{object}	string	"Post deleted successfully"
 // @Failure		400		{object}	error	"Bad request"
 // @Failure		404		{object}	error	"Post not found"
@@ -207,7 +206,6 @@ func (app *Application) updatePostHandler(w http.ResponseWriter, r *http.Request
 func (app *Application) deletePostHandler(w http.ResponseWriter, r *http.Request) {
 	idParam := chi.URLParam(r, "postId")
 	postID, err := uuid.Parse(idParam)
-
 	if err != nil {
 		app.internalServerError(w, r, err)
 		return
@@ -228,7 +226,6 @@ func (app *Application) postsContextMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		idParam := chi.URLParam(r, "postId")
 		postID, err := uuid.Parse(idParam)
-
 		if err != nil {
 			app.internalServerError(w, r, err)
 			return
@@ -237,7 +234,6 @@ func (app *Application) postsContextMiddleware(next http.Handler) http.Handler {
 		ctx := r.Context()
 
 		post, err := app.Store.Posts.RetrieveById(ctx, postID)
-
 		if err != nil {
 			app.handleError(w, r, err)
 			return

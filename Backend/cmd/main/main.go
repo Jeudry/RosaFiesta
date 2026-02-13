@@ -1,6 +1,12 @@
 package main
 
 import (
+	"context"
+	"expvar"
+	"fmt"
+	"runtime"
+	"time"
+
 	"Backend/cmd/main/configModels"
 	"Backend/internal/auth"
 	"Backend/internal/cache"
@@ -9,12 +15,10 @@ import (
 	"Backend/internal/mailer"
 	"Backend/internal/ratelimiter"
 	"Backend/internal/store"
-	"context"
-	"expvar"
+
 	"github.com/go-redis/redis/v8"
+	"github.com/joho/godotenv"
 	"go.uber.org/zap"
-	"runtime"
-	"time"
 )
 
 const Version = "1.1.0"
@@ -33,7 +37,17 @@ const Version = "1.1.0"
 // @in							header
 // @name						Authorization
 // @description				Provide your API key to access this API
+//
+// @securityDefinitions.apikey	StaticApiKey
+// @in							header
+// @name						X-Api-Key
+// @description				Provide your Static API key to access this API
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		fmt.Println("Error loading .env file, continuing with environment variables")
+	}
+
 	cfg := configModels.Config{
 		Addr:        env.GetString("ADDR", ":3000"),
 		ApiURL:      env.GetString("EXTERNAL_URL", "localhost:3000"),
@@ -72,6 +86,10 @@ func main() {
 				Aud:    env.GetString("JWT_TOKEN_AUD", "gophersocial"),
 				Iss:    env.GetString("JWT_TOKEN_ISS", "gophersocial"),
 			},
+			ApiKey: configModels.ApiKeyConfig{
+				Header: env.GetString("API_KEY_HEADER", "X-Api-Key"),
+				Value:  env.GetString("API_KEY_VALUE", "your-default-key"),
+			},
 		},
 		Redis: configModels.RedisConfig{
 			Addr:    env.GetString("REDIS_ADDR", "xd"),
@@ -90,7 +108,6 @@ func main() {
 	defer logger.Sync()
 
 	db, err := db.New(cfg.Db.Addr, cfg.Db.MaxOpenConns, cfg.Db.MaxIdleConns, cfg.Db.MaxIdleTime)
-
 	if err != nil {
 		logger.Panic(err)
 	}

@@ -1,6 +1,7 @@
 package configModels
 
 type AuthConfig struct {
-	Basic AuthBasicConfig
-	Token TokenConfig
+	Basic  AuthBasicConfig
+	Token  TokenConfig
+	ApiKey ApiKeyConfig
 }

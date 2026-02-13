@@ -1,12 +1,14 @@
 package main
 
 import (
+	"context"
+	"net/http"
+
 	"Backend/cmd/main/view_models/categories"
 	"Backend/internal/store/models"
-	"context"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"net/http"
 )
 
 type categoryKey string
@@ -18,7 +20,7 @@ const categoryCtx categoryKey = "category"
 // @Tags			categories
 // @Accept			json
 // @Produce		json
-// @Param			payload	body	view_models.CreateCategoryPayload	true	"Category creation payload"
+// @Param			payload	body	categories.CreateCategoryPayload	true	"Category creation payload"
 // @Security		ApiKeyAuth
 // @Success		201	{object}	models.Category	"Created category"
 // @Failure		400	{object}	error			"Bad request"
@@ -67,7 +69,7 @@ func (app *Application) createCategoryHandler(w http.ResponseWriter, r *http.Req
 // @Accept			json
 // @Produce		json
 // @Param			id		path	string								true	"Category ID"
-// @Param			payload	body	view_models.UpdateCategoryPayload	true	"Category update payload"
+// @Param			payload	body	categories.UpdateCategoryPayload	true	"Category update payload"
 // @Security		ApiKeyAuth
 // @Success		200	{object}	models.Category	"Updated category"
 // @Failure		400	{object}	error			"Bad request"
@@ -137,7 +139,7 @@ func (app *Application) deleteCategoryHandler(w http.ResponseWriter, r *http.Req
 // @Tags			categories
 // @Accept			json
 // @Produce		json
-// @Security		ApiKeyAuth
+// @Security		StaticApiKey
 // @Success		200	{object}	[]models.Category	"List of categories"
 // @Failure		500	{object}	error				"Internal server error"
 // @Router			/categories [get]
@@ -145,7 +147,6 @@ func (app *Application) getAllCategoriesHandler(w http.ResponseWriter, r *http.R
 	ctx := r.Context()
 
 	categories, err := app.Store.Categories.GetAll(ctx)
-
 	if err != nil {
 		app.internalServerError(w, r, err)
 		return
@@ -161,7 +162,7 @@ func (app *Application) getAllCategoriesHandler(w http.ResponseWriter, r *http.R
 // @Tags			categories
 // @Accept			json
 // @Produce		json
-// @Security		ApiKeyAuth
+// @Security		StaticApiKey
 // @Param			categoryId	path		string			true	"Category ID"
 // @Success		200			{object}	models.Category	"Category"
 // @Failure		400			{object}	error			"Bad request"
@@ -180,7 +181,6 @@ func (app *Application) categoriesContextMiddleware(next http.Handler) http.Hand
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		idParam := chi.URLParam(r, "categoryId")
 		idAsUuid, err := uuid.Parse(idParam)
-
 		if err != nil {
 			app.badRequest(w, r, err)
 			return
@@ -189,7 +189,6 @@ func (app *Application) categoriesContextMiddleware(next http.Handler) http.Hand
 		ctx := r.Context()
 
 		category, err := app.Store.Categories.GetById(ctx, idAsUuid)
-
 		if err != nil {
 			app.handleError(w, r, err)
 			return
@@ -199,6 +198,31 @@ func (app *Application) categoriesContextMiddleware(next http.Handler) http.Hand
 
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
+}
+
+// @Summary		Get Articles by Category
+// @Description	Get all articles for a specific category
+// @Tags			categories
+// @Accept			json
+// @Produce		json
+// @Security		StaticApiKey
+// @Param			categoryId	path		string				true	"Category ID"
+// @Success		200			{object}	[]models.Article	"List of articles"
+// @Failure		400			{object}	error				"Bad request"
+// @Failure		500			{object}	error				"Internal server error"
+// @Router			/categories/{categoryId}/articles [get]
+func (app *Application) getArticlesByCategoryHandler(w http.ResponseWriter, r *http.Request) {
+	category := GetCategoryFromCtx(r)
+
+	articles, err := app.Store.Articles.GetByCategoryID(r.Context(), category.ID)
+	if err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+
+	if err := app.jsonResponse(w, http.StatusOK, articles); err != nil {
+		app.internalServerError(w, r, err)
+	}
 }
 
 func GetCategoryFromCtx(r *http.Request) *models.Category {

@@ -24,39 +24,257 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/authentication/refresh": {
-            "post": {
-                "description": "Create a new token\nGet a new access token using a refresh token",
+        "/articles": {
+            "get": {
+                "security": [
+                    {
+                        "StaticApiKey": []
+                    }
+                ],
+                "description": "Get all articles",
                 "consumes": [
-                    "application/json",
                     "application/json"
                 ],
                 "produces": [
-                    "application/json",
                     "application/json"
                 ],
                 "tags": [
-                    "authentication",
-                    "authentication"
+                    "articles"
                 ],
-                "summary": "Refresh an access token",
+                "summary": "Get all Articles",
+                "responses": {
+                    "200": {
+                        "description": "List of articles",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Article"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {}
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "StaticApiKey": []
+                    }
+                ],
+                "description": "Creates a new article with variants",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "articles"
+                ],
+                "summary": "Creates Article",
                 "parameters": [
                     {
-                        "description": "User credentials",
+                        "description": "Article creation payload",
                         "name": "payload",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/view_models.CreateUserTokenPayload"
+                            "$ref": "#/definitions/products.CreateProductPayload"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created article",
+                        "schema": {
+                            "$ref": "#/definitions/models.Article"
                         }
                     },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {}
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {}
+                    }
+                }
+            }
+        },
+        "/articles/{articleId}": {
+            "get": {
+                "security": [
+                    {
+                        "StaticApiKey": []
+                    }
+                ],
+                "description": "Get an article by its ID with variants",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "articles"
+                ],
+                "summary": "Get Article",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Article ID",
+                        "name": "articleId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Article",
+                        "schema": {
+                            "$ref": "#/definitions/models.Article"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {}
+                    },
+                    "404": {
+                        "description": "Article not found",
+                        "schema": {}
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {}
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "StaticApiKey": []
+                    }
+                ],
+                "description": "Delete an article by its ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "articles"
+                ],
+                "summary": "Delete Article",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Article ID",
+                        "name": "articleId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Article deleted successfully",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {}
+                    },
+                    "404": {
+                        "description": "Article not found",
+                        "schema": {}
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {}
+                    }
+                }
+            }
+        },
+        "/articles/{id}": {
+            "put": {
+                "security": [
+                    {
+                        "StaticApiKey": []
+                    }
+                ],
+                "description": "Update an article basic info (not variants yet)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "articles"
+                ],
+                "summary": "Update Article",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Article ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Article update payload",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/products.UpdateProductPayload"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Updated article",
+                        "schema": {
+                            "$ref": "#/definitions/models.Article"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {}
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {}
+                    }
+                }
+            }
+        },
+        "/authentication/refresh": {
+            "post": {
+                "description": "Get a new access token using a refresh token",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "authentication"
+                ],
+                "summary": "Refresh an access token",
+                "parameters": [
                     {
                         "description": "Refresh token",
                         "name": "payload",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/view_models.RefreshTokenRequest"
+                            "$ref": "#/definitions/users.RefreshTokenRequest"
                         }
                     }
                 ],
@@ -64,7 +282,7 @@ const docTemplate = `{
                     "200": {
                         "description": "New tokens",
                         "schema": {
-                            "$ref": "#/definitions/view_models.LoginResponse"
+                            "$ref": "#/definitions/users.LoginResponse"
                         }
                     },
                     "400": {
@@ -102,7 +320,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/view_models.RegisterUserPayload"
+                            "$ref": "#/definitions/users.RegisterUserPayload"
                         }
                     }
                 ],
@@ -110,7 +328,7 @@ const docTemplate = `{
                     "201": {
                         "description": "User registered",
                         "schema": {
-                            "$ref": "#/definitions/view_models.UserWithToken"
+                            "$ref": "#/definitions/users.UserWithToken"
                         }
                     },
                     "400": {
@@ -126,20 +344,17 @@ const docTemplate = `{
         },
         "/authentication/token": {
             "post": {
-                "description": "Create a new token\nGet a new access token using a refresh token",
+                "description": "Create a new token",
                 "consumes": [
-                    "application/json",
                     "application/json"
                 ],
                 "produces": [
-                    "application/json",
                     "application/json"
                 ],
                 "tags": [
-                    "authentication",
                     "authentication"
                 ],
-                "summary": "Refresh an access token",
+                "summary": "Create a new token",
                 "parameters": [
                     {
                         "description": "User credentials",
@@ -147,24 +362,15 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/view_models.CreateUserTokenPayload"
-                        }
-                    },
-                    {
-                        "description": "Refresh token",
-                        "name": "payload",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/view_models.RefreshTokenRequest"
+                            "$ref": "#/definitions/users.CreateUserTokenPayload"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "New tokens",
+                        "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/view_models.LoginResponse"
+                            "type": "string"
                         }
                     },
                     "400": {
@@ -173,6 +379,284 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {}
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {}
+                    }
+                }
+            }
+        },
+        "/categories": {
+            "get": {
+                "security": [
+                    {
+                        "StaticApiKey": []
+                    }
+                ],
+                "description": "Get all categories",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "categories"
+                ],
+                "summary": "Get all Categories",
+                "responses": {
+                    "200": {
+                        "description": "List of categories",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Category"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {}
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Creates a new category with the provided info",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "categories"
+                ],
+                "summary": "Creates Category",
+                "parameters": [
+                    {
+                        "description": "Category creation payload",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/categories.CreateCategoryPayload"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created category",
+                        "schema": {
+                            "$ref": "#/definitions/models.Category"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {}
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {}
+                    }
+                }
+            }
+        },
+        "/categories/{categoryId}": {
+            "get": {
+                "security": [
+                    {
+                        "StaticApiKey": []
+                    }
+                ],
+                "description": "Get a category by its ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "categories"
+                ],
+                "summary": "Get Category",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Category ID",
+                        "name": "categoryId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Category",
+                        "schema": {
+                            "$ref": "#/definitions/models.Category"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {}
+                    },
+                    "404": {
+                        "description": "Category not found",
+                        "schema": {}
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {}
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Delete a category by its ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "categories"
+                ],
+                "summary": "Delete Category",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Category ID",
+                        "name": "categoryId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Category deleted successfully",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {}
+                    },
+                    "404": {
+                        "description": "Category not found",
+                        "schema": {}
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {}
+                    }
+                }
+            }
+        },
+        "/categories/{categoryId}/articles": {
+            "get": {
+                "security": [
+                    {
+                        "StaticApiKey": []
+                    }
+                ],
+                "description": "Get all articles for a specific category",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "categories"
+                ],
+                "summary": "Get Articles by Category",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Category ID",
+                        "name": "categoryId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of articles",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Article"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {}
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {}
+                    }
+                }
+            }
+        },
+        "/categories/{id}": {
+            "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Update a category with the provided info",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "categories"
+                ],
+                "summary": "Update Category",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Category ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Category update payload",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/categories.UpdateCategoryPayload"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Updated category",
+                        "schema": {
+                            "$ref": "#/definitions/models.Category"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
                         "schema": {}
                     },
                     "500": {
@@ -237,7 +721,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/view_models.CreatePostPayload"
+                            "$ref": "#/definitions/posts.CreatePostPayload"
                         }
                     }
                 ],
@@ -279,7 +763,7 @@ const docTemplate = `{
                 "summary": "Delete an existing post",
                 "parameters": [
                     {
-                        "type": "integer",
+                        "type": "string",
                         "description": "Post ID",
                         "name": "postId",
                         "in": "path",
@@ -326,7 +810,7 @@ const docTemplate = `{
                 "summary": "Update an existing post",
                 "parameters": [
                     {
-                        "type": "integer",
+                        "type": "string",
                         "description": "Post ID",
                         "name": "postId",
                         "in": "path",
@@ -338,7 +822,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/view_models.UpdatePostPayload"
+                            "$ref": "#/definitions/posts.UpdatePostPayload"
                         }
                     }
                 ],
@@ -384,7 +868,7 @@ const docTemplate = `{
                 "summary": "Create a new comment for a post",
                 "parameters": [
                     {
-                        "type": "integer",
+                        "type": "string",
                         "description": "Post ID",
                         "name": "postId",
                         "in": "path",
@@ -396,7 +880,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/view_models.CreatePostCommentPayload"
+                            "$ref": "#/definitions/posts.CreatePostCommentPayload"
                         }
                     }
                 ],
@@ -409,236 +893,6 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad request",
-                        "schema": {}
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {}
-                    }
-                }
-            }
-        },
-        "/products": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Get all products",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "products"
-                ],
-                "summary": "Get all Products",
-                "responses": {
-                    "200": {
-                        "description": "List of products",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.Product"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {}
-                    }
-                }
-            },
-            "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Creates a new product with the provided info",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "products"
-                ],
-                "summary": "Creates Product",
-                "parameters": [
-                    {
-                        "description": "Product creation payload",
-                        "name": "payload",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/view_models.CreateProductPayload"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created product",
-                        "schema": {
-                            "$ref": "#/definitions/models.Product"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad request",
-                        "schema": {}
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {}
-                    }
-                }
-            }
-        },
-        "/products/{id}": {
-            "put": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Update a product with the provided info",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "products"
-                ],
-                "summary": "Update Product",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Product ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Product update payload",
-                        "name": "payload",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/view_models.UpdateProductPayload"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Updated product",
-                        "schema": {
-                            "$ref": "#/definitions/models.Product"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad request",
-                        "schema": {}
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {}
-                    }
-                }
-            }
-        },
-        "/products/{productId}": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Get a product by its ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "products"
-                ],
-                "summary": "Get Product",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Product ID",
-                        "name": "productId",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Product",
-                        "schema": {
-                            "$ref": "#/definitions/models.Product"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad request",
-                        "schema": {}
-                    },
-                    "404": {
-                        "description": "Product not found",
-                        "schema": {}
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {}
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Delete a product by its ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "products"
-                ],
-                "summary": "Delete Product",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Product ID",
-                        "name": "productId",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "Product deleted successfully",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad request",
-                        "schema": {}
-                    },
-                    "404": {
-                        "description": "Product not found",
                         "schema": {}
                     },
                     "500": {
@@ -774,7 +1028,7 @@ const docTemplate = `{
                 "summary": "Fetches a user profile",
                 "parameters": [
                     {
-                        "type": "integer",
+                        "type": "string",
                         "description": "User ID",
                         "name": "id",
                         "in": "path",
@@ -805,6 +1059,228 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "categories.CreateCategoryPayload": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "description": {
+                    "type": "string",
+                    "maxLength": 500
+                },
+                "image_url": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 100
+                },
+                "parent_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "categories.UpdateCategoryPayload": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "description": {
+                    "type": "string",
+                    "maxLength": 500
+                },
+                "image_url": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 100
+                },
+                "parent_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.Article": {
+            "type": "object",
+            "properties": {
+                "category": {
+                    "description": "For eager loading",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.Category"
+                        }
+                    ]
+                },
+                "category_id": {
+                    "type": "string"
+                },
+                "created": {
+                    "type": "string"
+                },
+                "created_by": {
+                    "type": "string"
+                },
+                "deleted": {
+                    "type": "string"
+                },
+                "deleted_by": {
+                    "type": "string"
+                },
+                "description_template": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "name_template": {
+                    "type": "string"
+                },
+                "type": {
+                    "$ref": "#/definitions/models.ArticleType"
+                },
+                "updated": {
+                    "type": "string"
+                },
+                "updated_by": {
+                    "type": "string"
+                },
+                "variants": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ArticleVariant"
+                    }
+                }
+            }
+        },
+        "models.ArticleDimension": {
+            "type": "object",
+            "properties": {
+                "depth": {
+                    "type": "number"
+                },
+                "height": {
+                    "type": "number"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "variant_id": {
+                    "type": "string"
+                },
+                "weight": {
+                    "type": "number"
+                },
+                "width": {
+                    "type": "number"
+                }
+            }
+        },
+        "models.ArticleType": {
+            "type": "string",
+            "enum": [
+                "Rental",
+                "Sale"
+            ],
+            "x-enum-varnames": [
+                "ArticleTypeRental",
+                "ArticleTypeSale"
+            ]
+        },
+        "models.ArticleVariant": {
+            "type": "object",
+            "properties": {
+                "article_id": {
+                    "type": "string"
+                },
+                "attributes": {
+                    "description": "Relations",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "description": {
+                    "type": "string"
+                },
+                "dimensions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ArticleDimension"
+                    }
+                },
+                "id": {
+                    "type": "string"
+                },
+                "image_url": {
+                    "type": "string"
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "rental_price": {
+                    "type": "number"
+                },
+                "replacement_cost": {
+                    "type": "number"
+                },
+                "sale_price": {
+                    "type": "number"
+                },
+                "sku": {
+                    "type": "string"
+                },
+                "stock": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.Category": {
+            "type": "object",
+            "properties": {
+                "created": {
+                    "type": "string"
+                },
+                "created_by": {
+                    "type": "string"
+                },
+                "deleted": {
+                    "type": "string"
+                },
+                "deleted_by": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "image_url": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "parent_id": {
+                    "type": "string"
+                },
+                "updated": {
+                    "type": "string"
+                },
+                "updated_by": {
+                    "type": "string"
+                }
+            }
+        },
         "models.Comment": {
             "type": "object",
             "properties": {
@@ -872,56 +1348,6 @@ const docTemplate = `{
                 }
             }
         },
-        "models.Product": {
-            "type": "object",
-            "properties": {
-                "color": {
-                    "type": "integer"
-                },
-                "created": {
-                    "type": "string"
-                },
-                "created_by": {
-                    "type": "string"
-                },
-                "deleted": {
-                    "type": "string"
-                },
-                "deleted_by": {
-                    "type": "string"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "image_url": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "price": {
-                    "type": "number"
-                },
-                "rental_price": {
-                    "type": "number"
-                },
-                "size": {
-                    "type": "number"
-                },
-                "stock": {
-                    "type": "integer"
-                },
-                "updated": {
-                    "type": "string"
-                },
-                "updated_by": {
-                    "type": "string"
-                }
-            }
-        },
         "models.Role": {
             "type": "object",
             "properties": {
@@ -983,7 +1409,7 @@ const docTemplate = `{
                 }
             }
         },
-        "view_models.CreatePostCommentPayload": {
+        "posts.CreatePostCommentPayload": {
             "type": "object",
             "properties": {
                 "comment": {
@@ -991,7 +1417,7 @@ const docTemplate = `{
                 }
             }
         },
-        "view_models.CreatePostPayload": {
+        "posts.CreatePostPayload": {
             "type": "object",
             "required": [
                 "title"
@@ -1012,45 +1438,169 @@ const docTemplate = `{
                 }
             }
         },
-        "view_models.CreateProductPayload": {
+        "posts.UpdatePostPayload": {
             "type": "object",
-            "required": [
-                "name"
-            ],
             "properties": {
-                "color": {
-                    "type": "integer",
-                    "maximum": 4294967295,
-                    "minimum": 0
-                },
-                "description": {
+                "content": {
                     "type": "string",
-                    "maxLength": 3000
+                    "maxLength": 1000
                 },
-                "image_url": {
+                "title": {
                     "type": "string",
-                    "maxLength": 3000
-                },
-                "name": {
-                    "type": "string",
-                    "maxLength": 128
-                },
-                "price": {
-                    "type": "number"
-                },
-                "rental_price": {
-                    "type": "number"
-                },
-                "size": {
-                    "type": "number"
-                },
-                "stock": {
-                    "type": "integer",
-                    "maximum": 100000000
+                    "maxLength": 100
                 }
             }
         },
-        "view_models.CreateUserTokenPayload": {
+        "products.CreateArticleDimensionPayload": {
+            "type": "object",
+            "properties": {
+                "depth": {
+                    "type": "number"
+                },
+                "height": {
+                    "type": "number"
+                },
+                "weight": {
+                    "type": "number"
+                },
+                "width": {
+                    "type": "number"
+                }
+            }
+        },
+        "products.CreateArticleVariantPayload": {
+            "type": "object",
+            "required": [
+                "name",
+                "rental_price",
+                "sku"
+            ],
+            "properties": {
+                "attributes": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "description": {
+                    "type": "string"
+                },
+                "dimensions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/products.CreateArticleDimensionPayload"
+                    }
+                },
+                "image_url": {
+                    "type": "string"
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "rental_price": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "replacement_cost": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "sale_price": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "sku": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "stock": {
+                    "type": "integer",
+                    "minimum": 0
+                }
+            }
+        },
+        "products.CreateProductPayload": {
+            "type": "object",
+            "required": [
+                "name_template",
+                "type",
+                "variants"
+            ],
+            "properties": {
+                "category_id": {
+                    "description": "string to parsing uuid later",
+                    "type": "string"
+                },
+                "description_template": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "name_template": {
+                    "type": "string",
+                    "maxLength": 100
+                },
+                "type": {
+                    "enum": [
+                        "Rental",
+                        "Sale"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.ArticleType"
+                        }
+                    ]
+                },
+                "variants": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "$ref": "#/definitions/products.CreateArticleVariantPayload"
+                    }
+                }
+            }
+        },
+        "products.UpdateProductPayload": {
+            "type": "object",
+            "required": [
+                "name_template",
+                "type"
+            ],
+            "properties": {
+                "category_id": {
+                    "type": "string"
+                },
+                "description_template": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "name_template": {
+                    "type": "string",
+                    "maxLength": 100
+                },
+                "type": {
+                    "enum": [
+                        "Rental",
+                        "Sale"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.ArticleType"
+                        }
+                    ]
+                }
+            }
+        },
+        "users.CreateUserTokenPayload": {
             "type": "object",
             "required": [
                 "email",
@@ -1068,7 +1618,7 @@ const docTemplate = `{
                 }
             }
         },
-        "view_models.LoginResponse": {
+        "users.LoginResponse": {
             "type": "object",
             "properties": {
                 "accessToken": {
@@ -1085,7 +1635,7 @@ const docTemplate = `{
                 }
             }
         },
-        "view_models.RefreshTokenRequest": {
+        "users.RefreshTokenRequest": {
             "type": "object",
             "required": [
                 "refreshToken"
@@ -1096,7 +1646,7 @@ const docTemplate = `{
                 }
             }
         },
-        "view_models.RegisterUserPayload": {
+        "users.RegisterUserPayload": {
             "type": "object",
             "required": [
                 "email",
@@ -1119,58 +1669,7 @@ const docTemplate = `{
                 }
             }
         },
-        "view_models.UpdatePostPayload": {
-            "type": "object",
-            "properties": {
-                "content": {
-                    "type": "string",
-                    "maxLength": 1000
-                },
-                "title": {
-                    "type": "string",
-                    "maxLength": 100
-                }
-            }
-        },
-        "view_models.UpdateProductPayload": {
-            "type": "object",
-            "required": [
-                "name"
-            ],
-            "properties": {
-                "color": {
-                    "type": "integer",
-                    "maximum": 4294967295,
-                    "minimum": 0
-                },
-                "description": {
-                    "type": "string",
-                    "maxLength": 3000
-                },
-                "image_url": {
-                    "type": "string",
-                    "maxLength": 3000
-                },
-                "name": {
-                    "type": "string",
-                    "maxLength": 128
-                },
-                "price": {
-                    "type": "number"
-                },
-                "rental_price": {
-                    "type": "number"
-                },
-                "size": {
-                    "type": "number"
-                },
-                "stock": {
-                    "type": "integer",
-                    "maximum": 100000000
-                }
-            }
-        },
-        "view_models.UserWithToken": {
+        "users.UserWithToken": {
             "type": "object",
             "properties": {
                 "avatar": {
@@ -1223,6 +1722,12 @@ const docTemplate = `{
             "description": "Provide your API key to access this API",
             "type": "apiKey",
             "name": "Authorization",
+            "in": "header"
+        },
+        "StaticApiKey": {
+            "description": "Provide your Static API key to access this API",
+            "type": "apiKey",
+            "name": "X-Api-Key",
             "in": "header"
         }
     }

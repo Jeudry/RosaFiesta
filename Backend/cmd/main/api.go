@@ -1,18 +1,19 @@
 package main
 
 import (
-	"Backend/docs"
 	"context"
 	"errors"
 	"expvar"
 	"fmt"
-	"github.com/go-chi/cors"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
-
-	"net/http"
 	"time"
+
+	"Backend/docs"
+
+	"github.com/go-chi/cors"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -20,7 +21,6 @@ import (
 )
 
 func (app *Application) Mount() http.Handler {
-
 	docsUrl := fmt.Sprintf("%s/swagger/doc.json", app.Config.Addr)
 
 	r := chi.NewRouter()
@@ -61,31 +61,36 @@ func (app *Application) Mount() http.Handler {
 			})
 		})
 
-		r.Route("/products", func(r chi.Router) {
-			r.Use(app.AuthTokenMiddleware())
-			r.Post("/", app.CheckRole("moderator", app.createProductHandler))
-			r.Get("/", app.getAllProductsHandler)
+		r.Route("/articles", func(r chi.Router) {
+			r.Use(app.APIKeyMiddleware())
+			r.Post("/", app.createArticleHandler)
+			r.Get("/", app.getAllArticlesHandler)
 
-			r.Route("/{productId}", func(r chi.Router) {
-				r.Use(app.productsContextMiddleware)
+			r.Route("/{articleId}", func(r chi.Router) {
+				r.Use(app.articlesContextMiddleware)
 				r.Use(app.RoleMiddleware("moderator"))
-				r.Get("/", app.getProductHandler)
-				r.Put("/", app.updateProductHandler)
-				r.Delete("/", app.deleteProductHandler)
+				r.Get("/", app.getArticleHandler)
+				r.Put("/", app.updateArticleHandler)
+				r.Delete("/", app.deleteArticleHandler)
 			})
 		})
 
 		r.Route("/categories", func(r chi.Router) {
-			r.Use(app.AuthTokenMiddleware())
-			r.Post("/", app.CheckRole("moderator", app.createCategoryHandler))
-			r.Get("/", app.getAllCategoriesHandler)
+			// Public/API Key protected endpoints
+			r.Group(func(r chi.Router) {
+				r.Use(app.APIKeyMiddleware())
+				r.Get("/", app.getAllCategoriesHandler)
+				r.With(app.categoriesContextMiddleware).Get("/{categoryId}/articles", app.getArticlesByCategoryHandler)
+				r.With(app.categoriesContextMiddleware).Get("/{categoryId}", app.getCategoryHandler)
+			})
 
-			r.Route("/{categoryId}", func(r chi.Router) {
-				r.Use(app.categoriesContextMiddleware)
-				r.Use(app.RoleMiddleware("moderator"))
-				r.Get("/", app.getCategoryHandler)
-				r.Put("/", app.updateCategoryHandler)
-				r.Delete("/", app.deleteCategoryHandler)
+			// Protected/Admin endpoints (JWT)
+			r.Group(func(r chi.Router) {
+				r.Use(app.AuthTokenMiddleware())
+				r.Post("/", app.CheckRole("moderator", app.createCategoryHandler))
+
+				r.With(app.categoriesContextMiddleware, app.RoleMiddleware("moderator")).Put("/{categoryId}", app.updateCategoryHandler)
+				r.With(app.categoriesContextMiddleware, app.RoleMiddleware("moderator")).Delete("/{categoryId}", app.deleteCategoryHandler)
 			})
 		})
 
@@ -151,7 +156,6 @@ func (app *Application) run(mux http.Handler) error {
 		return err
 	}
 	err = <-shutdown
-
 	if err != nil {
 		return err
 	}

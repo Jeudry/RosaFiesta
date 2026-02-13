@@ -1,18 +1,19 @@
 package main
 
 import (
-	"Backend/internal/store"
 	"errors"
 	"fmt"
 	"net/http"
 	"runtime"
+
+	"Backend/internal/store"
 )
 
 func (app *Application) internalServerError(w http.ResponseWriter, r *http.Request, err error) {
 	printFormattedError(err)
 	app.Logger.Errorf("internal server error: %s, path: %s error: %s", r.Method, r.URL.Path, err.Error())
 
-	writeJsonError(w, http.StatusInternalServerError, "The server encountered a problem and could not process your request.")
+	writeJsonError(w, http.StatusInternalServerError, fmt.Sprintf("The server encountered a problem and could not process your request. %s", err.Error()))
 }
 
 func (app *Application) badRequest(w http.ResponseWriter, r *http.Request, err error) {

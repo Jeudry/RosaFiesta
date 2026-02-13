@@ -1,5 +1,152 @@
 basePath: /v1
 definitions:
+  categories.CreateCategoryPayload:
+    properties:
+      description:
+        maxLength: 500
+        type: string
+      image_url:
+        type: string
+      name:
+        maxLength: 100
+        type: string
+      parent_id:
+        type: string
+    required:
+    - name
+    type: object
+  categories.UpdateCategoryPayload:
+    properties:
+      description:
+        maxLength: 500
+        type: string
+      image_url:
+        type: string
+      name:
+        maxLength: 100
+        type: string
+      parent_id:
+        type: string
+    required:
+    - name
+    type: object
+  models.Article:
+    properties:
+      category:
+        allOf:
+        - $ref: '#/definitions/models.Category'
+        description: For eager loading
+      category_id:
+        type: string
+      created:
+        type: string
+      created_by:
+        type: string
+      deleted:
+        type: string
+      deleted_by:
+        type: string
+      description_template:
+        type: string
+      id:
+        type: string
+      is_active:
+        type: boolean
+      name_template:
+        type: string
+      type:
+        $ref: '#/definitions/models.ArticleType'
+      updated:
+        type: string
+      updated_by:
+        type: string
+      variants:
+        items:
+          $ref: '#/definitions/models.ArticleVariant'
+        type: array
+    type: object
+  models.ArticleDimension:
+    properties:
+      depth:
+        type: number
+      height:
+        type: number
+      id:
+        type: string
+      variant_id:
+        type: string
+      weight:
+        type: number
+      width:
+        type: number
+    type: object
+  models.ArticleType:
+    enum:
+    - Rental
+    - Sale
+    type: string
+    x-enum-varnames:
+    - ArticleTypeRental
+    - ArticleTypeSale
+  models.ArticleVariant:
+    properties:
+      article_id:
+        type: string
+      attributes:
+        additionalProperties:
+          type: string
+        description: Relations
+        type: object
+      description:
+        type: string
+      dimensions:
+        items:
+          $ref: '#/definitions/models.ArticleDimension'
+        type: array
+      id:
+        type: string
+      image_url:
+        type: string
+      is_active:
+        type: boolean
+      name:
+        type: string
+      rental_price:
+        type: number
+      replacement_cost:
+        type: number
+      sale_price:
+        type: number
+      sku:
+        type: string
+      stock:
+        type: integer
+    type: object
+  models.Category:
+    properties:
+      created:
+        type: string
+      created_by:
+        type: string
+      deleted:
+        type: string
+      deleted_by:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      image_url:
+        type: string
+      name:
+        type: string
+      parent_id:
+        type: string
+      updated:
+        type: string
+      updated_by:
+        type: string
+    type: object
   models.Comment:
     properties:
       content:
@@ -44,39 +191,6 @@ definitions:
       version:
         type: integer
     type: object
-  models.Product:
-    properties:
-      color:
-        type: integer
-      created:
-        type: string
-      created_by:
-        type: string
-      deleted:
-        type: string
-      deleted_by:
-        type: string
-      description:
-        type: string
-      id:
-        type: string
-      image_url:
-        type: string
-      name:
-        type: string
-      price:
-        type: number
-      rental_price:
-        type: number
-      size:
-        type: number
-      stock:
-        type: integer
-      updated:
-        type: string
-      updated_by:
-        type: string
-    type: object
   models.Role:
     properties:
       description:
@@ -117,12 +231,12 @@ definitions:
       userName:
         type: string
     type: object
-  view_models.CreatePostCommentPayload:
+  posts.CreatePostCommentPayload:
     properties:
       comment:
         type: string
     type: object
-  view_models.CreatePostPayload:
+  posts.CreatePostPayload:
     properties:
       content:
         type: string
@@ -136,34 +250,117 @@ definitions:
     required:
     - title
     type: object
-  view_models.CreateProductPayload:
+  posts.UpdatePostPayload:
     properties:
-      color:
-        maximum: 4294967295
-        minimum: 0
-        type: integer
+      content:
+        maxLength: 1000
+        type: string
+      title:
+        maxLength: 100
+        type: string
+    type: object
+  products.CreateArticleDimensionPayload:
+    properties:
+      depth:
+        type: number
+      height:
+        type: number
+      weight:
+        type: number
+      width:
+        type: number
+    type: object
+  products.CreateArticleVariantPayload:
+    properties:
+      attributes:
+        additionalProperties:
+          type: string
+        type: object
       description:
-        maxLength: 3000
         type: string
+      dimensions:
+        items:
+          $ref: '#/definitions/products.CreateArticleDimensionPayload'
+        type: array
       image_url:
-        maxLength: 3000
         type: string
+      is_active:
+        type: boolean
       name:
-        maxLength: 128
+        maxLength: 255
         type: string
-      price:
-        type: number
       rental_price:
+        minimum: 0
         type: number
-      size:
+      replacement_cost:
+        minimum: 0
         type: number
+      sale_price:
+        minimum: 0
+        type: number
+      sku:
+        maxLength: 255
+        type: string
       stock:
-        maximum: 100000000
+        minimum: 0
         type: integer
     required:
     - name
+    - rental_price
+    - sku
     type: object
-  view_models.CreateUserTokenPayload:
+  products.CreateProductPayload:
+    properties:
+      category_id:
+        description: string to parsing uuid later
+        type: string
+      description_template:
+        maxLength: 255
+        type: string
+      is_active:
+        type: boolean
+      name_template:
+        maxLength: 100
+        type: string
+      type:
+        allOf:
+        - $ref: '#/definitions/models.ArticleType'
+        enum:
+        - Rental
+        - Sale
+      variants:
+        items:
+          $ref: '#/definitions/products.CreateArticleVariantPayload'
+        minItems: 1
+        type: array
+    required:
+    - name_template
+    - type
+    - variants
+    type: object
+  products.UpdateProductPayload:
+    properties:
+      category_id:
+        type: string
+      description_template:
+        maxLength: 255
+        type: string
+      is_active:
+        type: boolean
+      name_template:
+        maxLength: 100
+        type: string
+      type:
+        allOf:
+        - $ref: '#/definitions/models.ArticleType'
+        enum:
+        - Rental
+        - Sale
+    required:
+    - name_template
+    - type
+    type: object
+  users.CreateUserTokenPayload:
     properties:
       email:
         maxLength: 255
@@ -176,7 +373,7 @@ definitions:
     - email
     - password
     type: object
-  view_models.LoginResponse:
+  users.LoginResponse:
     properties:
       accessToken:
         type: string
@@ -187,14 +384,14 @@ definitions:
       userId:
         type: string
     type: object
-  view_models.RefreshTokenRequest:
+  users.RefreshTokenRequest:
     properties:
       refreshToken:
         type: string
     required:
     - refreshToken
     type: object
-  view_models.RegisterUserPayload:
+  users.RegisterUserPayload:
     properties:
       email:
         maxLength: 255
@@ -211,43 +408,7 @@ definitions:
     - password
     - username
     type: object
-  view_models.UpdatePostPayload:
-    properties:
-      content:
-        maxLength: 1000
-        type: string
-      title:
-        maxLength: 100
-        type: string
-    type: object
-  view_models.UpdateProductPayload:
-    properties:
-      color:
-        maximum: 4294967295
-        minimum: 0
-        type: integer
-      description:
-        maxLength: 3000
-        type: string
-      image_url:
-        maxLength: 3000
-        type: string
-      name:
-        maxLength: 128
-        type: string
-      price:
-        type: number
-      rental_price:
-        type: number
-      size:
-        type: number
-      stock:
-        maximum: 100000000
-        type: integer
-    required:
-    - name
-    type: object
-  view_models.UserWithToken:
+  users.UserWithToken:
     properties:
       avatar:
         type: string
@@ -290,35 +451,174 @@ info:
   termsOfService: http://swagger.io/terms/
   title: Swagger Example API
 paths:
-  /authentication/refresh:
+  /articles:
+    get:
+      consumes:
+      - application/json
+      description: Get all articles
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of articles
+          schema:
+            items:
+              $ref: '#/definitions/models.Article'
+            type: array
+        "500":
+          description: Internal server error
+          schema: {}
+      security:
+      - StaticApiKey: []
+      summary: Get all Articles
+      tags:
+      - articles
     post:
       consumes:
       - application/json
-      - application/json
-      description: |-
-        Create a new token
-        Get a new access token using a refresh token
+      description: Creates a new article with variants
       parameters:
-      - description: User credentials
+      - description: Article creation payload
         in: body
         name: payload
         required: true
         schema:
-          $ref: '#/definitions/view_models.CreateUserTokenPayload'
+          $ref: '#/definitions/products.CreateProductPayload'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created article
+          schema:
+            $ref: '#/definitions/models.Article'
+        "400":
+          description: Bad request
+          schema: {}
+        "500":
+          description: Internal server error
+          schema: {}
+      security:
+      - StaticApiKey: []
+      summary: Creates Article
+      tags:
+      - articles
+  /articles/{articleId}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete an article by its ID
+      parameters:
+      - description: Article ID
+        in: path
+        name: articleId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Article deleted successfully
+          schema:
+            type: string
+        "400":
+          description: Bad request
+          schema: {}
+        "404":
+          description: Article not found
+          schema: {}
+        "500":
+          description: Internal server error
+          schema: {}
+      security:
+      - StaticApiKey: []
+      summary: Delete Article
+      tags:
+      - articles
+    get:
+      consumes:
+      - application/json
+      description: Get an article by its ID with variants
+      parameters:
+      - description: Article ID
+        in: path
+        name: articleId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Article
+          schema:
+            $ref: '#/definitions/models.Article'
+        "400":
+          description: Bad request
+          schema: {}
+        "404":
+          description: Article not found
+          schema: {}
+        "500":
+          description: Internal server error
+          schema: {}
+      security:
+      - StaticApiKey: []
+      summary: Get Article
+      tags:
+      - articles
+  /articles/{id}:
+    put:
+      consumes:
+      - application/json
+      description: Update an article basic info (not variants yet)
+      parameters:
+      - description: Article ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Article update payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/products.UpdateProductPayload'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Updated article
+          schema:
+            $ref: '#/definitions/models.Article'
+        "400":
+          description: Bad request
+          schema: {}
+        "500":
+          description: Internal server error
+          schema: {}
+      security:
+      - StaticApiKey: []
+      summary: Update Article
+      tags:
+      - articles
+  /authentication/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Get a new access token using a refresh token
+      parameters:
       - description: Refresh token
         in: body
         name: payload
         required: true
         schema:
-          $ref: '#/definitions/view_models.RefreshTokenRequest'
+          $ref: '#/definitions/users.RefreshTokenRequest'
       produces:
-      - application/json
       - application/json
       responses:
         "200":
           description: New tokens
           schema:
-            $ref: '#/definitions/view_models.LoginResponse'
+            $ref: '#/definitions/users.LoginResponse'
         "400":
           description: Bad request
           schema: {}
@@ -331,7 +631,6 @@ paths:
       summary: Refresh an access token
       tags:
       - authentication
-      - authentication
   /authentication/register:
     post:
       consumes:
@@ -343,14 +642,14 @@ paths:
         name: payload
         required: true
         schema:
-          $ref: '#/definitions/view_models.RegisterUserPayload'
+          $ref: '#/definitions/users.RegisterUserPayload'
       produces:
       - application/json
       responses:
         "201":
           description: User registered
           schema:
-            $ref: '#/definitions/view_models.UserWithToken'
+            $ref: '#/definitions/users.UserWithToken'
         "400":
           description: Bad request
           schema: {}
@@ -364,31 +663,21 @@ paths:
     post:
       consumes:
       - application/json
-      - application/json
-      description: |-
-        Create a new token
-        Get a new access token using a refresh token
+      description: Create a new token
       parameters:
       - description: User credentials
         in: body
         name: payload
         required: true
         schema:
-          $ref: '#/definitions/view_models.CreateUserTokenPayload'
-      - description: Refresh token
-        in: body
-        name: payload
-        required: true
-        schema:
-          $ref: '#/definitions/view_models.RefreshTokenRequest'
+          $ref: '#/definitions/users.CreateUserTokenPayload'
       produces:
-      - application/json
       - application/json
       responses:
         "200":
-          description: New tokens
+          description: OK
           schema:
-            $ref: '#/definitions/view_models.LoginResponse'
+            type: string
         "400":
           description: Bad request
           schema: {}
@@ -398,10 +687,189 @@ paths:
         "500":
           description: Internal server error
           schema: {}
-      summary: Refresh an access token
+      summary: Create a new token
       tags:
       - authentication
-      - authentication
+  /categories:
+    get:
+      consumes:
+      - application/json
+      description: Get all categories
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of categories
+          schema:
+            items:
+              $ref: '#/definitions/models.Category'
+            type: array
+        "500":
+          description: Internal server error
+          schema: {}
+      security:
+      - StaticApiKey: []
+      summary: Get all Categories
+      tags:
+      - categories
+    post:
+      consumes:
+      - application/json
+      description: Creates a new category with the provided info
+      parameters:
+      - description: Category creation payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/categories.CreateCategoryPayload'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created category
+          schema:
+            $ref: '#/definitions/models.Category'
+        "400":
+          description: Bad request
+          schema: {}
+        "500":
+          description: Internal server error
+          schema: {}
+      security:
+      - ApiKeyAuth: []
+      summary: Creates Category
+      tags:
+      - categories
+  /categories/{categoryId}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a category by its ID
+      parameters:
+      - description: Category ID
+        in: path
+        name: categoryId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Category deleted successfully
+          schema:
+            type: string
+        "400":
+          description: Bad request
+          schema: {}
+        "404":
+          description: Category not found
+          schema: {}
+        "500":
+          description: Internal server error
+          schema: {}
+      security:
+      - ApiKeyAuth: []
+      summary: Delete Category
+      tags:
+      - categories
+    get:
+      consumes:
+      - application/json
+      description: Get a category by its ID
+      parameters:
+      - description: Category ID
+        in: path
+        name: categoryId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Category
+          schema:
+            $ref: '#/definitions/models.Category'
+        "400":
+          description: Bad request
+          schema: {}
+        "404":
+          description: Category not found
+          schema: {}
+        "500":
+          description: Internal server error
+          schema: {}
+      security:
+      - StaticApiKey: []
+      summary: Get Category
+      tags:
+      - categories
+  /categories/{categoryId}/articles:
+    get:
+      consumes:
+      - application/json
+      description: Get all articles for a specific category
+      parameters:
+      - description: Category ID
+        in: path
+        name: categoryId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of articles
+          schema:
+            items:
+              $ref: '#/definitions/models.Article'
+            type: array
+        "400":
+          description: Bad request
+          schema: {}
+        "500":
+          description: Internal server error
+          schema: {}
+      security:
+      - StaticApiKey: []
+      summary: Get Articles by Category
+      tags:
+      - categories
+  /categories/{id}:
+    put:
+      consumes:
+      - application/json
+      description: Update a category with the provided info
+      parameters:
+      - description: Category ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Category update payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/categories.UpdateCategoryPayload'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Updated category
+          schema:
+            $ref: '#/definitions/models.Category'
+        "400":
+          description: Bad request
+          schema: {}
+        "500":
+          description: Internal server error
+          schema: {}
+      security:
+      - ApiKeyAuth: []
+      summary: Update Category
+      tags:
+      - categories
   /health:
     get:
       consumes:
@@ -433,7 +901,7 @@ paths:
         name: payload
         required: true
         schema:
-          $ref: '#/definitions/view_models.CreatePostPayload'
+          $ref: '#/definitions/posts.CreatePostPayload'
       produces:
       - application/json
       responses:
@@ -462,7 +930,7 @@ paths:
         in: path
         name: postId
         required: true
-        type: integer
+        type: string
       produces:
       - application/json
       responses:
@@ -493,13 +961,13 @@ paths:
         in: path
         name: postId
         required: true
-        type: integer
+        type: string
       - description: Post update payload
         in: body
         name: payload
         required: true
         schema:
-          $ref: '#/definitions/view_models.UpdatePostPayload'
+          $ref: '#/definitions/posts.UpdatePostPayload'
       produces:
       - application/json
       responses:
@@ -531,13 +999,13 @@ paths:
         in: path
         name: postId
         required: true
-        type: integer
+        type: string
       - description: Comment creation payload
         in: body
         name: payload
         required: true
         schema:
-          $ref: '#/definitions/view_models.CreatePostCommentPayload'
+          $ref: '#/definitions/posts.CreatePostCommentPayload'
       produces:
       - application/json
       responses:
@@ -556,155 +1024,6 @@ paths:
       summary: Create a new comment for a post
       tags:
       - comments
-  /products:
-    get:
-      consumes:
-      - application/json
-      description: Get all products
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: List of products
-          schema:
-            items:
-              $ref: '#/definitions/models.Product'
-            type: array
-        "500":
-          description: Internal server error
-          schema: {}
-      security:
-      - ApiKeyAuth: []
-      summary: Get all Products
-      tags:
-      - products
-    post:
-      consumes:
-      - application/json
-      description: Creates a new product with the provided info
-      parameters:
-      - description: Product creation payload
-        in: body
-        name: payload
-        required: true
-        schema:
-          $ref: '#/definitions/view_models.CreateProductPayload'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created product
-          schema:
-            $ref: '#/definitions/models.Product'
-        "400":
-          description: Bad request
-          schema: {}
-        "500":
-          description: Internal server error
-          schema: {}
-      security:
-      - ApiKeyAuth: []
-      summary: Creates Product
-      tags:
-      - products
-  /products/{id}:
-    put:
-      consumes:
-      - application/json
-      description: Update a product with the provided info
-      parameters:
-      - description: Product ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Product update payload
-        in: body
-        name: payload
-        required: true
-        schema:
-          $ref: '#/definitions/view_models.UpdateProductPayload'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Updated product
-          schema:
-            $ref: '#/definitions/models.Product'
-        "400":
-          description: Bad request
-          schema: {}
-        "500":
-          description: Internal server error
-          schema: {}
-      security:
-      - ApiKeyAuth: []
-      summary: Update Product
-      tags:
-      - products
-  /products/{productId}:
-    delete:
-      consumes:
-      - application/json
-      description: Delete a product by its ID
-      parameters:
-      - description: Product ID
-        in: path
-        name: productId
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "204":
-          description: Product deleted successfully
-          schema:
-            type: string
-        "400":
-          description: Bad request
-          schema: {}
-        "404":
-          description: Product not found
-          schema: {}
-        "500":
-          description: Internal server error
-          schema: {}
-      security:
-      - ApiKeyAuth: []
-      summary: Delete Product
-      tags:
-      - products
-    get:
-      consumes:
-      - application/json
-      description: Get a product by its ID
-      parameters:
-      - description: Product ID
-        in: path
-        name: productId
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Product
-          schema:
-            $ref: '#/definitions/models.Product'
-        "400":
-          description: Bad request
-          schema: {}
-        "404":
-          description: Product not found
-          schema: {}
-        "500":
-          description: Internal server error
-          schema: {}
-      security:
-      - ApiKeyAuth: []
-      summary: Get Product
-      tags:
-      - products
   /users/{id}:
     get:
       consumes:
@@ -715,7 +1034,7 @@ paths:
         in: path
         name: id
         required: true
-        type: integer
+        type: string
       produces:
       - application/json
       responses:
@@ -813,5 +1132,10 @@ securityDefinitions:
     description: Provide your API key to access this API
     in: header
     name: Authorization
+    type: apiKey
+  StaticApiKey:
+    description: Provide your Static API key to access this API
+    in: header
+    name: X-Api-Key
     type: apiKey
 swagger: "2.0"

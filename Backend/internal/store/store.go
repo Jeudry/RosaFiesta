@@ -1,12 +1,14 @@
 package store
 
 import (
-	"Backend/internal/store/models"
 	"context"
 	"database/sql"
 	"errors"
-	"github.com/google/uuid"
 	"time"
+
+	"Backend/internal/store/models"
+
+	"github.com/google/uuid"
 )
 
 var (
@@ -16,12 +18,13 @@ var (
 )
 
 type Storage struct {
-	Products interface {
-		Create(context.Context, *models.Product) error
-		GetById(context.Context, uuid.UUID) (*models.Product, error)
-		Update(context.Context, *models.Product) error
-		Delete(context.Context, *models.Product) error
-		GetAll(context.Context) ([]models.Product, error)
+	Articles interface {
+		Create(context.Context, *models.Article) error
+		GetById(context.Context, uuid.UUID) (*models.Article, error)
+		GetByCategoryID(context.Context, uuid.UUID) ([]models.Article, error)
+		Update(context.Context, *models.Article) error
+		Delete(context.Context, uuid.UUID) error
+		GetAll(context.Context) ([]models.Article, error)
 	}
 	Categories interface {
 		Create(context.Context, *models.Category) error
@@ -62,7 +65,7 @@ type Storage struct {
 
 func NewStorage(db *sql.DB) Storage {
 	return Storage{
-		Products:      &ProductsStore{db: db},
+		Articles:      &ArticlesStore{db: db},
 		Categories:    &CategoriesStore{db: db},
 		Posts:         &PostsStore{db: db},
 		Users:         &UsersStore{db: db},

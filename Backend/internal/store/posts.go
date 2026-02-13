@@ -18,11 +18,13 @@ func (s *PostsStore) GetUserFeed(ctx context.Context, userId uuid.UUID, fq model
 
 	baseQuery := `SELECT p.id, p.user_id, p.title, p.content, p.created_at, 
             p.updated_at, p.version, p.tags, u.user_name, 
-            u.email, p.user_id, COUNT(c.id) AS comments_count 
-            FROM posts p 
+            u.email, p.user_id, COUNT(c.id) AS comments_count
+            FROM posts p
             LEFT JOIN comments c ON p.id = c.post_id
             LEFT JOIN users u on p.user_id = u.id
             WHERE f.user_id = $1`
+
+	baseQuery = `SELECT p.id FROM posts p`
 
 	if fq.Search != "" {
 		query = baseQuery + `

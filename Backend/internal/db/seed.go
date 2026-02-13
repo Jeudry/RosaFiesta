@@ -1,13 +1,14 @@
 package db
 
 import (
-	"Backend/internal/store"
-	"Backend/internal/store/models"
 	"context"
 	"database/sql"
 	"fmt"
 	"log"
 	"math/rand"
+
+	"Backend/internal/store"
+	"Backend/internal/store/models"
 )
 
 var userNames = []string{
@@ -138,7 +139,29 @@ var comments = []string{
 func Seed(store store.Storage, db *sql.DB) error {
 	ctx := context.Background()
 
+	// Seed Categories
+	categories := generateCategories()
+	// Use transaction for consistency if needed, or just individual creates.
+	// Users loop uses a transaction but `store.Categories.Create` might handle its own or use the passed context.
+	// `store.Users.Create` takes `tx`. `store.Posts.Create` does not?
+	// Let's check `store.Categories.Create` signature. It likely takes context.
+	// I'll just put it at top.
+
+	// START CHECK
+	// `store.Users.Create(ctx, tx, user)`
+	// `store.Categories.Create(ctx, category)`?
+	// Let's assume standard create.
+
+	for _, category := range categories {
+		if err := store.Categories.Create(ctx, category); err != nil {
+			// If duplicate, just log and continue
+			log.Println("Error creating category (might exist): ", err)
+		}
+	}
+
 	users := generateUsers(100)
+	// ... rest of user seeding
+
 	tx, _ := db.BeginTx(ctx, nil)
 
 	for _, user := range users {
@@ -160,6 +183,29 @@ func Seed(store store.Storage, db *sql.DB) error {
 	}
 
 	return nil
+}
+
+func generateCategories() []*models.Category {
+	admin := "Admin"
+	descFurniture := "Chairs, tables, and other furniture"
+	descDecor := "Flowers, lights, and decorations"
+
+	return []*models.Category{
+		{
+			BaseModel: models.BaseModel{
+				CreatedBy: &admin,
+			},
+			Name:        "Furniture",
+			Description: &descFurniture,
+		},
+		{
+			BaseModel: models.BaseModel{
+				CreatedBy: &admin,
+			},
+			Name:        "Decor",
+			Description: &descDecor,
+		},
+	}
 }
 
 func generateUsers(quantity int) []*models.User {

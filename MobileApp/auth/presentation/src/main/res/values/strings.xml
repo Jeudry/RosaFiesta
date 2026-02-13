@@ -34,7 +34,7 @@
     <string name="sign_in_button_placeholder">Iniciar sesión</string>
     <string name="forgot_password_placeholder">¿Olvidaste tu contraseña?</string>
     <string name="or_sign_in_using_placeholder">O inicia sesión usando:</string>
-    <string name="dont_have_account_placeholder">¿Aún no tienes una cuenta? </string>
+    <string name="dont_have_account_placeholder">¿Aún no tienes una cuenta?</string>
     <string name="sign_up_action_placeholder">Regístrate.</string>
     <string name="remember_me">Recuérdame</string>
     <string name="forgot_password_short">Olvidé la contraseña</string>
