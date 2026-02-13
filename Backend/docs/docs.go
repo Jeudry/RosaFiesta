@@ -82,7 +82,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/products.CreateProductPayload"
+                            "$ref": "#/definitions/dtos.CreateProductPayload"
                         }
                     }
                 ],
@@ -232,7 +232,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/products.UpdateProductPayload"
+                            "$ref": "#/definitions/dtos.UpdateProductPayload"
                         }
                     }
                 ],
@@ -274,7 +274,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/users.RefreshTokenRequest"
+                            "$ref": "#/definitions/dtos.RefreshTokenRequest"
                         }
                     }
                 ],
@@ -282,7 +282,7 @@ const docTemplate = `{
                     "200": {
                         "description": "New tokens",
                         "schema": {
-                            "$ref": "#/definitions/users.LoginResponse"
+                            "$ref": "#/definitions/dtos.LoginResponse"
                         }
                     },
                     "400": {
@@ -320,7 +320,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/users.RegisterUserPayload"
+                            "$ref": "#/definitions/dtos.RegisterUserPayload"
                         }
                     }
                 ],
@@ -328,7 +328,7 @@ const docTemplate = `{
                     "201": {
                         "description": "User registered",
                         "schema": {
-                            "$ref": "#/definitions/users.UserWithToken"
+                            "$ref": "#/definitions/dtos.UserWithToken"
                         }
                     },
                     "400": {
@@ -362,7 +362,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/users.CreateUserTokenPayload"
+                            "$ref": "#/definitions/dtos.CreateUserTokenPayload"
                         }
                     }
                 ],
@@ -446,7 +446,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/categories.CreateCategoryPayload"
+                            "$ref": "#/definitions/dtos.CreateCategoryPayload"
                         }
                     }
                 ],
@@ -644,7 +644,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/categories.UpdateCategoryPayload"
+                            "$ref": "#/definitions/dtos.UpdateCategoryPayload"
                         }
                     }
                 ],
@@ -721,7 +721,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/posts.CreatePostPayload"
+                            "$ref": "#/definitions/dtos.CreatePostPayload"
                         }
                     }
                 ],
@@ -822,7 +822,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/posts.UpdatePostPayload"
+                            "$ref": "#/definitions/dtos.UpdatePostPayload"
                         }
                     }
                 ],
@@ -880,7 +880,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/posts.CreatePostCommentPayload"
+                            "$ref": "#/definitions/dtos.CreatePostCommentPayload"
                         }
                     }
                 ],
@@ -1059,7 +1059,79 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "categories.CreateCategoryPayload": {
+        "dtos.CreateArticleDimensionPayload": {
+            "type": "object",
+            "properties": {
+                "depth": {
+                    "type": "number"
+                },
+                "height": {
+                    "type": "number"
+                },
+                "weight": {
+                    "type": "number"
+                },
+                "width": {
+                    "type": "number"
+                }
+            }
+        },
+        "dtos.CreateArticleVariantPayload": {
+            "type": "object",
+            "required": [
+                "name",
+                "rental_price",
+                "sku"
+            ],
+            "properties": {
+                "attributes": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "description": {
+                    "type": "string"
+                },
+                "dimensions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtos.CreateArticleDimensionPayload"
+                    }
+                },
+                "image_url": {
+                    "type": "string"
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "rental_price": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "replacement_cost": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "sale_price": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "sku": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "stock": {
+                    "type": "integer",
+                    "minimum": 0
+                }
+            }
+        },
+        "dtos.CreateCategoryPayload": {
             "type": "object",
             "required": [
                 "name"
@@ -1081,7 +1153,162 @@ const docTemplate = `{
                 }
             }
         },
-        "categories.UpdateCategoryPayload": {
+        "dtos.CreatePostCommentPayload": {
+            "type": "object",
+            "properties": {
+                "comment": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtos.CreatePostPayload": {
+            "type": "object",
+            "required": [
+                "title"
+            ],
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "title": {
+                    "type": "string",
+                    "maxLength": 100
+                }
+            }
+        },
+        "dtos.CreateProductPayload": {
+            "type": "object",
+            "required": [
+                "name_template",
+                "type",
+                "variants"
+            ],
+            "properties": {
+                "category_id": {
+                    "description": "string to parsing uuid later",
+                    "type": "string"
+                },
+                "description_template": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "name_template": {
+                    "type": "string",
+                    "maxLength": 100
+                },
+                "type": {
+                    "enum": [
+                        "Rental",
+                        "Sale"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.ArticleType"
+                        }
+                    ]
+                },
+                "variants": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "$ref": "#/definitions/dtos.CreateArticleVariantPayload"
+                    }
+                }
+            }
+        },
+        "dtos.CreateUserTokenPayload": {
+            "type": "object",
+            "required": [
+                "email",
+                "password"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "password": {
+                    "type": "string",
+                    "maxLength": 72,
+                    "minLength": 3
+                }
+            }
+        },
+        "dtos.LoginResponse": {
+            "type": "object",
+            "properties": {
+                "accessToken": {
+                    "type": "string"
+                },
+                "accessTokenExpirationTimestamp": {
+                    "type": "integer"
+                },
+                "refreshToken": {
+                    "type": "string"
+                },
+                "userId": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtos.RefreshTokenRequest": {
+            "type": "object",
+            "required": [
+                "refreshToken"
+            ],
+            "properties": {
+                "refreshToken": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtos.RegisterUserPayload": {
+            "type": "object",
+            "required": [
+                "confirm_password",
+                "email",
+                "first_name",
+                "last_name",
+                "password",
+                "username"
+            ],
+            "properties": {
+                "confirm_password": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "first_name": {
+                    "type": "string",
+                    "maxLength": 100
+                },
+                "last_name": {
+                    "type": "string",
+                    "maxLength": 100
+                },
+                "password": {
+                    "type": "string",
+                    "maxLength": 72,
+                    "minLength": 3
+                },
+                "username": {
+                    "type": "string",
+                    "maxLength": 100
+                }
+            }
+        },
+        "dtos.UpdateCategoryPayload": {
             "type": "object",
             "required": [
                 "name"
@@ -1099,6 +1326,100 @@ const docTemplate = `{
                     "maxLength": 100
                 },
                 "parent_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtos.UpdatePostPayload": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string",
+                    "maxLength": 1000
+                },
+                "title": {
+                    "type": "string",
+                    "maxLength": 100
+                }
+            }
+        },
+        "dtos.UpdateProductPayload": {
+            "type": "object",
+            "required": [
+                "name_template",
+                "type"
+            ],
+            "properties": {
+                "category_id": {
+                    "type": "string"
+                },
+                "description_template": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "name_template": {
+                    "type": "string",
+                    "maxLength": 100
+                },
+                "type": {
+                    "enum": [
+                        "Rental",
+                        "Sale"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.ArticleType"
+                        }
+                    ]
+                }
+            }
+        },
+        "dtos.UserWithToken": {
+            "type": "object",
+            "properties": {
+                "avatar": {
+                    "type": "string"
+                },
+                "born_date": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "firstName": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "lastName": {
+                    "type": "string"
+                },
+                "phone_number": {
+                    "type": "string"
+                },
+                "role": {
+                    "$ref": "#/definitions/models.Role"
+                },
+                "role_id": {
+                    "type": "string"
+                },
+                "token": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "userName": {
                     "type": "string"
                 }
             }
@@ -1399,313 +1720,6 @@ const docTemplate = `{
                     "$ref": "#/definitions/models.Role"
                 },
                 "role_id": {
-                    "type": "string"
-                },
-                "updated_at": {
-                    "type": "string"
-                },
-                "userName": {
-                    "type": "string"
-                }
-            }
-        },
-        "posts.CreatePostCommentPayload": {
-            "type": "object",
-            "properties": {
-                "comment": {
-                    "type": "string"
-                }
-            }
-        },
-        "posts.CreatePostPayload": {
-            "type": "object",
-            "required": [
-                "title"
-            ],
-            "properties": {
-                "content": {
-                    "type": "string"
-                },
-                "tags": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "title": {
-                    "type": "string",
-                    "maxLength": 100
-                }
-            }
-        },
-        "posts.UpdatePostPayload": {
-            "type": "object",
-            "properties": {
-                "content": {
-                    "type": "string",
-                    "maxLength": 1000
-                },
-                "title": {
-                    "type": "string",
-                    "maxLength": 100
-                }
-            }
-        },
-        "products.CreateArticleDimensionPayload": {
-            "type": "object",
-            "properties": {
-                "depth": {
-                    "type": "number"
-                },
-                "height": {
-                    "type": "number"
-                },
-                "weight": {
-                    "type": "number"
-                },
-                "width": {
-                    "type": "number"
-                }
-            }
-        },
-        "products.CreateArticleVariantPayload": {
-            "type": "object",
-            "required": [
-                "name",
-                "rental_price",
-                "sku"
-            ],
-            "properties": {
-                "attributes": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "string"
-                    }
-                },
-                "description": {
-                    "type": "string"
-                },
-                "dimensions": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/products.CreateArticleDimensionPayload"
-                    }
-                },
-                "image_url": {
-                    "type": "string"
-                },
-                "is_active": {
-                    "type": "boolean"
-                },
-                "name": {
-                    "type": "string",
-                    "maxLength": 255
-                },
-                "rental_price": {
-                    "type": "number",
-                    "minimum": 0
-                },
-                "replacement_cost": {
-                    "type": "number",
-                    "minimum": 0
-                },
-                "sale_price": {
-                    "type": "number",
-                    "minimum": 0
-                },
-                "sku": {
-                    "type": "string",
-                    "maxLength": 255
-                },
-                "stock": {
-                    "type": "integer",
-                    "minimum": 0
-                }
-            }
-        },
-        "products.CreateProductPayload": {
-            "type": "object",
-            "required": [
-                "name_template",
-                "type",
-                "variants"
-            ],
-            "properties": {
-                "category_id": {
-                    "description": "string to parsing uuid later",
-                    "type": "string"
-                },
-                "description_template": {
-                    "type": "string",
-                    "maxLength": 255
-                },
-                "is_active": {
-                    "type": "boolean"
-                },
-                "name_template": {
-                    "type": "string",
-                    "maxLength": 100
-                },
-                "type": {
-                    "enum": [
-                        "Rental",
-                        "Sale"
-                    ],
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/models.ArticleType"
-                        }
-                    ]
-                },
-                "variants": {
-                    "type": "array",
-                    "minItems": 1,
-                    "items": {
-                        "$ref": "#/definitions/products.CreateArticleVariantPayload"
-                    }
-                }
-            }
-        },
-        "products.UpdateProductPayload": {
-            "type": "object",
-            "required": [
-                "name_template",
-                "type"
-            ],
-            "properties": {
-                "category_id": {
-                    "type": "string"
-                },
-                "description_template": {
-                    "type": "string",
-                    "maxLength": 255
-                },
-                "is_active": {
-                    "type": "boolean"
-                },
-                "name_template": {
-                    "type": "string",
-                    "maxLength": 100
-                },
-                "type": {
-                    "enum": [
-                        "Rental",
-                        "Sale"
-                    ],
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/models.ArticleType"
-                        }
-                    ]
-                }
-            }
-        },
-        "users.CreateUserTokenPayload": {
-            "type": "object",
-            "required": [
-                "email",
-                "password"
-            ],
-            "properties": {
-                "email": {
-                    "type": "string",
-                    "maxLength": 255
-                },
-                "password": {
-                    "type": "string",
-                    "maxLength": 72,
-                    "minLength": 3
-                }
-            }
-        },
-        "users.LoginResponse": {
-            "type": "object",
-            "properties": {
-                "accessToken": {
-                    "type": "string"
-                },
-                "accessTokenExpirationTimestamp": {
-                    "type": "integer"
-                },
-                "refreshToken": {
-                    "type": "string"
-                },
-                "userId": {
-                    "type": "string"
-                }
-            }
-        },
-        "users.RefreshTokenRequest": {
-            "type": "object",
-            "required": [
-                "refreshToken"
-            ],
-            "properties": {
-                "refreshToken": {
-                    "type": "string"
-                }
-            }
-        },
-        "users.RegisterUserPayload": {
-            "type": "object",
-            "required": [
-                "email",
-                "password",
-                "username"
-            ],
-            "properties": {
-                "email": {
-                    "type": "string",
-                    "maxLength": 255
-                },
-                "password": {
-                    "type": "string",
-                    "maxLength": 72,
-                    "minLength": 3
-                },
-                "username": {
-                    "type": "string",
-                    "maxLength": 100
-                }
-            }
-        },
-        "users.UserWithToken": {
-            "type": "object",
-            "properties": {
-                "avatar": {
-                    "type": "string"
-                },
-                "born_date": {
-                    "type": "string"
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "email": {
-                    "type": "string"
-                },
-                "firstName": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "is_active": {
-                    "type": "boolean"
-                },
-                "lastName": {
-                    "type": "string"
-                },
-                "phone_number": {
-                    "type": "string"
-                },
-                "role": {
-                    "$ref": "#/definitions/models.Role"
-                },
-                "role_id": {
-                    "type": "string"
-                },
-                "token": {
                     "type": "string"
                 },
                 "updated_at": {

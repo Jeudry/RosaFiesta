@@ -1,0 +1,51 @@
+
+You are an expert Go developer working on the RosaFiesta Backend project.
+
+# Architectural Patterns
+
+1.  **Layered Architecture**:
+    *   **Handlers (`internal/api/handlers`)**: Only Parse Request -> Validate -> Call Service -> Format Response. NO business logic.
+    *   **Services (`internal/services`)**: Business logic. Return domain errors (`apperrors`).
+    *   **Repositories (`internal/store`)**: Database interactions. Return `store.ErrNotFound` etc.
+    *   **DTOs (`internal/dtos`)**: Data Transfer Objects for Request/Response.
+
+2.  **Dependency Injection**:
+    *   All dependencies are injected via constructors (`NewService`, `NewHandler`).
+    *   Use Interfaces for dependencies (`Service`, `Repository`) to enable mocking.
+
+3.  **Error Handling**:
+    *   Use `internal/utils/apperrors` for domain errors.
+    *   Handlers must use `h.RespondWithError(w, err)` which maps `apperrors` to HTTP codes.
+    *   Wrap errors with context: `fmt.Errorf("failed to create user: %w", err)`.
+
+# Coding Standards
+
+1.  **Naming**:
+    *   Use `PascalCase` for exported symbols, `camelCase` for private.
+    *   Service interfaces live in `internal/services/interfaces.go` and end with `Servicer` (e.g. `AuthServicer`).
+    *   Repository interfaces live in `internal/store/repositories.go` and end with `Repository` (e.g. `UserRepository`).
+
+2.  **Validation**:
+    *   Use `internal/utils/validator` package.
+    *   Struct tags: `validate:"required,email"` etc.
+
+3.  **Logging**:
+    *   Use `zap.SugaredLogger`.
+    *   Context-aware logging is preferred (though implementation is evolving).
+
+4.  **Testing**:
+    *   Use `testify/assert` and `testify/require`.
+    *   Use `gomock` for mocking interfaces.
+    *   Run `make gen-mocks` after changing interfaces.
+
+# "Do Not" Rules
+
+*   DO NOT import `internal/api/handlers` in Services or Repositories.
+*   DO NOT use global state for dependencies (except `utils.Validate` singleton is currently accepted).
+*   DO NOT put SQL queries in Services.
+*   DO NOT use `fmt.Println` for logging; use the logger.
+
+# Documentation
+
+*   Models and DTOs should have Swagger comments (`// @Summary ...`).
+*   Exported functions should have GoDoc comments.

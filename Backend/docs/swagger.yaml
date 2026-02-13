@@ -1,6 +1,56 @@
 basePath: /v1
 definitions:
-  categories.CreateCategoryPayload:
+  dtos.CreateArticleDimensionPayload:
+    properties:
+      depth:
+        type: number
+      height:
+        type: number
+      weight:
+        type: number
+      width:
+        type: number
+    type: object
+  dtos.CreateArticleVariantPayload:
+    properties:
+      attributes:
+        additionalProperties:
+          type: string
+        type: object
+      description:
+        type: string
+      dimensions:
+        items:
+          $ref: '#/definitions/dtos.CreateArticleDimensionPayload'
+        type: array
+      image_url:
+        type: string
+      is_active:
+        type: boolean
+      name:
+        maxLength: 255
+        type: string
+      rental_price:
+        minimum: 0
+        type: number
+      replacement_cost:
+        minimum: 0
+        type: number
+      sale_price:
+        minimum: 0
+        type: number
+      sku:
+        maxLength: 255
+        type: string
+      stock:
+        minimum: 0
+        type: integer
+    required:
+    - name
+    - rental_price
+    - sku
+    type: object
+  dtos.CreateCategoryPayload:
     properties:
       description:
         maxLength: 500
@@ -15,7 +65,114 @@ definitions:
     required:
     - name
     type: object
-  categories.UpdateCategoryPayload:
+  dtos.CreatePostCommentPayload:
+    properties:
+      comment:
+        type: string
+    type: object
+  dtos.CreatePostPayload:
+    properties:
+      content:
+        type: string
+      tags:
+        items:
+          type: string
+        type: array
+      title:
+        maxLength: 100
+        type: string
+    required:
+    - title
+    type: object
+  dtos.CreateProductPayload:
+    properties:
+      category_id:
+        description: string to parsing uuid later
+        type: string
+      description_template:
+        maxLength: 255
+        type: string
+      is_active:
+        type: boolean
+      name_template:
+        maxLength: 100
+        type: string
+      type:
+        allOf:
+        - $ref: '#/definitions/models.ArticleType'
+        enum:
+        - Rental
+        - Sale
+      variants:
+        items:
+          $ref: '#/definitions/dtos.CreateArticleVariantPayload'
+        minItems: 1
+        type: array
+    required:
+    - name_template
+    - type
+    - variants
+    type: object
+  dtos.CreateUserTokenPayload:
+    properties:
+      email:
+        maxLength: 255
+        type: string
+      password:
+        maxLength: 72
+        minLength: 3
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  dtos.LoginResponse:
+    properties:
+      accessToken:
+        type: string
+      accessTokenExpirationTimestamp:
+        type: integer
+      refreshToken:
+        type: string
+      userId:
+        type: string
+    type: object
+  dtos.RefreshTokenRequest:
+    properties:
+      refreshToken:
+        type: string
+    required:
+    - refreshToken
+    type: object
+  dtos.RegisterUserPayload:
+    properties:
+      confirm_password:
+        type: string
+      email:
+        maxLength: 255
+        type: string
+      first_name:
+        maxLength: 100
+        type: string
+      last_name:
+        maxLength: 100
+        type: string
+      password:
+        maxLength: 72
+        minLength: 3
+        type: string
+      username:
+        maxLength: 100
+        type: string
+    required:
+    - confirm_password
+    - email
+    - first_name
+    - last_name
+    - password
+    - username
+    type: object
+  dtos.UpdateCategoryPayload:
     properties:
       description:
         maxLength: 500
@@ -29,6 +186,68 @@ definitions:
         type: string
     required:
     - name
+    type: object
+  dtos.UpdatePostPayload:
+    properties:
+      content:
+        maxLength: 1000
+        type: string
+      title:
+        maxLength: 100
+        type: string
+    type: object
+  dtos.UpdateProductPayload:
+    properties:
+      category_id:
+        type: string
+      description_template:
+        maxLength: 255
+        type: string
+      is_active:
+        type: boolean
+      name_template:
+        maxLength: 100
+        type: string
+      type:
+        allOf:
+        - $ref: '#/definitions/models.ArticleType'
+        enum:
+        - Rental
+        - Sale
+    required:
+    - name_template
+    - type
+    type: object
+  dtos.UserWithToken:
+    properties:
+      avatar:
+        type: string
+      born_date:
+        type: string
+      created_at:
+        type: string
+      email:
+        type: string
+      firstName:
+        type: string
+      id:
+        type: string
+      is_active:
+        type: boolean
+      lastName:
+        type: string
+      phone_number:
+        type: string
+      role:
+        $ref: '#/definitions/models.Role'
+      role_id:
+        type: string
+      token:
+        type: string
+      updated_at:
+        type: string
+      userName:
+        type: string
     type: object
   models.Article:
     properties:
@@ -231,214 +450,6 @@ definitions:
       userName:
         type: string
     type: object
-  posts.CreatePostCommentPayload:
-    properties:
-      comment:
-        type: string
-    type: object
-  posts.CreatePostPayload:
-    properties:
-      content:
-        type: string
-      tags:
-        items:
-          type: string
-        type: array
-      title:
-        maxLength: 100
-        type: string
-    required:
-    - title
-    type: object
-  posts.UpdatePostPayload:
-    properties:
-      content:
-        maxLength: 1000
-        type: string
-      title:
-        maxLength: 100
-        type: string
-    type: object
-  products.CreateArticleDimensionPayload:
-    properties:
-      depth:
-        type: number
-      height:
-        type: number
-      weight:
-        type: number
-      width:
-        type: number
-    type: object
-  products.CreateArticleVariantPayload:
-    properties:
-      attributes:
-        additionalProperties:
-          type: string
-        type: object
-      description:
-        type: string
-      dimensions:
-        items:
-          $ref: '#/definitions/products.CreateArticleDimensionPayload'
-        type: array
-      image_url:
-        type: string
-      is_active:
-        type: boolean
-      name:
-        maxLength: 255
-        type: string
-      rental_price:
-        minimum: 0
-        type: number
-      replacement_cost:
-        minimum: 0
-        type: number
-      sale_price:
-        minimum: 0
-        type: number
-      sku:
-        maxLength: 255
-        type: string
-      stock:
-        minimum: 0
-        type: integer
-    required:
-    - name
-    - rental_price
-    - sku
-    type: object
-  products.CreateProductPayload:
-    properties:
-      category_id:
-        description: string to parsing uuid later
-        type: string
-      description_template:
-        maxLength: 255
-        type: string
-      is_active:
-        type: boolean
-      name_template:
-        maxLength: 100
-        type: string
-      type:
-        allOf:
-        - $ref: '#/definitions/models.ArticleType'
-        enum:
-        - Rental
-        - Sale
-      variants:
-        items:
-          $ref: '#/definitions/products.CreateArticleVariantPayload'
-        minItems: 1
-        type: array
-    required:
-    - name_template
-    - type
-    - variants
-    type: object
-  products.UpdateProductPayload:
-    properties:
-      category_id:
-        type: string
-      description_template:
-        maxLength: 255
-        type: string
-      is_active:
-        type: boolean
-      name_template:
-        maxLength: 100
-        type: string
-      type:
-        allOf:
-        - $ref: '#/definitions/models.ArticleType'
-        enum:
-        - Rental
-        - Sale
-    required:
-    - name_template
-    - type
-    type: object
-  users.CreateUserTokenPayload:
-    properties:
-      email:
-        maxLength: 255
-        type: string
-      password:
-        maxLength: 72
-        minLength: 3
-        type: string
-    required:
-    - email
-    - password
-    type: object
-  users.LoginResponse:
-    properties:
-      accessToken:
-        type: string
-      accessTokenExpirationTimestamp:
-        type: integer
-      refreshToken:
-        type: string
-      userId:
-        type: string
-    type: object
-  users.RefreshTokenRequest:
-    properties:
-      refreshToken:
-        type: string
-    required:
-    - refreshToken
-    type: object
-  users.RegisterUserPayload:
-    properties:
-      email:
-        maxLength: 255
-        type: string
-      password:
-        maxLength: 72
-        minLength: 3
-        type: string
-      username:
-        maxLength: 100
-        type: string
-    required:
-    - email
-    - password
-    - username
-    type: object
-  users.UserWithToken:
-    properties:
-      avatar:
-        type: string
-      born_date:
-        type: string
-      created_at:
-        type: string
-      email:
-        type: string
-      firstName:
-        type: string
-      id:
-        type: string
-      is_active:
-        type: boolean
-      lastName:
-        type: string
-      phone_number:
-        type: string
-      role:
-        $ref: '#/definitions/models.Role'
-      role_id:
-        type: string
-      token:
-        type: string
-      updated_at:
-        type: string
-      userName:
-        type: string
-    type: object
 info:
   contact:
     email: jeudrypp@gmail.com
@@ -483,7 +494,7 @@ paths:
         name: payload
         required: true
         schema:
-          $ref: '#/definitions/products.CreateProductPayload'
+          $ref: '#/definitions/dtos.CreateProductPayload'
       produces:
       - application/json
       responses:
@@ -581,7 +592,7 @@ paths:
         name: payload
         required: true
         schema:
-          $ref: '#/definitions/products.UpdateProductPayload'
+          $ref: '#/definitions/dtos.UpdateProductPayload'
       produces:
       - application/json
       responses:
@@ -611,14 +622,14 @@ paths:
         name: payload
         required: true
         schema:
-          $ref: '#/definitions/users.RefreshTokenRequest'
+          $ref: '#/definitions/dtos.RefreshTokenRequest'
       produces:
       - application/json
       responses:
         "200":
           description: New tokens
           schema:
-            $ref: '#/definitions/users.LoginResponse'
+            $ref: '#/definitions/dtos.LoginResponse'
         "400":
           description: Bad request
           schema: {}
@@ -642,14 +653,14 @@ paths:
         name: payload
         required: true
         schema:
-          $ref: '#/definitions/users.RegisterUserPayload'
+          $ref: '#/definitions/dtos.RegisterUserPayload'
       produces:
       - application/json
       responses:
         "201":
           description: User registered
           schema:
-            $ref: '#/definitions/users.UserWithToken'
+            $ref: '#/definitions/dtos.UserWithToken'
         "400":
           description: Bad request
           schema: {}
@@ -670,7 +681,7 @@ paths:
         name: payload
         required: true
         schema:
-          $ref: '#/definitions/users.CreateUserTokenPayload'
+          $ref: '#/definitions/dtos.CreateUserTokenPayload'
       produces:
       - application/json
       responses:
@@ -722,7 +733,7 @@ paths:
         name: payload
         required: true
         schema:
-          $ref: '#/definitions/categories.CreateCategoryPayload'
+          $ref: '#/definitions/dtos.CreateCategoryPayload'
       produces:
       - application/json
       responses:
@@ -851,7 +862,7 @@ paths:
         name: payload
         required: true
         schema:
-          $ref: '#/definitions/categories.UpdateCategoryPayload'
+          $ref: '#/definitions/dtos.UpdateCategoryPayload'
       produces:
       - application/json
       responses:
@@ -901,7 +912,7 @@ paths:
         name: payload
         required: true
         schema:
-          $ref: '#/definitions/posts.CreatePostPayload'
+          $ref: '#/definitions/dtos.CreatePostPayload'
       produces:
       - application/json
       responses:
@@ -967,7 +978,7 @@ paths:
         name: payload
         required: true
         schema:
-          $ref: '#/definitions/posts.UpdatePostPayload'
+          $ref: '#/definitions/dtos.UpdatePostPayload'
       produces:
       - application/json
       responses:
@@ -1005,7 +1016,7 @@ paths:
         name: payload
         required: true
         schema:
-          $ref: '#/definitions/posts.CreatePostCommentPayload'
+          $ref: '#/definitions/dtos.CreatePostCommentPayload'
       produces:
       - application/json
       responses:

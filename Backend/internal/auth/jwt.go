@@ -1,7 +1,10 @@
 package auth
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
+
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -25,7 +28,6 @@ func (a *JWTAuthenticator) GenerateToken(claims jwt.Claims) (string, error) {
 	token.Header["iss"] = a.iss
 
 	tokenString, err := token.SignedString([]byte(a.secret))
-
 	if err != nil {
 		return "", err
 	}
@@ -46,4 +48,9 @@ func (a *JWTAuthenticator) ValidateToken(tokenString string) (*jwt.Token, error)
 		jwt.WithIssuer(a.iss),
 		jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Name}),
 	)
+}
+
+func (a *JWTAuthenticator) HashToken(token string) string {
+	hash := sha256.Sum256([]byte(token))
+	return hex.EncodeToString(hash[:])
 }

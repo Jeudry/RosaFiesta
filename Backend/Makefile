@@ -23,4 +23,9 @@ seed:
 
 .PHONY: gen-docs
 gen-docs:
-	@swag init -g ./main/main.go -d cmd,internal && swag fmt
+	@swag init -g cmd/server/main.go -o docs
+
+.PHONY: gen-mocks
+gen-mocks:
+	@go run go.uber.org/mock/mockgen -source=internal/store/repositories.go -destination=internal/store/mocks/repositories.go -package=mocks
+	@go run go.uber.org/mock/mockgen -source=internal/services/interfaces.go -destination=internal/services/mocks/interfaces.go -package=mocks

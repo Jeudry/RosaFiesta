@@ -1,8 +1,9 @@
 package auth
 
 import (
-	"github.com/google/uuid"
 	"time"
+
+	"github.com/google/uuid"
 
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -29,4 +30,8 @@ func (a *TestAuthenticator) ValidateToken(token string) (*jwt.Token, error) {
 	return jwt.Parse(token, func(t *jwt.Token) (interface{}, error) {
 		return []byte(secret), nil
 	})
+}
+
+func (a *TestAuthenticator) HashToken(token string) string {
+	return "hashed_" + token
 }
