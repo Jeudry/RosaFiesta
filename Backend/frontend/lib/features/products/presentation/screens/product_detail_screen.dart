@@ -79,11 +79,27 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
-                          onPressed: () {
-                            // TODO: Add to cart
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Añadir al carrito - Próximamente')),
-                            );
+                          onPressed: () async {
+                            if (mainVariant == null) return;
+                            
+                            try {
+                              await context.read<CartProvider>().addItem(
+                                    product.id,
+                                    mainVariant.id,
+                                    1
+                                  );
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Añadido al carrito')),
+                                );
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Error: $e')),
+                                );
+                              }
+                            }
                           },
                           child: const Text('Añadir al Carrito'),
                         ),

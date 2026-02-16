@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/core/app_theme.dart';
+import 'package:provider/provider.dart';
+import '../../shop/presentation/cart_provider.dart';
+import '../../shop/presentation/screens/cart_screen.dart';
 import '../../../products/presentation/screens/products_list_screen.dart';
 
 /// Rosa Fiesta Home Screen matching HTML design
@@ -87,6 +90,49 @@ class HomeScreen extends StatelessWidget {
         ],
       ),
       actions: [
+        // Cart Icon with Badge
+        Consumer<CartProvider>(
+          builder: (context, cart, child) {
+            return Stack(
+              clipBehavior: Clip.none,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.shopping_cart, color: AppColors.teal),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const CartScreen()),
+                    );
+                  },
+                ),
+                if (cart.itemCount > 0)
+                  Positioned(
+                    right: 8,
+                    top: 8,
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 16,
+                        minHeight: 16,
+                      ),
+                      child: Text(
+                        '${cart.itemCount}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          },
+        ),
         Container(
           margin: const EdgeInsets.only(right: 16),
           decoration: BoxDecoration(
