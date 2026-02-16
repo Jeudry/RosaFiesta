@@ -11,4 +11,8 @@ class ProductsRepository {
   Future<Product> getProduct(String id) async {
     return await _apiService.getProduct(id);
   }
+
+  Future<List<Product>> getProductsByCategory(String categoryId) async {
+    return await _apiService.getProductsByCategory(categoryId);
+  }
 }

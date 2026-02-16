@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../products_provider.dart';
 import '../../data/product_models.dart';
+import '../../../shop/presentation/cart_provider.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final String productId;

@@ -11,4 +11,9 @@ class ProductsApiService {
     final data = await ApiClient.get('/articles/$id');
     return Product.fromJson(data);
   }
+
+  Future<List<Product>> getProductsByCategory(String categoryId) async {
+    final data = await ApiClient.get('/categories/$categoryId/articles');
+    return (data as List).map((e) => Product.fromJson(e)).toList();
+  }
 }

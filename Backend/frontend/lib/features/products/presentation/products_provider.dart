@@ -3,7 +3,10 @@ import '../data/product_models.dart';
 import '../data/products_repository.dart';
 
 class ProductsProvider extends ChangeNotifier {
-  final ProductsRepository _repository = ProductsRepository();
+  final ProductsRepository _repository;
+
+  ProductsProvider({ProductsRepository? repository}) 
+      : _repository = repository ?? ProductsRepository();
 
   List<Product> _products = [];
   List<Product> get products => _products;
@@ -36,8 +39,7 @@ class ProductsProvider extends ChangeNotifier {
       // The backend should have an endpoint for this, e.g., /categories/{id}/articles
       // Or we can filter client side if list is small, but better to query API.
       // Based on `categories.go`, there is `/categories/{categoryId}/articles`.
-      final data = await ApiClient.get('/categories/$categoryId/articles');
-      _products = (data as List).map((e) => Product.fromJson(e)).toList();
+      _products = await _repository.getProductsByCategory(categoryId);
     } catch (e) {
       _error = e.toString();
     } finally {

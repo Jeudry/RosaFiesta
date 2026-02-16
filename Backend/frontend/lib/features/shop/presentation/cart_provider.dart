@@ -3,7 +3,10 @@ import '../data/cart_models.dart';
 import '../data/cart_repository.dart';
 
 class CartProvider extends ChangeNotifier {
-  final CartRepository _repository = CartRepository();
+  final CartRepository _repository;
+
+  CartProvider({CartRepository? repository}) 
+      : _repository = repository ?? CartRepository();
 
   Cart? _cart;
   Cart? get cart => _cart;
@@ -14,8 +17,8 @@ class CartProvider extends ChangeNotifier {
   String? _error;
   String? get error => _error;
 
-  int get itemCount => _cart?.items.fold(0, (sum, item) => sum + item.quantity) ?? 0;
-  double get total => _cart?.items.fold(0.0, (sum, item) => sum + item.totalPrice) ?? 0.0;
+  int get itemCount => _cart?.items.fold<int>(0, (previousValue, element) => previousValue + element.quantity) ?? 0;
+  double get total => _cart?.items.fold<double>(0.0, (previousValue, element) => previousValue + element.totalPrice) ?? 0.0;
 
   Future<void> fetchCart() async {
     _setLoading(true);

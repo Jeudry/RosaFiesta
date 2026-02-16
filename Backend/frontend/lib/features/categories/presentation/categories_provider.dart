@@ -3,7 +3,10 @@ import '../data/category_models.dart';
 import '../data/categories_repository.dart';
 
 class CategoriesProvider extends ChangeNotifier {
-  final CategoriesRepository _repository = CategoriesRepository();
+  final CategoriesRepository _repository;
+
+  CategoriesProvider({CategoriesRepository? repository}) 
+      : _repository = repository ?? CategoriesRepository();
 
   List<Category> _categories = [];
   List<Category> get categories => _categories;

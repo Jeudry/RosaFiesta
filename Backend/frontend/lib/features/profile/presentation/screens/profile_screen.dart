@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:frontend/core/app_theme.dart';
 import '../../auth/presentation/auth_provider.dart';
-import '../../home/presentation/screens/welcome_onboarding_screen.dart';
+import '../../../home/presentation/screens/welcome_onboarding_screen.dart';
 import '../profile_provider.dart';
 
 class ProfileScreen extends StatefulWidget {

@@ -3,7 +3,10 @@ import '../data/auth_repository.dart';
 import '../data/models.dart';
 
 class AuthProvider extends ChangeNotifier {
-  final AuthRepository _repository = AuthRepository();
+  final AuthRepository _repository;
+
+  AuthProvider({AuthRepository? repository}) 
+      : _repository = repository ?? AuthRepository();
   
   bool _isLoading = false;
   bool get isLoading => _isLoading;
