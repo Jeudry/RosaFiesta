@@ -6,7 +6,13 @@ import 'core/app_theme.dart';
 import 'features/auth/presentation/auth_provider.dart';
 import 'features/home/presentation/screens/welcome_onboarding_screen.dart';
 
-void main() {
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'core/api_client.dart';
+
+Future<void> main() async {
+  await dotenv.load(fileName: ".env");
+  ApiClient.init();
+  
   runApp(
     ChangeNotifierProvider(
       create: (_) => AuthProvider(),
