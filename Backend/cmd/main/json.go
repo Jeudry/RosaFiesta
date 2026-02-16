@@ -2,9 +2,10 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/go-playground/validator/v10"
 	"log"
 	"net/http"
+
+	"github.com/go-playground/validator/v10"
 )
 
 func init() {
@@ -14,7 +15,6 @@ func init() {
 var Validate *validator.Validate
 
 func writeJson(w http.ResponseWriter, status int, data any) error {
-
 	w.Header().Set("Content-Type", "Application/json")
 
 	w.WriteHeader(status)
@@ -41,7 +41,6 @@ func writeJsonError(w http.ResponseWriter, status int, message string) {
 	err := writeJson(w, status, envelope{
 		Error: message,
 	})
-
 	if err != nil {
 		log.Printf("error writing json error: %s", err)
 	}

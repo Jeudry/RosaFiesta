@@ -1,0 +1,35 @@
+with-expecter: true
+packages:
+  Backend/internal/store:
+    config:
+      dir: internal/store/mocks
+      outpkg: mocks
+      filename: mocks.go
+    interfaces:
+      - Storage
+      - UserStore
+      - ArticleStore
+      - CategoryStore
+      - PostStore
+  Backend/internal/cache:
+    config:
+      dir: internal/cache/mocks
+      outpkg: mocks
+      filename: mocks.go
+    interfaces:
+      - Storage
+      - UserCache
+  Backend/internal/auth:
+    config:
+      dir: internal/auth/mocks
+      outpkg: mocks
+      filename: mocks.go
+    interfaces:
+      - Authenticator
+  Backend/internal/mailer:
+    config:
+      dir: internal/mailer/mocks
+      outpkg: mocks
+      filename: mocks.go
+    interfaces:
+      - Client

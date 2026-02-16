@@ -6,10 +6,13 @@ import (
 	"testing"
 
 	"Backend/cmd/main/configModels"
-	"Backend/internal/auth"
+	authMocks "Backend/internal/auth/mocks"
 	"Backend/internal/cache"
+	cacheMocks "Backend/internal/cache/mocks"
+	mailerMocks "Backend/internal/mailer/mocks"
 	"Backend/internal/ratelimiter"
 	"Backend/internal/store"
+	storeMocks "Backend/internal/store/mocks"
 
 	"go.uber.org/zap"
 )
@@ -20,10 +23,19 @@ func newTestApplication(t *testing.T, cfg configModels.Config) *Application {
 	logger := zap.NewNop().Sugar()
 	// Uncomment to enable logs
 	// logger := zap.Must(zap.NewProduction()).Sugar()
-	mockStore := store.NewMockStore()
-	mockCacheStore := cache.NewMockStore()
 
-	testAuth := &auth.TestAuthenticator{}
+	mockStore := store.Storage{
+		Users:         &storeMocks.UserStore{},
+		Roles:         &storeMocks.RoleStore{},
+		RefreshTokens: &storeMocks.RefreshTokenStore{},
+	}
+
+	mockCacheStore := cache.Storage{
+		Users: &cacheMocks.UserCache{},
+	}
+
+	testAuth := &authMocks.Authenticator{} // Use mock authenticator
+	testMailer := &mailerMocks.Mailer{}
 
 	// Initialize RateLimiter
 	// If config enables it, we must provide a valid limiter.
@@ -46,6 +58,7 @@ func newTestApplication(t *testing.T, cfg configModels.Config) *Application {
 		Store:        mockStore,
 		CacheStorage: mockCacheStore,
 		Auth:         testAuth,
+		Mailer:       testMailer,
 		Config:       cfg,
 		RateLimiter:  rl,
 	}
@@ -58,8 +71,8 @@ func executeRequest(req *http.Request, mux http.Handler) *httptest.ResponseRecor
 	return rr
 }
 
-func checkResponseCode(t *testing.T, expected, actual int) {
-	if expected != actual {
-		t.Errorf("Expected response code %d. Got %d", expected, actual)
+func checkResponseCode(t *testing.T, expected int, rr *httptest.ResponseRecorder) {
+	if expected != rr.Code {
+		t.Errorf("Expected response code %d. Got %d. Body: %s", expected, rr.Code, rr.Body.String())
 	}
 }

@@ -24,7 +24,8 @@ func TestRateLimitMiddleware(t *testing.T) {
 	}
 
 	app := newTestApplication(t, cfg)
-	ts := httptest.NewServer(app.Mount())
+	mux := app.Mount()
+	ts := httptest.NewServer(mux)
 	defer ts.Close()
 
 	client := &http.Client{}

@@ -1,18 +1,20 @@
 package main
 
 import (
-	"Backend/cmd/main/view_models/users"
-	"Backend/internal/mailer"
-	"Backend/internal/store"
-	"Backend/internal/store/models"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/golang-jwt/jwt/v5"
-	"github.com/google/uuid"
 	"net/http"
 	"time"
+
+	"Backend/cmd/main/view_models/users"
+	"Backend/internal/mailer"
+	"Backend/internal/store"
+	"Backend/internal/store/models"
+
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 )
 
 // registerUserHandler godoc
@@ -48,7 +50,7 @@ func (app *Application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 		},
 	}
 
-	//hash the user password
+	// hash the user password
 	if err := user.Password.Set(payload.Password); err != nil {
 		app.internalServerError(w, r, err)
 		return
@@ -62,7 +64,6 @@ func (app *Application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 	hashToken := hex.EncodeToString(hash[:])
 
 	err := app.Store.Users.CreateAndInvite(ctx, user, hashToken, app.Config.Mail.Exp)
-
 	if err != nil {
 		switch err {
 		case store.ErrDuplicateEmail:
@@ -93,7 +94,6 @@ func (app *Application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 	statusCode, err := app.Mailer.Send(mailer.UserWelcomeTemplate, user.UserName, user.Email, vars, !isProdEnv)
-
 	if err != nil {
 		app.Logger.Errorw("error sending welcome email", "error", err)
 
@@ -225,7 +225,6 @@ func (app *Application) createTokenHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	user, err := app.Store.Users.GetByEmail(r.Context(), payload.Email)
-
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			app.unauthorized(w, r, err)
@@ -253,7 +252,6 @@ func (app *Application) createTokenHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	accessToken, err := app.Auth.GenerateToken(claims)
-
 	if err != nil {
 		app.internalServerError(w, r, err)
 		return
