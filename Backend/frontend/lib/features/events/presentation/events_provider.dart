@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import '../data/event_model.dart';
 import '../data/events_repository.dart';
 import '../../../core/utils/error_translator.dart';
+import '../../../core/services/notification_service.dart';
 
 class EventsProvider extends ChangeNotifier {
   final EventsRepository _repository;
+  final NotificationService _notificationService = NotificationService();
 
   EventsProvider({EventsRepository? repository})
       : _repository = repository ?? EventsRepository();
@@ -23,6 +25,7 @@ class EventsProvider extends ChangeNotifier {
     _error = null;
     try {
       _events = await _repository.getEvents();
+      _syncEventNotifications();
     } catch (e) {
       _error = ErrorTranslator.translate(e.toString());
     } finally {
@@ -117,5 +120,22 @@ class EventsProvider extends ChangeNotifier {
   void _setLoading(bool value) {
     _isLoading = value;
     notifyListeners();
+  }
+
+  void _syncEventNotifications() {
+    for (var event in _events) {
+      if (event.date.isAfter(DateTime.now())) {
+        // Schedule reminder 24 hours before the event
+        final reminderDate = event.date.subtract(const Duration(hours: 24));
+        if (reminderDate.isAfter(DateTime.now())) {
+          _notificationService.scheduleNotification(
+            id: event.id.hashCode,
+            title: '¡Tu evento se acerca!',
+            body: 'Faltan 24 horas para "${event.name}". ¿Está todo listo?',
+            scheduledDate: reminderDate,
+          );
+        }
+      }
+    }
   }
 }

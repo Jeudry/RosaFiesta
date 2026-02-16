@@ -16,10 +16,12 @@ import 'features/guests/data/guests_repository.dart';
 import 'features/guests/presentation/guests_provider.dart';
 import 'features/tasks/data/tasks_repository.dart';
 import 'features/tasks/presentation/tasks_provider.dart';
+import 'core/services/notification_service.dart';
 
 Future<void> main() async {
   await dotenv.load(fileName: ".env");
   ApiClient.init();
+  await NotificationService().init();
   
   final guestsRepository = GuestsRepository();
   final tasksRepository = EventTasksRepository();

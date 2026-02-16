@@ -2,9 +2,11 @@ import 'package:flutter/foundation.dart';
 import '../data/task_model.dart';
 import '../data/tasks_repository.dart';
 import '../../../core/utils/error_translator.dart';
+import '../../../core/services/notification_service.dart';
 
 class EventTasksProvider with ChangeNotifier {
   final EventTasksRepository _repository;
+  final NotificationService _notificationService = NotificationService();
   List<EventTask> _tasks = [];
   bool _isLoading = false;
   String? _error;
@@ -25,6 +27,7 @@ class EventTasksProvider with ChangeNotifier {
 
     try {
       _tasks = await _repository.getTasks(eventId);
+      _syncNotifications();
     } catch (e) {
       _error = ErrorTranslator.translate(e.toString());
     } finally {
@@ -72,6 +75,21 @@ class EventTasksProvider with ChangeNotifier {
       _error = ErrorTranslator.translate(e.toString());
       notifyListeners();
       return false;
+    }
+  }
+
+  void _syncNotifications() {
+    for (var task in _tasks) {
+      if (!task.isCompleted && task.dueDate != null) {
+        _notificationService.scheduleNotification(
+          id: task.id.hashCode,
+          title: 'Recordatorio de Tarea',
+          body: 'La tarea "${task.title}" vence pronto.',
+          scheduledDate: task.dueDate!,
+        );
+      } else {
+        _notificationService.cancelNotification(task.id.hashCode);
+      }
     }
   }
 }
