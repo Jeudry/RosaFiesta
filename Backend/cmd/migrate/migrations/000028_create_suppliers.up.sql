@@ -1,0 +1,24 @@
+CREATE TABLE
+IF NOT EXISTS suppliers
+(
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid
+(),
+    user_id UUID NOT NULL REFERENCES users
+(id) ON
+DELETE CASCADE,
+    name VARCHAR(255)
+NOT NULL,
+    contact_name VARCHAR
+(255),
+    email VARCHAR
+(255),
+    phone VARCHAR
+(50),
+    website VARCHAR
+(255),
+    notes TEXT,
+    created_at TIMESTAMP
+WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP
+WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);

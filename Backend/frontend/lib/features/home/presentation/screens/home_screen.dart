@@ -8,6 +8,8 @@ import '../../shop/presentation/screens/cart_screen.dart';
 import '../../../products/presentation/screens/products_list_screen.dart';
 import '../../../profile/presentation/screens/profile_screen.dart';
 import '../../../events/presentation/screens/events_list_screen.dart';
+import '../../../events/presentation/screens/event_calendar_screen.dart';
+import '../../../suppliers/presentation/screens/supplier_list_screen.dart';
 
 /// Rosa Fiesta Home Screen matching HTML design
 /// Features search, promotional banner, categories grid, and trending section
@@ -149,6 +151,22 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             );
           },
+        ),
+        Container(
+          margin: const EdgeInsets.only(right: 8),
+          decoration: BoxDecoration(
+            color: AppColors.teal.withOpacity(0.1),
+            shape: BoxShape.circle,
+          ),
+          child: IconButton(
+            icon: const Icon(Icons.calendar_month, color: AppColors.teal),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const EventCalendarScreen()),
+              );
+            },
+          ),
         ),
         Container(
           margin: const EdgeInsets.only(right: 16),
@@ -547,13 +565,18 @@ class _HomeScreenState extends State<HomeScreen> {
                 );
               }),
               _buildFloatingActionButton(),
-              _buildNavItem(Icons.calendar_month, 'Events', false, onTap: () {
+              _buildNavItem(Icons.calendar_month, 'Eventos', false, onTap: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const EventsListScreen()),
                 );
               }),
-              _buildNavItem(Icons.settings, 'Settings', false),
+              _buildNavItem(Icons.business, 'Proveedores', false, onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const SupplierListScreen()),
+                );
+              }),
             ],
           ),
         ),

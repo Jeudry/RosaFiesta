@@ -94,6 +94,13 @@ type Storage struct {
 		Update(context.Context, *models.EventTask) error
 		Delete(context.Context, uuid.UUID) error
 	}
+	Suppliers interface {
+		Create(context.Context, *models.Supplier) error
+		GetByUserID(context.Context, uuid.UUID) ([]models.Supplier, error)
+		GetByID(context.Context, uuid.UUID) (*models.Supplier, error)
+		Update(context.Context, *models.Supplier) error
+		Delete(context.Context, uuid.UUID) error
+	}
 }
 
 func NewStorage(db *sql.DB) Storage {
@@ -109,6 +116,7 @@ func NewStorage(db *sql.DB) Storage {
 		Events:        &EventStore{db: db},
 		Guests:        &GuestStore{db: db},
 		EventTasks:    &EventTaskStore{db: db},
+		Suppliers:     &SupplierStore{db: db},
 	}
 }
 

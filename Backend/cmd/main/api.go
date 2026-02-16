@@ -163,6 +163,17 @@ func (app *Application) Mount() http.Handler {
 			r.Put("/", app.updateEventTaskHandler)
 			r.Delete("/", app.deleteEventTaskHandler)
 		})
+
+		r.Route("/suppliers", func(r chi.Router) {
+			r.Use(app.AuthTokenMiddleware())
+			r.Post("/", app.addSupplierHandler)
+			r.Get("/", app.getSuppliersHandler)
+			r.Route("/{id}", func(r chi.Router) {
+				r.Get("/", app.getSupplierHandler)
+				r.Patch("/", app.updateSupplierHandler)
+				r.Delete("/", app.deleteSupplierHandler)
+			})
+		})
 	})
 
 	return r
