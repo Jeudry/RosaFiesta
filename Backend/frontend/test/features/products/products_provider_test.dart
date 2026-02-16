@@ -59,7 +59,7 @@ void main() {
       // Assert
       expect(productsProvider.products, isEmpty);
       expect(productsProvider.isLoading, false);
-      expect(productsProvider.error, contains(errorMessage));
+      expect(productsProvider.error, contains('Error de conexión. Verifique su internet.'));
     });
 
     test('fetchProductsByCategory success updates list', () async {

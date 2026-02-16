@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../data/category_models.dart';
 import '../data/categories_repository.dart';
+import '../../../core/utils/error_translator.dart';
 
 class CategoriesProvider extends ChangeNotifier {
   final CategoriesRepository _repository;
@@ -23,7 +24,7 @@ class CategoriesProvider extends ChangeNotifier {
     try {
       _categories = await _repository.getCategories();
     } catch (e) {
-      _error = e.toString();
+      _error = ErrorTranslator.translate(e.toString());
     } finally {
       _setLoading(false);
     }

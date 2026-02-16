@@ -56,7 +56,7 @@ void main() {
       // Assert
       expect(cartProvider.cart, null);
       expect(cartProvider.isLoading, false);
-      expect(cartProvider.error, contains(errorMessage));
+      expect(cartProvider.error, contains('Producto agotado.'));
     });
 
     // Add more tests for removeItem, updateItem, clearCart, etc.

@@ -64,7 +64,7 @@ void main() {
       expect(authProvider.isAuthenticated, false);
       expect(authProvider.user, null);
       expect(authProvider.isLoading, false);
-      expect(authProvider.error, contains(errorMessage));
+      expect(authProvider.error, contains('Credenciales inválidas. Por favor verifique su correo y contraseña.'));
     });
 
     test('logout clears user state', () async {

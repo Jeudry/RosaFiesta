@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../data/product_models.dart';
 import '../data/products_repository.dart';
+import '../../../core/utils/error_translator.dart';
 
 class ProductsProvider extends ChangeNotifier {
   final ProductsRepository _repository;
@@ -26,7 +27,7 @@ class ProductsProvider extends ChangeNotifier {
     try {
       _products = await _repository.getProducts();
     } catch (e) {
-      _error = e.toString();
+      _error = ErrorTranslator.translate(e.toString());
     } finally {
       _setLoading(false);
     }
@@ -41,7 +42,7 @@ class ProductsProvider extends ChangeNotifier {
       // Based on `categories.go`, there is `/categories/{categoryId}/articles`.
       _products = await _repository.getProductsByCategory(categoryId);
     } catch (e) {
-      _error = e.toString();
+      _error = ErrorTranslator.translate(e.toString());
     } finally {
       _setLoading(false);
     }
@@ -53,7 +54,7 @@ class ProductsProvider extends ChangeNotifier {
     try {
       _selectedProduct = await _repository.getProduct(id);
     } catch (e) {
-      _error = e.toString();
+      _error = ErrorTranslator.translate(e.toString());
     } finally {
       _setLoading(false);
     }

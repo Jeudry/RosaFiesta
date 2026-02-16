@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../data/cart_models.dart';
 import '../data/cart_repository.dart';
+import '../../../core/utils/error_translator.dart';
 
 class CartProvider extends ChangeNotifier {
   final CartRepository _repository;
@@ -26,7 +27,7 @@ class CartProvider extends ChangeNotifier {
     try {
       _cart = await _repository.getCart();
     } catch (e) {
-      _error = e.toString();
+      _error = ErrorTranslator.translate(e.toString());
     } finally {
       _setLoading(false);
     }
@@ -40,7 +41,7 @@ class CartProvider extends ChangeNotifier {
     try {
       _cart = await _repository.addItem(articleId, variantId, quantity);
     } catch (e) {
-      _error = e.toString();
+      _error = ErrorTranslator.translate(e.toString());
     } finally {
       _setLoading(false);
     }
@@ -52,7 +53,7 @@ class CartProvider extends ChangeNotifier {
     try {
       _cart = await _repository.updateItem(itemId, quantity);
     } catch (e) {
-      _error = e.toString();
+      _error = ErrorTranslator.translate(e.toString());
     } finally {
       _setLoading(false);
     }
@@ -64,7 +65,7 @@ class CartProvider extends ChangeNotifier {
     try {
       _cart = await _repository.removeItem(itemId);
     } catch (e) {
-      _error = e.toString();
+      _error = ErrorTranslator.translate(e.toString());
     } finally {
       _setLoading(false);
     }
@@ -78,7 +79,7 @@ class CartProvider extends ChangeNotifier {
       _cart = null; // Or fetch empty cart?
       await fetchCart(); // Re-fetch to get clean state
     } catch (e) {
-      _error = e.toString();
+      _error = ErrorTranslator.translate(e.toString());
     } finally {
       _setLoading(false);
     }

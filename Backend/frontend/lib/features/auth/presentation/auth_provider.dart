@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../data/auth_repository.dart';
 import '../data/models.dart';
+import '../../../core/utils/error_translator.dart';
 
 class AuthProvider extends ChangeNotifier {
   final AuthRepository _repository;
@@ -29,7 +30,7 @@ class AuthProvider extends ChangeNotifier {
       _user = User(id: response.userId, email: email);
       notifyListeners();
     } catch (e) {
-      _error = e.toString();
+      _error = ErrorTranslator.translate(e.toString());
     } finally {
       _setLoading(false);
     }
@@ -41,7 +42,7 @@ class AuthProvider extends ChangeNotifier {
     try {
       await _repository.register(username, email, password);
     } catch (e) {
-      _error = e.toString();
+      _error = ErrorTranslator.translate(e.toString());
     } finally {
       _setLoading(false);
     }

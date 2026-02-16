@@ -52,7 +52,7 @@ void main() {
       // Assert
       expect(categoriesProvider.categories, isEmpty);
       expect(categoriesProvider.isLoading, false);
-      expect(categoriesProvider.error, contains(errorMessage));
+      expect(categoriesProvider.error, contains('Failed to load')); // 'Failed to load' translates to itself capitalized if not in map
     });
   });
 }
