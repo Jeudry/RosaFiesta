@@ -7,6 +7,7 @@ import '../../categories/data/category_models.dart';
 import '../../shop/presentation/screens/cart_screen.dart';
 import '../../../products/presentation/screens/products_list_screen.dart';
 import '../../../profile/presentation/screens/profile_screen.dart';
+import '../../../events/presentation/screens/events_list_screen.dart';
 
 /// Rosa Fiesta Home Screen matching HTML design
 /// Features search, promotional banner, categories grid, and trending section
@@ -546,7 +547,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 );
               }),
               _buildFloatingActionButton(),
-              _buildNavItem(Icons.calendar_month, 'Events', false),
+              _buildNavItem(Icons.calendar_month, 'Events', false, onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const EventsListScreen()),
+                );
+              }),
               _buildNavItem(Icons.settings, 'Settings', false),
             ],
           ),

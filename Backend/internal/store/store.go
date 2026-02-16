@@ -69,6 +69,13 @@ type Storage struct {
 		RemoveItem(context.Context, uuid.UUID) error
 		ClearCart(context.Context, uuid.UUID) error
 	}
+	Events interface {
+		Create(context.Context, *models.Event) error
+		GetByID(context.Context, uuid.UUID) (*models.Event, error)
+		GetByUserID(context.Context, uuid.UUID) ([]models.Event, error)
+		Update(context.Context, *models.Event) error
+		Delete(context.Context, uuid.UUID) error
+	}
 }
 
 func NewStorage(db *sql.DB) Storage {
@@ -81,6 +88,7 @@ func NewStorage(db *sql.DB) Storage {
 		Roles:         &RolesStore{db: db},
 		RefreshTokens: &RefreshTokensStore{db: db},
 		Carts:         &CartsStore{db: db},
+		Events:        &EventStore{db: db},
 	}
 }
 
