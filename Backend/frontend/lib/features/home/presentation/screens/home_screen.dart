@@ -2,13 +2,28 @@ import 'package:flutter/material.dart';
 import 'package:frontend/core/app_theme.dart';
 import 'package:provider/provider.dart';
 import '../../shop/presentation/cart_provider.dart';
+import '../../categories/presentation/categories_provider.dart';
+import '../../categories/data/category_models.dart';
 import '../../shop/presentation/screens/cart_screen.dart';
 import '../../../products/presentation/screens/products_list_screen.dart';
 
 /// Rosa Fiesta Home Screen matching HTML design
 /// Features search, promotional banner, categories grid, and trending section
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<CategoriesProvider>().fetchCategories();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -295,105 +310,141 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildCategoriesGrid() {
-    final categories = [
-      _CategoryItem('Birthdays', Icons.celebration, AppColors.lime, AppColors.purple),
-      _CategoryItem('Weddings', Icons.favorite, AppColors.pink, Colors.white),
-      _CategoryItem('Corporate', Icons.business_center, AppColors.teal, Colors.white),
-      _CategoryItem('Baby Showers', Icons.child_care, AppColors.yellow, AppColors.purple),
-    ];
-
     return SliverPadding(
       padding: const EdgeInsets.all(16),
-      sliver: SliverGrid(
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          childAspectRatio: 0.8,
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
-        ),
-        delegate: SliverChildBuilderDelegate(
-          (context, index) => _buildCategoryCard(categories[index]),
-          childCount: categories.length,
-        ),
+      sliver: Consumer<CategoriesProvider>(
+        builder: (context, provider, child) {
+          if (provider.isLoading) {
+            return const SliverFillRemaining(
+              child: Center(child: CircularProgressIndicator()),
+            );
+          }
+          if (provider.error != null) {
+            return SliverToBoxAdapter(child: Center(child: Text('Error: ${provider.error}')));
+          }
+
+          final categories = provider.categories;
+
+          if (categories.isEmpty) {
+             return const SliverToBoxAdapter(child: Center(child: Text('No categories found')));
+          }
+
+          return SliverGrid(
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              childAspectRatio: 0.8,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+            ),
+            delegate: SliverChildBuilderDelegate(
+              (context, index) => _buildCategoryCard(categories[index]),
+              childCount: categories.length,
+            ),
+          );
+        },
       ),
     );
   }
 
-  Widget _buildCategoryCard(_CategoryItem category) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(32),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Colors.black.withOpacity(0.1),
-            Colors.black.withOpacity(0.8),
+  Widget _buildCategoryCard(Category category) {
+    // Generate deterministic colors based on name to keep UI lively without saving color in DB
+    final int hash = category.name.hashCode;
+    final List<Color> badgeColors = [AppColors.lime, AppColors.pink, AppColors.teal, AppColors.yellow];
+    final Color badgeColor = badgeColors[hash.abs() % badgeColors.length];
+    
+    // Choose icon based on name or default
+    IconData icon = Icons.category;
+    if (category.name.toLowerCase().contains('birth')) icon = Icons.celebration;
+    else if (category.name.toLowerCase().contains('wed')) icon = Icons.favorite;
+    else if (category.name.toLowerCase().contains('baby')) icon = Icons.child_care;
+    else if (category.name.toLowerCase().contains('corp')) icon = Icons.business_center;
+
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ProductsListScreen(categoryId: category.id),
+          ),
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(32),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Colors.black.withOpacity(0.1),
+              Colors.black.withOpacity(0.8),
+            ],
+            stops: const [0.6, 1.0],
+          ),
+          image: DecorationImage(
+            image: category.imageUrl != null && category.imageUrl!.isNotEmpty
+              ? NetworkImage(category.imageUrl!)
+              : const NetworkImage('https://picsum.photos/400/500'), // Fallback
+            fit: BoxFit.cover,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
           ],
-          stops: const [0.6, 1.0],
         ),
-        image: const DecorationImage(
-          image: NetworkImage('https://picsum.photos/400/500'),
-          fit: BoxFit.cover,
+        child: Stack(
+          children: [
+            // Star pattern overlay
+            Positioned.fill(
+              child: CustomPaint(
+                painter: _StarPatternPainter(opacity: 0.3),
+              ),
+            ),
+            
+            // Icon badge
+            Positioned(
+              top: 16,
+              right: 16,
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: badgeColor,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: badgeColor.withOpacity(0.4),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Icon(
+                  icon,
+                  color: Colors.white,
+                  size: 18,
+                ),
+              ),
+            ),
+            
+            // Title
+            Positioned(
+              bottom: 20,
+              left: 20,
+              right: 20,
+              child: Text(
+                category.name,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  height: 1.2,
+                ),
+              ),
+            ),
+          ],
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Stack(
-        children: [
-          // Star pattern overlay
-          Positioned.fill(
-            child: CustomPaint(
-              painter: _StarPatternPainter(opacity: 0.3),
-            ),
-          ),
-          
-          // Icon badge
-          Positioned(
-            top: 16,
-            right: 16,
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: category.badgeColor,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: category.badgeColor.withOpacity(0.4),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Icon(
-                category.icon,
-                color: category.iconColor,
-                size: 18,
-              ),
-            ),
-          ),
-          
-          // Title
-          Positioned(
-            bottom: 20,
-            left: 20,
-            right: 20,
-            child: Text(
-              category.title,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.w900,
-                height: 1.2,
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -550,14 +601,7 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-class _CategoryItem {
-  final String title;
-  final IconData icon;
-  final Color badgeColor;
-  final Color iconColor;
-
-  _CategoryItem(this.title, this.icon, this.badgeColor, this.iconColor);
-}
+// class _CategoryItem removed as we use Category model now
 
 class _StarPatternPainter extends CustomPainter {
   final double opacity;

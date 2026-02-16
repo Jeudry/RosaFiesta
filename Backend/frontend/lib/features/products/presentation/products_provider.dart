@@ -29,6 +29,22 @@ class ProductsProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> fetchProductsByCategory(String categoryId) async {
+    _setLoading(true);
+    _error = null;
+    try {
+      // The backend should have an endpoint for this, e.g., /categories/{id}/articles
+      // Or we can filter client side if list is small, but better to query API.
+      // Based on `categories.go`, there is `/categories/{categoryId}/articles`.
+      final data = await ApiClient.get('/categories/$categoryId/articles');
+      _products = (data as List).map((e) => Product.fromJson(e)).toList();
+    } catch (e) {
+      _error = e.toString();
+    } finally {
+      _setLoading(false);
+    }
+  }
+
   Future<void> fetchProductDetails(String id) async {
     _setLoading(true);
     _error = null;

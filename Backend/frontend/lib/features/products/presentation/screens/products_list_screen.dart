@@ -5,7 +5,8 @@ import '../widgets/product_card.dart';
 import 'product_detail_screen.dart';
 
 class ProductsListScreen extends StatefulWidget {
-  const ProductsListScreen({super.key});
+  final String? categoryId;
+  const ProductsListScreen({super.key, this.categoryId});
 
   @override
   State<ProductsListScreen> createState() => _ProductsListScreenState();
@@ -17,7 +18,11 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
     super.initState();
     // Fetch products when screen loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ProductsProvider>().fetchProducts();
+      if (widget.categoryId != null) {
+        context.read<ProductsProvider>().fetchProductsByCategory(widget.categoryId!);
+      } else {
+        context.read<ProductsProvider>().fetchProducts();
+      }
     });
   }
 
