@@ -1,4 +1,4 @@
-import '../../../core/api/api_client.dart';
+import '../../../core/api_client.dart';
 import 'task_model.dart';
 
 class EventTasksRepository {

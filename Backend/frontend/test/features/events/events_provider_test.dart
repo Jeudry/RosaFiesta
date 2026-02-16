@@ -6,9 +6,15 @@ import 'package:frontend/features/events/data/event_model.dart';
 
 class MockEventsRepository extends Mock implements EventsRepository {}
 
+class EventFake extends Fake implements Event {}
+
 void main() {
   late EventsProvider provider;
   late MockEventsRepository mockRepository;
+
+  setUpAll(() {
+    registerFallbackValue(EventFake());
+  });
 
   setUp(() {
     mockRepository = MockEventsRepository();
@@ -75,6 +81,24 @@ void main() {
       expect(provider.isLoading, false);
       expect(provider.error, null);
       verify(() => mockRepository.getEvents()).called(1);
+    });
+
+    test('addItemToEvent success', () async {
+      when(() => mockRepository.addItem(any(), any(), any())).thenAnswer((_) async => true);
+      
+      final success = await provider.addItemToEvent('1', 'art-1', 2);
+      
+      expect(success, true);
+      verify(() => mockRepository.addItem('1', 'art-1', 2)).called(1);
+    });
+
+    test('getEventItems success', () async {
+      when(() => mockRepository.getItems(any())).thenAnswer((_) async => []);
+      
+      final items = await provider.getEventItems('1');
+      
+      expect(items, []);
+      verify(() => mockRepository.getItems('1')).called(1);
     });
   });
 }

@@ -1,4 +1,4 @@
-import '../../../core/api/api_client.dart';
+import '../../../core/api_client.dart';
 import 'guest_model.dart';
 
 class GuestsRepository {
