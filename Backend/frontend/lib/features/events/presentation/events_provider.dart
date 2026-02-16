@@ -20,6 +20,24 @@ class EventsProvider extends ChangeNotifier {
   String? _error;
   String? get error => _error;
 
+  double get totalSpent => _currentEventItems.fold(0.0, (sum, item) => sum + ((item.price ?? 0) * item.quantity));
+
+  Map<String, double> getCategorySpending(List<dynamic> allCategories) {
+    final Map<String, double> spending = {};
+    
+    for (var item in _currentEventItems) {
+      final categoryId = item.article?.categoryId;
+      final categoryName = allCategories
+          .firstWhere((c) => c.id == categoryId, orElse: () => null)
+          ?.name ?? 'Otros';
+      
+      final total = (item.price ?? 0) * item.quantity;
+      spending[categoryName] = (spending[categoryName] ?? 0) + total;
+    }
+    
+    return spending;
+  }
+
   Future<void> fetchEvents() async {
     _setLoading(true);
     _error = null;

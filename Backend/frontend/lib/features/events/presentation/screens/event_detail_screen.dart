@@ -3,6 +3,7 @@ import '../../data/event_model.dart';
 import '../../presentation/events_provider.dart';
 import '../../../guests/presentation/screens/guest_list_screen.dart';
 import '../../../tasks/presentation/screens/event_task_list_screen.dart';
+import 'budget_analysis_screen.dart';
 
 
 class EventDetailScreen extends StatefulWidget {
@@ -63,12 +64,24 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                 ),
                 
                 // Budget Comparison
-                Row(
-                  children: [
-                    Expanded(child: _buildDetailRow(Icons.attach_money, 'Presupuesto Est.', '\$${widget.event.budget.toStringAsFixed(2)}')),
-                    const SizedBox(width: 16),
-                    Expanded(child: _buildDetailRow(Icons.money_off, 'Presupuesto Real', '\$${realBudget.toStringAsFixed(2)}', color: realBudget > widget.event.budget ? Colors.red : Colors.green)),
-                  ],
+                InkWell(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => BudgetAnalysisScreen(event: widget.event)),
+                    );
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Row(
+                      children: [
+                        Expanded(child: _buildDetailRow(Icons.attach_money, 'Presupuesto Est.', '\$${widget.event.budget.toStringAsFixed(2)}')),
+                        const SizedBox(width: 16),
+                        Expanded(child: _buildDetailRow(Icons.money_off, 'Presupuesto Real', '\$${realBudget.toStringAsFixed(2)}', color: realBudget > widget.event.budget ? Colors.red : Colors.green)),
+                        const Icon(Icons.chevron_right, color: Colors.blue),
+                      ],
+                    ),
+                  ),
                 ),
                 
                 _buildDetailRow(Icons.info, 'Estado', widget.event.status),
