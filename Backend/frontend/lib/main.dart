@@ -14,12 +14,15 @@ import 'features/profile/presentation/profile_provider.dart';
 import 'features/events/presentation/events_provider.dart';
 import 'features/guests/data/guests_repository.dart';
 import 'features/guests/presentation/guests_provider.dart';
+import 'features/tasks/data/tasks_repository.dart';
+import 'features/tasks/presentation/tasks_provider.dart';
 
 Future<void> main() async {
   await dotenv.load(fileName: ".env");
   ApiClient.init();
   
   final guestsRepository = GuestsRepository();
+  final tasksRepository = EventTasksRepository();
   
   runApp(
     MultiProvider(
@@ -31,6 +34,7 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => ProfileProvider()),
         ChangeNotifierProvider(create: (_) => EventsProvider()),
         ChangeNotifierProvider(create: (_) => GuestsProvider(guestsRepository)),
+        ChangeNotifierProvider(create: (_) => EventTasksProvider(tasksRepository)),
       ],
       child: const RosaFiestaApp(),
     ),

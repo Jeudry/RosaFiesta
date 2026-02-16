@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../data/event_model.dart';
 import '../../presentation/events_provider.dart';
 import '../../../guests/presentation/screens/guest_list_screen.dart';
+import '../../../tasks/presentation/screens/event_task_list_screen.dart';
 
 
 class EventDetailScreen extends StatefulWidget {
@@ -50,6 +51,15 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                     );
                   },
                   child: _buildDetailRow(Icons.people, 'Invitados', '${widget.event.guestCount}', color: Colors.blue),
+                ),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => EventTaskListScreen(eventId: widget.event.id)),
+                    );
+                  },
+                  child: _buildDetailRow(Icons.check_circle_outline, 'Tareas', 'Ver checklist', color: Colors.blue),
                 ),
                 
                 // Budget Comparison

@@ -87,6 +87,13 @@ type Storage struct {
 		Update(context.Context, *models.Guest) error
 		Delete(context.Context, uuid.UUID) error
 	}
+	EventTasks interface {
+		Create(context.Context, *models.EventTask) error
+		GetByEventID(context.Context, uuid.UUID) ([]models.EventTask, error)
+		GetByID(context.Context, uuid.UUID) (*models.EventTask, error)
+		Update(context.Context, *models.EventTask) error
+		Delete(context.Context, uuid.UUID) error
+	}
 }
 
 func NewStorage(db *sql.DB) Storage {
@@ -101,6 +108,7 @@ func NewStorage(db *sql.DB) Storage {
 		Carts:         &CartsStore{db: db},
 		Events:        &EventStore{db: db},
 		Guests:        &GuestStore{db: db},
+		EventTasks:    &EventTaskStore{db: db},
 	}
 }
 
