@@ -16,8 +16,9 @@ import 'features/guests/data/guests_repository.dart';
 import 'features/guests/presentation/guests_provider.dart';
 import 'features/tasks/data/tasks_repository.dart';
 import 'features/tasks/presentation/tasks_provider.dart';
-import 'features/suppliers/data/suppliers_repository.dart';
 import 'features/suppliers/presentation/suppliers_provider.dart';
+import 'features/events/data/timeline_repository.dart';
+import 'features/events/presentation/timeline_provider.dart';
 import 'core/services/notification_service.dart';
 
 Future<void> main() async {
@@ -28,6 +29,7 @@ Future<void> main() async {
   final guestsRepository = GuestsRepository();
   final tasksRepository = EventTasksRepository();
   final suppliersRepository = SuppliersRepository();
+  final timelineRepository = TimelineRepository();
   
   runApp(
     MultiProvider(
@@ -41,6 +43,7 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => GuestsProvider(guestsRepository)),
         ChangeNotifierProvider(create: (_) => EventTasksProvider(tasksRepository)),
         ChangeNotifierProvider(create: (_) => SuppliersProvider(suppliersRepository)),
+        ChangeNotifierProvider(create: (_) => TimelineProvider(timelineRepository)),
       ],
       child: const RosaFiestaApp(),
     ),

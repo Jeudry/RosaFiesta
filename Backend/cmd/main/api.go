@@ -152,6 +152,17 @@ func (app *Application) Mount() http.Handler {
 				r.Post("/", app.addEventTaskHandler)
 				r.Get("/", app.getEventTasksHandler)
 			})
+
+			r.Route("/{id}/timeline", func(r chi.Router) {
+				r.Post("/", app.createTimelineItemHandler)
+				r.Get("/", app.getTimelineItemsHandler)
+			})
+		})
+
+		r.Route("/timeline/{itemId}", func(r chi.Router) {
+			r.Use(app.AuthTokenMiddleware())
+			r.Put("/", app.updateTimelineItemHandler)
+			r.Delete("/", app.deleteTimelineItemHandler)
 		})
 
 		r.Route("/guests/{guestId}", func(r chi.Router) {

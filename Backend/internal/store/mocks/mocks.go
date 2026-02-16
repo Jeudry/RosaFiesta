@@ -200,3 +200,67 @@ func (m *EventTaskStore) Delete(ctx context.Context, id uuid.UUID) error {
 	args := m.Called(ctx, id)
 	return args.Error(0)
 }
+
+type SupplierStore struct {
+	mock.Mock
+}
+
+func (m *SupplierStore) Create(ctx context.Context, supplier *models.Supplier) error {
+	args := m.Called(ctx, supplier)
+	return args.Error(0)
+}
+
+func (m *SupplierStore) GetByUserID(ctx context.Context, id uuid.UUID) ([]models.Supplier, error) {
+	args := m.Called(ctx, id)
+	return args.Get(0).([]models.Supplier), args.Error(1)
+}
+
+func (m *SupplierStore) GetByID(ctx context.Context, id uuid.UUID) (*models.Supplier, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.Supplier), args.Error(1)
+}
+
+func (m *SupplierStore) Update(ctx context.Context, supplier *models.Supplier) error {
+	args := m.Called(ctx, supplier)
+	return args.Error(0)
+}
+
+func (m *SupplierStore) Delete(ctx context.Context, id uuid.UUID) error {
+	args := m.Called(ctx, id)
+	return args.Error(0)
+}
+
+type TimelineStore struct {
+	mock.Mock
+}
+
+func (m *TimelineStore) Create(ctx context.Context, item *models.TimelineItem) error {
+	args := m.Called(ctx, item)
+	return args.Error(0)
+}
+
+func (m *TimelineStore) GetByEventID(ctx context.Context, id uuid.UUID) ([]models.TimelineItem, error) {
+	args := m.Called(ctx, id)
+	return args.Get(0).([]models.TimelineItem), args.Error(1)
+}
+
+func (m *TimelineStore) GetByID(ctx context.Context, id uuid.UUID) (*models.TimelineItem, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.TimelineItem), args.Error(1)
+}
+
+func (m *TimelineStore) Update(ctx context.Context, item *models.TimelineItem) error {
+	args := m.Called(ctx, item)
+	return args.Error(0)
+}
+
+func (m *TimelineStore) Delete(ctx context.Context, id uuid.UUID) error {
+	args := m.Called(ctx, id)
+	return args.Error(0)
+}
