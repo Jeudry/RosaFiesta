@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/core/app_theme.dart';
+import '../../../products/presentation/screens/products_list_screen.dart';
 
 /// Rosa Fiesta Home Screen matching HTML design
 /// Features search, promotional banner, categories grid, and trending section
@@ -435,7 +436,12 @@ class HomeScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               _buildNavItem(Icons.home, 'Home', true),
-              _buildNavItem(Icons.auto_awesome, 'Inspire', false),
+              _buildNavItem(Icons.store, 'Catalog', false, onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ProductsListScreen()),
+                );
+              }),
               _buildFloatingActionButton(),
               _buildNavItem(Icons.calendar_month, 'Events', false),
               _buildNavItem(Icons.settings, 'Settings', false),
@@ -446,25 +452,28 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildNavItem(IconData icon, String label, bool isActive) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          icon,
-          color: isActive ? AppColors.lime : Colors.grey.shade400,
-          size: 24,
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 10,
-            fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+  Widget _buildNavItem(IconData icon, String label, bool isActive, {VoidCallback? onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
             color: isActive ? AppColors.lime : Colors.grey.shade400,
+            size: 24,
           ),
-        ),
-      ],
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+              color: isActive ? AppColors.lime : Colors.grey.shade400,
+            ),
+          ),
+        ],
+      ),
     );
   }
 

@@ -5,17 +5,20 @@ import 'package:frontend/l10n/generated/app_localizations.dart';
 import 'core/app_theme.dart';
 import 'features/auth/presentation/auth_provider.dart';
 import 'features/home/presentation/screens/welcome_onboarding_screen.dart';
-
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'core/api_client.dart';
+import 'features/products/presentation/products_provider.dart';
 
 Future<void> main() async {
   await dotenv.load(fileName: ".env");
   ApiClient.init();
   
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => AuthProvider(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => ProductsProvider()),
+      ],
       child: const RosaFiestaApp(),
     ),
   );

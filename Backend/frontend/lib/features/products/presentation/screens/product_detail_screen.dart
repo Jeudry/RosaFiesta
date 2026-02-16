@@ -1,0 +1,101 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../products_provider.dart';
+import '../../data/product_models.dart';
+
+class ProductDetailScreen extends StatefulWidget {
+  final String productId;
+
+  const ProductDetailScreen({super.key, required this.productId});
+
+  @override
+  State<ProductDetailScreen> createState() => _ProductDetailScreenState();
+}
+
+class _ProductDetailScreenState extends State<ProductDetailScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<ProductsProvider>().fetchProductDetails(widget.productId);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Detalle')),
+      body: Consumer<ProductsProvider>(
+        builder: (context, provider, child) {
+          if (provider.isLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (provider.error != null) {
+            return Center(child: Text(provider.error!));
+          }
+
+          final product = provider.selectedProduct;
+          if (product == null) {
+            return const Center(child: Text('Producto no encontrado'));
+          }
+
+          // Use first variant for now
+          final ProductVariant? mainVariant = product.variants.isNotEmpty ? product.variants.first : null;
+
+          return SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(
+                  height: 300,
+                  color: Colors.grey[200],
+                  child: mainVariant?.imageUrl != null
+                      ? Image.network(mainVariant!.imageUrl!, fit: BoxFit.cover)
+                      : const Icon(Icons.image, size: 100, color: Colors.grey),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        product.nameTemplate,
+                        style: Theme.of(context).textTheme.headlineSmall,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '\$${mainVariant?.rentalPrice.toStringAsFixed(2) ?? "0.00"}',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              color: Theme.of(context).primaryColor,
+                            ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        product.descriptionTemplate ?? 'Sin descripción',
+                        style: Theme.of(context).textTheme.bodyLarge,
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            // TODO: Add to cart
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Añadir al carrito - Próximamente')),
+                            );
+                          },
+                          child: const Text('Añadir al Carrito'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
