@@ -1,641 +1,206 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:frontend/core/app_theme.dart';
+import '../../auth/presentation/auth_provider.dart';
+import '../../home/presentation/screens/welcome_onboarding_screen.dart';
+import '../profile_provider.dart';
 
-/// My Party Profile Screen matching HTML design
-/// Features user profile, upcoming events, saved inspiration, and order history
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final authProvider = context.read<AuthProvider>();
+      if (authProvider.user != null) {
+        context.read<ProfileProvider>().fetchProfile(authProvider.user!.id);
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.backgroundLight,
-      body: CustomScrollView(
-        slivers: [
-          // Top App Bar
-          _buildAppBar(),
-          
-          // Profile Header
-          SliverToBoxAdapter(child: _buildProfileHeader()),
-          
-          // My Events Section
-          SliverToBoxAdapter(child: _buildMyEventsSection()),
-          
-          // Saved Inspiration
-          SliverToBoxAdapter(child: _buildSavedInspiration()),
-          
-          // Order History
-          SliverToBoxAdapter(child: _buildOrderHistory()),
-          
-          // Bottom spacing
-          const SliverToBoxAdapter(child: SizedBox(height: 100)),
-        ],
+      appBar: AppBar(
+        title: const Text('Mi Perfil'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
       ),
-      bottomNavigationBar: _buildBottomNav(),
-    );
-  }
+      body: Consumer<ProfileProvider>(
+        builder: (context, provider, child) {
+          if (provider.isLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-  Widget _buildAppBar() {
-    return SliverAppBar(
-      floating: true,
-      snap: true,
-      backgroundColor: Colors.white.withOpacity(0.9),
-      elevation: 0,
-      leading: IconButton(
-        icon: const Icon(Icons.settings, size: 24),
-        onPressed: () {},
-      ),
-      title: ShaderMask(
-        shaderCallback: (bounds) => const LinearGradient(
-          colors: [AppColors.purple, AppColors.pink, AppColors.teal],
-        ).createShader(bounds),
-        child: const Text(
-          'Rosa Fiesta',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w900,
-            color: Colors.white,
-            letterSpacing: -0.3,
-          ),
-        ),
-      ),
-      centerTitle: true,
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.notifications, color: AppColors.purple),
-          onPressed: () {},
-        ),
-      ],
-    );
-  }
-
-  Widget _buildProfileHeader() {
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        children: [
-          // Profile picture with lime border
-          Container(
-            width: 128,
-            height: 128,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: AppColors.lime, width: 6),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.white,
-                  spreadRadius: 2,
-                ),
-              ],
-            ),
-            child: Stack(
-              children: [
-                Container(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    image: const DecorationImage(
-                      image: NetworkImage('https://i.pravatar.cc/300'),
-                      fit: BoxFit.cover,
-                    ),
+          if (provider.error != null) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text('Error: ${provider.error}', style: const TextStyle(color: Colors.red)),
+                  ElevatedButton(
+                    onPressed: () {
+                      final authProvider = context.read<AuthProvider>();
+                      if (authProvider.user != null) {
+                        provider.fetchProfile(authProvider.user!.id);
+                      }
+                    },
+                    child: const Text('Reintentar'),
                   ),
-                ),
-                Positioned(
-                  bottom: 4,
-                  right: 4,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: AppColors.teal,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2),
-                    ),
-                    child: const Icon(
-                      Icons.star,
-                      color: Colors.white,
-                      size: 14,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          
-          const SizedBox(height: 16),
-          
-          // Name
-          const Text(
-            'Isabella Rose',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w900,
-              color: AppColors.purple,
-              letterSpacing: -0.5,
-            ),
-          ),
-          
-          const SizedBox(height: 8),
-          
-          // VIP Badge
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [AppColors.pink, AppColors.purple],
+                ],
               ),
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.pink.withOpacity(0.3),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: const Text(
-              'VIP MEMBER',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.5,
-              ),
-            ),
-          ),
-          
-          const SizedBox(height: 12),
-          
-          // Member since
-          Text(
-            'Creating magical moments since 2022',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey.shade500,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+            );
+          }
 
-  Widget _buildMyEventsSection() {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          // Section header
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'My Events',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.purple,
-                    letterSpacing: -0.3,
-                  ),
-                ),
-                Text(
-                  'View all',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.teal,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          
-          const SizedBox(height: 8),
-          
-          // Event card
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(32),
-              border: Border.all(color: Colors.grey.shade100),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
-                  blurRadius: 20,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
+          final user = provider.userProfile;
+          if (user == null) {
+            return const Center(child: Text('No se pudo cargar el perfil'));
+          }
+
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
             child: Column(
               children: [
-                // Event image
+                // Avatar
                 Container(
-                  height: 160,
+                  width: 120,
+                  height: 120,
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
-                    image: const DecorationImage(
-                      image: NetworkImage('https://picsum.photos/600/400'),
-                      fit: BoxFit.cover,
-                    ),
+                    color: AppColors.teal.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppColors.teal, width: 2),
+                    image: user.avatar != null && user.avatar!.isNotEmpty
+                        ? DecorationImage(
+                            image: NetworkImage(user.avatar!), fit: BoxFit.cover)
+                        : null,
                   ),
+                  child: user.avatar == null || user.avatar!.isEmpty
+                      ? const Icon(Icons.person, size: 64, color: AppColors.teal)
+                      : null,
                 ),
+                const SizedBox(height: 24),
                 
-                const SizedBox(height: 16),
-                
-                // Event details
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'UPCOMING CELEBRATION',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w900,
-                              color: AppColors.teal,
-                              letterSpacing: 1.5,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          const Text(
-                            'Lila\'s 1st Tea Party',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w900,
-                              color: AppColors.purple,
-                              letterSpacing: -0.3,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.location_on,
-                                size: 14,
-                                color: Colors.grey.shade400,
-                              ),
-                              const SizedBox(width: 4),
-                              Expanded(
-                                child: Text(
-                                  'Secret Garden Venue, Miami',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.grey.shade500,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppColors.yellow.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: const Icon(
-                        Icons.celebration,
-                        color: AppColors.yellow,
-                        size: 24,
-                      ),
-                    ),
-                  ],
-                ),
-                
-                const SizedBox(height: 16),
-                
-                // Countdown timer
-                Container(
-                  padding: const EdgeInsets.only(top: 16),
-                  decoration: BoxDecoration(
-                    border: Border(
-                      top: BorderSide(color: Colors.grey.shade50),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      _buildCountdownItem('03', 'DAYS', AppColors.lime),
-                      const SizedBox(width: 12),
-                      _buildCountdownItem('14', 'HOURS', AppColors.pink),
-                      const SizedBox(width: 12),
-                      _buildCountdownItem('22', 'MINS', AppColors.teal),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCountdownItem(String value, String label, Color color) {
-    return Expanded(
-      child: Column(
-        children: [
-          Container(
-            height: 48,
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: color.withOpacity(0.2)),
-            ),
-            child: Center(
-              child: Text(
-                value,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
-                  color: color,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey.shade400,
-              letterSpacing: 1.5,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSavedInspiration() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 32, 20, 16),
-          child: Row(
-            children: [
-              const Icon(Icons.star, color: AppColors.yellow, size: 24),
-              const SizedBox(width: 8),
-              const Text(
-                'Saved Inspiration',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.purple,
-                  letterSpacing: -0.3,
-                ),
-              ),
-            ],
-          ),
-        ),
-        
-        SizedBox(
-          height: 200,
-          child: ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            scrollDirection: Axis.horizontal,
-            itemCount: 3,
-            itemBuilder: (context, index) {
-              final titles = ['Pastel Dreams', 'Neon Nights', 'Boho Garden'];
-              final counts = ['12 ideas', '8 ideas', '24 ideas'];
-              
-              return Container(
-                width: 160,
-                margin: const EdgeInsets.only(right: 16, bottom: 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      height: 144,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(32),
-                        border: Border.all(color: Colors.white, width: 2),
-                        image: const DecorationImage(
-                          image: NetworkImage('https://picsum.photos/300/400'),
-                          fit: BoxFit.cover,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 8,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      titles[index],
-                      style: const TextStyle(
-                        fontSize: 14,
+                // Name
+                Text(
+                  user.fullName,
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: AppColors.purple,
                       ),
-                    ),
-                    Text(
-                      counts[index],
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade500,
-                      ),
-                    ),
-                  ],
                 ),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildOrderHistory() {
-    return Padding(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Padding(
-            padding: EdgeInsets.only(left: 4, bottom: 16),
-            child: Text(
-              'Order History',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w900,
-                color: AppColors.purple,
-                letterSpacing: -0.3,
-              ),
-            ),
-          ),
-          
-          _buildOrderItem(
-            'Balloon Garland Kit',
-            '#RF-2941 • Oct 12',
-            45.00,
-            'Delivered',
-            AppColors.teal,
-          ),
-          
-          const SizedBox(height: 16),
-          
-          _buildOrderItem(
-            'Floral Centerpieces (x4)',
-            '#RF-2810 • Sep 30',
-            120.00,
-            'Designing',
-            AppColors.pink,
-            isAnimated: true,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildOrderItem(
-    String title,
-    String subtitle,
-    double price,
-    String status,
-    Color statusColor, {
-    bool isAnimated = false,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(32),
-        border: Border.all(color: Colors.grey.shade100),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              image: const DecorationImage(
-                image: NetworkImage('https://picsum.photos/200/200'),
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
-          
-          const SizedBox(width: 16),
-          
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+                const SizedBox(height: 8),
                 Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.purple,
+                  user.email,
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        color: Colors.grey[600],
+                      ),
+                ),
+                
+                const SizedBox(height: 48),
+
+                // Details Card
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                       _buildInfoRow(Icons.phone, 'Phone', user.phoneNumber),
+                       const Divider(height: 32),
+                       _buildInfoRow(Icons.cake, 'Birthday', user.bornDate ?? 'Not set'),
+                       const Divider(height: 32),
+                       _buildInfoRow(Icons.badge, 'Username', user.userName),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey.shade500,
+
+                const SizedBox(height: 48),
+
+                // Logout Button
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      context.read<AuthProvider>().logout();
+                      context.read<ProfileProvider>().clearProfile();
+                      
+                      Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(
+                          builder: (_) => const WelcomeOnboardingScreen(),
+                        ),
+                        (route) => false,
+                      );
+                    },
+                    icon: const Icon(Icons.logout, color: Colors.red),
+                    label: const Text(
+                      'Cerrar Sesión',
+                      style: TextStyle(color: Colors.red, fontSize: 16),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Colors.red),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: statusColor,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      status.toUpperCase(),
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: statusColor,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ],
                 ),
               ],
             ),
-          ),
-          
-          Text(
-            '\$${price.toStringAsFixed(2)}',
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: AppColors.purple,
-            ),
-          ),
-        ],
+          );
+        },
       ),
     );
   }
 
-  Widget _buildBottomNav() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.95),
-        border: Border(top: BorderSide(color: Colors.grey.shade100)),
-      ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _buildNavItem(Icons.home, 'Home', false),
-              _buildNavItem(Icons.shopping_bag, 'Shop', false),
-              _buildNavItem(Icons.calendar_today, 'Events', false),
-              _buildNavItem(Icons.person, 'Profile', true),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem(IconData icon, String label, bool isActive) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
+  Widget _buildInfoRow(IconData icon, String label, String value) {
+    return Row(
       children: [
-        Icon(
-          icon,
-          color: isActive ? AppColors.pink : Colors.grey.shade400,
-          size: 24,
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 10,
-            fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
-            color: isActive ? AppColors.pink : Colors.grey.shade400,
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: AppColors.lime.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(12),
           ),
+          child: Icon(icon, color: AppColors.teal, size: 20),
+        ),
+        const SizedBox(width: 16),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                color: Colors.grey[500],
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              value.isEmpty ? 'Not set' : value,
+              style: const TextStyle(
+                color: AppColors.purple,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
         ),
       ],
     );

@@ -6,6 +6,7 @@ import '../../categories/presentation/categories_provider.dart';
 import '../../categories/data/category_models.dart';
 import '../../shop/presentation/screens/cart_screen.dart';
 import '../../../products/presentation/screens/products_list_screen.dart';
+import '../../../profile/presentation/screens/profile_screen.dart';
 
 /// Rosa Fiesta Home Screen matching HTML design
 /// Features search, promotional banner, categories grid, and trending section
@@ -156,7 +157,12 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           child: IconButton(
             icon: const Icon(Icons.account_circle, color: AppColors.teal),
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ProfileScreen()),
+              );
+            },
           ),
         ),
       ],

@@ -10,6 +10,7 @@ import 'core/api_client.dart';
 import 'features/products/presentation/products_provider.dart';
 import 'features/shop/presentation/cart_provider.dart';
 import 'features/categories/presentation/categories_provider.dart';
+import 'features/profile/presentation/profile_provider.dart';
 
 Future<void> main() async {
   await dotenv.load(fileName: ".env");
@@ -22,6 +23,7 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => ProductsProvider()),
         ChangeNotifierProvider(create: (_) => CartProvider()),
         ChangeNotifierProvider(create: (_) => CategoriesProvider()),
+        ChangeNotifierProvider(create: (_) => ProfileProvider()),
       ],
       child: const RosaFiestaApp(),
     ),
