@@ -1,0 +1,20 @@
+{
+  "@@locale": "es",
+  "appTitle": "RosaFiesta",
+  "welcomeHeadline": "RosaFiesta",
+  "welcomeSubheadline": "Decoración y Eventos con IA",
+  "beginButton": "COMENZAR",
+  "loginButton": "INGRESAR",
+  "createAccountButton": "Crear cuenta",
+  "loginHeadline": "Bienvenido de nuevo",
+  "emailLabel": "Correo electrónico",
+  "passwordLabel": "Contraseña",
+  "emailError": "Email inválido",
+  "passwordError": "Mínimo 3 caracteres",
+  "registerHeadline": "Crea tu cuenta",
+  "usernameLabel": "Nombre de usuario",
+  "requiredField": "Requerido",
+  "registerButton": "REGISTRARSE",
+  "registrationSuccess": "Registro Exitoso. Por favor activa tu cuenta.",
+  "loginSuccess": "Login Exitoso"
+}

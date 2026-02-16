@@ -105,6 +105,11 @@ func (app *Application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	// Log activation URL in development mode
+	if !isProdEnv {
+		app.Logger.Infow("🔑 DEVELOPMENT MODE - Activation URL", "url", activationURL, "user", user.UserName, "email", user.Email)
+	}
+
 	app.Logger.Infow("Email sent", "status code %v", statusCode)
 
 	if err := app.jsonResponse(w, http.StatusCreated, userWithToken); err != nil {
