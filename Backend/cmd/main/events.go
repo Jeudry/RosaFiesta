@@ -259,3 +259,172 @@ func (app *Application) deleteEventHandler(w http.ResponseWriter, r *http.Reques
 
 	w.WriteHeader(http.StatusNoContent)
 }
+
+// addEventItemHandler godoc
+//
+//	@Summary		Add item to event
+//	@Description	Add item to event
+//	@Tags			events
+//	@Accept			json
+//	@Produce		json
+//	@Param			id		path		string					true	"Event ID"
+//	@Param			payload	body		object					true	"Item payload"
+//	@Success		201		{object}	models.EventItem
+//	@Failure		400		{object}	error
+//	@Failure		404		{object}	error
+//	@Failure		500		{object}	error
+//	@Router			/events/{id}/items [post]
+func (app *Application) addEventItemHandler(w http.ResponseWriter, r *http.Request) {
+	eventIDParam := chi.URLParam(r, "id")
+	eventID, err := uuid.Parse(eventIDParam)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	var payload struct {
+		ArticleID uuid.UUID `json:"article_id"`
+		Quantity  int       `json:"quantity"`
+	}
+	if err := readJson(w, r, &payload); err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	// Verify ownership
+	event, err := app.Store.Events.GetByID(r.Context(), eventID)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			app.notFoundResponse(w, r, err)
+		} else {
+			app.internalServerError(w, r, err)
+		}
+		return
+	}
+	user := GetUserFromCtx(r)
+	if event.UserID != user.ID {
+		app.forbidden(w, r, errors.New("you do not have permission to modify this event"))
+		return
+	}
+
+	item := &models.EventItem{
+		EventID:   eventID,
+		ArticleID: payload.ArticleID,
+		Quantity:  payload.Quantity,
+	}
+	if item.Quantity <= 0 {
+		item.Quantity = 1
+	}
+
+	if err := app.Store.Events.AddItem(r.Context(), item); err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+
+	if err := app.jsonResponse(w, http.StatusCreated, item); err != nil {
+		app.internalServerError(w, r, err)
+	}
+}
+
+// removeEventItemHandler godoc
+//
+//	@Summary		Remove item from event
+//	@Description	Remove item from event
+//	@Tags			events
+//	@Accept			json
+//	@Produce		json
+//	@Param			id		path		string	true	"Event ID"
+//	@Param			itemId	path		string	true	"Item ID"
+//	@Success		204		{object}	nil
+//	@Failure		404		{object}	error
+//	@Failure		500		{object}	error
+//	@Router			/events/{id}/items/{itemId} [delete]
+func (app *Application) removeEventItemHandler(w http.ResponseWriter, r *http.Request) {
+	eventIDParam := chi.URLParam(r, "id")
+	eventID, err := uuid.Parse(eventIDParam)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	itemIDParam := chi.URLParam(r, "itemId")
+	itemID, err := uuid.Parse(itemIDParam)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	// Verify ownership
+	event, err := app.Store.Events.GetByID(r.Context(), eventID)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			app.notFoundResponse(w, r, err)
+		} else {
+			app.internalServerError(w, r, err)
+		}
+		return
+	}
+	user := GetUserFromCtx(r)
+	if event.UserID != user.ID {
+		app.forbidden(w, r, errors.New("you do not have permission to modify this event"))
+		return
+	}
+
+	if err := app.Store.Events.RemoveItem(r.Context(), eventID, itemID); err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			app.notFoundResponse(w, r, err)
+		} else {
+			app.internalServerError(w, r, err)
+		}
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// getEventItemsHandler godoc
+//
+//	@Summary		Get items for an event
+//	@Description	Get items for an event
+//	@Tags			events
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string	true	"Event ID"
+//	@Success		200	{array}		models.EventItem
+//	@Failure		404	{object}	error
+//	@Failure		500	{object}	error
+//	@Router			/events/{id}/items [get]
+func (app *Application) getEventItemsHandler(w http.ResponseWriter, r *http.Request) {
+	eventIDParam := chi.URLParam(r, "id")
+	eventID, err := uuid.Parse(eventIDParam)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	// Verify ownership
+	event, err := app.Store.Events.GetByID(r.Context(), eventID)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			app.notFoundResponse(w, r, err)
+		} else {
+			app.internalServerError(w, r, err)
+		}
+		return
+	}
+	user := GetUserFromCtx(r)
+	if event.UserID != user.ID {
+		app.forbidden(w, r, errors.New("you do not have permission to view this event"))
+		return
+	}
+
+	items, err := app.Store.Events.GetItems(r.Context(), eventID)
+	if err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+
+	if err := app.jsonResponse(w, http.StatusOK, items); err != nil {
+		app.internalServerError(w, r, err)
+	}
+}

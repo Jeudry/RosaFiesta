@@ -68,6 +68,52 @@ class EventsProvider extends ChangeNotifier {
       }
   }
 
+
+  List<EventItem> _currentEventItems = [];
+  List<EventItem> get currentEventItems => _currentEventItems;
+
+  Future<void> fetchEventItems(String eventId) async {
+    _setLoading(true);
+    _error = null;
+    try {
+      _currentEventItems = await _repository.getItems(eventId);
+    } catch (e) {
+      _error = ErrorTranslator.translate(e.toString());
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<bool> addItemToEvent(String eventId, String articleId, int quantity) async {
+    _setLoading(true);
+    _error = null;
+    try {
+      await _repository.addItem(eventId, articleId, quantity);
+      await fetchEventItems(eventId); // Refresh items
+      return true;
+    } catch (e) {
+      _error = ErrorTranslator.translate(e.toString());
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<bool> removeItemFromEvent(String eventId, String itemId) async {
+    _setLoading(true);
+    _error = null;
+    try {
+      await _repository.removeItem(eventId, itemId);
+      await fetchEventItems(eventId); // Refresh items
+      return true;
+    } catch (e) {
+      _error = ErrorTranslator.translate(e.toString());
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
   void _setLoading(bool value) {
     _isLoading = value;
     notifyListeners();

@@ -159,3 +159,93 @@ func (s *EventStore) Delete(ctx context.Context, id uuid.UUID) error {
 
 	return nil
 }
+
+func (s *EventStore) AddItem(ctx context.Context, item *models.EventItem) error {
+	query := `
+		INSERT INTO event_items (event_id, article_id, quantity)
+		VALUES ($1, $2, $3)
+		RETURNING id, created_at, updated_at
+	`
+
+	err := s.db.QueryRowContext(
+		ctx,
+		query,
+		item.EventID,
+		item.ArticleID,
+		item.Quantity,
+	).Scan(
+		&item.ID,
+		&item.CreatedAt,
+		&item.UpdatedAt,
+	)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *EventStore) RemoveItem(ctx context.Context, eventID, startID uuid.UUID) error {
+	query := `DELETE FROM event_items WHERE id = $1 AND event_id = $2`
+
+	res, err := s.db.ExecContext(ctx, query, startID, eventID)
+	if err != nil {
+		return err
+	}
+
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rows == 0 {
+		return ErrNotFound
+	}
+
+	return nil
+}
+
+func (s *EventStore) GetItems(ctx context.Context, eventID uuid.UUID) ([]models.EventItem, error) {
+	query := `
+		SELECT ei.id, ei.event_id, ei.article_id, ei.quantity, ei.created_at, ei.updated_at,
+		       a.id, a.name_template, a.description_template, a.category_id, a.is_active, a.type,
+               (SELECT v.rental_price FROM article_variants v WHERE v.article_id = a.id LIMIT 1) as price
+		FROM event_items ei
+		JOIN articles a ON ei.article_id = a.id
+		WHERE ei.event_id = $1
+		ORDER BY ei.created_at DESC
+	`
+
+	rows, err := s.db.QueryContext(ctx, query, eventID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var items []models.EventItem
+	for rows.Next() {
+		var item models.EventItem
+		item.Article = &models.Article{}
+		err := rows.Scan(
+			&item.ID,
+			&item.EventID,
+			&item.ArticleID,
+			&item.Quantity,
+			&item.CreatedAt,
+			&item.UpdatedAt,
+			&item.Article.ID,
+			&item.Article.NameTemplate,
+			&item.Article.DescriptionTemplate,
+			&item.Article.CategoryID,
+			&item.Article.IsActive,
+			&item.Article.Type,
+			&item.Price,
+		)
+		if err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+
+	return items, nil
+}

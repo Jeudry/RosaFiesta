@@ -74,7 +74,11 @@ type Storage struct {
 		GetByID(context.Context, uuid.UUID) (*models.Event, error)
 		GetByUserID(context.Context, uuid.UUID) ([]models.Event, error)
 		Update(context.Context, *models.Event) error
+
 		Delete(context.Context, uuid.UUID) error
+		AddItem(context.Context, *models.EventItem) error
+		RemoveItem(context.Context, uuid.UUID, uuid.UUID) error
+		GetItems(context.Context, uuid.UUID) ([]models.EventItem, error)
 	}
 }
 

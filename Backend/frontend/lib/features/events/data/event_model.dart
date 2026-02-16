@@ -45,3 +45,64 @@ class Event {
     };
   }
 }
+
+class ArticleLite {
+  final String id;
+  final String nameTemplate;
+  final String? descriptionTemplate;
+  final String? categoryId;
+  final bool isActive;
+  final String type;
+
+  ArticleLite({
+    required this.id,
+    required this.nameTemplate,
+    this.descriptionTemplate,
+    this.categoryId,
+    required this.isActive,
+    required this.type,
+  });
+
+  factory ArticleLite.fromJson(Map<String, dynamic> json) {
+    return ArticleLite(
+      id: json['id'],
+      nameTemplate: json['name_template'],
+      descriptionTemplate: json['description_template'],
+      categoryId: json['category_id'],
+      isActive: json['is_active'] ?? false,
+      type: json['type'] ?? '',
+    );
+  }
+}
+
+class EventItem {
+  final String id;
+  final String eventId;
+  final String articleId;
+  final int quantity;
+  final DateTime createdAt;
+  final ArticleLite? article;
+  final double? price;
+
+  EventItem({
+    required this.id,
+    required this.eventId,
+    required this.articleId,
+    required this.quantity,
+    required this.createdAt,
+    this.article,
+    this.price,
+  });
+
+  factory EventItem.fromJson(Map<String, dynamic> json) {
+    return EventItem(
+      id: json['id'],
+      eventId: json['event_id'],
+      articleId: json['article_id'],
+      quantity: json['quantity'],
+      createdAt: DateTime.parse(json['created_at']),
+      article: json['article'] != null ? ArticleLite.fromJson(json['article']) : null,
+      price: json['price'] != null ? (json['price'] as num).toDouble() : null,
+    );
+  }
+}

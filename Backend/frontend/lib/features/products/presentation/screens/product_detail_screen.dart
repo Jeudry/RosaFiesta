@@ -102,7 +102,19 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               }
                             }
                           },
+
                           child: const Text('Añadir al Carrito'),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton(
+                          onPressed: () {
+                            if (mainVariant == null) return;
+                            _showAddToEventDialog(context, product.id);
+                          },
+                          child: const Text('Agregar a Evento'),
                         ),
                       ),
                     ],
@@ -113,6 +125,56 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           );
         },
       ),
+    );
+  }
+
+  void _showAddToEventDialog(BuildContext context, String articleId) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Agregar a Evento'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: Consumer<EventsProvider>(
+              builder: (context, eventsProvider, child) {
+                if (eventsProvider.isLoading) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (eventsProvider.events.isEmpty) {
+                  return const Text('No tienes eventos creados.');
+                }
+                return ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: eventsProvider.events.length,
+                  itemBuilder: (context, index) {
+                    final event = eventsProvider.events[index];
+                    return ListTile(
+                      title: Text(event.name),
+                      subtitle: Text(event.date.toString().split(' ')[0]),
+                      onTap: () {
+                        // Add to event
+                        eventsProvider.addItemToEvent(event.id, articleId, 1).then((success) {
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(success ? 'Producto agregado a ${event.name}' : 'Error al agregar')),
+                          );
+                        });
+                      },
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cerrar'),
+            ),
+          ],
+        );
+      },
     );
   }
 }
