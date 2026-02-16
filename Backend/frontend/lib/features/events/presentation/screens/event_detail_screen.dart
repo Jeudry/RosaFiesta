@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../data/event_model.dart';
 import '../../presentation/events_provider.dart';
 import '../../../guests/presentation/screens/guest_list_screen.dart';
 import '../../../tasks/presentation/screens/event_task_list_screen.dart';
 import 'budget_analysis_screen.dart';
+import '../../presentation/timeline_provider.dart';
+import '../../../guests/presentation/guests_provider.dart';
+import '../../../tasks/presentation/tasks_provider.dart';
+import '../../../core/services/pdf_export_service.dart';
 
 
 class EventDetailScreen extends StatefulWidget {
@@ -27,7 +32,16 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.event.name)),
+      appBar: AppBar(
+        title: Text(widget.event.name),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.picture_as_pdf),
+            onPressed: () => _exportToPdf(context),
+            tooltip: 'Exportar a PDF',
+          ),
+        ],
+      ),
       body: Consumer<EventsProvider>(
         builder: (context, provider, child) {
           double realBudget = 0;
@@ -61,6 +75,15 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                     );
                   },
                   child: _buildDetailRow(Icons.check_circle_outline, 'Tareas', 'Ver checklist', color: Colors.blue),
+                ),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => EventTimelineScreen(eventId: widget.event.id)),
+                    );
+                  },
+                  child: _buildDetailRow(Icons.timer_outlined, 'Cronograma', 'Ver planificación por horas', color: Colors.blue),
                 ),
                 
                 // Budget Comparison
@@ -121,6 +144,48 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
         },
       ),
     );
+  }
+
+  Future<void> _exportToPdf(BuildContext context) async {
+    final eventsProvider = context.read<EventsProvider>();
+    final guestsProvider = context.read<GuestsProvider>();
+    final tasksProvider = context.read<EventTasksProvider>();
+    final timelineProvider = context.read<TimelineProvider>();
+
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      // Ensure data is loaded
+      await Future.wait([
+        guestsProvider.fetchGuests(widget.event.id),
+        tasksProvider.fetchTasks(widget.event.id),
+        timelineProvider.fetchTimeline(widget.event.id),
+      ]);
+
+      if (context.mounted) {
+        Navigator.pop(context); // Close loading dialog
+        
+        await PdfExportService.generateEventReport(
+          event: widget.event,
+          products: eventsProvider.currentEventItems,
+          guests: guestsProvider.guests,
+          tasks: tasksProvider.tasks,
+          timeline: timelineProvider.items,
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al exportar: $e')),
+        );
+      }
+    }
   }
 
   Widget _buildDetailRow(IconData icon, String label, String value, {Color? color}) {
