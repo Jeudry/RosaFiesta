@@ -4,6 +4,7 @@ import '../../data/event_model.dart';
 import '../events_provider.dart';
 import 'create_event_screen.dart';
 import 'event_detail_screen.dart';
+import 'event_calendar_screen.dart';
 
 class EventsListScreen extends StatefulWidget {
   const EventsListScreen({super.key});
@@ -26,6 +27,17 @@ class _EventsListScreenState extends State<EventsListScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Mis Eventos'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.calendar_month),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const EventCalendarScreen()),
+              );
+            },
+          ),
+        ],
       ),
       body: Consumer<EventsProvider>(
         builder: (context, provider, child) {
