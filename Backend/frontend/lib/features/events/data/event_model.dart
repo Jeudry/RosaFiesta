@@ -6,6 +6,8 @@ class Event {
   final String location;
   final int guestCount;
   final double budget;
+  final double additionalCosts;
+  final String? adminNotes;
   final String status;
 
   Event({
@@ -16,6 +18,8 @@ class Event {
     required this.location,
     required this.guestCount,
     required this.budget,
+    this.additionalCosts = 0.0,
+    this.adminNotes,
     required this.status,
   });
 
@@ -28,6 +32,8 @@ class Event {
       location: json['location'],
       guestCount: json['guest_count'],
       budget: (json['budget'] as num).toDouble(),
+      additionalCosts: (json['additional_costs'] as num?)?.toDouble() ?? 0.0,
+      adminNotes: json['admin_notes'],
       status: json['status'],
     );
   }
@@ -41,6 +47,8 @@ class Event {
       'location': location,
       'guest_count': guestCount,
       'budget': budget,
+      'additional_costs': additionalCosts,
+      'admin_notes': adminNotes,
       'status': status,
     };
   }

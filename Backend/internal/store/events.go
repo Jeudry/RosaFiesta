@@ -16,8 +16,8 @@ type EventStore struct {
 
 func (s *EventStore) Create(ctx context.Context, event *models.Event) error {
 	query := `
-		INSERT INTO events (user_id, name, date, location, guest_count, budget, status)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		INSERT INTO events (user_id, name, date, location, guest_count, budget, status, additional_costs, admin_notes)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		RETURNING id, created_at, updated_at
 	`
 
@@ -31,6 +31,8 @@ func (s *EventStore) Create(ctx context.Context, event *models.Event) error {
 		event.GuestCount,
 		event.Budget,
 		event.Status,
+		event.AdditionalCosts,
+		event.AdminNotes,
 	).Scan(
 		&event.ID,
 		&event.CreatedAt,
@@ -45,7 +47,7 @@ func (s *EventStore) Create(ctx context.Context, event *models.Event) error {
 
 func (s *EventStore) GetByID(ctx context.Context, id uuid.UUID) (*models.Event, error) {
 	query := `
-		SELECT id, user_id, name, date, location, guest_count, budget, status, created_at, updated_at
+		SELECT id, user_id, name, date, location, guest_count, budget, status, additional_costs, admin_notes, created_at, updated_at
 		FROM events
 		WHERE id = $1
 	`
@@ -60,6 +62,8 @@ func (s *EventStore) GetByID(ctx context.Context, id uuid.UUID) (*models.Event, 
 		&event.GuestCount,
 		&event.Budget,
 		&event.Status,
+		&event.AdditionalCosts,
+		&event.AdminNotes,
 		&event.CreatedAt,
 		&event.UpdatedAt,
 	)
@@ -75,7 +79,7 @@ func (s *EventStore) GetByID(ctx context.Context, id uuid.UUID) (*models.Event, 
 
 func (s *EventStore) GetByUserID(ctx context.Context, userID uuid.UUID) ([]models.Event, error) {
 	query := `
-		SELECT id, user_id, name, date, location, guest_count, budget, status, created_at, updated_at
+		SELECT id, user_id, name, date, location, guest_count, budget, status, additional_costs, admin_notes, created_at, updated_at
 		FROM events
 		WHERE user_id = $1
 		ORDER BY date ASC
@@ -99,6 +103,8 @@ func (s *EventStore) GetByUserID(ctx context.Context, userID uuid.UUID) ([]model
 			&event.GuestCount,
 			&event.Budget,
 			&event.Status,
+			&event.AdditionalCosts,
+			&event.AdminNotes,
 			&event.CreatedAt,
 			&event.UpdatedAt,
 		)
@@ -114,8 +120,9 @@ func (s *EventStore) GetByUserID(ctx context.Context, userID uuid.UUID) ([]model
 func (s *EventStore) Update(ctx context.Context, event *models.Event) error {
 	query := `
 		UPDATE events
-		SET name = $1, date = $2, location = $3, guest_count = $4, budget = $5, status = $6, updated_at = NOW()
-		WHERE id = $7
+		SET name = $1, date = $2, location = $3, guest_count = $4, budget = $5, status = $6, 
+		    additional_costs = $7, admin_notes = $8, updated_at = NOW()
+		WHERE id = $9
 		RETURNING updated_at
 	`
 
@@ -128,6 +135,8 @@ func (s *EventStore) Update(ctx context.Context, event *models.Event) error {
 		event.GuestCount,
 		event.Budget,
 		event.Status,
+		event.AdditionalCosts,
+		event.AdminNotes,
 		event.ID,
 	).Scan(&event.UpdatedAt)
 	if err != nil {

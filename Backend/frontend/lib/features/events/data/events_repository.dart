@@ -29,4 +29,20 @@ class EventsRepository {
   Future<void> deleteEvent(String id) async {
     await ApiClient.delete('/events/$id');
   }
+
+  Future<Event> adjustQuote(String id, double additionalCosts, String adminNotes) async {
+    final response = await ApiClient.patch('/events/$id/adjust', {
+      'additional_costs': additionalCosts,
+      'admin_notes': adminNotes,
+    });
+    return Event.fromJson(response);
+  }
+
+  Future<Event> requestQuote(String id) async {
+    return await updateEvent(id, {'status': 'requested'});
+  }
+
+  Future<Event> confirmQuote(String id) async {
+    return await updateEvent(id, {'status': 'confirmed'});
+  }
 }

@@ -96,18 +96,35 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                   },
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Row(
+                    child: Column(
                       children: [
-                        Expanded(child: _buildDetailRow(Icons.attach_money, 'Presupuesto Est.', '\$${widget.event.budget.toStringAsFixed(2)}')),
-                        const SizedBox(width: 16),
-                        Expanded(child: _buildDetailRow(Icons.money_off, 'Presupuesto Real', '\$${realBudget.toStringAsFixed(2)}', color: realBudget > widget.event.budget ? Colors.red : Colors.green)),
-                        const Icon(Icons.chevron_right, color: Colors.blue),
+                        Row(
+                          children: [
+                            Expanded(child: _buildDetailRow(Icons.attach_money, 'Presupuesto Est.', '\$${widget.event.budget.toStringAsFixed(2)}')),
+                            const SizedBox(width: 16),
+                            Expanded(child: _buildDetailRow(Icons.money_off, 'Presupuesto Real', '\$${realBudget.toStringAsFixed(2)}', color: realBudget > widget.event.budget ? Colors.red : Colors.green)),
+                            const Icon(Icons.chevron_right, color: Colors.blue),
+                          ],
+                        ),
+                        if (widget.event.additionalCosts > 0)
+                           _buildDetailRow(Icons.add_circle_outline, 'Costos Adicionales (Admin)', '\$${widget.event.additionalCosts.toStringAsFixed(2)}', color: Colors.orange),
+                        if (widget.event.additionalCosts > 0)
+                          _buildDetailRow(Icons.summarize, 'Total Final', '\$${(realBudget + widget.event.additionalCosts).toStringAsFixed(2)}', color: Colors.blue),
                       ],
                     ),
                   ),
                 ),
                 
-                _buildDetailRow(Icons.info, 'Estado', widget.event.status),
+                if (widget.event.adminNotes != null && widget.event.adminNotes!.isNotEmpty)
+                  _buildDetailRow(Icons.note, 'Notas de Admin', widget.event.adminNotes!, color: Colors.orange),
+
+                _buildDetailRow(Icons.info, 'Estado', _getStatusLabel(widget.event.status)),
+                
+                const Divider(height: 32),
+                
+                // Action Buttons based on status
+                _buildActionButtons(context, provider),
+
                 const Divider(height: 32),
                 
                 const Text(
@@ -185,6 +202,68 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
           SnackBar(content: Text('Error al exportar: $e')),
         );
       }
+    }
+  }
+
+  String _getStatusLabel(String status) {
+    switch (status) {
+      case 'planning': return 'Borrador (Planeando)';
+      case 'requested': return 'En Revisión (Cotización Solicitada)';
+      case 'adjusted': return 'Cotización Lista (Revisar Ajustes)';
+      case 'confirmed': return 'Confirmado / Reservado';
+      case 'completed': return 'Evento Finalizado';
+      default: return status;
+    }
+  }
+
+  Widget _buildActionButtons(BuildContext context, EventsProvider provider) {
+    // We would check AuthProvider here to see if user is Admin
+    // For now, let's show user buttons
+    
+    if (widget.event.status == 'planning') {
+      return SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          icon: const Icon(Icons.send),
+          label: const Text('Solicitar Cotización a Rosa Fiesta'),
+          onPressed: () => _requestQuotation(context, provider),
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.pink, foregroundColor: Colors.white),
+        ),
+      );
+    }
+    
+    if (widget.event.status == 'adjusted') {
+      return SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          icon: const Icon(Icons.check_circle),
+          label: const Text('Confirmar y Reservar'),
+          onPressed: () => _confirmQuotation(context, provider),
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
+        ),
+      );
+    }
+
+    return const SizedBox.shrink();
+  }
+
+  Future<void> _requestQuotation(BuildContext context, EventsProvider provider) async {
+    final success = await provider.requestQuote(widget.event.id);
+    if (success && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Cotización solicitada. Rosa Fiesta revisará tu evento.')),
+      );
+      Navigator.pop(context); // Go back to refresh list
+    }
+  }
+
+  Future<void> _confirmQuotation(BuildContext context, EventsProvider provider) async {
+    final success = await provider.confirmQuote(widget.event.id);
+    if (success && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('¡Evento confirmado y reservado!')),
+      );
+      Navigator.pop(context);
     }
   }
 

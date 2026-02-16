@@ -135,6 +135,51 @@ class EventsProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> requestQuote(String eventId) async {
+    _setLoading(true);
+    _error = null;
+    try {
+      await _repository.requestQuote(eventId);
+      await fetchEvents(); // Refresh list to get new status
+      return true;
+    } catch (e) {
+      _error = ErrorTranslator.translate(e.toString());
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<bool> adjustQuote(String eventId, double additionalCosts, String adminNotes) async {
+    _setLoading(true);
+    _error = null;
+    try {
+      await _repository.adjustQuote(eventId, additionalCosts, adminNotes);
+      await fetchEvents();
+      return true;
+    } catch (e) {
+      _error = ErrorTranslator.translate(e.toString());
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<bool> confirmQuote(String eventId) async {
+    _setLoading(true);
+    _error = null;
+    try {
+      await _repository.confirmQuote(eventId);
+      await fetchEvents();
+      return true;
+    } catch (e) {
+      _error = ErrorTranslator.translate(e.toString());
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
   void _setLoading(bool value) {
     _isLoading = value;
     notifyListeners();

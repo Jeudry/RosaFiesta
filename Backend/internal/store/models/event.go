@@ -7,16 +7,18 @@ import (
 )
 
 type Event struct {
-	ID         uuid.UUID `json:"id"`
-	UserID     uuid.UUID `json:"user_id"`
-	Name       string    `json:"name"`
-	Date       time.Time `json:"date"`
-	Location   string    `json:"location"`
-	GuestCount int       `json:"guest_count"`
-	Budget     float64   `json:"budget"`
-	Status     string    `json:"status"` // planning, confirmed, completed
-	CreatedAt  string    `json:"created_at"`
-	UpdatedAt  string    `json:"updated_at"`
+	ID              uuid.UUID `json:"id"`
+	UserID          uuid.UUID `json:"user_id"`
+	Name            string    `json:"name"`
+	Date            time.Time `json:"date"`
+	Location        string    `json:"location"`
+	GuestCount      int       `json:"guest_count"`
+	Budget          float64   `json:"budget"`
+	AdditionalCosts float64   `json:"additional_costs"`
+	AdminNotes      string    `json:"admin_notes"`
+	Status          string    `json:"status"` // planning, requested, adjusted, confirmed, completed
+	CreatedAt       string    `json:"created_at"`
+	UpdatedAt       string    `json:"updated_at"`
 }
 
 type CreateEventPayload struct {
@@ -28,10 +30,12 @@ type CreateEventPayload struct {
 }
 
 type UpdateEventPayload struct {
-	Name       *string  `json:"name" validate:"omitempty,max=255"`
-	Date       *string  `json:"date" validate:"omitempty"`
-	Location   *string  `json:"location" validate:"omitempty,max=255"`
-	GuestCount *int     `json:"guest_count" validate:"omitempty,min=0"`
-	Budget     *float64 `json:"budget" validate:"omitempty,min=0"`
-	Status     *string  `json:"status" validate:"omitempty,oneof=planning confirmed completed"`
+	Name            *string  `json:"name" validate:"omitempty,max=255"`
+	Date            *string  `json:"date" validate:"omitempty"`
+	Location        *string  `json:"location" validate:"omitempty,max=255"`
+	GuestCount      *int     `json:"guest_count" validate:"omitempty,min=0"`
+	Budget          *float64 `json:"budget" validate:"omitempty,min=0"`
+	AdditionalCosts *float64 `json:"additional_costs" validate:"omitempty,min=0"`
+	AdminNotes      *string  `json:"admin_notes" validate:"omitempty"`
+	Status          *string  `json:"status" validate:"omitempty,oneof=planning requested adjusted confirmed completed"`
 }

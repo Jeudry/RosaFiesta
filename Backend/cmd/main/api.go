@@ -157,6 +157,11 @@ func (app *Application) Mount() http.Handler {
 				r.Post("/", app.createTimelineItemHandler)
 				r.Get("/", app.getTimelineItemsHandler)
 			})
+
+			r.Group(func(r chi.Router) {
+				r.Use(app.RoleMiddleware("admin"))
+				r.Patch("/{id}/adjust", app.adjustQuoteHandler)
+			})
 		})
 
 		r.Route("/timeline/{itemId}", func(r chi.Router) {

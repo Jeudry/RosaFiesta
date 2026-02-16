@@ -428,3 +428,64 @@ func (app *Application) getEventItemsHandler(w http.ResponseWriter, r *http.Requ
 		app.internalServerError(w, r, err)
 	}
 }
+
+// adjustQuoteHandler godoc
+//
+//	@Summary		Adjust event quote (Admin only)
+//	@Description	Adjust event quote with additional costs and notes, and set status to 'adjusted'
+//	@Tags			admin, events
+//	@Accept			json
+//	@Produce		json
+//	@Param			id		path		string	true	"Event ID"
+//	@Param			payload	body		object	true	"Adjustment payload"
+//	@Success		200		{object}	models.Event
+//	@Failure		400		{object}	error
+//	@Failure		404		{object}	error
+//	@Failure		500		{object}	error
+//	@Router			/admin/events/{id}/adjust [patch]
+func (app *Application) adjustQuoteHandler(w http.ResponseWriter, r *http.Request) {
+	idParam := chi.URLParam(r, "id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	var payload struct {
+		AdditionalCosts float64 `json:"additional_costs" validate:"min=0"`
+		AdminNotes      string  `json:"admin_notes"`
+	}
+	if err := readJson(w, r, &payload); err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	if err := Validate.Struct(payload); err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	event, err := app.Store.Events.GetByID(r.Context(), id)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			app.notFoundResponse(w, r, err)
+		} else {
+			app.internalServerError(w, r, err)
+		}
+		return
+	}
+
+	// Update quotation fields
+	event.AdditionalCosts = payload.AdditionalCosts
+	event.AdminNotes = payload.AdminNotes
+	event.Status = "adjusted"
+
+	if err := app.Store.Events.Update(r.Context(), event); err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+
+	if err := app.jsonResponse(w, http.StatusOK, event); err != nil {
+		app.internalServerError(w, r, err)
+	}
+}
