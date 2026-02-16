@@ -142,6 +142,16 @@ func (app *Application) Mount() http.Handler {
 				r.Get("/", app.getEventItemsHandler)
 				r.Delete("/{itemId}", app.removeEventItemHandler)
 			})
+
+			r.Route("/guests", func(r chi.Router) {
+				r.Post("/", app.addGuestHandler)
+				r.Get("/", app.getGuestsHandler)
+			})
+		})
+
+		r.Route("/guests/{guestId}", func(r chi.Router) {
+			r.Put("/", app.updateGuestHandler)
+			r.Delete("/", app.deleteGuestHandler)
 		})
 	})
 

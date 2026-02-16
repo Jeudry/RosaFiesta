@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../data/event_model.dart';
+import '../../presentation/events_provider.dart';
+import '../../../guests/presentation/screens/guest_list_screen.dart';
 
 
 class EventDetailScreen extends StatefulWidget {
@@ -40,7 +42,15 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
               children: [
                 _buildDetailRow(Icons.calendar_today, 'Fecha', '${widget.event.date.day}/${widget.event.date.month}/${widget.event.date.year}'),
                 _buildDetailRow(Icons.location_on, 'Ubicación', widget.event.location),
-                _buildDetailRow(Icons.people, 'Invitados', '${widget.event.guestCount}'),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => GuestListScreen(eventId: widget.event.id)),
+                    );
+                  },
+                  child: _buildDetailRow(Icons.people, 'Invitados', '${widget.event.guestCount}', color: Colors.blue),
+                ),
                 
                 // Budget Comparison
                 Row(

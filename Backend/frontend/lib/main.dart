@@ -12,10 +12,14 @@ import 'features/shop/presentation/cart_provider.dart';
 import 'features/categories/presentation/categories_provider.dart';
 import 'features/profile/presentation/profile_provider.dart';
 import 'features/events/presentation/events_provider.dart';
+import 'features/guests/data/guests_repository.dart';
+import 'features/guests/presentation/guests_provider.dart';
 
 Future<void> main() async {
   await dotenv.load(fileName: ".env");
   ApiClient.init();
+  
+  final guestsRepository = GuestsRepository();
   
   runApp(
     MultiProvider(
@@ -26,6 +30,7 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => CategoriesProvider()),
         ChangeNotifierProvider(create: (_) => ProfileProvider()),
         ChangeNotifierProvider(create: (_) => EventsProvider()),
+        ChangeNotifierProvider(create: (_) => GuestsProvider(guestsRepository)),
       ],
       child: const RosaFiestaApp(),
     ),
