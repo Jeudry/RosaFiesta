@@ -39,18 +39,84 @@ class AdminDashboardScreen extends StatelessWidget {
             itemCount: pendingQuotes.length,
             itemBuilder: (context, index) {
               final event = pendingQuotes[index];
-              return Card(
-                margin: const EdgeInsets.all(8.0),
-                child: ListTile(
-                  title: Text(event.name),
-                  subtitle: Text('Cliente ID: ${event.userId}\nFecha: ${event.date.day}/${event.date.month}/${event.date.year}'),
-                  trailing: const Icon(Icons.edit_note, color: Colors.indigo),
-                  onTap: () => _showAdjustmentDialog(context, provider, event),
+          return SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Text(
+                    'Funciones Administrativas',
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
                 ),
-              );
-            },
+                // New Card for Business Analytics
+                _buildAdminCard(
+                  context,
+                  'Dashboard de Analíticas',
+                  Icons.bar_chart,
+                  Colors.purple,
+                  () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const AdminAnalyticsScreen()),
+                    );
+                  },
+                ),
+                const Divider(), // Separator
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Text(
+                    'Cotizaciones Pendientes',
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                ),
+                if (pendingQuotes.isEmpty)
+                  const Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.check_circle_outline, size: 64, color: Colors.grey),
+                        SizedBox(height: 16),
+                        Text('No hay cotizaciones pendientes', style: TextStyle(color: Colors.grey)),
+                      ],
+                    ),
+                  )
+                else
+                  ListView.builder(
+                    shrinkWrap: true, // Important for nested ListView in SingleChildScrollView
+                    physics: const NeverScrollableScrollPhysics(), // Disable scrolling for nested ListView
+                    itemCount: pendingQuotes.length,
+                    itemBuilder: (context, index) {
+                      final event = pendingQuotes[index];
+                      return Card(
+                        margin: const EdgeInsets.all(8.0),
+                        child: ListTile(
+                          title: Text(event.name),
+                          subtitle: Text('Cliente ID: ${event.userId}\nFecha: ${event.date.day}/${event.date.month}/${event.date.year}'),
+                          trailing: const Icon(Icons.edit_note, color: Colors.indigo),
+                          onTap: () => _showAdjustmentDialog(context, provider, event),
+                        ),
+                      );
+                    },
+                  ),
+              ],
+            ),
           );
         },
+      ),
+    );
+  }
+
+  // Helper method to build admin cards
+  Widget _buildAdminCard(BuildContext context, String title, IconData icon, Color color, VoidCallback onTap) {
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      child: ListTile(
+        leading: Icon(icon, color: color, size: 36),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+        trailing: const Icon(Icons.arrow_forward_ios),
+        onTap: onTap,
       ),
     );
   }

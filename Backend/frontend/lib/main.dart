@@ -44,6 +44,7 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => EventTasksProvider(tasksRepository)),
         ChangeNotifierProvider(create: (_) => SuppliersProvider(suppliersRepository)),
         ChangeNotifierProvider(create: (_) => TimelineProvider(timelineRepository)),
+        ChangeNotifierProvider(create: (_) => StatsProvider()),
       ],
       child: const RosaFiestaApp(),
     ),

@@ -113,6 +113,9 @@ type Storage struct {
 		Create(context.Context, *models.EventMessage) error
 		GetByEventID(context.Context, uuid.UUID) ([]models.EventMessage, error)
 	}
+	Stats interface {
+		GetSummary(context.Context) (*models.AdminStats, error)
+	}
 }
 
 func NewStorage(db *sql.DB) Storage {
@@ -131,6 +134,7 @@ func NewStorage(db *sql.DB) Storage {
 		Suppliers:     &SupplierStore{db: db},
 		Timeline:      &timelineStore{db: db},
 		Messages:      &MessagesStore{db: db},
+		Stats:         &StatsStore{db: db},
 	}
 }
 

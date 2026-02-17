@@ -162,10 +162,13 @@ func (app *Application) Mount() http.Handler {
 				r.Get("/", app.getTimelineItemsHandler)
 			})
 
-			r.Group(func(r chi.Router) {
-				r.Use(app.RoleMiddleware("admin"))
-				r.Patch("/{id}/adjust", app.adjustQuoteHandler)
-			})
+			// The r.Group for admin-only adjustQuoteHandler was moved to /v1/admin
+		})
+
+		r.Route("/admin", func(r chi.Router) {
+			r.Use(app.RoleMiddleware("admin"))
+			r.Patch("/events/{id}/adjust", app.adjustQuoteHandler)
+			r.Get("/stats", app.getStatsHandler)
 		})
 
 		r.Route("/timeline/{itemId}", func(r chi.Router) {
