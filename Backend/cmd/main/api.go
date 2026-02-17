@@ -145,6 +145,7 @@ func (app *Application) Mount() http.Handler {
 			r.Route("/{id}/messages", func(r chi.Router) {
 				r.Get("/", app.getMessagesHandler)
 				r.Post("/", app.sendMessageHandler)
+				r.Get("/ws", app.wsHandler)
 			})
 			r.Delete("/{id}", app.deleteEventHandler)
 

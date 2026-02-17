@@ -58,98 +58,115 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
 
             return TabBarView(
               children: [
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => EventTaskListScreen(eventId: widget.event.id)),
-                    );
-                  },
-                  child: _buildDetailRow(Icons.check_circle_outline, 'Tareas', 'Ver checklist', color: Colors.blue),
-                ),
-                GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => EventTimelineScreen(eventId: widget.event.id)),
-                    );
-                  },
-                  child: _buildDetailRow(Icons.timer_outlined, 'Cronograma', 'Ver planificación por horas', color: Colors.blue),
-                ),
-                
-                // Budget Comparison
-                InkWell(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => BudgetAnalysisScreen(event: widget.event)),
-                    );
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Column(
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(child: _buildDetailRow(Icons.attach_money, 'Presupuesto Est.', '\$${widget.event.budget.toStringAsFixed(2)}')),
-                            const SizedBox(width: 16),
-                            Expanded(child: _buildDetailRow(Icons.money_off, 'Presupuesto Real', '\$${realBudget.toStringAsFixed(2)}', color: realBudget > widget.event.budget ? Colors.red : Colors.green)),
-                            const Icon(Icons.chevron_right, color: Colors.blue),
-                          ],
+                // Tab 1: Details
+                SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => EventTaskListScreen(eventId: widget.eventId)),
+                          );
+                        },
+                        child: _buildDetailRow(Icons.check_circle_outline, 'Tareas', 'Ver checklist', color: Colors.blue),
+                      ),
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => EventTimelineScreen(eventId: widget.eventId)),
+                          );
+                        },
+                        child: _buildDetailRow(Icons.timer_outlined, 'Cronograma', 'Ver planificación por horas', color: Colors.blue),
+                      ),
+                      
+                      // Budget Comparison
+                      InkWell(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => BudgetAnalysisScreen(event: event)),
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: Column(
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(child: _buildDetailRow(Icons.attach_money, 'Presupuesto Est.', '\$${event.budget.toStringAsFixed(2)}')),
+                                  const SizedBox(width: 16),
+                                  Expanded(child: _buildDetailRow(Icons.money_off, 'Presupuesto Real', '\$${provider.realBudget.toStringAsFixed(2)}', color: provider.realBudget > event.budget ? Colors.red : Colors.green)),
+                                  const Icon(Icons.chevron_right, color: Colors.blue),
+                                ],
+                              ),
+                              if (event.additionalCosts > 0)
+                                 _buildDetailRow(Icons.add_circle_outline, 'Costos Adicionales (Admin)', '\$${event.additionalCosts.toStringAsFixed(2)}', color: Colors.orange),
+                              if (event.additionalCosts > 0)
+                                _buildDetailRow(Icons.summarize, 'Total Final', '\$${(provider.realBudget + event.additionalCosts).toStringAsFixed(2)}', color: Colors.blue),
+                            ],
+                          ),
                         ),
-                        if (widget.event.additionalCosts > 0)
-                           _buildDetailRow(Icons.add_circle_outline, 'Costos Adicionales (Admin)', '\$${widget.event.additionalCosts.toStringAsFixed(2)}', color: Colors.orange),
-                        if (widget.event.additionalCosts > 0)
-                          _buildDetailRow(Icons.summarize, 'Total Final', '\$${(realBudget + widget.event.additionalCosts).toStringAsFixed(2)}', color: Colors.blue),
-                      ],
-                    ),
+                      ),
+                      
+                      if (event.adminNotes != null && event.adminNotes!.isNotEmpty)
+                        _buildDetailRow(Icons.note, 'Notas de Admin', event.adminNotes!, color: Colors.orange),
+
+                      _buildDetailRow(Icons.info, 'Estado', _getStatusLabel(event.status)),
+                      
+                      if (event.status == 'paid')
+                         _buildDetailRow(Icons.verified, 'Pago', 'Completado via ${event.paymentMethod ?? "N/A"}', color: Colors.green),
+
+                      const Divider(height: 32),
+                      
+                      // Action Buttons based on status
+                      _buildActionButtons(context, provider, event),
+
+                      const Divider(height: 32),
+                      
+                      const Text(
+                        'Mobiliario y Decoración',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+                      provider.isLoading
+                          ? const Center(child: CircularProgressIndicator())
+                          : provider.currentEventItems.isEmpty
+                              ? const Center(child: Text('No hay productos agregados'))
+                              : ListView.builder(
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  itemCount: provider.currentEventItems.length,
+                                  itemBuilder: (context, index) {
+                                    final item = provider.currentEventItems[index];
+                                    return ListTile(
+                                      leading: const Icon(Icons.chair),
+                                      title: Text(item.article?.nameTemplate ?? 'Producto desconocido'),
+                                      subtitle: Text('${item.quantity} x \$${item.price?.toStringAsFixed(2) ?? "N/A"}'),
+                                      trailing: IconButton(
+                                        icon: const Icon(Icons.delete, color: Colors.red),
+                                        onPressed: () {
+                                          provider.removeItemFromEvent(event.id, item.id);
+                                        },
+                                      ),
+                                    );
+                                  },
+                                ),
+                    ],
                   ),
                 ),
                 
-                if (widget.event.adminNotes != null && widget.event.adminNotes!.isNotEmpty)
-                  _buildDetailRow(Icons.note, 'Notas de Admin', widget.event.adminNotes!, color: Colors.orange),
-
-                _buildDetailRow(Icons.info, 'Estado', _getStatusLabel(widget.event.status)),
-                
-                if (widget.event.status == 'paid')
-                   _buildDetailRow(Icons.verified, 'Pago', 'Completado via ${widget.event.paymentMethod ?? "N/A"}', color: Colors.green),
-
-                const Divider(height: 32),
-                
-                // Action Buttons based on status
-                _buildActionButtons(context, provider),
-
-                const Divider(height: 32),
-                
-                const Text(
-                  'Mobiliario y Decoración',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                Expanded(
-                  child: provider.isLoading
-                      ? const Center(child: CircularProgressIndicator())
-                      : provider.currentEventItems.isEmpty
-                          ? const Center(child: Text('No hay productos agregados'))
-                          : ListView.builder(
-                              itemCount: provider.currentEventItems.length,
-                              itemBuilder: (context, index) {
-                                final item = provider.currentEventItems[index];
-                                return ListTile(
-                                  leading: const Icon(Icons.chair), // Placeholder icon
-                                  title: Text(item.article?.nameTemplate ?? 'Producto desconocido'),
-                                  subtitle: Text('${item.quantity} x \$${item.price?.toStringAsFixed(2) ?? "N/A"}'),
-                                  trailing: IconButton(
-                                    icon: const Icon(Icons.delete, color: Colors.red),
-                                    onPressed: () {
-                                      provider.removeItemFromEvent(widget.event.id, item.id);
-                                    },
-                                  ),
-                                );
-                              },
-                            ),
-                ),
+                // Tab 2: Chat (Real-time)
+                QuotationChatWidget(eventId: widget.eventId),
               ],
-            ),
+            );
+          },
+        ),
+      ),
+    );
+  }
           );
         },
       ),

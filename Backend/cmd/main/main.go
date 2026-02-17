@@ -141,6 +141,8 @@ func main() {
 
 	jwtAuthenticator := auth.NewJWTAuthenticator(cfg.Auth.Token.Secret, cfg.Auth.Token.Aud, cfg.Auth.Token.Iss)
 	notificationService := notifications.NewNotificationService()
+	chatHub := newHub()
+	go chatHub.run()
 
 	app := &Application{
 		Config:        cfg,
@@ -151,6 +153,7 @@ func main() {
 		CacheStorage:  cacheStorage,
 		RateLimiter:   rateLimiter,
 		Notifications: notificationService,
+		ChatHub:       chatHub,
 	}
 
 	expvar.NewString("version").Set(Version)

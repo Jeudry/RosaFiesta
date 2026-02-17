@@ -21,4 +21,5 @@ type Application struct {
 	CacheStorage  cache.Storage
 	RateLimiter   ratelimiter.RateLimiter
 	Notifications *notifications.NotificationService
+	ChatHub       *Hub
 }

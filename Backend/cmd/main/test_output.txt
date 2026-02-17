@@ -1,199 +1,199 @@
 === RUN   TestRateLimitMiddleware
-2026/02/17 09:57:27 [MacBook-Pro-de-Jeudry.local/xpzbFqyUOX-000001] "GET http://127.0.0.1:59243/v1/health HTTP/1.1" from 192.168.1.1 - 200 52B in 184.292µs
-2026/02/17 09:57:27 [MacBook-Pro-de-Jeudry.local/xpzbFqyUOX-000002] "GET http://127.0.0.1:59243/v1/health HTTP/1.1" from 192.168.1.1 - 200 52B in 33.625µs
-2026/02/17 09:57:27 [MacBook-Pro-de-Jeudry.local/xpzbFqyUOX-000003] "GET http://127.0.0.1:59243/v1/health HTTP/1.1" from 192.168.1.1 - 200 52B in 14.625µs
-2026/02/17 09:57:27 [MacBook-Pro-de-Jeudry.local/xpzbFqyUOX-000004] "GET http://127.0.0.1:59243/v1/health HTTP/1.1" from 192.168.1.1 - 200 52B in 10.75µs
-2026/02/17 09:57:27 [MacBook-Pro-de-Jeudry.local/xpzbFqyUOX-000005] "GET http://127.0.0.1:59243/v1/health HTTP/1.1" from 192.168.1.1 - 200 52B in 12.875µs
-2026/02/17 09:57:27 [MacBook-Pro-de-Jeudry.local/xpzbFqyUOX-000006] "GET http://127.0.0.1:59243/v1/health HTTP/1.1" from 192.168.1.1 - 200 52B in 22.5µs
-2026/02/17 09:57:27 [MacBook-Pro-de-Jeudry.local/xpzbFqyUOX-000007] "GET http://127.0.0.1:59243/v1/health HTTP/1.1" from 192.168.1.1 - 200 52B in 11.125µs
-2026/02/17 09:57:27 [MacBook-Pro-de-Jeudry.local/xpzbFqyUOX-000008] "GET http://127.0.0.1:59243/v1/health HTTP/1.1" from 192.168.1.1 - 200 52B in 18.75µs
-2026/02/17 09:57:27 [MacBook-Pro-de-Jeudry.local/xpzbFqyUOX-000009] "GET http://127.0.0.1:59243/v1/health HTTP/1.1" from 192.168.1.1 - 200 52B in 12.958µs
-2026/02/17 09:57:27 [MacBook-Pro-de-Jeudry.local/xpzbFqyUOX-000010] "GET http://127.0.0.1:59243/v1/health HTTP/1.1" from 192.168.1.1 - 200 52B in 11.334µs
-2026/02/17 09:57:27 [MacBook-Pro-de-Jeudry.local/xpzbFqyUOX-000011] "GET http://127.0.0.1:59243/v1/health HTTP/1.1" from 192.168.1.1 - 200 52B in 9.667µs
-2026/02/17 09:57:27 [MacBook-Pro-de-Jeudry.local/xpzbFqyUOX-000012] "GET http://127.0.0.1:59243/v1/health HTTP/1.1" from 192.168.1.1 - 200 52B in 10.917µs
-2026/02/17 09:57:27 [MacBook-Pro-de-Jeudry.local/xpzbFqyUOX-000013] "GET http://127.0.0.1:59243/v1/health HTTP/1.1" from 192.168.1.1 - 200 52B in 16.5µs
-2026/02/17 09:57:27 [MacBook-Pro-de-Jeudry.local/xpzbFqyUOX-000014] "GET http://127.0.0.1:59243/v1/health HTTP/1.1" from 192.168.1.1 - 200 52B in 16.667µs
-2026/02/17 09:57:27 [MacBook-Pro-de-Jeudry.local/xpzbFqyUOX-000015] "GET http://127.0.0.1:59243/v1/health HTTP/1.1" from 192.168.1.1 - 200 52B in 9.959µs
-2026/02/17 09:57:27 [MacBook-Pro-de-Jeudry.local/xpzbFqyUOX-000016] "GET http://127.0.0.1:59243/v1/health HTTP/1.1" from 192.168.1.1 - 200 52B in 12.166µs
-2026/02/17 09:57:27 [MacBook-Pro-de-Jeudry.local/xpzbFqyUOX-000017] "GET http://127.0.0.1:59243/v1/health HTTP/1.1" from 192.168.1.1 - 200 52B in 9.875µs
-2026/02/17 09:57:27 [MacBook-Pro-de-Jeudry.local/xpzbFqyUOX-000018] "GET http://127.0.0.1:59243/v1/health HTTP/1.1" from 192.168.1.1 - 200 52B in 9.458µs
-2026/02/17 09:57:27 [MacBook-Pro-de-Jeudry.local/xpzbFqyUOX-000019] "GET http://127.0.0.1:59243/v1/health HTTP/1.1" from 192.168.1.1 - 200 52B in 14.208µs
-2026/02/17 09:57:27 [MacBook-Pro-de-Jeudry.local/xpzbFqyUOX-000020] "GET http://127.0.0.1:59243/v1/health HTTP/1.1" from 192.168.1.1 - 200 52B in 8.417µs
-2026/02/17 09:57:27 [MacBook-Pro-de-Jeudry.local/xpzbFqyUOX-000021] "GET http://127.0.0.1:59243/v1/health HTTP/1.1" from 192.168.1.1 - 429 32B in 40.833µs
-2026/02/17 09:57:27 [MacBook-Pro-de-Jeudry.local/xpzbFqyUOX-000022] "GET http://127.0.0.1:59243/v1/health HTTP/1.1" from 192.168.1.1 - 429 32B in 6.583µs
+2026/02/17 10:56:17 [MacBook-Pro-de-Jeudry.local/86yT6XvnWD-000001] "GET http://127.0.0.1:60647/v1/health HTTP/1.1" from 192.168.1.1 - 200 52B in 137.375µs
+2026/02/17 10:56:17 [MacBook-Pro-de-Jeudry.local/86yT6XvnWD-000002] "GET http://127.0.0.1:60647/v1/health HTTP/1.1" from 192.168.1.1 - 200 52B in 19.583µs
+2026/02/17 10:56:17 [MacBook-Pro-de-Jeudry.local/86yT6XvnWD-000003] "GET http://127.0.0.1:60647/v1/health HTTP/1.1" from 192.168.1.1 - 200 52B in 49µs
+2026/02/17 10:56:17 [MacBook-Pro-de-Jeudry.local/86yT6XvnWD-000004] "GET http://127.0.0.1:60647/v1/health HTTP/1.1" from 192.168.1.1 - 200 52B in 10.916µs
+2026/02/17 10:56:17 [MacBook-Pro-de-Jeudry.local/86yT6XvnWD-000005] "GET http://127.0.0.1:60647/v1/health HTTP/1.1" from 192.168.1.1 - 200 52B in 9.125µs
+2026/02/17 10:56:17 [MacBook-Pro-de-Jeudry.local/86yT6XvnWD-000006] "GET http://127.0.0.1:60647/v1/health HTTP/1.1" from 192.168.1.1 - 200 52B in 15.875µs
+2026/02/17 10:56:17 [MacBook-Pro-de-Jeudry.local/86yT6XvnWD-000007] "GET http://127.0.0.1:60647/v1/health HTTP/1.1" from 192.168.1.1 - 200 52B in 19.583µs
+2026/02/17 10:56:17 [MacBook-Pro-de-Jeudry.local/86yT6XvnWD-000008] "GET http://127.0.0.1:60647/v1/health HTTP/1.1" from 192.168.1.1 - 200 52B in 10.209µs
+2026/02/17 10:56:17 [MacBook-Pro-de-Jeudry.local/86yT6XvnWD-000009] "GET http://127.0.0.1:60647/v1/health HTTP/1.1" from 192.168.1.1 - 200 52B in 12.917µs
+2026/02/17 10:56:17 [MacBook-Pro-de-Jeudry.local/86yT6XvnWD-000010] "GET http://127.0.0.1:60647/v1/health HTTP/1.1" from 192.168.1.1 - 200 52B in 15.208µs
+2026/02/17 10:56:17 [MacBook-Pro-de-Jeudry.local/86yT6XvnWD-000011] "GET http://127.0.0.1:60647/v1/health HTTP/1.1" from 192.168.1.1 - 200 52B in 12.834µs
+2026/02/17 10:56:17 [MacBook-Pro-de-Jeudry.local/86yT6XvnWD-000012] "GET http://127.0.0.1:60647/v1/health HTTP/1.1" from 192.168.1.1 - 200 52B in 9.916µs
+2026/02/17 10:56:17 [MacBook-Pro-de-Jeudry.local/86yT6XvnWD-000013] "GET http://127.0.0.1:60647/v1/health HTTP/1.1" from 192.168.1.1 - 200 52B in 14.792µs
+2026/02/17 10:56:17 [MacBook-Pro-de-Jeudry.local/86yT6XvnWD-000014] "GET http://127.0.0.1:60647/v1/health HTTP/1.1" from 192.168.1.1 - 200 52B in 9.292µs
+2026/02/17 10:56:17 [MacBook-Pro-de-Jeudry.local/86yT6XvnWD-000015] "GET http://127.0.0.1:60647/v1/health HTTP/1.1" from 192.168.1.1 - 200 52B in 7.916µs
+2026/02/17 10:56:17 [MacBook-Pro-de-Jeudry.local/86yT6XvnWD-000016] "GET http://127.0.0.1:60647/v1/health HTTP/1.1" from 192.168.1.1 - 200 52B in 13.875µs
+2026/02/17 10:56:17 [MacBook-Pro-de-Jeudry.local/86yT6XvnWD-000017] "GET http://127.0.0.1:60647/v1/health HTTP/1.1" from 192.168.1.1 - 200 52B in 9.375µs
+2026/02/17 10:56:17 [MacBook-Pro-de-Jeudry.local/86yT6XvnWD-000018] "GET http://127.0.0.1:60647/v1/health HTTP/1.1" from 192.168.1.1 - 200 52B in 8.959µs
+2026/02/17 10:56:17 [MacBook-Pro-de-Jeudry.local/86yT6XvnWD-000019] "GET http://127.0.0.1:60647/v1/health HTTP/1.1" from 192.168.1.1 - 200 52B in 13.708µs
+2026/02/17 10:56:17 [MacBook-Pro-de-Jeudry.local/86yT6XvnWD-000020] "GET http://127.0.0.1:60647/v1/health HTTP/1.1" from 192.168.1.1 - 200 52B in 9µs
+2026/02/17 10:56:17 [MacBook-Pro-de-Jeudry.local/86yT6XvnWD-000021] "GET http://127.0.0.1:60647/v1/health HTTP/1.1" from 192.168.1.1 - 429 32B in 41.833µs
+2026/02/17 10:56:17 [MacBook-Pro-de-Jeudry.local/86yT6XvnWD-000022] "GET http://127.0.0.1:60647/v1/health HTTP/1.1" from 192.168.1.1 - 429 32B in 7.125µs
 --- PASS: TestRateLimitMiddleware (0.01s)
 === RUN   TestRegisterUser
 === RUN   TestRegisterUser/should_register_a_user_successfully
-2026/02/17 09:57:27 [MacBook-Pro-de-Jeudry.local/xpzbFqyUOX-000023] "POST http:// HTTP/1.1" from  - 201 418B in 77.091417ms
+2026/02/17 10:56:17 [MacBook-Pro-de-Jeudry.local/86yT6XvnWD-000023] "POST http:// HTTP/1.1" from  - 201 418B in 77.251375ms
 === RUN   TestRegisterUser/should_fail_on_invalid_payload
 
 Error: Key: 'RegisterUserPayload.Username' Error:Field validation for 'Username' failed on the 'required' tag
 Key: 'RegisterUserPayload.Email' Error:Field validation for 'Email' failed on the 'email' tag
 
 Formatted Stack trace:
-goroutine 93 [running]:
-Backend/cmd/main.printFormattedError({0x101a10200, 0x14000374be8})
+goroutine 165 [running]:
+Backend/cmd/main.printFormattedError({0x1017dc480, 0x14000522168})
 	/Users/sargon/Documents/Coding/RosaFiesta/Backend/cmd/main/errors.go:53 +0x48
-Backend/cmd/main.(*Application).badRequest(0x14000308308, {0x1022278f8, 0x14000584800}, 0x1400034dcc0, {0x101a10200, 0x14000374be8})
+Backend/cmd/main.(*Application).badRequest(0x14000534008, {0x10214c2d8, 0x14000570a80}, 0x1400054eb40, {0x1017dc480, 0x14000522168})
 	/Users/sargon/Documents/Coding/RosaFiesta/Backend/cmd/main/errors.go:20 +0x40
-Backend/cmd/main.(*Application).registerUserHandler(0x14000308308, {0x1022278f8, 0x14000584800}, 0x1400034dcc0)
+Backend/cmd/main.(*Application).registerUserHandler(0x14000534008, {0x10214c2d8, 0x14000570a80}, 0x1400054eb40)
 	/Users/sargon/Documents/Coding/RosaFiesta/Backend/cmd/main/auth.go:41 +0x254
-net/http.HandlerFunc.ServeHTTP(0x140002dac30?, {0x1022278f8?, 0x14000584800?}, 0x140005ba2b0?)
+net/http.HandlerFunc.ServeHTTP(0x1400052e3c0?, {0x10214c2d8?, 0x14000570a80?}, 0x14000526c80?)
 	/Users/sargon/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.0.darwin-arm64/src/net/http/server.go:2294 +0x38
-github.com/go-chi/chi/v5.(*Mux).routeHTTP(0x1400036e480, {0x1022278f8, 0x14000584800}, 0x1400034dcc0)
+github.com/go-chi/chi/v5.(*Mux).routeHTTP(0x14000538d80, {0x10214c2d8, 0x14000570a80}, 0x1400054eb40)
 	/Users/sargon/go/pkg/mod/github.com/go-chi/chi/v5@v5.2.1/mux.go:480 +0x280
-net/http.HandlerFunc.ServeHTTP(0x1400040d5f8?, {0x1022278f8?, 0x14000
-2026/02/17 09:57:27 [MacBook-Pro-de-Jeudry.local/xpzbFqyUOX-000024] "POST http:// HTTP/1.1" from  - 400 210B in 127.625µs
+net/http.HandlerFunc.ServeHTTP(0x1400016d5f8?, {0x10214c2d8?, 0x1400
+2026/02/17 10:56:17 [MacBook-Pro-de-Jeudry.local/86yT6XvnWD-000024] "POST http:// HTTP/1.1" from  - 400 210B in 128.583µs
 --- PASS: TestRegisterUser (0.08s)
     --- PASS: TestRegisterUser/should_register_a_user_successfully (0.08s)
     --- PASS: TestRegisterUser/should_fail_on_invalid_payload (0.00s)
 === RUN   TestRefreshToken
 === RUN   TestRefreshToken/should_refresh_token_successfully
-2026/02/17 09:57:27 [MacBook-Pro-de-Jeudry.local/xpzbFqyUOX-000025] "POST http:// HTTP/1.1" from  - 200 190B in 766.292µs
+2026/02/17 10:56:17 [MacBook-Pro-de-Jeudry.local/86yT6XvnWD-000025] "POST http:// HTTP/1.1" from  - 200 190B in 352.667µs
 === RUN   TestRefreshToken/should_fail_on_invalid_refresh_token
 
 Error: invalid refresh token
 
 Formatted Stack trace:
-goroutine 141 [running]:
-Backend/cmd/main.printFormattedError({0x101a0e528, 0x140000a72d0})
+goroutine 168 [running]:
+Backend/cmd/main.printFormattedError({0x1017da6e8, 0x14000047370})
 	/Users/sargon/Documents/Coding/RosaFiesta/Backend/cmd/main/errors.go:53 +0x48
-Backend/cmd/main.(*Application).unauthorized(0x14000308c08, {0x1022278f8, 0x140000bddc0}, 0x140005c2f00, {0x101a0e528, 0x140000a72d0})
+Backend/cmd/main.(*Application).unauthorized(0x14000534e08, {0x10214c2d8, 0x140000b65c0}, 0x1400054fe00, {0x1017da6e8, 0x14000047370})
 	/Users/sargon/Documents/Coding/RosaFiesta/Backend/cmd/main/errors.go:58 +0x40
-Backend/cmd/main.(*Application).refreshTokenHandler(0x14000308c08, {0x1022278f8, 0x140000bddc0}, 0x140005c2f00)
+Backend/cmd/main.(*Application).refreshTokenHandler(0x14000534e08, {0x10214c2d8, 0x140000b65c0}, 0x1400054fe00)
 	/Users/sargon/Documents/Coding/RosaFiesta/Backend/cmd/main/auth.go:148 +0x7e4
-net/http.HandlerFunc.ServeHTTP(0x14000601950?, {0x1022278f8?, 0x140000bddc0?}, 0x140005bae48?)
+net/http.HandlerFunc.ServeHTTP(0x140000fae10?, {0x10214c2d8?, 0x140000b65c0?}, 0x14000527b48?)
 	/Users/sargon/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.0.darwin-arm64/src/net/http/server.go:2294 +0x38
-github.com/go-chi/chi/v5.(*Mux).routeHTTP(0x140005defc0, {0x1022278f8, 0x140000bddc0}, 0x140005c2f00)
+github.com/go-chi/chi/v5.(*Mux).routeHTTP(0x14000052a80, {0x10214c2d8, 0x140000b65c0}, 0x1400054fe00)
 	/Users/sargon/go/pkg/mod/github.com/go-chi/chi/v5@v5.2.1/mux.go:480 +0x280
-net/http.HandlerFunc.ServeHTTP(0x14000167498?, {0x1022278f8?, 0x1
-2026/02/17 09:57:27 [MacBook-Pro-de-Jeudry.local/xpzbFqyUOX-000026] "POST http:// HTTP/1.1" from  - 401 25B in 98.917µs
+net/http.HandlerFunc.ServeHTTP(0x1400016d498?, {0x10214c2d8?, 0x1
+2026/02/17 10:56:17 [MacBook-Pro-de-Jeudry.local/86yT6XvnWD-000026] "POST http:// HTTP/1.1" from  - 401 25B in 90.375µs
 --- PASS: TestRefreshToken (0.00s)
     --- PASS: TestRefreshToken/should_refresh_token_successfully (0.00s)
     --- PASS: TestRefreshToken/should_fail_on_invalid_refresh_token (0.00s)
 === RUN   TestCreateToken
 === RUN   TestCreateToken/should_create_token_successfully
-2026/02/17 09:57:28 [MacBook-Pro-de-Jeudry.local/xpzbFqyUOX-000027] "POST http:// HTTP/1.1" from  - 200 186B in 76.532ms
+2026/02/17 10:56:17 [MacBook-Pro-de-Jeudry.local/86yT6XvnWD-000027] "POST http:// HTTP/1.1" from  - 200 186B in 77.234375ms
 === RUN   TestCreateToken/should_fail_on_invalid_credentials
 
 Error: crypto/bcrypt: hashedPassword is not the hash of the given password
 
 Formatted Stack trace:
-goroutine 144 [running]:
-Backend/cmd/main.printFormattedError({0x101a0e528, 0x101eabc60})
+goroutine 171 [running]:
+Backend/cmd/main.printFormattedError({0x1017da6e8, 0x101c7fee0})
 	/Users/sargon/Documents/Coding/RosaFiesta/Backend/cmd/main/errors.go:53 +0x48
-Backend/cmd/main.(*Application).unauthorized(0x14000309208, {0x1022278f8, 0x140001d8e80}, 0x14000248280, {0x101a0e528, 0x101eabc60})
+Backend/cmd/main.(*Application).unauthorized(0x14000535508, {0x10214c2d8, 0x140002e5680}, 0x140001c9400, {0x1017da6e8, 0x101c7fee0})
 	/Users/sargon/Documents/Coding/RosaFiesta/Backend/cmd/main/errors.go:58 +0x40
-Backend/cmd/main.(*Application).createTokenHandler(0x14000309208, {0x1022278f8, 0x140001d8e80}, 0x14000248280)
+Backend/cmd/main.(*Application).createTokenHandler(0x14000535508, {0x10214c2d8, 0x140002e5680}, 0x140001c9400)
 	/Users/sargon/Documents/Coding/RosaFiesta/Backend/cmd/main/auth.go:244 +0x790
-net/http.HandlerFunc.ServeHTTP(0x140000ef680?, {0x1022278f8?, 0x140001d8e80?}, 0x140005bbbd8?)
+net/http.HandlerFunc.ServeHTTP(0x1400025ab40?, {0x10214c2d8?, 0x140002e5680?}, 0x140000c0938?)
 	/Users/sargon/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.0.darwin-arm64/src/net/http/server.go:2294 +0x38
-github.com/go-chi/chi/v5.(*Mux).routeHTTP(0x140000538c0, {0x1022278f8, 0x140001d8e80}, 0x14000248280)
+github.com/go-chi/chi/v5.(*Mux).routeHTTP(0x140003b7e60, {0x10214c2d8, 0x140002e5680}, 0x140001c9400)
 	/Users/sargon/go/pkg/mod/github.com/go-chi/chi/v5@v5.2.1/mux.go:480 +0x280
-net/http.HandlerFunc.ServeHTTP(0x14000167478?, {0x1022278f8?, 0x140001
-2026/02/17 09:57:28 [MacBook-Pro-de-Jeudry.local/xpzbFqyUOX-000028] "POST http:// HTTP/1.1" from  - 401 25B in 76.197667ms
+net/http.HandlerFunc.ServeHTTP(0x1400016d478?, {0x10214c2d8?, 0x140002
+2026/02/17 10:56:17 [MacBook-Pro-de-Jeudry.local/86yT6XvnWD-000028] "POST http:// HTTP/1.1" from  - 401 25B in 77.013459ms
 --- PASS: TestCreateToken (0.31s)
     --- PASS: TestCreateToken/should_create_token_successfully (0.15s)
     --- PASS: TestCreateToken/should_fail_on_invalid_credentials (0.15s)
 === RUN   TestAddEventTaskHandler
-2026/02/17 09:57:28 [MacBook-Pro-de-Jeudry.local/xpzbFqyUOX-000029] "POST http:// HTTP/1.1" from  - 201 218B in 179.791µs
+2026/02/17 10:56:17 [MacBook-Pro-de-Jeudry.local/86yT6XvnWD-000029] "POST http:// HTTP/1.1" from  - 201 218B in 264.083µs
 --- PASS: TestAddEventTaskHandler (0.00s)
 === RUN   TestGetEventTasksHandler
-2026/02/17 09:57:28 [MacBook-Pro-de-Jeudry.local/xpzbFqyUOX-000030] "GET http:// HTTP/1.1" from  - 200 217B in 154.958µs
+2026/02/17 10:56:17 [MacBook-Pro-de-Jeudry.local/86yT6XvnWD-000030] "GET http:// HTTP/1.1" from  - 200 217B in 207.292µs
 --- PASS: TestGetEventTasksHandler (0.00s)
 === RUN   TestAddGuestHandler
-2026/02/17 09:57:28 [MacBook-Pro-de-Jeudry.local/xpzbFqyUOX-000031] "POST http:// HTTP/1.1" from  - 201 238B in 173.417µs
+2026/02/17 10:56:17 [MacBook-Pro-de-Jeudry.local/86yT6XvnWD-000031] "POST http:// HTTP/1.1" from  - 201 238B in 233.833µs
 --- PASS: TestAddGuestHandler (0.00s)
 === RUN   TestGetGuestsHandler
-2026/02/17 09:57:28 [MacBook-Pro-de-Jeudry.local/xpzbFqyUOX-000032] "GET http:// HTTP/1.1" from  - 200 230B in 144.333µs
+2026/02/17 10:56:17 [MacBook-Pro-de-Jeudry.local/86yT6XvnWD-000032] "GET http:// HTTP/1.1" from  - 200 230B in 184.333µs
 --- PASS: TestGetGuestsHandler (0.00s)
 === RUN   TestCreateReview
 === RUN   TestCreateReview/should_create_review_successfully
-2026/02/17 09:57:28 [MacBook-Pro-de-Jeudry.local/xpzbFqyUOX-000033] "POST http:// HTTP/1.1" from  - 201 213B in 297.625µs
+2026/02/17 10:56:17 [MacBook-Pro-de-Jeudry.local/86yT6XvnWD-000033] "POST http:// HTTP/1.1" from  - 201 213B in 724.167µs
 === RUN   TestCreateReview/should_return_400_for_invalid_rating
 
 Error: Key: 'createReviewPayload.Rating' Error:Field validation for 'Rating' failed on the 'max' tag
 
 Formatted Stack trace:
-goroutine 183 [running]:
-Backend/cmd/main.printFormattedError({0x101a10200, 0x14000129290})
+goroutine 190 [running]:
+Backend/cmd/main.printFormattedError({0x1017dc480, 0x140001297d0})
 	/Users/sargon/Documents/Coding/RosaFiesta/Backend/cmd/main/errors.go:53 +0x48
-Backend/cmd/main.(*Application).badRequest(0x1400041a608, {0x1022278f8, 0x140006034c0}, 0x1400034ca00, {0x101a10200, 0x14000129290})
+Backend/cmd/main.(*Application).badRequest(0x14000200a88, {0x10214c2d8, 0x140004b75c0}, 0x1400045ec80, {0x1017dc480, 0x140001297d0})
 	/Users/sargon/Documents/Coding/RosaFiesta/Backend/cmd/main/errors.go:20 +0x40
-Backend/cmd/main.(*Application).createReviewHandler(0x1400041a608, {0x1022278f8, 0x140006034c0}, 0x1400034ca00)
+Backend/cmd/main.(*Application).createReviewHandler(0x14000200a88, {0x10214c2d8, 0x140004b75c0}, 0x1400045ec80)
 	/Users/sargon/Documents/Coding/RosaFiesta/Backend/cmd/main/reviews_handler.go:39 +0x254
-net/http.HandlerFunc.ServeHTTP(0x1400034c8c0?, {0x1022278f8?, 0x140006034c0?}, 0x101a0a8d0?)
+net/http.HandlerFunc.ServeHTTP(0x1400045eb40?, {0x10214c2d8?, 0x140004b75c0?}, 0x1017d6a70?)
 	/Users/sargon/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.0.darwin-arm64/src/net/http/server.go:2294 +0x38
-Backend/cmd/main.(*Application).Mount.func1.2.1.(*Application).AuthTokenMiddleware.2.1({0x1022278f8, 0x140006034c0}, 0x1400034c8c0)
+Backend/cmd/main.(*Application).Mount.func1.2.1.(*Application).AuthTokenMiddleware.2.1({0x10214c2d8, 0x140004b75c0}, 0x1400045eb40)
 	/Users/sargon/Documents/Coding/RosaFiesta/Backend/cmd/main/middleware.go:180 +0x438
 net/http.HandlerFunc
-2026/02/17 09:57:28 [MacBook-Pro-de-Jeudry.local/xpzbFqyUOX-000034] "POST http:// HTTP/1.1" from  - 400 106B in 231.292µs
+2026/02/17 10:56:17 [MacBook-Pro-de-Jeudry.local/86yT6XvnWD-000034] "POST http:// HTTP/1.1" from  - 400 106B in 250.208µs
 --- PASS: TestCreateReview (0.00s)
     --- PASS: TestCreateReview/should_create_review_successfully (0.00s)
     --- PASS: TestCreateReview/should_return_400_for_invalid_rating (0.00s)
 === RUN   TestGetArticleReviews
 === RUN   TestGetArticleReviews/should_return_reviews_for_article
-2026/02/17 09:57:28 [MacBook-Pro-de-Jeudry.local/xpzbFqyUOX-000035] "GET http:// HTTP/1.1" from  - 200 203B in 120.667µs
+2026/02/17 10:56:17 [MacBook-Pro-de-Jeudry.local/86yT6XvnWD-000035] "GET http:// HTTP/1.1" from  - 200 203B in 124.875µs
 --- PASS: TestGetArticleReviews (0.00s)
     --- PASS: TestGetArticleReviews/should_return_reviews_for_article (0.00s)
 === RUN   TestTimelineHandlers
 === RUN   TestTimelineHandlers/should_create_timeline_item
-2026/02/17 09:57:28 [MacBook-Pro-de-Jeudry.local/xpzbFqyUOX-000036] "POST http:// HTTP/1.1" from  - 201 312B in 215.542µs
+2026/02/17 10:56:17 [MacBook-Pro-de-Jeudry.local/86yT6XvnWD-000036] "POST http:// HTTP/1.1" from  - 201 312B in 264.458µs
 === RUN   TestTimelineHandlers/should_get_timeline_items
-2026/02/17 09:57:28 [MacBook-Pro-de-Jeudry.local/xpzbFqyUOX-000037] "GET http:// HTTP/1.1" from  - 200 12B in 205.833µs
+2026/02/17 10:56:17 [MacBook-Pro-de-Jeudry.local/86yT6XvnWD-000037] "GET http:// HTTP/1.1" from  - 200 12B in 199.542µs
 --- PASS: TestTimelineHandlers (0.00s)
     --- PASS: TestTimelineHandlers/should_create_timeline_item (0.00s)
     --- PASS: TestTimelineHandlers/should_get_timeline_items (0.00s)
 === RUN   TestGetUser
 === RUN   TestGetUser/should_hit_the_cache_and_return_200
-2026/02/17 09:57:28 [MacBook-Pro-de-Jeudry.local/xpzbFqyUOX-000038] "GET http:// HTTP/1.1" from  - 200 343B in 267.375µs
+2026/02/17 10:56:17 [MacBook-Pro-de-Jeudry.local/86yT6XvnWD-000038] "GET http:// HTTP/1.1" from  - 200 343B in 274.416µs
 === RUN   TestGetUser/should_not_hit_cache_if_disabled
-2026/02/17 09:57:28 [MacBook-Pro-de-Jeudry.local/xpzbFqyUOX-000039] "GET http:// HTTP/1.1" from  - 200 343B in 142.75µs
+2026/02/17 10:56:17 [MacBook-Pro-de-Jeudry.local/86yT6XvnWD-000039] "GET http:// HTTP/1.1" from  - 200 343B in 144.125µs
 === RUN   TestGetUser/should_not_allow_unauthorized_access
 
 Error: authorization header required
 
 Formatted Stack trace:
-goroutine 192 [running]:
-Backend/cmd/main.printFormattedError({0x101a0e528, 0x14000199e80})
+goroutine 202 [running]:
+Backend/cmd/main.printFormattedError({0x1017da6e8, 0x140002831e0})
 	/Users/sargon/Documents/Coding/RosaFiesta/Backend/cmd/main/errors.go:53 +0x48
-Backend/cmd/main.(*Application).unauthorized(0x1400041b808, {0x1022278f8, 0x1400036d6c0}, 0x14000248b40, {0x101a0e528, 0x14000199e80})
+Backend/cmd/main.(*Application).unauthorized(0x14000333888, {0x10214c2d8, 0x14000466200}, 0x1400054eb40, {0x1017da6e8, 0x140002831e0})
 	/Users/sargon/Documents/Coding/RosaFiesta/Backend/cmd/main/errors.go:58 +0x40
-Backend/cmd/main.(*Application).Mount.func1.4.1.(*Application).AuthTokenMiddleware.1.1({0x1022278f8, 0x1400036d6c0}, 0x14000248b40)
+Backend/cmd/main.(*Application).Mount.func1.4.1.(*Application).AuthTokenMiddleware.1.1({0x10214c2d8, 0x14000466200}, 0x1400054eb40)
 	/Users/sargon/Documents/Coding/RosaFiesta/Backend/cmd/main/middleware.go:131 +0x348
-net/http.HandlerFunc.ServeHTTP(0x14000167201?, {0x1022278f8?, 0x1400036d6c0?}, 0x100b15858?)
+net/http.HandlerFunc.ServeHTTP(0x1400016d201?, {0x10214c2d8?, 0x14000466200?}, 0x1008d2378?)
 	/Users/sargon/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.0.darwin-arm64/src/net/http/server.go:2294 +0x38
-github.com/go-chi/chi/v5.(*Mux).ServeHTTP(0x140005023c0, {0x1022278f8, 0x1400036d6c0}, 0x14000248b40)
+github.com/go-chi/chi/v5.(*Mux).ServeHTTP(0x14000617ec0, {0x10214c2d8, 0x14000466200}, 0x1400054eb40)
 	/Users/sargon/go/pkg/mod/github.com/go-chi/chi/v5@v5.2.1/mux.go:73 +0x2c4
 github.com/go-chi/chi/v5.(*Mux).Mount.func
-2026/02/17 09:57:28 [MacBook-Pro-de-Jeudry.local/xpzbFqyUOX-000040] "GET http:// HTTP/1.1" from  - 401 25B in 41µs
+2026/02/17 10:56:17 [MacBook-Pro-de-Jeudry.local/86yT6XvnWD-000040] "GET http:// HTTP/1.1" from  - 401 25B in 38.333µs
 --- PASS: TestGetUser (0.00s)
     --- PASS: TestGetUser/should_hit_the_cache_and_return_200 (0.00s)
     --- PASS: TestGetUser/should_not_hit_cache_if_disabled (0.00s)
     --- PASS: TestGetUser/should_not_allow_unauthorized_access (0.00s)
 === RUN   TestUpdateFCMToken
 === RUN   TestUpdateFCMToken/should_update_FCM_token_successfully
-2026/02/17 09:57:28 [MacBook-Pro-de-Jeudry.local/xpzbFqyUOX-000041] "PUT http:// HTTP/1.1" from  - 200 54B in 140.709µs
+2026/02/17 10:56:17 [MacBook-Pro-de-Jeudry.local/86yT6XvnWD-000041] "PUT http:// HTTP/1.1" from  - 200 54B in 153.166µs
 === RUN   TestUpdateFCMToken/should_return_400_for_missing_token
 
 Error: token is required
 
 Formatted Stack trace:
-goroutine 195 [running]:
-Backend/cmd/main.printFormattedError({0x101a0e528, 0x140003d6bb0})
+goroutine 205 [running]:
+Backend/cmd/main.printFormattedError({0x1017da6e8, 0x14000469830})
 	/Users/sargon/Documents/Coding/RosaFiesta/Backend/cmd/main/errors.go:53 +0x48
-Backend/cmd/main.(*Application).badRequest(0x14000308008, {0x1022278f8, 0x14000530540}, 0x140002ea140, {0x101a0e528, 0x140003d6bb0})
+Backend/cmd/main.(*Application).badRequest(0x14000201188, {0x10214c2d8, 0x14000625080}, 0x140001c8140, {0x1017da6e8, 0x14000469830})
 	/Users/sargon/Documents/Coding/RosaFiesta/Backend/cmd/main/errors.go:20 +0x40
-Backend/cmd/main.(*Application).updateFCMTokenHandler(0x14000308008, {0x1022278f8, 0x14000530540}, 0x140002ea140)
+Backend/cmd/main.(*Application).updateFCMTokenHandler(0x14000201188, {0x10214c2d8, 0x14000625080}, 0x140001c8140)
 	/Users/sargon/Documents/Coding/RosaFiesta/Backend/cmd/main/fcm.go:33 +0x1fc
-net/http.HandlerFunc.ServeHTTP(0x140002ea000?, {0x1022278f8?, 0x14000530540?}, 0x101a0a8d0?)
+net/http.HandlerFunc.ServeHTTP(0x140001c8000?, {0x10214c2d8?, 0x14000625080?}, 0x1017d6a70?)
 	/Users/sargon/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.0.darwin-arm64/src/net/http/server.go:2294 +0x38
-Backend/cmd/main.(*Application).Mount.func1.4.2.(*Application).AuthTokenMiddleware.1.1({0x1022278f8, 0x14000530540}, 0x140002ea000)
+Backend/cmd/main.(*Application).Mount.func1.4.2.(*Application).AuthTokenMiddleware.1.1({0x10214c2d8, 0x14000625080}, 0x140001c8000)
 	/Users/sargon/Documents/Coding/RosaFiesta/Backend/cmd/main/middleware.go:180 +0x438
 net/http.HandlerFunc.ServeHTTP
-2026/02/17 09:57:28 [MacBook-Pro-de-Jeudry.local/xpzbFqyUOX-000042] "PUT http:// HTTP/1.1" from  - 400 30B in 144.416µs
+2026/02/17 10:56:17 [MacBook-Pro-de-Jeudry.local/86yT6XvnWD-000042] "PUT http:// HTTP/1.1" from  - 400 30B in 129.542µs
 --- PASS: TestUpdateFCMToken (0.00s)
     --- PASS: TestUpdateFCMToken/should_update_FCM_token_successfully (0.00s)
     --- PASS: TestUpdateFCMToken/should_return_400_for_missing_token (0.00s)
 PASS
-ok  	Backend/cmd/main	0.768s
+ok  	Backend/cmd/main	0.981s
