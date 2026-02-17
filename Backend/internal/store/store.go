@@ -22,6 +22,7 @@ type Storage struct {
 		Create(context.Context, *models.Article) error
 		GetById(context.Context, uuid.UUID) (*models.Article, error)
 		GetByCategoryID(context.Context, uuid.UUID) ([]models.Article, error)
+		GetAvailability(context.Context, uuid.UUID, time.Time) (int, error)
 		Update(context.Context, *models.Article) error
 		Delete(context.Context, uuid.UUID) error
 		GetAll(context.Context) ([]models.Article, error)

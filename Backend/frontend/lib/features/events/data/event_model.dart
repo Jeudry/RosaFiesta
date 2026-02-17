@@ -73,6 +73,7 @@ class ArticleLite {
   final String? categoryId;
   final bool isActive;
   final String type;
+  final int stockQuantity;
 
   ArticleLite({
     required this.id,
@@ -81,6 +82,7 @@ class ArticleLite {
     this.categoryId,
     required this.isActive,
     required this.type,
+    this.stockQuantity = 0,
   });
 
   factory ArticleLite.fromJson(Map<String, dynamic> json) {
@@ -91,6 +93,7 @@ class ArticleLite {
       categoryId: json['category_id'],
       isActive: json['is_active'] ?? false,
       type: json['type'] ?? '',
+      stockQuantity: json['stock_quantity'] ?? 0,
     );
   }
 }

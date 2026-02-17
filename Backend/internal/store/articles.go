@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"time"
 
 	"Backend/internal/store/models"
 
@@ -35,9 +36,9 @@ func (s *ArticlesStore) Create(ctx context.Context, article *models.Article) err
 		// 1. Insert Article
 		query := `
 			INSERT INTO articles (
-				name_template, description_template, type, category_id, is_active, created_by, updated_by
+				name_template, description_template, type, category_id, is_active, stock_quantity, created_by, updated_by
 			) VALUES (
-				$1, $2, $3, $4, $5, $6, $6
+				$1, $2, $3, $4, $5, $6, $7, $7
 			) RETURNING id, created, updated`
 
 		if err := tx.QueryRowContext(ctx, query,
@@ -46,6 +47,7 @@ func (s *ArticlesStore) Create(ctx context.Context, article *models.Article) err
 			article.Type,
 			article.CategoryID,
 			article.IsActive,
+			article.StockQuantity,
 			article.CreatedBy,
 		).Scan(&article.ID, &article.Created, &article.Updated); err != nil {
 			return fmt.Errorf("failed to insert article: %w", err)
@@ -126,7 +128,7 @@ func (s *ArticlesStore) GetById(ctx context.Context, id uuid.UUID) (*models.Arti
 
 	// 1. Get Article
 	query := `
-		SELECT id, name_template, description_template, COALESCE(type, ''), category_id, is_active, created, updated, created_by, updated_by
+		SELECT id, name_template, description_template, COALESCE(type, ''), category_id, is_active, stock_quantity, created, updated, created_by, updated_by
 		FROM articles
 		WHERE id = $1`
 
@@ -137,6 +139,7 @@ func (s *ArticlesStore) GetById(ctx context.Context, id uuid.UUID) (*models.Arti
 		&article.Type,
 		&article.CategoryID,
 		&article.IsActive,
+		&article.StockQuantity,
 		&article.Created,
 		&article.Updated,
 		&article.CreatedBy,
@@ -210,7 +213,7 @@ func (s *ArticlesStore) GetById(ctx context.Context, id uuid.UUID) (*models.Arti
 func (s *ArticlesStore) GetAll(ctx context.Context) ([]models.Article, error) {
 	// Basic implementation: fetch articles only, no deep nested variants for list view to avoid massive payload/query
 	query := `
-		SELECT id, name_template, description_template, COALESCE(type, ''), category_id, is_active, created, updated, created_by, updated_by
+		SELECT id, name_template, description_template, COALESCE(type, ''), category_id, is_active, stock_quantity, created, updated, created_by, updated_by
 		FROM articles`
 
 	rows, err := s.db.QueryContext(ctx, query)
@@ -237,7 +240,7 @@ func (s *ArticlesStore) GetAll(ctx context.Context) ([]models.Article, error) {
 
 func (s *ArticlesStore) GetByCategoryID(ctx context.Context, categoryID uuid.UUID) ([]models.Article, error) {
 	query := `
-		SELECT id, name_template, description_template, COALESCE(type, ''), category_id, is_active, created, updated, created_by, updated_by
+		SELECT id, name_template, description_template, COALESCE(type, ''), category_id, is_active, stock_quantity, created, updated, created_by, updated_by
 		FROM articles
 		WHERE category_id = $1`
 
@@ -271,12 +274,12 @@ func (s *ArticlesStore) Update(ctx context.Context, article *models.Article) err
 
 	query := `
 		UPDATE articles 
-		SET name_template = $1, description_template = $2, type = $3, category_id = $4, is_active = $5, updated = NOW(), updated_by = $6
-		WHERE id = $7
+		SET name_template = $1, description_template = $2, type = $3, category_id = $4, is_active = $5, stock_quantity = $6, updated = NOW(), updated_by = $7
+		WHERE id = $8
 		RETURNING updated`
 
 	err := s.db.QueryRowContext(ctx, query,
-		article.NameTemplate, article.DescriptionTemplate, article.Type, article.CategoryID, article.IsActive, article.UpdatedBy, article.ID,
+		article.NameTemplate, article.DescriptionTemplate, article.Type, article.CategoryID, article.IsActive, article.StockQuantity, article.UpdatedBy, article.ID,
 	).Scan(&article.Updated)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -289,6 +292,7 @@ func (s *ArticlesStore) Update(ctx context.Context, article *models.Article) err
 }
 
 func (s *ArticlesStore) Delete(ctx context.Context, id uuid.UUID) error {
+	// ... (content of delete omitted for brevity, I'll keep it)
 	query := `DELETE FROM articles WHERE id = $1`
 	res, err := s.db.ExecContext(ctx, query, id)
 	if err != nil {
@@ -301,4 +305,39 @@ func (s *ArticlesStore) Delete(ctx context.Context, id uuid.UUID) error {
 	}
 
 	return nil
+}
+
+// GetAvailability returns the remaining stock for a specific article on a given date.
+func (s *ArticlesStore) GetAvailability(ctx context.Context, articleID uuid.UUID, date time.Time) (int, error) {
+	// 1. Get total stock
+	var totalStock int
+	queryStock := `SELECT stock_quantity FROM articles WHERE id = $1`
+	if err := s.db.QueryRowContext(ctx, queryStock, articleID).Scan(&totalStock); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, ErrNotFound
+		}
+		return 0, err
+	}
+
+	// 2. Sum reserved quantities for this date
+	// We check events on that date.
+	// Note: We only sum confirmed or paid events?
+	// Actually, even 'planning' or 'requested' should probably reserve stock to be safe,
+	// but let's say 'planning', 'requested', 'adjusted', 'confirmed', 'paid' all count.
+	// Maybe only 'confirmed' and 'paid' really "lock" it, but for a renting business
+	// usually everything from requested onwards is a "soft lock".
+	// Let's count everything except 'cancelled' (not implemented yet) or maybe only finalized?
+	// User said "Sum of quantity in event_items for all events on that Date".
+	var reservedCount int
+	queryReserved := `
+		SELECT COALESCE(SUM(ei.quantity), 0)
+		FROM event_items ei
+		JOIN events e ON ei.event_id = e.id
+		WHERE ei.article_id = $1 AND e.date::date = $2::date
+	`
+	if err := s.db.QueryRowContext(ctx, queryReserved, articleID, date).Scan(&reservedCount); err != nil {
+		return 0, err
+	}
+
+	return totalStock - reservedCount, nil
 }

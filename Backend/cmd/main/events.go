@@ -316,6 +316,22 @@ func (app *Application) addEventItemHandler(w http.ResponseWriter, r *http.Reque
 		item.Quantity = 1
 	}
 
+	// Phase 17: Availability & Inventory Check
+	availability, err := app.Store.Articles.GetAvailability(r.Context(), payload.ArticleID, event.Date)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			app.notFoundResponse(w, r, err)
+		} else {
+			app.internalServerError(w, r, err)
+		}
+		return
+	}
+
+	if availability < item.Quantity {
+		app.badRequest(w, r, errors.New("insufficient stock for this date"))
+		return
+	}
+
 	if err := app.Store.Events.AddItem(r.Context(), item); err != nil {
 		app.internalServerError(w, r, err)
 		return

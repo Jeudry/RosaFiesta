@@ -15,6 +15,7 @@ type Article struct {
 	DescriptionTemplate *string     `json:"description_template,omitempty"`
 	IsActive            bool        `json:"is_active"`
 	Type                ArticleType `json:"type"`
+	StockQuantity       int         `json:"stock_quantity"`
 	CategoryID          *uuid.UUID  `json:"category_id,omitempty"`
 	Category            *Category   `json:"category,omitempty"` // For eager loading
 

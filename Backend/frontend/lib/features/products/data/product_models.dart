@@ -4,6 +4,7 @@ class Product {
   final String? descriptionTemplate;
   final bool isActive;
   final String type; // 'Rental' or 'Sale'
+  final int stockQuantity;
   final String? categoryId;
   final List<ProductVariant> variants;
 
@@ -13,6 +14,7 @@ class Product {
     this.descriptionTemplate,
     required this.isActive,
     required this.type,
+    this.stockQuantity = 0,
     this.categoryId,
     this.variants = const [],
   });
@@ -24,6 +26,7 @@ class Product {
       descriptionTemplate: json['description_template'],
       isActive: json['is_active'],
       type: json['type'],
+      stockQuantity: json['stock_quantity'] ?? 0,
       categoryId: json['category_id'],
       variants: (json['variants'] as List<dynamic>?)
               ?.map((e) => ProductVariant.fromJson(e))

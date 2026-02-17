@@ -71,6 +71,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               color: Theme.of(context).primaryColor,
                             ),
                       ),
+                      const SizedBox(height: 8),
+                      Chip(
+                        label: Text('Stock Total: ${product.stockQuantity}'),
+                        avatar: const Icon(Icons.inventory, size: 16),
+                        backgroundColor: Colors.blue[50],
+                      ),
                       const SizedBox(height: 16),
                       Text(
                         product.descriptionTemplate ?? 'Sin descripción',

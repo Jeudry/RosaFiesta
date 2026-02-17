@@ -13,9 +13,10 @@ class ErrorTranslator {
     'server error': 'Error interno del servidor. Intente más tarde.',
     'bad request': 'Solicitud inválida.',
     
-    // Shop
+    // Shop / Events
     'out of stock': 'Producto agotado.',
     'insufficient quantity': 'Cantidad solicitada no disponible.',
+    'insufficient stock': 'Stock insuficiente para esta fecha.',
   };
 
   static String translate(String originalError) {
