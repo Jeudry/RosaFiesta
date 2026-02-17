@@ -45,4 +45,11 @@ class EventsRepository {
   Future<Event> confirmQuote(String id) async {
     return await updateEvent(id, {'status': 'confirmed'});
   }
+
+  Future<Event> payEvent(String id, String paymentMethod) async {
+    final response = await ApiClient.post('/events/$id/pay', {
+      'payment_method': paymentMethod,
+    });
+    return Event.fromJson(response);
+  }
 }

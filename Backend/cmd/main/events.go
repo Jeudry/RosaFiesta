@@ -429,6 +429,80 @@ func (app *Application) getEventItemsHandler(w http.ResponseWriter, r *http.Requ
 	}
 }
 
+// payEventHandler godoc
+//
+//	@Summary		Simulate event payment
+//	@Description	Simulate event payment and update status to 'paid'
+//	@Tags			events
+//	@Accept			json
+//	@Produce		json
+//	@Param			id		path		string	true	"Event ID"
+//	@Param			payload	body		object	true	"Payment payload"
+//	@Success		200		{object}	models.Event
+//	@Failure		400		{object}	error
+//	@Failure		404		{object}	error
+//	@Failure		500		{object}	error
+//	@Router			/events/{id}/pay [post]
+func (app *Application) payEventHandler(w http.ResponseWriter, r *http.Request) {
+	idParam := chi.URLParam(r, "id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	var payload struct {
+		PaymentMethod string `json:"payment_method" validate:"required"`
+	}
+	if err := readJson(w, r, &payload); err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	if err := Validate.Struct(payload); err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	event, err := app.Store.Events.GetByID(r.Context(), id)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			app.notFoundResponse(w, r, err)
+		} else {
+			app.internalServerError(w, r, err)
+		}
+		return
+	}
+
+	// Authorization check
+	user := GetUserFromCtx(r)
+	if event.UserID != user.ID {
+		app.forbidden(w, r, errors.New("you do not have permission to pay for this event"))
+		return
+	}
+
+	if event.Status != "confirmed" {
+		app.badRequest(w, r, errors.New("only confirmed events can be paid"))
+		return
+	}
+
+	// Update payment fields
+	now := time.Now()
+	event.PaymentStatus = "completed"
+	event.PaymentMethod = &payload.PaymentMethod
+	event.PaidAt = &now
+	event.Status = "paid"
+
+	if err := app.Store.Events.Update(r.Context(), event); err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+
+	if err := app.jsonResponse(w, http.StatusOK, event); err != nil {
+		app.internalServerError(w, r, err)
+	}
+}
+
 // adjustQuoteHandler godoc
 //
 //	@Summary		Adjust event quote (Admin only)

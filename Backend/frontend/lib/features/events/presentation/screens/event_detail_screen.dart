@@ -9,6 +9,7 @@ import '../../presentation/timeline_provider.dart';
 import '../../../guests/presentation/guests_provider.dart';
 import '../../../tasks/presentation/tasks_provider.dart';
 import '../../../core/services/pdf_export_service.dart';
+import 'checkout_screen.dart';
 
 
 class EventDetailScreen extends StatefulWidget {
@@ -120,6 +121,9 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
 
                 _buildDetailRow(Icons.info, 'Estado', _getStatusLabel(widget.event.status)),
                 
+                if (widget.event.status == 'paid')
+                   _buildDetailRow(Icons.verified, 'Pago', 'Completado via ${widget.event.paymentMethod ?? "N/A"}', color: Colors.green),
+
                 const Divider(height: 32),
                 
                 // Action Buttons based on status
@@ -210,16 +214,14 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
       case 'planning': return 'Borrador (Planeando)';
       case 'requested': return 'En Revisión (Cotización Solicitada)';
       case 'adjusted': return 'Cotización Lista (Revisar Ajustes)';
-      case 'confirmed': return 'Confirmado / Reservado';
+      case 'confirmed': return 'Confirmado (Pendiente de Pago)';
+      case 'paid': return 'Pagado y Reservado';
       case 'completed': return 'Evento Finalizado';
       default: return status;
     }
   }
 
   Widget _buildActionButtons(BuildContext context, EventsProvider provider) {
-    // We would check AuthProvider here to see if user is Admin
-    // For now, let's show user buttons
-    
     if (widget.event.status == 'planning') {
       return SizedBox(
         width: double.infinity,
@@ -237,14 +239,55 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
         width: double.infinity,
         child: ElevatedButton.icon(
           icon: const Icon(Icons.check_circle),
-          label: const Text('Confirmar y Reservar'),
+          label: const Text('Aceptar Cotización'),
           onPressed: () => _confirmQuotation(context, provider),
           style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
         ),
       );
     }
 
+    if (widget.event.status == 'confirmed') {
+      return SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          icon: const Icon(Icons.payment),
+          label: const Text('Pagar para Reservar'),
+          onPressed: () => _navigateToCheckout(context, provider),
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, foregroundColor: Colors.white),
+        ),
+      );
+    }
+
+    if (widget.event.status == 'paid') {
+      return SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          icon: const Icon(Icons.picture_as_pdf),
+          label: const Text('Descargar Factura / Invoice'),
+          onPressed: () => _exportToPdf(context),
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
+        ),
+      );
+    }
+
     return const SizedBox.shrink();
+  }
+
+  void _navigateToCheckout(BuildContext context, EventsProvider provider) {
+    double realBudget = 0;
+    for (var item in provider.currentEventItems) {
+      if (item.price != null) {
+        realBudget += item.price! * item.quantity;
+      }
+    }
+    final total = realBudget + widget.event.additionalCosts;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CheckoutScreen(event: widget.event, totalAmount: total),
+      ),
+    );
   }
 
   Future<void> _requestQuotation(BuildContext context, EventsProvider provider) async {

@@ -16,8 +16,8 @@ type EventStore struct {
 
 func (s *EventStore) Create(ctx context.Context, event *models.Event) error {
 	query := `
-		INSERT INTO events (user_id, name, date, location, guest_count, budget, status, additional_costs, admin_notes)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		INSERT INTO events (user_id, name, date, location, guest_count, budget, status, additional_costs, admin_notes, payment_status, payment_method, paid_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 		RETURNING id, created_at, updated_at
 	`
 
@@ -33,6 +33,9 @@ func (s *EventStore) Create(ctx context.Context, event *models.Event) error {
 		event.Status,
 		event.AdditionalCosts,
 		event.AdminNotes,
+		event.PaymentStatus,
+		event.PaymentMethod,
+		event.PaidAt,
 	).Scan(
 		&event.ID,
 		&event.CreatedAt,
@@ -47,7 +50,8 @@ func (s *EventStore) Create(ctx context.Context, event *models.Event) error {
 
 func (s *EventStore) GetByID(ctx context.Context, id uuid.UUID) (*models.Event, error) {
 	query := `
-		SELECT id, user_id, name, date, location, guest_count, budget, status, additional_costs, admin_notes, created_at, updated_at
+		SELECT id, user_id, name, date, location, guest_count, budget, status, additional_costs, admin_notes, 
+		       payment_status, payment_method, paid_at, created_at, updated_at
 		FROM events
 		WHERE id = $1
 	`
@@ -64,6 +68,9 @@ func (s *EventStore) GetByID(ctx context.Context, id uuid.UUID) (*models.Event, 
 		&event.Status,
 		&event.AdditionalCosts,
 		&event.AdminNotes,
+		&event.PaymentStatus,
+		&event.PaymentMethod,
+		&event.PaidAt,
 		&event.CreatedAt,
 		&event.UpdatedAt,
 	)
@@ -79,7 +86,8 @@ func (s *EventStore) GetByID(ctx context.Context, id uuid.UUID) (*models.Event, 
 
 func (s *EventStore) GetByUserID(ctx context.Context, userID uuid.UUID) ([]models.Event, error) {
 	query := `
-		SELECT id, user_id, name, date, location, guest_count, budget, status, additional_costs, admin_notes, created_at, updated_at
+		SELECT id, user_id, name, date, location, guest_count, budget, status, additional_costs, admin_notes, 
+		       payment_status, payment_method, paid_at, created_at, updated_at
 		FROM events
 		WHERE user_id = $1
 		ORDER BY date ASC
@@ -105,6 +113,9 @@ func (s *EventStore) GetByUserID(ctx context.Context, userID uuid.UUID) ([]model
 			&event.Status,
 			&event.AdditionalCosts,
 			&event.AdminNotes,
+			&event.PaymentStatus,
+			&event.PaymentMethod,
+			&event.PaidAt,
 			&event.CreatedAt,
 			&event.UpdatedAt,
 		)
@@ -121,8 +132,8 @@ func (s *EventStore) Update(ctx context.Context, event *models.Event) error {
 	query := `
 		UPDATE events
 		SET name = $1, date = $2, location = $3, guest_count = $4, budget = $5, status = $6, 
-		    additional_costs = $7, admin_notes = $8, updated_at = NOW()
-		WHERE id = $9
+		    additional_costs = $7, admin_notes = $8, payment_status = $9, payment_method = $10, paid_at = $11, updated_at = NOW()
+		WHERE id = $12
 		RETURNING updated_at
 	`
 
@@ -137,6 +148,9 @@ func (s *EventStore) Update(ctx context.Context, event *models.Event) error {
 		event.Status,
 		event.AdditionalCosts,
 		event.AdminNotes,
+		event.PaymentStatus,
+		event.PaymentMethod,
+		event.PaidAt,
 		event.ID,
 	).Scan(&event.UpdatedAt)
 	if err != nil {

@@ -9,6 +9,9 @@ class Event {
   final double additionalCosts;
   final String? adminNotes;
   final String status;
+  final String paymentStatus;
+  final String? paymentMethod;
+  final DateTime? paidAt;
 
   Event({
     required this.id,
@@ -21,6 +24,9 @@ class Event {
     this.additionalCosts = 0.0,
     this.adminNotes,
     required this.status,
+    this.paymentStatus = 'pending',
+    this.paymentMethod,
+    this.paidAt,
   });
 
   factory Event.fromJson(Map<String, dynamic> json) {
@@ -35,6 +41,9 @@ class Event {
       additionalCosts: (json['additional_costs'] as num?)?.toDouble() ?? 0.0,
       adminNotes: json['admin_notes'],
       status: json['status'],
+      paymentStatus: json['payment_status'] ?? 'pending',
+      paymentMethod: json['payment_method'],
+      paidAt: json['paid_at'] != null ? DateTime.parse(json['paid_at']) : null,
     );
   }
 
@@ -50,6 +59,9 @@ class Event {
       'additional_costs': additionalCosts,
       'admin_notes': adminNotes,
       'status': status,
+      'payment_status': paymentStatus,
+      'payment_method': paymentMethod,
+      'paid_at': paidAt?.toIso8601String(),
     };
   }
 }

@@ -180,6 +180,21 @@ class EventsProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> payEvent(String eventId, String paymentMethod) async {
+    _setLoading(true);
+    _error = null;
+    try {
+      await _repository.payEvent(eventId, paymentMethod);
+      await fetchEvents();
+      return true;
+    } catch (e) {
+      _error = ErrorTranslator.translate(e.toString());
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
   void _setLoading(bool value) {
     _isLoading = value;
     notifyListeners();

@@ -33,7 +33,7 @@ class PdfExportService {
               child: pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
-                  pw.Text('Rosa Fiesta - Resumen de Evento', 
+                  pw.Text(event.status == 'paid' ? 'FACTURA DE RESERVA' : 'Rosa Fiesta - Resumen de Evento', 
                     style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold, color: PdfColors.pink)
                   ),
                   pw.Text(dateFormat.format(DateTime.now()), style: const pw.TextStyle(color: PdfColors.grey)),
@@ -50,13 +50,35 @@ class PdfExportService {
                 borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
               ),
               child: pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                crossAxisAlignment: pw.Start,
                 children: [
-                  pw.Text(event.name, style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold)),
+                   pw.Row(
+                     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                     children: [
+                       pw.Column(
+                         crossAxisAlignment: pw.Start,
+                         children: [
+                           pw.Text(event.name, style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold)),
+                           pw.Text('Fecha: ${dateFormat.format(event.date)}'),
+                           pw.Text('Ubicación: ${event.location}'),
+                         ]
+                       ),
+                       if (event.status == 'paid')
+                        pw.Column(
+                          crossAxisAlignment: pw.End,
+                          children: [
+                            pw.Text('ESTADO: PAGADO', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.green)),
+                            pw.Text('Método: ${event.paymentMethod}'),
+                            pw.Text('ID Pago: ${event.id.substring(0,8).toUpperCase()}'),
+                          ]
+                        ),
+                     ]
+                   ),
                   pw.SizedBox(height: 5),
-                  pw.Text('Fecha: ${dateFormat.format(event.date)}'),
-                  pw.Text('Ubicación: ${event.location}'),
                   pw.Text('Presupuesto Estimado: \$${event.budget.toStringAsFixed(2)}'),
+                  if (event.additionalCosts > 0)
+                    pw.Text('Costos Adicionales: \$${event.additionalCosts.toStringAsFixed(2)}'),
+                  pw.Text('Total Final: \$${(event.budget + event.additionalCosts).toStringAsFixed(2)}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
                 ],
               ),
             ),
@@ -66,6 +88,25 @@ class PdfExportService {
             pw.Text('Presupuesto y Productos', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
             pw.Divider(),
             _buildProductsTable(products),
+            pw.SizedBox(height: 10),
+            
+            // Totals
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.end,
+              children: [
+                pw.Column(
+                  crossAxisAlignment: pw.End,
+                  children: [
+                    pw.Text('Subtotal Productos: \$${products.fold(0.0, (sum, item) => sum + (item.price ?? 0) * item.quantity).toStringAsFixed(2)}'),
+                    if (event.additionalCosts > 0)
+                      pw.Text('Costos Adicionales: \$${event.additionalCosts.toStringAsFixed(2)}'),
+                    pw.Text('TOTAL: \$${(products.fold(0.0, (sum, item) => sum + (item.price ?? 0) * item.quantity) + event.additionalCosts).toStringAsFixed(2)}', 
+                      style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)
+                    ),
+                  ]
+                )
+              ]
+            ),
             pw.SizedBox(height: 20),
 
             // Guests Section

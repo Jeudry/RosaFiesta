@@ -134,6 +134,7 @@ func (app *Application) Mount() http.Handler {
 			r.Get("/", app.getUserEventsHandler)
 			r.Get("/{id}", app.getEventHandler)
 			r.Put("/{id}", app.updateEventHandler)
+			r.Post("/{id}/pay", app.payEventHandler)
 
 			r.Delete("/{id}", app.deleteEventHandler)
 
