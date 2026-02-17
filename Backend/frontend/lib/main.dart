@@ -8,6 +8,7 @@ import 'features/home/presentation/screens/welcome_onboarding_screen.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'core/api_client.dart';
 import 'features/products/presentation/products_provider.dart';
+import 'features/products/presentation/reviews_provider.dart';
 import 'features/shop/presentation/cart_provider.dart';
 import 'features/categories/presentation/categories_provider.dart';
 import 'features/profile/presentation/profile_provider.dart';
@@ -19,12 +20,18 @@ import 'features/tasks/presentation/tasks_provider.dart';
 import 'features/suppliers/presentation/suppliers_provider.dart';
 import 'features/events/data/timeline_repository.dart';
 import 'features/events/presentation/timeline_provider.dart';
+import 'features/stats/presentation/stats_provider.dart';
 import 'core/services/notification_service.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'core/services/firebase_service.dart';
 
 Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
   await dotenv.load(fileName: ".env");
   ApiClient.init();
   await NotificationService().init();
+  await FirebaseService().initialize();
   
   final guestsRepository = GuestsRepository();
   final tasksRepository = EventTasksRepository();
@@ -45,6 +52,7 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => SuppliersProvider(suppliersRepository)),
         ChangeNotifierProvider(create: (_) => TimelineProvider(timelineRepository)),
         ChangeNotifierProvider(create: (_) => StatsProvider()),
+        ChangeNotifierProvider(create: (_) => ReviewsProvider()),
       ],
       child: const RosaFiestaApp(),
     ),

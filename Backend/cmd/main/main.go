@@ -13,6 +13,7 @@ import (
 	"Backend/internal/db"
 	"Backend/internal/env"
 	"Backend/internal/mailer"
+	"Backend/internal/notifications"
 	"Backend/internal/ratelimiter"
 	"Backend/internal/store"
 
@@ -139,15 +140,17 @@ func main() {
 	mailGo, err := mailer.NewGoMailClient(cfg.Mail.Password, cfg.Mail.FromEmail)
 
 	jwtAuthenticator := auth.NewJWTAuthenticator(cfg.Auth.Token.Secret, cfg.Auth.Token.Aud, cfg.Auth.Token.Iss)
+	notificationService := notifications.NewNotificationService()
 
 	app := &Application{
-		Config:       cfg,
-		Store:        appStore,
-		Logger:       logger,
-		Mailer:       mailGo,
-		Auth:         jwtAuthenticator,
-		CacheStorage: cacheStorage,
-		RateLimiter:  rateLimiter,
+		Config:        cfg,
+		Store:         appStore,
+		Logger:        logger,
+		Mailer:        mailGo,
+		Auth:          jwtAuthenticator,
+		CacheStorage:  cacheStorage,
+		RateLimiter:   rateLimiter,
+		Notifications: notificationService,
 	}
 
 	expvar.NewString("version").Set(Version)

@@ -32,4 +32,8 @@ class AuthRepository {
     await _storage.write(key: 'access_token', value: access);
     await _storage.write(key: 'refresh_token', value: refresh);
   }
+
+  Future<void> updateFCMToken(String token) async {
+    await _apiService.updateFCMToken(token);
+  }
 }

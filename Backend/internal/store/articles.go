@@ -151,6 +151,12 @@ func (s *ArticlesStore) GetById(ctx context.Context, id uuid.UUID) (*models.Arti
 		return nil, err
 	}
 
+	// 1.5 Get Rating Summary
+	queryRating := `SELECT COALESCE(AVG(rating), 0), COUNT(*) FROM reviews WHERE article_id = $1`
+	if err := s.db.QueryRowContext(ctx, queryRating, article.ID).Scan(&article.AverageRating, &article.ReviewCount); err != nil {
+		return nil, err
+	}
+
 	// 2. Get Variants
 	// Note: N+1 problem minimized by fetching all variants for this article
 	// Attributes and Dimensions still need care. For MVP/Speed, simple iterative fetching or JOINs.

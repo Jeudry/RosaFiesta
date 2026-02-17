@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import '../data/auth_repository.dart';
 import '../data/models.dart';
 import '../../../core/utils/error_translator.dart';
+import '../../../core/services/firebase_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   final AuthRepository _repository;
+  final FirebaseService _firebaseService;
 
-  AuthProvider({AuthRepository? repository}) 
-      : _repository = repository ?? AuthRepository();
+  AuthProvider({AuthRepository? repository, FirebaseService? firebaseService}) 
+      : _repository = repository ?? AuthRepository(),
+        _firebaseService = firebaseService ?? FirebaseService();
   
   bool _isLoading = false;
   bool get isLoading => _isLoading;
@@ -28,6 +31,17 @@ class AuthProvider extends ChangeNotifier {
       // TODO: Fetch user profile with the token
       // For now, we just know we are authenticated
       _user = User(id: response.userId, email: email);
+
+      // Phase 20: Sync FCM Token
+      try {
+        String? fcmToken = await _firebaseService.getToken();
+        if (fcmToken != null) {
+          await _repository.updateFCMToken(fcmToken);
+        }
+      } catch (e) {
+        debugPrint("Error updating FCM token: $e");
+      }
+
       notifyListeners();
     } catch (e) {
       _error = ErrorTranslator.translate(e.toString());

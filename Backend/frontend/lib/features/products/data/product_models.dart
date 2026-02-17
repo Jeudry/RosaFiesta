@@ -7,6 +7,8 @@ class Product {
   final int stockQuantity;
   final String? categoryId;
   final List<ProductVariant> variants;
+  final double averageRating;
+  final int reviewCount;
 
   Product({
     required this.id,
@@ -17,6 +19,8 @@ class Product {
     this.stockQuantity = 0,
     this.categoryId,
     this.variants = const [],
+    this.averageRating = 0.0,
+    this.reviewCount = 0,
   });
 
   factory Product.fromJson(Map<String, dynamic> json) {
@@ -32,6 +36,57 @@ class Product {
               ?.map((e) => ProductVariant.fromJson(e))
               .toList() ??
           [],
+      averageRating: (json['average_rating'] as num?)?.toDouble() ?? 0.0,
+      reviewCount: json['review_count'] ?? 0,
+    );
+  }
+}
+
+class Review {
+  final String id;
+  final String userId;
+  final String articleId;
+  final int rating;
+  final String comment;
+  final DateTime created;
+  final ReviewUser? user;
+
+  Review({
+    required this.id,
+    required this.userId,
+    required this.articleId,
+    required this.rating,
+    required this.comment,
+    required this.created,
+    this.user,
+  });
+
+  factory Review.fromJson(Map<String, dynamic> json) {
+    return Review(
+      id: json['id'],
+      userId: json['user_id'],
+      articleId: json['article_id'],
+      rating: json['rating'],
+      comment: json['comment'],
+      created: DateTime.parse(json['created']),
+      user: json['user'] != null ? ReviewUser.fromJson(json['user']) : null,
+    );
+  }
+}
+
+class ReviewUser {
+  final String userName;
+  final String? avatar;
+
+  ReviewUser({
+    required this.userName,
+    this.avatar,
+  });
+
+  factory ReviewUser.fromJson(Map<String, dynamic> json) {
+    return ReviewUser(
+      userName: json['user_name'],
+      avatar: json['avatar'],
     );
   }
 }

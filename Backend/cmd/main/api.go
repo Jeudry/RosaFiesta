@@ -68,10 +68,16 @@ func (app *Application) Mount() http.Handler {
 
 			r.Route("/{articleId}", func(r chi.Router) {
 				r.Use(app.articlesContextMiddleware)
-				r.Use(app.RoleMiddleware("moderator"))
-				r.Get("/", app.getArticleHandler)
-				r.Put("/", app.updateArticleHandler)
-				r.Delete("/", app.deleteArticleHandler)
+
+				r.Group(func(r chi.Router) {
+					r.Use(app.RoleMiddleware("moderator"))
+					r.Get("/", app.getArticleHandler)
+					r.Put("/", app.updateArticleHandler)
+					r.Delete("/", app.deleteArticleHandler)
+				})
+
+				r.With(app.AuthTokenMiddleware()).Post("/reviews", app.createReviewHandler)
+				r.Get("/reviews", app.getArticleReviewsHandler)
 			})
 		})
 
@@ -105,6 +111,7 @@ func (app *Application) Mount() http.Handler {
 			r.Group(func(r chi.Router) {
 				r.Use(app.AuthTokenMiddleware())
 				r.Get("/feed", app.getUserFeedHandler)
+				r.Put("/fcm-token", app.updateFCMTokenHandler)
 			})
 		})
 

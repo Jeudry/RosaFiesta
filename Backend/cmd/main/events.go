@@ -514,6 +514,9 @@ func (app *Application) payEventHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	// Phase 20: Notify user about payment
+	_ = app.Notifications.NotifyStatusChange(r.Context(), user.FCMToken, event.Name, "Pagado")
+
 	if err := app.jsonResponse(w, http.StatusOK, event); err != nil {
 		app.internalServerError(w, r, err)
 	}
@@ -573,6 +576,13 @@ func (app *Application) adjustQuoteHandler(w http.ResponseWriter, r *http.Reques
 	if err := app.Store.Events.Update(r.Context(), event); err != nil {
 		app.internalServerError(w, r, err)
 		return
+	}
+
+	// Phase 20: Notify user about adjustment
+	// We need to fetch the user to get their FCM token
+	user, err := app.Store.Users.RetrieveById(r.Context(), event.UserID)
+	if err == nil && user.FCMToken != "" {
+		_ = app.Notifications.NotifyStatusChange(r.Context(), user.FCMToken, event.Name, "Cotización Ajustada")
 	}
 
 	if err := app.jsonResponse(w, http.StatusOK, event); err != nil {

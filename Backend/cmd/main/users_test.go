@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"net/http"
 	"testing"
 
@@ -170,6 +172,69 @@ func TestGetUser(t *testing.T) {
 			mockCacheStore.AssertExpectations(t)
 			storeM.AssertExpectations(t)
 			authM.AssertExpectations(t)
+		})
+	}
+}
+
+func TestUpdateFCMToken(t *testing.T) {
+	userID := uuid.New()
+	userIDStr := userID.String()
+
+	tests := []struct {
+		name         string
+		payload      map[string]interface{}
+		setupMocks   func(*Application)
+		expectedCode int
+	}{
+		{
+			name: "should update FCM token successfully",
+			payload: map[string]interface{}{
+				"token": "new-fcm-token",
+			},
+			setupMocks: func(app *Application) {
+				token := &jwt.Token{
+					Claims: jwt.MapClaims{"sub": userIDStr},
+					Valid:  true,
+				}
+				app.Auth.(*authMocks.Authenticator).On("ValidateToken", "valid-token").Return(token, nil).Once()
+
+				storeM := app.Store.Users.(*storeMocks.UserStore)
+				storeM.On("RetrieveById", mock.Anything, userID).Return(&models.User{ID: userID}, nil).Once()
+				storeM.On("UpdateFCMToken", mock.Anything, userID, "new-fcm-token").Return(nil).Once()
+			},
+			expectedCode: http.StatusOK,
+		},
+		{
+			name:    "should return 400 for missing token",
+			payload: map[string]interface{}{},
+			setupMocks: func(app *Application) {
+				token := &jwt.Token{
+					Claims: jwt.MapClaims{"sub": userIDStr},
+					Valid:  true,
+				}
+				app.Auth.(*authMocks.Authenticator).On("ValidateToken", "valid-token").Return(token, nil).Once()
+
+				storeM := app.Store.Users.(*storeMocks.UserStore)
+				storeM.On("RetrieveById", mock.Anything, userID).Return(&models.User{ID: userID}, nil).Once()
+			},
+			expectedCode: http.StatusBadRequest,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			app := newTestApplication(t, configModels.Config{})
+			if tc.setupMocks != nil {
+				tc.setupMocks(app)
+			}
+
+			mux := app.Mount()
+			body, _ := json.Marshal(tc.payload)
+			req, _ := http.NewRequest(http.MethodPut, "/v1/users/fcm-token", bytes.NewBuffer(body))
+			req.Header.Set("Authorization", "Bearer valid-token")
+
+			rr := executeRequest(req, mux)
+			checkResponseCode(t, tc.expectedCode, rr)
 		})
 	}
 }

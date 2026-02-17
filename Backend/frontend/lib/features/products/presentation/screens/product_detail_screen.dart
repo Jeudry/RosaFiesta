@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../products_provider.dart';
 import '../../data/product_models.dart';
 import '../../../shop/presentation/cart_provider.dart';
+import '../reviews_provider.dart';
+import '../../../events/presentation/events_provider.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final String productId;
@@ -19,6 +21,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ProductsProvider>().fetchProductDetails(widget.productId);
+      context.read<ReviewsProvider>().fetchReviews(widget.productId);
     });
   }
 
@@ -63,6 +66,27 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       Text(
                         product.nameTemplate,
                         style: Theme.of(context).textTheme.headlineSmall,
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Row(
+                            children: List.generate(5, (index) {
+                              return Icon(
+                                index < product.averageRating.floor()
+                                    ? Icons.star
+                                    : Icons.star_border,
+                                color: Colors.amber,
+                                size: 20,
+                              );
+                            }),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '${product.averageRating.toStringAsFixed(1)} (${product.reviewCount})',
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 8),
                       Text(
@@ -123,6 +147,87 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           child: const Text('Agregar a Evento'),
                         ),
                       ),
+                      const SizedBox(height: 32),
+                      const Divider(),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Reseñas',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: 8),
+                      Consumer<ReviewsProvider>(
+                        builder: (context, reviewsProvider, child) {
+                          if (reviewsProvider.isLoading && reviewsProvider.reviews.isEmpty) {
+                            return const Center(child: Padding(
+                              padding: EdgeInsets.all(16.0),
+                              child: CircularProgressIndicator(),
+                            ));
+                          }
+                          
+                          if (reviewsProvider.reviews.isEmpty) {
+                            return const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 16.0),
+                              child: Text('Aún no hay reseñas para este producto.'),
+                            );
+                          }
+
+                          return ListView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: reviewsProvider.reviews.length,
+                            itemBuilder: (context, index) {
+                              final review = reviewsProvider.reviews[index];
+                              return Card(
+                                margin: const EdgeInsets.symmetric(vertical: 8),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(12.0),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            review.user?.userName ?? 'Usuario',
+                                            style: const TextStyle(fontWeight: FontWeight.bold),
+                                          ),
+                                          Text(
+                                            review.created.toString().split(' ')[0],
+                                            style: Theme.of(context).textTheme.bodySmall,
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Row(
+                                        children: List.generate(5, (i) {
+                                          return Icon(
+                                            i < review.rating ? Icons.star : Icons.star_border,
+                                            color: Colors.amber,
+                                            size: 16,
+                                          );
+                                        }),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(review.comment),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        onPressed: () => _showAddReviewDialog(context, product.id),
+                        icon: const Icon(Icons.rate_review),
+                        label: const Text('Escribir Reseña'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.grey[200],
+                          foregroundColor: Colors.black,
+                        ),
+                      ),
+                      const SizedBox(height: 32),
                     ],
                   ),
                 ),
@@ -131,6 +236,78 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           );
         },
       ),
+    );
+  }
+
+  void _showAddReviewDialog(BuildContext context, String articleId) {
+    int selectedRating = 5;
+    final commentController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Escribir Reseña'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(5, (index) {
+                      return IconButton(
+                        icon: Icon(
+                          index < selectedRating ? Icons.star : Icons.star_border,
+                          color: Colors.amber,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            selectedRating = index + 1;
+                          });
+                        },
+                      );
+                    }),
+                  ),
+                  TextField(
+                    controller: commentController,
+                    decoration: const InputDecoration(
+                      hintText: 'Tu comentario...',
+                      border: OutlineInputBorder(),
+                    ),
+                    maxLines: 3,
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancelar'),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    if (commentController.text.isEmpty) return;
+                    
+                    final reviewsProvider = context.read<ReviewsProvider>();
+                    await reviewsProvider.addReview(
+                      articleId,
+                      selectedRating,
+                      commentController.text,
+                    );
+                    
+                    if (context.mounted) {
+                      Navigator.pop(context);
+                      // Update product details to refresh average rating
+                      context.read<ProductsProvider>().fetchProductDetails(articleId);
+                    }
+                  },
+                  child: const Text('Enviar'),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 

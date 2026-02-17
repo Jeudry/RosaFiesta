@@ -48,6 +48,7 @@ type Storage struct {
 		Activate(context.Context, string) error
 		Delete(context.Context, uuid.UUID) error
 		GetByEmail(context.Context, string) (*models.User, error)
+		UpdateFCMToken(context.Context, uuid.UUID, string) error
 	}
 	Roles interface {
 		RetrieveByName(context.Context, string) (*models.Role, error)
@@ -116,6 +117,11 @@ type Storage struct {
 	Stats interface {
 		GetSummary(context.Context) (*models.AdminStats, error)
 	}
+	Reviews interface {
+		Create(context.Context, *models.Review) error
+		GetByArticleID(context.Context, uuid.UUID) ([]models.Review, error)
+		GetSummary(context.Context, uuid.UUID) (float64, int, error)
+	}
 }
 
 func NewStorage(db *sql.DB) Storage {
@@ -135,6 +141,7 @@ func NewStorage(db *sql.DB) Storage {
 		Timeline:      &timelineStore{db: db},
 		Messages:      &MessagesStore{db: db},
 		Stats:         &StatsStore{db: db},
+		Reviews:       &ReviewsStore{db: db},
 	}
 }
 

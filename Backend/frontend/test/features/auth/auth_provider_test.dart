@@ -3,16 +3,24 @@ import 'package:mocktail/mocktail.dart';
 import 'package:frontend/features/auth/presentation/auth_provider.dart';
 import 'package:frontend/features/auth/data/auth_repository.dart';
 import 'package:frontend/features/auth/data/models.dart';
+import 'package:frontend/core/services/firebase_service.dart';
 
 class MockAuthRepository extends Mock implements AuthRepository {}
 
 void main() {
   late AuthProvider authProvider;
   late MockAuthRepository mockAuthRepository;
+  late MockFirebaseService mockFirebaseService;
 
   setUp(() {
     mockAuthRepository = MockAuthRepository();
-    authProvider = AuthProvider(repository: mockAuthRepository);
+    mockFirebaseService = MockFirebaseService();
+    authProvider = AuthProvider(
+      repository: mockAuthRepository,
+      firebaseService: mockFirebaseService,
+    );
+    // Default stub for FCM token sync
+    when(() => mockFirebaseService.getToken()).thenAnswer((_) async => null);
   });
 
   group('AuthProvider Tests', () {
@@ -85,5 +93,30 @@ void main() {
       expect(authProvider.user, null);
       verify(() => mockAuthRepository.logout()).called(1);
     });
+
+    test('login syncs FCM token if available', () async {
+      // Arrange
+      final mockFirebaseService = MockFirebaseService();
+      final authProviderWithFirebase = AuthProvider(
+        repository: mockAuthRepository,
+        firebaseService: mockFirebaseService,
+      );
+
+      when(() => mockAuthRepository.login(testEmail, testPassword))
+          .thenAnswer((_) async => authResponse);
+      when(() => mockFirebaseService.getToken())
+          .thenAnswer((_) async => 'mock-fcm-token');
+      when(() => mockAuthRepository.updateFCMToken('mock-fcm-token'))
+          .thenAnswer((_) async => {});
+
+      // Act
+      await authProviderWithFirebase.login(testEmail, testPassword);
+
+      // Assert
+      verify(() => mockFirebaseService.getToken()).called(1);
+      verify(() => mockAuthRepository.updateFCMToken('mock-fcm-token')).called(1);
+    });
   });
 }
+
+class MockFirebaseService extends Mock implements FirebaseService {}

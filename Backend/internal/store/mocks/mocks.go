@@ -51,6 +51,53 @@ func (m *UserStore) GetByEmail(ctx context.Context, email string) (*models.User,
 	return args.Get(0).(*models.User), args.Error(1)
 }
 
+func (m *UserStore) UpdateFCMToken(ctx context.Context, userID uuid.UUID, token string) error {
+	args := m.Called(ctx, userID, token)
+	return args.Error(0)
+}
+
+type ArticlesStore struct {
+	mock.Mock
+}
+
+func (m *ArticlesStore) Create(ctx context.Context, article *models.Article) error {
+	args := m.Called(ctx, article)
+	return args.Error(0)
+}
+
+func (m *ArticlesStore) GetById(ctx context.Context, id uuid.UUID) (*models.Article, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.Article), args.Error(1)
+}
+
+func (m *ArticlesStore) GetByCategoryID(ctx context.Context, id uuid.UUID) ([]models.Article, error) {
+	args := m.Called(ctx, id)
+	return args.Get(0).([]models.Article), args.Error(1)
+}
+
+func (m *ArticlesStore) GetAvailability(ctx context.Context, id uuid.UUID, date time.Time) (int, error) {
+	args := m.Called(ctx, id, date)
+	return args.Int(0), args.Error(1)
+}
+
+func (m *ArticlesStore) Update(ctx context.Context, article *models.Article) error {
+	args := m.Called(ctx, article)
+	return args.Error(0)
+}
+
+func (m *ArticlesStore) Delete(ctx context.Context, id uuid.UUID) error {
+	args := m.Called(ctx, id)
+	return args.Error(0)
+}
+
+func (m *ArticlesStore) GetAll(ctx context.Context) ([]models.Article, error) {
+	args := m.Called(ctx)
+	return args.Get(0).([]models.Article), args.Error(1)
+}
+
 type RoleStore struct {
 	mock.Mock
 }
@@ -263,4 +310,49 @@ func (m *TimelineStore) Update(ctx context.Context, item *models.TimelineItem) e
 func (m *TimelineStore) Delete(ctx context.Context, id uuid.UUID) error {
 	args := m.Called(ctx, id)
 	return args.Error(0)
+}
+
+type ReviewsStore struct {
+	mock.Mock
+}
+
+func (m *ReviewsStore) Create(ctx context.Context, review *models.Review) error {
+	args := m.Called(ctx, review)
+	return args.Error(0)
+}
+
+func (m *ReviewsStore) GetByArticleID(ctx context.Context, id uuid.UUID) ([]models.Review, error) {
+	args := m.Called(ctx, id)
+	return args.Get(0).([]models.Review), args.Error(1)
+}
+
+func (m *ReviewsStore) GetSummary(ctx context.Context, id uuid.UUID) (float64, int, error) {
+	args := m.Called(ctx, id)
+	return args.Get(0).(float64), args.Int(1), args.Error(2)
+}
+
+type StatsStore struct {
+	mock.Mock
+}
+
+func (m *StatsStore) GetSummary(ctx context.Context) (*models.AdminStats, error) {
+	args := m.Called(ctx)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.AdminStats), args.Error(1)
+}
+
+type MessagesStore struct {
+	mock.Mock
+}
+
+func (m *MessagesStore) Create(ctx context.Context, msg *models.EventMessage) error {
+	args := m.Called(ctx, msg)
+	return args.Error(0)
+}
+
+func (m *MessagesStore) GetByEventID(ctx context.Context, id uuid.UUID) ([]models.EventMessage, error) {
+	args := m.Called(ctx, id)
+	return args.Get(0).([]models.EventMessage), args.Error(1)
 }

@@ -25,6 +25,7 @@ func newTestApplication(t *testing.T, cfg configModels.Config) *Application {
 	// logger := zap.Must(zap.NewProduction()).Sugar()
 
 	mockStore := store.Storage{
+		Articles:      &storeMocks.ArticlesStore{},
 		Users:         &storeMocks.UserStore{},
 		Roles:         &storeMocks.RoleStore{},
 		RefreshTokens: &storeMocks.RefreshTokenStore{},
@@ -33,6 +34,9 @@ func newTestApplication(t *testing.T, cfg configModels.Config) *Application {
 		EventTasks:    &storeMocks.EventTaskStore{},
 		Suppliers:     &storeMocks.SupplierStore{},
 		Timeline:      &storeMocks.TimelineStore{},
+		Reviews:       &storeMocks.ReviewsStore{},
+		Stats:         &storeMocks.StatsStore{},
+		Messages:      &storeMocks.MessagesStore{},
 	}
 
 	mockCacheStore := cache.Storage{

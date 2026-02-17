@@ -20,6 +20,7 @@ type User struct {
 	IsActive    bool      `json:"is_active"`
 	RoleID      uuid.UUID `json:"role_id"`
 	Role        Role      `json:"role"`
+	FCMToken    string    `json:"fcm_token,omitempty"`
 }
 
 type Password struct {

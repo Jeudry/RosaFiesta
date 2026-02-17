@@ -1,14 +1,16 @@
 package store
 
 import (
-	"Backend/internal/store/models"
 	"context"
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
 	"errors"
-	"github.com/google/uuid"
 	"time"
+
+	"Backend/internal/store/models"
+
+	"github.com/google/uuid"
 )
 
 var (
@@ -34,7 +36,6 @@ func (s *UsersStore) Create(ctx context.Context, tx *sql.Tx, user *models.User) 
 	err := s.db.QueryRowContext(
 		ctx, query, user.UserName, user.FirstName, user.LastName, user.Email, user.Password.Hash, role,
 	).Scan(&user.ID, &user.CreatedAt)
-
 	if err != nil {
 		switch {
 		case err.Error() == `pq: duplicate key value violates unique constraint "users_email_key"`:
@@ -55,7 +56,6 @@ func (s *UsersStore) RetrieveById(ctx context.Context, id uuid.UUID) (*models.Us
 	var user models.User
 
 	err := s.db.QueryRowContext(ctx, query, id).Scan(&user.ID, &user.UserName, &user.FirstName, &user.LastName, &user.Email, &user.Password.Hash, &user.CreatedAt, &user.Role.ID, &user.Role.Name, &user.Role.Level, &user.Role.Description)
-
 	if err != nil {
 		switch {
 		case errors.Is(err, sql.ErrNoRows):
@@ -104,7 +104,6 @@ func (s *UsersStore) delete(ctx context.Context, tx *sql.Tx, id uuid.UUID) error
 	defer cancel()
 
 	_, err := tx.ExecContext(ctx, query, id)
-
 	if err != nil {
 		return err
 	}
@@ -120,7 +119,6 @@ func (s *UsersStore) createUserInvitation(ctx context.Context, tx *sql.Tx, token
 	defer cancel()
 
 	_, err := tx.ExecContext(ctx, query, token, userID, time.Now().Add(invitationExp))
-
 	if err != nil {
 		return err
 	}
@@ -165,7 +163,6 @@ func (s *UsersStore) getUserFromInvitation(ctx context.Context, tx *sql.Tx, toke
 	err := tx.QueryRowContext(ctx, query, hashToken, time.Now()).Scan(
 		&user.ID, &user.UserName, &user.FirstName, &user.LastName, &user.Email, &user.Password.Hash, &user.CreatedAt, &user.IsActive,
 	)
-
 	if err != nil {
 		switch err {
 		case sql.ErrNoRows:
@@ -182,7 +179,6 @@ func (s *UsersStore) update(ctx context.Context, tx *sql.Tx, user *models.User) 
 	query := `UPDATE users SET user_name = $1, email = $2, activated=$3 WHERE id = $4`
 
 	_, err := tx.ExecContext(ctx, query, user.UserName, user.Email, user.IsActive, user.ID)
-
 	if err != nil {
 		return err
 	}
@@ -198,7 +194,6 @@ func (s *UsersStore) deleteUserInvitations(ctx context.Context, tx *sql.Tx, id u
 	defer cancel()
 
 	_, err := tx.ExecContext(ctx, query, id)
-
 	if err != nil {
 		return err
 	}
@@ -215,7 +210,6 @@ func (s *UsersStore) GetByEmail(ctx context.Context, email string) (*models.User
 	user := &models.User{}
 
 	err := s.db.QueryRowContext(ctx, query, email).Scan(&user.ID, &user.UserName, &user.FirstName, &user.LastName, &user.Email, &user.Password.Hash, &user.CreatedAt)
-
 	if err != nil {
 		switch {
 		case errors.Is(err, sql.ErrNoRows):
@@ -226,4 +220,11 @@ func (s *UsersStore) GetByEmail(ctx context.Context, email string) (*models.User
 	}
 
 	return user, nil
+}
+
+// UpdateFCMToken updates the FCM token for a specific user.
+func (s *UsersStore) UpdateFCMToken(ctx context.Context, userID uuid.UUID, token string) error {
+	query := `UPDATE users SET fcm_token = $1 WHERE id = $2`
+	_, err := s.db.ExecContext(ctx, query, token, userID)
+	return err
 }

@@ -20,6 +20,9 @@ type Article struct {
 	Category            *Category   `json:"category,omitempty"` // For eager loading
 
 	Variants []ArticleVariant `json:"variants,omitempty"`
+
+	AverageRating float64 `json:"average_rating"`
+	ReviewCount   int     `json:"review_count"`
 }
 
 type ArticleVariant struct {

@@ -24,4 +24,10 @@ class AuthApiService {
     });
     return AuthResponse.fromJson(data);
   }
+
+  Future<void> updateFCMToken(String token) async {
+    await ApiClient.put('/users/fcm-token', {
+      'token': token,
+    });
+  }
 }
