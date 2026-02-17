@@ -60,77 +60,63 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
               children: [
                 // Tab 1: Details
                 SingleChildScrollView(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(20),
                   child: Column(
                     children: [
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.push(
+                      _buildControlGroup([
+                        _buildNavAction(
+                          icon: Icons.check_circle_outline,
+                          label: 'Tareas',
+                          subtitle: 'Ver checklist',
+                          onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute(builder: (context) => EventTaskListScreen(eventId: widget.eventId)),
-                          );
-                        },
-                        child: _buildDetailRow(Icons.check_circle_outline, 'Tareas', 'Ver checklist', color: Colors.blue),
-                      ),
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => EventTimelineScreen(eventId: widget.eventId)),
-                          );
-                        },
-                        child: _buildDetailRow(Icons.timer_outlined, 'Cronograma', 'Ver planificación por horas', color: Colors.blue),
-                      ),
-                      
-                      // Budget Comparison
-                      InkWell(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => BudgetAnalysisScreen(event: event)),
-                          );
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          child: Column(
-                            children: [
-                              Row(
-                                children: [
-                                  Expanded(child: _buildDetailRow(Icons.attach_money, 'Presupuesto Est.', '\$${event.budget.toStringAsFixed(2)}')),
-                                  const SizedBox(width: 16),
-                                  Expanded(child: _buildDetailRow(Icons.money_off, 'Presupuesto Real', '\$${provider.realBudget.toStringAsFixed(2)}', color: provider.realBudget > event.budget ? Colors.red : Colors.green)),
-                                  const Icon(Icons.chevron_right, color: Colors.blue),
-                                ],
-                              ),
-                              if (event.additionalCosts > 0)
-                                 _buildDetailRow(Icons.add_circle_outline, 'Costos Adicionales (Admin)', '\$${event.additionalCosts.toStringAsFixed(2)}', color: Colors.orange),
-                              if (event.additionalCosts > 0)
-                                _buildDetailRow(Icons.summarize, 'Total Final', '\$${(provider.realBudget + event.additionalCosts).toStringAsFixed(2)}', color: Colors.blue),
-                            ],
                           ),
                         ),
-                      ),
+                        const Divider(height: 1),
+                        _buildNavAction(
+                          icon: Icons.timer_outlined,
+                          label: 'Cronograma',
+                          subtitle: 'Ver planificación por horas',
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => EventTimelineScreen(eventId: widget.eventId)),
+                          ),
+                        ),
+                      ]),
                       
-                      if (event.adminNotes != null && event.adminNotes!.isNotEmpty)
-                        _buildDetailRow(Icons.note, 'Notas de Admin', event.adminNotes!, color: Colors.orange),
+                      const SizedBox(height: 20),
 
-                      _buildDetailRow(Icons.info, 'Estado', _getStatusLabel(event.status)),
-                      
-                      if (event.status == 'paid')
-                         _buildDetailRow(Icons.verified, 'Pago', 'Completado via ${event.paymentMethod ?? "N/A"}', color: Colors.green),
+                      // Budget Comparison Group
+                      _buildControlGroup([
+                        _buildBudgetView(event, provider),
+                      ]),
 
-                      const Divider(height: 32),
+                      const SizedBox(height: 20),
+
+                      _buildControlGroup([
+                        if (event.adminNotes != null && event.adminNotes!.isNotEmpty)
+                          _buildDetailRow(Icons.note, 'Notas de Admin', event.adminNotes!, color: Colors.orange),
+                        _buildDetailRow(Icons.info, 'Estado', _getStatusLabel(event.status)),
+                        if (event.status == 'paid')
+                           _buildDetailRow(Icons.verified, 'Pago', 'Completado via ${event.paymentMethod ?? "N/A"}', color: Colors.green),
+                      ]),
+
+                      const SizedBox(height: 24),
                       
                       // Action Buttons based on status
                       _buildActionButtons(context, provider, event),
 
-                      const Divider(height: 32),
+                      const SizedBox(height: 32),
                       
-                      const Text(
-                        'Mobiliario y Decoración',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      const Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Mobiliario y Decoración',
+                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, letterSpacing: -0.5),
+                        ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 16),
                       provider.isLoading
                           ? const Center(child: CircularProgressIndicator())
                           : provider.currentEventItems.isEmpty
@@ -141,15 +127,32 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                                   itemCount: provider.currentEventItems.length,
                                   itemBuilder: (context, index) {
                                     final item = provider.currentEventItems[index];
-                                    return ListTile(
-                                      leading: const Icon(Icons.chair),
-                                      title: Text(item.article?.nameTemplate ?? 'Producto desconocido'),
-                                      subtitle: Text('${item.quantity} x \$${item.price?.toStringAsFixed(2) ?? "N/A"}'),
-                                      trailing: IconButton(
-                                        icon: const Icon(Icons.delete, color: Colors.red),
-                                        onPressed: () {
-                                          provider.removeItemFromEvent(event.id, item.id);
-                                        },
+                                    return Container(
+                                      margin: const EdgeInsets.only(bottom: 12),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(16),
+                                        boxShadow: AppDecorations.softShadow,
+                                      ),
+                                      child: ListTile(
+                                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                        leading: Container(
+                                          padding: const EdgeInsets.all(8),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.primary.withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: const Icon(Icons.chair, color: AppColors.primary),
+                                        ),
+                                        title: Text(
+                                          item.article?.nameTemplate ?? 'Producto desconocido',
+                                          style: const TextStyle(fontWeight: FontWeight.bold),
+                                        ),
+                                        subtitle: Text('${item.quantity} x \$${item.price?.toStringAsFixed(2) ?? "0.00"}'),
+                                        trailing: IconButton(
+                                          icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                                          onPressed: () => provider.removeItemFromEvent(event.id, item.id),
+                                        ),
                                       ),
                                     );
                                   },
@@ -165,6 +168,86 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
           },
         ),
       ),
+    );
+  }
+
+  Widget _buildControlGroup(List<Widget> children) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: AppDecorations.softShadow,
+      ),
+      child: Column(children: children),
+    );
+  }
+
+  Widget _buildNavAction({required IconData icon, required String label, required String subtitle, required VoidCallback onTap}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(24),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: AppColors.accent.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+              child: Icon(icon, color: AppColors.accent),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  Text(subtitle, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: Colors.grey),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBudgetView(Event event, EventsProvider provider) {
+    return InkWell(
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => BudgetAnalysisScreen(event: event))),
+      borderRadius: BorderRadius.circular(24),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Análisis de Presupuesto', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                const Icon(Icons.analytics_outlined, color: AppColors.primary),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(child: _buildBudgetTile('Estimado', '\$${event.budget.toStringAsFixed(2)}', Colors.grey)),
+                Container(width: 1, height: 40, color: Colors.grey.shade100, margin: const EdgeInsets.symmetric(horizontal: 16)),
+                Expanded(child: _buildBudgetTile('Real', '\$${provider.realBudget.toStringAsFixed(2)}', provider.realBudget > event.budget ? Colors.red : Colors.green)),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBudgetTile(String label, String value, Color color) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
+        Text(value, style: TextStyle(fontSize: 18, color: color, fontWeight: FontWeight.w900)),
+      ],
     );
   }
           );

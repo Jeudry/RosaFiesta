@@ -1,253 +1,173 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:frontend/core/app_theme.dart';
+import 'package:frontend/core/widgets/glass_card.dart';
 import 'package:frontend/features/auth/presentation/screens/login_screen.dart';
 import 'package:frontend/features/auth/presentation/screens/register_screen.dart';
 
-/// Welcome/Onboarding screen matching the HTML design
-/// Features animated background with confetti pattern and brand colors
-class WelcomeOnboardingScreen extends StatelessWidget {
+class WelcomeOnboardingScreen extends StatefulWidget {
   const WelcomeOnboardingScreen({super.key});
+
+  @override
+  State<WelcomeOnboardingScreen> createState() => _WelcomeOnboardingScreenState();
+}
+
+class _WelcomeOnboardingScreenState extends State<WelcomeOnboardingScreen> with TickerProviderStateMixin {
+  late AnimationController _fadeController;
+  late AnimationController _floatController;
+  late Animation<Offset> _floatAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _fadeController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..forward();
+
+    _floatController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    )..repeat(reverse: true);
+
+    _floatAnimation = Tween<Offset>(
+      begin: Offset.zero,
+      end: const Offset(0, 0.05),
+    ).animate(CurvedAnimation(
+      parent: _floatController,
+      curve: Curves.easeInOut,
+    ));
+  }
+
+  @override
+  void dispose() {
+    _fadeController.dispose();
+    _floatController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
         children: [
-          // Animated background with colorful blobs
-          _buildAnimatedBackground(),
-          
-          // Main content
-          SafeArea(
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  children: [
-                    // Top menu button
-                    Align(
-                      alignment: Alignment.topRight,
-                      child: IconButton(
-                        onPressed: () {},
-                        icon: const Icon(Icons.more_horiz, size: 28),
-                        style: IconButton.styleFrom(
-                          backgroundColor: Colors.white.withOpacity(0.2),
-                        ),
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 40),
-                    
-                    // Logo and brand section
-                    _buildLogoSection(),
-                    
-                    const SizedBox(height: 48),
-                    
-                    // Welcome text
-                    _buildWelcomeText(),
-                    
-                    const SizedBox(height: 60),
-                    
-                    // Action buttons
-                    _buildActionButtons(context),
-                    
-                    const SizedBox(height: 24),
-                    
-                    // iOS home indicator
-                    Container(
-                      width: 128,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade300,
-                        borderRadius: BorderRadius.circular(3),
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 16),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAnimatedBackground() {
-    return Stack(
-      children: [
-        // Lime blob
-        Positioned(
-          top: -80,
-          left: -80,
-          child: Container(
-            width: 256,
-            height: 256,
-            decoration: BoxDecoration(
-              color: AppColors.lime.withOpacity(0.2),
-              shape: BoxShape.circle,
-            ),
-          ),
-        ),
-        
-        // Purple blob
-        Positioned(
-          top: 200,
-          right: -80,
-          child: Container(
-            width: 320,
-            height: 320,
-            decoration: BoxDecoration(
-              color: AppColors.purple.withOpacity(0.15),
-              shape: BoxShape.circle,
-            ),
-          ),
-        ),
-        
-        // Teal blob
-        Positioned(
-          bottom: 200,
-          left: -40,
-          child: Container(
-            width: 240,
-            height: 240,
-            decoration: BoxDecoration(
-              color: AppColors.teal.withOpacity(0.2),
-              shape: BoxShape.circle,
-            ),
-          ),
-        ),
-        
-        // Yellow blob
-        Positioned(
-          bottom: 0,
-          right: 0,
-          child: Container(
-            width: 288,
-            height: 288,
-            decoration: BoxDecoration(
-              color: AppColors.yellow.withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-          ),
-        ),
-        
-        // Confetti pattern overlay
-        Positioned.fill(
-          child: CustomPaint(
-            painter: _ConfettiPainter(),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildLogoSection() {
-    return SizedBox(
-      width: 288,
-      height: 288,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          // Main lime circle
-          Container(
-            width: 224,
-            height: 224,
-            decoration: const BoxDecoration(
-              color: AppColors.lime,
-              shape: BoxShape.circle,
-            ),
-          ),
-          
-          // RF text
-          const Text(
-            'RF',
-            style: TextStyle(
-              fontSize: 90,
-              fontWeight: FontWeight.w900,
-              color: Colors.white,
-              fontStyle: FontStyle.italic,
-              letterSpacing: -4,
-            ),
-          ),
-          
-          // Decorative stars
-          Positioned(
-            top: 32,
-            left: 32,
-            child: Icon(
-              Icons.star,
-              color: AppColors.yellow,
-              size: 32,
-            ),
-          ),
-          
-          Positioned(
-            bottom: 48,
-            right: 24,
-            child: Icon(
-              Icons.auto_awesome,
-              color: AppColors.pink,
-              size: 36,
-            ),
-          ),
-          
-          // Decorative lines
-          Positioned(
-            top: 16,
-            right: 64,
-            child: Transform.rotate(
-              angle: 0.785,
-              child: Container(
-                width: 12,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: AppColors.teal,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-              ),
-            ),
-          ),
-          
-          Positioned(
-            bottom: 16,
-            left: 80,
-            child: Transform.rotate(
-              angle: -0.785,
-              child: Container(
-                width: 12,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: AppColors.purple,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-              ),
-            ),
-          ),
-          
-          // Small dots
-          Positioned(
-            top: 100,
-            left: -16,
+          // Animated Background Gradients
+          Positioned.fill(
             child: Container(
-              width: 24,
-              height: 8,
-              decoration: BoxDecoration(
-                color: AppColors.pink,
-                borderRadius: BorderRadius.circular(4),
-              ),
-            ),
-          ),
-          
-          Positioned(
-            top: 72,
-            right: 0,
-            child: Container(
-              width: 16,
-              height: 16,
               decoration: const BoxDecoration(
-                color: AppColors.purple,
-                shape: BoxShape.circle,
+                gradient: AppColors.primaryGradient,
+              ),
+            ),
+          ),
+          
+          // Floating Decorative Elements (Abstract shapes)
+          Positioned(
+            top: -100,
+            right: -100,
+            child: _buildCircle(AppColors.accent.withOpacity(0.2), 300),
+          ),
+          Positioned(
+            bottom: -50,
+            left: -50,
+            child: _buildCircle(AppColors.highlight.withOpacity(0.2), 200),
+          ),
+
+          SafeArea(
+            child: FadeTransition(
+              opacity: _fadeController,
+              child: Column(
+                children: [
+                  const Spacer(),
+                  
+                  // Logo & Slogan Area (Floating)
+                  SlideTransition(
+                    position: _floatAnimation,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                      child: Column(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(24),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              boxShadow: AppDecorations.softShadow,
+                            ),
+                            child: Image.asset(
+                              'assets/images/logo.png',
+                              height: 80,
+                              errorBuilder: (context, _, __) => const Icon(
+                                Icons.auto_awesome,
+                                size: 80,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 32),
+                          Text(
+                            'Rosa Fiesta',
+                            style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                              color: Colors.white,
+                              fontSize: 48,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Transformando tus sueños en eventos inolvidables',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.plusJakartaSans(
+                              color: Colors.white70,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const Spacer(),
+
+                  // Action Area (Glassmorphism)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                    child: GlassCard(
+                      padding: const EdgeInsets.all(32),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          ElevatedButton(
+                            onPressed: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => const LoginScreen()),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              foregroundColor: AppColors.primary,
+                              minimumSize: const Size(double.infinity, 60),
+                            ),
+                            child: const Text('Iniciar Sesión'),
+                          ),
+                          const SizedBox(height: 16),
+                          OutlinedButton(
+                            onPressed: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => const RegisterScreen()),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              side: const BorderSide(color: Colors.white, width: 2),
+                              minimumSize: const Size(double.infinity, 60),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            ),
+                            child: const Text('Crear Cuenta'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 48),
+                ],
               ),
             ),
           ),
@@ -256,132 +176,14 @@ class WelcomeOnboardingScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildWelcomeText() {
-    return Column(
-      children: [
-        RichText(
-          textAlign: TextAlign.center,
-          text: const TextSpan(
-            style: TextStyle(
-              fontSize: 36,
-              fontWeight: FontWeight.w800,
-              height: 1.2,
-              letterSpacing: -0.5,
-            ),
-            children: [
-              TextSpan(
-                text: 'Welcome to\n',
-                style: TextStyle(color: Colors.black87),
-              ),
-              TextSpan(
-                text: 'Rosa ',
-                style: TextStyle(color: AppColors.purple),
-              ),
-              TextSpan(
-                text: 'Fiesta',
-                style: TextStyle(color: AppColors.teal),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-        Text(
-          'Turning your celebrations into vibrant masterpieces.',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w500,
-            color: Colors.black.withOpacity(0.7),
-            height: 1.5,
-          ),
-        ),
-      ],
+  Widget _buildCircle(Color color, double size) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: color,
+        shape: BoxShape.circle,
+      ),
     );
   }
-
-  Widget _buildActionButtons(BuildContext context) {
-    return Column(
-      children: [
-        SizedBox(
-          width: double.infinity,
-          height: 64,
-          child: ElevatedButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const RegisterScreen()),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.purple,
-              shadowColor: AppColors.purple.withOpacity(0.3),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: const [
-                Text(
-                  'Get Started',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                SizedBox(width: 8),
-                Icon(Icons.arrow_forward, size: 24),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        TextButton(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const LoginScreen()),
-            );
-          },
-          style: TextButton.styleFrom(
-            minimumSize: const Size(double.infinity, 48),
-          ),
-          child: const Text(
-            'Log In',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// Custom painter for confetti pattern
-class _ConfettiPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()..style = PaintingStyle.fill;
-    
-    // Draw confetti dots in a pattern
-    for (double x = 0; x < size.width; x += 40) {
-      for (double y = 0; y < size.height; y += 40) {
-        // Lime dots
-        paint.color = AppColors.lime.withOpacity(0.15);
-        canvas.drawCircle(Offset(x, y), 1.5, paint);
-        
-        // Purple dots (offset)
-        paint.color = AppColors.purple.withOpacity(0.15);
-        canvas.drawCircle(Offset(x + 20, y + 20), 1.5, paint);
-        
-        // Teal dots (offset)
-        paint.color = AppColors.teal.withOpacity(0.15);
-        canvas.drawCircle(Offset(x + 10, y + 30), 1.5, paint);
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
