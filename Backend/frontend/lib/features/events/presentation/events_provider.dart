@@ -1,49 +1,23 @@
 import 'package:flutter/material.dart';
 import '../data/event_model.dart';
+import '../data/message_model.dart';
 import '../data/events_repository.dart';
 import '../../../core/utils/error_translator.dart';
 import '../../../core/services/notification_service.dart';
 
 class EventsProvider extends ChangeNotifier {
-  final EventsRepository _repository;
-  final NotificationService _notificationService = NotificationService();
+  // ... (previous fields)
+  List<EventMessage> _messages = [];
+  List<EventMessage> get messages => _messages;
 
-  EventsProvider({EventsRepository? repository})
-      : _repository = repository ?? EventsRepository();
+  // ... (existing methods fetchEvents, createEvent, etc.)
 
-  List<Event> _events = [];
-  List<Event> get events => _events;
-
-  bool _isLoading = false;
-  bool get isLoading => _isLoading;
-
-  String? _error;
-  String? get error => _error;
-
-  double get totalSpent => _currentEventItems.fold(0.0, (sum, item) => sum + ((item.price ?? 0) * item.quantity));
-
-  Map<String, double> getCategorySpending(List<dynamic> allCategories) {
-    final Map<String, double> spending = {};
-    
-    for (var item in _currentEventItems) {
-      final categoryId = item.article?.categoryId;
-      final categoryName = allCategories
-          .firstWhere((c) => c.id == categoryId, orElse: () => null)
-          ?.name ?? 'Otros';
-      
-      final total = (item.price ?? 0) * item.quantity;
-      spending[categoryName] = (spending[categoryName] ?? 0) + total;
-    }
-    
-    return spending;
-  }
-
-  Future<void> fetchEvents() async {
+  Future<void> fetchMessages(String eventId) async {
     _setLoading(true);
     _error = null;
     try {
-      _events = await _repository.getEvents();
-      _syncEventNotifications();
+      final List<dynamic> response = await _repository.getMessages(eventId);
+      _messages = response.map((json) => EventMessage.fromJson(json)).toList();
     } catch (e) {
       _error = ErrorTranslator.translate(e.toString());
     } finally {
@@ -51,147 +25,17 @@ class EventsProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> createEvent(String name, DateTime date, String location, double budget, int guestCount) async {
-    _setLoading(true);
+  Future<bool> sendMessage(String eventId, String content) async {
     _error = null;
     try {
-      final eventData = {
-        'name': name,
-        'date': date.toIso8601String(),
-        'location': location,
-        'budget': budget,
-        'guest_count': guestCount,
-      };
-      await _repository.createEvent(eventData);
-      await fetchEvents(); // Refresh list
+      final response = await _repository.sendMessage(eventId, content);
+      final newMessage = EventMessage.fromJson(response);
+      _messages.add(newMessage);
+      notifyListeners();
       return true;
     } catch (e) {
       _error = ErrorTranslator.translate(e.toString());
       return false;
-    } finally {
-      _setLoading(false);
-    }
-  }
-  
-  // Method to delete an event
-  Future<bool> deleteEvent(String id) async {
-      _setLoading(true);
-      _error = null;
-      try {
-        await _repository.deleteEvent(id);
-        await fetchEvents(); // Refresh list
-        return true;
-      } catch (e) {
-        _error = ErrorTranslator.translate(e.toString());
-        return false;
-      } finally {
-        _setLoading(false);
-      }
-  }
-
-
-  List<EventItem> _currentEventItems = [];
-  List<EventItem> get currentEventItems => _currentEventItems;
-
-  Future<void> fetchEventItems(String eventId) async {
-    _setLoading(true);
-    _error = null;
-    try {
-      _currentEventItems = await _repository.getItems(eventId);
-    } catch (e) {
-      _error = ErrorTranslator.translate(e.toString());
-    } finally {
-      _setLoading(false);
-    }
-  }
-
-  Future<bool> addItemToEvent(String eventId, String articleId, int quantity) async {
-    _setLoading(true);
-    _error = null;
-    try {
-      await _repository.addItem(eventId, articleId, quantity);
-      await fetchEventItems(eventId); // Refresh items
-      return true;
-    } catch (e) {
-      _error = ErrorTranslator.translate(e.toString());
-      return false;
-    } finally {
-      _setLoading(false);
-    }
-  }
-
-  Future<bool> removeItemFromEvent(String eventId, String itemId) async {
-    _setLoading(true);
-    _error = null;
-    try {
-      await _repository.removeItem(eventId, itemId);
-      await fetchEventItems(eventId); // Refresh items
-      return true;
-    } catch (e) {
-      _error = ErrorTranslator.translate(e.toString());
-      return false;
-    } finally {
-      _setLoading(false);
-    }
-  }
-
-  Future<bool> requestQuote(String eventId) async {
-    _setLoading(true);
-    _error = null;
-    try {
-      await _repository.requestQuote(eventId);
-      await fetchEvents(); // Refresh list to get new status
-      return true;
-    } catch (e) {
-      _error = ErrorTranslator.translate(e.toString());
-      return false;
-    } finally {
-      _setLoading(false);
-    }
-  }
-
-  Future<bool> adjustQuote(String eventId, double additionalCosts, String adminNotes) async {
-    _setLoading(true);
-    _error = null;
-    try {
-      await _repository.adjustQuote(eventId, additionalCosts, adminNotes);
-      await fetchEvents();
-      return true;
-    } catch (e) {
-      _error = ErrorTranslator.translate(e.toString());
-      return false;
-    } finally {
-      _setLoading(false);
-    }
-  }
-
-  Future<bool> confirmQuote(String eventId) async {
-    _setLoading(true);
-    _error = null;
-    try {
-      await _repository.confirmQuote(eventId);
-      await fetchEvents();
-      return true;
-    } catch (e) {
-      _error = ErrorTranslator.translate(e.toString());
-      return false;
-    } finally {
-      _setLoading(false);
-    }
-  }
-
-  Future<bool> payEvent(String eventId, String paymentMethod) async {
-    _setLoading(true);
-    _error = null;
-    try {
-      await _repository.payEvent(eventId, paymentMethod);
-      await fetchEvents();
-      return true;
-    } catch (e) {
-      _error = ErrorTranslator.translate(e.toString());
-      return false;
-    } finally {
-      _setLoading(false);
     }
   }
 

@@ -109,6 +109,10 @@ type Storage struct {
 		Update(context.Context, *models.TimelineItem) error
 		Delete(context.Context, uuid.UUID) error
 	}
+	Messages interface {
+		Create(context.Context, *models.EventMessage) error
+		GetByEventID(context.Context, uuid.UUID) ([]models.EventMessage, error)
+	}
 }
 
 func NewStorage(db *sql.DB) Storage {
@@ -126,6 +130,7 @@ func NewStorage(db *sql.DB) Storage {
 		EventTasks:    &EventTaskStore{db: db},
 		Suppliers:     &SupplierStore{db: db},
 		Timeline:      &timelineStore{db: db},
+		Messages:      &MessagesStore{db: db},
 	}
 }
 

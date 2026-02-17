@@ -52,4 +52,14 @@ class EventsRepository {
     });
     return Event.fromJson(response);
   }
+
+  Future<List<dynamic>> getMessages(String eventId) async {
+    return await ApiClient.get('/events/$eventId/messages');
+  }
+
+  Future<dynamic> sendMessage(String eventId, String content) async {
+    return await ApiClient.post('/events/$eventId/messages', {
+      'content': content,
+    });
+  }
 }

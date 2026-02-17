@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../data/event_model.dart';
-import '../../presentation/events_provider.dart';
+import '../events_provider.dart';
 import '../../../guests/presentation/screens/guest_list_screen.dart';
 import '../../../tasks/presentation/screens/event_task_list_screen.dart';
 import 'budget_analysis_screen.dart';
@@ -10,12 +10,13 @@ import '../../../guests/presentation/guests_provider.dart';
 import '../../../tasks/presentation/tasks_provider.dart';
 import '../../../core/services/pdf_export_service.dart';
 import 'checkout_screen.dart';
+import '../widgets/quotation_chat_widget.dart';
 
 
 class EventDetailScreen extends StatefulWidget {
-  final Event event;
+  final String eventId;
 
-  const EventDetailScreen({super.key, required this.event});
+  const EventDetailScreen({super.key, required this.eventId});
 
   @override
   State<EventDetailScreen> createState() => _EventDetailScreenState();
@@ -26,49 +27,37 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<EventsProvider>(context, listen: false).fetchEventItems(widget.event.id);
+      Provider.of<EventsProvider>(context, listen: false).fetchEventItems(widget.eventId);
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.event.name),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.picture_as_pdf),
-            onPressed: () => _exportToPdf(context),
-            tooltip: 'Exportar a PDF',
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Detalle de Reserva'),
+          bottom: const TabBar(
+            tabs: [
+              Tab(text: 'Detalles', icon: Icon(Icons.description)),
+              Tab(text: 'Chat', icon: Icon(Icons.chat)),
+            ],
           ),
-        ],
-      ),
-      body: Consumer<EventsProvider>(
-        builder: (context, provider, child) {
-          double realBudget = 0;
-          for (var item in provider.currentEventItems) {
-            if (item.price != null) {
-              realBudget += item.price! * item.quantity;
-            }
-          }
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.picture_as_pdf),
+              onPressed: () => _exportToPdf(context),
+              tooltip: 'Exportar a PDF',
+            ),
+          ],
+        ),
+        body: Consumer<EventsProvider>(
+          builder: (context, provider, child) {
+            final event = provider.events.firstWhere((e) => e.id == widget.eventId);
 
-          return Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            return TabBarView(
               children: [
-                _buildDetailRow(Icons.calendar_today, 'Fecha', '${widget.event.date.day}/${widget.event.date.month}/${widget.event.date.year}'),
-                _buildDetailRow(Icons.location_on, 'Ubicación', widget.event.location),
-                GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => GuestListScreen(eventId: widget.event.id)),
-                    );
-                  },
-                  child: _buildDetailRow(Icons.people, 'Invitados', '${widget.event.guestCount}', color: Colors.blue),
-                ),
-                GestureDetector(
                   onTap: () {
                     Navigator.push(
                       context,
