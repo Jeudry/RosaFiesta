@@ -78,21 +78,14 @@ class _HomeScreenState extends State<HomeScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 32,
-            height: 32,
+            width: 36,
+            height: 36,
             decoration: BoxDecoration(
-              color: AppColors.lime,
               shape: BoxShape.circle,
-              border: Border.all(color: Colors.white, width: 2),
-            ),
-            child: const Center(
-              child: Text(
-                'RF',
-                style: TextStyle(
-                  color: AppColors.purple,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w900,
-                ),
+              border: Border.all(color: AppColors.teal, width: 1.5),
+              image: const DecorationImage(
+                image: AssetImage('assets/images/logo_rosafiesta.png'),
+                fit: BoxFit.cover,
               ),
             ),
           ),

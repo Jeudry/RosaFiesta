@@ -94,7 +94,7 @@ class _WelcomeOnboardingScreenState extends State<WelcomeOnboardingScreen> with 
                               boxShadow: AppDecorations.softShadow,
                             ),
                             child: Image.asset(
-                              'assets/images/logo.png',
+                              'assets/images/logo_rosafiesta.png',
                               height: 80,
                               errorBuilder: (context, _, __) => const Icon(
                                 Icons.auto_awesome,
