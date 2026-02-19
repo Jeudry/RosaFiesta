@@ -13,6 +13,9 @@ import 'checkout_screen.dart';
 import '../widgets/quotation_chat_widget.dart';
 import 'package:frontend/core/app_theme.dart';
 import 'event_timeline_screen.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:frontend/core/config/env_config.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 
 class EventDetailScreen extends StatefulWidget {
@@ -84,6 +87,13 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                             context,
                             MaterialPageRoute(builder: (context) => EventTimelineScreen(eventId: widget.eventId)),
                           ),
+                        ),
+                        const Divider(height: 1),
+                        _buildNavAction(
+                          icon: Icons.calendar_month,
+                          label: 'Sincronizar Calendario',
+                          subtitle: 'Exportar a Google/Apple Calendar',
+                          onTap: () => _syncCalendar(context, widget.eventId),
                         ),
                       ]),
                       
@@ -415,5 +425,31 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _syncCalendar(BuildContext context, String eventId) async {
+    const storage = FlutterSecureStorage();
+    final token = await storage.read(key: 'access_token');
+    if (token == null) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error de autenticación')),
+        );
+      }
+      return;
+    }
+
+    final url = Uri.parse('${EnvConfig.apiUrl}/events/$eventId/calendar.ics?token=$token');
+    
+    if (await canLaunchUrl(url)) {
+      // mode: LaunchMode.externalApplication is necessary for .ics files on mobile
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } else {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No se pudo abrir el calendario')),
+        );
+      }
+    }
   }
 }
