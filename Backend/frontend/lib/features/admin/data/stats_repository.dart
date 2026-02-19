@@ -1,4 +1,4 @@
-import '../../../core/api/api_client.dart';
+import 'package:frontend/core/api_client.dart';
 import 'stats_model.dart';
 
 class StatsRepository {

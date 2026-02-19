@@ -39,6 +39,7 @@ class ApiClient {
   static Future<dynamic> post(String path, Map<String, dynamic> body) async {
     try {
       final response = await _dio.post(path, data: body);
+      if (response.data == null) return null;
       return response.data['data'];
     } on DioException catch (e) {
       throw _handleDioError(e);
@@ -48,6 +49,7 @@ class ApiClient {
   static Future<dynamic> get(String path) async {
     try {
       final response = await _dio.get(path);
+      if (response.data == null) return null;
       return response.data['data'];
     } on DioException catch (e) {
       throw _handleDioError(e);
@@ -57,6 +59,7 @@ class ApiClient {
   static Future<dynamic> put(String path, Map<String, dynamic> body) async {
     try {
       final response = await _dio.put(path, data: body);
+      if (response.data == null) return null;
       return response.data['data'];
     } on DioException catch (e) {
       throw _handleDioError(e);
@@ -66,6 +69,7 @@ class ApiClient {
   static Future<dynamic> patch(String path, Map<String, dynamic> body) async {
     try {
       final response = await _dio.patch(path, data: body);
+      if (response.data == null) return null;
       return response.data['data'];
     } on DioException catch (e) {
       throw _handleDioError(e);
@@ -75,6 +79,9 @@ class ApiClient {
   static Future<dynamic> delete(String path) async {
     try {
       final response = await _dio.delete(path);
+      if (response.statusCode == 204 || response.data == null) {
+        return null;
+      }
       return response.data['data'];
     } on DioException catch (e) {
       throw _handleDioError(e);

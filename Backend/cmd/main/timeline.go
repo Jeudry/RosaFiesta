@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -12,10 +13,31 @@ import (
 )
 
 type CreateTimelineItemPayload struct {
-	Title       string    `json:"title" validate:"required,max=255"`
-	Description string    `json:"description"`
-	StartTime   time.Time `json:"start_time" validate:"required"`
-	EndTime     time.Time `json:"end_time" validate:"required"`
+	Title       string `json:"title" validate:"required,max=255"`
+	Description string `json:"description"`
+	StartTime   string `json:"start_time" validate:"required"`
+	EndTime     string `json:"end_time" validate:"required"`
+}
+
+func parseTimelineTime(tStr string) (time.Time, error) {
+	// Try RFC3339 first (standard server format)
+	if t, err := time.Parse(time.RFC3339, tStr); err == nil {
+		return t, nil
+	}
+	// Try common ISO8601 format from Flutter (without Z or offset)
+	// Example: 2026-02-18T22:00:00.000
+	layouts := []string{
+		"2006-01-02T15:04:05.000",
+		"2006-01-02T15:04:05",
+	}
+
+	for _, layout := range layouts {
+		if t, err := time.Parse(layout, tStr); err == nil {
+			return t, nil
+		}
+	}
+
+	return time.Time{}, fmt.Errorf("could not parse time: %s", tStr)
 }
 
 func (app *Application) createTimelineItemHandler(w http.ResponseWriter, r *http.Request) {
@@ -45,12 +67,24 @@ func (app *Application) createTimelineItemHandler(w http.ResponseWriter, r *http
 		return
 	}
 
+	startTime, err := parseTimelineTime(payload.StartTime)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	endTime, err := parseTimelineTime(payload.EndTime)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
 	item := &models.TimelineItem{
 		EventID:     eventID,
 		Title:       payload.Title,
 		Description: payload.Description,
-		StartTime:   payload.StartTime,
-		EndTime:     payload.EndTime,
+		StartTime:   startTime,
+		EndTime:     endTime,
 	}
 
 	if err := app.Store.Timeline.Create(r.Context(), item); err != nil {
@@ -88,6 +122,10 @@ func (app *Application) getTimelineItemsHandler(w http.ResponseWriter, r *http.R
 	if err != nil {
 		app.internalServerError(w, r, err)
 		return
+	}
+
+	if items == nil {
+		items = []models.TimelineItem{}
 	}
 
 	if err := app.jsonResponse(w, http.StatusOK, items); err != nil {
@@ -128,10 +166,22 @@ func (app *Application) updateTimelineItemHandler(w http.ResponseWriter, r *http
 		return
 	}
 
+	startTime, err := parseTimelineTime(payload.StartTime)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	endTime, err := parseTimelineTime(payload.EndTime)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
 	item.Title = payload.Title
 	item.Description = payload.Description
-	item.StartTime = payload.StartTime
-	item.EndTime = payload.EndTime
+	item.StartTime = startTime
+	item.EndTime = endTime
 
 	if err := app.Store.Timeline.Update(r.Context(), item); err != nil {
 		app.internalServerError(w, r, err)

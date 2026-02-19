@@ -52,9 +52,9 @@ func main() {
 	cfg := configModels.Config{
 		Addr:        env.GetString("ADDR", ":3000"),
 		ApiURL:      env.GetString("EXTERNAL_URL", "localhost:3000"),
-		FrontendURL: env.GetString("FRONTEND_URL", "localhost:4200"),
+		FrontendURL: env.GetString("FRONTEND_URL", "http://127.0.0.1:8081/#"),
 		Cors: configModels.CorsConfig{
-			AllowedOrigins: env.GetString("CORS_ALLOWED_ORIGINS", "http://localhost:4200"),
+			AllowedOrigins: env.GetString("CORS_ALLOWED_ORIGINS", "http://127.0.0.1:8081"),
 		},
 		Db: configModels.DbConfig{
 			Addr:         env.GetString("DB_ADDR", "postgres://admin:adminpassword@db.backend.orb.local/rosafiesta?sslmode=disable"),

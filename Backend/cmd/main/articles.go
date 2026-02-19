@@ -194,6 +194,10 @@ func (app *Application) getAllArticlesHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	if articles == nil {
+		articles = []models.Article{}
+	}
+
 	if err := app.jsonResponse(w, http.StatusOK, articles); err != nil {
 		app.internalServerError(w, r, err)
 	}

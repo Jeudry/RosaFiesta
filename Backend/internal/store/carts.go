@@ -58,8 +58,8 @@ func (s *CartsStore) GetByUserID(ctx context.Context, userID uuid.UUID) (*models
 	itemsQuery := `
 		SELECT 
 			ci.id, ci.cart_id, ci.article_id, ci.variant_id, ci.quantity, ci.created_at, ci.updated_at,
-			a.id, a.name_template, a.description_template, a.is_active, a.type, a.category_id,
-			av.id, av.sku, av.name, av.rental_price, av.sale_price, av.image_url
+			a.id, a.name_template, a.description_template, a.is_active, a.type, a.category_id, a.stock_quantity,
+			av.id, av.sku, av.name, av.rental_price, av.sale_price, av.image_url, av.stock
 		FROM cart_items ci
 		JOIN articles a ON ci.article_id = a.id
 		LEFT JOIN article_variants av ON ci.variant_id = av.id
@@ -77,17 +77,18 @@ func (s *CartsStore) GetByUserID(ctx context.Context, userID uuid.UUID) (*models
 		var article models.Article
 		// Temporary variables for scanning nullable fields
 		var variantID sql.NullString
-		var variantIDVal uuid.UUID
+		var variantIDVal sql.NullString
 		var variantSku sql.NullString
 		var variantName sql.NullString
-		var variantRentalPrice sql.NullFloat64 // Changed from Price to RentalPrice based on struct
+		var variantRentalPrice sql.NullFloat64
 		var variantSalePrice sql.NullFloat64
 		var variantImageURL sql.NullString
+		var variantStock sql.NullInt64
 
 		err := rows.Scan(
 			&item.ID, &item.CartID, &item.ArticleID, &variantID, &item.Quantity, &item.CreatedAt, &item.UpdatedAt,
-			&article.ID, &article.NameTemplate, &article.DescriptionTemplate, &article.IsActive, &article.Type, &article.CategoryID,
-			&variantIDVal, &variantSku, &variantName, &variantRentalPrice, &variantSalePrice, &variantImageURL,
+			&article.ID, &article.NameTemplate, &article.DescriptionTemplate, &article.IsActive, &article.Type, &article.CategoryID, &article.StockQuantity,
+			&variantIDVal, &variantSku, &variantName, &variantRentalPrice, &variantSalePrice, &variantImageURL, &variantStock,
 		)
 		if err != nil {
 			// If scan fails, return error. Note: nullable columns in SQL scan into sql.Null* types
@@ -126,6 +127,9 @@ func (s *CartsStore) GetByUserID(ctx context.Context, userID uuid.UUID) (*models
 				val := variantImageURL.String
 				variant.ImageURL = &val
 			}
+			if variantStock.Valid {
+				variant.Stock = int(variantStock.Int64)
+			}
 			item.Variant = &variant
 		}
 
@@ -147,7 +151,7 @@ func (s *CartsStore) AddItem(ctx context.Context, item *models.CartItem) error {
 	var existingID string
 	checkQuery := `
 		SELECT id FROM cart_items 
-		WHERE cart_id = $1 AND article_id = $2 AND ((variant_id IS NULL AND $3 IS NULL) OR (variant_id = $3))
+		WHERE cart_id = $1 AND article_id = $2 AND ((variant_id IS NULL AND $3::UUID IS NULL) OR (variant_id = $3::UUID))
 	`
 	err := s.db.QueryRowContext(ctx, checkQuery, item.CartID, item.ArticleID, item.VariantID).Scan(&existingID)
 

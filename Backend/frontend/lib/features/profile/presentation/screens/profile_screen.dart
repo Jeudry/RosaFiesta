@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:frontend/core/app_theme.dart';
-import '../../auth/presentation/auth_provider.dart';
+import 'package:frontend/features/auth/presentation/auth_provider.dart';
 import '../../../home/presentation/screens/welcome_onboarding_screen.dart';
 import '../profile_provider.dart';
-import '../../admin/presentation/screens/admin_dashboard_screen.dart';
+import 'package:frontend/features/admin/presentation/screens/admin_analytics_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -133,7 +133,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(height: 24),
 
                 // Admin Dashboard Button (Only for Admins)
-                if (context.read<AuthProvider>().user?.role == 'admin')
+                if (user.role == 'admin')
                   SizedBox(
                     width: double.infinity,
                     height: 56,
@@ -141,7 +141,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       onPressed: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => const AdminDashboardScreen()),
+                          MaterialPageRoute(builder: (context) => const AdminAnalyticsScreen()),
                         );
                       },
                       icon: const Icon(Icons.admin_panel_settings),

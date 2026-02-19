@@ -1,10 +1,12 @@
 package store
 
 import (
-	"Backend/internal/store/models"
 	"context"
 	"database/sql"
 	"errors"
+
+	"Backend/internal/store/models"
+
 	"github.com/google/uuid"
 	"github.com/lib/pq"
 )
@@ -15,33 +17,24 @@ type PostsStore struct {
 
 func (s *PostsStore) GetUserFeed(ctx context.Context, userId uuid.UUID, fq models.PaginatedFeedQueryModel) ([]models.PostWithMetadata, error) {
 	var query string
-
-	baseQuery := `SELECT p.id, p.user_id, p.title, p.content, p.created_at, 
+	query = `SELECT p.id, p.user_id, p.title, p.content, p.created_at, 
             p.updated_at, p.version, p.tags, u.user_name, 
-            u.email, p.user_id, COUNT(c.id) AS comments_count
+            u.email, u.id, COUNT(c.id) AS comments_count
             FROM posts p
             LEFT JOIN comments c ON p.id = c.post_id
             LEFT JOIN users u on p.user_id = u.id
-            WHERE f.user_id = $1`
-
-	baseQuery = `SELECT p.id FROM posts p`
+            WHERE p.user_id = $1`
 
 	if fq.Search != "" {
-		query = baseQuery + `
-        AND (p.title ILIKE '%' || $4 || '%' OR p.content ILIKE '%' || $4 || '%')
-    `
-	} else {
-		query = baseQuery + ` 
-        OR p.user_id = $1
-    `
+		query += ` AND (p.title ILIKE '%' || $4 || '%' OR p.content ILIKE '%' || $4 || '%')`
 	}
 
 	if len(fq.Tags) > 0 {
+		tagParam := "$4"
 		if fq.Search != "" {
-			query += `AND (p.tags @> $4 OR $4 = '{}')`
-		} else {
-			query += `AND (p.tags @> $5 OR $5 = '{}')`
+			tagParam = "$5"
 		}
+		query += ` AND (p.tags @> ` + tagParam + ` OR ` + tagParam + ` = '{}')`
 	}
 
 	query += `
@@ -104,12 +97,11 @@ func (s *PostsStore) Create(ctx context.Context, post *models.Post) error {
 	err := s.db.QueryRowContext(
 		ctx, query, post.Content, post.Title, post.UserID, pq.Array(&post.Tags),
 	).Scan(&post.ID, &post.CreatedAt, &post.UpdatedAt)
-
 	if err != nil {
 		return err
 	}
 
-	return err
+	return nil
 }
 
 func (s *PostsStore) RetrieveById(ctx context.Context, id uuid.UUID) (*models.Post, error) {
@@ -118,7 +110,6 @@ func (s *PostsStore) RetrieveById(ctx context.Context, id uuid.UUID) (*models.Po
 	var post models.Post
 
 	err := s.db.QueryRowContext(ctx, query, id).Scan(&post.ID, &post.Content, &post.Title, &post.UserID, pq.Array(&post.Tags), &post.CreatedAt, &post.UpdatedAt, &post.Version)
-
 	if err != nil {
 		switch {
 		case errors.Is(err, sql.ErrNoRows):
@@ -141,7 +132,6 @@ func (s *PostsStore) Update(ctx context.Context, postUpdated *models.Post) error
 	err := s.db.QueryRowContext(ctx, query, postUpdated.Content, postUpdated.Title, postUpdated.Version).Scan(
 		&postUpdated.Version,
 	)
-
 	if err != nil {
 		switch {
 		case errors.Is(err, sql.ErrNoRows):
@@ -162,13 +152,11 @@ func (s *PostsStore) Delete(ctx context.Context, id uuid.UUID) error {
 	defer timeout()
 
 	res, err := s.db.ExecContext(ctx, query, id)
-
 	if err != nil {
 		return err
 	}
 
 	rows, err := res.RowsAffected()
-
 	if err != nil {
 		return err
 	}

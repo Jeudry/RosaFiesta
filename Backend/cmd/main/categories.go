@@ -152,6 +152,10 @@ func (app *Application) getAllCategoriesHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
+	if categories == nil {
+		categories = []models.Category{}
+	}
+
 	if err := app.jsonResponse(w, http.StatusOK, categories); err != nil {
 		app.internalServerError(w, r, err)
 	}
@@ -218,6 +222,10 @@ func (app *Application) getArticlesByCategoryHandler(w http.ResponseWriter, r *h
 	if err != nil {
 		app.internalServerError(w, r, err)
 		return
+	}
+
+	if articles == nil {
+		articles = []models.Article{}
 	}
 
 	if err := app.jsonResponse(w, http.StatusOK, articles); err != nil {

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/core/app_theme.dart';
 import 'package:provider/provider.dart';
-import '../../shop/presentation/cart_provider.dart';
-import '../../categories/presentation/categories_provider.dart';
-import '../../categories/data/category_models.dart';
-import '../../shop/presentation/screens/cart_screen.dart';
+import '../../../shop/presentation/cart_provider.dart';
+import '../../../categories/presentation/categories_provider.dart';
+import '../../../categories/data/category_models.dart'; // This might be missing too, check later
+import '../../../shop/presentation/screens/cart_screen.dart';
 import '../../../products/presentation/screens/products_list_screen.dart';
 import '../../../profile/presentation/screens/profile_screen.dart';
 import '../../../events/presentation/screens/events_list_screen.dart';

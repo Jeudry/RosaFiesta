@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../data/guest_model.dart';
-import 'guests_provider.dart';
+import '../../data/guest_model.dart';
+import '../guests_provider.dart';
 
 class GuestListScreen extends StatefulWidget {
   final String eventId;

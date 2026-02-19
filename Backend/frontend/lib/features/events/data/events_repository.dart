@@ -62,4 +62,19 @@ class EventsRepository {
       'content': content,
     });
   }
+
+  Future<List<EventItem>> getEventItems(String eventId) async {
+    final response = await ApiClient.get('/events/$eventId/items');
+    final List<dynamic> data = response;
+    return data.map((json) => EventItem.fromJson(json)).toList();
+  }
+
+  Future<EventItem> addEventItem(String eventId, Map<String, dynamic> itemData) async {
+    final response = await ApiClient.post('/events/$eventId/items', itemData);
+    return EventItem.fromJson(response);
+  }
+
+  Future<void> removeEventItem(String eventId, String itemId) async {
+    await ApiClient.delete('/events/$eventId/items/$itemId');
+  }
 }

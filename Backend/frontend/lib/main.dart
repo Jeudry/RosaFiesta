@@ -5,6 +5,7 @@ import 'package:frontend/l10n/generated/app_localizations.dart';
 import 'core/app_theme.dart';
 import 'features/auth/presentation/auth_provider.dart';
 import 'features/home/presentation/screens/welcome_onboarding_screen.dart';
+import 'features/auth/presentation/screens/confirmation_screen.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'core/api_client.dart';
 import 'features/products/presentation/products_provider.dart';
@@ -18,21 +19,44 @@ import 'features/guests/data/guests_repository.dart';
 import 'features/guests/presentation/guests_provider.dart';
 import 'features/tasks/data/tasks_repository.dart';
 import 'features/tasks/presentation/tasks_provider.dart';
-import 'features/suppliers/presentation/suppliers_provider.dart';
-import 'features/events/data/timeline_repository.dart';
 import 'features/events/presentation/timeline_provider.dart';
 import 'features/stats/presentation/stats_provider.dart';
+import 'package:frontend/features/suppliers/presentation/suppliers_provider.dart';
+import 'package:frontend/features/events/data/timeline_repository.dart';
+import 'package:frontend/features/suppliers/data/suppliers_repository.dart';
 import 'core/services/notification_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'core/services/firebase_service.dart';
 
+import 'package:flutter/foundation.dart';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
-  await dotenv.load(fileName: ".env");
+  try {
+    await dotenv.load(fileName: ".env");
+  } catch (e) {
+    print("Warning: Failed to load .env file: $e");
+  }
+
+  try {
+    // Only initialize Firebase if not on web, or if we have options (not implemented here)
+    if (!kIsWeb) {
+      await Firebase.initializeApp();
+      await FirebaseService().initialize();
+    } else {
+      print("Warning: Firebase initialization skipped on Web");
+    }
+  } catch (e) {
+    print("Warning: Firebase initialization failed: $e");
+  }
+
   ApiClient.init();
-  await NotificationService().init();
-  await FirebaseService().initialize();
+  
+  try {
+    await NotificationService().init();
+  } catch (e) {
+    print("Warning: NotificationService initialization failed: $e");
+  }
   
   final guestsRepository = GuestsRepository();
   final tasksRepository = EventTasksRepository();
@@ -80,8 +104,20 @@ class RosaFiestaApp extends StatelessWidget {
         Locale('en'),
         Locale('es'),
       ],
-      locale: const Locale('es'),
+      locale: const Locale('es', 'ES'),
       home: const WelcomeOnboardingScreen(),
+      onGenerateRoute: (settings) {
+        if (settings.name != null && settings.name!.startsWith('/confirm/')) {
+          final uri = Uri.parse(settings.name!);
+          if (uri.pathSegments.length == 2 && uri.pathSegments[0] == 'confirm') {
+            final token = uri.pathSegments[1];
+            return MaterialPageRoute(
+              builder: (context) => ConfirmationScreen(token: token),
+            );
+          }
+        }
+        return null;
+      },
     );
   }
 }

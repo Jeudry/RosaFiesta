@@ -1,9 +1,9 @@
 package main
 
 import (
-	"Backend/internal/store/models"
-	"github.com/google/uuid"
 	"net/http"
+
+	"Backend/internal/store/models"
 )
 
 // @Summary		Get User Feed
@@ -36,10 +36,10 @@ func (app *Application) getUserFeedHandler(w http.ResponseWriter, r *http.Reques
 		app.badRequest(w, r, err)
 	}
 
+	user := GetUserFromCtx(r)
 	ctx := r.Context()
 
-	feed, err := app.Store.Posts.GetUserFeed(ctx, uuid.New(), fq)
-
+	feed, err := app.Store.Posts.GetUserFeed(ctx, user.ID, fq)
 	if err != nil {
 		app.internalServerError(w, r, err)
 		return

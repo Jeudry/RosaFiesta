@@ -25,7 +25,7 @@ class _EventCalendarScreenState extends State<EventCalendarScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<EventsProvider>().fetchEvents();
       // Optional: fetch tasks if we want to show deadlines
-      context.read<EventTasksProvider>().fetchTasks(); 
+      // context.read<EventTasksProvider>().fetchTasks(); 
     });
   }
 
@@ -129,7 +129,7 @@ class _EventCalendarScreenState extends State<EventCalendarScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => EventDetailScreen(event: item),
+                    builder: (context) => EventDetailScreen(eventId: item.id),
                   ),
                 );
               },

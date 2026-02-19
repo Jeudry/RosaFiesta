@@ -7,31 +7,37 @@ class FirebaseService {
   factory FirebaseService() => _instance;
   FirebaseService._internal();
 
-  final FirebaseMessaging _fcm = FirebaseMessaging.instance;
+  FirebaseMessaging get _fcm => FirebaseMessaging.instance;
 
   Future<void> initialize() async {
-    // Request permissions for iOS
-    NotificationSettings settings = await _fcm.requestPermission(
-      alert: true,
-      announcement: false,
-      badge: true,
-      carPlay: false,
-      criticalAlert: false,
-      provisional: false,
-      sound: true,
-    );
+    try {
+      // Request permissions for iOS
+      NotificationSettings settings = await _fcm.requestPermission(
+        alert: true,
+        announcement: false,
+        badge: true,
+        carPlay: false,
+        criticalAlert: false,
+        provisional: false,
+        sound: true,
+      );
 
-    if (kDebugMode) {
-      print('User granted permission: ${settings.authorizationStatus}');
-    }
+      if (kDebugMode) {
+        print('User granted permission: ${settings.authorizationStatus}');
+      }
 
-    // Configure background messaging
-    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+      // Configure background messaging
+      FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-    // Initial token fetch
-    String? token = await getToken();
-    if (kDebugMode) {
-      print("FCM Token: $token");
+      // Initial token fetch
+      String? token = await getToken();
+      if (kDebugMode) {
+        print("FCM Token: $token");
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print("Error initializing Firebase Messaging: $e");
+      }
     }
   }
 

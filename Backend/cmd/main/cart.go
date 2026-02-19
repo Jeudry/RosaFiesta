@@ -233,7 +233,7 @@ func (app *Application) clearCartHandler(w http.ResponseWriter, r *http.Request)
 	cart, err := app.Store.Carts.GetByUserID(ctx, user.ID)
 	if err != nil {
 		// If no cart, nothing to clear
-		app.jsonResponse(w, http.StatusNoContent, nil)
+		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 
@@ -242,7 +242,5 @@ func (app *Application) clearCartHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if err := app.jsonResponse(w, http.StatusNoContent, nil); err != nil {
-		app.internalServerError(w, r, err)
-	}
+	w.WriteHeader(http.StatusNoContent)
 }

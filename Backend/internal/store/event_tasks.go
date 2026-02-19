@@ -73,6 +73,10 @@ func (s *EventTaskStore) GetByEventID(ctx context.Context, eventID uuid.UUID) ([
 		tasks = append(tasks, task)
 	}
 
+	if tasks == nil {
+		tasks = []models.EventTask{}
+	}
+
 	return tasks, nil
 }
 

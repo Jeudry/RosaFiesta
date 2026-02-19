@@ -72,6 +72,10 @@ func (app *Application) getGuestsHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	if guests == nil {
+		guests = []models.Guest{}
+	}
+
 	if err := app.jsonResponse(w, http.StatusOK, guests); err != nil {
 		app.internalServerError(w, r, err)
 	}

@@ -58,6 +58,10 @@ func (app *Application) CheckPostOwnerShip(role string, next http.HandlerFunc) h
 }
 
 func (app *Application) checkRolePrecedence(ctx context.Context, user *models.User, roleName string) (bool, error) {
+	if user == nil || user.Role.Name == "" {
+		return false, nil
+	}
+
 	role, err := app.Store.Roles.RetrieveByName(ctx, roleName)
 	if err != nil {
 		return false, err
@@ -99,6 +103,12 @@ func (app *Application) APIKeyMiddleware() func(http.Handler) http.Handler {
 			requestKey := r.Header.Get(apiKeyHeader)
 
 			if requestKey == "" {
+				// If Authorization header is present, we skip API Key check to allow for JWT/Basic auth
+				if r.Header.Get("Authorization") != "" {
+					next.ServeHTTP(w, r)
+					return
+				}
+
 				app.unauthorized(w, r, fmt.Errorf("missing API key in header %s", apiKeyHeader))
 				return
 			}
@@ -125,21 +135,25 @@ func (app *Application) APIKeyMiddleware() func(http.Handler) http.Handler {
 func (app *Application) AuthTokenMiddleware(roles ...string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			var token string
 			authHeader := r.Header.Get("Authorization")
 
-			if authHeader == "" {
-				app.unauthorized(w, r, fmt.Errorf("authorization header required"))
-				return
+			if authHeader != "" {
+				parts := strings.Split(authHeader, " ")
+				if len(parts) != 2 || parts[0] != "Bearer" {
+					app.unauthorized(w, r, fmt.Errorf("authorization header format must be 'Bearer token'"))
+					return
+				}
+				token = parts[1]
+			} else {
+				// Fallback to query parameter (common for WebSockets)
+				token = r.URL.Query().Get("token")
 			}
 
-			parts := strings.Split(authHeader, " ")
-
-			if len(parts) != 2 || parts[0] != "Bearer" {
-				app.unauthorized(w, r, fmt.Errorf("authorization header format must be 'Bearer token'"))
+			if token == "" {
+				app.unauthorized(w, r, fmt.Errorf("authorization token required"))
 				return
 			}
-
-			token := parts[1]
 
 			app.Logger.Infow("token", "token", token)
 
@@ -261,6 +275,15 @@ func (app *Application) RateLimiterMiddleware(next http.Handler) http.Handler {
 			}
 		}
 
+		next.ServeHTTP(w, r)
+	})
+}
+
+func CleanPathMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.Contains(r.URL.Path, "/v1/v1/") {
+			r.URL.Path = strings.ReplaceAll(r.URL.Path, "/v1/v1/", "/v1/")
+		}
 		next.ServeHTTP(w, r)
 	})
 }

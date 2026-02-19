@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -38,11 +39,19 @@ func (app *Application) createEventHandler(w http.ResponseWriter, r *http.Reques
 
 	user := GetUserFromCtx(r)
 
-	// Parse date
+	// Parse date - Try RFC3339 first, then common Flutter/ISO8601 formats
+	var date time.Time
 	date, err := time.Parse(time.RFC3339, payload.Date)
 	if err != nil {
-		app.badRequest(w, r, err)
-		return
+		// Try without Z (common in some Flutter clients)
+		date, err = time.Parse("2006-01-02T15:04:05.000", payload.Date)
+		if err != nil {
+			date, err = time.Parse("2006-01-02T15:04:05", payload.Date)
+			if err != nil {
+				app.badRequest(w, r, fmt.Errorf("invalid date format: %v", err))
+				return
+			}
+		}
 	}
 
 	event := &models.Event{
@@ -126,6 +135,10 @@ func (app *Application) getUserEventsHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	if events == nil {
+		events = []models.Event{}
+	}
+
 	if err := app.jsonResponse(w, http.StatusOK, events); err != nil {
 		app.internalServerError(w, r, err)
 	}
@@ -185,10 +198,17 @@ func (app *Application) updateEventHandler(w http.ResponseWriter, r *http.Reques
 		event.Name = *payload.Name
 	}
 	if payload.Date != nil {
+		var date time.Time
 		date, err := time.Parse(time.RFC3339, *payload.Date)
 		if err != nil {
-			app.badRequest(w, r, err)
-			return
+			date, err = time.Parse("2006-01-02T15:04:05.000", *payload.Date)
+			if err != nil {
+				date, err = time.Parse("2006-01-02T15:04:05", *payload.Date)
+				if err != nil {
+					app.badRequest(w, r, fmt.Errorf("invalid date format: %v", err))
+					return
+				}
+			}
 		}
 		event.Date = date
 	}
@@ -438,6 +458,10 @@ func (app *Application) getEventItemsHandler(w http.ResponseWriter, r *http.Requ
 	if err != nil {
 		app.internalServerError(w, r, err)
 		return
+	}
+
+	if items == nil {
+		items = []models.EventItem{}
 	}
 
 	if err := app.jsonResponse(w, http.StatusOK, items); err != nil {

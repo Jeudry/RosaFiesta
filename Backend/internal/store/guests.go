@@ -107,6 +107,10 @@ func (s *GuestStore) GetByEventID(ctx context.Context, eventID uuid.UUID) ([]mod
 		guests = append(guests, guest)
 	}
 
+	if guests == nil {
+		guests = []models.Guest{}
+	}
+
 	return guests, nil
 }
 

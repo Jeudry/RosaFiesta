@@ -41,8 +41,8 @@ func TestTimelineHandlers(t *testing.T) {
 	t.Run("should create timeline item", func(t *testing.T) {
 		payload := CreateTimelineItemPayload{
 			Title:     "Test Activity",
-			StartTime: time.Now(),
-			EndTime:   time.Now().Add(1 * time.Hour),
+			StartTime: time.Now().Format(time.RFC3339),
+			EndTime:   time.Now().Add(1 * time.Hour).Format(time.RFC3339),
 		}
 
 		body, _ := json.Marshal(payload)

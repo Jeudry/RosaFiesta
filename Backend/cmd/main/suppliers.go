@@ -62,6 +62,10 @@ func (app *Application) getSuppliersHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	if suppliers == nil {
+		suppliers = []models.Supplier{}
+	}
+
 	if err := app.jsonResponse(w, http.StatusOK, suppliers); err != nil {
 		app.internalServerError(w, r, err)
 	}

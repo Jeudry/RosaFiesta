@@ -50,13 +50,13 @@ class PdfExportService {
                 borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
               ),
               child: pw.Column(
-                crossAxisAlignment: pw.Start,
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
                    pw.Row(
                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                      children: [
                        pw.Column(
-                         crossAxisAlignment: pw.Start,
+                         crossAxisAlignment: pw.CrossAxisAlignment.start,
                          children: [
                            pw.Text(event.name, style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold)),
                            pw.Text('Fecha: ${dateFormat.format(event.date)}'),
@@ -65,7 +65,7 @@ class PdfExportService {
                        ),
                        if (event.status == 'paid')
                         pw.Column(
-                          crossAxisAlignment: pw.End,
+                          crossAxisAlignment: pw.CrossAxisAlignment.end,
                           children: [
                             pw.Text('ESTADO: PAGADO', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.green)),
                             pw.Text('Método: ${event.paymentMethod}'),
@@ -95,7 +95,7 @@ class PdfExportService {
               mainAxisAlignment: pw.MainAxisAlignment.end,
               children: [
                 pw.Column(
-                  crossAxisAlignment: pw.End,
+                  crossAxisAlignment: pw.CrossAxisAlignment.end,
                   children: [
                     pw.Text('Subtotal Productos: \$${products.fold(0.0, (sum, item) => sum + (item.price ?? 0) * item.quantity).toStringAsFixed(2)}'),
                     if (event.additionalCosts > 0)
@@ -156,7 +156,7 @@ class PdfExportService {
     if (guests.isEmpty) return pw.Text('No hay invitados registrados.');
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: guests.map((g) => pw.Bullet(text: '${g.name} (${g.email ?? "Sin email"}) - ${g.status}')).toList(),
+      children: guests.map((g) => pw.Bullet(text: '${g.name} (${g.email ?? "Sin email"}) - ${g.rsvpStatus}')).toList(),
     );
   }
 
@@ -182,7 +182,7 @@ class PdfExportService {
             height: 10,
             decoration: pw.BoxDecoration(
               shape: pw.BoxShape.circle,
-              color: t.status == 'completed' ? PdfColors.green : PdfColors.orange,
+              color: t.isCompleted ? PdfColors.green : PdfColors.orange,
             ),
           ),
           pw.SizedBox(width: 5),

@@ -85,6 +85,10 @@ func (s *timelineStore) GetByEventID(ctx context.Context, eventID uuid.UUID) ([]
 		items = append(items, i)
 	}
 
+	if items == nil {
+		items = []models.TimelineItem{}
+	}
+
 	return items, nil
 }
 

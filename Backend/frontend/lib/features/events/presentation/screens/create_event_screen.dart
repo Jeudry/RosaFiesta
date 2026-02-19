@@ -103,13 +103,13 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       final budget = double.tryParse(_budgetController.text) ?? 0.0;
       final guestCount = int.tryParse(_guestCountController.text) ?? 0;
 
-      final success = await context.read<EventsProvider>().createEvent(
-            name,
-            _selectedDate,
-            location,
-            budget,
-            guestCount,
-          );
+      final success = await context.read<EventsProvider>().createEvent({
+        'name': name,
+        'date': _selectedDate.toIso8601String(),
+        'location': location,
+        'budget': budget,
+        'guest_count': guestCount,
+      });
 
       if (success && mounted) {
         Navigator.pop(context);

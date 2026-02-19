@@ -29,9 +29,10 @@ func (app *Application) Mount() http.Handler {
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+	r.Use(CleanPathMiddleware)
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"*"},
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-AccessToken"},
 		ExposedHeaders:   []string{"Link"},
 		AllowCredentials: true,
@@ -69,9 +70,10 @@ func (app *Application) Mount() http.Handler {
 			r.Route("/{articleId}", func(r chi.Router) {
 				r.Use(app.articlesContextMiddleware)
 
+				r.Get("/", app.getArticleHandler)
+
 				r.Group(func(r chi.Router) {
 					r.Use(app.RoleMiddleware("moderator"))
-					r.Get("/", app.getArticleHandler)
 					r.Put("/", app.updateArticleHandler)
 					r.Delete("/", app.deleteArticleHandler)
 				})
@@ -174,6 +176,7 @@ func (app *Application) Mount() http.Handler {
 		})
 
 		r.Route("/admin", func(r chi.Router) {
+			r.Use(app.AuthTokenMiddleware())
 			r.Use(app.RoleMiddleware("admin"))
 			r.Patch("/events/{id}/adjust", app.adjustQuoteHandler)
 			r.Get("/stats", app.getStatsHandler)

@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -17,6 +16,15 @@ class AppColors {
   
   static const textPrimary = Color(0xFF1A1A1A);
   static const textSecondary = Color(0xFF666666);
+
+  // Legacy aliases for backward compatibility
+  static const purple = primary;
+  static const pink = secondary;
+  static const teal = accent;
+  static const lime = highlight;
+  static const yellow = Color(0xFFFFD700); // Standard Gold/Yellow
+  static const orange = Colors.orange;
+  static const backgroundLight = background;
 
   // Premium Gradients
   static const primaryGradient = LinearGradient(

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../data/supplier_model.dart';
-import 'suppliers_provider.dart';
+import '../../data/supplier_model.dart';
+import '../suppliers_provider.dart';
 
 class SupplierListScreen extends StatefulWidget {
   const SupplierListScreen({super.key});

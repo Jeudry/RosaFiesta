@@ -67,7 +67,7 @@ func (app *Application) activateUserHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	if err := app.jsonResponse(w, http.StatusNoContent, ""); err != nil {
+	if err := app.jsonResponse(w, http.StatusOK, "User activated successfully"); err != nil {
 		app.internalServerError(w, r, err)
 	}
 }

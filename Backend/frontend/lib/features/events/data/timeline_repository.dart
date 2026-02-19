@@ -2,28 +2,27 @@ import '../../../../core/api_client.dart';
 import 'timeline_model.dart';
 
 class TimelineRepository {
-  final ApiClient apiClient;
-
-  TimelineRepository(this.apiClient);
+  TimelineRepository();
 
   Future<List<TimelineItem>> getTimeline(String eventId) async {
-    final response = await apiClient.get('/events/$eventId/timeline');
-    return (response['data'] as List)
+    final response = await ApiClient.get('/events/$eventId/timeline');
+    final List<dynamic> data = response;
+    return data
         .map((json) => TimelineItem.fromJson(json))
         .toList();
   }
 
   Future<TimelineItem> createItem(String eventId, Map<String, dynamic> data) async {
-    final response = await apiClient.post('/events/$eventId/timeline', data: data);
-    return TimelineItem.fromJson(response['data']);
+    final response = await ApiClient.post('/events/$eventId/timeline', data);
+    return TimelineItem.fromJson(response);
   }
 
   Future<TimelineItem> updateItem(String itemId, Map<String, dynamic> data) async {
-    final response = await apiClient.put('/timeline/$itemId', data: data);
-    return TimelineItem.fromJson(response['data']);
+    final response = await ApiClient.put('/timeline/$itemId', data);
+    return TimelineItem.fromJson(response);
   }
 
   Future<void> deleteItem(String itemId) async {
-    await apiClient.delete('/timeline/$itemId');
+    await ApiClient.delete('/timeline/$itemId');
   }
 }

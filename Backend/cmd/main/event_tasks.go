@@ -15,6 +15,7 @@ type createEventTaskPayload struct {
 	Title       string     `json:"title" validate:"required,max=255"`
 	Description *string    `json:"description" validate:"omitempty"`
 	DueDate     *time.Time `json:"due_date" validate:"omitempty"`
+	IsCompleted *bool      `json:"is_completed" validate:"omitempty"`
 }
 
 func (app *Application) addEventTaskHandler(w http.ResponseWriter, r *http.Request) {
@@ -36,12 +37,17 @@ func (app *Application) addEventTaskHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	isCompleted := false
+	if payload.IsCompleted != nil {
+		isCompleted = *payload.IsCompleted
+	}
+
 	task := &models.EventTask{
 		EventID:     eventID,
 		Title:       payload.Title,
 		Description: payload.Description,
 		DueDate:     payload.DueDate,
-		IsCompleted: false,
+		IsCompleted: isCompleted,
 	}
 
 	if err := app.Store.EventTasks.Create(r.Context(), task); err != nil {
@@ -66,6 +72,10 @@ func (app *Application) getEventTasksHandler(w http.ResponseWriter, r *http.Requ
 	if err != nil {
 		app.internalServerError(w, r, err)
 		return
+	}
+
+	if tasks == nil {
+		tasks = []models.EventTask{}
 	}
 
 	if err := app.jsonResponse(w, http.StatusOK, tasks); err != nil {

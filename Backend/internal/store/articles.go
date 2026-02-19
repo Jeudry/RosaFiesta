@@ -228,12 +228,12 @@ func (s *ArticlesStore) GetAll(ctx context.Context) ([]models.Article, error) {
 	}
 	defer rows.Close()
 
-	var articles []models.Article
+	articles := make([]models.Article, 0)
 	for rows.Next() {
 		var article models.Article
 		if err := rows.Scan(
 			&article.ID, &article.NameTemplate, &article.DescriptionTemplate, &article.Type,
-			&article.CategoryID, &article.IsActive, &article.Created, &article.Updated,
+			&article.CategoryID, &article.IsActive, &article.StockQuantity, &article.Created, &article.Updated,
 			&article.CreatedBy, &article.UpdatedBy,
 		); err != nil {
 			return nil, err
@@ -256,12 +256,12 @@ func (s *ArticlesStore) GetByCategoryID(ctx context.Context, categoryID uuid.UUI
 	}
 	defer rows.Close()
 
-	var articles []models.Article
+	articles := make([]models.Article, 0)
 	for rows.Next() {
 		var article models.Article
 		if err := rows.Scan(
 			&article.ID, &article.NameTemplate, &article.DescriptionTemplate, &article.Type,
-			&article.CategoryID, &article.IsActive, &article.Created, &article.Updated,
+			&article.CategoryID, &article.IsActive, &article.StockQuantity, &article.Created, &article.Updated,
 			&article.CreatedBy, &article.UpdatedBy,
 		); err != nil {
 			return nil, err

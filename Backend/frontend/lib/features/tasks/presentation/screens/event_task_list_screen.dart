@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../data/task_model.dart';
-import 'tasks_provider.dart';
+import '../../data/task_model.dart';
+import '../tasks_provider.dart';
 
 class EventTaskListScreen extends StatefulWidget {
   final String eventId;

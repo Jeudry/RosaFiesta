@@ -8,9 +8,11 @@ import 'budget_analysis_screen.dart';
 import '../../presentation/timeline_provider.dart';
 import '../../../guests/presentation/guests_provider.dart';
 import '../../../tasks/presentation/tasks_provider.dart';
-import '../../../core/services/pdf_export_service.dart';
+import 'package:frontend/core/services/pdf_export_service.dart';
 import 'checkout_screen.dart';
 import '../widgets/quotation_chat_widget.dart';
+import 'package:frontend/core/app_theme.dart';
+import 'event_timeline_screen.dart';
 
 
 class EventDetailScreen extends StatefulWidget {
@@ -250,11 +252,6 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
       ],
     );
   }
-          );
-        },
-      ),
-    );
-  }
 
   Future<void> _exportToPdf(BuildContext context) async {
     final eventsProvider = context.read<EventsProvider>();
@@ -270,18 +267,20 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     );
 
     try {
+      final event = eventsProvider.events.firstWhere((e) => e.id == widget.eventId);
+
       // Ensure data is loaded
       await Future.wait([
-        guestsProvider.fetchGuests(widget.event.id),
-        tasksProvider.fetchTasks(widget.event.id),
-        timelineProvider.fetchTimeline(widget.event.id),
+        guestsProvider.fetchGuests(widget.eventId),
+        tasksProvider.fetchTasks(widget.eventId),
+        timelineProvider.fetchTimeline(widget.eventId),
       ]);
 
       if (context.mounted) {
         Navigator.pop(context); // Close loading dialog
         
         await PdfExportService.generateEventReport(
-          event: widget.event,
+          event: event,
           products: eventsProvider.currentEventItems,
           guests: guestsProvider.guests,
           tasks: tasksProvider.tasks,
@@ -310,8 +309,8 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     }
   }
 
-  Widget _buildActionButtons(BuildContext context, EventsProvider provider) {
-    if (widget.event.status == 'planning') {
+  Widget _buildActionButtons(BuildContext context, EventsProvider provider, Event event) {
+    if (event.status == 'planning') {
       return SizedBox(
         width: double.infinity,
         child: ElevatedButton.icon(
@@ -323,7 +322,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
       );
     }
     
-    if (widget.event.status == 'adjusted') {
+    if (event.status == 'adjusted') {
       return SizedBox(
         width: double.infinity,
         child: ElevatedButton.icon(
@@ -335,19 +334,19 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
       );
     }
 
-    if (widget.event.status == 'confirmed') {
+    if (event.status == 'confirmed') {
       return SizedBox(
         width: double.infinity,
         child: ElevatedButton.icon(
           icon: const Icon(Icons.payment),
           label: const Text('Pagar para Reservar'),
-          onPressed: () => _navigateToCheckout(context, provider),
+          onPressed: () => _navigateToCheckout(context, provider, event),
           style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, foregroundColor: Colors.white),
         ),
       );
     }
 
-    if (widget.event.status == 'paid') {
+    if (event.status == 'paid') {
       return SizedBox(
         width: double.infinity,
         child: ElevatedButton.icon(
@@ -362,25 +361,25 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     return const SizedBox.shrink();
   }
 
-  void _navigateToCheckout(BuildContext context, EventsProvider provider) {
+  void _navigateToCheckout(BuildContext context, EventsProvider provider, Event event) {
     double realBudget = 0;
     for (var item in provider.currentEventItems) {
       if (item.price != null) {
         realBudget += item.price! * item.quantity;
       }
     }
-    final total = realBudget + widget.event.additionalCosts;
+    final total = realBudget + event.additionalCosts;
 
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => CheckoutScreen(event: widget.event, totalAmount: total),
+        builder: (context) => CheckoutScreen(event: event, totalAmount: total),
       ),
     );
   }
 
   Future<void> _requestQuotation(BuildContext context, EventsProvider provider) async {
-    final success = await provider.requestQuote(widget.event.id);
+    final success = await provider.requestQuote(widget.eventId);
     if (success && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Cotización solicitada. Rosa Fiesta revisará tu evento.')),
@@ -390,7 +389,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
   }
 
   Future<void> _confirmQuotation(BuildContext context, EventsProvider provider) async {
-    final success = await provider.confirmQuote(widget.event.id);
+    final success = await provider.confirmQuote(widget.eventId);
     if (success && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('¡Evento confirmado y reservado!')),

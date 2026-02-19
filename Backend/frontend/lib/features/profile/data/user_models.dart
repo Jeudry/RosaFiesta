@@ -7,6 +7,7 @@ class UserProfile {
   final String phoneNumber;
   final String? avatar;
   final String? bornDate;
+  final String? role;
 
   UserProfile({
     required this.id,
@@ -17,6 +18,7 @@ class UserProfile {
     required this.phoneNumber,
     this.avatar,
     this.bornDate,
+    this.role,
   });
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
@@ -29,6 +31,7 @@ class UserProfile {
       phoneNumber: json['phone_number'] ?? '',
       avatar: json['avatar'],
       bornDate: json['born_date'],
+      role: json['role'] != null ? json['role']['name'] : null,
     );
   }
 
