@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
-import '../presentation/debrief_provider.dart';
+import '../debrief_provider.dart';
 import 'package:frontend/core/app_theme.dart';
 
 class EventDebriefScreen extends StatefulWidget {

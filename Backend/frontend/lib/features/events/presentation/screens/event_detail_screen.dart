@@ -12,6 +12,8 @@ import 'package:frontend/core/services/pdf_export_service.dart';
 import 'checkout_screen.dart';
 import '../widgets/quotation_chat_widget.dart';
 import 'package:frontend/core/app_theme.dart';
+import '../debrief_provider.dart';
+import '../../data/event_debrief_model.dart';
 import 'event_timeline_screen.dart';
 import 'event_execution_screen.dart';
 import 'event_debrief_screen.dart';
@@ -309,6 +311,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     final guestsProvider = context.read<GuestsProvider>();
     final tasksProvider = context.read<EventTasksProvider>();
     final timelineProvider = context.read<TimelineProvider>();
+    final debriefProvider = context.read<DebriefProvider>();
 
     // Show loading dialog
     showDialog(
@@ -320,12 +323,19 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     try {
       final event = eventsProvider.events.firstWhere((e) => e.id == widget.eventId);
 
-      // Ensure data is loaded
-      await Future.wait([
+      // List of tasks to load
+      List<Future> loadTasks = [
         guestsProvider.fetchGuests(widget.eventId),
         tasksProvider.fetchTasks(widget.eventId),
         timelineProvider.fetchTimeline(widget.eventId),
-      ]);
+      ];
+
+      // Add debrief fetch if event is completed
+      if (event.status == 'completed' || event.status == 'paid') {
+        loadTasks.add(debriefProvider.fetchDebrief(widget.eventId));
+      }
+
+      await Future.wait(loadTasks);
 
       if (context.mounted) {
         Navigator.pop(context); // Close loading dialog
@@ -336,6 +346,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
           guests: guestsProvider.guests,
           tasks: tasksProvider.tasks,
           timeline: timelineProvider.items,
+          debrief: debriefProvider.debrief,
         );
       }
     } catch (e) {

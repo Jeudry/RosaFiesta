@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../data/event_model.dart';
+import '../../data/event_model.dart';
 import '../chat_provider.dart';
-import '../../auth/presentation/auth_provider.dart';
+import '../../../auth/presentation/auth_provider.dart';
 import 'package:intl/intl.dart';
 
 class EventChatScreen extends StatefulWidget {
