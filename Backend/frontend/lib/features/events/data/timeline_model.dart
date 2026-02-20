@@ -1,13 +1,28 @@
+import 'package:hive/hive.dart';
+
+part 'timeline_model.g.dart';
+
+@HiveType(typeId: 1)
 class TimelineItem {
+  @HiveField(0)
   final String id;
+  @HiveField(1)
   final String eventId;
+  @HiveField(2)
   final String title;
+  @HiveField(3)
   final String description;
+  @HiveField(4)
   final DateTime startTime;
+  @HiveField(5)
   final DateTime endTime;
+  @HiveField(6)
   final bool isCompleted;
+  @HiveField(7)
   final bool isCritical;
+  @HiveField(8)
   final DateTime createdAt;
+  @HiveField(9)
   final DateTime updatedAt;
 
   TimelineItem({

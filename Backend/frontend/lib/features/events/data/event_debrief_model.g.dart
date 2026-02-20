@@ -7,17 +7,15 @@ part of 'event_debrief_model.dart';
 // **************************************************************************
 
 EventDebrief _$EventDebriefFromJson(Map<String, dynamic> json) => EventDebrief(
-  punctualityScore: (json['punctuality_score'] as num).toDouble(),
-  delayedCritical: (json['delayed_critical'] as List<dynamic>)
-      .map((e) => DelayedItemInfo.fromJson(e as Map<String, dynamic>))
-      .toList(),
-  budgetAnalysis: BudgetSummary.fromJson(
-    json['budget_analysis'] as Map<String, dynamic>,
-  ),
-  completionStats: CompletionStats.fromJson(
-    json['completion_stats'] as Map<String, dynamic>,
-  ),
-);
+      punctualityScore: (json['punctuality_score'] as num).toDouble(),
+      delayedCritical: (json['delayed_critical'] as List<dynamic>)
+          .map((e) => DelayedItemInfo.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      budgetAnalysis: BudgetSummary.fromJson(
+          json['budget_analysis'] as Map<String, dynamic>),
+      completionStats: CompletionStats.fromJson(
+          json['completion_stats'] as Map<String, dynamic>),
+    );
 
 Map<String, dynamic> _$EventDebriefToJson(EventDebrief instance) =>
     <String, dynamic>{
