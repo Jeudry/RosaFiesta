@@ -1,7 +1,12 @@
 import '../../../core/api_client.dart';
 import 'event_model.dart';
+import 'event_debrief_model.dart';
 
 class EventsRepository {
+  Future<EventDebrief> getEventDebrief(String id) async {
+    final response = await ApiClient.get('/events/$id/debrief');
+    return EventDebrief.fromJson(response);
+  }
   Future<List<Event>> getEvents() async {
     final response = await ApiClient.get('/events');
     // Assuming backend returns a list directly or wrapped in data which ApiClient handles?

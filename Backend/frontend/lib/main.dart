@@ -15,6 +15,7 @@ import 'features/categories/presentation/categories_provider.dart';
 import 'features/profile/presentation/profile_provider.dart';
 import 'features/events/presentation/events_provider.dart';
 import 'features/events/presentation/chat_provider.dart';
+import 'features/events/presentation/debrief_provider.dart';
 import 'features/guests/data/guests_repository.dart';
 import 'features/guests/presentation/guests_provider.dart';
 import 'features/tasks/data/tasks_repository.dart';
@@ -79,6 +80,7 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => StatsProvider()),
         ChangeNotifierProvider(create: (_) => ReviewsProvider()),
         ChangeNotifierProvider(create: (_) => ChatProvider()),
+        ChangeNotifierProvider(create: (_) => DebriefProvider()),
       ],
       child: const RosaFiestaApp(),
     ),

@@ -29,7 +29,7 @@ class TimelineProvider with ChangeNotifier {
     }
   }
 
-  Future<void> addItem(String eventId, String title, String description, DateTime start, DateTime end) async {
+  Future<void> addItem(String eventId, String title, String description, DateTime start, DateTime end, {bool isCritical = false}) async {
     _isLoading = true;
     notifyListeners();
 
@@ -39,6 +39,7 @@ class TimelineProvider with ChangeNotifier {
         'description': description,
         'start_time': start.toIso8601String(),
         'end_time': end.toIso8601String(),
+        'is_critical': isCritical,
       });
       _items.add(newItem);
       _items.sort((a, b) => a.startTime.compareTo(b.startTime));
@@ -50,7 +51,7 @@ class TimelineProvider with ChangeNotifier {
     }
   }
 
-  Future<void> updateItem(String itemId, String title, String description, DateTime start, DateTime end) async {
+  Future<void> updateItem(String itemId, String title, String description, DateTime start, DateTime end, {bool? isCritical}) async {
     _isLoading = true;
     notifyListeners();
 
@@ -60,6 +61,8 @@ class TimelineProvider with ChangeNotifier {
         'description': description,
         'start_time': start.toIso8601String(),
         'end_time': end.toIso8601String(),
+        'is_completed': _items.firstWhere((i) => i.id == itemId).isCompleted,
+        'is_critical': isCritical ?? _items.firstWhere((i) => i.id == itemId).isCritical,
       });
       final index = _items.indexWhere((i) => i.id == itemId);
       if (index != -1) {
@@ -70,6 +73,40 @@ class TimelineProvider with ChangeNotifier {
       _error = e.toString();
     } finally {
       _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> toggleTimelineCompletion(TimelineItem item, bool isCompleted) async {
+    try {
+      final updated = await repository.updateItem(item.id, {
+        ...item.toJson(),
+        'is_completed': isCompleted,
+      });
+      final index = _items.indexWhere((i) => i.id == item.id);
+      if (index != -1) {
+        _items[index] = updated;
+        notifyListeners();
+      }
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+    }
+  }
+
+  Future<void> toggleTimelineCritical(TimelineItem item, bool isCritical) async {
+    try {
+      final updated = await repository.updateItem(item.id, {
+        ...item.toJson(),
+        'is_critical': isCritical,
+      });
+      final index = _items.indexWhere((i) => i.id == item.id);
+      if (index != -1) {
+        _items[index] = updated;
+        notifyListeners();
+      }
+    } catch (e) {
+      _error = e.toString();
       notifyListeners();
     }
   }

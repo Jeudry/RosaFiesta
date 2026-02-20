@@ -14,6 +14,7 @@ import '../widgets/quotation_chat_widget.dart';
 import 'package:frontend/core/app_theme.dart';
 import 'event_timeline_screen.dart';
 import 'event_execution_screen.dart';
+import 'event_debrief_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:frontend/core/config/env_config.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -396,14 +397,17 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
       );
     }
 
-    if (event.status == 'paid') {
+    if (event.status == 'completed') {
       return SizedBox(
         width: double.infinity,
         child: ElevatedButton.icon(
-          icon: const Icon(Icons.picture_as_pdf),
-          label: const Text('Descargar Factura / Invoice'),
-          onPressed: () => _exportToPdf(context),
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
+          icon: const Icon(Icons.analytics),
+          label: const Text('Ver Análisis Post-Evento'),
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => EventDebriefScreen(eventId: widget.eventId)),
+          ),
+          style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white),
         ),
       );
     }

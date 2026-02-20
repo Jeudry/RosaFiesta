@@ -13,6 +13,7 @@ class ExecutionItem {
   final String? description;
   final DateTime? time;
   final bool isCompleted;
+  final bool isCritical;
   final EventTask? taskRef;
   final TimelineItem? timelineRef;
 
@@ -22,6 +23,7 @@ class ExecutionItem {
     this.description,
     this.time,
     this.isCompleted = false,
+    this.isCritical = false,
     this.taskRef,
     this.timelineRef,
   });
@@ -38,7 +40,6 @@ class EventExecutionScreen extends StatefulWidget {
 
 class _EventExecutionScreenState extends State<EventExecutionScreen> {
   bool _isLoading = true;
-  final Set<String> _completedTimelineItems = {};
 
   @override
   void initState() {
@@ -77,7 +78,8 @@ class _EventExecutionScreenState extends State<EventExecutionScreen> {
         title: tl.title,
         description: tl.description,
         time: tl.startTime,
-        isCompleted: _completedTimelineItems.contains(tl.id),
+        isCompleted: tl.isCompleted,
+        isCritical: tl.isCritical,
         timelineRef: tl,
       ));
     }
@@ -96,18 +98,11 @@ class _EventExecutionScreenState extends State<EventExecutionScreen> {
   void _toggleItemStatus(ExecutionItem item, bool? newValue) async {
     final status = newValue ?? false;
     if (item.taskRef != null) {
-      // It's a task, sync to backend
       final provider = context.read<EventTasksProvider>();
       await provider.toggleTask(item.taskRef!.id, widget.eventId, status);
     } else if (item.timelineRef != null) {
-      // It's a timeline item, save locally
-      setState(() {
-        if (status) {
-          _completedTimelineItems.add(item.id);
-        } else {
-          _completedTimelineItems.remove(item.id);
-        }
-      });
+      final provider = context.read<TimelineProvider>();
+      await provider.toggleTimelineCompletion(item.timelineRef!, status);
     }
   }
 
@@ -195,14 +190,32 @@ class _EventExecutionScreenState extends State<EventExecutionScreen> {
                               activeColor: Colors.green,
                               checkColor: Colors.white,
                               controlAffinity: ListTileControlAffinity.leading, // Checkbox on the left
-                              title: Text(
-                                item.title,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 18,
-                                  decoration: item.isCompleted ? TextDecoration.lineThrough : null,
-                                  color: item.isCompleted ? Colors.grey : Colors.black87,
-                                ),
+                              title: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      item.title,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 18,
+                                        decoration: item.isCompleted ? TextDecoration.lineThrough : null,
+                                        color: item.isCompleted ? Colors.grey : Colors.black87,
+                                      ),
+                                    ),
+                                  ),
+                                  if (item.isCritical && !item.isCompleted)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: Colors.red,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: const Text(
+                                        '¡CRÍTICO!',
+                                        style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                ],
                               ),
                               subtitle: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,

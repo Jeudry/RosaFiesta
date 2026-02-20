@@ -138,6 +138,7 @@ class _EventTimelineScreenState extends State<EventTimelineScreen> {
     final descController = TextEditingController(text: item?.description);
     TimeOfDay startTime = TimeOfDay.fromDateTime(item?.startTime ?? DateTime.now());
     TimeOfDay endTime = TimeOfDay.fromDateTime(item?.endTime ?? DateTime.now().add(const Duration(hours: 1)));
+    bool isCritical = item?.isCritical ?? false;
 
     showDialog(
       context: context,
@@ -173,6 +174,13 @@ class _EventTimelineScreenState extends State<EventTimelineScreen> {
                     if (picked != null) setState(() => endTime = picked);
                   },
                 ),
+                SwitchListTile(
+                  title: const Text('¿Es Crítico?'),
+                  subtitle: const Text('Se enviarán alertas si hay retrasos'),
+                  value: isCritical,
+                  onChanged: (val) => setState(() => isCritical = val),
+                  activeColor: Colors.red,
+                ),
               ],
             ),
           ),
@@ -191,6 +199,7 @@ class _EventTimelineScreenState extends State<EventTimelineScreen> {
                     descController.text,
                     start,
                     end,
+                    isCritical: isCritical,
                   );
                 } else {
                   context.read<TimelineProvider>().updateItem(
@@ -199,6 +208,7 @@ class _EventTimelineScreenState extends State<EventTimelineScreen> {
                     descController.text,
                     start,
                     end,
+                    isCritical: isCritical,
                   );
                 }
                 Navigator.pop(context);

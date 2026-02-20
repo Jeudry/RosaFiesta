@@ -613,3 +613,26 @@ func (app *Application) adjustQuoteHandler(w http.ResponseWriter, r *http.Reques
 		app.internalServerError(w, r, err)
 	}
 }
+
+func (app *Application) getEventDebriefHandler(w http.ResponseWriter, r *http.Request) {
+	idParam := chi.URLParam(r, "id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	debrief, err := app.Store.Events.GetDebrief(r.Context(), id)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			app.notFoundResponse(w, r, err)
+		} else {
+			app.internalServerError(w, r, err)
+		}
+		return
+	}
+
+	if err := app.jsonResponse(w, http.StatusOK, debrief); err != nil {
+		app.internalServerError(w, r, err)
+	}
+}
