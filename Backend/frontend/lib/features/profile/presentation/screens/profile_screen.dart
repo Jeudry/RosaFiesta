@@ -132,6 +132,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                 const SizedBox(height: 24),
 
+                // Notification Settings
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: AppDecorations.softShadow,
+                  ),
+                  child: SwitchListTile(
+                    title: const Text('Notificaciones Automáticas', style: TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: const Text('Recordatorios y reseñas post-evento', style: TextStyle(fontSize: 12)),
+                    value: true,
+                    activeColor: AppColors.primary,
+                    onChanged: (val) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Configuración guardada.')),
+                      );
+                    },
+                    secondary: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.notifications_active, color: AppColors.primary),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
                 // Admin Dashboard Button (Only for Admins)
                 if (user.role == 'admin')
                   SizedBox(

@@ -167,6 +167,14 @@ func (m *EventStore) GetByUserID(ctx context.Context, id uuid.UUID) ([]models.Ev
 	return args.Get(0).([]models.Event), args.Error(1)
 }
 
+func (m *EventStore) GetAll(ctx context.Context) ([]models.Event, error) {
+	args := m.Called(ctx)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]models.Event), args.Error(1)
+}
+
 func (m *EventStore) Update(ctx context.Context, event *models.Event) error {
 	args := m.Called(ctx, event)
 	return args.Error(0)

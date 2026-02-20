@@ -129,6 +129,49 @@ func (s *EventStore) GetByUserID(ctx context.Context, userID uuid.UUID) ([]model
 	return events, nil
 }
 
+func (s *EventStore) GetAll(ctx context.Context) ([]models.Event, error) {
+	query := `
+		SELECT id, user_id, name, date, location, guest_count, budget, status, additional_costs, admin_notes, 
+		       payment_status, payment_method, paid_at, created_at, updated_at
+		FROM events
+		ORDER BY date ASC
+	`
+
+	rows, err := s.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var events []models.Event
+	for rows.Next() {
+		var event models.Event
+		err := rows.Scan(
+			&event.ID,
+			&event.UserID,
+			&event.Name,
+			&event.Date,
+			&event.Location,
+			&event.GuestCount,
+			&event.Budget,
+			&event.Status,
+			&event.AdditionalCosts,
+			&event.AdminNotes,
+			&event.PaymentStatus,
+			&event.PaymentMethod,
+			&event.PaidAt,
+			&event.CreatedAt,
+			&event.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		events = append(events, event)
+	}
+
+	return events, nil
+}
+
 func (s *EventStore) Update(ctx context.Context, event *models.Event) error {
 	query := `
 		UPDATE events

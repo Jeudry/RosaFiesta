@@ -82,6 +82,7 @@ type Storage struct {
 		RemoveItem(context.Context, uuid.UUID, uuid.UUID) error
 		GetItems(context.Context, uuid.UUID) ([]models.EventItem, error)
 		GetDebrief(context.Context, uuid.UUID) (*models.EventDebrief, error)
+		GetAll(context.Context) ([]models.Event, error)
 	}
 	Guests interface {
 		Create(context.Context, *models.Guest) error
@@ -129,27 +130,32 @@ type Storage struct {
 		GetByEventID(context.Context, uuid.UUID) ([]models.EventReview, error)
 		GetSummary(context.Context, uuid.UUID) (float64, int, error)
 	}
+	NotificationLogs interface {
+		LogNotification(context.Context, uuid.UUID, models.NotificationType) error
+		HasNotificationBeenSent(context.Context, uuid.UUID, models.NotificationType) (bool, error)
+	}
 }
 
 func NewStorage(db *sql.DB) Storage {
 	return Storage{
-		Articles:      &ArticlesStore{db: db},
-		Categories:    &CategoriesStore{db: db},
-		Posts:         &PostsStore{db: db},
-		Users:         &UsersStore{db: db},
-		Comments:      &CommentsStore{db: db},
-		Roles:         &RolesStore{db: db},
-		RefreshTokens: &RefreshTokensStore{db: db},
-		Carts:         &CartsStore{db: db},
-		Events:        &EventStore{db: db},
-		Guests:        &GuestStore{db: db},
-		EventTasks:    &EventTaskStore{db: db},
-		Suppliers:     &SupplierStore{db: db},
-		Timeline:      &timelineStore{db: db},
-		Messages:      &MessagesStore{db: db},
-		Stats:         &StatsStore{db: db},
-		Reviews:       &ReviewsStore{db: db},
-		EventReviews:  &EventReviewsStore{db: db},
+		Articles:         &ArticlesStore{db: db},
+		Categories:       &CategoriesStore{db: db},
+		Posts:            &PostsStore{db: db},
+		Users:            &UsersStore{db: db},
+		Comments:         &CommentsStore{db: db},
+		Roles:            &RolesStore{db: db},
+		RefreshTokens:    &RefreshTokensStore{db: db},
+		Carts:            &CartsStore{db: db},
+		Events:           &EventStore{db: db},
+		Guests:           &GuestStore{db: db},
+		EventTasks:       &EventTaskStore{db: db},
+		Suppliers:        &SupplierStore{db: db},
+		Timeline:         &timelineStore{db: db},
+		Messages:         &MessagesStore{db: db},
+		Stats:            &StatsStore{db: db},
+		Reviews:          &ReviewsStore{db: db},
+		EventReviews:     &EventReviewsStore{db: db},
+		NotificationLogs: &NotificationLogsStore{db: db},
 	}
 }
 

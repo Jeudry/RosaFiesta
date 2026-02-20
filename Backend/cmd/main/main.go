@@ -148,6 +148,10 @@ func main() {
 	delayChecker := worker.NewDelayChecker(appStore, logger, notificationService)
 	go delayChecker.Start(context.Background())
 
+	notificationSender := worker.NewNotificationSender(appStore, logger, notificationService)
+	// Run the notification worker every hour in production. Every 15 minutes for testing/demo.
+	go notificationSender.Start(context.Background(), 15*time.Minute)
+
 	app := &Application{
 		Config:        cfg,
 		Store:         appStore,
