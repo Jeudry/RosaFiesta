@@ -43,7 +43,7 @@ func (s *EventTaskStore) Create(ctx context.Context, task *models.EventTask) err
 
 func (s *EventTaskStore) GetByEventID(ctx context.Context, eventID uuid.UUID) ([]models.EventTask, error) {
 	query := `
-		SELECT id, event_id, title, description, is_completed, due_date, created_at, updated_at
+		SELECT id, event_id, title, description, is_completed, due_date, completed_at, created_at, updated_at
 		FROM event_tasks
 		WHERE event_id = $1
 		ORDER BY created_at ASC
@@ -84,7 +84,7 @@ func (s *EventTaskStore) GetByEventID(ctx context.Context, eventID uuid.UUID) ([
 
 func (s *EventTaskStore) GetByID(ctx context.Context, id uuid.UUID) (*models.EventTask, error) {
 	query := `
-		SELECT id, event_id, title, description, is_completed, due_date, created_at, updated_at
+		SELECT id, event_id, title, description, is_completed, due_date, completed_at, created_at, updated_at
 		FROM event_tasks
 		WHERE id = $1
 	`

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../data/event_model.dart';
 import '../data/message_model.dart';
 import '../data/events_repository.dart';
+import '../data/event_review.dart';
 import '../../../core/utils/error_translator.dart';
 import '../../../core/services/notification_service.dart';
 
@@ -118,12 +119,18 @@ class EventsProvider extends ChangeNotifier {
   Future<void> removeItemFromEvent(String eventId, String itemId) async {
     try {
       await _repository.removeEventItem(eventId, itemId);
-      _currentEventItems.removeWhere((item) => item.id == itemId);
-      notifyListeners();
+      await fetchEventItems(eventId);
     } catch (e) {
-      _error = ErrorTranslator.translate(e.toString());
-      notifyListeners();
+      debugPrint('Error removing event item: $e');
     }
+  }
+
+  Future<EventReview> createEventReview(String eventId, int rating, String comment) async {
+    return await _repository.createEventReview(eventId, rating, comment);
+  }
+
+  Future<List<EventReview>> getEventReviews(String eventId) async {
+    return await _repository.getEventReviews(eventId);
   }
 
   Future<bool> requestQuote(String eventId) async {

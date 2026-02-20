@@ -174,6 +174,11 @@ func (app *Application) Mount() http.Handler {
 				r.Get("/", app.getTimelineItemsHandler)
 			})
 
+			r.Route("/{id}/reviews", func(r chi.Router) {
+				r.Post("/", app.createEventReviewHandler)
+				r.Get("/", app.getEventReviewsHandler) // public access typically, but protected under events group here
+			})
+
 			// The r.Group for admin-only adjustQuoteHandler was moved to /v1/admin
 		})
 

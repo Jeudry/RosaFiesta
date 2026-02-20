@@ -20,7 +20,7 @@ import 'event_debrief_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:frontend/core/config/env_config.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-
+import 'widgets/event_reviews_sheet.dart';
 
 class EventDetailScreen extends StatefulWidget {
   final String eventId;
@@ -409,17 +409,31 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     }
 
     if (event.status == 'completed') {
-      return SizedBox(
-        width: double.infinity,
-        child: ElevatedButton.icon(
-          icon: const Icon(Icons.analytics),
-          label: const Text('Ver Análisis Post-Evento'),
-          onPressed: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => EventDebriefScreen(eventId: widget.eventId)),
+      return Column(
+        children: [
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              icon: const Icon(Icons.analytics),
+              label: const Text('Ver Análisis Post-Evento'),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => EventDebriefScreen(eventId: widget.eventId)),
+              ),
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white),
+            ),
           ),
-          style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white),
-        ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              icon: const Icon(Icons.rate_review),
+              label: const Text('Reseñas del Evento'),
+              onPressed: () => EventReviewsSheet.show(context, widget.eventId),
+              style: OutlinedButton.styleFrom(foregroundColor: AppColors.primary, side: const BorderSide(color: AppColors.primary)),
+            ),
+          ),
+        ],
       );
     }
 

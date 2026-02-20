@@ -124,6 +124,11 @@ type Storage struct {
 		GetByArticleID(context.Context, uuid.UUID) ([]models.Review, error)
 		GetSummary(context.Context, uuid.UUID) (float64, int, error)
 	}
+	EventReviews interface {
+		Create(context.Context, *models.EventReview) error
+		GetByEventID(context.Context, uuid.UUID) ([]models.EventReview, error)
+		GetSummary(context.Context, uuid.UUID) (float64, int, error)
+	}
 }
 
 func NewStorage(db *sql.DB) Storage {
@@ -144,6 +149,7 @@ func NewStorage(db *sql.DB) Storage {
 		Messages:      &MessagesStore{db: db},
 		Stats:         &StatsStore{db: db},
 		Reviews:       &ReviewsStore{db: db},
+		EventReviews:  &EventReviewsStore{db: db},
 	}
 }
 

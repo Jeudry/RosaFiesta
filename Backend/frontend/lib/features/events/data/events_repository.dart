@@ -1,6 +1,7 @@
 import '../../../core/api_client.dart';
 import 'event_model.dart';
 import 'event_debrief_model.dart';
+import 'event_review.dart';
 
 class EventsRepository {
   Future<EventDebrief> getEventDebrief(String id) async {
@@ -81,5 +82,19 @@ class EventsRepository {
 
   Future<void> removeEventItem(String eventId, String itemId) async {
     await ApiClient.delete('/events/$eventId/items/$itemId');
+  }
+
+  Future<EventReview> createEventReview(String eventId, int rating, String comment) async {
+    final response = await ApiClient.post('/events/$eventId/reviews', {
+      'rating': rating,
+      'comment': comment,
+    });
+    return EventReview.fromJson(response);
+  }
+
+  Future<List<EventReview>> getEventReviews(String eventId) async {
+    final response = await ApiClient.get('/events/$eventId/reviews');
+    final List<dynamic> data = response;
+    return data.map((json) => EventReview.fromJson(json)).toList();
   }
 }
