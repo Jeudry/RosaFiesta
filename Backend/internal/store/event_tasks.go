@@ -17,7 +17,7 @@ func (s *EventTaskStore) Create(ctx context.Context, task *models.EventTask) err
 	query := `
 		INSERT INTO event_tasks (event_id, title, description, is_completed, due_date)
 		VALUES ($1, $2, $3, $4, $5)
-		RETURNING id, created_at, updated_at
+		RETURNING id, created_at, updated_at, completed_at
 	`
 
 	err := s.db.QueryRowContext(
@@ -32,6 +32,7 @@ func (s *EventTaskStore) Create(ctx context.Context, task *models.EventTask) err
 		&task.ID,
 		&task.CreatedAt,
 		&task.UpdatedAt,
+		&task.CompletedAt,
 	)
 	if err != nil {
 		return err
@@ -64,6 +65,7 @@ func (s *EventTaskStore) GetByEventID(ctx context.Context, eventID uuid.UUID) ([
 			&task.Description,
 			&task.IsCompleted,
 			&task.DueDate,
+			&task.CompletedAt,
 			&task.CreatedAt,
 			&task.UpdatedAt,
 		)
@@ -95,6 +97,7 @@ func (s *EventTaskStore) GetByID(ctx context.Context, id uuid.UUID) (*models.Eve
 		&task.Description,
 		&task.IsCompleted,
 		&task.DueDate,
+		&task.CompletedAt,
 		&task.CreatedAt,
 		&task.UpdatedAt,
 	)
@@ -111,9 +114,18 @@ func (s *EventTaskStore) GetByID(ctx context.Context, id uuid.UUID) (*models.Eve
 func (s *EventTaskStore) Update(ctx context.Context, task *models.EventTask) error {
 	query := `
 		UPDATE event_tasks
-		SET title = $1, description = $2, is_completed = $3, due_date = $4, updated_at = NOW()
+		SET title = $1, 
+		    description = $2, 
+		    is_completed = $3, 
+		    due_date = $4, 
+		    updated_at = NOW(),
+		    completed_at = CASE 
+		        WHEN $3 = TRUE AND completed_at IS NULL THEN NOW()
+		        WHEN $3 = FALSE THEN NULL
+		        ELSE completed_at
+		    END
 		WHERE id = $5
-		RETURNING updated_at
+		RETURNING updated_at, completed_at
 	`
 
 	err := s.db.QueryRowContext(
@@ -124,7 +136,7 @@ func (s *EventTaskStore) Update(ctx context.Context, task *models.EventTask) err
 		task.IsCompleted,
 		task.DueDate,
 		task.ID,
-	).Scan(&task.UpdatedAt)
+	).Scan(&task.UpdatedAt, &task.CompletedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return ErrNotFound

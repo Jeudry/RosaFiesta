@@ -145,6 +145,7 @@ func (app *Application) Mount() http.Handler {
 			r.Put("/{id}", app.updateEventHandler)
 			r.Post("/{id}/pay", app.payEventHandler)
 			r.Get("/{id}/calendar.ics", app.getEventCalendarHandler)
+			r.Get("/{id}/debrief", app.getEventDebriefHandler)
 			r.Route("/{id}/messages", func(r chi.Router) {
 				r.Get("/", app.getMessagesHandler)
 				r.Post("/", app.sendMessageHandler)

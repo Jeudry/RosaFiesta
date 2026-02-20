@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"time"
 
 	"Backend/internal/store/models"
 
@@ -271,4 +272,92 @@ func (s *EventStore) GetItems(ctx context.Context, eventID uuid.UUID) ([]models.
 	}
 
 	return items, nil
+}
+
+func (s *EventStore) GetDebrief(ctx context.Context, id uuid.UUID) (*models.EventDebrief, error) {
+	// 1. Get Event and Budget
+	event, err := s.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	items, err := s.GetItems(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	var totalSpent float64
+	for _, item := range items {
+		if item.Price != nil {
+			totalSpent += *item.Price * float64(item.Quantity)
+		}
+	}
+
+	// 2. Completion Stats and Punctuality
+	var totalTasks, completedTasks int
+	err = s.db.QueryRowContext(ctx, "SELECT COUNT(*), COUNT(*) FILTER (WHERE is_completed) FROM event_tasks WHERE event_id = $1", id).Scan(&totalTasks, &completedTasks)
+	if err != nil {
+		return nil, err
+	}
+
+	var totalTimeline, completedTimeline int
+	err = s.db.QueryRowContext(ctx, "SELECT COUNT(*), COUNT(*) FILTER (WHERE is_completed) FROM event_timeline_items WHERE event_id = $1", id).Scan(&totalTimeline, &completedTimeline)
+	if err != nil {
+		return nil, err
+	}
+
+	// 3. Delayed Critical Items
+	query := `
+		SELECT title, start_time, completed_at
+		FROM event_timeline_items
+		WHERE event_id = $1 AND is_critical = TRUE AND is_completed = TRUE AND completed_at > start_time
+	`
+	rows, err := s.db.QueryContext(ctx, query, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var delayedItems []models.DelayedItemInfo
+	var totalDelaysSeconds int64
+	var criticalCount float64
+
+	for rows.Next() {
+		var info models.DelayedItemInfo
+		var start, completed time.Time
+		if err := rows.Scan(&info.Title, &start, &completed); err != nil {
+			return nil, err
+		}
+		info.ExpectedTime = start
+		info.ActualTime = completed
+		info.Delay = completed.Sub(start)
+		delayedItems = append(delayedItems, info)
+
+		totalDelaysSeconds += int64(info.Delay.Seconds())
+	}
+
+	// Calculate a simple punctuality score (0-100)
+	// Base 100, subtract 5 points per delayed critical item (example)
+	err = s.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM event_timeline_items WHERE event_id = $1 AND is_critical = TRUE", id).Scan(&criticalCount)
+	punctualityScore := 100.0
+	if criticalCount > 0 {
+		punctualityScore = 100.0 - (float64(len(delayedItems)) / criticalCount * 100.0)
+	}
+
+	return &models.EventDebrief{
+		PunctualityScore: punctualityScore,
+		DelayedCritical:  delayedItems,
+		BudgetAnalysis: models.BudgetSummary{
+			EstimatedBudget: event.Budget,
+			ActualSpent:     totalSpent,
+			Difference:      event.Budget - totalSpent,
+			IsOverBudget:    totalSpent > event.Budget,
+		},
+		CompletionStats: models.CompletionStats{
+			TotalTasks:        totalTasks,
+			CompletedTasks:    completedTasks,
+			TotalTimeline:     totalTimeline,
+			CompletedTimeline: completedTimeline,
+		},
+	}, nil
 }

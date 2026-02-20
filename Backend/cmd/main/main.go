@@ -16,6 +16,7 @@ import (
 	"Backend/internal/notifications"
 	"Backend/internal/ratelimiter"
 	"Backend/internal/store"
+	"Backend/internal/worker"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/joho/godotenv"
@@ -143,6 +144,9 @@ func main() {
 	notificationService := notifications.NewNotificationService()
 	chatHub := newHub()
 	go chatHub.run()
+
+	delayChecker := worker.NewDelayChecker(appStore, logger, notificationService)
+	go delayChecker.Start(context.Background())
 
 	app := &Application{
 		Config:        cfg,
