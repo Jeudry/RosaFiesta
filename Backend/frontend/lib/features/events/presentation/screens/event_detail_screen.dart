@@ -13,6 +13,7 @@ import 'checkout_screen.dart';
 import '../widgets/quotation_chat_widget.dart';
 import 'package:frontend/core/app_theme.dart';
 import 'event_timeline_screen.dart';
+import 'event_execution_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:frontend/core/config/env_config.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -68,6 +69,45 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                   padding: const EdgeInsets.all(20),
                   child: Column(
                     children: [
+                      // Prominent Execution Mode Banner
+                      InkWell(
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => EventExecutionScreen(eventId: widget.eventId)),
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [AppColors.primary, AppColors.accent],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(color: AppColors.primary.withOpacity(0.4), blurRadius: 8, offset: const Offset(0, 4)),
+                            ],
+                          ),
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('MODO EJECUCIÓN', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, letterSpacing: 1.2, fontSize: 18)),
+                                  SizedBox(height: 4),
+                                  Text('Lista de verificación para hoy', style: TextStyle(color: Colors.white70, fontSize: 14)),
+                                ],
+                              ),
+                              Icon(Icons.play_circle_fill, color: Colors.white, size: 40),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
                       _buildControlGroup([
                         _buildNavAction(
                           icon: Icons.check_circle_outline,
