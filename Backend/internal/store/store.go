@@ -49,6 +49,7 @@ type Storage struct {
 		Delete(context.Context, uuid.UUID) error
 		GetByEmail(context.Context, string) (*models.User, error)
 		UpdateFCMToken(context.Context, uuid.UUID, string) error
+		GetOrganizersFCMTokens(context.Context) ([]string, error)
 	}
 	Roles interface {
 		RetrieveByName(context.Context, string) (*models.Role, error)
@@ -76,11 +77,11 @@ type Storage struct {
 		GetByID(context.Context, uuid.UUID) (*models.Event, error)
 		GetByUserID(context.Context, uuid.UUID) ([]models.Event, error)
 		Update(context.Context, *models.Event) error
-
 		Delete(context.Context, uuid.UUID) error
 		AddItem(context.Context, *models.EventItem) error
 		RemoveItem(context.Context, uuid.UUID, uuid.UUID) error
 		GetItems(context.Context, uuid.UUID) ([]models.EventItem, error)
+		GetDebrief(context.Context, uuid.UUID) (*models.EventDebrief, error)
 	}
 	Guests interface {
 		Create(context.Context, *models.Guest) error
@@ -109,6 +110,7 @@ type Storage struct {
 		GetByID(context.Context, uuid.UUID) (*models.TimelineItem, error)
 		Update(context.Context, *models.TimelineItem) error
 		Delete(context.Context, uuid.UUID) error
+		GetOverdueCriticalItems(context.Context) ([]models.TimelineItemWithUser, error)
 	}
 	Messages interface {
 		Create(context.Context, *models.EventMessage) error

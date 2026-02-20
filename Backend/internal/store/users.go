@@ -228,3 +228,35 @@ func (s *UsersStore) UpdateFCMToken(ctx context.Context, userID uuid.UUID, token
 	_, err := s.db.ExecContext(ctx, query, token, userID)
 	return err
 }
+
+// GetOrganizersFCMTokens fetches FCM tokens for all users with admin or moderator roles.
+func (s *UsersStore) GetOrganizersFCMTokens(ctx context.Context) ([]string, error) {
+	query := `
+		SELECT fcm_token 
+		FROM users u
+		JOIN roles r ON u.role_id = r.id
+		WHERE r.name IN ('admin', 'moderator') 
+		  AND u.fcm_token IS NOT NULL 
+		  AND u.fcm_token <> ''
+	`
+
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
+	defer cancel()
+
+	rows, err := s.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var tokens []string
+	for rows.Next() {
+		var token string
+		if err := rows.Scan(&token); err != nil {
+			return nil, err
+		}
+		tokens = append(tokens, token)
+	}
+
+	return tokens, nil
+}
