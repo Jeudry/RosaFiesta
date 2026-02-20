@@ -3,10 +3,15 @@ import '../data/task_model.dart';
 import '../data/tasks_repository.dart';
 import '../../../core/utils/error_translator.dart';
 import '../../../core/services/notification_service.dart';
+import '../../../core/services/hive_service.dart';
+import '../../../core/services/sync_service.dart';
+import '../../../core/models/sync_action.dart';
 
 class EventTasksProvider with ChangeNotifier {
   final EventTasksRepository _repository;
   final NotificationService _notificationService = NotificationService();
+  final SyncService _syncService = SyncService();
+  
   List<EventTask> _tasks = [];
   bool _isLoading = false;
   String? _error;
@@ -23,16 +28,76 @@ class EventTasksProvider with ChangeNotifier {
   Future<void> fetchTasks(String eventId) async {
     _isLoading = true;
     _error = null;
+    
+    // Initial load from Hive (Optimistic/Offline)
+    _loadFromHive(eventId);
     notifyListeners();
 
     try {
-      _tasks = await _repository.getTasks(eventId);
+      final fetchedTasks = await _repository.getTasks(eventId);
+      _tasks = fetchedTasks;
+      await _saveToHive(eventId, fetchedTasks);
       _syncNotifications();
     } catch (e) {
+      // If API fails, we already have Hive data loaded
       _error = ErrorTranslator.translate(e.toString());
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  void _loadFromHive(String eventId) {
+    _tasks = HiveService.tasksBox.values
+        .where((t) => t.eventId == eventId)
+        .toList();
+  }
+
+  Future<void> _saveToHive(String eventId, List<EventTask> tasks) async {
+    // Clear old tasks for this event
+    final keysToDelete = HiveService.tasksBox.keys
+        .where((key) => HiveService.tasksBox.get(key)?.eventId == eventId);
+    await HiveService.tasksBox.deleteAll(keysToDelete);
+    
+    // Add new ones
+    for (var task in tasks) {
+      await HiveService.tasksBox.put(task.id, task);
+    }
+  }
+
+  Future<bool> toggleTask(String taskId, String eventId, bool isCompleted) async {
+    try {
+      // Optimistic local update
+      final taskIndex = _tasks.indexWhere((t) => t.id == taskId);
+      if (taskIndex != -1) {
+        final task = _tasks[taskIndex];
+        final updatedTask = EventTask(
+          id: task.id,
+          eventId: task.eventId,
+          title: task.title,
+          description: task.description,
+          isCompleted: isCompleted,
+          dueDate: task.dueDate,
+          createdAt: task.createdAt,
+          updatedAt: DateTime.now(),
+        );
+        _tasks[taskIndex] = updatedTask;
+        await HiveService.tasksBox.put(taskId, updatedTask);
+        notifyListeners();
+      }
+
+      await _syncService.addAction(
+        entityType: 'task',
+        entityId: taskId,
+        operation: SyncOperation.update,
+        payload: {'is_completed': isCompleted},
+      );
+      
+      return true;
+    } catch (e) {
+      _error = ErrorTranslator.translate(e.toString());
+      notifyListeners();
+      return false;
     }
   }
 
@@ -42,25 +107,21 @@ class EventTasksProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      await _repository.addTask(eventId, task);
-      await fetchTasks(eventId);
-      return true;
-    } catch (e) {
-      _error = ErrorTranslator.translate(e.toString());
-      return false;
-    } finally {
+      await _syncService.addAction(
+        entityType: 'task',
+        entityId: task.id,
+        operation: SyncOperation.create,
+        payload: task.toJson(),
+      );
+      
+      _tasks.add(task);
+      await HiveService.tasksBox.put(task.id, task);
       _isLoading = false;
       notifyListeners();
-    }
-  }
-
-  Future<bool> toggleTask(String taskId, String eventId, bool isCompleted) async {
-    try {
-      await _repository.updateTask(taskId, {'is_completed': isCompleted});
-      await fetchTasks(eventId);
       return true;
     } catch (e) {
       _error = ErrorTranslator.translate(e.toString());
+      _isLoading = false;
       notifyListeners();
       return false;
     }
@@ -68,8 +129,16 @@ class EventTasksProvider with ChangeNotifier {
 
   Future<bool> deleteTask(String taskId, String eventId) async {
     try {
-      await _repository.deleteTask(taskId);
-      await fetchTasks(eventId);
+      _tasks.removeWhere((t) => t.id == taskId);
+      await HiveService.tasksBox.delete(taskId);
+      notifyListeners();
+
+      await _syncService.addAction(
+        entityType: 'task',
+        entityId: taskId,
+        operation: SyncOperation.delete,
+        payload: {},
+      );
       return true;
     } catch (e) {
       _error = ErrorTranslator.translate(e.toString());

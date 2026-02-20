@@ -28,6 +28,8 @@ import 'package:frontend/features/suppliers/data/suppliers_repository.dart';
 import 'core/services/notification_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'core/services/firebase_service.dart';
+import 'core/services/hive_service.dart';
+import 'core/services/sync_service.dart';
 
 import 'package:flutter/foundation.dart';
 
@@ -52,6 +54,13 @@ Future<void> main() async {
   }
 
   ApiClient.init();
+  
+  try {
+    await HiveService.init();
+    SyncService().init();
+  } catch (e) {
+    print("Warning: Hive initialization failed: $e");
+  }
   
   try {
     await NotificationService().init();
