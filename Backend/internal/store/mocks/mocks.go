@@ -56,6 +56,14 @@ func (m *UserStore) UpdateFCMToken(ctx context.Context, userID uuid.UUID, token 
 	return args.Error(0)
 }
 
+func (m *UserStore) GetOrganizersFCMTokens(ctx context.Context) ([]string, error) {
+	args := m.Called(ctx)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]string), args.Error(1)
+}
+
 type ArticlesStore struct {
 	mock.Mock
 }
@@ -184,6 +192,14 @@ func (m *EventStore) GetItems(ctx context.Context, eventID uuid.UUID) ([]models.
 	return args.Get(0).([]models.EventItem), args.Error(1)
 }
 
+func (m *EventStore) GetDebrief(ctx context.Context, id uuid.UUID) (*models.EventDebrief, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.EventDebrief), args.Error(1)
+}
+
 type GuestStore struct {
 	mock.Mock
 }
@@ -310,6 +326,14 @@ func (m *TimelineStore) Update(ctx context.Context, item *models.TimelineItem) e
 func (m *TimelineStore) Delete(ctx context.Context, id uuid.UUID) error {
 	args := m.Called(ctx, id)
 	return args.Error(0)
+}
+
+func (m *TimelineStore) GetOverdueCriticalItems(ctx context.Context) ([]models.TimelineItemWithUser, error) {
+	args := m.Called(ctx)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]models.TimelineItemWithUser), args.Error(1)
 }
 
 type ReviewsStore struct {
