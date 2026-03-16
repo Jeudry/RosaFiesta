@@ -16,5 +16,14 @@
   "requiredField": "Requerido",
   "registerButton": "REGISTRARSE",
   "registrationSuccess": "Registro Exitoso. Por favor activa tu cuenta.",
-  "loginSuccess": "Login Exitoso"
+  "loginSuccess": "Login Exitoso",
+  "onboardingTitle1": "Planifica Tu Evento Soñado",
+  "onboardingDesc1": "Organiza cada detalle de tu evento con herramientas inteligentes potenciadas por IA",
+  "onboardingTitle2": "Encuentra los Mejores Proveedores",
+  "onboardingDesc2": "Conecta con proveedores verificados y compara cotizaciones en un solo lugar",
+  "onboardingTitle3": "Controla Todo en Tiempo Real",
+  "onboardingDesc3": "Presupuesto, tareas, invitados y cronograma — todo bajo control desde tu teléfono",
+  "skipButton": "Omitir",
+  "nextButton": "Siguiente",
+  "alreadyHaveAccount": "¿Ya tienes una cuenta?"
 }

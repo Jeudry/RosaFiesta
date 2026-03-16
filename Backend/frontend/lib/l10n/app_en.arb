@@ -16,5 +16,14 @@
   "requiredField": "Required",
   "registerButton": "REGISTER",
   "registrationSuccess": "Registration Successful. Please activate your account.",
-  "loginSuccess": "Login Successful"
+  "loginSuccess": "Login Successful",
+  "onboardingTitle1": "Plan Your Dream Event",
+  "onboardingDesc1": "Organize every detail of your event with smart tools powered by AI",
+  "onboardingTitle2": "Find the Best Suppliers",
+  "onboardingDesc2": "Connect with verified suppliers and compare quotes in one place",
+  "onboardingTitle3": "Track Everything in Real Time",
+  "onboardingDesc3": "Budget, tasks, guests and timeline — all under control from your phone",
+  "skipButton": "Skip",
+  "nextButton": "Next",
+  "alreadyHaveAccount": "Already have an account?"
 }
