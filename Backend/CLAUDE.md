@@ -81,6 +81,52 @@ Routes (cmd/main/api.go) → Middleware (auth, CORS, rate limiting) → Handlers
 - Localization: ARB files in `frontend/lib/l10n/` (English + Spanish), access via `AppLocalizations.of(context)`
 - Routing: Hash-based (`/#/login`, `/#/events`, `/#/catalog`)
 
+### Frontend Design System (MANDATORY for all new screens)
+
+**Single import**: `import 'package:frontend/core/design_system.dart';`
+This file is the authoritative source of truth for all visual language. Do NOT define local color constants or duplicate widget classes.
+
+**Color tokens** (`frontend/lib/core/app_colors.dart` — re-exported by `design_system.dart`):
+| Token | Value | Usage |
+|---|---|---|
+| `AppColors.hotPink` | `#FF3CAC` | Primary CTAs, gradient titles |
+| `AppColors.coral` | `#FF6B6B` | Errors, secondary accents |
+| `AppColors.amber` | `#FFB800` | Gold highlights |
+| `AppColors.teal` | `#00D4AA` | Success, accents |
+| `AppColors.violet` | `#8B5CF6` | Orbs, backgrounds |
+| `AppColors.sky` | `#4FC3F7` | Light accents |
+| `AppColors.titleGradient` | hotPink→amber→teal | ShaderMask titles |
+| `AppColors.buttonGradient` | hotPink→violet | CTA buttons |
+
+**Theme tokens** (`RfTheme`) — dark/light surfaces, text colors, borders:
+- Resolve from provider: `final t = RfTheme.of(context);`
+- Or directly: `RfTheme.dark` / `RfTheme.light`
+- Fields: `t.base`, `t.card`, `t.textPrimary`, `t.textMuted`, `t.textDim`, `t.borderFaint`, `t.isDark`
+
+**Shared widgets** (all from `design_system.dart`):
+- `RfThemeToggle(t: t)` — pill toggle that reads/writes `ThemeProvider`
+- `RfLuxeButton(label:, onTap:, loading:)` — gradient CTA; `filled: false, t: t` for ghost variant
+- `RfFormField(label:, icon:, controller:, t:, obscure:, validator:)` — styled input
+- `RfGradientOrbs(controller:, color1:, color2:, isDark:)` — animated background blobs
+- `RfDecoLayer(floatController:, decoController:, pulseController:, baseOpacity:)` — floating particles
+- `RfGridPainter(color:)` — subtle background grid
+
+**Global theme state**: `ThemeProvider` (in `MultiProvider` in `main.dart`)
+- Default: light theme
+- Read: `context.watch<ThemeProvider>().isDark`
+- Toggle: `context.read<ThemeProvider>().toggle()`
+
+**Typography**: `GoogleFonts.outfit()` for headings/display, `GoogleFonts.dmSans()` for body/UI
+
+**Auth screen pattern** (reference implementations: `login_screen.dart`, `register_screen.dart`):
+```dart
+final t = RfTheme.of(context);  // resolves dark/light from ThemeProvider
+// Layers: RfGradientOrbs → RfDecoLayer → RfGridPainter → SafeArea content
+// Top bar: back button (ghost pill) + RfThemeToggle
+// Title: ShaderMask with AppColors.titleGradient + GoogleFonts.outfit 42px w800
+// Card: glassmorphism (dark) / opaque white (light) with RfFormField + RfLuxeButton
+```
+
 ## Testing
 
 - **Backend unit tests**: `cmd/main/*_test.go` using `testify/mock`
