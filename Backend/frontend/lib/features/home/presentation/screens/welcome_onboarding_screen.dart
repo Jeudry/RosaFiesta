@@ -572,7 +572,7 @@ class _WelcomeOnboardingScreenState extends State<WelcomeOnboardingScreen>
                 children: [
                   ShaderMask(
                     shaderCallback: (b) => const LinearGradient(
-                      colors: [_electricCoral, _goldenAmber, _tropicalTeal],
+                      colors: [_hotPink, _goldenAmber, _tropicalTeal],
                     ).createShader(b),
                     child: Text(
                       'Rosa Fiesta',
