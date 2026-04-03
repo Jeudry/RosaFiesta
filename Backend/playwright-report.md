@@ -1,80 +1,62 @@
-# Home Screen Creative Variants — 2026-03-30
+# Landing Page Onboarding — Eliminacion de Donas y Blobs Intensos — 2026-03-27
 
-## Summary
-4 radically creative home screen variants, each using a completely different aesthetic direction informed by ui-ux-pro-max style/color/typography recommendations. These are NOT conventional designs — each pushes boundaries in a different direction.
+## Resumen
 
-## Screenshots
+Se revisaron y modificaron los elementos visuales decorativos de la pantalla de onboarding (`welcome_onboarding_screen.dart`). El usuario reporto que los blobs amarillos eran muy intensos, opacos, y tenian forma de "dona" (centro vacio). Se realizaron multiples iteraciones para eliminar esos efectos y reemplazarlos por circulos solidos pequenos agrupados en clusters.
 
-### Variante 1 — Liquid Blossom (Liquid Glass + Organic Floral + Iridescent)
-![Liquid Blossom](variant_1_liquid_blossom.png)
+## Capturas
 
-**Style**: Liquid Glass | **Fonts**: Syne + Manrope | **Palette**: Deep purple-black + iridescent cycling (pink/gold/teal/violet)
-- Organic blob background with cubic bezier shapes morphing on 12s loop
-- Iridescent animated ShaderMask on hero text "Creamos Magia"
-- Floating photo cards at angles (scattered polaroid layout)
-- Services as floating pills at staggered Y positions
-- Categories with animated iridescent SweepGradient rings
-- Stats as floating glass orbs at different positions
-- Floating pill bottom nav with rainbow FAB
-- Film grain CustomPainter overlay
+### Estado inicial (antes de cambios)
+![Estado inicial](v3_page1.png)
 
----
+### Despues de reemplazar blobs por circulos solidos pequenos
+![Circulos solidos](v3_circles_p1.png)
 
-### Variante 2 — Memphis Fiesta (80s Memphis Design + Postmodern)
-![Memphis Fiesta](variant_2_memphis_fiesta.png)
+### Despues de quitar ArcRingPainter de content pages
+![Sin dona en content](v3_no_donut_p1.png)
 
-**Style**: Memphis Design | **Fonts**: Abril Fatface + Merriweather | **Palette**: Warm cream + clashing pink/yellow/cyan/purple/coral/mint
-- Memphis pattern background (dozens of geometric shapes: triangles, zigzags, squiggles, dots)
-- Each letter of "ROSA FIESTA" a different color
-- Hero tilted -3 degrees with zigzag pattern + circular photo cutout + marker highlight text
-- Search bar rotated -1.5 degrees with thick black border
-- Party type blocks at different rotations and shapes (circle, square, triangle, pill)
-- Categories in geometric frames (triangle, circle, star, hexagon)
-- Asymmetric featured event cards (different heights)
-- Squiggly line separators via CustomPainter
-- Yellow bouncy FAB with squiggly decoration
+### Despues de quitar border y glow del icono
+![Sin anillo](v3_no_ring.png)
 
----
+### Despues de simplificar ambient background a color plano
+![Background plano](v3_flat_bg.png)
 
-### Variante 3 — Neon Gala (Synthwave / Retro-Futurism / Cyberpunk)
-![Neon Gala](variant_3_neon_gala.png)
+### Despues de clean build completo
+![Clean build](v3_clean_build.png)
 
-**Style**: Retro-Futurism | **Fonts**: Space Grotesk (all weights) | **Palette**: Deep navy #0A0A1E + neon pink/cyan/blue/purple
-- Perspective grid background vanishing to horizon
-- CRT scanline overlay
-- "NEON GALA" 56px with triple neon glow (pink + cyan + purple shadows)
-- Sunset gradient hero (pink to orange to purple) with duotone photo filter
-- Pulsing neon stat counters with colored top borders
-- Categories with neon-colored borders (each different)
-- Featured events with diagonal "TRENDING" stripe
-- Animated scanning beam on bottom nav border
-- Neon pink FAB with cyan glow shadow
+### Version final — con white glow para difuminar transicion
+![White glow final](v3_white_glow.png)
 
----
+## Cambios Realizados
 
-### Variante 4 — Velvet Cinema (Vintage Film + Skeuomorphism + Editorial)
-![Velvet Cinema](variant_4_velvet_cinema.png)
+### Blobs decorativos (`_buildDecoBlobs`)
+- **Antes**: 6 blobs grandes (80-200px) con opacidad 0.04-0.06, incluyendo uno amarillo intenso
+- **Despues**: 12 circulos solidos pequenos (12-32px) en clusters de 2-3, distribuidos en esquinas y bordes, opacidad 0.05-0.10
 
-**Style**: Vintage Analog Film | **Fonts**: Cinzel + Josefin Sans | **Palette**: Faded cream #F5E6C8 + velvet burgundy #4A1528 + gold foil #B8860B
-- Paper grain texture CustomPainter on entire screen
-- Film strip header with sprocket holes
-- Magazine editorial hero layout (photo 60% + text side by side)
-- Pull quote with large gold quotation mark decoration
-- Contact sheet photo grid (3x2, sepia filter, frame numbers)
-- Two-column magazine editorial services layout with gold divider
-- Polaroid-style category cards with slight rotation
-- Stats as film frames with light leak gradient overlay
-- Velvet burgundy bottom nav with gold embossed FAB
+### ArcRingPainter (dona rotante)
+- Eliminado de las paginas de contenido (slides 1-3)
+- Eliminado de la pagina de auth (slide 4)
+- La clase `_ArcRingPainter` queda sin instanciarse (codigo muerto)
 
-## Design System Source
-Powered by `ui-ux-pro-max`:
-- Styles: Liquid Glass, Memphis Design, Retro-Futurism, Vintage Analog Film
-- Typography: Fashion Forward (Syne+Manrope), Retro Vintage (Abril Fatface+Merriweather), Neo Brutalism (Space Grotesk), Real Estate Luxury (Cinzel+Josefin Sans)
-- Colors: Iridescent cycling, Memphis clashing, Neon cyberpunk, Warm sepia vintage
+### Halo / glow del icono
+- Eliminado el halo rosa de 160px detras del icono en content pages
+- Eliminado el halo amarillo de 140px en auth page
+- Eliminado border y boxShadow magenta/verde del contenedor del icono
+- Agregado boxShadow blanco difuso (blur 40, spread 20) para suavizar transicion contra fondo
 
-## Notes
-- V1 (Liquid Blossom) most visually stunning but heaviest on GPU (blurs + animations)
-- V2 (Memphis Fiesta) most unique/memorable but may feel chaotic for professional users
-- V3 (Neon Gala) strongest dark theme with excellent neon effects
-- V4 (Velvet Cinema) most editorial/premium feel with sepia film aesthetic
-- All 4 compile with 0 errors and preserve full navigation/provider functionality
+### Ambient Background
+- **Antes**: RadialGradient animado con coral/blush/cream
+- **Despues**: Color plano `_cream`
+
+### Orbiting Stars
+- Eliminadas de las paginas de contenido (ya no se llama `_buildOrbitingStars`)
+
+### Petals
+- Reducidos de tamano (130/100/90/80 -> 90/70/60/55 px)
+- Movidos mas a las esquinas para no solaparse con el icono central
+- Opacidad reducida
+
+## Notas
+- El efecto visual de "dona" persiste ligeramente debido al contraste entre el circulo blanco del icono y el fondo rosado de los blobs/petals cercanos — el white glow ayuda a difuminarlo
+- Flutter web cachea agresivamente via service worker; se requiere hard refresh (Ctrl+Shift+R) para ver cambios
+- La clase `_ArcRingPainter` y la funcion `_buildOrbitingStars` quedaron como codigo muerto — se pueden eliminar en un cleanup futuro
