@@ -255,7 +255,7 @@ class _HomeScreenState extends State<HomeScreen>
           // AI Assistant FAB with tooltip
           Positioned(
             right: 16,
-            bottom: 110,
+            bottom: 120,
             child: Stack(
               clipBehavior: Clip.none,
               alignment: Alignment.bottomRight,
@@ -308,7 +308,7 @@ class _HomeScreenState extends State<HomeScreen>
                   child: AnimatedBuilder(
                     animation: _aiFabGlowController,
                     builder: (context, _) => Container(
-                      width: 62, height: 62,
+                      width: 76, height: 76,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         gradient: const LinearGradient(
@@ -325,8 +325,44 @@ class _HomeScreenState extends State<HomeScreen>
                           ),
                         ],
                       ),
-                      child: const Icon(Icons.support_agent_rounded,
-                          color: Colors.white, size: 28),
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        alignment: Alignment.center,
+                        children: [
+                          const Icon(Icons.support_agent_rounded,
+                              color: Colors.white, size: 36),
+                          // Typing dots badge
+                          Positioned(
+                            bottom: 12,
+                            left: -6,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(10),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.12),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 1),
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  _dot(),
+                                  const SizedBox(width: 3),
+                                  _dot(),
+                                  const SizedBox(width: 3),
+                                  _dot(),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -392,7 +428,7 @@ class _HomeScreenState extends State<HomeScreen>
                     const Spacer(),
                     _responsiveThemeToggle(t),
                     const SizedBox(width: 6),
-                    _iconButton(Icons.notifications_outlined, t, () {}),
+                    _iconButton(Icons.notifications_rounded, t, () {}, showDot: true),
                     const SizedBox(width: 6),
                     _iconButton(Icons.shopping_bag_outlined, t, () {
                       Navigator.push(context, MaterialPageRoute(
@@ -447,9 +483,9 @@ class _HomeScreenState extends State<HomeScreen>
             const Spacer(),
             _responsiveThemeToggle(t),
             const SizedBox(width: 6),
-            _iconButton(Icons.notifications_outlined, t, () {
+            _iconButton(Icons.notifications_rounded, t, () {
               // TODO: notifications screen
-            }),
+            }, showDot: true),
             const SizedBox(width: 6),
             Consumer<CartProvider>(
               builder: (context, cart, _) {
@@ -491,7 +527,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   Widget _responsiveThemeToggle(RfTheme t) {
     final width = MediaQuery.of(context).size.width;
-    if (width < 380) {
+    if (width < 500) {
       // Small screens: just the icon, no text
       return GestureDetector(
         onTap: () => context.read<ThemeProvider>().toggle(),
@@ -518,17 +554,28 @@ class _HomeScreenState extends State<HomeScreen>
     return RfThemeToggle(t: t);
   }
 
-  Widget _iconButton(IconData icon, RfTheme t, VoidCallback onTap) {
+  Widget _iconButton(IconData icon, RfTheme t, VoidCallback onTap,
+      {bool showDot = false}) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        width: 40, height: 40,
-        decoration: BoxDecoration(
-          color: t.card.withOpacity(0.7),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: t.borderFaint),
+      child: SizedBox(
+        width: 36, height: 36,
+        child: Stack(
+          children: [
+            Center(child: Icon(icon, color: t.textPrimary, size: 26)),
+            if (showDot)
+              Positioned(
+                right: 4, top: 4,
+                child: Container(
+                  width: 8, height: 8,
+                  decoration: const BoxDecoration(
+                    color: AppColors.coral,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+          ],
         ),
-        child: Icon(icon, color: t.textMuted, size: 20),
       ),
     );
   }
@@ -559,41 +606,57 @@ class _HomeScreenState extends State<HomeScreen>
   Widget _buildSearchBar(RfTheme t) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-      child: Container(
-        height: 52,
-        decoration: BoxDecoration(
-          color: t.card,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: t.borderFaint),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.hotPink.withOpacity(0.04),
-              blurRadius: 12,
-            ),
-          ],
-        ),
-        child: TextField(
-          style: GoogleFonts.dmSans(fontSize: 14, color: t.textPrimary),
-          decoration: InputDecoration(
-            hintText: 'Buscar decoraciones, temas...',
-            hintStyle: GoogleFonts.dmSans(fontSize: 14, color: t.textDim),
-            prefixIcon: Icon(Icons.search_rounded,
-                color: t.textDim, size: 22),
-            suffixIcon: Container(
-              margin: const EdgeInsets.all(6),
-              width: 40, height: 40,
+      child: Row(
+        children: [
+          // Search field
+          Expanded(
+            child: Container(
+              height: 56,
               decoration: BoxDecoration(
-                gradient: AppColors.buttonGradient,
-                borderRadius: BorderRadius.circular(12),
+                color: t.isDark ? t.card : Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: t.borderFaint),
               ),
-              child: const Icon(Icons.tune_rounded,
-                  color: Colors.white, size: 20),
+              child: Row(
+                children: [
+                  const SizedBox(width: 16),
+                  const Icon(Icons.search, color: Color(0xFF8D8E90), size: 28),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextField(
+                      style: GoogleFonts.dmSans(
+                          fontSize: 17, color: t.textPrimary),
+                      decoration: InputDecoration(
+                        hintText: 'Buscar decoraciones, temas...',
+                        hintStyle: GoogleFonts.dmSans(
+                            fontSize: 17, color: const Color(0xFF8D8E90)),
+                        filled: false,
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(
+                            vertical: 16),
+                        isCollapsed: true,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-            border: InputBorder.none,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           ),
-        ),
+          const SizedBox(width: 10),
+          // Mic button
+          Container(
+            width: 56, height: 56,
+            decoration: BoxDecoration(
+              color: t.isDark ? t.card : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: t.borderFaint),
+            ),
+            child: const Icon(Icons.mic_outlined,
+                color: Color(0xFF8D8E90), size: 28),
+          ),
+        ],
       ),
     );
   }
@@ -715,8 +778,8 @@ class _HomeScreenState extends State<HomeScreen>
           Expanded(child: _statCard('127', 'Eventos',
               Icons.celebration_rounded, AppColors.hotPink, t)),
           const SizedBox(width: 10),
-          Expanded(child: _statCard('48', 'Proveedores',
-              Icons.handshake_rounded, AppColors.violet, t)),
+          Expanded(child: _statCard('8', 'Años',
+              Icons.workspace_premium_rounded, AppColors.violet, t)),
           const SizedBox(width: 10),
           Expanded(child: _statCard('4.9', 'Rating',
               Icons.star_rounded, const Color(0xFFFFC107), t)),
@@ -1149,6 +1212,16 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
+  Widget _dot([Color color = AppColors.violet]) {
+    return Container(
+      width: 4, height: 4,
+      decoration: BoxDecoration(
+        color: color,
+        shape: BoxShape.circle,
+      ),
+    );
+  }
+
   // ── More Menu ────────────────────────────────────────────────────────
 
   void _showMoreMenu(RfTheme t) {
@@ -1202,128 +1275,91 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  // ── Bottom Nav with notch ─────────────────────────────────────────────
+  // ── Floating Pill Bottom Bar ──────────────────────────────────────────
 
   Widget _buildBottomNav(RfTheme t) {
-    const fabSize = 72.0;
-    const fabRadius = fabSize / 2;  // 36
-    const gap = 12.0;
-    const notchRadius = fabRadius;  // clipper adds gap internally
-    const navHeight = 72.0;
-
     final bottomPad = MediaQuery.of(context).padding.bottom;
 
-    return SizedBox(
-      height: navHeight + bottomPad + fabRadius,
-      child: Stack(
-        clipBehavior: Clip.none,
-        alignment: Alignment.bottomCenter,
-        children: [
-          // Nav bar pinned to bottom, only covers navHeight + bottomPad
-          Positioned(
-            left: 0, right: 0, bottom: 0,
-            height: navHeight + bottomPad,
-            child: CustomPaint(
-              foregroundPainter: _NotchBorderPainter(
-                notchRadius: notchRadius,
-                gap: gap,
-                borderColor: t.borderFaint,
-              ),
-              child: ClipPath(
-                clipper: _NotchClipper(notchRadius: notchRadius, gap: gap),
-                child: Container(
-                  color: t.card,
-                  padding: EdgeInsets.only(bottom: bottomPad),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: Row(
-                      children: [
-                        Expanded(child: _navItem(
-                            Icons.home_rounded, 'Inicio', t,
-                            isActive: true)),
-                        Expanded(child: _navItem(
-                            Icons.storefront_outlined, 'Catálogo', t,
-                            onTap: () => Navigator.push(context,
-                                MaterialPageRoute(builder: (_) =>
-                                    const ProductsListScreen())))),
-                        const SizedBox(width: fabSize + 12),
-                        Expanded(child: _navItem(
-                            Icons.calendar_today_outlined, 'Eventos', t,
-                            onTap: () => Navigator.push(context,
-                                MaterialPageRoute(builder: (_) =>
-                                    const EventsListScreen())))),
-                        Expanded(child: _navItem(
-                            Icons.more_horiz_rounded, 'Más', t,
-                            onTap: () {
-                              _showMoreMenu(t);
-                            })),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
+    return Padding(
+      padding: EdgeInsets.fromLTRB(16, 0, 16, bottomPad + 20),
+      child: Container(
+        height: 70,
+        decoration: BoxDecoration(
+          color: t.isDark ? t.card : Colors.white,
+          borderRadius: BorderRadius.circular(35),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 24,
+              offset: const Offset(0, 4),
             ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6),
+          child: Row(
+            children: [
+              _navItem(Icons.home_rounded, 'Inicio', t,
+                  isActive: true, iconSize: 32),
+              _navItem(Icons.storefront_outlined, 'Catálogo', t,
+                  iconSize: 30,
+                  onTap: () => Navigator.push(context,
+                      MaterialPageRoute(builder: (_) =>
+                          const ProductsListScreen()))),
+              _navItem(Icons.event_outlined, 'Eventos', t,
+                  iconSize: 28,
+                  onTap: () => Navigator.push(context,
+                      MaterialPageRoute(builder: (_) =>
+                          const EventsListScreen()))),
+              _navItem(Icons.calendar_month_outlined, 'Calendario', t,
+                  iconSize: 28,
+                  onTap: () => Navigator.push(context,
+                      MaterialPageRoute(builder: (_) =>
+                          const EventCalendarScreen()))),
+              _navItem(Icons.more_horiz_rounded, 'Más', t,
+                  iconSize: 30,
+                  onTap: () => _showMoreMenu(t)),
+            ],
           ),
-          // FAB centered on notch
-          Positioned(
-            top: 0,
-            child: GestureDetector(
-              onTap: () => Navigator.push(context, MaterialPageRoute(
-                  builder: (_) => const EventCalendarScreen())),
-              child: Container(
-                width: fabSize, height: fabSize,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: AppColors.buttonGradient,
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.hotPink.withOpacity(0.3),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: const Icon(Icons.add_rounded,
-                    color: Colors.white, size: 36),
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
 
   Widget _navItem(IconData icon, String label, RfTheme t,
-      {bool isActive = false, VoidCallback? onTap}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          if (isActive)
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                gradient: AppColors.buttonGradient,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: Colors.white, size: 22),
-            )
-          else
-            Padding(
-              padding: const EdgeInsets.all(8),
-              child: Icon(icon, color: t.textDim, size: 22),
-            ),
-          const SizedBox(height: 2),
-          Text(label,
-              style: GoogleFonts.dmSans(
-                fontSize: 10,
-                fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-                color: isActive ? AppColors.hotPink : t.textDim,
-              ),
-              overflow: TextOverflow.ellipsis),
-        ],
+      {bool isActive = false, VoidCallback? onTap, double iconSize = 28}) {
+    return Expanded(
+      flex: isActive ? 3 : 1,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: isActive
+            ? Container(
+                margin: const EdgeInsets.all(7),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [AppColors.violet, AppColors.hotPink],
+                  ),
+                  borderRadius: BorderRadius.circular(28),
+                ),
+                alignment: Alignment.center,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(icon, color: Colors.white, size: iconSize),
+                    const SizedBox(width: 8),
+                    Text(label,
+                        style: GoogleFonts.dmSans(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        )),
+                  ],
+                ),
+              )
+            : Icon(icon, color: t.textDim, size: iconSize),
       ),
     );
   }
@@ -1382,84 +1418,6 @@ class _ChatBubblePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_ChatBubblePainter old) => color != old.color;
-}
-
-// ── Notch Border Painter ──────────────────────────────────────────────────────
-
-class _NotchBorderPainter extends CustomPainter {
-  final double notchRadius;
-  final double gap;
-  final Color borderColor;
-
-  _NotchBorderPainter({
-    required this.notchRadius,
-    required this.gap,
-    required this.borderColor,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final cx = size.width / 2;
-    final r = notchRadius + gap;
-
-    // Top line with gap for circle
-    final leftLine = Path()
-      ..moveTo(0, 0)
-      ..lineTo(cx - r, 0);
-    final rightLine = Path()
-      ..moveTo(cx + r, 0)
-      ..lineTo(size.width, 0);
-    // Semicircle arc (bottom half of circle)
-    final arc = Path()
-      ..addArc(
-        Rect.fromCircle(center: Offset(cx, 0), radius: r),
-        0,        // start angle (3 o'clock)
-        3.14159,  // sweep pi (bottom semicircle)
-      );
-
-    final paint = Paint()
-      ..color = borderColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5;
-    canvas.drawPath(leftLine, paint);
-    canvas.drawPath(rightLine, paint);
-    canvas.drawPath(arc, paint);
-  }
-
-  @override
-  bool shouldRepaint(_NotchBorderPainter old) => borderColor != old.borderColor;
-}
-
-// ── Notch Clipper ─────────────────────────────────────────────────────────────
-
-class _NotchClipper extends CustomClipper<Path> {
-  final double notchRadius;
-  final double gap;
-
-  _NotchClipper({required this.notchRadius, this.gap = 6});
-
-  @override
-  Path getClip(Size size) {
-    final cx = size.width / 2;
-    final r = notchRadius + gap;
-
-    // Full rectangle
-    final rect = Path()
-      ..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
-
-    // Circle to subtract - centered at top edge
-    final circle = Path()
-      ..addOval(Rect.fromCircle(center: Offset(cx, 0), radius: r));
-
-    // Subtract circle from rectangle = perfect circular notch
-    final path = Path.combine(PathOperation.difference, rect, circle);
-
-    return path;
-  }
-
-  @override
-  bool shouldReclip(_NotchClipper old) =>
-      notchRadius != old.notchRadius || gap != old.gap;
 }
 
 // ── Data ──────────────────────────────────────────────────────────────────────
