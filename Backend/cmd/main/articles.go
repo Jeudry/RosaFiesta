@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"net/http"
+	"strconv"
 
 	"Backend/cmd/main/view_models/products"
 	"Backend/internal/store/models"
@@ -188,7 +189,21 @@ func (app *Application) deleteArticleHandler(w http.ResponseWriter, r *http.Requ
 func (app *Application) getAllArticlesHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	articles, err := app.Store.Articles.GetAll(ctx)
+	// Pagination query params (defaults: limit=10, offset=0)
+	limit := 10
+	offset := 0
+	if l := r.URL.Query().Get("limit"); l != "" {
+		if v, err := strconv.Atoi(l); err == nil && v > 0 && v <= 100 {
+			limit = v
+		}
+	}
+	if o := r.URL.Query().Get("offset"); o != "" {
+		if v, err := strconv.Atoi(o); err == nil && v >= 0 {
+			offset = v
+		}
+	}
+
+	articles, err := app.Store.Articles.GetAll(ctx, limit, offset)
 	if err != nil {
 		app.internalServerError(w, r, err)
 		return

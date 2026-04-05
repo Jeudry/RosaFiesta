@@ -6,7 +6,7 @@ import 'package:frontend/l10n/generated/app_localizations.dart';
 import 'package:frontend/core/design_system.dart';
 import 'package:frontend/core/app_colors.dart';
 import '../auth_provider.dart';
-import '../../../home/presentation/screens/home_screen.dart';
+import '../../../shell/main_shell.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -73,7 +73,7 @@ class _LoginScreenState extends State<LoginScreen>
         duration: const Duration(seconds: 2),
       ));
       navigator.pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
+        MaterialPageRoute(builder: (_) => const MainShell()),
         (route) => false,
       );
     }

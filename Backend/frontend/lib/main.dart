@@ -6,7 +6,7 @@ import 'core/app_theme.dart';
 import 'core/theme_provider.dart';
 import 'features/auth/presentation/auth_provider.dart';
 import 'features/home/presentation/screens/welcome_onboarding_screen.dart';
-import 'features/home/presentation/screens/home_screen.dart';
+import 'features/shell/main_shell.dart';
 import 'features/auth/presentation/screens/confirmation_screen.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'core/api_client.dart';
@@ -165,7 +165,7 @@ class _AuthGateState extends State<_AuthGate> {
     }
 
     if (auth.isAuthenticated) {
-      return const HomeScreen();
+      return const MainShell();
     }
 
     return const WelcomeOnboardingScreen();

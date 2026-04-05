@@ -25,7 +25,7 @@ type Storage struct {
 		GetAvailability(context.Context, uuid.UUID, time.Time) (int, error)
 		Update(context.Context, *models.Article) error
 		Delete(context.Context, uuid.UUID) error
-		GetAll(context.Context) ([]models.Article, error)
+		GetAll(context.Context, int, int) ([]models.Article, error)
 	}
 	Categories interface {
 		Create(context.Context, *models.Category) error

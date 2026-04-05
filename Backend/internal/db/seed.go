@@ -9,6 +9,8 @@ import (
 
 	"Backend/internal/store"
 	"Backend/internal/store/models"
+
+	"github.com/google/uuid"
 )
 
 var userNames = []string{
@@ -141,44 +143,54 @@ func Seed(store store.Storage, db *sql.DB) error {
 
 	// Seed Categories
 	categories := generateCategories()
-	// Use transaction for consistency if needed, or just individual creates.
-	// Users loop uses a transaction but `store.Categories.Create` might handle its own or use the passed context.
-	// `store.Users.Create` takes `tx`. `store.Posts.Create` does not?
-	// Let's check `store.Categories.Create` signature. It likely takes context.
-	// I'll just put it at top.
-
-	// START CHECK
-	// `store.Users.Create(ctx, tx, user)`
-	// `store.Categories.Create(ctx, category)`?
-	// Let's assume standard create.
-
 	for _, category := range categories {
 		if err := store.Categories.Create(ctx, category); err != nil {
-			// If duplicate, just log and continue
 			log.Println("Error creating category (might exist): ", err)
 		}
 	}
 
-	users := generateUsers(100)
-	// ... rest of user seeding
-
-	tx, _ := db.BeginTx(ctx, nil)
-
-	for _, user := range users {
-		if err := store.Users.Create(ctx, tx, user); err != nil {
-			_ = tx.Rollback()
-			log.Println("Error creating user: ", err)
-			return err
+	// Build a category lookup by name so articles can reference them by ID.
+	// If a category already existed, re-read its ID from the DB.
+	catByName := make(map[string]*models.Category)
+	for _, c := range categories {
+		if c.ID == uuid.Nil {
+			var existingID uuid.UUID
+			if err := db.QueryRowContext(ctx,
+				`SELECT id FROM categories WHERE name = $1 LIMIT 1`,
+				c.Name,
+			).Scan(&existingID); err == nil {
+				c.ID = existingID
+			}
 		}
+		catByName[c.Name] = c
 	}
 
-	tx.Commit()
+	users := generateUsers(100)
+
+	// Create users one by one (skip duplicates instead of rolling back everything)
+	for _, user := range users {
+		userTx, _ := db.BeginTx(ctx, nil)
+		if err := store.Users.Create(ctx, userTx, user); err != nil {
+			_ = userTx.Rollback()
+			log.Println("Skipping user (might exist):", user.UserName)
+			continue
+		}
+		userTx.Commit()
+	}
 
 	posts := generatePosts(200, users)
 
 	for _, post := range posts {
 		if err := store.Posts.Create(ctx, post); err != nil {
-			return err
+			log.Println("Skipping post:", err)
+		}
+	}
+
+	// Seed Articles (decoration and furniture products)
+	articles := generateArticles(catByName)
+	for _, article := range articles {
+		if err := store.Articles.Create(ctx, article); err != nil {
+			log.Println("Error creating article (might exist):", err)
 		}
 	}
 
@@ -221,6 +233,261 @@ func generateUsers(quantity int) []*models.User {
 		}
 	}
 	return users
+}
+
+// articleSeed is a lightweight struct used to build full Article objects
+// before inserting them via the Articles store.
+type articleSeed struct {
+	name        string
+	description string
+	category    string // matches the category Name in generateCategories
+	articleType models.ArticleType
+	sku         string
+	imageURL    string
+	rentalPrice float64
+	stock       int
+	color       string
+	material    string
+}
+
+// generateArticles builds a curated set of decoration & furniture rental
+// products that match the event-planning domain of RosaFiesta.
+// Uses stable Unsplash image URLs so products render immediately without
+// any additional asset setup on the backend.
+func generateArticles(catByName map[string]*models.Category) []*models.Article {
+	admin := "Admin"
+
+	seeds := []articleSeed{
+		// ── Furniture ────────────────────────────────────────────────
+		{
+			name:        "Silla Tiffany Cristal",
+			description: "Silla de acrílico transparente, elegante y versátil para cualquier tipo de evento.",
+			category:    "Furniture",
+			articleType: models.ArticleTypeRental,
+			sku:         "SILLA-TIFFANY-CRISTAL",
+			imageURL:    "https://images.unsplash.com/photo-1503602642458-232111445657?w=800",
+			rentalPrice: 3.50,
+			stock:       200,
+			color:       "Transparente",
+			material:    "Acrílico",
+		},
+		{
+			name:        "Silla Chiavari Dorada",
+			description: "Silla italiana clásica en dorado, perfecta para bodas y eventos de lujo.",
+			category:    "Furniture",
+			articleType: models.ArticleTypeRental,
+			sku:         "SILLA-CHIAVARI-ORO",
+			imageURL:    "https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=800",
+			rentalPrice: 4.50,
+			stock:       150,
+			color:       "Dorado",
+			material:    "Madera con acabado metálico",
+		},
+		{
+			name:        "Mesa Redonda 8 Personas",
+			description: "Mesa redonda de 1.80m, capacidad para 8 invitados. Ideal para banquetes.",
+			category:    "Furniture",
+			articleType: models.ArticleTypeRental,
+			sku:         "MESA-REDONDA-180",
+			imageURL:    "https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=800",
+			rentalPrice: 15.00,
+			stock:       40,
+			color:       "Natural",
+			material:    "Madera",
+		},
+		{
+			name:        "Mesa Imperial Rectangular",
+			description: "Mesa rectangular de 2.40m, ideal para eventos corporativos o cenas largas.",
+			category:    "Furniture",
+			articleType: models.ArticleTypeRental,
+			sku:         "MESA-IMPERIAL-240",
+			imageURL:    "https://images.unsplash.com/photo-1478146896981-b80fe463b330?w=800",
+			rentalPrice: 18.00,
+			stock:       25,
+			color:       "Natural",
+			material:    "Madera",
+		},
+		{
+			name:        "Lounge Blanco Modular",
+			description: "Set de sofás modulares en cuero blanco para áreas VIP y cócteles.",
+			category:    "Furniture",
+			articleType: models.ArticleTypeRental,
+			sku:         "LOUNGE-BLANCO-SET",
+			imageURL:    "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800",
+			rentalPrice: 75.00,
+			stock:       8,
+			color:       "Blanco",
+			material:    "Cuero sintético",
+		},
+
+		// ── Decor ────────────────────────────────────────────────────
+		{
+			name:        "Arco Floral Romántico",
+			description: "Arco de flores frescas en tonos rosas y blancos. Perfecto para bodas.",
+			category:    "Decor",
+			articleType: models.ArticleTypeRental,
+			sku:         "ARCO-FLORAL-ROSA",
+			imageURL:    "https://images.unsplash.com/photo-1519741497674-611481863552?w=800",
+			rentalPrice: 280.00,
+			stock:       5,
+			color:       "Rosa y Blanco",
+			material:    "Flores frescas",
+		},
+		{
+			name:        "Centro de Mesa con Velas",
+			description: "Arreglo floral con candelabros de cristal para mesas de banquete.",
+			category:    "Decor",
+			articleType: models.ArticleTypeRental,
+			sku:         "CENTRO-VELAS-CRISTAL",
+			imageURL:    "https://images.unsplash.com/photo-1478146059778-26028b07395a?w=800",
+			rentalPrice: 35.00,
+			stock:       40,
+			color:       "Dorado",
+			material:    "Flores y cristal",
+		},
+		{
+			name:        "Globos Orgánicos Pastel",
+			description: "Guirnalda de globos en tonos pastel, perfecta para baby showers y cumpleaños.",
+			category:    "Decor",
+			articleType: models.ArticleTypeRental,
+			sku:         "GLOBOS-ORG-PASTEL",
+			imageURL:    "https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=800",
+			rentalPrice: 120.00,
+			stock:       15,
+			color:       "Pastel",
+			material:    "Látex biodegradable",
+		},
+		{
+			name:        "Luces String Vintage",
+			description: "Guirnalda de luces tipo Edison, 10 metros. Ambiente cálido y romántico.",
+			category:    "Decor",
+			articleType: models.ArticleTypeRental,
+			sku:         "LUCES-STRING-10M",
+			imageURL:    "https://images.unsplash.com/photo-1514849302-984523450cf4?w=800",
+			rentalPrice: 25.00,
+			stock:       30,
+			color:       "Cálido",
+			material:    "Cobre y vidrio",
+		},
+		{
+			name:        "Backdrop de Flores Eternas",
+			description: "Panel de flores artificiales premium 2x2m, ideal para fotos.",
+			category:    "Decor",
+			articleType: models.ArticleTypeRental,
+			sku:         "BACKDROP-FLORES-2X2",
+			imageURL:    "https://images.unsplash.com/photo-1513725673957-ab1b1a7f1b65?w=800",
+			rentalPrice: 180.00,
+			stock:       6,
+			color:       "Multicolor",
+			material:    "Flores artificiales premium",
+		},
+		{
+			name:        "Camino de Mesa Dorado",
+			description: "Runner de tela con bordados dorados, 3 metros de largo.",
+			category:    "Decor",
+			articleType: models.ArticleTypeRental,
+			sku:         "CAMINO-DORADO-3M",
+			imageURL:    "https://images.unsplash.com/photo-1464699908537-0954e50791ee?w=800",
+			rentalPrice: 8.00,
+			stock:       60,
+			color:       "Dorado",
+			material:    "Lino bordado",
+		},
+		{
+			name:        "Candelabros de Cristal",
+			description: "Candelabros altos de cristal para mesa, elegantes y sofisticados.",
+			category:    "Decor",
+			articleType: models.ArticleTypeRental,
+			sku:         "CANDELABRO-CRISTAL",
+			imageURL:    "https://images.unsplash.com/photo-1509631179647-0177331693ae?w=800",
+			rentalPrice: 12.00,
+			stock:       50,
+			color:       "Transparente",
+			material:    "Cristal",
+		},
+		{
+			name:        "Arco Globos Gender Reveal",
+			description: "Arco de globos rosa y azul especial para eventos de revelación de género.",
+			category:    "Decor",
+			articleType: models.ArticleTypeRental,
+			sku:         "ARCO-GLOBOS-GR",
+			imageURL:    "https://images.unsplash.com/photo-1530103043960-ef38714abb15?w=800",
+			rentalPrice: 95.00,
+			stock:       10,
+			color:       "Rosa y Azul",
+			material:    "Látex premium",
+		},
+		{
+			name:        "Mesa Dulcera Temática",
+			description: "Decoración completa para mesa de dulces, incluye bandejas y decoración.",
+			category:    "Decor",
+			articleType: models.ArticleTypeRental,
+			sku:         "MESA-DULCERA-KIT",
+			imageURL:    "https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=800",
+			rentalPrice: 150.00,
+			stock:       8,
+			color:       "Multicolor",
+			material:    "Kit completo",
+		},
+		{
+			name:        "Neón LED Personalizado",
+			description: "Letrero neón LED con nombre personalizado, 80cm de largo.",
+			category:    "Decor",
+			articleType: models.ArticleTypeRental,
+			sku:         "NEON-LED-CUSTOM",
+			imageURL:    "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800",
+			rentalPrice: 65.00,
+			stock:       12,
+			color:       "Rosa neón",
+			material:    "LED flex",
+		},
+	}
+
+	articles := make([]*models.Article, 0, len(seeds))
+	for _, s := range seeds {
+		desc := s.description
+		variantName := s.color
+		if variantName == "" {
+			variantName = "Standard"
+		}
+		imageURL := s.imageURL
+
+		var categoryID *uuid.UUID
+		if cat, ok := catByName[s.category]; ok && cat.ID != uuid.Nil {
+			id := cat.ID
+			categoryID = &id
+		}
+
+		article := &models.Article{
+			BaseModel: models.BaseModel{
+				CreatedBy: &admin,
+			},
+			NameTemplate:        s.name,
+			DescriptionTemplate: &desc,
+			Type:                s.articleType,
+			CategoryID:          categoryID,
+			IsActive:            true,
+			StockQuantity:       s.stock,
+			Variants: []models.ArticleVariant{
+				{
+					Sku:         s.sku,
+					Name:        variantName,
+					Description: &desc,
+					ImageURL:    &imageURL,
+					IsActive:    true,
+					Stock:       s.stock,
+					RentalPrice: s.rentalPrice,
+					Attributes: map[string]string{
+						"color":    s.color,
+						"material": s.material,
+					},
+				},
+			},
+		}
+		articles = append(articles, article)
+	}
+
+	return articles
 }
 
 func generatePosts(quantity int, users []*models.User) []*models.Post {

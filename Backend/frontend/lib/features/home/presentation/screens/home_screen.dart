@@ -16,6 +16,7 @@ import '../../../profile/presentation/screens/profile_screen.dart';
 import '../../../events/presentation/screens/events_list_screen.dart';
 import '../../../events/presentation/screens/event_calendar_screen.dart';
 import '../../../suppliers/presentation/screens/supplier_list_screen.dart';
+import '../../../shell/main_shell.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -203,31 +204,10 @@ class _HomeScreenState extends State<HomeScreen>
     final isDark = context.watch<ThemeProvider>().isDark;
     final t = isDark ? RfTheme.dark : RfTheme.light;
 
-    return Scaffold(
-      backgroundColor: t.base,
-      body: Stack(
+    return Material(
+      type: MaterialType.transparency,
+      child: Stack(
         children: [
-          RfGradientOrbs(
-            controller: _gradientController,
-            color1: AppColors.hotPink,
-            color2: AppColors.violet,
-            isDark: isDark,
-          ),
-          RfDecoLayer(
-            floatController: _floatController,
-            decoController: _decoController,
-            pulseController: _pulseController,
-            baseOpacity: isDark ? 1.0 : 1.8,
-          ),
-          Positioned.fill(
-            child: IgnorePointer(
-              child: CustomPaint(
-                painter: RfGridPainter(
-                    color: (isDark ? Colors.white : Colors.black)
-                        .withOpacity(0.012)),
-              ),
-            ),
-          ),
           CustomScrollView(
             controller: _scrollController,
             slivers: [
@@ -242,8 +222,7 @@ class _HomeScreenState extends State<HomeScreen>
               SliverToBoxAdapter(
                 child: _staggered(6, _buildSectionHeader(
                     'Categorías', t, onSeeAll: () {
-                  Navigator.push(context, MaterialPageRoute(
-                      builder: (_) => const ProductsListScreen()));
+                  MainShell.of(context)?.goToTab(1);
                 })),
               ),
               _buildCategoriesGrid(t),
@@ -252,128 +231,6 @@ class _HomeScreenState extends State<HomeScreen>
           ),
           // Sticky header on scroll
           if (_showStickyHeader) _buildStickyHeader(t),
-          // AI Assistant FAB with tooltip
-          Positioned(
-            right: 16,
-            bottom: 120,
-            child: Stack(
-              clipBehavior: Clip.none,
-              alignment: Alignment.bottomRight,
-              children: [
-                // Tooltip bubble (above the button)
-                Positioned(
-                  bottom: 68,
-                  right: 0,
-                  child: FadeTransition(
-                    opacity: _aiTooltipController,
-                    child: SlideTransition(
-                      position: Tween<Offset>(
-                        begin: const Offset(0, 0.3),
-                        end: Offset.zero,
-                      ).animate(CurvedAnimation(
-                        parent: _aiTooltipController,
-                        curve: Curves.easeOutCubic,
-                      )),
-                      child: CustomPaint(
-                        painter: _ChatBubblePainter(
-                          color: t.card,
-                          borderRadius: 18,
-                          tailSize: 20,
-                        ),
-                        child: Container(
-                          width: 240,
-                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 34),
-                          child: Text(
-                            'Soy tu asistente con inteligencia artificial, \u00a1puedo ayudarte a planificar el evento completo! \u{1F389}',
-                            style: GoogleFonts.dmSans(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              color: t.textPrimary,
-                              height: 1.4,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                // Glowing circle button
-                GestureDetector(
-                  onTap: () {
-                    _aiTooltipDismiss?.cancel();
-                    _aiTooltipController.reverse();
-                    _aiFabGlowController.stop();
-                    // TODO: open AI assistant chat
-                  },
-                  child: AnimatedBuilder(
-                    animation: _aiFabGlowController,
-                    builder: (context, _) => Container(
-                      width: 76, height: 76,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: const LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [AppColors.violet, AppColors.hotPink],
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.hotPink.withOpacity(
-                                0.1 + _aiFabGlowController.value * 0.2),
-                            blurRadius: 20,
-                            spreadRadius: _aiFabGlowController.value * 3,
-                          ),
-                        ],
-                      ),
-                      child: Stack(
-                        clipBehavior: Clip.none,
-                        alignment: Alignment.center,
-                        children: [
-                          const Icon(Icons.support_agent_rounded,
-                              color: Colors.white, size: 36),
-                          // Typing dots badge
-                          Positioned(
-                            bottom: 12,
-                            left: -6,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(10),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.12),
-                                    blurRadius: 6,
-                                    offset: const Offset(0, 1),
-                                  ),
-                                ],
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  _dot(),
-                                  const SizedBox(width: 3),
-                                  _dot(),
-                                  const SizedBox(width: 3),
-                                  _dot(),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Bottom nav
-          Positioned(
-            left: 0, right: 0, bottom: 0,
-            child: _buildBottomNav(t),
-          ),
         ],
       ),
     );
@@ -430,7 +287,7 @@ class _HomeScreenState extends State<HomeScreen>
                     const SizedBox(width: 6),
                     _iconButton(Icons.notifications_rounded, t, () {}, showDot: true),
                     const SizedBox(width: 6),
-                    _iconButton(Icons.shopping_bag_outlined, t, () {
+                    _iconButton(Icons.shopping_cart_outlined, t, () {
                       Navigator.push(context, MaterialPageRoute(
                           builder: (_) => const CartScreen()));
                     }),
@@ -492,7 +349,7 @@ class _HomeScreenState extends State<HomeScreen>
                 return Stack(
                   clipBehavior: Clip.none,
                   children: [
-                    _iconButton(Icons.shopping_bag_outlined, t, () {
+                    _iconButton(Icons.shopping_cart_outlined, t, () {
                       Navigator.push(context, MaterialPageRoute(
                           builder: (_) => const CartScreen()));
                     }),
