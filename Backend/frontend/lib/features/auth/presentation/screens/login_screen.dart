@@ -57,7 +57,21 @@ class _LoginScreenState extends State<LoginScreen>
     await auth.login(_emailController.text, _passwordController.text);
     if (!mounted) return;
     if (auth.isAuthenticated) {
-      messenger.showSnackBar(SnackBar(content: Text(successMsg)));
+      messenger.showSnackBar(SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+            const SizedBox(width: 10),
+            Text(successMsg, style: const TextStyle(
+              color: Colors.white, fontWeight: FontWeight.w600)),
+          ],
+        ),
+        backgroundColor: const Color(0xFF00C853),
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        duration: const Duration(seconds: 2),
+      ));
       navigator.pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const HomeScreen()),
         (route) => false,

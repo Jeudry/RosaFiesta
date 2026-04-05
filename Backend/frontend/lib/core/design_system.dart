@@ -122,16 +122,24 @@ class RfThemeToggle extends StatelessWidget {
                 child: child,
               ),
             ),
-            child: Icon(
-              t.isDark
-                  ? Icons.dark_mode_rounded
-                  : Icons.light_mode_rounded,
-              key: ValueKey(t.isDark),
-              color: t.isDark
-                  ? Colors.white70
-                  : const Color(0xFF5A5A80),
-              size: 15,
-            ),
+            child: t.isDark
+                ? Icon(
+                    Icons.dark_mode_rounded,
+                    key: const ValueKey(true),
+                    color: const Color(0xFF7C8BF5),
+                    size: 15,
+                  )
+                : ShaderMask(
+                    shaderCallback: (b) => const LinearGradient(
+                      colors: [Color(0xFFFFB800), Color(0xFFFF8C00)],
+                    ).createShader(b),
+                    child: const Icon(
+                      Icons.wb_sunny_rounded,
+                      key: ValueKey(false),
+                      color: Colors.white,
+                      size: 15,
+                    ),
+                  ),
           ),
           const SizedBox(width: 6),
           AnimatedSwitcher(
