@@ -192,12 +192,12 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
     return SafeArea(
       bottom: false,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
         child: Row(
           children: [
             _topBarIcon(Icons.arrow_back_rounded, t, () {
               MainShell.of(context)?.goToTab(0);
-            }),
+            }, size: 48),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
@@ -215,37 +215,51 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                   : Icons.wb_sunny_rounded,
               t,
               () => context.read<ThemeProvider>().toggle(),
+              size: 48,
+              iconColor: t.isDark
+                  ? const Color(0xFF7C8BF5)
+                  : const Color(0xFFFFB800),
             ),
-            const SizedBox(width: 6),
+            const SizedBox(width: 10),
             _topBarIcon(Icons.notifications_rounded, t, () {},
-                showDot: true),
-            const SizedBox(width: 6),
+                showDot: true, size: 48),
+            const SizedBox(width: 10),
             Consumer<CartProvider>(
               builder: (context, cart, _) {
                 return Stack(
                   clipBehavior: Clip.none,
                   children: [
-                    _topBarIcon(Icons.shopping_cart_outlined, t, () {
-                      Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => const CartScreen()));
-                    }),
+                    _topBarIcon(
+                      Icons.shopping_cart_outlined,
+                      t,
+                      () {
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const CartScreen()));
+                      },
+                      size: 54,
+                      iconSize: 26,
+                      elevated: true,
+                    ),
                     if (cart.itemCount > 0)
                       Positioned(
                         right: -2, top: -2,
                         child: Container(
-                          width: 18, height: 18,
-                          decoration: const BoxDecoration(
-                            gradient: AppColors.buttonGradient,
-                            shape: BoxShape.circle,
-                          ),
+                          width: 22, height: 22,
                           alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: AppColors.coral,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                                color: t.isDark ? t.card : Colors.white,
+                                width: 2),
+                          ),
                           child: Text(
                             '${cart.itemCount}',
                             style: GoogleFonts.dmSans(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
                                 color: Colors.white),
                           ),
                         ),
@@ -254,52 +268,55 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                 );
               },
             ),
-            const SizedBox(width: 6),
-            Container(
-              width: 40, height: 40,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                    color: AppColors.hotPink.withOpacity(0.4),
-                    width: 1.5),
-                image: const DecorationImage(
-                  image: AssetImage('assets/images/logo_rosafiesta.png'),
-                  fit: BoxFit.cover,
-                ),
-              ),
-            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _topBarIcon(IconData icon, RfTheme t, VoidCallback onTap,
-      {bool showDot = false}) {
+  Widget _topBarIcon(
+    IconData icon,
+    RfTheme t,
+    VoidCallback onTap, {
+    bool showDot = false,
+    double size = 44,
+    double iconSize = 22,
+    Color? iconColor,
+    bool elevated = false,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 40, height: 40,
+        width: size, height: size,
         decoration: BoxDecoration(
           color: t.isDark ? t.card : Colors.white,
           shape: BoxShape.circle,
           border: Border.all(color: t.borderFaint),
+          boxShadow: elevated
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.06),
+                    blurRadius: 14,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : null,
         ),
         child: Stack(
           clipBehavior: Clip.none,
           alignment: Alignment.center,
           children: [
-            Icon(icon, size: 20, color: t.textPrimary),
+            Icon(icon, size: iconSize, color: iconColor ?? t.textPrimary),
             if (showDot)
               Positioned(
-                top: 7, right: 9,
+                top: 9, right: 11,
                 child: Container(
-                  width: 8, height: 8,
+                  width: 9, height: 9,
                   decoration: BoxDecoration(
                     color: AppColors.coral,
                     shape: BoxShape.circle,
-                    border:
-                        Border.all(color: t.isDark ? t.card : Colors.white, width: 1.5),
+                    border: Border.all(
+                        color: t.isDark ? t.card : Colors.white, width: 1.5),
                   ),
                 ),
               ),
@@ -336,7 +353,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Artículos',
+                  'Artículos de alquiler',
                   style: GoogleFonts.outfit(
                     fontSize: 22,
                     fontWeight: FontWeight.w800,
@@ -379,11 +396,27 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
         final cats = provider.categories;
         return SizedBox(
           height: 38,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: cats.length + 1,
-            separatorBuilder: (_, __) => const SizedBox(width: 8),
-            itemBuilder: (context, i) {
+          // Fade out the right edge so the user sees more chips follow.
+          child: ShaderMask(
+            shaderCallback: (rect) {
+              return LinearGradient(
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+                colors: const [
+                  Colors.black,
+                  Colors.black,
+                  Colors.transparent,
+                ],
+                stops: const [0.0, 0.85, 1.0],
+              ).createShader(rect);
+            },
+            blendMode: BlendMode.dstIn,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.only(right: 24),
+              itemCount: cats.length + 1,
+              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              itemBuilder: (context, i) {
               final label = i == 0 ? 'Todas' : cats[i - 1].name;
               final id = i == 0 ? null : cats[i - 1].id;
               final isActive = _activeCategoryId == id;
@@ -417,6 +450,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                 ),
               );
             },
+          ),
           ),
         );
       },
@@ -796,140 +830,150 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
             ),
           ],
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Image with badges
-              Expanded(
-                flex: 5,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    if (imageUrl != null && imageUrl.isNotEmpty)
-                      Image.network(
-                        imageUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
-                          color: AppColors.hotPink.withOpacity(0.08),
-                          child: const Icon(Icons.image_not_supported_rounded,
-                              color: AppColors.hotPink, size: 32),
-                        ),
-                        loadingBuilder: (context, child, progress) {
-                          if (progress == null) return child;
-                          return Container(
-                            color: AppColors.hotPink.withOpacity(0.06),
-                          );
-                        },
-                      )
-                    else
-                      Container(
-                        color: AppColors.hotPink.withOpacity(0.08),
-                        child: const Icon(Icons.image_not_supported_rounded,
-                            color: AppColors.hotPink, size: 32),
-                      ),
-                    // Type badge (Alquiler/Venta)
-                    Positioned(
-                      top: 10, left: 10,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(colors: [
-                            AppColors.violet,
-                            AppColors.hotPink,
-                          ]),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          product.type == 'Rental' ? 'ALQUILER' : 'VENTA',
-                          style: GoogleFonts.dmSans(
-                            fontSize: 9,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white,
-                            letterSpacing: 0.8,
-                          ),
-                        ),
-                      ),
-                    ),
-                    // Low stock badge
-                    if (lowStock)
-                      Positioned(
-                        top: 10, right: 10,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: AppColors.coral,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(
-                            '¡Solo ${product.stockQuantity}!',
-                            style: GoogleFonts.dmSans(
-                              fontSize: 9,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ),
-                    // Favorite button
-                    Positioned(
-                      bottom: 8, right: 8,
-                      child: Container(
-                        width: 32, height: 32,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.9),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(Icons.favorite_border_rounded,
-                            color: AppColors.hotPink.withOpacity(0.8),
-                            size: 18),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // Info
-              Expanded(
-                flex: 4,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Image — floating rounded tile inside the card
+            Expanded(
+              flex: 5,
+              child: Padding(
+                padding: const EdgeInsets.all(8),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Stack(
+                    fit: StackFit.expand,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            product.nameTemplate,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.dmSans(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                              color: t.textPrimary,
-                              height: 1.2,
-                            ),
+                      if (imageUrl != null && imageUrl.isNotEmpty)
+                        Image.network(
+                          imageUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Container(
+                            color: AppColors.hotPink.withOpacity(0.08),
+                            child: const Icon(
+                                Icons.image_not_supported_rounded,
+                                color: AppColors.hotPink,
+                                size: 32),
                           ),
-                          const SizedBox(height: 5),
-                          if (product.descriptionTemplate != null &&
-                              product.descriptionTemplate!.isNotEmpty)
-                            Text(
-                              product.descriptionTemplate!,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
+                          loadingBuilder: (context, child, progress) {
+                            if (progress == null) return child;
+                            return Container(
+                              color: AppColors.hotPink.withOpacity(0.06),
+                            );
+                          },
+                        )
+                      else
+                        Container(
+                          color: AppColors.hotPink.withOpacity(0.08),
+                          child: const Icon(
+                              Icons.image_not_supported_rounded,
+                              color: AppColors.hotPink,
+                              size: 32),
+                        ),
+                      // VENTA badge — only for sale items; rental is the
+                      // default and doesn't need a label.
+                      if (product.type == 'Sale')
+                        Positioned(
+                          top: 8, left: 8,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(colors: [
+                                AppColors.amber,
+                                Color(0xFFFF8C00),
+                              ]),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              'VENTA',
                               style: GoogleFonts.dmSans(
-                                fontSize: 14,
-                                color: t.textMuted,
-                                height: 1.35,
+                                fontSize: 9,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                                letterSpacing: 0.8,
                               ),
                             ),
-                          const SizedBox(height: 8),
-                          _buildStarRating(product, t),
-                        ],
+                          ),
+                        ),
+                      // Low stock badge
+                      if (lowStock)
+                        Positioned(
+                          top: 8, right: 8,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: AppColors.coral,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              '¡Solo ${product.stockQuantity}!',
+                              style: GoogleFonts.dmSans(
+                                fontSize: 9,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      // Favorite button — rounded square
+                      Positioned(
+                        bottom: 8, right: 8,
+                        child: Container(
+                          width: 34, height: 34,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.92),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(Icons.favorite_border_rounded,
+                              color: AppColors.hotPink.withOpacity(0.85),
+                              size: 19),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            // Info
+            Expanded(
+              flex: 4,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          product.nameTemplate,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.dmSans(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: t.textPrimary,
+                            height: 1.2,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        if (product.descriptionTemplate != null &&
+                            product.descriptionTemplate!.isNotEmpty)
+                          Text(
+                            product.descriptionTemplate!,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.dmSans(
+                              fontSize: 14,
+                              color: t.textMuted,
+                              height: 1.35,
+                            ),
+                          ),
+                        const SizedBox(height: 6),
+                        _buildStarRating(product, t),
+                      ],
                       ),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -993,8 +1037,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
             ],
           ),
         ),
-      ),
-    );
+      );
   }
 
   Widget _buildStarRating(Product product, RfTheme t) {

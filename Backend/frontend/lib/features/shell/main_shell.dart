@@ -11,7 +11,9 @@ import '../events/presentation/screens/events_list_screen.dart';
 import '../events/presentation/screens/event_calendar_screen.dart';
 import '../home/presentation/screens/home_screen.dart';
 import '../products/presentation/screens/products_list_screen.dart';
+import '../profile/presentation/screens/profile_screen.dart';
 import '../suppliers/presentation/screens/supplier_list_screen.dart';
+import '../ai_assistant/presentation/screens/assistant_screen.dart';
 
 /// Persistent shell that wraps the 4 main tabs with a shared bottom bar,
 /// AI assistant FAB, animated background and welcome tooltip.
@@ -199,13 +201,16 @@ class _MainShellState extends State<MainShell>
           ),
         ),
         // Glowing circle button
-        GestureDetector(
-          onTap: () {
-            _aiTooltipDismiss?.cancel();
-            _aiTooltipController.reverse();
-            _aiFabGlowController.stop();
-            // TODO: open AI assistant chat
-          },
+        Semantics(
+          button: true,
+          label: 'Rosa IA',
+          child: GestureDetector(
+            onTap: () {
+              _aiTooltipDismiss?.cancel();
+              _aiTooltipController.reverse();
+              _aiFabGlowController.stop();
+              AssistantScreen.open(context);
+            },
           child: AnimatedBuilder(
             animation: _aiFabGlowController,
             builder: (context, _) => Container(
@@ -265,6 +270,7 @@ class _MainShellState extends State<MainShell>
               ),
             ),
           ),
+        ),
         ),
       ],
     );
@@ -389,6 +395,9 @@ class _MainShellState extends State<MainShell>
               ),
             ),
             const SizedBox(height: 20),
+            _moreMenuItem(Icons.person_outline_rounded, 'Mi perfil', t,
+                () => Navigator.push(context, MaterialPageRoute(
+                    builder: (_) => const ProfileScreen()))),
             _moreMenuItem(Icons.handshake_outlined, 'Proveedores', t,
                 () => Navigator.push(context, MaterialPageRoute(
                     builder: (_) => const SupplierListScreen()))),

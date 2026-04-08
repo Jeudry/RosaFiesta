@@ -32,6 +32,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'core/services/firebase_service.dart';
 import 'core/services/hive_service.dart';
 import 'core/services/sync_service.dart';
+import 'features/ai_assistant/presentation/assistant_provider.dart';
 
 import 'package:flutter/foundation.dart';
 
@@ -93,6 +94,7 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => ReviewsProvider()),
         ChangeNotifierProvider(create: (_) => ChatProvider()),
         ChangeNotifierProvider(create: (_) => DebriefProvider()),
+        ChangeNotifierProvider(create: (_) => AssistantProvider()),
       ],
       child: const RosaFiestaApp(),
     ),

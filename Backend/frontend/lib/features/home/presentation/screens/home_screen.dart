@@ -8,15 +8,16 @@ import 'package:frontend/core/design_system.dart';
 import 'package:frontend/core/app_colors.dart';
 
 import '../../../shop/presentation/cart_provider.dart';
-import '../../../categories/presentation/categories_provider.dart';
-import '../../../categories/data/category_models.dart';
+import '../../../products/presentation/products_provider.dart';
+import '../../../products/data/product_models.dart';
 import '../../../shop/presentation/screens/cart_screen.dart';
 import '../../../products/presentation/screens/products_list_screen.dart';
-import '../../../profile/presentation/screens/profile_screen.dart';
+import '../../../products/presentation/screens/product_detail_screen.dart';
 import '../../../events/presentation/screens/events_list_screen.dart';
 import '../../../events/presentation/screens/event_calendar_screen.dart';
 import '../../../suppliers/presentation/screens/supplier_list_screen.dart';
 import '../../../shell/main_shell.dart';
+import '../../../about/presentation/screens/about_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -94,7 +95,10 @@ class _HomeScreenState extends State<HomeScreen>
         vsync: this, duration: const Duration(milliseconds: 400));
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<CategoriesProvider>().fetchCategories();
+      final productsProvider = context.read<ProductsProvider>();
+      if (productsProvider.products.isEmpty) {
+        productsProvider.fetchProducts(refresh: true);
+      }
       // Show tooltip after entrance animations finish
       Future.delayed(const Duration(milliseconds: 1500), () {
         if (mounted && _showAiTooltip) {
@@ -214,18 +218,11 @@ class _HomeScreenState extends State<HomeScreen>
               SliverToBoxAdapter(child: _staggered(0, _buildHeader(t))),
               SliverToBoxAdapter(child: _staggered(1, _buildSearchBar(t))),
               SliverToBoxAdapter(child: _staggered(2, _buildHeroBanner(t))),
-              SliverToBoxAdapter(child: _staggered(3, _buildQuickStats(t))),
               SliverToBoxAdapter(
-                  child: _staggered(4, _buildServicesSection(t))),
+                  child: _staggered(3, _buildServicesSection(t))),
               SliverToBoxAdapter(
-                  child: _staggered(5, _buildTrendingSlider(t))),
-              SliverToBoxAdapter(
-                child: _staggered(6, _buildSectionHeader(
-                    'Categorías', t, onSeeAll: () {
-                  MainShell.of(context)?.goToTab(1);
-                })),
-              ),
-              _buildCategoriesGrid(t),
+                  child: _staggered(4, _buildTrendingSlider(t))),
+              SliverToBoxAdapter(child: _staggered(5, _buildOffersSection(t))),
               const SliverToBoxAdapter(child: SizedBox(height: 100)),
             ],
           ),
@@ -253,48 +250,7 @@ class _HomeScreenState extends State<HomeScreen>
               child: Padding(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 34, height: 34,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                            color: AppColors.hotPink.withOpacity(0.4),
-                            width: 1.5),
-                        image: const DecorationImage(
-                          image:
-                              AssetImage('assets/images/logo_rosafiesta.png'),
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    ShaderMask(
-                      shaderCallback: (b) =>
-                          AppColors.titleGradient.createShader(b),
-                      child: Text(
-                        'RosaFiesta',
-                        style: GoogleFonts.outfit(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                    const Spacer(),
-                    _responsiveThemeToggle(t),
-                    const SizedBox(width: 6),
-                    _iconButton(Icons.notifications_rounded, t, () {}, showDot: true),
-                    const SizedBox(width: 6),
-                    _iconButton(Icons.shopping_cart_outlined, t, () {
-                      Navigator.push(context, MaterialPageRoute(
-                          builder: (_) => const CartScreen()));
-                    }),
-                    const SizedBox(width: 6),
-                    _avatarButton(t),
-                  ],
-                ),
+                child: _topBarContent(t, compact: true),
               ),
             ),
           ),
@@ -303,131 +259,173 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  // ── Header ──────────────────────────────────────────────────────────────
+  // ── Header (minimal topbar: profile left, icons + cart right) ───────────
 
   Widget _buildHeader(RfTheme t) {
     return SafeArea(
       bottom: false,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-        child: Row(
-          children: [
-            Container(
-              width: 42, height: 42,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                    color: AppColors.hotPink.withOpacity(0.4), width: 2),
-                image: const DecorationImage(
-                  image: AssetImage('assets/images/logo_rosafiesta.png'),
-                  fit: BoxFit.cover,
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
-            ShaderMask(
-              shaderCallback: (b) =>
-                  AppColors.titleGradient.createShader(b),
-              child: Text(
-                'RosaFiesta',
-                style: GoogleFonts.outfit(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-            const Spacer(),
-            _responsiveThemeToggle(t),
-            const SizedBox(width: 6),
-            _iconButton(Icons.notifications_rounded, t, () {
-              // TODO: notifications screen
-            }, showDot: true),
-            const SizedBox(width: 6),
-            Consumer<CartProvider>(
-              builder: (context, cart, _) {
-                return Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    _iconButton(Icons.shopping_cart_outlined, t, () {
-                      Navigator.push(context, MaterialPageRoute(
-                          builder: (_) => const CartScreen()));
-                    }),
-                    if (cart.itemCount > 0)
-                      Positioned(
-                        right: -4, top: -4,
-                        child: Container(
-                          width: 18, height: 18,
-                          decoration: const BoxDecoration(
-                            gradient: AppColors.buttonGradient,
-                            shape: BoxShape.circle,
-                          ),
-                          alignment: Alignment.center,
-                          child: Text('${cart.itemCount}',
-                              style: GoogleFonts.dmSans(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.white)),
-                        ),
-                      ),
-                  ],
-                );
-              },
-            ),
-            const SizedBox(width: 6),
-            _avatarButton(t),
-          ],
-        ),
+        padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+        child: _topBarContent(t),
       ),
     );
   }
 
-  Widget _responsiveThemeToggle(RfTheme t) {
-    final width = MediaQuery.of(context).size.width;
-    if (width < 500) {
-      // Small screens: just the icon, no text
-      return GestureDetector(
-        onTap: () => context.read<ThemeProvider>().toggle(),
-        child: Container(
-          width: 40, height: 40,
-          decoration: BoxDecoration(
-            color: t.card.withOpacity(0.7),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: t.borderFaint),
-          ),
-          child: t.isDark
-              ? const Icon(Icons.dark_mode_rounded,
-                  color: Color(0xFF7C8BF5), size: 20)
-              : ShaderMask(
-                  shaderCallback: (b) => const LinearGradient(
-                    colors: [Color(0xFFFFB800), Color(0xFFFF8C00)],
-                  ).createShader(b),
-                  child: const Icon(Icons.wb_sunny_rounded,
-                      color: Colors.white, size: 20),
+  Widget _topBarContent(RfTheme t, {bool compact = false}) {
+    final logoSize = compact ? 40.0 : 52.0;
+    final titleSize = compact ? 22.0 : 30.0;
+    final iconSize = compact ? 44.0 : 48.0;
+    final cartSize = compact ? 48.0 : 54.0;
+
+    return Row(
+      children: [
+        // Logo + RosaFiesta name (tappable → AboutScreen)
+        Expanded(
+          child: GestureDetector(
+            onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const AboutScreen())),
+            behavior: HitTestBehavior.opaque,
+            child: Row(
+              children: [
+                Container(
+                  width: logoSize, height: logoSize,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                        color: AppColors.hotPink.withOpacity(0.4), width: 2),
+                    image: const DecorationImage(
+                      image: AssetImage('assets/images/logo_rosafiesta.png'),
+                      fit: BoxFit.cover,
+                    ),
+                  ),
                 ),
+                const SizedBox(width: 12),
+                Flexible(
+                  child: ShaderMask(
+                    shaderCallback: (b) =>
+                        AppColors.titleGradient.createShader(b),
+                    child: Text(
+                      'RosaFiesta',
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.outfit(
+                        fontSize: titleSize,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                        height: 1,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
-      );
-    }
-    return RfThemeToggle(t: t);
+        // Theme toggle
+        _circleIconButton(
+          t.isDark ? Icons.dark_mode_rounded : Icons.wb_sunny_rounded,
+          t,
+          () => context.read<ThemeProvider>().toggle(),
+          size: iconSize,
+          iconColor: t.isDark
+              ? const Color(0xFF7C8BF5)
+              : const Color(0xFFFFB800),
+        ),
+        const SizedBox(width: 10),
+        // Notifications
+        _circleIconButton(
+          Icons.notifications_rounded,
+          t,
+          () {},
+          size: iconSize,
+          showDot: true,
+        ),
+        const SizedBox(width: 10),
+        // Cart (larger, elevated)
+        Consumer<CartProvider>(
+          builder: (context, cart, _) {
+            return Stack(
+              clipBehavior: Clip.none,
+              children: [
+                _circleIconButton(
+                  Icons.shopping_cart_outlined,
+                  t,
+                  () => Navigator.push(context, MaterialPageRoute(
+                      builder: (_) => const CartScreen())),
+                  size: cartSize,
+                  iconSize: 26,
+                  elevated: true,
+                ),
+                if (cart.itemCount > 0)
+                  Positioned(
+                    right: -2, top: -2,
+                    child: Container(
+                      width: 22, height: 22,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: AppColors.coral,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                            color: t.isDark ? t.card : Colors.white,
+                            width: 2),
+                      ),
+                      child: Text('${cart.itemCount}',
+                          style: GoogleFonts.dmSans(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white)),
+                    ),
+                  ),
+              ],
+            );
+          },
+        ),
+      ],
+    );
   }
 
-  Widget _iconButton(IconData icon, RfTheme t, VoidCallback onTap,
-      {bool showDot = false}) {
+  Widget _circleIconButton(
+    IconData icon,
+    RfTheme t,
+    VoidCallback onTap, {
+    double size = 48,
+    double iconSize = 22,
+    bool showDot = false,
+    Color? iconColor,
+    bool elevated = false,
+  }) {
     return GestureDetector(
       onTap: onTap,
-      child: SizedBox(
-        width: 36, height: 36,
+      child: Container(
+        width: size, height: size,
+        decoration: BoxDecoration(
+          color: t.isDark ? t.card : Colors.white,
+          shape: BoxShape.circle,
+          border: Border.all(color: t.borderFaint),
+          boxShadow: elevated
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.06),
+                    blurRadius: 14,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : null,
+        ),
         child: Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.center,
           children: [
-            Center(child: Icon(icon, color: t.textPrimary, size: 26)),
+            Icon(icon, color: iconColor ?? t.textPrimary, size: iconSize),
             if (showDot)
               Positioned(
-                right: 4, top: 4,
+                top: 9, right: 11,
                 child: Container(
-                  width: 8, height: 8,
-                  decoration: const BoxDecoration(
+                  width: 9, height: 9,
+                  decoration: BoxDecoration(
                     color: AppColors.coral,
                     shape: BoxShape.circle,
+                    border: Border.all(
+                        color: t.isDark ? t.card : Colors.white, width: 1.5),
                   ),
                 ),
               ),
@@ -437,26 +435,6 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  Widget _avatarButton(RfTheme t) {
-    return GestureDetector(
-      onTap: () => Navigator.push(context,
-          MaterialPageRoute(builder: (_) => const ProfileScreen())),
-      child: Container(
-        width: 42, height: 42,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: AppColors.hotPink.withOpacity(0.5),
-            width: 2,
-          ),
-          image: const DecorationImage(
-            image: AssetImage('assets/images/example_of_user_2.jpg'),
-            fit: BoxFit.cover,
-          ),
-        ),
-      ),
-    );
-  }
 
   // ── Search Bar ──────────────────────────────────────────────────────────
 
@@ -621,68 +599,6 @@ class _HomeScreenState extends State<HomeScreen>
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  // ── Quick Stats ─────────────────────────────────────────────────────────
-
-  Widget _buildQuickStats(RfTheme t) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-      child: Row(
-        children: [
-          Expanded(child: _statCard('127', 'Eventos',
-              Icons.celebration_rounded, AppColors.hotPink, t)),
-          const SizedBox(width: 10),
-          Expanded(child: _statCard('8', 'Años',
-              Icons.workspace_premium_rounded, AppColors.violet, t)),
-          const SizedBox(width: 10),
-          Expanded(child: _statCard('4.9', 'Rating',
-              Icons.star_rounded, const Color(0xFFFFC107), t)),
-        ],
-      ),
-    );
-  }
-
-  Widget _statCard(String value, String label, IconData? icon, Color color,
-      RfTheme t) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
-      decoration: BoxDecoration(
-        color: t.card,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: t.borderFaint),
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                value,
-                style: GoogleFonts.outfit(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  color: t.textPrimary,
-                ),
-              ),
-              if (icon != null) ...[
-                const SizedBox(width: 4),
-                Icon(icon, color: color, size: 18),
-              ],
-            ],
-          ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: GoogleFonts.dmSans(
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
-              color: t.textMuted,
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -910,6 +826,197 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
+  // ── Ofertas ─────────────────────────────────────────────────────────────
+
+  Widget _buildOffersSection(RfTheme t) {
+    return Consumer<ProductsProvider>(
+      builder: (context, provider, _) {
+        // Pick up to 6 products to show as "offers"; fabricate a fake
+        // original price for visual effect until the backend supports
+        // a real discount/promotion field.
+        final offers = provider.products.take(6).toList();
+        if (offers.isEmpty) return const SizedBox.shrink();
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildSectionHeader('Ofertas del mes', t,
+                onSeeAll: () => MainShell.of(context)?.goToTab(1)),
+            SizedBox(
+              height: 258,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                itemCount: offers.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 12),
+                itemBuilder: (ctx, i) {
+                  // Staggered fake discount % (30 / 25 / 20 / 15 / 25 / 30)
+                  const discounts = [30, 25, 20, 15, 25, 30];
+                  return _offerCard(offers[i], discounts[i % discounts.length], t);
+                },
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _offerCard(Product product, int discountPct, RfTheme t) {
+    final variant =
+        product.variants.isNotEmpty ? product.variants.first : null;
+    final imageUrl = variant?.imageUrl;
+    final price = variant?.rentalPrice ?? 0;
+    final originalPrice = price / (1 - discountPct / 100);
+    return GestureDetector(
+      onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (_) => ProductDetailScreen(productId: product.id))),
+      child: Container(
+        width: 180,
+        decoration: BoxDecoration(
+          color: t.isDark ? t.card : Colors.white,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: t.borderFaint),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.hotPink.withOpacity(0.06),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Image with discount badge
+            Padding(
+              padding: const EdgeInsets.all(8),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: AspectRatio(
+                  aspectRatio: 1.15,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      if (imageUrl != null && imageUrl.isNotEmpty)
+                        Image.network(
+                          imageUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Container(
+                              color: AppColors.hotPink.withOpacity(0.08)),
+                        )
+                      else
+                        Container(
+                            color: AppColors.hotPink.withOpacity(0.08)),
+                      Positioned(
+                        top: 8, left: 8,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 9, vertical: 5),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(colors: [
+                              AppColors.hotPink,
+                              AppColors.coral,
+                            ]),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            '-$discountPct%',
+                            style: GoogleFonts.outfit(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    product.nameTemplate,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.dmSans(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: t.textPrimary,
+                      height: 1.2,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      ShaderMask(
+                        shaderCallback: (b) =>
+                            const LinearGradient(colors: [
+                          AppColors.violet,
+                          AppColors.hotPink,
+                        ]).createShader(b),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              price.toStringAsFixed(0),
+                              style: GoogleFonts.outfit(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                                height: 1,
+                              ),
+                            ),
+                            const SizedBox(width: 3),
+                            Padding(
+                              padding: const EdgeInsets.only(top: 3),
+                              child: Text(
+                                r'RD$',
+                                style: GoogleFonts.outfit(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 2),
+                        child: Text(
+                          originalPrice.toStringAsFixed(0),
+                          style: GoogleFonts.dmSans(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: t.textDim,
+                            decoration: TextDecoration.lineThrough,
+                            decorationColor: t.textDim,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   // ── Section Header ──────────────────────────────────────────────────────
 
   Widget _buildSectionHeader(String title, RfTheme t,
@@ -944,127 +1051,6 @@ class _HomeScreenState extends State<HomeScreen>
               ),
             ),
         ],
-      ),
-    );
-  }
-
-  // ── Categories Grid ─────────────────────────────────────────────────────
-
-  Widget _buildCategoriesGrid(RfTheme t) {
-    return SliverPadding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      sliver: Consumer<CategoriesProvider>(
-        builder: (context, provider, child) {
-          if (provider.isLoading) {
-            return SliverToBoxAdapter(
-              child: SizedBox(
-                height: 120,
-                child: Center(
-                  child: CircularProgressIndicator(
-                      color: AppColors.hotPink, strokeWidth: 2),
-                ),
-              ),
-            );
-          }
-          if (provider.error != null) {
-            return SliverToBoxAdapter(
-              child: Center(child: Text('Error: ${provider.error}',
-                  style: GoogleFonts.dmSans(color: t.textMuted))),
-            );
-          }
-          final cats = provider.categories;
-          if (cats.isEmpty) {
-            return SliverToBoxAdapter(
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 40),
-                child: Column(children: [
-                  Icon(Icons.category_outlined, color: t.textDim, size: 40),
-                  const SizedBox(height: 8),
-                  Text('Sin categorías',
-                      style: GoogleFonts.dmSans(color: t.textMuted)),
-                ]),
-              ),
-            );
-          }
-          return SliverGrid(
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              childAspectRatio: 0.85,
-              crossAxisSpacing: 14,
-              mainAxisSpacing: 14,
-            ),
-            delegate: SliverChildBuilderDelegate(
-              (ctx, i) => _categoryCard(cats[i], t),
-              childCount: cats.length,
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _categoryCard(Category cat, RfTheme t) {
-    final image = (cat.imageUrl != null && cat.imageUrl!.isNotEmpty)
-        ? NetworkImage(cat.imageUrl!) as ImageProvider
-        : AssetImage(_fallbackImage(cat.name));
-
-    return GestureDetector(
-      onTap: () => Navigator.push(context, MaterialPageRoute(
-          builder: (_) => ProductsListScreen(categoryId: cat.id))),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          color: t.card,
-          border: Border.all(color: t.borderFaint),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.hotPink.withOpacity(0.06),
-              blurRadius: 16,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(20),
-          child: Column(children: [
-            Expanded(
-              flex: 3,
-              child: Stack(fit: StackFit.expand, children: [
-                Image(image: image, fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
-                      color: AppColors.hotPink.withOpacity(0.1))),
-                Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.transparent,
-                        Colors.black.withOpacity(0.15),
-                      ],
-                    ),
-                  ),
-                ),
-              ]),
-            ),
-            Expanded(
-              flex: 1,
-              child: Container(
-                alignment: Alignment.center,
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Text(cat.name,
-                    style: GoogleFonts.dmSans(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: t.textPrimary,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center),
-              ),
-            ),
-          ]),
-        ),
       ),
     );
   }

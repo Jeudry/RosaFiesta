@@ -1,3 +1,31 @@
+# AI Assistant — Event Details + Sketch Canvas UI Review — 2026-04-07
+
+## Summary
+Renamed "detalles del pedido" to "detalles del evento" across the assistant flow. Implemented a new sketch canvas screen where users can draw a 2D top-down (cenital) layout of their event space.
+
+## Screenshots
+
+### Step 1: Assistant Greeting
+![Assistant greeting](frontend/screenshots/assistant_greeting.png)
+
+### Step 5: Event Details Form
+![Event details with sketch button](frontend/screenshots/assistant_event_details.png)
+
+### Step 6: Event Summary
+![Resumen del evento](frontend/screenshots/assistant_event_summary.png)
+
+### Sketch Canvas Screen
+![Sketch canvas](frontend/screenshots/sketch_canvas.png)
+
+## Design Decisions
+- Violet/hotPink gradient language maintained
+- Canvas grid for spatial reference (cenital view)
+- 8-color palette, eraser, undo/redo
+- "Generar ejemplos" disabled until drawing exists
+- Teal accent on saved sketch state
+
+---
+
 # Landing Page Onboarding — Eliminacion de Donas y Blobs Intensos — 2026-03-27
 
 ## Resumen
