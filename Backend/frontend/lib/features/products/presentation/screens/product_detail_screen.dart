@@ -5,7 +5,7 @@ import 'package:frontend/core/design_system.dart';
 import 'package:frontend/core/app_colors.dart';
 import '../products_provider.dart';
 import '../../data/product_models.dart';
-import '../../../active_event/presentation/active_event_provider.dart';
+import '../widgets/add_to_event_sheet.dart';
 import '../reviews_provider.dart';
 import '../../../events/presentation/events_provider.dart';
 
@@ -18,7 +18,6 @@ class ProductDetailScreen extends StatefulWidget {
 
 class _ProductDetailScreenState extends State<ProductDetailScreen>
     with TickerProviderStateMixin {
-  int _qty = 1;
   bool _descExpanded = false;
   int _selectedVariantIdx = 0;
   late final TabController _tabCtrl;
@@ -1067,60 +1066,17 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                   color: t.textMuted, size: 20),
             ),
           ),
-          const SizedBox(width: 10),
-          // Qty selector
-          Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: t.borderFaint),
-            ),
-            child: Row(children: [
-              _qtyBtn(Icons.remove_rounded, t,
-                  onTap: _qty > 1 ? () => setState(() => _qty--) : null),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Text('$_qty',
-                    style: GoogleFonts.outfit(
-                        fontSize: 18, fontWeight: FontWeight.w800,
-                        color: t.textPrimary)),
-              ),
-              _qtyBtn(Icons.add_rounded, t,
-                  onTap: () => setState(() => _qty++)),
-            ]),
-          ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 12),
+          // Full-width "Agregar a mi evento" CTA — opens the qty modal.
           Expanded(
             child: GestureDetector(
-              onTap: () async {
+              onTap: () {
                 if (variant == null) return;
-                try {
-                  await context.read<ActiveEventProvider>().addItem(
-                        product,
-                        variant: variant,
-                        quantity: _qty,
-                      );
-                  if (!mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                    content: Row(children: [
-                      const Icon(Icons.celebration_rounded,
-                          color: Colors.white, size: 18),
-                      const SizedBox(width: 8),
-                      Text('Agregado a tu evento',
-                          style: GoogleFonts.dmSans(
-                              fontWeight: FontWeight.w600)),
-                    ]),
-                    backgroundColor: AppColors.teal,
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ));
-                } catch (e) {
-                  if (!mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                    content: Text('Error: $e'),
-                    backgroundColor: AppColors.coral,
-                  ));
-                }
+                AddToEventSheet.show(
+                  context: context,
+                  product: product,
+                  variant: variant,
+                );
               },
               child: Container(
                 height: 54,
@@ -1133,47 +1089,23 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                         blurRadius: 16, offset: const Offset(0, 6)),
                   ],
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.celebration_rounded,
-                          color: Colors.white, size: 20),
-                      const SizedBox(width: 10),
-                      Flexible(
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text('Agregar a mi evento',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.dmSans(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w800,
-                                  color: Colors.white)),
-                        ),
-                      ),
-                    ],
-                  ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.celebration_rounded,
+                        color: Colors.white, size: 20),
+                    const SizedBox(width: 10),
+                    Text('Agregar a mi evento',
+                        style: GoogleFonts.dmSans(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white)),
+                  ],
                 ),
               ),
             ),
           ),
         ]),
-      ),
-    );
-  }
-
-  Widget _qtyBtn(IconData icon, RfTheme t, {VoidCallback? onTap}) {
-    final on = onTap != null;
-    return GestureDetector(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Icon(icon,
-            color: on ? t.textPrimary : t.textDim.withOpacity(0.3),
-            size: 20),
       ),
     );
   }
