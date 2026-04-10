@@ -15,21 +15,65 @@ class ProductsProvider extends ChangeNotifier {
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
+  bool _isLoadingMore = false;
+  bool get isLoadingMore => _isLoadingMore;
+
+  bool _hasMore = true;
+  bool get hasMore => _hasMore;
+
+  static const int _pageSize = 20;
+  int _offset = 0;
+
   String? _error;
   String? get error => _error;
 
   Product? _selectedProduct;
   Product? get selectedProduct => _selectedProduct;
 
-  Future<void> fetchProducts() async {
+  /// First page load (or pull-to-refresh when [refresh] is true).
+  Future<void> fetchProducts({bool refresh = false}) async {
+    if (_isLoading) return;
+    if (refresh) {
+      _offset = 0;
+      _hasMore = true;
+      _products = [];
+    }
     _setLoading(true);
     _error = null;
     try {
-      _products = await _repository.getProducts();
+      final page = await _repository.getProducts(
+        limit: _pageSize,
+        offset: 0,
+      );
+      _products = page;
+      _offset = page.length;
+      _hasMore = page.length == _pageSize;
     } catch (e) {
       _error = ErrorTranslator.translate(e.toString());
     } finally {
       _setLoading(false);
+    }
+  }
+
+  /// Fetch the next page and append. No-op if already loading, no more pages,
+  /// or an initial load is still in progress.
+  Future<void> fetchMoreProducts() async {
+    if (_isLoading || _isLoadingMore || !_hasMore) return;
+    _isLoadingMore = true;
+    notifyListeners();
+    try {
+      final page = await _repository.getProducts(
+        limit: _pageSize,
+        offset: _offset,
+      );
+      _products = [..._products, ...page];
+      _offset += page.length;
+      _hasMore = page.length == _pageSize;
+    } catch (e) {
+      _error = ErrorTranslator.translate(e.toString());
+    } finally {
+      _isLoadingMore = false;
+      notifyListeners();
     }
   }
 

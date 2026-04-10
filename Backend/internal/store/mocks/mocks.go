@@ -101,8 +101,8 @@ func (m *ArticlesStore) Delete(ctx context.Context, id uuid.UUID) error {
 	return args.Error(0)
 }
 
-func (m *ArticlesStore) GetAll(ctx context.Context) ([]models.Article, error) {
-	args := m.Called(ctx)
+func (m *ArticlesStore) GetAll(ctx context.Context, limit, offset int) ([]models.Article, error) {
+	args := m.Called(ctx, limit, offset)
 	return args.Get(0).([]models.Article), args.Error(1)
 }
 
@@ -387,4 +387,31 @@ func (m *MessagesStore) Create(ctx context.Context, msg *models.EventMessage) er
 func (m *MessagesStore) GetByEventID(ctx context.Context, id uuid.UUID) ([]models.EventMessage, error) {
 	args := m.Called(ctx, id)
 	return args.Get(0).([]models.EventMessage), args.Error(1)
+}
+
+type FavoritesStore struct {
+	mock.Mock
+}
+
+func (m *FavoritesStore) List(ctx context.Context, userID uuid.UUID) ([]models.Article, error) {
+	args := m.Called(ctx, userID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]models.Article), args.Error(1)
+}
+
+func (m *FavoritesStore) Add(ctx context.Context, userID, articleID uuid.UUID) error {
+	args := m.Called(ctx, userID, articleID)
+	return args.Error(0)
+}
+
+func (m *FavoritesStore) Remove(ctx context.Context, userID, articleID uuid.UUID) error {
+	args := m.Called(ctx, userID, articleID)
+	return args.Error(0)
+}
+
+func (m *FavoritesStore) IsFavorite(ctx context.Context, userID, articleID uuid.UUID) (bool, error) {
+	args := m.Called(ctx, userID, articleID)
+	return args.Bool(0), args.Error(1)
 }

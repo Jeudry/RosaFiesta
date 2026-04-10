@@ -6,6 +6,26 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 RosaFiesta is a full-stack monorepo for a decoration enterprise management system. Backend is a Go REST API, frontend is a Flutter multi-platform app. Business domain: event planning, quotation workflows, supplier management, timeline tracking, real-time chat.
 
+### Business model — rental-first
+
+RosaFiesta is **primarily a rental company**. Tables, chairs, lighting, linens, backdrops, floral arches, glassware, neon signs, centerpieces and most decor items are **rented** to the client for the duration of their event and returned afterwards. This is the default assumption — if you don't know, assume an article is rental.
+
+A **small subset** of items is sold outright (`type = 'Sale'`):
+- Consumables (candles, confetti, balloons, sparklers, gifts)
+- Custom-made pieces the client keeps (personalized neon signs, printed banners, custom cake toppers)
+- Add-on materials the client uses up during the event
+
+UI implications:
+- **Do NOT show an `ALQUILER` badge on product cards** — it's noise because everything is rental by default. Cards should feel clean.
+- **Only show a `VENTA` badge** on `type = 'Sale'` items so the client understands *this one is different, they keep it*.
+- Section headers in the catalog should say "Artículos de alquiler" when they're showing the default rental grid.
+- Rental pricing is `rental_price` per event/day; sale pricing is `sale_price`. Both exist on `article_variants` but only one applies depending on `type`.
+
+### Two Frontend Apps (planned)
+
+- **Customer App** (current `frontend/`): The client-facing app for end users who want to plan events, browse catalogs, create events, and manage their celebrations. This app does NOT focus on supplier management — suppliers are accessed via a "More" menu as a secondary feature.
+- **Admin/Enterprise App** (future, separate frontend): A dedicated app for RosaFiesta administrators and staff. This app WILL focus on supplier management, inventory, quotation workflows, analytics, and internal operations. Not yet implemented.
+
 ## Build & Run Commands
 
 ```bash

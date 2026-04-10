@@ -21,7 +21,21 @@ class AuthProvider extends ChangeNotifier {
   String? _error;
   String? get error => _error;
 
+  bool _initialized = false;
+  bool get initialized => _initialized;
+
   bool get isAuthenticated => _user != null;
+
+  /// Try to restore a previous session from secure storage.
+  Future<void> tryRestoreSession() async {
+    final token = await _repository.getAccessToken();
+    if (token != null && token.isNotEmpty) {
+      // Token exists - user was logged in before
+      _user = User(id: '', email: '');
+    }
+    _initialized = true;
+    notifyListeners();
+  }
 
   Future<void> login(String email, String password) async {
     _setLoading(true);

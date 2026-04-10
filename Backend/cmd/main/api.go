@@ -137,6 +137,13 @@ func (app *Application) Mount() http.Handler {
 			})
 		})
 
+		r.Route("/favorites", func(r chi.Router) {
+			r.Use(app.AuthTokenMiddleware())
+			r.Get("/", app.listFavoritesHandler)
+			r.Post("/{articleId}", app.addFavoriteHandler)
+			r.Delete("/{articleId}", app.removeFavoriteHandler)
+		})
+
 		r.Route("/events", func(r chi.Router) {
 			r.Use(app.AuthTokenMiddleware())
 			r.Post("/", app.createEventHandler)

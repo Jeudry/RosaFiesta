@@ -54,7 +54,8 @@ class AppLocalizationsEs extends AppLocalizations {
   String get registerButton => 'REGISTRARSE';
 
   @override
-  String get registrationSuccess => 'Registro Exitoso. Por favor activa tu cuenta.';
+  String get registrationSuccess =>
+      'Registro Exitoso. Por favor activa tu cuenta.';
 
   @override
   String get loginSuccess => 'Login Exitoso';
@@ -63,19 +64,22 @@ class AppLocalizationsEs extends AppLocalizations {
   String get onboardingTitle1 => 'Planifica Tu Evento Soñado';
 
   @override
-  String get onboardingDesc1 => 'Organiza cada detalle de tu evento con herramientas inteligentes potenciadas por IA';
+  String get onboardingDesc1 =>
+      'Organiza cada detalle de tu evento con herramientas inteligentes potenciadas por IA';
 
   @override
   String get onboardingTitle2 => 'Encuentra los Mejores Proveedores';
 
   @override
-  String get onboardingDesc2 => 'Conecta con proveedores verificados y compara cotizaciones en un solo lugar';
+  String get onboardingDesc2 =>
+      'Conecta con proveedores verificados y compara cotizaciones en un solo lugar';
 
   @override
   String get onboardingTitle3 => 'Controla Todo en Tiempo Real';
 
   @override
-  String get onboardingDesc3 => 'Presupuesto, tareas, invitados y cronograma — todo bajo control desde tu teléfono';
+  String get onboardingDesc3 =>
+      'Presupuesto, tareas, invitados y cronograma — todo bajo control desde tu teléfono';
 
   @override
   String get skipButton => 'Omitir';

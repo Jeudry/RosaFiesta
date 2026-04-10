@@ -54,7 +54,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get registerButton => 'REGISTER';
 
   @override
-  String get registrationSuccess => 'Registration Successful. Please activate your account.';
+  String get registrationSuccess =>
+      'Registration Successful. Please activate your account.';
 
   @override
   String get loginSuccess => 'Login Successful';
@@ -63,19 +64,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardingTitle1 => 'Plan Your Dream Event';
 
   @override
-  String get onboardingDesc1 => 'Organize every detail of your event with smart tools powered by AI';
+  String get onboardingDesc1 =>
+      'Organize every detail of your event with smart tools powered by AI';
 
   @override
   String get onboardingTitle2 => 'Find the Best Suppliers';
 
   @override
-  String get onboardingDesc2 => 'Connect with verified suppliers and compare quotes in one place';
+  String get onboardingDesc2 =>
+      'Connect with verified suppliers and compare quotes in one place';
 
   @override
   String get onboardingTitle3 => 'Track Everything in Real Time';
 
   @override
-  String get onboardingDesc3 => 'Budget, tasks, guests and timeline — all under control from your phone';
+  String get onboardingDesc3 =>
+      'Budget, tasks, guests and timeline — all under control from your phone';
 
   @override
   String get skipButton => 'Skip';

@@ -3,8 +3,10 @@ import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:frontend/l10n/generated/app_localizations.dart';
 import 'core/app_theme.dart';
+import 'core/theme_provider.dart';
 import 'features/auth/presentation/auth_provider.dart';
 import 'features/home/presentation/screens/welcome_onboarding_screen.dart';
+import 'features/shell/main_shell.dart';
 import 'features/auth/presentation/screens/confirmation_screen.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'core/api_client.dart';
@@ -30,6 +32,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'core/services/firebase_service.dart';
 import 'core/services/hive_service.dart';
 import 'core/services/sync_service.dart';
+import 'features/ai_assistant/presentation/assistant_provider.dart';
+import 'features/favorites/presentation/favorites_provider.dart';
 
 import 'package:flutter/foundation.dart';
 
@@ -76,9 +80,11 @@ Future<void> main() async {
   runApp(
     MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => ProductsProvider()),
         ChangeNotifierProvider(create: (_) => CartProvider()),
+        ChangeNotifierProvider(create: (_) => FavoritesProvider()),
         ChangeNotifierProvider(create: (_) => CategoriesProvider()),
         ChangeNotifierProvider(create: (_) => ProfileProvider()),
         ChangeNotifierProvider(create: (_) => EventsProvider()),
@@ -90,6 +96,7 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => ReviewsProvider()),
         ChangeNotifierProvider(create: (_) => ChatProvider()),
         ChangeNotifierProvider(create: (_) => DebriefProvider()),
+        ChangeNotifierProvider(create: (_) => AssistantProvider()),
       ],
       child: const RosaFiestaApp(),
     ),
@@ -116,7 +123,7 @@ class RosaFiestaApp extends StatelessWidget {
         Locale('es'),
       ],
       locale: const Locale('es', 'ES'),
-      home: const WelcomeOnboardingScreen(),
+      home: const _AuthGate(),
       onGenerateRoute: (settings) {
         if (settings.name != null && settings.name!.startsWith('/confirm/')) {
           final uri = Uri.parse(settings.name!);
@@ -133,3 +140,38 @@ class RosaFiestaApp extends StatelessWidget {
   }
 }
 
+/// Checks if user has a saved session — if so, goes straight to HomeScreen.
+class _AuthGate extends StatefulWidget {
+  const _AuthGate();
+
+  @override
+  State<_AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends State<_AuthGate> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<AuthProvider>().tryRestoreSession();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+
+    if (!auth.initialized) {
+      // Still loading — show a simple splash
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (auth.isAuthenticated) {
+      return const MainShell();
+    }
+
+    return const WelcomeOnboardingScreen();
+  }
+}

@@ -216,41 +216,43 @@ func (s *ArticlesStore) GetById(ctx context.Context, id uuid.UUID) (*models.Arti
 	return article, nil
 }
 
-func (s *ArticlesStore) GetAll(ctx context.Context) ([]models.Article, error) {
-	// Basic implementation: fetch articles only, no deep nested variants for list view to avoid massive payload/query
-	query := `
-		SELECT id, name_template, description_template, COALESCE(type, ''), category_id, is_active, stock_quantity, created, updated, created_by, updated_by
-		FROM articles`
-
-	rows, err := s.db.QueryContext(ctx, query)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	articles := make([]models.Article, 0)
-	for rows.Next() {
-		var article models.Article
-		if err := rows.Scan(
-			&article.ID, &article.NameTemplate, &article.DescriptionTemplate, &article.Type,
-			&article.CategoryID, &article.IsActive, &article.StockQuantity, &article.Created, &article.Updated,
-			&article.CreatedBy, &article.UpdatedBy,
-		); err != nil {
-			return nil, err
-		}
-		articles = append(articles, article)
-	}
-
-	return articles, nil
+func (s *ArticlesStore) GetAll(ctx context.Context, limit, offset int) ([]models.Article, error) {
+	return s.queryListWithPrimaryVariant(ctx, "", nil, &limit, &offset)
 }
 
 func (s *ArticlesStore) GetByCategoryID(ctx context.Context, categoryID uuid.UUID) ([]models.Article, error) {
-	query := `
-		SELECT id, name_template, description_template, COALESCE(type, ''), category_id, is_active, stock_quantity, created, updated, created_by, updated_by
-		FROM articles
-		WHERE category_id = $1`
+	return s.queryListWithPrimaryVariant(ctx, "WHERE a.category_id = $1", []interface{}{categoryID}, nil, nil)
+}
 
-	rows, err := s.db.QueryContext(ctx, query, categoryID)
+// queryListWithPrimaryVariant fetches articles joined with their first (primary)
+// variant so the list view has an image and price without N+1 round-trips.
+// When limit/offset are non-nil the query is paginated.
+func (s *ArticlesStore) queryListWithPrimaryVariant(ctx context.Context, whereClause string, args []interface{}, limit, offset *int) ([]models.Article, error) {
+	query := `
+		SELECT
+			a.id, a.name_template, a.description_template, COALESCE(a.type, ''),
+			a.category_id, a.is_active, a.stock_quantity,
+			a.created, a.updated, a.created_by, a.updated_by,
+			v.id, v.sku, v.name, v.description, v.image_url, v.is_active,
+			v.stock, v.rental_price, v.sale_price, v.replacement_cost
+		FROM articles a
+		LEFT JOIN LATERAL (
+			SELECT id, sku, name, description, image_url, is_active,
+			       stock, rental_price, sale_price, replacement_cost
+			FROM article_variants
+			WHERE article_id = a.id
+			ORDER BY created_at ASC
+			LIMIT 1
+		) v ON true
+		` + whereClause + `
+		ORDER BY a.created DESC, a.id DESC`
+
+	if limit != nil && offset != nil {
+		query += fmt.Sprintf(" LIMIT $%d OFFSET $%d", len(args)+1, len(args)+2)
+		args = append(args, *limit, *offset)
+	}
+
+	rows, err := s.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -259,13 +261,58 @@ func (s *ArticlesStore) GetByCategoryID(ctx context.Context, categoryID uuid.UUI
 	articles := make([]models.Article, 0)
 	for rows.Next() {
 		var article models.Article
+		var (
+			vID              sql.NullString
+			vSku             sql.NullString
+			vName            sql.NullString
+			vDescription     sql.NullString
+			vImageURL        sql.NullString
+			vIsActive        sql.NullBool
+			vStock           sql.NullInt32
+			vRentalPrice     sql.NullFloat64
+			vSalePrice       sql.NullFloat64
+			vReplacementCost sql.NullFloat64
+		)
 		if err := rows.Scan(
 			&article.ID, &article.NameTemplate, &article.DescriptionTemplate, &article.Type,
-			&article.CategoryID, &article.IsActive, &article.StockQuantity, &article.Created, &article.Updated,
-			&article.CreatedBy, &article.UpdatedBy,
+			&article.CategoryID, &article.IsActive, &article.StockQuantity,
+			&article.Created, &article.Updated, &article.CreatedBy, &article.UpdatedBy,
+			&vID, &vSku, &vName, &vDescription, &vImageURL, &vIsActive,
+			&vStock, &vRentalPrice, &vSalePrice, &vReplacementCost,
 		); err != nil {
 			return nil, err
 		}
+
+		if vID.Valid {
+			variantID, _ := uuid.Parse(vID.String)
+			variant := models.ArticleVariant{
+				ID:          variantID,
+				ArticleID:   article.ID,
+				Sku:         vSku.String,
+				Name:        vName.String,
+				IsActive:    vIsActive.Bool,
+				Stock:       int(vStock.Int32),
+				RentalPrice: vRentalPrice.Float64,
+			}
+			if vDescription.Valid {
+				desc := vDescription.String
+				variant.Description = &desc
+			}
+			if vImageURL.Valid {
+				img := vImageURL.String
+				variant.ImageURL = &img
+			}
+			if vSalePrice.Valid {
+				sp := vSalePrice.Float64
+				variant.SalePrice = &sp
+			}
+			if vReplacementCost.Valid {
+				rc := vReplacementCost.Float64
+				variant.ReplacementCost = &rc
+			}
+			article.Variants = []models.ArticleVariant{variant}
+		}
+
 		articles = append(articles, article)
 	}
 

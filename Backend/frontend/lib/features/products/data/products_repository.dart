@@ -4,8 +4,8 @@ import 'products_api_service.dart';
 class ProductsRepository {
   final ProductsApiService _apiService = ProductsApiService();
 
-  Future<List<Product>> getProducts() async {
-    return await _apiService.getProducts();
+  Future<List<Product>> getProducts({int limit = 20, int offset = 0}) async {
+    return await _apiService.getProducts(limit: limit, offset: offset);
   }
 
   Future<Product> getProduct(String id) async {

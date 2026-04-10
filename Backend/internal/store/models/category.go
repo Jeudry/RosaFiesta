@@ -5,5 +5,6 @@ type Category struct {
 	Name        string  `json:"name"`
 	Description *string `json:"description,omitempty"`
 	ImageURL    *string `json:"image_url,omitempty"`
+	Icon        *string `json:"icon,omitempty"`
 	ParentID    *string `json:"parent_id,omitempty"`
 }

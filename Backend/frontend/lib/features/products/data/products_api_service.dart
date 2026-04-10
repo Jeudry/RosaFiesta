@@ -2,8 +2,10 @@ import '../../../core/api_client.dart';
 import 'product_models.dart';
 
 class ProductsApiService {
-  Future<List<Product>> getProducts() async {
-    final data = await ApiClient.get('/articles');
+  Future<List<Product>> getProducts({int limit = 20, int offset = 0}) async {
+    final data = await ApiClient.get(
+      '/articles?limit=$limit&offset=$offset',
+    );
     return (data as List).map((e) => Product.fromJson(e)).toList();
   }
 
