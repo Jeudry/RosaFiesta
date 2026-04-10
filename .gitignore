@@ -95,3 +95,13 @@ build/
 flutter_*.png
 flutter_*.jpg
 
+# --------------------
+# Tooling artifacts
+# --------------------
+# Playwright MCP snapshots/screenshots — generated, not source
+.playwright-mcp/
+# Ad-hoc playwright PNGs saved at Backend root during dev
+Backend/*.png
+# Compiled Go server binary at Backend root
+Backend/main
+

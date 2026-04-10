@@ -199,24 +199,45 @@ func Seed(store store.Storage, db *sql.DB) error {
 
 func generateCategories() []*models.Category {
 	admin := "Admin"
-	descFurniture := "Chairs, tables, and other furniture"
-	descDecor := "Flowers, lights, and decorations"
+
+	cat := func(name, desc, icon, image string) *models.Category {
+		d := desc
+		i := icon
+		img := image
+		return &models.Category{
+			BaseModel:   models.BaseModel{CreatedBy: &admin},
+			Name:        name,
+			Description: &d,
+			Icon:        &i,
+			ImageURL:    &img,
+		}
+	}
 
 	return []*models.Category{
-		{
-			BaseModel: models.BaseModel{
-				CreatedBy: &admin,
-			},
-			Name:        "Furniture",
-			Description: &descFurniture,
-		},
-		{
-			BaseModel: models.BaseModel{
-				CreatedBy: &admin,
-			},
-			Name:        "Decor",
-			Description: &descDecor,
-		},
+		cat("Furniture", "Sillas, mesas y mobiliario para tu evento",
+			"chair",
+			"https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=800"),
+		cat("Decor", "Detalles decorativos para crear ambiente",
+			"auto_awesome",
+			"https://images.unsplash.com/photo-1478146059778-26028b07395a?w=800"),
+		cat("Iluminación", "Luces, neón y guirnaldas para ambientar",
+			"lightbulb",
+			"https://images.unsplash.com/photo-1514849302-984523450cf4?w=800"),
+		cat("Floral", "Arreglos, arcos y centros de mesa florales",
+			"local_florist",
+			"https://images.unsplash.com/photo-1519741497674-611481863552?w=800"),
+		cat("Globos", "Arcos de globos y guirnaldas para toda celebración",
+			"celebration",
+			"https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=800"),
+		cat("Mantelería", "Manteles, caminos de mesa y servilletas",
+			"table_restaurant",
+			"https://images.unsplash.com/photo-1464699908537-0954e50791ee?w=800"),
+		cat("Mesa Dulce", "Decoración completa para mesas de dulces y postres",
+			"cake",
+			"https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=800"),
+		cat("Letreros", "Letreros neón y backdrops personalizados",
+			"auto_awesome_motion",
+			"https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800"),
 	}
 }
 
@@ -324,7 +345,7 @@ func generateArticles(catByName map[string]*models.Category) []*models.Article {
 		{
 			name:        "Arco Floral Romántico",
 			description: "Arco de flores frescas en tonos rosas y blancos. Perfecto para bodas.",
-			category:    "Decor",
+			category:    "Floral",
 			articleType: models.ArticleTypeRental,
 			sku:         "ARCO-FLORAL-ROSA",
 			imageURL:    "https://images.unsplash.com/photo-1519741497674-611481863552?w=800",
@@ -336,7 +357,7 @@ func generateArticles(catByName map[string]*models.Category) []*models.Article {
 		{
 			name:        "Centro de Mesa con Velas",
 			description: "Arreglo floral con candelabros de cristal para mesas de banquete.",
-			category:    "Decor",
+			category:    "Floral",
 			articleType: models.ArticleTypeRental,
 			sku:         "CENTRO-VELAS-CRISTAL",
 			imageURL:    "https://images.unsplash.com/photo-1478146059778-26028b07395a?w=800",
@@ -348,7 +369,7 @@ func generateArticles(catByName map[string]*models.Category) []*models.Article {
 		{
 			name:        "Globos Orgánicos Pastel",
 			description: "Guirnalda de globos en tonos pastel, perfecta para baby showers y cumpleaños.",
-			category:    "Decor",
+			category:    "Globos",
 			articleType: models.ArticleTypeRental,
 			sku:         "GLOBOS-ORG-PASTEL",
 			imageURL:    "https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=800",
@@ -360,7 +381,7 @@ func generateArticles(catByName map[string]*models.Category) []*models.Article {
 		{
 			name:        "Luces String Vintage",
 			description: "Guirnalda de luces tipo Edison, 10 metros. Ambiente cálido y romántico.",
-			category:    "Decor",
+			category:    "Iluminación",
 			articleType: models.ArticleTypeRental,
 			sku:         "LUCES-STRING-10M",
 			imageURL:    "https://images.unsplash.com/photo-1514849302-984523450cf4?w=800",
@@ -372,7 +393,7 @@ func generateArticles(catByName map[string]*models.Category) []*models.Article {
 		{
 			name:        "Backdrop de Flores Eternas",
 			description: "Panel de flores artificiales premium 2x2m, ideal para fotos.",
-			category:    "Decor",
+			category:    "Floral",
 			articleType: models.ArticleTypeRental,
 			sku:         "BACKDROP-FLORES-2X2",
 			imageURL:    "https://images.unsplash.com/photo-1513725673957-ab1b1a7f1b65?w=800",
@@ -384,7 +405,7 @@ func generateArticles(catByName map[string]*models.Category) []*models.Article {
 		{
 			name:        "Camino de Mesa Dorado",
 			description: "Runner de tela con bordados dorados, 3 metros de largo.",
-			category:    "Decor",
+			category:    "Mantelería",
 			articleType: models.ArticleTypeRental,
 			sku:         "CAMINO-DORADO-3M",
 			imageURL:    "https://images.unsplash.com/photo-1464699908537-0954e50791ee?w=800",
@@ -408,7 +429,7 @@ func generateArticles(catByName map[string]*models.Category) []*models.Article {
 		{
 			name:        "Arco Globos Gender Reveal",
 			description: "Arco de globos rosa y azul especial para eventos de revelación de género.",
-			category:    "Decor",
+			category:    "Globos",
 			articleType: models.ArticleTypeRental,
 			sku:         "ARCO-GLOBOS-GR",
 			imageURL:    "https://images.unsplash.com/photo-1530103043960-ef38714abb15?w=800",
@@ -420,7 +441,7 @@ func generateArticles(catByName map[string]*models.Category) []*models.Article {
 		{
 			name:        "Mesa Dulcera Temática",
 			description: "Decoración completa para mesa de dulces, incluye bandejas y decoración.",
-			category:    "Decor",
+			category:    "Mesa Dulce",
 			articleType: models.ArticleTypeRental,
 			sku:         "MESA-DULCERA-KIT",
 			imageURL:    "https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=800",
@@ -432,7 +453,7 @@ func generateArticles(catByName map[string]*models.Category) []*models.Article {
 		{
 			name:        "Neón LED Personalizado",
 			description: "Letrero neón LED con nombre personalizado, 80cm de largo.",
-			category:    "Decor",
+			category:    "Letreros",
 			articleType: models.ArticleTypeRental,
 			sku:         "NEON-LED-CUSTOM",
 			imageURL:    "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800",
@@ -485,6 +506,57 @@ func generateArticles(catByName map[string]*models.Category) []*models.Article {
 			},
 		}
 		articles = append(articles, article)
+	}
+
+	// ── Multi-variant products ────────────────────────────────────────
+	// Add extra variants to selected products so the UI can demo the
+	// color-circle picker and image carousel.
+
+	multiVariants := map[string][]struct {
+		sku, name, color, imageURL string
+		rentalPrice                float64
+		stock                      int
+	}{
+		"Silla Tiffany Cristal": {
+			{sku: "SILLA-TIFFANY-ROSA", name: "Rosa", color: "Rosa", imageURL: "https://images.unsplash.com/photo-1506439773649-6e0eb8cfb237?w=800", rentalPrice: 3.50, stock: 80},
+			{sku: "SILLA-TIFFANY-GOLD", name: "Dorada", color: "Dorado", imageURL: "https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=800", rentalPrice: 4.00, stock: 60},
+			{sku: "SILLA-TIFFANY-NEGRO", name: "Negro", color: "Negro", imageURL: "https://images.unsplash.com/photo-1551298370-9d3d53740c72?w=800", rentalPrice: 3.50, stock: 100},
+		},
+		"Neón LED Personalizado": {
+			{sku: "NEON-LED-AZUL", name: "Azul neón", color: "Azul", imageURL: "https://images.unsplash.com/photo-1563206767-5b18f218e8de?w=800", rentalPrice: 65.00, stock: 10},
+			{sku: "NEON-LED-BLANCO", name: "Blanco cálido", color: "Blanco", imageURL: "https://images.unsplash.com/photo-1508700929628-666bc8bd84ea?w=800", rentalPrice: 65.00, stock: 8},
+		},
+		"Arco Floral Romántico": {
+			{sku: "ARCO-FLORAL-LAVANDA", name: "Lavanda", color: "Morado", imageURL: "https://images.unsplash.com/photo-1522748906645-95d8adfd52c7?w=800", rentalPrice: 280.00, stock: 3},
+			{sku: "ARCO-FLORAL-BLANCO", name: "Blanco puro", color: "Blanco", imageURL: "https://images.unsplash.com/photo-1478146059778-26028b07395a?w=800", rentalPrice: 260.00, stock: 4},
+		},
+	}
+
+	for _, a := range articles {
+		extras, ok := multiVariants[a.NameTemplate]
+		if !ok {
+			continue
+		}
+		desc := ""
+		if a.DescriptionTemplate != nil {
+			desc = *a.DescriptionTemplate
+		}
+		for _, e := range extras {
+			imgURL := e.imageURL
+			a.Variants = append(a.Variants, models.ArticleVariant{
+				Sku:         e.sku,
+				Name:        e.name,
+				Description: &desc,
+				ImageURL:    &imgURL,
+				IsActive:    true,
+				Stock:       e.stock,
+				RentalPrice: e.rentalPrice,
+				Attributes: map[string]string{
+					"color":    e.color,
+					"material": a.Variants[0].Attributes["material"],
+				},
+			})
+		}
 	}
 
 	return articles

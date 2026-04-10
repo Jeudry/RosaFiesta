@@ -9,6 +9,7 @@ import 'package:frontend/core/app_colors.dart';
 
 import '../events/presentation/screens/events_list_screen.dart';
 import '../events/presentation/screens/event_calendar_screen.dart';
+import '../favorites/presentation/screens/favorites_screen.dart';
 import '../home/presentation/screens/home_screen.dart';
 import '../products/presentation/screens/products_list_screen.dart';
 import '../profile/presentation/screens/profile_screen.dart';
@@ -141,7 +142,7 @@ class _MainShellState extends State<MainShell>
               HomeScreen(),
               ProductsListScreen(),
               EventsListScreen(),
-              EventCalendarScreen(),
+              FavoritesScreen(),
             ],
           ),
           // AI Assistant FAB
@@ -316,7 +317,7 @@ class _MainShellState extends State<MainShell>
                   iconSize: 30, tabIndex: 1),
               _navItem(Icons.event_outlined, 'Eventos', t,
                   iconSize: 28, tabIndex: 2),
-              _navItem(Icons.calendar_month_outlined, 'Calendario', t,
+              _navItem(Icons.favorite_border_rounded, 'Favoritos', t,
                   iconSize: 28, tabIndex: 3),
               _navItem(Icons.more_horiz_rounded, 'Más', t,
                   iconSize: 30,
@@ -398,6 +399,9 @@ class _MainShellState extends State<MainShell>
             _moreMenuItem(Icons.person_outline_rounded, 'Mi perfil', t,
                 () => Navigator.push(context, MaterialPageRoute(
                     builder: (_) => const ProfileScreen()))),
+            _moreMenuItem(Icons.calendar_month_outlined, 'Calendario', t,
+                () => Navigator.push(context, MaterialPageRoute(
+                    builder: (_) => const EventCalendarScreen()))),
             _moreMenuItem(Icons.handshake_outlined, 'Proveedores', t,
                 () => Navigator.push(context, MaterialPageRoute(
                     builder: (_) => const SupplierListScreen()))),

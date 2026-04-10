@@ -134,6 +134,12 @@ type Storage struct {
 		LogNotification(context.Context, uuid.UUID, models.NotificationType) error
 		HasNotificationBeenSent(context.Context, uuid.UUID, models.NotificationType) (bool, error)
 	}
+	Favorites interface {
+		List(context.Context, uuid.UUID) ([]models.Article, error)
+		Add(context.Context, uuid.UUID, uuid.UUID) error
+		Remove(context.Context, uuid.UUID, uuid.UUID) error
+		IsFavorite(context.Context, uuid.UUID, uuid.UUID) (bool, error)
+	}
 }
 
 func NewStorage(db *sql.DB) Storage {
@@ -156,6 +162,7 @@ func NewStorage(db *sql.DB) Storage {
 		Reviews:          &ReviewsStore{db: db},
 		EventReviews:     &EventReviewsStore{db: db},
 		NotificationLogs: &NotificationLogsStore{db: db},
+		Favorites:        &FavoritesStore{db: db},
 	}
 }
 

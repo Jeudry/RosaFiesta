@@ -15,7 +15,7 @@ type CategoriesStore struct {
 
 func (s *CategoriesStore) GetAll(ctx context.Context) ([]models.Category, error) {
 	query := `
-		SELECT id, created_by, name, description, image_url, parent_id, created, updated, updated_by
+		SELECT id, created_by, name, description, image_url, icon, parent_id, created, updated, updated_by
 		FROM categories
 		WHERE deleted IS NULL`
 
@@ -34,6 +34,7 @@ func (s *CategoriesStore) GetAll(ctx context.Context) ([]models.Category, error)
 			&category.Name,
 			&category.Description,
 			&category.ImageURL,
+			&category.Icon,
 			&category.ParentID,
 			&category.Created,
 			&category.Updated,
@@ -54,9 +55,9 @@ func (s *CategoriesStore) GetAll(ctx context.Context) ([]models.Category, error)
 func (s *CategoriesStore) Create(ctx context.Context, category *models.Category) error {
 	query := `
 		INSERT INTO categories (
-			created_by, name, description, image_url, parent_id
+			created_by, name, description, image_url, icon, parent_id
 		) VALUES (
-			$1, $2, $3, $4, $5
+			$1, $2, $3, $4, $5, $6
 		) RETURNING id, created`
 
 	err := s.db.QueryRowContext(ctx, query,
@@ -64,6 +65,7 @@ func (s *CategoriesStore) Create(ctx context.Context, category *models.Category)
 		category.Name,
 		category.Description,
 		category.ImageURL,
+		category.Icon,
 		category.ParentID,
 	).Scan(&category.ID, &category.Created)
 
@@ -76,7 +78,7 @@ func (s *CategoriesStore) Create(ctx context.Context, category *models.Category)
 
 func (s *CategoriesStore) GetById(ctx context.Context, id uuid.UUID) (*models.Category, error) {
 	query := `
-		SELECT id, created_by, name, description, image_url, parent_id, created, updated, updated_by
+		SELECT id, created_by, name, description, image_url, icon, parent_id, created, updated, updated_by
 		FROM categories
 		WHERE id = $1 AND deleted IS NULL`
 
@@ -88,6 +90,7 @@ func (s *CategoriesStore) GetById(ctx context.Context, id uuid.UUID) (*models.Ca
 		&category.Name,
 		&category.Description,
 		&category.ImageURL,
+		&category.Icon,
 		&category.ParentID,
 		&category.Created,
 		&category.Updated,
@@ -107,14 +110,15 @@ func (s *CategoriesStore) GetById(ctx context.Context, id uuid.UUID) (*models.Ca
 func (s *CategoriesStore) Update(ctx context.Context, category *models.Category) error {
 	query := `
 		UPDATE categories
-		SET name = $1, description = $2, image_url = $3, parent_id = $4, updated = NOW(), updated_by = $5
-		WHERE id = $6 AND deleted IS NULL
+		SET name = $1, description = $2, image_url = $3, icon = $4, parent_id = $5, updated = NOW(), updated_by = $6
+		WHERE id = $7 AND deleted IS NULL
 		RETURNING updated`
 
 	err := s.db.QueryRowContext(ctx, query,
 		category.Name,
 		category.Description,
 		category.ImageURL,
+		category.Icon,
 		category.ParentID,
 		category.UpdatedBy,
 		category.ID,
