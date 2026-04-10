@@ -7,9 +7,9 @@ import 'package:frontend/core/app_colors.dart';
 import '../products_provider.dart';
 import '../../../categories/presentation/categories_provider.dart';
 import '../../../shell/main_shell.dart';
+import '../../../active_event/presentation/active_event_provider.dart';
+import '../../../active_event/presentation/screens/mi_evento_screen.dart';
 import '../../../categories/presentation/screens/categories_screen.dart';
-import '../../../shop/presentation/cart_provider.dart';
-import '../../../shop/presentation/screens/cart_screen.dart';
 import '../../data/product_models.dart';
 import '../widgets/product_card.dart';
 import 'product_detail_screen.dart';
@@ -62,6 +62,9 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ProductsProvider>().fetchProducts(refresh: true);
       context.read<CategoriesProvider>().fetchCategories();
+      // Hydrate the active draft event so the top-bar badge shows the
+      // correct count even on first paint.
+      context.read<ActiveEventProvider>().fetch();
     });
   }
 
@@ -234,25 +237,27 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
             _topBarIcon(Icons.notifications_rounded, t, () {},
                 showDot: true, size: 48),
             const SizedBox(width: 10),
-            Consumer<CartProvider>(
-              builder: (context, cart, _) {
+            // "Mi evento" entry — replaces the old cart icon. The badge
+            // counts items in the user's draft (active) event.
+            Consumer<ActiveEventProvider>(
+              builder: (context, active, _) {
                 return Stack(
                   clipBehavior: Clip.none,
                   children: [
                     _topBarIcon(
-                      Icons.shopping_cart_outlined,
+                      Icons.celebration_rounded,
                       t,
                       () {
                         Navigator.push(
                             context,
                             MaterialPageRoute(
-                                builder: (_) => const CartScreen()));
+                                builder: (_) => const MiEventoScreen()));
                       },
                       size: 54,
                       iconSize: 26,
                       elevated: true,
                     ),
-                    if (cart.itemCount > 0)
+                    if (active.itemCount > 0)
                       Positioned(
                         right: -2, top: -2,
                         child: Container(
@@ -266,7 +271,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                                 width: 2),
                           ),
                           child: Text(
-                            '${cart.itemCount}',
+                            '${active.itemCount}',
                             style: GoogleFonts.dmSans(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w800,

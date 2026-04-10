@@ -16,6 +16,10 @@ type EventStore struct {
 }
 
 func (s *EventStore) Create(ctx context.Context, event *models.Event) error {
+	if event.Status == "" {
+		event.Status = models.EventStatusDraft
+	}
+
 	query := `
 		INSERT INTO events (user_id, name, date, location, guest_count, budget, status, additional_costs, admin_notes, payment_status, payment_method, paid_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
@@ -47,6 +51,66 @@ func (s *EventStore) Create(ctx context.Context, event *models.Event) error {
 	}
 
 	return nil
+}
+
+// GetOrCreateDraft returns the user's current draft event. If they don't
+// have one yet, an empty draft is created and returned.
+//
+// A user is guaranteed to have at most one draft at a time thanks to the
+// `events_user_active_draft` partial unique index. The race between two
+// concurrent requests is resolved by ON CONFLICT — both end up returning
+// the same row.
+func (s *EventStore) GetOrCreateDraft(ctx context.Context, userID uuid.UUID) (*models.Event, error) {
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
+	defer cancel()
+
+	// Try to find an existing draft first.
+	const selectQuery = `
+		SELECT id, user_id, name, date, location, guest_count, budget, status,
+		       additional_costs, admin_notes, payment_status, payment_method,
+		       paid_at, created_at, updated_at
+		FROM events
+		WHERE user_id = $1 AND status = 'draft'
+		LIMIT 1
+	`
+
+	scan := func(row *sql.Row, ev *models.Event) error {
+		return row.Scan(
+			&ev.ID, &ev.UserID, &ev.Name, &ev.Date, &ev.Location,
+			&ev.GuestCount, &ev.Budget, &ev.Status,
+			&ev.AdditionalCosts, &ev.AdminNotes,
+			&ev.PaymentStatus, &ev.PaymentMethod, &ev.PaidAt,
+			&ev.CreatedAt, &ev.UpdatedAt,
+		)
+	}
+
+	var event models.Event
+	err := scan(s.db.QueryRowContext(ctx, selectQuery, userID), &event)
+	if err == nil {
+		return &event, nil
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return nil, err
+	}
+
+	// No draft yet — create one. The partial unique index ensures that if
+	// a concurrent request beats us to it we just read whatever ended up
+	// being inserted. Empty defaults are explicit so the model's non-nullable
+	// string fields scan cleanly when we re-read the row.
+	const insertQuery = `
+		INSERT INTO events (user_id, name, location, status, admin_notes, payment_status)
+		VALUES ($1, '', '', 'draft', '', '')
+		ON CONFLICT (user_id) WHERE status = 'draft' DO NOTHING
+	`
+	if _, err := s.db.ExecContext(ctx, insertQuery, userID); err != nil {
+		return nil, err
+	}
+
+	// Re-read whatever draft now exists for this user.
+	if err := scan(s.db.QueryRowContext(ctx, selectQuery, userID), &event); err != nil {
+		return nil, err
+	}
+	return &event, nil
 }
 
 func (s *EventStore) GetByID(ctx context.Context, id uuid.UUID) (*models.Event, error) {
@@ -227,28 +291,78 @@ func (s *EventStore) Delete(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
+// AddItem upserts an event item. If a line for the same (event, article,
+// variant) tuple already exists, the quantity is incremented; otherwise
+// a new row is inserted with the captured price snapshot.
 func (s *EventStore) AddItem(ctx context.Context, item *models.EventItem) error {
-	query := `
-		INSERT INTO event_items (event_id, article_id, quantity)
-		VALUES ($1, $2, $3)
-		RETURNING id, created_at, updated_at
-	`
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
+	defer cancel()
 
-	err := s.db.QueryRowContext(
-		ctx,
-		query,
-		item.EventID,
-		item.ArticleID,
-		item.Quantity,
-	).Scan(
-		&item.ID,
-		&item.CreatedAt,
-		&item.UpdatedAt,
-	)
-	if err != nil {
+	// Try to find an existing line for this (event, article, variant).
+	const checkQuery = `
+		SELECT id, quantity FROM event_items
+		WHERE event_id = $1
+		  AND article_id = $2
+		  AND ((variant_id IS NULL AND $3::UUID IS NULL) OR variant_id = $3::UUID)
+	`
+	var existingID uuid.UUID
+	var existingQty int
+	err := s.db.QueryRowContext(ctx, checkQuery, item.EventID, item.ArticleID, item.VariantID).
+		Scan(&existingID, &existingQty)
+
+	if err == nil {
+		// Increment the existing line's quantity.
+		const updateQuery = `
+			UPDATE event_items
+			SET quantity = quantity + $1, updated_at = NOW()
+			WHERE id = $2
+			RETURNING id, quantity, created_at, updated_at
+		`
+		return s.db.QueryRowContext(ctx, updateQuery, item.Quantity, existingID).
+			Scan(&item.ID, &item.Quantity, &item.CreatedAt, &item.UpdatedAt)
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
 		return err
 	}
 
+	// New line — insert.
+	const insertQuery = `
+		INSERT INTO event_items (event_id, article_id, variant_id, quantity, price_snapshot)
+		VALUES ($1, $2, $3, $4, $5)
+		RETURNING id, created_at, updated_at
+	`
+	return s.db.QueryRowContext(
+		ctx,
+		insertQuery,
+		item.EventID,
+		item.ArticleID,
+		item.VariantID,
+		item.Quantity,
+		item.PriceSnapshot,
+	).Scan(&item.ID, &item.CreatedAt, &item.UpdatedAt)
+}
+
+// UpdateItemQuantity sets the absolute quantity for a given event item.
+func (s *EventStore) UpdateItemQuantity(ctx context.Context, itemID uuid.UUID, quantity int) error {
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
+	defer cancel()
+
+	const query = `
+		UPDATE event_items
+		SET quantity = $1, updated_at = NOW()
+		WHERE id = $2
+	`
+	res, err := s.db.ExecContext(ctx, query, quantity, itemID)
+	if err != nil {
+		return err
+	}
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return ErrNotFound
+	}
 	return nil
 }
 
@@ -273,12 +387,24 @@ func (s *EventStore) RemoveItem(ctx context.Context, eventID, startID uuid.UUID)
 }
 
 func (s *EventStore) GetItems(ctx context.Context, eventID uuid.UUID) ([]models.EventItem, error) {
-	query := `
-		SELECT ei.id, ei.event_id, ei.article_id, ei.quantity, ei.created_at, ei.updated_at,
-		       a.id, a.name_template, a.description_template, a.category_id, a.is_active, a.type,
-               (SELECT v.rental_price FROM article_variants v WHERE v.article_id = a.id LIMIT 1) as price
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
+	defer cancel()
+
+	const query = `
+		SELECT ei.id, ei.event_id, ei.article_id, ei.variant_id, ei.quantity,
+		       ei.price_snapshot, ei.created_at, ei.updated_at,
+		       a.id, a.name_template, a.description_template, a.category_id,
+		       a.is_active, COALESCE(a.type, ''),
+		       v.id, v.sku, v.name, v.image_url, v.rental_price, v.sale_price, v.stock,
+		       COALESCE(
+		           ei.price_snapshot,
+		           v.rental_price,
+		           (SELECT v2.rental_price FROM article_variants v2
+		            WHERE v2.article_id = a.id ORDER BY v2.created_at ASC LIMIT 1)
+		       ) AS effective_price
 		FROM event_items ei
 		JOIN articles a ON ei.article_id = a.id
+		LEFT JOIN article_variants v ON ei.variant_id = v.id
 		WHERE ei.event_id = $1
 		ORDER BY ei.created_at DESC
 	`
@@ -289,15 +415,29 @@ func (s *EventStore) GetItems(ctx context.Context, eventID uuid.UUID) ([]models.
 	}
 	defer rows.Close()
 
-	var items []models.EventItem
+	items := make([]models.EventItem, 0)
 	for rows.Next() {
 		var item models.EventItem
 		item.Article = &models.Article{}
-		err := rows.Scan(
+
+		var (
+			variantID        sql.NullString
+			variantSku       sql.NullString
+			variantName      sql.NullString
+			variantImage     sql.NullString
+			variantRental    sql.NullFloat64
+			variantSale      sql.NullFloat64
+			variantStock     sql.NullInt64
+			effectivePrice   sql.NullFloat64
+		)
+
+		if err := rows.Scan(
 			&item.ID,
 			&item.EventID,
 			&item.ArticleID,
+			&item.VariantID,
 			&item.Quantity,
+			&item.PriceSnapshot,
 			&item.CreatedAt,
 			&item.UpdatedAt,
 			&item.Article.ID,
@@ -306,11 +446,43 @@ func (s *EventStore) GetItems(ctx context.Context, eventID uuid.UUID) ([]models.
 			&item.Article.CategoryID,
 			&item.Article.IsActive,
 			&item.Article.Type,
-			&item.Price,
-		)
-		if err != nil {
+			&variantID, &variantSku, &variantName, &variantImage,
+			&variantRental, &variantSale, &variantStock,
+			&effectivePrice,
+		); err != nil {
 			return nil, err
 		}
+
+		if variantID.Valid {
+			vid, _ := uuid.Parse(variantID.String)
+			variant := models.ArticleVariant{
+				ID:        vid,
+				ArticleID: item.ArticleID,
+				Sku:       variantSku.String,
+				Name:      variantName.String,
+			}
+			if variantImage.Valid {
+				img := variantImage.String
+				variant.ImageURL = &img
+			}
+			if variantRental.Valid {
+				variant.RentalPrice = variantRental.Float64
+			}
+			if variantSale.Valid {
+				sp := variantSale.Float64
+				variant.SalePrice = &sp
+			}
+			if variantStock.Valid {
+				variant.Stock = int(variantStock.Int64)
+			}
+			item.Variant = &variant
+		}
+
+		if effectivePrice.Valid {
+			price := effectivePrice.Float64
+			item.Price = &price
+		}
+
 		items = append(items, item)
 	}
 

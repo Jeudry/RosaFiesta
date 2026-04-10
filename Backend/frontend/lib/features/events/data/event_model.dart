@@ -2,7 +2,9 @@ class Event {
   final String id;
   final String userId;
   final String name;
-  final DateTime date;
+  // Nullable because a draft event (the user's "active event" while they
+  // are browsing the catalog) may not have a date picked yet.
+  final DateTime? date;
   final String location;
   final int guestCount;
   final double budget;
@@ -17,7 +19,7 @@ class Event {
     required this.id,
     required this.userId,
     required this.name,
-    required this.date,
+    this.date,
     required this.location,
     required this.guestCount,
     required this.budget,
@@ -29,15 +31,19 @@ class Event {
     this.paidAt,
   });
 
+  /// True when this event is the user's draft "active event" — their
+  /// working basket before they commit to a date / name.
+  bool get isDraft => status == 'draft';
+
   factory Event.fromJson(Map<String, dynamic> json) {
     return Event(
       id: json['id'],
       userId: json['user_id'],
-      name: json['name'],
-      date: DateTime.parse(json['date']),
-      location: json['location'],
-      guestCount: json['guest_count'],
-      budget: (json['budget'] as num).toDouble(),
+      name: json['name'] ?? '',
+      date: json['date'] != null ? DateTime.parse(json['date']) : null,
+      location: json['location'] ?? '',
+      guestCount: json['guest_count'] ?? 0,
+      budget: (json['budget'] as num?)?.toDouble() ?? 0.0,
       additionalCosts: (json['additional_costs'] as num?)?.toDouble() ?? 0.0,
       adminNotes: json['admin_notes'],
       status: json['status'],
@@ -52,7 +58,7 @@ class Event {
       'id': id,
       'user_id': userId,
       'name': name,
-      'date': date.toIso8601String(),
+      'date': date?.toIso8601String(),
       'location': location,
       'guest_count': guestCount,
       'budget': budget,
@@ -98,33 +104,83 @@ class ArticleLite {
   }
 }
 
+/// Lightweight variant info that comes joined in event_items responses.
+class EventItemVariant {
+  final String id;
+  final String sku;
+  final String name;
+  final String? imageUrl;
+  final double rentalPrice;
+
+  EventItemVariant({
+    required this.id,
+    required this.sku,
+    required this.name,
+    this.imageUrl,
+    required this.rentalPrice,
+  });
+
+  factory EventItemVariant.fromJson(Map<String, dynamic> json) {
+    return EventItemVariant(
+      id: json['id'],
+      sku: json['sku'] ?? '',
+      name: json['name'] ?? '',
+      imageUrl: json['image_url'],
+      rentalPrice: (json['rental_price'] as num?)?.toDouble() ?? 0.0,
+    );
+  }
+}
+
 class EventItem {
   final String id;
   final String eventId;
   final String articleId;
+  final String? variantId;
   final int quantity;
+  final double? priceSnapshot;
   final DateTime createdAt;
   final ArticleLite? article;
+  final EventItemVariant? variant;
   final double? price;
 
   EventItem({
     required this.id,
     required this.eventId,
     required this.articleId,
+    this.variantId,
     required this.quantity,
+    this.priceSnapshot,
     required this.createdAt,
     this.article,
+    this.variant,
     this.price,
   });
+
+  /// Effective price per unit — falls back through snapshot → variant
+  /// rental → the joined `price` column computed by the backend.
+  double get unitPrice {
+    if (priceSnapshot != null) return priceSnapshot!;
+    if (variant != null) return variant!.rentalPrice;
+    if (price != null) return price!;
+    return 0.0;
+  }
+
+  double get lineTotal => unitPrice * quantity;
 
   factory EventItem.fromJson(Map<String, dynamic> json) {
     return EventItem(
       id: json['id'],
       eventId: json['event_id'],
       articleId: json['article_id'],
+      variantId: json['variant_id'],
       quantity: json['quantity'],
+      priceSnapshot: (json['price_snapshot'] as num?)?.toDouble(),
       createdAt: DateTime.parse(json['created_at']),
-      article: json['article'] != null ? ArticleLite.fromJson(json['article']) : null,
+      article:
+          json['article'] != null ? ArticleLite.fromJson(json['article']) : null,
+      variant: json['variant'] != null
+          ? EventItemVariant.fromJson(json['variant'])
+          : null,
       price: json['price'] != null ? (json['price'] as num).toDouble() : null,
     );
   }
