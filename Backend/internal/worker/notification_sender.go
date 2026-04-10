@@ -59,6 +59,12 @@ func (w *NotificationSender) processNotifications(ctx context.Context) {
 	}
 
 	for _, event := range events {
+		// Drafts (and any other event without a date) can't trigger
+		// date-based notifications.
+		if event.Date == nil {
+			continue
+		}
+
 		// 1. Pre-event reminder
 		if (event.Status == "confirmed" || event.Status == "paid") &&
 			event.Date.After(now) && event.Date.Before(reminderThreshold) {

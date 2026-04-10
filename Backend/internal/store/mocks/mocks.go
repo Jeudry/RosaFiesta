@@ -167,6 +167,14 @@ func (m *EventStore) GetByUserID(ctx context.Context, id uuid.UUID) ([]models.Ev
 	return args.Get(0).([]models.Event), args.Error(1)
 }
 
+func (m *EventStore) GetOrCreateDraft(ctx context.Context, userID uuid.UUID) (*models.Event, error) {
+	args := m.Called(ctx, userID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.Event), args.Error(1)
+}
+
 func (m *EventStore) GetAll(ctx context.Context) ([]models.Event, error) {
 	args := m.Called(ctx)
 	if args.Get(0) == nil {
@@ -187,6 +195,11 @@ func (m *EventStore) Delete(ctx context.Context, id uuid.UUID) error {
 
 func (m *EventStore) AddItem(ctx context.Context, item *models.EventItem) error {
 	args := m.Called(ctx, item)
+	return args.Error(0)
+}
+
+func (m *EventStore) UpdateItemQuantity(ctx context.Context, itemID uuid.UUID, quantity int) error {
+	args := m.Called(ctx, itemID, quantity)
 	return args.Error(0)
 }
 

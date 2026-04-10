@@ -42,6 +42,14 @@ func (app *Application) getEventCalendarHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
+	// A draft event without a date can't be exported as an ICS — there's
+	// nothing to put in DTSTART. Reject early so the caller can prompt the
+	// user to pick a date first.
+	if event.Date == nil {
+		app.badRequest(w, r, errors.New("event has no date set yet"))
+		return
+	}
+
 	// Create new calendar
 	cal := ics.NewCalendar()
 	cal.SetMethod(ics.MethodPublish)
@@ -61,7 +69,7 @@ func (app *Application) getEventCalendarHandler(w http.ResponseWriter, r *http.R
 	} else {
 		e.SetModifiedAt(time.Now())
 	}
-	e.SetStartAt(event.Date)
+	e.SetStartAt(*event.Date)
 	// As we don't have an explicit end time for events in this schema, let's assume a 4-hour duration
 	e.SetEndAt(event.Date.Add(4 * time.Hour))
 	e.SetSummary(event.Name)
@@ -87,7 +95,7 @@ func (app *Application) getEventCalendarHandler(w http.ResponseWriter, r *http.R
 				}
 			} else {
 				// Fallback to event date if no start time
-				te.SetStartAt(event.Date)
+				te.SetStartAt(*event.Date)
 				te.SetEndAt(event.Date.Add(30 * time.Minute))
 			}
 			te.SetSummary(fmt.Sprintf("%s - %s", event.Name, tl.Title))

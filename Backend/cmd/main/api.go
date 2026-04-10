@@ -148,6 +148,10 @@ func (app *Application) Mount() http.Handler {
 			r.Use(app.AuthTokenMiddleware())
 			r.Post("/", app.createEventHandler)
 			r.Get("/", app.getUserEventsHandler)
+			// /events/active returns the user's draft event, creating it
+			// on demand. This is the entry point for the catalog "+" flow.
+			r.Get("/active", app.getActiveEventHandler)
+			r.Patch("/active/items/{itemId}", app.updateActiveEventItemHandler)
 			r.Get("/{id}", app.getEventHandler)
 			r.Put("/{id}", app.updateEventHandler)
 			r.Post("/{id}/pay", app.payEventHandler)

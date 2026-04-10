@@ -76,9 +76,15 @@ type Storage struct {
 		Create(context.Context, *models.Event) error
 		GetByID(context.Context, uuid.UUID) (*models.Event, error)
 		GetByUserID(context.Context, uuid.UUID) ([]models.Event, error)
+		// GetOrCreateDraft returns the user's current draft event,
+		// creating an empty one if none exists. This is the entry point
+		// for the catalog "+" button — every user always has exactly
+		// one draft acting as their active event.
+		GetOrCreateDraft(context.Context, uuid.UUID) (*models.Event, error)
 		Update(context.Context, *models.Event) error
 		Delete(context.Context, uuid.UUID) error
 		AddItem(context.Context, *models.EventItem) error
+		UpdateItemQuantity(context.Context, uuid.UUID, int) error
 		RemoveItem(context.Context, uuid.UUID, uuid.UUID) error
 		GetItems(context.Context, uuid.UUID) ([]models.EventItem, error)
 		GetDebrief(context.Context, uuid.UUID) (*models.EventDebrief, error)
