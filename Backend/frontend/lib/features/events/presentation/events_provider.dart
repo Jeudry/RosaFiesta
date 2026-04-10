@@ -219,9 +219,12 @@ class EventsProvider extends ChangeNotifier {
 
   void _syncEventNotifications() {
     for (var event in _events) {
-      if (event.date.isAfter(DateTime.now())) {
+      // Drafts (and any event missing a date) can't generate reminders.
+      final date = event.date;
+      if (date == null) continue;
+      if (date.isAfter(DateTime.now())) {
         // Schedule reminder 24 hours before the event
-        final reminderDate = event.date.subtract(const Duration(hours: 24));
+        final reminderDate = date.subtract(const Duration(hours: 24));
         if (reminderDate.isAfter(DateTime.now())) {
           _notificationService.scheduleNotification(
             id: event.id.hashCode,

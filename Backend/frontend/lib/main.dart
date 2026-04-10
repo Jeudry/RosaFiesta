@@ -32,6 +32,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'core/services/firebase_service.dart';
 import 'core/services/hive_service.dart';
 import 'core/services/sync_service.dart';
+import 'features/active_event/presentation/active_event_provider.dart';
 import 'features/ai_assistant/presentation/assistant_provider.dart';
 import 'features/favorites/presentation/favorites_provider.dart';
 
@@ -84,6 +85,7 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => ProductsProvider()),
         ChangeNotifierProvider(create: (_) => CartProvider()),
+        ChangeNotifierProvider(create: (_) => ActiveEventProvider()),
         ChangeNotifierProvider(create: (_) => FavoritesProvider()),
         ChangeNotifierProvider(create: (_) => CategoriesProvider()),
         ChangeNotifierProvider(create: (_) => ProfileProvider()),

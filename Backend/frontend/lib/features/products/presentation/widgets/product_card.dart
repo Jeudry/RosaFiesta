@@ -6,12 +6,15 @@ import 'package:frontend/core/app_colors.dart';
 
 import '../../data/product_models.dart';
 import '../screens/product_detail_screen.dart';
+import '../../../active_event/presentation/active_event_provider.dart';
 import '../../../favorites/presentation/favorites_provider.dart';
 
 /// Shared product card used by the catalog and the favorites screen.
 ///
-/// Includes a functional favorite (heart) button that toggles via
-/// [FavoritesProvider]. Tap on the heart does not bubble up to the card tap.
+/// - Heart icon toggles via [FavoritesProvider].
+/// - "+" icon adds the product to the user's draft event via
+///   [ActiveEventProvider]. Both interactions stop event propagation so
+///   the card tap (open detail) does not fire on the same gesture.
 class ProductCard extends StatelessWidget {
   final Product product;
   final VoidCallback? onAddToCart;
@@ -265,7 +268,25 @@ class ProductCard extends StatelessWidget {
                       ),
                       GestureDetector(
                         behavior: HitTestBehavior.opaque,
-                        onTap: onAddToCart,
+                        onTap: () async {
+                          // External hook wins so callers (e.g. detail
+                          // page or A/B branches) can override behavior.
+                          if (onAddToCart != null) {
+                            onAddToCart!();
+                            return;
+                          }
+                          await context
+                              .read<ActiveEventProvider>()
+                              .addItem(product);
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              duration: const Duration(seconds: 2),
+                              content: Text(
+                                  'Agregado a tu evento: ${product.nameTemplate}'),
+                            ),
+                          );
+                        },
                         child: Container(
                           width: 28,
                           height: 28,

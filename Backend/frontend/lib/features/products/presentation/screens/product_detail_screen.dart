@@ -5,7 +5,7 @@ import 'package:frontend/core/design_system.dart';
 import 'package:frontend/core/app_colors.dart';
 import '../products_provider.dart';
 import '../../data/product_models.dart';
-import '../../../shop/presentation/cart_provider.dart';
+import '../../../active_event/presentation/active_event_provider.dart';
 import '../reviews_provider.dart';
 import '../../../events/presentation/events_provider.dart';
 
@@ -1094,15 +1094,18 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
               onTap: () async {
                 if (variant == null) return;
                 try {
-                  await context.read<CartProvider>().addItem(
-                      product.id, variant.id, _qty);
+                  await context.read<ActiveEventProvider>().addItem(
+                        product,
+                        variant: variant,
+                        quantity: _qty,
+                      );
                   if (!mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                     content: Row(children: [
-                      const Icon(Icons.check_circle_rounded,
+                      const Icon(Icons.celebration_rounded,
                           color: Colors.white, size: 18),
                       const SizedBox(width: 8),
-                      Text('Agregado al carrito',
+                      Text('Agregado a tu evento',
                           style: GoogleFonts.dmSans(
                               fontWeight: FontWeight.w600)),
                     ]),
@@ -1130,17 +1133,29 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                         blurRadius: 16, offset: const Offset(0, 6)),
                   ],
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.shopping_cart_outlined,
-                        color: Colors.white, size: 20),
-                    const SizedBox(width: 10),
-                    Text('Añadir al carrito',
-                        style: GoogleFonts.dmSans(
-                            fontSize: 16, fontWeight: FontWeight.w800,
-                            color: Colors.white)),
-                  ],
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.celebration_rounded,
+                          color: Colors.white, size: 20),
+                      const SizedBox(width: 10),
+                      Flexible(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text('Agregar a mi evento',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.dmSans(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white)),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

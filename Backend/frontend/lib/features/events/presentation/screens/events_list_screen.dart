@@ -61,7 +61,8 @@ class _EventsListScreenState extends State<EventsListScreen> {
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: ListTile(
                   title: Text(event.name),
-                  subtitle: Text('${_formatDate(event.date)} - ${event.status}'),
+                  subtitle: Text(
+                      '${event.date != null ? _formatDate(event.date!) : "Sin fecha"} - ${event.status}'),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () {
                     Navigator.push(
