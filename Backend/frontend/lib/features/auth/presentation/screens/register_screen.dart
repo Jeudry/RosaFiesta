@@ -5,7 +5,9 @@ import 'package:provider/provider.dart';
 import 'package:frontend/l10n/generated/app_localizations.dart';
 import 'package:frontend/core/design_system.dart';
 import 'package:frontend/core/app_colors.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../auth_provider.dart';
+import 'login_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -15,10 +17,14 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen>
     with TickerProviderStateMixin {
-  final _usernameController = TextEditingController();
-  final _emailController    = TextEditingController();
-  final _passwordController = TextEditingController();
+  final _firstNameController = TextEditingController();
+  final _lastNameController  = TextEditingController();
+  final _usernameController  = TextEditingController();
+  final _emailController     = TextEditingController();
+  final _passwordController  = TextEditingController();
+  final _ageController       = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  bool _acceptedTerms = false;
 
   late final AnimationController _floatCtrl;
   late final AnimationController _decoCtrl;
@@ -40,9 +46,12 @@ class _RegisterScreenState extends State<RegisterScreen>
 
   @override
   void dispose() {
+    _firstNameController.dispose();
+    _lastNameController.dispose();
     _usernameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _ageController.dispose();
     _floatCtrl.dispose();
     _decoCtrl.dispose();
     _pulseCtrl.dispose();
@@ -52,6 +61,15 @@ class _RegisterScreenState extends State<RegisterScreen>
 
   Future<void> _submit(AuthProvider auth, AppLocalizations l10n) async {
     if (!_formKey.currentState!.validate()) return;
+    if (!_acceptedTerms) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Debes aceptar los Términos y Condiciones',
+            style: GoogleFonts.dmSans(fontWeight: FontWeight.w600)),
+        backgroundColor: AppColors.coral,
+        behavior: SnackBarBehavior.floating,
+      ));
+      return;
+    }
     final messenger  = ScaffoldMessenger.of(context);
     final navigator  = Navigator.of(context);
     final successMsg = l10n.registrationSuccess;
@@ -127,11 +145,9 @@ class _RegisterScreenState extends State<RegisterScreen>
                         ),
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Text('Únete a Rosa Fiesta',
-                      style: GoogleFonts.dmSans(
-                          color: t.textMuted, fontSize: 15)),
-                    const SizedBox(height: 36),
+                    const SizedBox(height: 28),
+                    _socialCard(t),
+                    const SizedBox(height: 20),
                     t.isDark
                         ? ClipRRect(
                             borderRadius: BorderRadius.circular(24),
@@ -184,6 +200,79 @@ class _RegisterScreenState extends State<RegisterScreen>
     );
   }
 
+  Widget _socialCard(RfTheme t) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: t.isDark
+            ? Colors.white.withOpacity(0.05)
+            : Colors.white.withOpacity(0.85),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: t.borderFaint),
+      ),
+      child: Column(
+        children: [
+          Text('Continuar con',
+              style: GoogleFonts.dmSans(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: t.textMuted,
+                letterSpacing: 0.3,
+              )),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              _socialIcon(
+                const FaIcon(FontAwesomeIcons.google,
+                    color: Color(0xFF4285F4), size: 20),
+                t,
+                onTap: () {}, // TODO: Google sign-in
+              ),
+              const SizedBox(width: 12),
+              _socialIcon(
+                Icon(Icons.apple_rounded,
+                    color: t.isDark ? Colors.white : Colors.black,
+                    size: 24),
+                t,
+                onTap: () {}, // TODO: Apple sign-in
+              ),
+              const SizedBox(width: 12),
+              _socialIcon(
+                const FaIcon(FontAwesomeIcons.instagram,
+                    color: Color(0xFFE1306C), size: 20),
+                t,
+                onTap: () {}, // TODO: Instagram sign-in
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _socialIcon(
+    Widget iconWidget,
+    RfTheme t, {
+    VoidCallback? onTap,
+  }) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          height: 50,
+          decoration: BoxDecoration(
+            color: t.isDark
+                ? Colors.white.withOpacity(0.06)
+                : const Color(0xFFF5F6FA),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: t.borderFaint),
+          ),
+          child: Center(child: iconWidget),
+        ),
+      ),
+    );
+  }
+
   Widget _card(AuthProvider auth, AppLocalizations l10n, RfTheme t) {
     return Container(
       padding: const EdgeInsets.all(24),
@@ -205,9 +294,38 @@ class _RegisterScreenState extends State<RegisterScreen>
       child: Form(
         key: _formKey,
         child: Column(children: [
+          // Nombres y Apellidos en fila
+          Row(
+            children: [
+              Expanded(
+                child: RfFormField(
+                  label: 'Nombres',
+                  icon: Icons.person_outline_rounded,
+                  controller: _firstNameController,
+                  t: t,
+                  validator: (v) => (v == null || v.isEmpty)
+                      ? 'Requerido'
+                      : null,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: RfFormField(
+                  label: 'Apellidos',
+                  icon: Icons.person_outline_rounded,
+                  controller: _lastNameController,
+                  t: t,
+                  validator: (v) => (v == null || v.isEmpty)
+                      ? 'Requerido'
+                      : null,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
           RfFormField(
             label: l10n.usernameLabel,
-            icon:  Icons.person_outline_rounded,
+            icon: Icons.alternate_email_rounded,
             controller: _usernameController,
             t: t,
             validator: (v) => (v == null || v.isEmpty)
@@ -217,7 +335,7 @@ class _RegisterScreenState extends State<RegisterScreen>
           const SizedBox(height: 14),
           RfFormField(
             label: l10n.emailLabel,
-            icon:  Icons.email_outlined,
+            icon: Icons.email_outlined,
             controller: _emailController,
             t: t,
             validator: (v) => (v == null || !v.contains('@'))
@@ -225,17 +343,104 @@ class _RegisterScreenState extends State<RegisterScreen>
                 : null,
           ),
           const SizedBox(height: 14),
-          RfFormField(
-            label: l10n.passwordLabel,
-            icon:  Icons.lock_outline_rounded,
-            controller: _passwordController,
-            t: t,
-            obscure: true,
-            validator: (v) => (v == null || v.length < 3)
-                ? l10n.passwordError
-                : null,
+          Row(
+            children: [
+              Expanded(
+                flex: 2,
+                child: RfFormField(
+                  label: l10n.passwordLabel,
+                  icon: Icons.lock_outline_rounded,
+                  controller: _passwordController,
+                  t: t,
+                  obscure: true,
+                  validator: (v) => (v == null || v.length < 3)
+                      ? l10n.passwordError
+                      : null,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: RfFormField(
+                  label: 'Edad',
+                  icon: Icons.cake_outlined,
+                  controller: _ageController,
+                  t: t,
+                  validator: (v) {
+                    if (v == null || v.isEmpty) return 'Requerido';
+                    final age = int.tryParse(v);
+                    if (age == null || age < 13 || age > 120) return 'Inválida';
+                    return null;
+                  },
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
+          // Términos y condiciones
+          GestureDetector(
+            onTap: () => setState(() => _acceptedTerms = !_acceptedTerms),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 22, height: 22,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(6),
+                    color: _acceptedTerms
+                        ? AppColors.hotPink
+                        : Colors.transparent,
+                    border: Border.all(
+                      color: _acceptedTerms
+                          ? AppColors.hotPink
+                          : t.textDim,
+                      width: 1.5,
+                    ),
+                  ),
+                  child: _acceptedTerms
+                      ? const Icon(Icons.check_rounded,
+                          color: Colors.white, size: 16)
+                      : null,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text.rich(
+                    TextSpan(
+                      style: GoogleFonts.dmSans(
+                        fontSize: 12,
+                        color: t.textMuted,
+                        height: 1.4,
+                      ),
+                      children: [
+                        const TextSpan(text: 'Acepto los '),
+                        TextSpan(
+                          text: 'Términos y Condiciones',
+                          style: GoogleFonts.dmSans(
+                            fontSize: 12,
+                            color: AppColors.hotPink,
+                            fontWeight: FontWeight.w700,
+                            decoration: TextDecoration.underline,
+                            decorationColor: AppColors.hotPink,
+                          ),
+                        ),
+                        const TextSpan(text: ' y la '),
+                        TextSpan(
+                          text: 'Política de Privacidad',
+                          style: GoogleFonts.dmSans(
+                            fontSize: 12,
+                            color: AppColors.hotPink,
+                            fontWeight: FontWeight.w700,
+                            decoration: TextDecoration.underline,
+                            decorationColor: AppColors.hotPink,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
           if (auth.error != null)
             Padding(
               padding: const EdgeInsets.only(bottom: 16),
@@ -251,13 +456,32 @@ class _RegisterScreenState extends State<RegisterScreen>
             loading: auth.isLoading,
           ),
           const SizedBox(height: 16),
-          Text(l10n.alreadyHaveAccount,
-            style: GoogleFonts.dmSans(
-              color: t.textDim,
-              fontSize: 12,
-              letterSpacing: 0.3,
-            ),
-            textAlign: TextAlign.center,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('${l10n.alreadyHaveAccount} ',
+                style: GoogleFonts.dmSans(
+                  color: t.textDim,
+                  fontSize: 12,
+                  letterSpacing: 0.3,
+                )),
+              GestureDetector(
+                onTap: () {
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(
+                        builder: (_) => const LoginScreen()),
+                  );
+                },
+                child: Text('Iniciar sesión',
+                    style: GoogleFonts.dmSans(
+                      color: AppColors.hotPink,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      decoration: TextDecoration.underline,
+                      decorationColor: AppColors.hotPink,
+                    )),
+              ),
+            ],
           ),
         ]),
       ),

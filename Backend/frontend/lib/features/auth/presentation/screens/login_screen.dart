@@ -5,8 +5,10 @@ import 'package:provider/provider.dart';
 import 'package:frontend/l10n/generated/app_localizations.dart';
 import 'package:frontend/core/design_system.dart';
 import 'package:frontend/core/app_colors.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../auth_provider.dart';
 import '../../../shell/main_shell.dart';
+import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -139,11 +141,9 @@ class _LoginScreenState extends State<LoginScreen>
                         ),
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Text('Inicia sesión en Rosa Fiesta',
-                      style: GoogleFonts.dmSans(
-                          color: t.textMuted, fontSize: 15)),
-                    const SizedBox(height: 36),
+                    const SizedBox(height: 28),
+                    _socialCard(t),
+                    const SizedBox(height: 20),
                     t.isDark
                         ? ClipRRect(
                             borderRadius: BorderRadius.circular(24),
@@ -196,6 +196,79 @@ class _LoginScreenState extends State<LoginScreen>
     );
   }
 
+  Widget _socialCard(RfTheme t) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: t.isDark
+            ? Colors.white.withOpacity(0.05)
+            : Colors.white.withOpacity(0.85),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: t.borderFaint),
+      ),
+      child: Column(
+        children: [
+          Text('Continuar con',
+              style: GoogleFonts.dmSans(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: t.textMuted,
+                letterSpacing: 0.3,
+              )),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              _socialIcon(
+                const FaIcon(FontAwesomeIcons.google,
+                    color: Color(0xFF4285F4), size: 20),
+                t,
+                onTap: () {}, // TODO: Google sign-in
+              ),
+              const SizedBox(width: 12),
+              _socialIcon(
+                Icon(Icons.apple_rounded,
+                    color: t.isDark ? Colors.white : Colors.black,
+                    size: 24),
+                t,
+                onTap: () {}, // TODO: Apple sign-in
+              ),
+              const SizedBox(width: 12),
+              _socialIcon(
+                const FaIcon(FontAwesomeIcons.instagram,
+                    color: Color(0xFFE1306C), size: 20),
+                t,
+                onTap: () {}, // TODO: Instagram sign-in
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _socialIcon(
+    Widget iconWidget,
+    RfTheme t, {
+    VoidCallback? onTap,
+  }) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          height: 50,
+          decoration: BoxDecoration(
+            color: t.isDark
+                ? Colors.white.withOpacity(0.06)
+                : const Color(0xFFF5F6FA),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: t.borderFaint),
+          ),
+          child: Center(child: iconWidget),
+        ),
+      ),
+    );
+  }
+
   Widget _card(AuthProvider auth, AppLocalizations l10n, RfTheme t) {
     return Container(
       padding: const EdgeInsets.all(24),
@@ -217,12 +290,12 @@ class _LoginScreenState extends State<LoginScreen>
         key: _formKey,
         child: Column(children: [
           RfFormField(
-            label: l10n.emailLabel,
-            icon:  Icons.email_outlined,
+            label: 'Usuario o correo electrónico',
+            icon:  Icons.person_outline_rounded,
             controller: _emailController,
             t: t,
-            validator: (v) => (v == null || !v.contains('@'))
-                ? l10n.emailError
+            validator: (v) => (v == null || v.trim().isEmpty)
+                ? 'Campo requerido'
                 : null,
           ),
           const SizedBox(height: 14),
@@ -249,6 +322,34 @@ class _LoginScreenState extends State<LoginScreen>
             label: l10n.loginButton,
             onTap: auth.isLoading ? () {} : () => _submit(auth, l10n),
             loading: auth.isLoading,
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('¿No tienes cuenta? ',
+                style: GoogleFonts.dmSans(
+                  color: t.textDim,
+                  fontSize: 12,
+                  letterSpacing: 0.3,
+                )),
+              GestureDetector(
+                onTap: () {
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(
+                        builder: (_) => const RegisterScreen()),
+                  );
+                },
+                child: Text('Registrarse',
+                    style: GoogleFonts.dmSans(
+                      color: AppColors.hotPink,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      decoration: TextDecoration.underline,
+                      decorationColor: AppColors.hotPink,
+                    )),
+              ),
+            ],
           ),
         ]),
       ),
