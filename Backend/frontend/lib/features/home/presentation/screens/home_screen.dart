@@ -370,7 +370,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           showDot: true,
         ),
         const SizedBox(width: 10),
-        // "Mi evento" pill button — cart-style with icon, label, and badge
+        // "Mi evento" button — cart-style card with gradient, label, badge, and notification dot
         Consumer<ActiveEventProvider>(
           builder: (context, active, _) {
             return GestureDetector(
@@ -399,10 +399,22 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
-                      Icons.celebration_rounded,
-                      color: Colors.white,
-                      size: iconSize - 4,
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Icon(
+                          Icons.celebration_rounded,
+                          color: Colors.white,
+                          size: iconSize - 4,
+                        ),
+                        // Notification dot — pulses gently when items > 0
+                        if (active.itemCount > 0)
+                          Positioned(
+                            right: -4,
+                            top: -4,
+                            child: _notificationPulse(t),
+                          ),
+                      ],
                     ),
                     const SizedBox(width: 6),
                     Text(
@@ -1160,6 +1172,34 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             ),
         ],
       ),
+    );
+  }
+
+  Widget _notificationPulse(RfTheme t) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.6, end: 1.0),
+      duration: const Duration(milliseconds: 900),
+      curve: Curves.easeInOut,
+      builder: (context, val, _) {
+        return Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(
+            color: AppColors.coral.withOpacity(val),
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: t.isDark ? t.base : Colors.white,
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.coral.withOpacity(0.4 * val),
+                blurRadius: 6 * val,
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
