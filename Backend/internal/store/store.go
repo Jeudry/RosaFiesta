@@ -64,14 +64,6 @@ type Storage struct {
 		Delete(context.Context, string) error
 		DeleteAllForUser(context.Context, uuid.UUID) error
 	}
-	Carts interface {
-		Create(context.Context, *models.Cart) error
-		GetByUserID(context.Context, uuid.UUID) (*models.Cart, error)
-		AddItem(context.Context, *models.CartItem) error
-		UpdateItemQuantity(context.Context, uuid.UUID, int) error
-		RemoveItem(context.Context, uuid.UUID) error
-		ClearCart(context.Context, uuid.UUID) error
-	}
 	Events interface {
 		Create(context.Context, *models.Event) error
 		GetByID(context.Context, uuid.UUID) (*models.Event, error)
@@ -157,7 +149,6 @@ func NewStorage(db *sql.DB) Storage {
 		Comments:         &CommentsStore{db: db},
 		Roles:            &RolesStore{db: db},
 		RefreshTokens:    &RefreshTokensStore{db: db},
-		Carts:            &CartsStore{db: db},
 		Events:           &EventStore{db: db},
 		Guests:           &GuestStore{db: db},
 		EventTasks:       &EventTaskStore{db: db},

@@ -2,22 +2,21 @@ import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:frontend/core/app_colors.dart';
+import 'package:frontend/core/design_system.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import 'package:frontend/core/design_system.dart';
-import 'package:frontend/core/app_colors.dart';
 
-import '../../../shop/presentation/cart_provider.dart';
-import '../../../products/presentation/products_provider.dart';
-import '../../../products/data/product_models.dart';
-import '../../../shop/presentation/screens/cart_screen.dart';
-import '../../../products/presentation/screens/products_list_screen.dart';
-import '../../../products/presentation/screens/product_detail_screen.dart';
-import '../../../events/presentation/screens/events_list_screen.dart';
-import '../../../events/presentation/screens/event_calendar_screen.dart';
-import '../../../suppliers/presentation/screens/supplier_list_screen.dart';
-import '../../../shell/main_shell.dart';
 import '../../../about/presentation/screens/about_screen.dart';
+import '../../../active_event/presentation/active_event_provider.dart';
+import '../../../active_event/presentation/screens/mi_evento_screen.dart';
+import '../../../events/presentation/screens/event_calendar_screen.dart';
+import '../../../events/presentation/screens/events_list_screen.dart';
+import '../../../products/data/product_models.dart';
+import '../../../products/presentation/products_provider.dart';
+import '../../../products/presentation/screens/product_detail_screen.dart';
+import '../../../products/presentation/screens/products_list_screen.dart';
+import '../../../shell/main_shell.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -26,8 +25,7 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen>
-    with TickerProviderStateMixin {
+class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   late final AnimationController _staggerController;
   late final List<Animation<double>> _sectionAnimations;
   late final AnimationController _floatController;
@@ -43,7 +41,7 @@ class _HomeScreenState extends State<HomeScreen>
   double _lastScrollOffset = 0;
   late final AnimationController _aiFabGlowController;
   late final AnimationController _aiTooltipController;
-  bool _showAiTooltip = true;
+  final bool _showAiTooltip = true;
   Timer? _aiTooltipDismiss;
 
   static const _sectionCount = 8;
@@ -66,17 +64,21 @@ class _HomeScreenState extends State<HomeScreen>
     _staggerController.forward();
 
     _floatController = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 5500))
-      ..repeat();
+      vsync: this,
+      duration: const Duration(milliseconds: 5500),
+    )..repeat();
     _decoController = AnimationController(
-        vsync: this, duration: const Duration(seconds: 20))
-      ..repeat();
+      vsync: this,
+      duration: const Duration(seconds: 20),
+    )..repeat();
     _pulseController = AnimationController(
-        vsync: this, duration: const Duration(seconds: 3))
-      ..repeat(reverse: true);
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    )..repeat(reverse: true);
     _gradientController = AnimationController(
-        vsync: this, duration: const Duration(seconds: 12))
-      ..repeat();
+      vsync: this,
+      duration: const Duration(seconds: 12),
+    )..repeat();
 
     _scrollController = ScrollController()..addListener(_onScroll);
     _trendingPageController = PageController(viewportFraction: 0.88);
@@ -88,11 +90,14 @@ class _HomeScreenState extends State<HomeScreen>
 
     // AI FAB glow pulse
     _aiFabGlowController = AnimationController(
-        vsync: this, duration: const Duration(seconds: 2))
-      ..repeat(reverse: true);
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
     // AI tooltip fade
     _aiTooltipController = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 400));
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final productsProvider = context.read<ProductsProvider>();
@@ -168,7 +173,9 @@ class _HomeScreenState extends State<HomeScreen>
     if (l.contains('mesa') || l.contains('table')) {
       return 'assets/images/product_round_table.jpg';
     }
-    if (l.contains('flor') || l.contains('flower') || l.contains('centro') ||
+    if (l.contains('flor') ||
+        l.contains('flower') ||
+        l.contains('centro') ||
         l.contains('decor')) {
       return 'assets/images/decor_floral_centerpiece.jpg';
     }
@@ -187,18 +194,34 @@ class _HomeScreenState extends State<HomeScreen>
   // ── Trending data ───────────────────────────────────────────────────────
 
   static final _trendingItems = [
-    _Trend('Graduaciones', 'assets/images/event_graduation.jpg',
-        const [AppColors.violet, Color(0xFF6366F1)],
-        '2.4K eventos', Icons.school_rounded),
-    _Trend('Gender Reveal', 'assets/images/event_gender_reveal.jpg',
-        const [AppColors.hotPink, AppColors.coral],
-        '1.8K eventos', Icons.favorite_rounded),
-    _Trend('Quinceañeras', 'assets/images/event_quinceanera.jpg',
-        const [AppColors.teal, AppColors.sky],
-        '3.1K eventos', Icons.auto_awesome_rounded),
-    _Trend('Baby Shower', 'assets/images/event_baby_shower.jpg',
-        const [AppColors.amber, Color(0xFFFF8C00)],
-        '1.2K eventos', Icons.child_friendly_rounded),
+    _Trend(
+      'Graduaciones',
+      'assets/images/event_graduation.jpg',
+      const [AppColors.violet, Color(0xFF6366F1)],
+      '2.4K eventos',
+      Icons.school_rounded,
+    ),
+    _Trend(
+      'Gender Reveal',
+      'assets/images/event_gender_reveal.jpg',
+      const [AppColors.hotPink, AppColors.coral],
+      '1.8K eventos',
+      Icons.favorite_rounded,
+    ),
+    _Trend(
+      'Quinceañeras',
+      'assets/images/event_quinceanera.jpg',
+      const [AppColors.teal, AppColors.sky],
+      '3.1K eventos',
+      Icons.auto_awesome_rounded,
+    ),
+    _Trend(
+      'Baby Shower',
+      'assets/images/event_baby_shower.jpg',
+      const [AppColors.amber, Color(0xFFFF8C00)],
+      '1.2K eventos',
+      Icons.child_friendly_rounded,
+    ),
   ];
 
   // ── Build ────────────────────────────────────────────────────────────────
@@ -219,9 +242,9 @@ class _HomeScreenState extends State<HomeScreen>
               SliverToBoxAdapter(child: _staggered(1, _buildSearchBar(t))),
               SliverToBoxAdapter(child: _staggered(2, _buildHeroBanner(t))),
               SliverToBoxAdapter(
-                  child: _staggered(3, _buildServicesSection(t))),
-              SliverToBoxAdapter(
-                  child: _staggered(4, _buildTrendingSlider(t))),
+                child: _staggered(3, _buildServicesSection(t)),
+              ),
+              SliverToBoxAdapter(child: _staggered(4, _buildTrendingSlider(t))),
               SliverToBoxAdapter(child: _staggered(5, _buildOffersSection(t))),
               const SliverToBoxAdapter(child: SizedBox(height: 100)),
             ],
@@ -248,8 +271,10 @@ class _HomeScreenState extends State<HomeScreen>
             child: SafeArea(
               bottom: false,
               child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 10,
+                ),
                 child: _topBarContent(t, compact: true),
               ),
             ),
@@ -282,17 +307,22 @@ class _HomeScreenState extends State<HomeScreen>
         // Logo + RosaFiesta name (tappable → AboutScreen)
         Expanded(
           child: GestureDetector(
-            onTap: () => Navigator.push(context,
-                MaterialPageRoute(builder: (_) => const AboutScreen())),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const AboutScreen()),
+            ),
             behavior: HitTestBehavior.opaque,
             child: Row(
               children: [
                 Container(
-                  width: logoSize, height: logoSize,
+                  width: logoSize,
+                  height: logoSize,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(
-                        color: AppColors.hotPink.withOpacity(0.4), width: 2),
+                      color: AppColors.hotPink.withOpacity(0.4),
+                      width: 2,
+                    ),
                     image: const DecorationImage(
                       image: AssetImage('assets/images/logo_rosafiesta.png'),
                       fit: BoxFit.cover,
@@ -340,42 +370,71 @@ class _HomeScreenState extends State<HomeScreen>
           showDot: true,
         ),
         const SizedBox(width: 10),
-        // Cart (larger, elevated)
-        Consumer<CartProvider>(
-          builder: (context, cart, _) {
-            return Stack(
-              clipBehavior: Clip.none,
-              children: [
-                _circleIconButton(
-                  Icons.shopping_cart_outlined,
-                  t,
-                  () => Navigator.push(context, MaterialPageRoute(
-                      builder: (_) => const CartScreen())),
-                  size: cartSize,
-                  iconSize: 26,
-                  elevated: true,
+        // "Mi evento" pill button — cart-style with icon, label, and badge
+        Consumer<ActiveEventProvider>(
+          builder: (context, active, _) {
+            return GestureDetector(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const MiEventoScreen()),
+              ),
+              child: Container(
+                height: cartSize,
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [AppColors.hotPink, AppColors.violet],
+                  ),
+                  borderRadius: BorderRadius.circular(cartSize / 2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.hotPink.withOpacity(0.35),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
-                if (cart.itemCount > 0)
-                  Positioned(
-                    right: -2, top: -2,
-                    child: Container(
-                      width: 22, height: 22,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.celebration_rounded,
+                      color: Colors.white,
+                      size: iconSize - 4,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Mi evento',
+                      style: GoogleFonts.dmSans(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      constraints: const BoxConstraints(minWidth: 22),
+                      height: 22,
+                      padding: const EdgeInsets.symmetric(horizontal: 6),
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
-                        color: AppColors.coral,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                            color: t.isDark ? t.card : Colors.white,
-                            width: 2),
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(11),
                       ),
-                      child: Text('${cart.itemCount}',
-                          style: GoogleFonts.dmSans(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.white)),
+                      child: Text(
+                        '${active.itemCount}',
+                        style: GoogleFonts.dmSans(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.hotPink,
+                        ),
+                      ),
                     ),
-                  ),
-              ],
+                  ],
+                ),
+              ),
             );
           },
         ),
@@ -396,7 +455,8 @@ class _HomeScreenState extends State<HomeScreen>
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: size, height: size,
+        width: size,
+        height: size,
         decoration: BoxDecoration(
           color: t.isDark ? t.card : Colors.white,
           shape: BoxShape.circle,
@@ -418,14 +478,18 @@ class _HomeScreenState extends State<HomeScreen>
             Icon(icon, color: iconColor ?? t.textPrimary, size: iconSize),
             if (showDot)
               Positioned(
-                top: 9, right: 11,
+                top: 9,
+                right: 11,
                 child: Container(
-                  width: 9, height: 9,
+                  width: 9,
+                  height: 9,
                   decoration: BoxDecoration(
                     color: AppColors.coral,
                     shape: BoxShape.circle,
                     border: Border.all(
-                        color: t.isDark ? t.card : Colors.white, width: 1.5),
+                      color: t.isDark ? t.card : Colors.white,
+                      width: 1.5,
+                    ),
                   ),
                 ),
               ),
@@ -434,7 +498,6 @@ class _HomeScreenState extends State<HomeScreen>
       ),
     );
   }
-
 
   // ── Search Bar ──────────────────────────────────────────────────────────
 
@@ -460,17 +523,22 @@ class _HomeScreenState extends State<HomeScreen>
                   Expanded(
                     child: TextField(
                       style: GoogleFonts.dmSans(
-                          fontSize: 17, color: t.textPrimary),
+                        fontSize: 17,
+                        color: t.textPrimary,
+                      ),
                       decoration: InputDecoration(
                         hintText: 'Buscar decoraciones, temas...',
                         hintStyle: GoogleFonts.dmSans(
-                            fontSize: 17, color: const Color(0xFF8D8E90)),
+                          fontSize: 17,
+                          color: const Color(0xFF8D8E90),
+                        ),
                         filled: false,
                         border: InputBorder.none,
                         enabledBorder: InputBorder.none,
                         focusedBorder: InputBorder.none,
                         contentPadding: const EdgeInsets.symmetric(
-                            vertical: 16),
+                          vertical: 16,
+                        ),
                         isCollapsed: true,
                       ),
                     ),
@@ -482,14 +550,18 @@ class _HomeScreenState extends State<HomeScreen>
           const SizedBox(width: 10),
           // Mic button
           Container(
-            width: 56, height: 56,
+            width: 56,
+            height: 56,
             decoration: BoxDecoration(
               color: t.isDark ? t.card : Colors.white,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: t.borderFaint),
             ),
-            child: const Icon(Icons.mic_outlined,
-                color: Color(0xFF8D8E90), size: 28),
+            child: const Icon(
+              Icons.mic_outlined,
+              color: Color(0xFF8D8E90),
+              size: 28,
+            ),
           ),
         ],
       ),
@@ -521,9 +593,11 @@ class _HomeScreenState extends State<HomeScreen>
         child: Stack(
           children: [
             Positioned(
-              right: -20, top: -20,
+              right: -20,
+              top: -20,
               child: Container(
-                width: 120, height: 120,
+                width: 120,
+                height: 120,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: Colors.white.withOpacity(0.1),
@@ -531,9 +605,11 @@ class _HomeScreenState extends State<HomeScreen>
               ),
             ),
             Positioned(
-              right: 30, bottom: -30,
+              right: 30,
+              bottom: -30,
               child: Container(
-                width: 80, height: 80,
+                width: 80,
+                height: 80,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: Colors.white.withOpacity(0.08),
@@ -547,8 +623,10 @@ class _HomeScreenState extends State<HomeScreen>
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(20),
@@ -575,11 +653,17 @@ class _HomeScreenState extends State<HomeScreen>
                   ),
                   const SizedBox(height: 14),
                   GestureDetector(
-                    onTap: () => Navigator.push(context, MaterialPageRoute(
-                        builder: (_) => const EventCalendarScreen())),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const EventCalendarScreen(),
+                      ),
+                    ),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 10),
+                        horizontal: 20,
+                        vertical: 10,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(24),
@@ -607,14 +691,19 @@ class _HomeScreenState extends State<HomeScreen>
 
   Widget _buildServicesSection(RfTheme t) {
     final services = [
-      _Svc('Decoración', Icons.palette_rounded,
-          const [AppColors.hotPink, AppColors.coral]),
-      _Svc('Mobiliario', Icons.chair_rounded,
-          const [AppColors.violet, Color(0xFF6366F1)]),
-      _Svc('Dulces', Icons.cake_rounded,
-          const [AppColors.teal, AppColors.sky]),
-      _Svc('Servicios', Icons.room_service_rounded,
-          const [AppColors.amber, Color(0xFFFF8C00)]),
+      _Svc('Decoración', Icons.palette_rounded, const [
+        AppColors.hotPink,
+        AppColors.coral,
+      ]),
+      _Svc('Mobiliario', Icons.chair_rounded, const [
+        AppColors.violet,
+        Color(0xFF6366F1),
+      ]),
+      _Svc('Dulces', Icons.cake_rounded, const [AppColors.teal, AppColors.sky]),
+      _Svc('Servicios', Icons.room_service_rounded, const [
+        AppColors.amber,
+        Color(0xFFFF8C00),
+      ]),
     ];
 
     return Column(
@@ -647,7 +736,8 @@ class _HomeScreenState extends State<HomeScreen>
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 44, height: 44,
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
@@ -703,12 +793,8 @@ class _HomeScreenState extends State<HomeScreen>
               height: 8,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(4),
-                gradient: i == _trendingPage
-                    ? AppColors.buttonGradient
-                    : null,
-                color: i == _trendingPage
-                    ? null
-                    : t.textDim.withOpacity(0.3),
+                gradient: i == _trendingPage ? AppColors.buttonGradient : null,
+                color: i == _trendingPage ? null : t.textDim.withOpacity(0.3),
               ),
             ),
           ),
@@ -736,26 +822,27 @@ class _HomeScreenState extends State<HomeScreen>
           child: Stack(
             fit: StackFit.expand,
             children: [
-              Image.asset(item.image, fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
-                    color: item.colors.first.withOpacity(0.2)),
+              Image.asset(
+                item.image,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) =>
+                    Container(color: item.colors.first.withOpacity(0.2)),
               ),
               Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.transparent,
-                      Colors.black.withOpacity(0.7),
-                    ],
+                    colors: [Colors.transparent, Colors.black.withOpacity(0.7)],
                     stops: const [0.3, 1.0],
                   ),
                 ),
               ),
               // Content
               Positioned(
-                left: 20, right: 20, bottom: 20,
+                left: 20,
+                right: 20,
+                bottom: 20,
                 child: Row(
                   children: [
                     Expanded(
@@ -764,7 +851,9 @@ class _HomeScreenState extends State<HomeScreen>
                         children: [
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 3),
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
                             decoration: BoxDecoration(
                               gradient: LinearGradient(colors: item.colors),
                               borderRadius: BorderRadius.circular(10),
@@ -793,17 +882,19 @@ class _HomeScreenState extends State<HomeScreen>
                     // Stats badge
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 8),
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.15),
                         borderRadius: BorderRadius.circular(14),
                         border: Border.all(
-                            color: Colors.white.withOpacity(0.2)),
+                          color: Colors.white.withOpacity(0.2),
+                        ),
                       ),
                       child: Column(
                         children: [
-                          Icon(item.statIcon,
-                              color: Colors.white, size: 18),
+                          Icon(item.statIcon, color: Colors.white, size: 18),
                           const SizedBox(height: 2),
                           Text(
                             item.stat,
@@ -839,8 +930,11 @@ class _HomeScreenState extends State<HomeScreen>
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildSectionHeader('Ofertas del mes', t,
-                onSeeAll: () => MainShell.of(context)?.goToTab(1)),
+            _buildSectionHeader(
+              'Ofertas del mes',
+              t,
+              onSeeAll: () => MainShell.of(context)?.goToTab(1),
+            ),
             SizedBox(
               height: 258,
               child: ListView.separated(
@@ -851,7 +945,11 @@ class _HomeScreenState extends State<HomeScreen>
                 itemBuilder: (ctx, i) {
                   // Staggered fake discount % (30 / 25 / 20 / 15 / 25 / 30)
                   const discounts = [30, 25, 20, 15, 25, 30];
-                  return _offerCard(offers[i], discounts[i % discounts.length], t);
+                  return _offerCard(
+                    offers[i],
+                    discounts[i % discounts.length],
+                    t,
+                  );
                 },
               ),
             ),
@@ -862,16 +960,17 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Widget _offerCard(Product product, int discountPct, RfTheme t) {
-    final variant =
-        product.variants.isNotEmpty ? product.variants.first : null;
+    final variant = product.variants.isNotEmpty ? product.variants.first : null;
     final imageUrl = variant?.imageUrl;
     final price = variant?.rentalPrice ?? 0;
     final originalPrice = price / (1 - discountPct / 100);
     return GestureDetector(
       onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-              builder: (_) => ProductDetailScreen(productId: product.id))),
+        context,
+        MaterialPageRoute(
+          builder: (_) => ProductDetailScreen(productId: product.id),
+        ),
+      ),
       child: Container(
         width: 180,
         decoration: BoxDecoration(
@@ -904,21 +1003,23 @@ class _HomeScreenState extends State<HomeScreen>
                           imageUrl,
                           fit: BoxFit.cover,
                           errorBuilder: (_, __, ___) => Container(
-                              color: AppColors.hotPink.withOpacity(0.08)),
+                            color: AppColors.hotPink.withOpacity(0.08),
+                          ),
                         )
                       else
-                        Container(
-                            color: AppColors.hotPink.withOpacity(0.08)),
+                        Container(color: AppColors.hotPink.withOpacity(0.08)),
                       Positioned(
-                        top: 8, left: 8,
+                        top: 8,
+                        left: 8,
                         child: Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 9, vertical: 5),
+                            horizontal: 9,
+                            vertical: 5,
+                          ),
                           decoration: BoxDecoration(
-                            gradient: const LinearGradient(colors: [
-                              AppColors.hotPink,
-                              AppColors.coral,
-                            ]),
+                            gradient: const LinearGradient(
+                              colors: [AppColors.hotPink, AppColors.coral],
+                            ),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Text(
@@ -958,11 +1059,9 @@ class _HomeScreenState extends State<HomeScreen>
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       ShaderMask(
-                        shaderCallback: (b) =>
-                            const LinearGradient(colors: [
-                          AppColors.violet,
-                          AppColors.hotPink,
-                        ]).createShader(b),
+                        shaderCallback: (b) => const LinearGradient(
+                          colors: [AppColors.violet, AppColors.hotPink],
+                        ).createShader(b),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1019,35 +1118,44 @@ class _HomeScreenState extends State<HomeScreen>
 
   // ── Section Header ──────────────────────────────────────────────────────
 
-  Widget _buildSectionHeader(String title, RfTheme t,
-      {VoidCallback? onSeeAll}) {
+  Widget _buildSectionHeader(
+    String title,
+    RfTheme t, {
+    VoidCallback? onSeeAll,
+  }) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 28, 20, 14),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(title,
-              style: GoogleFonts.outfit(
-                fontSize: 20,
-                fontWeight: FontWeight.w700,
-                color: t.textPrimary,
-              )),
+          Text(
+            title,
+            style: GoogleFonts.outfit(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: t.textPrimary,
+            ),
+          ),
           if (onSeeAll != null)
             GestureDetector(
               onTap: onSeeAll,
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.hotPink.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: Text('Ver todo',
-                    style: GoogleFonts.dmSans(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.hotPink,
-                    )),
+                child: Text(
+                  'Ver todo',
+                  style: GoogleFonts.dmSans(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.hotPink,
+                  ),
+                ),
               ),
             ),
         ],
@@ -1057,11 +1165,9 @@ class _HomeScreenState extends State<HomeScreen>
 
   Widget _dot([Color color = AppColors.violet]) {
     return Container(
-      width: 4, height: 4,
-      decoration: BoxDecoration(
-        color: color,
-        shape: BoxShape.circle,
-      ),
+      width: 4,
+      height: 4,
+      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
     );
   }
 
@@ -1080,17 +1186,14 @@ class _HomeScreenState extends State<HomeScreen>
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 40, height: 4,
+              width: 40,
+              height: 4,
               decoration: BoxDecoration(
                 color: t.textDim.withOpacity(0.3),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
             const SizedBox(height: 20),
-            _moreMenuItem(Icons.handshake_outlined, 'Proveedores', t,
-                () => Navigator.push(context, MaterialPageRoute(
-                    builder: (_) => const SupplierListScreen()))),
-            _moreMenuItem(Icons.bar_chart_rounded, 'Estadísticas', t, () {}),
             _moreMenuItem(Icons.settings_outlined, 'Configuración', t, () {}),
             _moreMenuItem(Icons.help_outline_rounded, 'Ayuda', t, () {}),
           ],
@@ -1099,21 +1202,35 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  Widget _moreMenuItem(IconData icon, String label, RfTheme t,
-      VoidCallback onTap) {
+  Widget _moreMenuItem(
+    IconData icon,
+    String label,
+    RfTheme t,
+    VoidCallback onTap,
+  ) {
     return ListTile(
       leading: Container(
-        width: 42, height: 42,
+        width: 42,
+        height: 42,
         decoration: BoxDecoration(
           color: AppColors.hotPink.withOpacity(0.08),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Icon(icon, color: AppColors.hotPink, size: 22),
       ),
-      title: Text(label, style: GoogleFonts.dmSans(
-        fontSize: 15, fontWeight: FontWeight.w600, color: t.textPrimary)),
+      title: Text(
+        label,
+        style: GoogleFonts.dmSans(
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
+          color: t.textPrimary,
+        ),
+      ),
       trailing: Icon(Icons.chevron_right_rounded, color: t.textDim, size: 22),
-      onTap: () { Navigator.pop(context); onTap(); },
+      onTap: () {
+        Navigator.pop(context);
+        onTap();
+      },
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     );
   }
@@ -1142,26 +1259,52 @@ class _HomeScreenState extends State<HomeScreen>
           padding: const EdgeInsets.symmetric(horizontal: 6),
           child: Row(
             children: [
-              _navItem(Icons.home_rounded, 'Inicio', t,
-                  isActive: true, iconSize: 32),
-              _navItem(Icons.storefront_outlined, 'Catálogo', t,
-                  iconSize: 30,
-                  onTap: () => Navigator.push(context,
-                      MaterialPageRoute(builder: (_) =>
-                          const ProductsListScreen()))),
-              _navItem(Icons.event_outlined, 'Eventos', t,
-                  iconSize: 28,
-                  onTap: () => Navigator.push(context,
-                      MaterialPageRoute(builder: (_) =>
-                          const EventsListScreen()))),
-              _navItem(Icons.calendar_month_outlined, 'Calendario', t,
-                  iconSize: 28,
-                  onTap: () => Navigator.push(context,
-                      MaterialPageRoute(builder: (_) =>
-                          const EventCalendarScreen()))),
-              _navItem(Icons.more_horiz_rounded, 'Más', t,
-                  iconSize: 30,
-                  onTap: () => _showMoreMenu(t)),
+              _navItem(
+                Icons.home_rounded,
+                'Inicio',
+                t,
+                isActive: true,
+                iconSize: 32,
+              ),
+              _navItem(
+                Icons.storefront_outlined,
+                'Catálogo',
+                t,
+                iconSize: 30,
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ProductsListScreen()),
+                ),
+              ),
+              _navItem(
+                Icons.event_outlined,
+                'Eventos',
+                t,
+                iconSize: 28,
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const EventsListScreen()),
+                ),
+              ),
+              _navItem(
+                Icons.calendar_month_outlined,
+                'Calendario',
+                t,
+                iconSize: 28,
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const EventCalendarScreen(),
+                  ),
+                ),
+              ),
+              _navItem(
+                Icons.more_horiz_rounded,
+                'Más',
+                t,
+                iconSize: 30,
+                onTap: () => _showMoreMenu(t),
+              ),
             ],
           ),
         ),
@@ -1169,8 +1312,14 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  Widget _navItem(IconData icon, String label, RfTheme t,
-      {bool isActive = false, VoidCallback? onTap, double iconSize = 28}) {
+  Widget _navItem(
+    IconData icon,
+    String label,
+    RfTheme t, {
+    bool isActive = false,
+    VoidCallback? onTap,
+    double iconSize = 28,
+  }) {
     return Expanded(
       flex: isActive ? 3 : 1,
       child: GestureDetector(
@@ -1193,12 +1342,14 @@ class _HomeScreenState extends State<HomeScreen>
                   children: [
                     Icon(icon, color: Colors.white, size: iconSize),
                     const SizedBox(width: 8),
-                    Text(label,
-                        style: GoogleFonts.dmSans(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                        )),
+                    Text(
+                      label,
+                      style: GoogleFonts.dmSans(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
                   ],
                 ),
               )
@@ -1253,10 +1404,13 @@ class _ChatBubblePainter extends CustomPainter {
 
     canvas.drawPath(path, Paint()..color = color);
     // Border around the whole shape
-    canvas.drawPath(path, Paint()
-      ..color = const Color(0x26000000)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.8);
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = const Color(0x26000000)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 0.8,
+    );
   }
 
   @override

@@ -50,6 +50,15 @@ class ApiClient {
     try {
       final response = await _dio.get(path);
       if (response.data == null) return null;
+      // Check if the response body contains an error status (even when HTTP status is 200)
+      final data = response.data;
+      if (data is Map && data.containsKey('status') && data['status'] >= 400) {
+        throw _handleDioError(DioException(
+          requestOptions: response.requestOptions,
+          response: response,
+          type: DioExceptionType.badResponse,
+        ));
+      }
       return response.data['data'];
     } on DioException catch (e) {
       throw _handleDioError(e);

@@ -8,7 +8,7 @@ class AuthRepository {
 
   Future<AuthResponse> login(String email, String password) async {
     final response = await _apiService.login(email, password);
-    await _saveTokens(response.accessToken, response.refreshToken);
+    await _saveTokens(response.accessToken, response.refreshToken, response.userId);
     return response;
   }
 
@@ -28,9 +28,14 @@ class AuthRepository {
     return await _storage.read(key: 'refresh_token');
   }
 
-  Future<void> _saveTokens(String access, String refresh) async {
+  Future<String?> getUserId() async {
+    return await _storage.read(key: 'user_id');
+  }
+
+  Future<void> _saveTokens(String access, String refresh, String userId) async {
     await _storage.write(key: 'access_token', value: access);
     await _storage.write(key: 'refresh_token', value: refresh);
+    await _storage.write(key: 'user_id', value: userId);
   }
 
   Future<void> updateFCMToken(String token) async {

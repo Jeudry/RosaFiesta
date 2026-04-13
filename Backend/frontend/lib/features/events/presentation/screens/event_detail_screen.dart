@@ -4,7 +4,6 @@ import '../../data/event_model.dart';
 import '../events_provider.dart';
 import '../../../guests/presentation/screens/guest_list_screen.dart';
 import '../../../tasks/presentation/screens/event_task_list_screen.dart';
-import 'budget_analysis_screen.dart';
 import '../../presentation/timeline_provider.dart';
 import '../../../guests/presentation/guests_provider.dart';
 import '../../../tasks/presentation/tasks_provider.dart';
@@ -268,9 +267,12 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
   }
 
   Widget _buildBudgetView(Event event, EventsProvider provider) {
-    return InkWell(
-      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => BudgetAnalysisScreen(event: event))),
-      borderRadius: BorderRadius.circular(24),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: AppDecorations.softShadow,
+      ),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -452,7 +454,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => CheckoutScreen(event: event, totalAmount: total),
+        builder: (context) => CheckoutScreen(eventName: event.name.isEmpty ? 'Mi Evento' : event.name, totalAmount: total),
       ),
     );
   }

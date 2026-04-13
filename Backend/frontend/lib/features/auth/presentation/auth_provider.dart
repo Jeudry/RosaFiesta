@@ -29,9 +29,10 @@ class AuthProvider extends ChangeNotifier {
   /// Try to restore a previous session from secure storage.
   Future<void> tryRestoreSession() async {
     final token = await _repository.getAccessToken();
-    if (token != null && token.isNotEmpty) {
-      // Token exists - user was logged in before
-      _user = User(id: '', email: '');
+    final userId = await _repository.getUserId();
+    if (token != null && token.isNotEmpty && userId != null && userId.isNotEmpty) {
+      // Token exists - restore session with proper user ID
+      _user = User(id: userId, email: '');
     }
     _initialized = true;
     notifyListeners();
