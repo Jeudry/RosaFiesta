@@ -13,7 +13,6 @@ import '../favorites/presentation/screens/favorites_screen.dart';
 import '../home/presentation/screens/home_screen.dart';
 import '../products/presentation/screens/products_list_screen.dart';
 import '../profile/presentation/screens/profile_screen.dart';
-import '../suppliers/presentation/screens/supplier_list_screen.dart';
 import '../ai_assistant/presentation/screens/assistant_screen.dart';
 
 /// Persistent shell that wraps the 4 main tabs with a shared bottom bar,
@@ -131,7 +130,7 @@ class _MainShellState extends State<MainShell>
               child: CustomPaint(
                 painter: RfGridPainter(
                     color: (isDark ? Colors.white : Colors.black)
-                        .withOpacity(0.012)),
+                        .withOpacity(0.006)),
               ),
             ),
           ),
@@ -402,10 +401,6 @@ class _MainShellState extends State<MainShell>
             _moreMenuItem(Icons.calendar_month_outlined, 'Calendario', t,
                 () => Navigator.push(context, MaterialPageRoute(
                     builder: (_) => const EventCalendarScreen()))),
-            _moreMenuItem(Icons.handshake_outlined, 'Proveedores', t,
-                () => Navigator.push(context, MaterialPageRoute(
-                    builder: (_) => const SupplierListScreen()))),
-            _moreMenuItem(Icons.bar_chart_rounded, 'Estadísticas', t, () {}),
             _moreMenuItem(Icons.settings_outlined, 'Configuración', t, () {}),
             _moreMenuItem(Icons.help_outline_rounded, 'Ayuda', t, () {}),
           ],

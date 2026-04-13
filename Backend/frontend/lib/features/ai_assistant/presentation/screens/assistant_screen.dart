@@ -5,10 +5,10 @@ import 'package:provider/provider.dart';
 import 'package:frontend/core/design_system.dart';
 import 'package:frontend/core/app_colors.dart';
 
+import '../../../active_event/presentation/active_event_provider.dart';
+import '../../../active_event/presentation/screens/mi_evento_screen.dart';
 import '../../../products/data/product_models.dart';
 import '../../../products/presentation/screens/product_detail_screen.dart';
-import '../../../shop/presentation/cart_provider.dart';
-import '../../../shop/presentation/screens/cart_screen.dart';
 import '../assistant_provider.dart';
 import 'sketch_canvas_screen.dart';
 
@@ -29,11 +29,13 @@ class AssistantScreen extends StatefulWidget {
         pageBuilder: (_, __, ___) => const AssistantScreen(),
         transitionsBuilder: (_, anim, __, child) {
           return SlideTransition(
-            position: Tween<Offset>(
-              begin: const Offset(0, 0.12),
-              end: Offset.zero,
-            ).animate(CurvedAnimation(
-                parent: anim, curve: Curves.easeOutCubic)),
+            position:
+                Tween<Offset>(
+                  begin: const Offset(0, 0.12),
+                  end: Offset.zero,
+                ).animate(
+                  CurvedAnimation(parent: anim, curve: Curves.easeOutCubic),
+                ),
             child: FadeTransition(opacity: anim, child: child),
           );
         },
@@ -59,8 +61,9 @@ class _AssistantScreenState extends State<AssistantScreen>
   void initState() {
     super.initState();
     _orbController = AnimationController(
-        vsync: this, duration: const Duration(seconds: 2))
-      ..repeat(reverse: true);
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
   }
 
   @override
@@ -154,14 +157,18 @@ class _AssistantScreenState extends State<AssistantScreen>
           GestureDetector(
             onTap: () => Navigator.of(context).pop(),
             child: Container(
-              width: 56, height: 56,
+              width: 56,
+              height: 56,
               decoration: BoxDecoration(
                 color: t.isDark ? t.card : Colors.white,
                 shape: BoxShape.circle,
                 border: Border.all(color: t.borderFaint),
               ),
-              child: Icon(Icons.keyboard_arrow_down_rounded,
-                  color: t.textPrimary, size: 30),
+              child: Icon(
+                Icons.keyboard_arrow_down_rounded,
+                color: t.textPrimary,
+                size: 30,
+              ),
             ),
           ),
           const Spacer(),
@@ -172,8 +179,10 @@ class _AssistantScreenState extends State<AssistantScreen>
                   .indexOf(provider.step)
                   .clamp(0, _stepLabels.length - 1);
               return GestureDetector(
-                onTap: () => Navigator.push(context,
-                    MaterialPageRoute(builder: (_) => const CartScreen())),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const MiEventoScreen()),
+                ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -188,15 +197,20 @@ class _AssistantScreenState extends State<AssistantScreen>
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.checklist_rounded,
-                              color: AppColors.hotPink, size: 18),
+                          Icon(
+                            Icons.checklist_rounded,
+                            color: AppColors.hotPink,
+                            size: 18,
+                          ),
                           const SizedBox(width: 8),
-                          Text('Ver progreso',
-                              style: GoogleFonts.dmSans(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                                color: t.textPrimary,
-                              )),
+                          Text(
+                            'Ver progreso',
+                            style: GoogleFonts.dmSans(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: t.textPrimary,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -218,8 +232,8 @@ class _AssistantScreenState extends State<AssistantScreen>
                               color: isActive
                                   ? AppColors.hotPink
                                   : isPast
-                                      ? AppColors.hotPink.withOpacity(0.4)
-                                      : t.textDim.withOpacity(0.2),
+                                  ? AppColors.hotPink.withOpacity(0.4)
+                                  : t.textDim.withOpacity(0.2),
                             ),
                           ),
                         );
@@ -231,45 +245,56 @@ class _AssistantScreenState extends State<AssistantScreen>
             },
           ),
           const Spacer(),
-          // Cart button (right)
-          Consumer<CartProvider>(
-            builder: (context, cart, _) {
+          // "Mi evento" button (right) — counts items in the active draft
+          Consumer<ActiveEventProvider>(
+            builder: (context, active, _) {
               return Stack(
                 clipBehavior: Clip.none,
                 children: [
                   GestureDetector(
-                    onTap: () => Navigator.push(context,
-                        MaterialPageRoute(
-                            builder: (_) => const CartScreen())),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const MiEventoScreen()),
+                    ),
                     child: Container(
-                      width: 56, height: 56,
+                      width: 56,
+                      height: 56,
                       decoration: BoxDecoration(
                         color: t.isDark ? t.card : Colors.white,
                         shape: BoxShape.circle,
                         border: Border.all(color: t.borderFaint),
                       ),
-                      child: Icon(Icons.shopping_cart_outlined,
-                          color: t.textPrimary, size: 26),
+                      child: Icon(
+                        Icons.celebration_rounded,
+                        color: t.textPrimary,
+                        size: 26,
+                      ),
                     ),
                   ),
-                  if (cart.itemCount > 0)
+                  if (active.itemCount > 0)
                     Positioned(
-                      right: -2, top: -2,
+                      right: -2,
+                      top: -2,
                       child: Container(
-                        width: 22, height: 22,
+                        width: 22,
+                        height: 22,
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
                           color: AppColors.coral,
                           shape: BoxShape.circle,
                           border: Border.all(
-                              color: t.isDark ? t.card : Colors.white,
-                              width: 2),
+                            color: t.isDark ? t.card : Colors.white,
+                            width: 2,
+                          ),
                         ),
-                        child: Text('${cart.itemCount}',
-                            style: GoogleFonts.dmSans(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w800,
-                                color: Colors.white)),
+                        child: Text(
+                          '${active.itemCount}',
+                          style: GoogleFonts.dmSans(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                          ),
+                        ),
                       ),
                     ),
                 ],
@@ -311,7 +336,9 @@ class _AssistantScreenState extends State<AssistantScreen>
       }
     }
 
-    final hasChips = chips != null && chips.isNotEmpty &&
+    final hasChips =
+        chips != null &&
+        chips.isNotEmpty &&
         provider.step != ConversationStep.done;
 
     return AnimatedSwitcher(
@@ -337,7 +364,8 @@ class _AssistantScreenState extends State<AssistantScreen>
                           builder: (_, __) {
                             final glow = 0.15 + _orbController.value * 0.2;
                             return Container(
-                              width: 64, height: 64,
+                              width: 64,
+                              height: 64,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 gradient: const LinearGradient(
@@ -353,8 +381,11 @@ class _AssistantScreenState extends State<AssistantScreen>
                                   ),
                                 ],
                               ),
-                              child: const Icon(Icons.support_agent_rounded,
-                                  color: Colors.white, size: 34),
+                              child: const Icon(
+                                Icons.support_agent_rounded,
+                                color: Colors.white,
+                                size: 34,
+                              ),
                             );
                           },
                         ),
@@ -404,15 +435,22 @@ class _AssistantScreenState extends State<AssistantScreen>
                         ],
                       ],
                       // Bottom padding so content doesn't hide behind fade
-                      SizedBox(height: hasChips &&
-                          provider.step != ConversationStep.greeting ? 24 : 20),
+                      SizedBox(
+                        height:
+                            hasChips &&
+                                provider.step != ConversationStep.greeting
+                            ? 24
+                            : 20,
+                      ),
                     ],
                   ),
                 ),
                 // Fade-out gradient at bottom edge
                 if (hasChips && provider.step != ConversationStep.greeting)
                   Positioned(
-                    left: 0, right: 0, bottom: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
                     child: IgnorePointer(
                       child: Container(
                         height: 40,
@@ -420,10 +458,7 @@ class _AssistantScreenState extends State<AssistantScreen>
                           gradient: LinearGradient(
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
-                            colors: [
-                              t.base.withOpacity(0.0),
-                              t.base,
-                            ],
+                            colors: [t.base.withOpacity(0.0), t.base],
                           ),
                         ),
                       ),
@@ -452,7 +487,10 @@ class _AssistantScreenState extends State<AssistantScreen>
   };
 
   Widget _buildEventGrid(
-      List<String> events, AssistantProvider provider, RfTheme t) {
+    List<String> events,
+    AssistantProvider provider,
+    RfTheme t,
+  ) {
     return GridView.count(
       crossAxisCount: 2,
       shrinkWrap: true,
@@ -493,8 +531,11 @@ class _AssistantScreenState extends State<AssistantScreen>
                           colors: [AppColors.hotPink, AppColors.violet],
                         ),
                       ),
-                      child: Icon(Icons.auto_awesome_rounded,
-                          size: 50, color: Colors.white.withOpacity(0.3)),
+                      child: Icon(
+                        Icons.auto_awesome_rounded,
+                        size: 50,
+                        color: Colors.white.withOpacity(0.3),
+                      ),
                     ),
                   // Dark gradient overlay for text readability
                   Container(
@@ -512,7 +553,9 @@ class _AssistantScreenState extends State<AssistantScreen>
                   ),
                   // Label
                   Positioned(
-                    left: 14, right: 14, bottom: 14,
+                    left: 14,
+                    right: 14,
+                    bottom: 14,
                     child: Text(
                       e,
                       style: GoogleFonts.outfit(
@@ -569,12 +612,14 @@ class _AssistantScreenState extends State<AssistantScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('¿Qué más necesitas?',
-              style: GoogleFonts.outfit(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: t.textPrimary,
-              )),
+          Text(
+            '¿Qué más necesitas?',
+            style: GoogleFonts.outfit(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: t.textPrimary,
+            ),
+          ),
           const SizedBox(height: 14),
           // Active categories
           ...active.map((cat) {
@@ -595,12 +640,14 @@ class _AssistantScreenState extends State<AssistantScreen>
             const SizedBox(height: 8),
             Divider(color: t.borderFaint, height: 1),
             const SizedBox(height: 12),
-            Text('Omitidos',
-                style: GoogleFonts.dmSans(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: t.textDim,
-                )),
+            Text(
+              'Omitidos',
+              style: GoogleFonts.dmSans(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: t.textDim,
+              ),
+            ),
             const SizedBox(height: 8),
             ...omitted.map((cat) {
               final name = cat['name'] as String;
@@ -635,13 +682,13 @@ class _AssistantScreenState extends State<AssistantScreen>
         decoration: BoxDecoration(
           color: omitted
               ? (t.isDark
-                  ? Colors.white.withOpacity(0.02)
-                  : const Color(0xFFF3F4F6))
+                    ? Colors.white.withOpacity(0.02)
+                    : const Color(0xFFF3F4F6))
               : chosen
-                  ? AppColors.teal.withOpacity(0.08)
-                  : (t.isDark
-                      ? Colors.white.withOpacity(0.03)
-                      : const Color(0xFFF9FAFB)),
+              ? AppColors.teal.withOpacity(0.08)
+              : (t.isDark
+                    ? Colors.white.withOpacity(0.03)
+                    : const Color(0xFFF9FAFB)),
           borderRadius: BorderRadius.circular(16),
           border: chosen
               ? Border.all(color: AppColors.teal.withOpacity(0.3))
@@ -649,30 +696,35 @@ class _AssistantScreenState extends State<AssistantScreen>
         ),
         child: Row(
           children: [
-            Icon(icon,
-                color: omitted
-                    ? t.textDim
-                    : chosen
-                        ? AppColors.teal
-                        : t.textMuted,
-                size: 22),
+            Icon(
+              icon,
+              color: omitted
+                  ? t.textDim
+                  : chosen
+                  ? AppColors.teal
+                  : t.textMuted,
+              size: 22,
+            ),
             const SizedBox(width: 12),
             Expanded(
-              child: Text(name,
-                  style: GoogleFonts.dmSans(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: omitted ? t.textDim : t.textPrimary,
-                  )),
+              child: Text(
+                name,
+                style: GoogleFonts.dmSans(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: omitted ? t.textDim : t.textPrimary,
+                ),
+              ),
             ),
             if (omitted)
               // Restore button for omitted items
               GestureDetector(
-                onTap: () =>
-                    setState(() => _omittedCategories.remove(name)),
+                onTap: () => setState(() => _omittedCategories.remove(name)),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 6),
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(color: t.borderFaint),
@@ -680,15 +732,16 @@ class _AssistantScreenState extends State<AssistantScreen>
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.restore_rounded,
-                          color: t.textMuted, size: 14),
+                      Icon(Icons.restore_rounded, color: t.textMuted, size: 14),
                       const SizedBox(width: 4),
-                      Text('Restaurar',
-                          style: GoogleFonts.dmSans(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: t.textMuted,
-                          )),
+                      Text(
+                        'Restaurar',
+                        style: GoogleFonts.dmSans(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: t.textMuted,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -701,43 +754,52 @@ class _AssistantScreenState extends State<AssistantScreen>
                 },
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 6),
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(14),
                     color: AppColors.teal.withOpacity(0.1),
                   ),
-                  child: Text('Ver elegidos',
-                      style: GoogleFonts.dmSans(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.teal,
-                      )),
+                  child: Text(
+                    'Ver elegidos',
+                    style: GoogleFonts.dmSans(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.teal,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(width: 6),
               GestureDetector(
-                onTap: () =>
-                    provider.handleChipTap('Más sugerencias'),
+                onTap: () => provider.handleChipTap('Más sugerencias'),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 6),
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                        color: AppColors.teal.withOpacity(0.3)),
+                    border: Border.all(color: AppColors.teal.withOpacity(0.3)),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.add_rounded,
-                          color: AppColors.teal, size: 14),
+                      const Icon(
+                        Icons.add_rounded,
+                        color: AppColors.teal,
+                        size: 14,
+                      ),
                       const SizedBox(width: 2),
-                      Text('Agregar',
-                          style: GoogleFonts.dmSans(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.teal,
-                          )),
+                      Text(
+                        'Agregar',
+                        style: GoogleFonts.dmSans(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.teal,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -745,41 +807,48 @@ class _AssistantScreenState extends State<AssistantScreen>
             ] else ...[
               // Not selected: "Elegir" + "Omitir"
               GestureDetector(
-                onTap: () =>
-                    provider.handleChipTap('Más sugerencias'),
+                onTap: () => provider.handleChipTap('Más sugerencias'),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 6),
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(14),
                     gradient: const LinearGradient(
-                        colors: [AppColors.violet, AppColors.hotPink]),
+                      colors: [AppColors.violet, AppColors.hotPink],
+                    ),
                   ),
-                  child: Text('Elegir',
-                      style: GoogleFonts.dmSans(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      )),
+                  child: Text(
+                    'Elegir',
+                    style: GoogleFonts.dmSans(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(width: 6),
               GestureDetector(
-                onTap: () =>
-                    setState(() => _omittedCategories.add(name)),
+                onTap: () => setState(() => _omittedCategories.add(name)),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 6),
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(color: t.borderFaint),
                   ),
-                  child: Text('Omitir',
-                      style: GoogleFonts.dmSans(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: t.textDim,
-                      )),
+                  child: Text(
+                    'Omitir',
+                    style: GoogleFonts.dmSans(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: t.textDim,
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -802,24 +871,43 @@ class _AssistantScreenState extends State<AssistantScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Detalles del evento',
-              style: GoogleFonts.outfit(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: t.textPrimary,
-              )),
+          Text(
+            'Detalles del evento',
+            style: GoogleFonts.outfit(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: t.textPrimary,
+            ),
+          ),
           const SizedBox(height: 16),
-          _formField(Icons.calendar_today_rounded, 'Fecha del evento',
-              'Seleccionar fecha...', t),
+          _formField(
+            Icons.calendar_today_rounded,
+            'Fecha del evento',
+            'Seleccionar fecha...',
+            t,
+          ),
           const SizedBox(height: 12),
-          _formField(Icons.people_outline_rounded, 'Cantidad de personas',
-              'Ej: 50 (opcional)', t),
+          _formField(
+            Icons.people_outline_rounded,
+            'Cantidad de personas',
+            'Ej: 50 (opcional)',
+            t,
+          ),
           const SizedBox(height: 12),
-          _formField(Icons.location_on_outlined, 'Ubicación',
-              'Buscar dirección...', t),
+          _formField(
+            Icons.location_on_outlined,
+            'Ubicación',
+            'Buscar dirección...',
+            t,
+          ),
           const SizedBox(height: 12),
-          _formField(Icons.description_outlined, 'Descripción adicional',
-              'Detalles, temática, colores...', t, multiline: true),
+          _formField(
+            Icons.description_outlined,
+            'Descripción adicional',
+            'Detalles, temática, colores...',
+            t,
+            multiline: true,
+          ),
           const SizedBox(height: 16),
           // Sketch option
           GestureDetector(
@@ -831,11 +919,16 @@ class _AssistantScreenState extends State<AssistantScreen>
                   pageBuilder: (_, __, ___) => const SketchCanvasScreen(),
                   transitionsBuilder: (_, anim, __, child) {
                     return SlideTransition(
-                      position: Tween<Offset>(
-                        begin: const Offset(0, 0.15),
-                        end: Offset.zero,
-                      ).animate(CurvedAnimation(
-                          parent: anim, curve: Curves.easeOutCubic)),
+                      position:
+                          Tween<Offset>(
+                            begin: const Offset(0, 0.15),
+                            end: Offset.zero,
+                          ).animate(
+                            CurvedAnimation(
+                              parent: anim,
+                              curve: Curves.easeOutCubic,
+                            ),
+                          ),
                       child: FadeTransition(opacity: anim, child: child),
                     );
                   },
@@ -853,60 +946,64 @@ class _AssistantScreenState extends State<AssistantScreen>
                     : AppColors.violet.withOpacity(0.06),
                 borderRadius: BorderRadius.circular(18),
                 border: Border.all(
-                    color: _hasSketch
-                        ? AppColors.teal.withOpacity(0.3)
-                        : AppColors.violet.withOpacity(0.15)),
+                  color: _hasSketch
+                      ? AppColors.teal.withOpacity(0.3)
+                      : AppColors.violet.withOpacity(0.15),
+                ),
               ),
               child: Row(
                 children: [
                   Container(
-                    width: 48, height: 48,
+                    width: 48,
+                    height: 48,
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(colors: _hasSketch
-                          ? [AppColors.teal, AppColors.sky]
-                          : [AppColors.violet, AppColors.hotPink]),
+                      gradient: LinearGradient(
+                        colors: _hasSketch
+                            ? [AppColors.teal, AppColors.sky]
+                            : [AppColors.violet, AppColors.hotPink],
+                      ),
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: Icon(
-                        _hasSketch
-                            ? Icons.check_rounded
-                            : Icons.draw_rounded,
-                        color: Colors.white, size: 24),
+                      _hasSketch ? Icons.check_rounded : Icons.draw_rounded,
+                      color: Colors.white,
+                      size: 24,
+                    ),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Boceto de distribución',
-                            style: GoogleFonts.dmSans(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                              color: t.textPrimary,
-                            )),
+                        Text(
+                          'Boceto de distribución',
+                          style: GoogleFonts.dmSans(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: t.textPrimary,
+                          ),
+                        ),
                         const SizedBox(height: 2),
                         Text(
-                            _hasSketch
-                                ? 'Boceto guardado. Toca para editar.'
-                                : 'Dibuja cómo imaginas el espacio y la IA te dará ejemplos.',
-                            style: GoogleFonts.dmSans(
-                              fontSize: 12,
-                              color: _hasSketch
-                                  ? AppColors.teal
-                                  : t.textMuted,
-                              height: 1.3,
-                            )),
+                          _hasSketch
+                              ? 'Boceto guardado. Toca para editar.'
+                              : 'Dibuja cómo imaginas el espacio y la IA te dará ejemplos.',
+                          style: GoogleFonts.dmSans(
+                            fontSize: 12,
+                            color: _hasSketch ? AppColors.teal : t.textMuted,
+                            height: 1.3,
+                          ),
+                        ),
                       ],
                     ),
                   ),
                   Icon(
-                      _hasSketch
-                          ? Icons.edit_rounded
-                          : Icons.chevron_right_rounded,
-                      color: _hasSketch
-                          ? AppColors.teal
-                          : t.textDim,
-                      size: 24),
+                    _hasSketch
+                        ? Icons.edit_rounded
+                        : Icons.chevron_right_rounded,
+                    color: _hasSketch ? AppColors.teal : t.textDim,
+                    size: 24,
+                  ),
                 ],
               ),
             ),
@@ -916,8 +1013,13 @@ class _AssistantScreenState extends State<AssistantScreen>
     );
   }
 
-  Widget _formField(IconData icon, String label, String hint, RfTheme t,
-      {bool multiline = false}) {
+  Widget _formField(
+    IconData icon,
+    String label,
+    String hint,
+    RfTheme t, {
+    bool multiline = false,
+  }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
       decoration: BoxDecoration(
@@ -939,20 +1041,19 @@ class _AssistantScreenState extends State<AssistantScreen>
           Expanded(
             child: TextField(
               maxLines: multiline ? 3 : 1,
-              style: GoogleFonts.dmSans(
-                  fontSize: 15, color: t.textPrimary),
+              style: GoogleFonts.dmSans(fontSize: 15, color: t.textPrimary),
               decoration: InputDecoration(
                 labelText: label,
                 labelStyle: GoogleFonts.dmSans(
-                    fontSize: 13, color: t.textMuted),
+                  fontSize: 13,
+                  color: t.textMuted,
+                ),
                 hintText: hint,
-                hintStyle: GoogleFonts.dmSans(
-                    fontSize: 14, color: t.textDim),
+                hintStyle: GoogleFonts.dmSans(fontSize: 14, color: t.textDim),
                 border: InputBorder.none,
                 enabledBorder: InputBorder.none,
                 focusedBorder: InputBorder.none,
-                contentPadding:
-                    const EdgeInsets.symmetric(vertical: 12),
+                contentPadding: const EdgeInsets.symmetric(vertical: 12),
                 isCollapsed: true,
               ),
             ),
@@ -965,7 +1066,6 @@ class _AssistantScreenState extends State<AssistantScreen>
   // ── Step 6: Order Summary ───────────────────────────────────────────────
 
   Widget _buildOrderSummary(AssistantProvider provider, RfTheme t) {
-    // Mock summary from cart + event details
     return Container(
       decoration: BoxDecoration(
         color: t.isDark ? t.card : Colors.white,
@@ -978,59 +1078,82 @@ class _AssistantScreenState extends State<AssistantScreen>
         children: [
           Row(
             children: [
-              Icon(Icons.receipt_long_rounded,
-                  color: AppColors.hotPink, size: 22),
+              Icon(
+                Icons.receipt_long_rounded,
+                color: AppColors.hotPink,
+                size: 22,
+              ),
               const SizedBox(width: 10),
-              Text('Resumen del evento',
-                  style: GoogleFonts.outfit(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: t.textPrimary,
-                  )),
+              Text(
+                'Resumen del evento',
+                style: GoogleFonts.outfit(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: t.textPrimary,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 16),
           // Event info
-          _summaryRow(Icons.celebration_rounded, 'Evento',
-              provider.eventType ?? 'No especificado', t),
+          _summaryRow(
+            Icons.celebration_rounded,
+            'Evento',
+            provider.eventType ?? 'No especificado',
+            t,
+          ),
           const SizedBox(height: 10),
-          _summaryRow(Icons.calendar_today_rounded, 'Fecha',
-              'Por confirmar', t),
+          _summaryRow(
+            Icons.calendar_today_rounded,
+            'Fecha',
+            'Por confirmar',
+            t,
+          ),
           const SizedBox(height: 10),
-          _summaryRow(Icons.location_on_outlined, 'Ubicación',
-              'Por confirmar', t),
+          _summaryRow(
+            Icons.location_on_outlined,
+            'Ubicación',
+            'Por confirmar',
+            t,
+          ),
           const SizedBox(height: 16),
           Divider(color: t.borderFaint),
           const SizedBox(height: 12),
-          // Items from cart (mock)
-          Text('Artículos seleccionados',
-              style: GoogleFonts.dmSans(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                color: t.textMuted,
-              )),
+          // Items from the active draft event
+          Text(
+            'Artículos seleccionados',
+            style: GoogleFonts.dmSans(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: t.textMuted,
+            ),
+          ),
           const SizedBox(height: 10),
-          Consumer<CartProvider>(
-            builder: (context, cart, _) {
-              if (cart.itemCount == 0) {
+          Consumer<ActiveEventProvider>(
+            builder: (context, active, _) {
+              if (active.itemCount == 0) {
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Text('Aún no has agregado artículos',
-                      style: GoogleFonts.dmSans(
-                        fontSize: 13,
-                        color: t.textDim,
-                        fontStyle: FontStyle.italic,
-                      )),
+                  child: Text(
+                    'Aún no has agregado artículos',
+                    style: GoogleFonts.dmSans(
+                      fontSize: 13,
+                      color: t.textDim,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
                 );
               }
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Text('${cart.itemCount} artículo(s) en el carrito',
-                    style: GoogleFonts.dmSans(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: t.textPrimary,
-                    )),
+                child: Text(
+                  '${active.itemCount} artículo(s) en tu evento',
+                  style: GoogleFonts.dmSans(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: t.textPrimary,
+                  ),
+                ),
               );
             },
           ),
@@ -1044,17 +1167,21 @@ class _AssistantScreenState extends State<AssistantScreen>
             ),
             child: Row(
               children: [
-                Icon(Icons.info_outline_rounded,
-                    color: AppColors.hotPink, size: 18),
+                Icon(
+                  Icons.info_outline_rounded,
+                  color: AppColors.hotPink,
+                  size: 18,
+                ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                      'Al solicitar cotización, el equipo de RosaFiesta revisará tu evento y te contactará con el precio final.',
-                      style: GoogleFonts.dmSans(
-                        fontSize: 12,
-                        color: t.textMuted,
-                        height: 1.35,
-                      )),
+                    'Al solicitar cotización, el equipo de RosaFiesta revisará tu evento y te contactará con el precio final.',
+                    style: GoogleFonts.dmSans(
+                      fontSize: 12,
+                      color: t.textMuted,
+                      height: 1.35,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -1064,25 +1191,28 @@ class _AssistantScreenState extends State<AssistantScreen>
     );
   }
 
-  Widget _summaryRow(
-      IconData icon, String label, String value, RfTheme t) {
+  Widget _summaryRow(IconData icon, String label, String value, RfTheme t) {
     return Row(
       children: [
         Icon(icon, color: AppColors.hotPink, size: 18),
         const SizedBox(width: 10),
-        Text('$label: ',
+        Text(
+          '$label: ',
+          style: GoogleFonts.dmSans(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: t.textMuted,
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
             style: GoogleFonts.dmSans(
               fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: t.textMuted,
-            )),
-        Expanded(
-          child: Text(value,
-              style: GoogleFonts.dmSans(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                color: t.textPrimary,
-              )),
+              fontWeight: FontWeight.w700,
+              color: t.textPrimary,
+            ),
+          ),
         ),
       ],
     );
@@ -1094,30 +1224,37 @@ class _AssistantScreenState extends State<AssistantScreen>
     return Column(
       children: [
         Container(
-          width: 90, height: 90,
+          width: 90,
+          height: 90,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: AppColors.teal.withOpacity(0.12),
           ),
-          child: const Icon(Icons.check_circle_rounded,
-              color: AppColors.teal, size: 50),
+          child: const Icon(
+            Icons.check_circle_rounded,
+            color: AppColors.teal,
+            size: 50,
+          ),
         ),
         const SizedBox(height: 20),
-        Text('¡Solicitud enviada!',
-            style: GoogleFonts.outfit(
-              fontSize: 24,
-              fontWeight: FontWeight.w800,
-              color: t.textPrimary,
-            )),
+        Text(
+          '¡Solicitud enviada!',
+          style: GoogleFonts.outfit(
+            fontSize: 24,
+            fontWeight: FontWeight.w800,
+            color: t.textPrimary,
+          ),
+        ),
         const SizedBox(height: 10),
         Text(
-            'El equipo de RosaFiesta revisará tu evento y te enviará una cotización por correo y WhatsApp.',
-            textAlign: TextAlign.center,
-            style: GoogleFonts.dmSans(
-              fontSize: 14,
-              color: t.textMuted,
-              height: 1.5,
-            )),
+          'El equipo de RosaFiesta revisará tu evento y te enviará una cotización por correo y WhatsApp.',
+          textAlign: TextAlign.center,
+          style: GoogleFonts.dmSans(
+            fontSize: 14,
+            color: t.textMuted,
+            height: 1.5,
+          ),
+        ),
         const SizedBox(height: 24),
         GestureDetector(
           onTap: () => Navigator.of(context).pop(),
@@ -1126,21 +1263,23 @@ class _AssistantScreenState extends State<AssistantScreen>
             padding: const EdgeInsets.symmetric(horizontal: 32),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                  colors: [AppColors.violet, AppColors.hotPink]),
+                colors: [AppColors.violet, AppColors.hotPink],
+              ),
               borderRadius: BorderRadius.circular(26),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.home_rounded,
-                    color: Colors.white, size: 20),
+                const Icon(Icons.home_rounded, color: Colors.white, size: 20),
                 const SizedBox(width: 8),
-                Text('Volver al inicio',
-                    style: GoogleFonts.dmSans(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    )),
+                Text(
+                  'Volver al inicio',
+                  style: GoogleFonts.dmSans(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
               ],
             ),
           ),
@@ -1150,24 +1289,17 @@ class _AssistantScreenState extends State<AssistantScreen>
   }
 
   Widget _buildActionChips(
-      List<String> chips, AssistantProvider provider, RfTheme t) {
+    List<String> chips,
+    AssistantProvider provider,
+    RfTheme t,
+  ) {
     // If chips are Yes/No style (2 items), render as big action buttons
     if (chips.length == 2) {
       return Row(
         children: [
-          Expanded(
-            child: _actionButton(
-              chips[0], provider, t,
-              filled: false,
-            ),
-          ),
+          Expanded(child: _actionButton(chips[0], provider, t, filled: false)),
           const SizedBox(width: 12),
-          Expanded(
-            child: _actionButton(
-              chips[1], provider, t,
-              filled: true,
-            ),
-          ),
+          Expanded(child: _actionButton(chips[1], provider, t, filled: true)),
         ],
       );
     }
@@ -1180,13 +1312,11 @@ class _AssistantScreenState extends State<AssistantScreen>
         return GestureDetector(
           onTap: () => provider.handleChipTap(c),
           child: Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
             decoration: BoxDecoration(
               color: t.isDark ? t.card : Colors.white,
               borderRadius: BorderRadius.circular(22),
-              border:
-                  Border.all(color: AppColors.hotPink.withOpacity(0.3)),
+              border: Border.all(color: AppColors.hotPink.withOpacity(0.3)),
               boxShadow: [
                 BoxShadow(
                   color: AppColors.hotPink.withOpacity(0.06),
@@ -1223,13 +1353,12 @@ class _AssistantScreenState extends State<AssistantScreen>
         decoration: BoxDecoration(
           gradient: filled
               ? const LinearGradient(
-                  colors: [AppColors.violet, AppColors.hotPink])
+                  colors: [AppColors.violet, AppColors.hotPink],
+                )
               : null,
           color: filled ? null : (t.isDark ? t.card : Colors.white),
           borderRadius: BorderRadius.circular(28),
-          border: filled
-              ? null
-              : Border.all(color: t.borderFaint, width: 1.5),
+          border: filled ? null : Border.all(color: t.borderFaint, width: 1.5),
         ),
         child: Text(
           label,
@@ -1243,8 +1372,7 @@ class _AssistantScreenState extends State<AssistantScreen>
     );
   }
 
-  Widget _buildProductsCard(
-      List<AssistantMessage> sections, RfTheme t) {
+  Widget _buildProductsCard(List<AssistantMessage> sections, RfTheme t) {
     // Merge all products for the grid, keep section titles as tabs
     final tabs = sections
         .where((s) => s.sectionTitle != null)
@@ -1288,28 +1416,30 @@ class _AssistantScreenState extends State<AssistantScreen>
                         child: ListView.separated(
                           scrollDirection: Axis.horizontal,
                           itemCount: tabs.length,
-                          separatorBuilder: (_, __) =>
-                              const SizedBox(width: 8),
+                          separatorBuilder: (_, __) => const SizedBox(width: 8),
                           itemBuilder: (context, i) {
                             final isActive = tabIdx == i;
                             return GestureDetector(
                               onTap: () => activeTab.value = i,
                               child: Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 16),
+                                  horizontal: 16,
+                                ),
                                 alignment: Alignment.center,
                                 decoration: BoxDecoration(
                                   gradient: isActive
-                                      ? const LinearGradient(colors: [
-                                          AppColors.violet,
-                                          AppColors.hotPink,
-                                        ])
+                                      ? const LinearGradient(
+                                          colors: [
+                                            AppColors.violet,
+                                            AppColors.hotPink,
+                                          ],
+                                        )
                                       : null,
                                   color: isActive
                                       ? null
                                       : (t.isDark
-                                          ? Colors.white.withOpacity(0.04)
-                                          : const Color(0xFFF3F4F6)),
+                                            ? Colors.white.withOpacity(0.04)
+                                            : const Color(0xFFF3F4F6)),
                                   borderRadius: BorderRadius.circular(19),
                                 ),
                                 child: Text(
@@ -1336,8 +1466,7 @@ class _AssistantScreenState extends State<AssistantScreen>
                       child: ListView.separated(
                         scrollDirection: Axis.horizontal,
                         itemCount: currentProducts.length,
-                        separatorBuilder: (_, __) =>
-                            const SizedBox(width: 10),
+                        separatorBuilder: (_, __) => const SizedBox(width: 10),
                         padding: const EdgeInsets.only(right: 12),
                         itemBuilder: (context, i) =>
                             _productCardCompact(currentProducts[i], t),
@@ -1354,11 +1483,9 @@ class _AssistantScreenState extends State<AssistantScreen>
   }
 
   Widget _productCardCompact(Product product, RfTheme t) {
-    final variant =
-        product.variants.isNotEmpty ? product.variants.first : null;
+    final variant = product.variants.isNotEmpty ? product.variants.first : null;
     final imageUrl = variant?.imageUrl;
     final price = variant?.rentalPrice ?? 0;
-    final variantId = variant?.id.toString();
     final rating = product.averageRating;
     final reviewCount = product.reviewCount;
     final desc = product.descriptionTemplate ?? '';
@@ -1376,10 +1503,11 @@ class _AssistantScreenState extends State<AssistantScreen>
         children: [
           GestureDetector(
             onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (_) =>
-                        ProductDetailScreen(productId: product.id))),
+              context,
+              MaterialPageRoute(
+                builder: (_) => ProductDetailScreen(productId: product.id),
+              ),
+            ),
             child: Padding(
               padding: const EdgeInsets.all(6),
               child: ClipRRect(
@@ -1387,12 +1515,14 @@ class _AssistantScreenState extends State<AssistantScreen>
                 child: AspectRatio(
                   aspectRatio: 1.3,
                   child: imageUrl != null && imageUrl.isNotEmpty
-                      ? Image.network(imageUrl,
+                      ? Image.network(
+                          imageUrl,
                           fit: BoxFit.cover,
                           errorBuilder: (_, __, ___) => Container(
-                              color: AppColors.hotPink.withOpacity(0.08)))
-                      : Container(
-                          color: AppColors.hotPink.withOpacity(0.08)),
+                            color: AppColors.hotPink.withOpacity(0.08),
+                          ),
+                        )
+                      : Container(color: AppColors.hotPink.withOpacity(0.08)),
                 ),
               ),
             ),
@@ -1429,18 +1559,23 @@ class _AssistantScreenState extends State<AssistantScreen>
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      ...List.generate(5, (i) => Icon(
-                            Icons.star_rounded,
-                            color: i < rating.floor()
-                                ? const Color(0xFFFFB800)
-                                : const Color(0xFFFFB800).withOpacity(0.25),
-                            size: 13,
-                          )),
+                      ...List.generate(
+                        5,
+                        (i) => Icon(
+                          Icons.star_rounded,
+                          color: i < rating.floor()
+                              ? const Color(0xFFFFB800)
+                              : const Color(0xFFFFB800).withOpacity(0.25),
+                          size: 13,
+                        ),
+                      ),
                       const SizedBox(width: 3),
                       Text(
                         '(${_formatCount(reviewCount)})',
                         style: GoogleFonts.dmSans(
-                            fontSize: 10, color: t.textMuted),
+                          fontSize: 10,
+                          color: t.textMuted,
+                        ),
                       ),
                     ],
                   ),
@@ -1448,31 +1583,33 @@ class _AssistantScreenState extends State<AssistantScreen>
                   Row(
                     children: [
                       ShaderMask(
-                        shaderCallback: (b) =>
-                            const LinearGradient(colors: [
-                          AppColors.violet,
-                          AppColors.hotPink,
-                        ]).createShader(b),
+                        shaderCallback: (b) => const LinearGradient(
+                          colors: [AppColors.violet, AppColors.hotPink],
+                        ).createShader(b),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(price.toStringAsFixed(0),
-                                style: GoogleFonts.outfit(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w800,
-                                  color: Colors.white,
-                                  height: 1,
-                                )),
+                            Text(
+                              price.toStringAsFixed(0),
+                              style: GoogleFonts.outfit(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                                height: 1,
+                              ),
+                            ),
                             const SizedBox(width: 2),
                             Padding(
                               padding: const EdgeInsets.only(top: 2),
-                              child: Text(r'RD$',
-                                  style: GoogleFonts.outfit(
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.white,
-                                  )),
+                              child: Text(
+                                r'RD$',
+                                style: GoogleFonts.outfit(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                              ),
                             ),
                           ],
                         ),
@@ -1480,32 +1617,41 @@ class _AssistantScreenState extends State<AssistantScreen>
                       const Spacer(),
                       GestureDetector(
                         onTap: () async {
-                          final cart = context.read<CartProvider>();
-                          await cart.addItem(
-                              product.id.toString(), variantId, 1);
+                          final active = context.read<ActiveEventProvider>();
+                          await active.addItem(
+                            product,
+                            variant: variant,
+                            quantity: 1,
+                          );
                           if (!mounted) return;
                           ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                            content: Text(
+                            SnackBar(
+                              content: Text(
                                 '${product.nameTemplate} agregado',
                                 style: GoogleFonts.dmSans(
-                                    fontWeight: FontWeight.w600)),
-                            backgroundColor: AppColors.teal,
-                            behavior: SnackBarBehavior.floating,
-                            duration: const Duration(seconds: 2),
-                          ));
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              backgroundColor: AppColors.teal,
+                              behavior: SnackBarBehavior.floating,
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
                         },
                         child: Container(
-                          width: 30, height: 30,
+                          width: 30,
+                          height: 30,
                           decoration: const BoxDecoration(
                             shape: BoxShape.circle,
-                            gradient: LinearGradient(colors: [
-                              AppColors.violet,
-                              AppColors.hotPink,
-                            ]),
+                            gradient: LinearGradient(
+                              colors: [AppColors.violet, AppColors.hotPink],
+                            ),
                           ),
-                          child: const Icon(Icons.add_rounded,
-                              color: Colors.white, size: 18),
+                          child: const Icon(
+                            Icons.add_rounded,
+                            color: Colors.white,
+                            size: 18,
+                          ),
                         ),
                       ),
                     ],
@@ -1533,11 +1679,9 @@ class _AssistantScreenState extends State<AssistantScreen>
   }
 
   Widget _productCard(Product product, RfTheme t) {
-    final variant =
-        product.variants.isNotEmpty ? product.variants.first : null;
+    final variant = product.variants.isNotEmpty ? product.variants.first : null;
     final imageUrl = variant?.imageUrl;
     final price = variant?.rentalPrice ?? 0;
-    final variantId = variant?.id.toString();
     final rating = product.averageRating;
     final reviewCount = product.reviewCount;
 
@@ -1561,10 +1705,11 @@ class _AssistantScreenState extends State<AssistantScreen>
           // Image
           GestureDetector(
             onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (_) =>
-                        ProductDetailScreen(productId: product.id))),
+              context,
+              MaterialPageRoute(
+                builder: (_) => ProductDetailScreen(productId: product.id),
+              ),
+            ),
             child: Padding(
               padding: const EdgeInsets.all(8),
               child: ClipRRect(
@@ -1572,12 +1717,14 @@ class _AssistantScreenState extends State<AssistantScreen>
                 child: AspectRatio(
                   aspectRatio: 1.15,
                   child: imageUrl != null && imageUrl.isNotEmpty
-                      ? Image.network(imageUrl,
+                      ? Image.network(
+                          imageUrl,
                           fit: BoxFit.cover,
                           errorBuilder: (_, __, ___) => Container(
-                              color: AppColors.hotPink.withOpacity(0.08)))
-                      : Container(
-                          color: AppColors.hotPink.withOpacity(0.08)),
+                            color: AppColors.hotPink.withOpacity(0.08),
+                          ),
+                        )
+                      : Container(color: AppColors.hotPink.withOpacity(0.08)),
                 ),
               ),
             ),
@@ -1629,31 +1776,33 @@ class _AssistantScreenState extends State<AssistantScreen>
                 Row(
                   children: [
                     ShaderMask(
-                      shaderCallback: (b) =>
-                          const LinearGradient(colors: [
-                        AppColors.violet,
-                        AppColors.hotPink,
-                      ]).createShader(b),
+                      shaderCallback: (b) => const LinearGradient(
+                        colors: [AppColors.violet, AppColors.hotPink],
+                      ).createShader(b),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(price.toStringAsFixed(0),
-                              style: GoogleFonts.outfit(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w800,
-                                color: Colors.white,
-                                height: 1,
-                              )),
+                          Text(
+                            price.toStringAsFixed(0),
+                            style: GoogleFonts.outfit(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                              height: 1,
+                            ),
+                          ),
                           const SizedBox(width: 3),
                           Padding(
                             padding: const EdgeInsets.only(top: 3),
-                            child: Text(r'RD$',
-                                style: GoogleFonts.outfit(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.white,
-                                )),
+                            child: Text(
+                              r'RD$',
+                              style: GoogleFonts.outfit(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                            ),
                           ),
                         ],
                       ),
@@ -1661,32 +1810,41 @@ class _AssistantScreenState extends State<AssistantScreen>
                     const Spacer(),
                     GestureDetector(
                       onTap: () async {
-                        final cart = context.read<CartProvider>();
-                        await cart.addItem(
-                            product.id.toString(), variantId, 1);
+                        final active = context.read<ActiveEventProvider>();
+                        await active.addItem(
+                          product,
+                          variant: variant,
+                          quantity: 1,
+                        );
                         if (!mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                          content: Text(
+                          SnackBar(
+                            content: Text(
                               '${product.nameTemplate} agregado',
                               style: GoogleFonts.dmSans(
-                                  fontWeight: FontWeight.w600)),
-                          backgroundColor: AppColors.teal,
-                          behavior: SnackBarBehavior.floating,
-                          duration: const Duration(seconds: 2),
-                        ));
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            backgroundColor: AppColors.teal,
+                            behavior: SnackBarBehavior.floating,
+                            duration: const Duration(seconds: 2),
+                          ),
+                        );
                       },
                       child: Container(
-                        width: 34, height: 34,
+                        width: 34,
+                        height: 34,
                         decoration: const BoxDecoration(
                           shape: BoxShape.circle,
-                          gradient: LinearGradient(colors: [
-                            AppColors.violet,
-                            AppColors.hotPink,
-                          ]),
+                          gradient: LinearGradient(
+                            colors: [AppColors.violet, AppColors.hotPink],
+                          ),
                         ),
-                        child: const Icon(Icons.add_rounded,
-                            color: Colors.white, size: 20),
+                        child: const Icon(
+                          Icons.add_rounded,
+                          color: Colors.white,
+                          size: 20,
+                        ),
                       ),
                     ),
                   ],
@@ -1717,7 +1875,8 @@ class _AssistantScreenState extends State<AssistantScreen>
             return Transform.scale(
               scale: scale,
               child: Container(
-                width: 100, height: 100,
+                width: 100,
+                height: 100,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: const RadialGradient(
@@ -1736,8 +1895,11 @@ class _AssistantScreenState extends State<AssistantScreen>
                     ),
                   ],
                 ),
-                child: const Icon(Icons.support_agent_rounded,
-                    color: Colors.white, size: 44),
+                child: const Icon(
+                  Icons.support_agent_rounded,
+                  color: Colors.white,
+                  size: 44,
+                ),
               ),
             );
           },
@@ -1745,10 +1907,7 @@ class _AssistantScreenState extends State<AssistantScreen>
         const SizedBox(height: 24),
         Text(
           'Pensando…',
-          style: GoogleFonts.dmSans(
-            fontSize: 16,
-            color: t.textMuted,
-          ),
+          style: GoogleFonts.dmSans(fontSize: 16, color: t.textMuted),
         ),
       ],
     );
@@ -1771,53 +1930,53 @@ class _AssistantScreenState extends State<AssistantScreen>
           else if (_activeBottomIdx == 1 && _isListening)
             _buildListeningBox(t)
           else
-          // 3 pill buttons — only visible when no input is active
-          Row(
-            children: [
-              _bottomPill(
-                idx: 0,
-                icon: Icons.chat_bubble_outline_rounded,
-                label: 'Chatear',
-                compact: compact,
-                onTap: () => setState(() {
-                  _activeBottomIdx = _activeBottomIdx == 0 ? -1 : 0;
-                  _isListening = false;
-                }),
-                t: t,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _bottomPill(
-                  idx: 1,
-                  icon: Icons.mic_rounded,
-                  label: 'Hablar',
+            // 3 pill buttons — only visible when no input is active
+            Row(
+              children: [
+                _bottomPill(
+                  idx: 0,
+                  icon: Icons.chat_bubble_outline_rounded,
+                  label: 'Chatear',
                   compact: compact,
-                  expanded: true,
                   onTap: () => setState(() {
-                    if (_activeBottomIdx == 1 && _isListening) {
-                      _isListening = false;
-                      _activeBottomIdx = -1;
-                    } else {
-                      _activeBottomIdx = 1;
-                      _isListening = true;
-                      _transcript = '';
-                    }
+                    _activeBottomIdx = _activeBottomIdx == 0 ? -1 : 0;
+                    _isListening = false;
                   }),
                   t: t,
-                  showWaveform: _isListening && _activeBottomIdx == 1,
                 ),
-              ),
-              const SizedBox(width: 10),
-              _bottomPill(
-                idx: 2,
-                icon: Icons.arrow_back_rounded,
-                label: 'Volver',
-                compact: compact,
-                onTap: () => Navigator.of(context).pop(),
-                t: t,
-              ),
-            ],
-          ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _bottomPill(
+                    idx: 1,
+                    icon: Icons.mic_rounded,
+                    label: 'Hablar',
+                    compact: compact,
+                    expanded: true,
+                    onTap: () => setState(() {
+                      if (_activeBottomIdx == 1 && _isListening) {
+                        _isListening = false;
+                        _activeBottomIdx = -1;
+                      } else {
+                        _activeBottomIdx = 1;
+                        _isListening = true;
+                        _transcript = '';
+                      }
+                    }),
+                    t: t,
+                    showWaveform: _isListening && _activeBottomIdx == 1,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                _bottomPill(
+                  idx: 2,
+                  icon: Icons.arrow_back_rounded,
+                  label: 'Volver',
+                  compact: compact,
+                  onTap: () => Navigator.of(context).pop(),
+                  t: t,
+                ),
+              ],
+            ),
         ],
       ),
     );
@@ -1844,11 +2003,13 @@ class _AssistantScreenState extends State<AssistantScreen>
               maxLines: 5,
               minLines: 3,
               style: GoogleFonts.dmSans(
-                  fontSize: 16, color: t.textPrimary, height: 1.5),
+                fontSize: 16,
+                color: t.textPrimary,
+                height: 1.5,
+              ),
               decoration: InputDecoration(
                 hintText: 'Escribe tu mensaje...',
-                hintStyle: GoogleFonts.dmSans(
-                    fontSize: 16, color: t.textDim),
+                hintStyle: GoogleFonts.dmSans(fontSize: 16, color: t.textDim),
                 border: InputBorder.none,
                 enabledBorder: InputBorder.none,
                 focusedBorder: InputBorder.none,
@@ -1876,15 +2037,16 @@ class _AssistantScreenState extends State<AssistantScreen>
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.close_rounded,
-                          color: t.textMuted, size: 18),
+                      Icon(Icons.close_rounded, color: t.textMuted, size: 18),
                       const SizedBox(width: 6),
-                      Text('Descartar',
-                          style: GoogleFonts.dmSans(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: t.textMuted,
-                          )),
+                      Text(
+                        'Descartar',
+                        style: GoogleFonts.dmSans(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: t.textMuted,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -1903,24 +2065,28 @@ class _AssistantScreenState extends State<AssistantScreen>
                   height: 44,
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(colors: [
-                      AppColors.violet,
-                      AppColors.hotPink,
-                    ]),
+                    gradient: const LinearGradient(
+                      colors: [AppColors.violet, AppColors.hotPink],
+                    ),
                     borderRadius: BorderRadius.circular(22),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.send_rounded,
-                          color: Colors.white, size: 18),
+                      const Icon(
+                        Icons.send_rounded,
+                        color: Colors.white,
+                        size: 18,
+                      ),
                       const SizedBox(width: 8),
-                      Text('Enviar',
-                          style: GoogleFonts.dmSans(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                          )),
+                      Text(
+                        'Enviar',
+                        style: GoogleFonts.dmSans(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -1947,31 +2113,41 @@ class _AssistantScreenState extends State<AssistantScreen>
           Row(
             children: [
               Container(
-                width: 8, height: 8,
+                width: 8,
+                height: 8,
                 decoration: const BoxDecoration(
                   color: AppColors.coral,
                   shape: BoxShape.circle,
                 ),
               ),
               const SizedBox(width: 8),
-              Text('Escuchando...',
-                  style: GoogleFonts.dmSans(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.hotPink,
-                  )),
+              Text(
+                'Escuchando...',
+                style: GoogleFonts.dmSans(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.hotPink,
+                ),
+              ),
               const SizedBox(width: 10),
               // Waveform visual
               ...List.generate(7, (i) {
                 final h =
-                    4.0 + (i == 3 ? 14 : i % 2 == 0 ? 10 : 6);
+                    4.0 +
+                    (i == 3
+                        ? 14
+                        : i % 2 == 0
+                        ? 10
+                        : 6);
                 return Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 1.5),
                   child: Container(
-                    width: 2.5, height: h,
+                    width: 2.5,
+                    height: h,
                     decoration: BoxDecoration(
                       color: AppColors.hotPink.withOpacity(
-                          0.3 + (i == 3 ? 0.4 : 0.1)),
+                        0.3 + (i == 3 ? 0.4 : 0.1),
+                      ),
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -1985,22 +2161,24 @@ class _AssistantScreenState extends State<AssistantScreen>
                   _activeBottomIdx = -1;
                 }),
                 child: Container(
-                  width: 36, height: 36,
+                  width: 36,
+                  height: 36,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: AppColors.hotPink.withOpacity(0.12),
                   ),
-                  child: const Icon(Icons.stop_rounded,
-                      color: AppColors.hotPink, size: 20),
+                  child: const Icon(
+                    Icons.stop_rounded,
+                    color: AppColors.hotPink,
+                    size: 20,
+                  ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 10),
           Text(
-            _transcript.isEmpty
-                ? 'Di algo...'
-                : _transcript,
+            _transcript.isEmpty ? 'Di algo...' : _transcript,
             style: GoogleFonts.dmSans(
               fontSize: 16,
               color: _transcript.isEmpty ? t.textDim : t.textPrimary,
@@ -2035,39 +2213,53 @@ class _AssistantScreenState extends State<AssistantScreen>
         duration: const Duration(milliseconds: 250),
         height: 58,
         padding: EdgeInsets.symmetric(
-            horizontal: isListeningExpanded ? 14 : (showLabel ? 18 : 14)),
+          horizontal: isListeningExpanded ? 14 : (showLabel ? 18 : 14),
+        ),
         decoration: BoxDecoration(
           color: t.isDark ? t.card : Colors.white,
           borderRadius: BorderRadius.circular(29),
           border: Border.all(
-            color: isActive ? AppColors.hotPink.withOpacity(0.3) : t.borderFaint,
+            color: isActive
+                ? AppColors.hotPink.withOpacity(0.3)
+                : t.borderFaint,
           ),
         ),
         child: isListeningExpanded
             ? Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize:
-                    expanded ? MainAxisSize.max : MainAxisSize.min,
+                mainAxisSize: expanded ? MainAxisSize.max : MainAxisSize.min,
                 children: [
-                  Text('Escuchando',
-                      style: GoogleFonts.dmSans(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.hotPink,
-                      )),
+                  Text(
+                    'Escuchando',
+                    style: GoogleFonts.dmSans(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.hotPink,
+                    ),
+                  ),
                   const SizedBox(width: 8),
                   ...List.generate(7, (i) {
-                    final h = 6.0 +
-                        (i == 3 ? 18 : i % 2 == 0 ? 12 : 7);
+                    final h =
+                        6.0 +
+                        (i == 3
+                            ? 18
+                            : i % 2 == 0
+                            ? 12
+                            : 7);
                     return Padding(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 1.5),
+                      padding: const EdgeInsets.symmetric(horizontal: 1.5),
                       child: Container(
-                        width: 3, height: h,
+                        width: 3,
+                        height: h,
                         decoration: BoxDecoration(
                           color: AppColors.hotPink.withOpacity(
-                              0.25 +
-                                  (i == 3 ? 0.45 : i % 2 == 0 ? 0.2 : 0)),
+                            0.25 +
+                                (i == 3
+                                    ? 0.45
+                                    : i % 2 == 0
+                                    ? 0.2
+                                    : 0),
+                          ),
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
@@ -2075,30 +2267,35 @@ class _AssistantScreenState extends State<AssistantScreen>
                   }),
                   const SizedBox(width: 8),
                   Container(
-                    width: 36, height: 36,
+                    width: 36,
+                    height: 36,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: AppColors.hotPink.withOpacity(0.12),
                     ),
-                    child: const Icon(Icons.mic_rounded,
-                        color: AppColors.hotPink, size: 20),
+                    child: const Icon(
+                      Icons.mic_rounded,
+                      color: AppColors.hotPink,
+                      size: 20,
+                    ),
                   ),
                 ],
               )
             : Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize:
-                    expanded ? MainAxisSize.max : MainAxisSize.min,
+                mainAxisSize: expanded ? MainAxisSize.max : MainAxisSize.min,
                 children: [
                   Icon(icon, color: t.textPrimary, size: 22),
                   if (showLabel) ...[
                     const SizedBox(width: 8),
-                    Text(label,
-                        style: GoogleFonts.dmSans(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: t.textPrimary,
-                        )),
+                    Text(
+                      label,
+                      style: GoogleFonts.dmSans(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: t.textPrimary,
+                      ),
+                    ),
                   ],
                 ],
               ),

@@ -12,7 +12,6 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'core/api_client.dart';
 import 'features/products/presentation/products_provider.dart';
 import 'features/products/presentation/reviews_provider.dart';
-import 'features/shop/presentation/cart_provider.dart';
 import 'features/categories/presentation/categories_provider.dart';
 import 'features/profile/presentation/profile_provider.dart';
 import 'features/events/presentation/events_provider.dart';
@@ -24,9 +23,7 @@ import 'features/tasks/data/tasks_repository.dart';
 import 'features/tasks/presentation/tasks_provider.dart';
 import 'features/events/presentation/timeline_provider.dart';
 import 'features/stats/presentation/stats_provider.dart';
-import 'package:frontend/features/suppliers/presentation/suppliers_provider.dart';
 import 'package:frontend/features/events/data/timeline_repository.dart';
-import 'package:frontend/features/suppliers/data/suppliers_repository.dart';
 import 'core/services/notification_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'core/services/firebase_service.dart';
@@ -59,41 +56,42 @@ Future<void> main() async {
   }
 
   ApiClient.init();
-  
+
   try {
     await HiveService.init();
     SyncService().init();
   } catch (e) {
     print("Warning: Hive initialization failed: $e");
   }
-  
+
   try {
     await NotificationService().init();
   } catch (e) {
     print("Warning: NotificationService initialization failed: $e");
   }
-  
+
   final guestsRepository = GuestsRepository();
   final tasksRepository = EventTasksRepository();
-  final suppliersRepository = SuppliersRepository();
   final timelineRepository = TimelineRepository();
-  
+
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => ProductsProvider()),
-        ChangeNotifierProvider(create: (_) => CartProvider()),
         ChangeNotifierProvider(create: (_) => ActiveEventProvider()),
         ChangeNotifierProvider(create: (_) => FavoritesProvider()),
         ChangeNotifierProvider(create: (_) => CategoriesProvider()),
         ChangeNotifierProvider(create: (_) => ProfileProvider()),
         ChangeNotifierProvider(create: (_) => EventsProvider()),
         ChangeNotifierProvider(create: (_) => GuestsProvider(guestsRepository)),
-        ChangeNotifierProvider(create: (_) => EventTasksProvider(tasksRepository)),
-        ChangeNotifierProvider(create: (_) => SuppliersProvider(suppliersRepository)),
-        ChangeNotifierProvider(create: (_) => TimelineProvider(timelineRepository)),
+        ChangeNotifierProvider(
+          create: (_) => EventTasksProvider(tasksRepository),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => TimelineProvider(timelineRepository),
+        ),
         ChangeNotifierProvider(create: (_) => StatsProvider()),
         ChangeNotifierProvider(create: (_) => ReviewsProvider()),
         ChangeNotifierProvider(create: (_) => ChatProvider()),
@@ -120,16 +118,14 @@ class RosaFiestaApp extends StatelessWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: const [
-        Locale('en'),
-        Locale('es'),
-      ],
+      supportedLocales: const [Locale('en'), Locale('es')],
       locale: const Locale('es', 'ES'),
       home: const _AuthGate(),
       onGenerateRoute: (settings) {
         if (settings.name != null && settings.name!.startsWith('/confirm/')) {
           final uri = Uri.parse(settings.name!);
-          if (uri.pathSegments.length == 2 && uri.pathSegments[0] == 'confirm') {
+          if (uri.pathSegments.length == 2 &&
+              uri.pathSegments[0] == 'confirm') {
             final token = uri.pathSegments[1];
             return MaterialPageRoute(
               builder: (context) => ConfirmationScreen(token: token),
@@ -165,9 +161,7 @@ class _AuthGateState extends State<_AuthGate> {
 
     if (!auth.initialized) {
       // Still loading — show a simple splash
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     if (auth.isAuthenticated) {

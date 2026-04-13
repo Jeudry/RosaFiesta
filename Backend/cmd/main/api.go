@@ -123,20 +123,6 @@ func (app *Application) Mount() http.Handler {
 			r.Post("/refresh", app.refreshTokenHandler)
 		})
 
-		r.Route("/cart", func(r chi.Router) {
-			r.Use(app.AuthTokenMiddleware())
-			r.Get("/", app.getCartHandler)
-			r.Delete("/", app.clearCartHandler)
-
-			r.Route("/items", func(r chi.Router) {
-				r.Post("/", app.addItemToCartHandler)
-				r.Route("/{itemId}", func(r chi.Router) {
-					r.Patch("/", app.updateCartItemHandler)
-					r.Delete("/", app.removeCartItemHandler)
-				})
-			})
-		})
-
 		r.Route("/favorites", func(r chi.Router) {
 			r.Use(app.AuthTokenMiddleware())
 			r.Get("/", app.listFavoritesHandler)

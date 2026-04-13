@@ -9,10 +9,10 @@ import '../active_event_provider.dart';
 
 /// "Mi Evento" — replaces the cart screen.
 ///
-/// Renders the user's draft event as a list of items + a totals section
-/// at the bottom. The CTA at the bottom is "Solicitar cotización" (not
-/// "Pay") because RosaFiesta is rental-first and the user is building an
-/// event, not buying a product.
+/// Renders the user's draft event as a list of items grouped by category
+/// (store-bucket pattern from e-commerce), with collapsible sections,
+/// product cards, quantity steppers, and a sticky "Ver detalle del evento"
+/// button at the bottom.
 class MiEventoScreen extends StatefulWidget {
   const MiEventoScreen({super.key});
 
@@ -21,11 +21,13 @@ class MiEventoScreen extends StatefulWidget {
 }
 
 class _MiEventoScreenState extends State<MiEventoScreen> {
+  /// Tracks which category sections are expanded.
+  final Map<String, bool> _expanded = {};
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Always refresh on entry so the screen reflects the latest server state.
       context.read<ActiveEventProvider>().fetch(force: true);
     });
   }
@@ -55,6 +57,35 @@ class _MiEventoScreenState extends State<MiEventoScreen> {
             ),
           ),
         ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [AppColors.violet, AppColors.hotPink],
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    '${provider.itemCount} ${provider.itemCount == 1 ? "artículo" : "artículos"}',
+                    style: GoogleFonts.dmSans(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
       body: _buildBody(provider, t),
     );
@@ -73,38 +104,642 @@ class _MiEventoScreenState extends State<MiEventoScreen> {
       return _EmptyState(t: t);
     }
 
+    // Group items by category.
+    final buckets = _groupByCategory(provider.items);
+
     return Column(
       children: [
-        if (provider.event?.date == null)
-          _DateMissingBanner(t: t),
+        if (provider.event?.date == null) _DateMissingBanner(t: t),
         Expanded(
           child: RefreshIndicator(
             onRefresh: () => provider.fetch(force: true),
             child: ListView.separated(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-              itemCount: provider.items.length,
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
+              itemCount: buckets.length,
               separatorBuilder: (_, __) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
-                final item = provider.items[index];
-                return _LineTile(
-                  item: item,
+                final bucket = buckets[index];
+                return _CategorySection(
+                  category: bucket.category,
+                  items: bucket.items,
+                  isExpanded: _expanded[bucket.category.id] ?? true,
+                  onToggle: () => setState(() {
+                    _expanded[bucket.category.id] =
+                        !(_expanded[bucket.category.id] ?? true);
+                  }),
+                  provider: provider,
                   t: t,
-                  onIncrement: () => provider.updateQuantity(
-                    item.id,
-                    item.quantity + 1,
-                  ),
-                  onDecrement: () => provider.updateQuantity(
-                    item.id,
-                    item.quantity - 1,
-                  ),
-                  onRemove: () => provider.removeItem(item.id),
                 );
               },
             ),
           ),
         ),
-        _TotalsBar(provider: provider, t: t),
+        _StickyFooter(provider: provider, t: t),
       ],
+    );
+  }
+
+  List<_CategoryBucket> _groupByCategory(List<EventItem> items) {
+    final Map<String, _CategoryBucket> map = {};
+    for (final item in items) {
+      final cat = _resolveCategory(item);
+      final bucket = map.putIfAbsent(cat.id, () => _CategoryBucket(category: cat));
+      bucket.items.add(item);
+    }
+    return map.values.toList();
+  }
+
+  _CategoryInfo _resolveCategory(EventItem item) {
+    final catId = item.article?.categoryId ?? '';
+    return _categoryInfoMap[catId] ?? _categoryInfoMap['']!;
+  }
+
+  static final Map<String, _CategoryInfo> _categoryInfoMap = {
+    '': _CategoryInfo('General', Icons.category_rounded, [
+      AppColors.violet,
+      AppColors.hotPink,
+    ]),
+    'mesas': _CategoryInfo('Mesas', Icons.table_restaurant_rounded, [
+      AppColors.teal,
+      AppColors.sky,
+    ]),
+    'sillas': _CategoryInfo('Sillas', Icons.chair_rounded, [
+      AppColors.amber,
+      Color(0xFFFF8C00),
+    ]),
+    'decoracion': _CategoryInfo('Decoración', Icons.palette_rounded, [
+      AppColors.hotPink,
+      AppColors.coral,
+    ]),
+    'flores': _CategoryInfo('Florería', Icons.local_florist_rounded, [
+      Color(0xFFE91E63),
+      Color(0xFFFF5722),
+    ]),
+    'iluminacion': _CategoryInfo('Iluminación', Icons.lightbulb_rounded, [
+      AppColors.amber,
+      AppColors.violet,
+    ]),
+    'textil': _CategoryInfo('Textil y Mantelería', Icons.bed_rounded, [
+      AppColors.coral,
+      AppColors.violet,
+    ]),
+    'cristaleria': _CategoryInfo('Cristalería', Icons.wine_bar_rounded, [
+      AppColors.teal,
+      Color(0xFF00BCD4),
+    ]),
+    'comida': _CategoryInfo('Dulces y Comida', Icons.cake_rounded, [
+      AppColors.hotPink,
+      Color(0xFFFF6D00),
+    ]),
+    'servicios': _CategoryInfo('Servicios', Icons.room_service_rounded, [
+      AppColors.violet,
+      AppColors.sky,
+    ]),
+  };
+}
+
+class _CategoryInfo {
+  final String name;
+  final IconData icon;
+  final List<Color> colors;
+  const _CategoryInfo(this.name, this.icon, this.colors);
+
+  String get id => name;
+}
+
+class _CategoryBucket {
+  final _CategoryInfo category;
+  final List<EventItem> items = [];
+  _CategoryBucket({required this.category});
+}
+
+// ── Category section (collapsible store-bucket) ───────────────────────────
+
+class _CategorySection extends StatelessWidget {
+  final _CategoryInfo category;
+  final List<EventItem> items;
+  final bool isExpanded;
+  final VoidCallback onToggle;
+  final ActiveEventProvider provider;
+  final RfTheme t;
+
+  const _CategorySection({
+    required this.category,
+    required this.items,
+    required this.isExpanded,
+    required this.onToggle,
+    required this.provider,
+    required this.t,
+  });
+
+  double get _sectionTotal =>
+      items.fold(0.0, (sum, item) => sum + item.lineTotal);
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        // Category header (collapsible)
+        GestureDetector(
+          onTap: onToggle,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: t.isDark ? t.card : Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: t.borderFaint),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                // Gradient icon circle
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: category.colors,
+                    ),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(category.icon, color: Colors.white, size: 22),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        category.name,
+                        style: GoogleFonts.outfit(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: t.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${items.length} ${items.length == 1 ? "artículo" : "artículos"}',
+                        style: GoogleFonts.dmSans(
+                          fontSize: 12,
+                          color: t.textMuted,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Section subtotal
+                ShaderMask(
+                  shaderCallback: (b) => LinearGradient(
+                    colors: category.colors,
+                  ).createShader(b),
+                  child: Text(
+                    'RD\$ ${_sectionTotal.toStringAsFixed(0)}',
+                    style: GoogleFonts.outfit(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                AnimatedRotation(
+                  turns: isExpanded ? 0.5 : 0.0,
+                  duration: const Duration(milliseconds: 200),
+                  child: Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    color: t.textDim,
+                    size: 22,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        // Collapsible item list
+        AnimatedCrossFade(
+          firstChild: const SizedBox.shrink(),
+          secondChild: Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Column(
+              children: items.map((item) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: _CartItemTile(
+                    item: item,
+                    categoryColors: category.colors,
+                    t: t,
+                    onIncrement: () => provider.updateQuantity(
+                      item.id,
+                      item.quantity + 1,
+                    ),
+                    onDecrement: () => provider.updateQuantity(
+                      item.id,
+                      item.quantity - 1,
+                    ),
+                    onRemove: () => provider.removeItem(item.id),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+          crossFadeState: isExpanded
+              ? CrossFadeState.showSecond
+              : CrossFadeState.showFirst,
+          duration: const Duration(milliseconds: 200),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Cart item tile (grocery-store style) ──────────────────────────────────
+
+class _CartItemTile extends StatelessWidget {
+  final EventItem item;
+  final List<Color> categoryColors;
+  final RfTheme t;
+  final VoidCallback onIncrement;
+  final VoidCallback onDecrement;
+  final VoidCallback onRemove;
+
+  const _CartItemTile({
+    required this.item,
+    required this.categoryColors,
+    required this.t,
+    required this.onIncrement,
+    required this.onDecrement,
+    required this.onRemove,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final imageUrl = item.variant?.imageUrl;
+    final articleName = item.article?.nameTemplate ?? 'Artículo';
+    final variantName = item.variant?.name;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: t.isDark ? t.card : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: t.borderFaint),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          // Product image
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: SizedBox(
+              width: 68,
+              height: 68,
+              child: imageUrl != null && imageUrl.isNotEmpty
+                  ? Image.network(
+                      imageUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(
+                        color: categoryColors.first.withOpacity(0.1),
+                        child: Icon(
+                          Icons.image_not_supported_rounded,
+                          color: categoryColors.first,
+                        ),
+                      ),
+                    )
+                  : Container(
+                      color: categoryColors.first.withOpacity(0.1),
+                      child: Icon(
+                        Icons.image_not_supported_rounded,
+                        color: categoryColors.first,
+                      ),
+                    ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          // Info
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  articleName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.dmSans(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: t.textPrimary,
+                  ),
+                ),
+                if (variantName != null && variantName.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    variantName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.dmSans(
+                      fontSize: 12,
+                      color: t.textMuted,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 6),
+                // Price
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    ShaderMask(
+                      shaderCallback: (b) => LinearGradient(
+                        colors: categoryColors,
+                      ).createShader(b),
+                      child: Text(
+                        'RD\$ ${item.lineTotal.toStringAsFixed(0)}',
+                        style: GoogleFonts.outfit(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 1),
+                      child: Text(
+                        '(${item.unitPrice.toStringAsFixed(0)} c/u)',
+                        style: GoogleFonts.dmSans(
+                          fontSize: 10,
+                          color: t.textDim,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          // Quantity stepper
+          Column(
+            children: [
+              _CompactStepper(
+                quantity: item.quantity,
+                onIncrement: onIncrement,
+                onDecrement: onDecrement,
+                colors: categoryColors,
+                t: t,
+              ),
+              const SizedBox(height: 6),
+              GestureDetector(
+                onTap: onRemove,
+                child: Text(
+                  'Quitar',
+                  style: GoogleFonts.dmSans(
+                    fontSize: 11,
+                    color: AppColors.coral,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CompactStepper extends StatelessWidget {
+  final int quantity;
+  final VoidCallback onIncrement;
+  final VoidCallback onDecrement;
+  final List<Color> colors;
+  final RfTheme t;
+
+  const _CompactStepper({
+    required this.quantity,
+    required this.onIncrement,
+    required this.onDecrement,
+    required this.colors,
+    required this.t,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: t.isDark
+            ? Colors.white.withOpacity(0.06)
+            : Colors.black.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _StepBtn(
+            icon: Icons.remove_rounded,
+            onTap: onDecrement,
+            t: t,
+            iconSize: 14,
+          ),
+          SizedBox(
+            width: 28,
+            child: Text(
+              '$quantity',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.dmSans(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: t.textPrimary,
+              ),
+            ),
+          ),
+          _StepBtn(
+            icon: Icons.add_rounded,
+            onTap: onIncrement,
+            t: t,
+            iconSize: 14,
+            color: colors.first,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StepBtn extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+  final RfTheme t;
+  final double iconSize;
+  final Color? color;
+
+  const _StepBtn({
+    required this.icon,
+    required this.onTap,
+    required this.t,
+    this.iconSize = 16,
+    this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(22),
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        child: Icon(
+          icon,
+          size: iconSize,
+          color: color ?? t.textPrimary,
+        ),
+      ),
+    );
+  }
+}
+
+// ── Sticky footer ──────────────────────────────────────────────────────────
+
+class _StickyFooter extends StatelessWidget {
+  final ActiveEventProvider provider;
+  final RfTheme t;
+
+  const _StickyFooter({required this.provider, required this.t});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.fromLTRB(
+        20,
+        14,
+        20,
+        14 + MediaQuery.of(context).padding.bottom,
+      ),
+      decoration: BoxDecoration(
+        color: t.isDark ? t.card : Colors.white,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 20,
+            offset: const Offset(0, -4),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Summary row
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [AppColors.violet, AppColors.hotPink],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '${provider.lineCount} ${provider.lineCount == 1 ? "categoría" : "categorías"}',
+                  style: GoogleFonts.dmSans(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '${provider.itemCount} ${provider.itemCount == 1 ? "artículo" : "artículos"}',
+                style: GoogleFonts.dmSans(
+                  fontSize: 12,
+                  color: t.textMuted,
+                ),
+              ),
+              const Spacer(),
+              ShaderMask(
+                shaderCallback: (b) => AppColors.titleGradient.createShader(b),
+                child: Text(
+                  'RD\$ ${provider.subtotal.toStringAsFixed(0)}',
+                  style: GoogleFonts.outfit(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // CTA Button
+          GestureDetector(
+            onTap: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                    'Ver detalle del evento: próximamente conectado al flujo de eventos',
+                  ),
+                ),
+              );
+            },
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [AppColors.hotPink, AppColors.violet],
+                ),
+                borderRadius: BorderRadius.circular(28),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.hotPink.withOpacity(0.3),
+                    blurRadius: 16,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.visibility_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Ver detalle del evento',
+                    style: GoogleFonts.outfit(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -236,207 +871,6 @@ class _DateMissingBanner extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-// ── Line tile ──────────────────────────────────────────────────────────────
-
-class _LineTile extends StatelessWidget {
-  final EventItem item;
-  final RfTheme t;
-  final VoidCallback onIncrement;
-  final VoidCallback onDecrement;
-  final VoidCallback onRemove;
-
-  const _LineTile({
-    required this.item,
-    required this.t,
-    required this.onIncrement,
-    required this.onDecrement,
-    required this.onRemove,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final imageUrl = item.variant?.imageUrl;
-    final articleName = item.article?.nameTemplate ?? 'Artículo';
-    final variantName = item.variant?.name;
-
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: t.isDark ? t.card : Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: t.borderFaint),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: SizedBox(
-              width: 72,
-              height: 72,
-              child: imageUrl != null && imageUrl.isNotEmpty
-                  ? Image.network(
-                      imageUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
-                        color: AppColors.hotPink.withOpacity(0.08),
-                        child: const Icon(Icons.image_not_supported_rounded,
-                            color: AppColors.hotPink),
-                      ),
-                    )
-                  : Container(
-                      color: AppColors.hotPink.withOpacity(0.08),
-                      child: const Icon(Icons.image_not_supported_rounded,
-                          color: AppColors.hotPink),
-                    ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  articleName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.dmSans(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: t.textPrimary,
-                  ),
-                ),
-                if (variantName != null && variantName.isNotEmpty) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    variantName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.dmSans(
-                      fontSize: 12,
-                      color: t.textMuted,
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 8),
-                ShaderMask(
-                  shaderCallback: (b) => const LinearGradient(colors: [
-                    AppColors.violet,
-                    AppColors.hotPink,
-                  ]).createShader(b),
-                  child: Text(
-                    'RD\$ ${item.lineTotal.toStringAsFixed(0)}',
-                    style: GoogleFonts.outfit(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          _QuantityStepper(
-            quantity: item.quantity,
-            onIncrement: onIncrement,
-            onDecrement: onDecrement,
-            t: t,
-          ),
-          IconButton(
-            icon: Icon(Icons.close_rounded, color: t.textDim, size: 20),
-            onPressed: onRemove,
-            tooltip: 'Quitar',
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(
-              minWidth: 30,
-              minHeight: 30,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _QuantityStepper extends StatelessWidget {
-  final int quantity;
-  final VoidCallback onIncrement;
-  final VoidCallback onDecrement;
-  final RfTheme t;
-
-  const _QuantityStepper({
-    required this.quantity,
-    required this.onIncrement,
-    required this.onDecrement,
-    required this.t,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: t.isDark
-            ? Colors.white.withOpacity(0.04)
-            : Colors.black.withOpacity(0.04),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _StepBtn(
-            icon: Icons.remove_rounded,
-            onTap: onDecrement,
-            t: t,
-          ),
-          SizedBox(
-            width: 24,
-            child: Text(
-              '$quantity',
-              textAlign: TextAlign.center,
-              style: GoogleFonts.dmSans(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                color: t.textPrimary,
-              ),
-            ),
-          ),
-          _StepBtn(
-            icon: Icons.add_rounded,
-            onTap: onIncrement,
-            t: t,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StepBtn extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onTap;
-  final RfTheme t;
-  const _StepBtn({required this.icon, required this.onTap, required this.t});
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Padding(
-        padding: const EdgeInsets.all(8),
-        child: Icon(icon, size: 16, color: t.textPrimary),
       ),
     );
   }
