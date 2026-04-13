@@ -5,8 +5,6 @@ import 'package:provider/provider.dart';
 import 'package:frontend/core/app_colors.dart';
 import 'package:frontend/core/design_system.dart';
 
-import '../events_provider.dart';
-
 class CheckoutScreen extends StatefulWidget {
   final String eventName;
   final double totalAmount;
@@ -27,11 +25,18 @@ class CheckoutScreen extends StatefulWidget {
 
 class _CheckoutScreenState extends State<CheckoutScreen>
     with SingleTickerProviderStateMixin {
+  final _formKey = GlobalKey<FormState>();
   int _selectedMethodIndex = 0;
   final _cardNumberController = TextEditingController();
   final _expiryController = TextEditingController();
   final _cvvController = TextEditingController();
   final _nameController = TextEditingController();
+
+  bool _isProcessing = false;
+  String? _cardNumberError;
+  String? _expiryError;
+  String? _cvvError;
+  String? _nameError;
 
   final _methods = [
     _PaymentMethod('Visa', Icons.credit_card, AppColors.sky),
@@ -370,74 +375,81 @@ class _CheckoutScreenState extends State<CheckoutScreen>
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Detalles de tarjeta',
-            style: GoogleFonts.outfit(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: t.textPrimary,
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Detalles de tarjeta',
+              style: GoogleFonts.outfit(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: t.textPrimary,
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
-          _buildFormField(
-            label: 'Nombre en la tarjeta',
-            hint: 'Olivia Rhye',
-            controller: _nameController,
-            t: t,
-            prefixIcon: Icons.person_outline_rounded,
-          ),
-          const SizedBox(height: 14),
-          _buildFormField(
-            label: 'Número de tarjeta',
-            hint: '1234 1234 1234 1234',
-            controller: _cardNumberController,
-            t: t,
-            prefixIcon: Icons.credit_card_rounded,
-            keyboardType: TextInputType.number,
-            inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(16),
-              _CardNumberFormatter(),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: _buildFormField(
-                  label: 'Vence',
-                  hint: 'MM/YY',
-                  controller: _expiryController,
-                  t: t,
-                  keyboardType: TextInputType.datetime,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.digitsOnly,
-                    LengthLimitingTextInputFormatter(4),
-                    _ExpiryFormatter(),
-                  ],
+            const SizedBox(height: 16),
+            _buildFormField(
+              label: 'Nombre en la tarjeta',
+              hint: 'Olivia Rhye',
+              controller: _nameController,
+              t: t,
+              prefixIcon: Icons.person_outline_rounded,
+              error: _nameError,
+            ),
+            const SizedBox(height: 14),
+            _buildFormField(
+              label: 'Número de tarjeta',
+              hint: '1234 1234 1234 1234',
+              controller: _cardNumberController,
+              t: t,
+              prefixIcon: Icons.credit_card_rounded,
+              keyboardType: TextInputType.number,
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(16),
+                _CardNumberFormatter(),
+              ],
+              error: _cardNumberError,
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildFormField(
+                    label: 'Vence',
+                    hint: 'MM/YY',
+                    controller: _expiryController,
+                    t: t,
+                    keyboardType: TextInputType.datetime,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(4),
+                      _ExpiryFormatter(),
+                    ],
+                    error: _expiryError,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: _buildFormField(
-                  label: 'CVV',
-                  hint: '123',
-                  controller: _cvvController,
-                  t: t,
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.digitsOnly,
-                    LengthLimitingTextInputFormatter(3),
-                  ],
-                  obscure: true,
+                const SizedBox(width: 14),
+                Expanded(
+                  child: _buildFormField(
+                    label: 'CVV',
+                    hint: '123',
+                    controller: _cvvController,
+                    t: t,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(3),
+                    ],
+                    obscure: true,
+                    error: _cvvError,
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -451,7 +463,9 @@ class _CheckoutScreenState extends State<CheckoutScreen>
     TextInputType? keyboardType,
     List<TextInputFormatter>? inputFormatters,
     bool obscure = false,
+    String? error,
   }) {
+    final hasError = error != null && error.isNotEmpty;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -460,18 +474,22 @@ class _CheckoutScreenState extends State<CheckoutScreen>
           style: GoogleFonts.dmSans(
             fontSize: 11,
             fontWeight: FontWeight.w600,
-            color: t.textDim,
+            color: hasError ? AppColors.coral : t.textDim,
             letterSpacing: 0.5,
           ),
         ),
         const SizedBox(height: 6),
-        Container(
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
           decoration: BoxDecoration(
             color: t.isDark
                 ? Colors.white.withOpacity(0.04)
                 : const Color(0xFFF8F6FF),
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: t.borderFaint),
+            border: Border.all(
+              color: hasError ? AppColors.coral : t.borderFaint,
+              width: hasError ? 1.5 : 1,
+            ),
           ),
           child: TextField(
             controller: controller,
@@ -490,7 +508,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                 color: t.textDim,
               ),
               prefixIcon: prefixIcon != null
-                  ? Icon(prefixIcon, color: t.textDim, size: 20)
+                  ? Icon(prefixIcon, color: hasError ? AppColors.coral : t.textDim, size: 20)
                   : null,
               border: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(
@@ -500,6 +518,18 @@ class _CheckoutScreenState extends State<CheckoutScreen>
             ),
           ),
         ),
+        if (hasError)
+          Padding(
+            padding: const EdgeInsets.only(top: 4, left: 4),
+            child: Text(
+              error!,
+              style: GoogleFonts.dmSans(
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+                color: AppColors.coral,
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -518,81 +548,139 @@ class _CheckoutScreenState extends State<CheckoutScreen>
           top: BorderSide(color: t.borderFaint),
         ),
       ),
-      child: Consumer<EventsProvider>(
-        builder: (context, provider, _) {
-          return GestureDetector(
-            onTap: provider.isLoading ? null : () => _processPayment(context, provider),
-            child: Container(
-              height: 60,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [AppColors.hotPink, AppColors.violet],
-                ),
-                borderRadius: BorderRadius.circular(30),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.hotPink.withOpacity(0.4),
-                    blurRadius: 20,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
-              ),
-              child: Center(
-                child: provider.isLoading
-                    ? const SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2.5,
-                        ),
-                      )
-                    : Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'Confirmar pedido',
-                            style: GoogleFonts.dmSans(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              'RD\$${widget.totalAmount.toStringAsFixed(0)}',
-                              style: GoogleFonts.outfit(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w800,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-              ),
+      child: GestureDetector(
+        onTap: _isProcessing ? null : () => _processPayment(context),
+        child: Container(
+          height: 60,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [AppColors.hotPink, AppColors.violet],
             ),
-          );
-        },
+            borderRadius: BorderRadius.circular(30),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.hotPink.withOpacity(0.4),
+                blurRadius: 20,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Center(
+            child: _isProcessing
+                ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2.5,
+                    ),
+                  )
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Confirmar pedido',
+                        style: GoogleFonts.dmSans(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          'RD\$${widget.totalAmount.toStringAsFixed(0)}',
+                          style: GoogleFonts.outfit(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
+        ),
       ),
     );
   }
 
-  Future<void> _processPayment(BuildContext context, EventsProvider provider) async {
-    // Simulate payment
-    await Future.delayed(const Duration(seconds: 1));
-    if (mounted) {
+  Future<void> _processPayment(BuildContext context) async {
+    // Clear previous errors
+    setState(() {
+      _nameError = null;
+      _cardNumberError = null;
+      _expiryError = null;
+      _cvvError = null;
+    });
+
+    // Validate fields
+    String? nameError;
+    String? cardNumberError;
+    String? expiryError;
+    String? cvvError;
+
+    final cardNumber = _cardNumberController.text.replaceAll(' ', '');
+    final expiry = _expiryController.text;
+    final cvv = _cvvController.text;
+    final name = _nameController.text;
+
+    if (name.isEmpty) {
+      nameError = 'El nombre es requerido';
+    }
+
+    if (cardNumber.isEmpty) {
+      cardNumberError = 'El número de tarjeta es requerido';
+    } else if (cardNumber.length != 16) {
+      cardNumberError = 'El número debe tener 16 dígitos';
+    }
+
+    if (expiry.isEmpty) {
+      expiryError = 'La fecha es requerida';
+    } else if (!RegExp(r'^\d{2}/\d{2}$').hasMatch(expiry)) {
+      expiryError = 'Formato inválido (MM/YY)';
+    } else {
+      final month = int.tryParse(expiry.substring(0, 2));
+      if (month == null || month < 1 || month > 12) {
+        expiryError = 'Mes inválido';
+      }
+    }
+
+    if (cvv.isEmpty) {
+      cvvError = 'El CVV es requerido';
+    } else if (cvv.length != 3) {
+      cvvError = 'El CVV debe tener 3 dígitos';
+    }
+
+    if (nameError != null || cardNumberError != null || expiryError != null || cvvError != null) {
+      setState(() {
+        _nameError = nameError;
+        _cardNumberError = cardNumberError;
+        _expiryError = expiryError;
+        _cvvError = cvvError;
+      });
+      return;
+    }
+
+    // Process payment
+    setState(() => _isProcessing = true);
+
+    try {
+      // Simulate payment API call
+      await Future.delayed(const Duration(seconds: 2));
+
+      if (!mounted) return;
+
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -644,6 +732,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                   onTap: () {
                     Navigator.pop(ctx);
                     Navigator.pop(context);
+                    Navigator.pop(context);
                   },
                   child: Container(
                     width: double.infinity,
@@ -669,6 +758,18 @@ class _CheckoutScreenState extends State<CheckoutScreen>
           ),
         ),
       );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al procesar el pago: $e'),
+          backgroundColor: AppColors.coral,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isProcessing = false);
+      }
     }
   }
 }
