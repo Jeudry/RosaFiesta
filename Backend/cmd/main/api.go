@@ -83,6 +83,16 @@ func (app *Application) Mount() http.Handler {
 			})
 		})
 
+		// Company reviews (RosaFiesta as a whole)
+		r.Route("/company/reviews", func(r chi.Router) {
+			r.Group(func(r chi.Router) {
+				r.Use(app.APIKeyMiddleware())
+				r.Get("/", app.getCompanyReviewsHandler)
+				r.Get("/summary", app.getCompanyReviewsSummaryHandler)
+			})
+			r.With(app.AuthTokenMiddleware()).Post("/", app.createCompanyReviewHandler)
+		})
+
 		r.Route("/categories", func(r chi.Router) {
 			// Public/API Key protected endpoints
 			r.Group(func(r chi.Router) {
