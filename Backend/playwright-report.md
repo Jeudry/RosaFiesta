@@ -1,90 +1,54 @@
-# AI Assistant — Event Details + Sketch Canvas UI Review — 2026-04-07
+# Home, Mi Evento & Checkout UI Review — 2026-04-13
 
 ## Summary
-Renamed "detalles del pedido" to "detalles del evento" across the assistant flow. Implemented a new sketch canvas screen where users can draw a 2D top-down (cenital) layout of their event space.
+
+Redesigned the top-right "Mi evento" button in `home_screen.dart` to adopt a cart-style pill layout inspired by a reference screenshot — gradient hot-pink→violet background, white icon, text label, and white badge with count. Also completely redesigned the checkout screen (`checkout_screen.dart`) with a beautiful dark-themed payment UI matching the user's reference image.
 
 ## Screenshots
 
-### Step 1: Assistant Greeting
-![Assistant greeting](frontend/screenshots/assistant_greeting.png)
+### Home Screen — "Mi evento" pill with badge
+![Home Screen](frontend/screenshots/home_logged_in.png)
 
-### Step 5: Event Details Form
-![Event details with sketch button](frontend/screenshots/assistant_event_details.png)
+**Visible elements:**
+- RosaFiesta logo + name (top left)
+- Theme toggle button (sun icon)
+- Notifications button (bell icon)
+- **"Mi evento" pill** (gradient hot pink→violet) with celebration icon, text label, and white badge
 
-### Step 6: Event Summary
-![Resumen del evento](frontend/screenshots/assistant_event_summary.png)
+### Checkout Screen — Beautiful Payment UI
+![Checkout Screen](frontend/screenshots/checkout_screen.png)
 
-### Sketch Canvas Screen
-![Sketch canvas](frontend/screenshots/sketch_canvas.png)
+**Layout structure (dark theme matching reference):**
+- **Header**: Back button + "Pago" title in white bold
+- **Delivery card**: Recipient info (Olivia Rhye) + address (Av.Principal 123, San Cristóbal) with Edit button
+- **Payment methods carousel**: Horizontal chips for Visa, Mastercard, PayPal, Transferencia with selected state
+- **Card form**: Rounded container with styled text inputs for name, card number, expiry (MM/YY formatted), CVV
+- **Confirm button**: Full-width gradient hot pink→violet with price badge RD$ 345
 
 ## Design Decisions
-- Violet/hotPink gradient language maintained
-- Canvas grid for spatial reference (cenital view)
-- 8-color palette, eraser, undo/redo
-- "Generar ejemplos" disabled until drawing exists
-- Teal accent on saved sketch state
 
----
+### Mi Evento Button (Home Screen)
+- **Pill-shaped button** instead of a circular icon — matches cart-style UI from reference
+- **Gradient**: hot pink→violet (`AppColors.hotPink` → `AppColors.violet`), matching the project's button gradient system
+- **Icon** (`celebration_rounded`) in white on the left
+- **Text** "Mi evento" in white `dmSans` bold
+- **Badge**: white rounded container on the right with item count in hot pink
+- **Shadow**: soft pink glow for depth
 
-# Landing Page Onboarding — Eliminacion de Donas y Blobs Intensos — 2026-03-27
+### Checkout Screen (Redesigned)
+- **Dark purple background** (#0D0B1E light mode: #F5F0FF) with gradient orbs (violet + hot pink)
+- **Delivery card** with teal gradient icon, recipient name, editable address
+- **Payment method chips**: Horizontal scrollable list with animated selection states, color-coded borders and shadows
+- **Card form**: Rounded container with styled text inputs for name, card number, expiry (MM/YY formatted), CVV
+- **Card number formatter**: Auto-formats as 4-digit groups with spaces
+- **Expiry formatter**: Auto-formats as MM/YY
+- **Confirm button**: Full-width gradient hot pink→violet with price badge and loading state
+- **Grid overlay**: Reduced to 0.006 opacity for subtlety
 
-## Resumen
+## Notes
 
-Se revisaron y modificaron los elementos visuales decorativos de la pantalla de onboarding (`welcome_onboarding_screen.dart`). El usuario reporto que los blobs amarillos eran muy intensos, opacos, y tenian forma de "dona" (centro vacio). Se realizaron multiples iteraciones para eliminar esos efectos y reemplazarlos por circulos solidos pequenos agrupados en clusters.
-
-## Capturas
-
-### Estado inicial (antes de cambios)
-![Estado inicial](v3_page1.png)
-
-### Despues de reemplazar blobs por circulos solidos pequenos
-![Circulos solidos](v3_circles_p1.png)
-
-### Despues de quitar ArcRingPainter de content pages
-![Sin dona en content](v3_no_donut_p1.png)
-
-### Despues de quitar border y glow del icono
-![Sin anillo](v3_no_ring.png)
-
-### Despues de simplificar ambient background a color plano
-![Background plano](v3_flat_bg.png)
-
-### Despues de clean build completo
-![Clean build](v3_clean_build.png)
-
-### Version final — con white glow para difuminar transicion
-![White glow final](v3_white_glow.png)
-
-## Cambios Realizados
-
-### Blobs decorativos (`_buildDecoBlobs`)
-- **Antes**: 6 blobs grandes (80-200px) con opacidad 0.04-0.06, incluyendo uno amarillo intenso
-- **Despues**: 12 circulos solidos pequenos (12-32px) en clusters de 2-3, distribuidos en esquinas y bordes, opacidad 0.05-0.10
-
-### ArcRingPainter (dona rotante)
-- Eliminado de las paginas de contenido (slides 1-3)
-- Eliminado de la pagina de auth (slide 4)
-- La clase `_ArcRingPainter` queda sin instanciarse (codigo muerto)
-
-### Halo / glow del icono
-- Eliminado el halo rosa de 160px detras del icono en content pages
-- Eliminado el halo amarillo de 140px en auth page
-- Eliminado border y boxShadow magenta/verde del contenedor del icono
-- Agregado boxShadow blanco difuso (blur 40, spread 20) para suavizar transicion contra fondo
-
-### Ambient Background
-- **Antes**: RadialGradient animado con coral/blush/cream
-- **Despues**: Color plano `_cream`
-
-### Orbiting Stars
-- Eliminadas de las paginas de contenido (ya no se llama `_buildOrbitingStars`)
-
-### Petals
-- Reducidos de tamano (130/100/90/80 -> 90/70/60/55 px)
-- Movidos mas a las esquinas para no solaparse con el icono central
-- Opacidad reducida
-
-## Notas
-- El efecto visual de "dona" persiste ligeramente debido al contraste entre el circulo blanco del icono y el fondo rosado de los blobs/petals cercanos — el white glow ayuda a difuminarlo
-- Flutter web cachea agresivamente via service worker; se requiere hard refresh (Ctrl+Shift+R) para ver cambios
-- La clase `_ArcRingPainter` y la funcion `_buildOrbitingStars` quedaron como codigo muerto — se pueden eliminar en un cleanup futuro
+- Backend running at port 3000
+- Flutter web running at port 8080 in release mode
+- Checkout flow: Home → Events tab → Click confirmed event → "Pagar para Reservar" → Checkout screen
+- Fixed compilation errors: removed suppliers imports from main.dart, fixed BudgetAnalysisScreen reference in event_detail_screen.dart, fixed CheckoutScreen call to use correct parameters
+- `withOpacity` deprecation warnings present throughout (pre-existing pattern in the codebase)
