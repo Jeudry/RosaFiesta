@@ -48,6 +48,7 @@ Future<void> main() async {
     if (!kIsWeb) {
       await Firebase.initializeApp();
       await FirebaseService().initialize();
+      FirebaseService().setupInteractions();
     } else {
       print("Warning: Firebase initialization skipped on Web");
     }
