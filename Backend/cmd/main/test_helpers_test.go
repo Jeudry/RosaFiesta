@@ -28,6 +28,7 @@ func newTestApplication(t *testing.T, cfg configModels.Config) *Application {
 		Articles:         &storeMocks.ArticlesStore{},
 		Users:            &storeMocks.UserStore{},
 		Roles:            &storeMocks.RoleStore{},
+		Categories:       &storeMocks.CategoryStore{},
 		RefreshTokens:    &storeMocks.RefreshTokenStore{},
 		Events:           &storeMocks.EventStore{},
 		Guests:           &storeMocks.GuestStore{},

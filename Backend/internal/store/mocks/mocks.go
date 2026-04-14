@@ -118,6 +118,41 @@ func (m *RoleStore) RetrieveByName(ctx context.Context, name string) (*models.Ro
 	return args.Get(0).(*models.Role), args.Error(1)
 }
 
+type CategoryStore struct {
+	mock.Mock
+}
+
+func (m *CategoryStore) Create(ctx context.Context, category *models.Category) error {
+	args := m.Called(ctx, category)
+	return args.Error(0)
+}
+
+func (m *CategoryStore) GetById(ctx context.Context, id uuid.UUID) (*models.Category, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.Category), args.Error(1)
+}
+
+func (m *CategoryStore) Update(ctx context.Context, category *models.Category) error {
+	args := m.Called(ctx, category)
+	return args.Error(0)
+}
+
+func (m *CategoryStore) Delete(ctx context.Context, category *models.Category) error {
+	args := m.Called(ctx, category)
+	return args.Error(0)
+}
+
+func (m *CategoryStore) GetAll(ctx context.Context) ([]models.Category, error) {
+	args := m.Called(ctx)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]models.Category), args.Error(1)
+}
+
 type RefreshTokenStore struct {
 	mock.Mock
 }
