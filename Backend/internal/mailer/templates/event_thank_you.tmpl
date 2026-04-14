@@ -1,0 +1,20 @@
+{{define "subject"}}¡Gracias por confiar en Rosa Fiesta! — {{.EventName}}{{end}}
+
+{{define "body"}}
+<!doctype html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width" />
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+</head>
+<body>
+<p>Hola {{.UserName}},</p>
+<p>¡Gracias por celebrar con nosotros!Esperamos que hayas disfrutado de tu evento <strong>{{.EventName}}</strong>.</p>
+<p>Nos encantaría conocer tu opinión. Si tienes un momento, déjanos una reseña y ayúdanos a mejorar:</p>
+<p><a href="{{.ReviewURL}}">Dejar mi reseña</a></p>
+<p>Si hay algo en lo que podamos ayudarte para tu próximo evento, estamos a solo un mensaje de distancia.</p>
+<p>¡Hasta la próxima!</p>
+<p>Saludos,<br/>El equipo de Rosa Fiesta</p>
+</body>
+</html>
+{{end}}

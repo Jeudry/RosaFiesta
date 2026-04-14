@@ -16,8 +16,15 @@ class ProductsProvider extends ChangeNotifier {
 
   String? _searchQuery;
   String? get searchQuery => _searchQuery;
-  bool _isSearching = false;
-  bool get isSearching => _isSearching;
+
+  String? _categoryId;
+  String? get categoryId => _categoryId;
+
+  bool _availableOnly = false;
+  bool get availableOnly => _availableOnly;
+
+  String? _sortBy;
+  String? get sortBy => _sortBy;
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
@@ -51,7 +58,7 @@ class ProductsProvider extends ChangeNotifier {
     }
 
     // Seed from cache immediately if available
-    if (_products.isEmpty) {
+    if (_products.isEmpty && _offset == 0) {
       final cached = await ProductCacheService.getCachedProducts();
       if (cached != null && cached.isNotEmpty) {
         _products = cached;
@@ -71,6 +78,10 @@ class ProductsProvider extends ChangeNotifier {
         final page = await _repository.getProducts(
           limit: _pageSize,
           offset: 0,
+          search: _searchQuery,
+          categoryId: _categoryId,
+          availableOnly: _availableOnly,
+          sort: _sortBy,
         );
         _products = page;
         _offset = page.length;
@@ -104,6 +115,10 @@ class ProductsProvider extends ChangeNotifier {
       final page = await _repository.getProducts(
         limit: _pageSize,
         offset: _offset,
+        search: _searchQuery,
+        categoryId: _categoryId,
+        availableOnly: _availableOnly,
+        sort: _sortBy,
       );
       _products = [..._products, ...page];
       _offset += page.length;
@@ -117,13 +132,19 @@ class ProductsProvider extends ChangeNotifier {
   }
 
   Future<void> fetchProductsByCategory(String categoryId) async {
+    _categoryId = categoryId;
+    _offset = 0;
+    _hasMore = true;
     _setLoading(true);
     _error = null;
     try {
-      // The backend should have an endpoint for this, e.g., /categories/{id}/articles
-      // Or we can filter client side if list is small, but better to query API.
-      // Based on `categories.go`, there is `/categories/{categoryId}/articles`.
-      _products = await _repository.getProductsByCategory(categoryId);
+      _products = await _repository.getProducts(
+        limit: _pageSize,
+        offset: 0,
+        categoryId: categoryId,
+      );
+      _offset = _products.length;
+      _hasMore = _products.length == _pageSize;
     } catch (e) {
       _error = ErrorTranslator.translate(e.toString());
     } finally {
@@ -154,22 +175,42 @@ class ProductsProvider extends ChangeNotifier {
   }
 
   void search(String query) {
-    _searchQuery = query.trim();
-    notifyListeners();
+    _searchQuery = query.trim().isEmpty ? null : query.trim();
+    _offset = 0;
+    _hasMore = true;
+    fetchProducts();
   }
 
-  void clearSearch() {
+  void setCategoryFilter(String? categoryId) {
+    _categoryId = categoryId;
+    _offset = 0;
+    _hasMore = true;
+    fetchProducts();
+  }
+
+  void setAvailableOnly(bool value) {
+    _availableOnly = value;
+    _offset = 0;
+    _hasMore = true;
+    fetchProducts();
+  }
+
+  void setSortBy(String? sort) {
+    _sortBy = sort;
+    _offset = 0;
+    _hasMore = true;
+    fetchProducts();
+  }
+
+  void clearFilters() {
     _searchQuery = null;
-    notifyListeners();
+    _categoryId = null;
+    _availableOnly = false;
+    _sortBy = null;
+    _offset = 0;
+    _hasMore = true;
+    fetchProducts();
   }
 
-  List<Product> get displayProducts {
-    if (_searchQuery == null || _searchQuery!.isEmpty) return _products;
-    final q = _searchQuery!.toLowerCase();
-    return _products.where((p) {
-      final name = p.nameTemplate.toLowerCase();
-      final desc = (p.descriptionTemplate ?? '').toLowerCase();
-      return name.contains(q) || desc.contains(q);
-    }).toList();
-  }
+  List<Product> get displayProducts => _products;
 }

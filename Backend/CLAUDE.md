@@ -159,3 +159,61 @@ final t = RfTheme.of(context);  // resolves dark/light from ThemeProvider
 
 - Branch naming: `feature/RF-{number}_{name}`
 - Main branch: `main`
+
+---
+
+## Feature Inventory
+
+All features currently in the system, organized by status. **Always keep this list up to date** — when a feature is completed, move it from pending to done; when a new feature is requested, add it to pending with the label `NEW`.
+
+### Completed
+
+| # | Feature | Backend | Frontend | Notes |
+|---|---------|---------|----------|-------|
+| 1 | User auth (register, login, JWT, activate) | ✅ | ✅ | |
+| 2 | Product catalog (categories, articles, variants, images) | ✅ | ✅ | rental-first model |
+| 3 | Event lifecycle (create, draft, items, quote request) | ✅ | ✅ | |
+| 4 | Supplier management (CRUD, contact info) | ✅ | ✅ | |
+| 5 | Timeline / tracking items | ✅ | ✅ | |
+| 6 | Real-time chat (WebSocket hub, messages) | ✅ | ✅ | |
+| 7 | Push notifications (FCM, worker) | ✅ | ✅ | |
+| 8 | Email notifications (templates, reminders) | ✅ | ✅ | |
+| 9 | PDF quote generation | ✅ | ✅ | |
+| 10 | Product search + filters (server-side, ILIKE) | ✅ | ✅ | |
+| 11 | Image compression + R2 upload | ✅ | ✅ | max 1920px, JPEG 85% |
+| 12 | Quote adjust + approve/reject flow | ✅ | ✅ | |
+| 13 | Chat real-time UI redesign (WhatsApp-style) | ✅ | ✅ | |
+| 14 | Public catalog (no-login browse + AuthRequiredSheet) | ✅ | ✅ | |
+| 15 | Quote approval screen | ✅ | ✅ | |
+| 16 | Onboarding redesign (catalog/AI/WhatsApp slides) | ✅ | ✅ | |
+| 17 | Favorites without login (Hive local + sync on login) | ✅ | ✅ | |
+| 18 | AI Assistant flow (Rosa IA, 7 steps) | ✅ | ✅ | |
+| 19 | WhatsApp Business API integration | ✅ | ✅ | |
+| 20 | Checkout + payment methods (transfer, cash, mock card) | ✅ | ✅ | phone field at checkout |
+| 21 | Low stock badge on product cards | ✅ | ✅ | threshold DEFAULT 5 |
+| 22 | Pending events on login response | ✅ | ✅ | |
+| 23 | Activity / audit logs | ✅ | ✅ | event create/update/pay/adjust |
+| 24 | Event photo gallery (R2) | ✅ | ✅ | |
+| 25 | Multi-language (EN/ES toggle, Hive persist) | ✅ | ✅ | |
+| 26 | Guest management per event | ✅ | ✅ | |
+| 27 | Reviews (article + event + company) | ✅ | ✅ | |
+| 28 | Email verification flow | ✅ | ✅ | verify-email/{token} screen |
+| 29 | Password reset | ✅ | ✅ | forgot-password/reset-password screens |
+| 30 | Order confirmation screen | ✅ | ✅ | post-checkout success screen |
+| 31 | Email reminder triggers | ✅ | — | worker cron: 7d/24h/post-event |
+| 32 | Push notification triggers | ✅ | — | FCM on quote adjusted/approved/rejected |
+| 33 | Deep linking | ✅ | ✅ | iOS/Android universal links + hash routing |
+
+### Pending
+
+| # | Feature | Description | Priority |
+|---|---------|-------------|----------|
+| 34 | Admin quotation workflow | Admin adjusts quote → client approves/rejects | medium |
+| 35 | Admin analytics dashboard | Stats endpoint, admin-only summary view | low |
+| 36 | Enterprise app (separate frontend) | Admin-focused app for RosaFiesta staff | low |
+
+### Legend
+- `NEW` — just added, not yet started
+- Priority: high / medium / low
+- When a feature is completed: remove from Pending, add to Completed with ✅ in both columns
+- When starting a feature: note the branch name in Pending

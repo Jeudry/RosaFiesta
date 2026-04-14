@@ -1,0 +1,23 @@
+{{define "subject"}}¡Tu evento {{.EventName}} es mañana! — Rosa Fiesta{{end}}
+
+{{define "body"}}
+<!doctype html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width" />
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+</head>
+<body>
+<p>Hola {{.UserName}},</p>
+<p>¡Tu evento <strong>{{.EventName}}</strong> es <strong>mañana</strong>!</p>
+<p>Detalles:</p>
+<ul>
+<li><strong>Fecha:</strong> {{.EventDate}}</li>
+<li><strong>Lugar:</strong> {{.EventLocation}}</li>
+</ul>
+<p>Asegúrate de tener todo preparado. Si necesitas soporte adicional el día del evento, contáctanos.</p>
+<p>¡Te deseamos una celebración increíble!</p>
+<p>Saludos,<br/>El equipo de Rosa Fiesta</p>
+</body>
+</html>
+{{end}}

@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"Backend/cmd/main/view_models/products"
+	"Backend/internal/store"
 	"Backend/internal/store/models"
 
 	"github.com/go-chi/chi/v5"
@@ -189,7 +190,6 @@ func (app *Application) deleteArticleHandler(w http.ResponseWriter, r *http.Requ
 func (app *Application) getAllArticlesHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	// Pagination query params (defaults: limit=10, offset=0)
 	limit := 10
 	offset := 0
 	if l := r.URL.Query().Get("limit"); l != "" {
@@ -201,6 +201,39 @@ func (app *Application) getAllArticlesHandler(w http.ResponseWriter, r *http.Req
 		if v, err := strconv.Atoi(o); err == nil && v >= 0 {
 			offset = v
 		}
+	}
+
+	// Check if any search/filter params are present
+	search := r.URL.Query().Get("search")
+	categoryID := r.URL.Query().Get("category_id")
+	availableOnly := r.URL.Query().Get("available_only") == "true"
+	sortBy := r.URL.Query().Get("sort")
+
+	if search != "" || categoryID != "" || availableOnly || sortBy != "" {
+		params := store.ArticleSearchParams{
+			Search:        search,
+			SortBy:        sortBy,
+			AvailableOnly: availableOnly,
+			Limit:         limit,
+			Offset:        offset,
+		}
+		if categoryID != "" {
+			if catUUID, err := uuid.Parse(categoryID); err == nil {
+				params.CategoryID = &catUUID
+			}
+		}
+		articles, err := app.Store.Articles.Search(ctx, params)
+		if err != nil {
+			app.internalServerError(w, r, err)
+			return
+		}
+		if articles == nil {
+			articles = []models.Article{}
+		}
+		if err := app.jsonResponse(w, http.StatusOK, articles); err != nil {
+			app.internalServerError(w, r, err)
+		}
+		return
 	}
 
 	articles, err := app.Store.Articles.GetAll(ctx, limit, offset)

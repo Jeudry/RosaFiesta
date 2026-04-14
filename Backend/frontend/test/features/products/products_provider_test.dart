@@ -67,8 +67,14 @@ void main() {
     // repository integration and passes reliably.
     test('fetchProductsByCategory success updates list', () async {
       final List<Product> products = [createDummyProduct('1'), createDummyProduct('2')];
-      when(() => mockProductsRepository.getProductsByCategory('cat-1'))
-          .thenAnswer((_) async => products);
+      when(() => mockProductsRepository.getProducts(
+        limit: any(named: 'limit'),
+        offset: any(named: 'offset'),
+        categoryId: 'cat-1',
+        search: any(named: 'search'),
+        availableOnly: any(named: 'availableOnly'),
+        sort: any(named: 'sort'),
+      )).thenAnswer((_) async => products);
 
       await productsProvider.fetchProductsByCategory('cat-1');
 

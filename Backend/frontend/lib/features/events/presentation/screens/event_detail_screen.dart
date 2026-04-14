@@ -440,7 +440,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => CheckoutScreen(eventName: event.name.isEmpty ? 'Mi Evento' : event.name, totalAmount: total),
+        builder: (context) => CheckoutScreen(eventId: event.id, eventName: event.name.isEmpty ? 'Mi Evento' : event.name, totalAmount: total),
       ),
     );
   }

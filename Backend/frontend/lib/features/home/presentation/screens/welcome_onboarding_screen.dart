@@ -26,19 +26,20 @@ class _WelcomeOnboardingScreenState extends State<WelcomeOnboardingScreen>
 
   final _slides = const [
     _SlideData(
-      icon: Icons.auto_awesome_rounded,
-      gradient1: AppColors.coral,
-      gradient2: AppColors.hotPink,
+      icon: Icons.storefront_outlined,
+      gradient1: AppColors.hotPink,
+      gradient2: AppColors.violet,
     ),
     _SlideData(
-      icon: Icons.storefront_rounded,
+      icon: Icons.support_agent_rounded,
       gradient1: AppColors.teal,
       gradient2: AppColors.sky,
     ),
     _SlideData(
-      icon: Icons.insights_rounded,
-      gradient1: AppColors.violet,
-      gradient2: AppColors.hotPink,
+      icon: Icons.chat_bubble_rounded,
+      gradient1: Color(0xFF25D366),
+      gradient2: Color(0xFF128C7E),
+      isWhatsApp: true,
     ),
   ];
 
@@ -108,9 +109,9 @@ class _WelcomeOnboardingScreenState extends State<WelcomeOnboardingScreen>
 
   Widget _buildGradientBackground(RfTheme t) {
     final pageColors = [
-      [AppColors.coral, AppColors.hotPink],
+      [AppColors.hotPink, AppColors.violet],
       [AppColors.teal, AppColors.sky],
-      [AppColors.violet, AppColors.hotPink],
+      [const Color(0xFF25D366), const Color(0xFF128C7E)],
       [AppColors.hotPink, AppColors.amber],
     ];
     final colors = _currentPage < pageColors.length
@@ -205,24 +206,29 @@ class _WelcomeOnboardingScreenState extends State<WelcomeOnboardingScreen>
         children: [
           const Spacer(flex: 2),
           // Simple icon with gradient background
-          Container(
-            width: 160, height: 160,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [slide.gradient1, slide.gradient2],
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: slide.gradient1.withOpacity(0.3),
-                  blurRadius: 30,
-                  spreadRadius: 2,
-                ),
-              ],
+          ScaleTransition(
+            scale: Tween<double>(begin: 0.95, end: 1.0).animate(
+              CurvedAnimation(parent: _entranceController, curve: Curves.elasticOut),
             ),
-            child: Icon(slide.icon, size: 64, color: Colors.white),
+            child: Container(
+              width: 170, height: 170,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [slide.gradient1, slide.gradient2],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: slide.gradient1.withOpacity(0.3),
+                    blurRadius: 30,
+                    spreadRadius: 2,
+                  ),
+                ],
+              ),
+              child: Icon(slide.icon, size: 64, color: Colors.white),
+            ),
           ),
           const SizedBox(height: 40),
           // Title card
@@ -326,7 +332,7 @@ class _WelcomeOnboardingScreenState extends State<WelcomeOnboardingScreen>
           ),
           const SizedBox(height: 8),
           Text(
-            l10n.welcomeSubheadline.toUpperCase(),
+            (l10n.welcomeSubheadlineAuth).toUpperCase(),
             style: GoogleFonts.dmSans(
               color: t.textDim, fontSize: 11,
               fontWeight: FontWeight.w600, letterSpacing: 4,
@@ -362,7 +368,7 @@ class _WelcomeOnboardingScreenState extends State<WelcomeOnboardingScreen>
   // ─── PAGE INDICATOR ───
   Widget _buildPageIndicator(RfTheme t) {
     final isLast = _currentPage == _totalPages - 1;
-    final pageColors = [AppColors.coral, AppColors.teal, AppColors.violet, AppColors.amber];
+    final pageColors = [AppColors.hotPink, AppColors.teal, const Color(0xFF25D366), AppColors.amber];
     final activeColor = pageColors[_currentPage];
 
     return Padding(
@@ -423,9 +429,10 @@ class _SlideData {
   final IconData icon;
   final Color gradient1;
   final Color gradient2;
+  final bool isWhatsApp;
 
   const _SlideData({
     required this.icon, required this.gradient1,
-    required this.gradient2,
+    required this.gradient2, this.isWhatsApp = false,
   });
 }

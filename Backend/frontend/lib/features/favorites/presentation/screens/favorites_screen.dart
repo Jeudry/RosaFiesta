@@ -11,6 +11,9 @@ import '../../../products/presentation/widgets/product_card.dart';
 ///
 /// Content-only screen: el [MainShell] envuelve con bottom nav, FAB de IA
 /// y fondo animado.
+///
+/// When the user is not logged in, shows locally-stored Hive favorites with
+/// a banner prompting them to log in to sync across devices.
 class FavoritesScreen extends StatefulWidget {
   const FavoritesScreen({super.key});
 
@@ -24,7 +27,10 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = context.read<FavoritesProvider>();
-      if (provider.favorites.isEmpty && !provider.isLoading) {
+      // Load local favorites on first visit when not logged in
+      if (!provider.isLoggedIn) {
+        provider.loadLocalFavorites();
+      } else if (provider.favorites.isEmpty && !provider.isLoading) {
         provider.fetchFavorites();
       }
     });
@@ -70,6 +76,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
               ],
             ),
           ),
+          if (!provider.isLoggedIn) _LoggedOutBanner(t: t),
           Expanded(child: _buildBody(provider, t)),
         ],
       ),
@@ -102,7 +109,9 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
               const SizedBox(height: 16),
               RfLuxeButton(
                 label: 'Reintentar',
-                onTap: () => provider.fetchFavorites(),
+                onTap: () => provider.isLoggedIn
+                    ? provider.fetchFavorites()
+                    : provider.loadLocalFavorites(),
               ),
             ],
           ),
@@ -115,7 +124,11 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     }
 
     return RefreshIndicator(
-      onRefresh: () => provider.fetchFavorites(),
+      onRefresh: () async {
+        if (provider.isLoggedIn) {
+          await provider.fetchFavorites();
+        }
+      },
       child: GridView.builder(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 120),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -128,6 +141,46 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
         itemBuilder: (context, index) {
           return ProductCard(product: provider.favorites[index]);
         },
+      ),
+    );
+  }
+}
+
+class _LoggedOutBanner extends StatelessWidget {
+  final RfTheme t;
+  const _LoggedOutBanner({required this.t});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.violet.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: AppColors.violet.withValues(alpha: 0.25),
+        ),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.cloud_off_rounded,
+            color: AppColors.violet,
+            size: 20,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Tus favoritos se guardan aquí. Inicia sesión para verlos en todos tus dispositivos.',
+              style: GoogleFonts.dmSans(
+                fontSize: 13,
+                color: t.textPrimary,
+                height: 1.35,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -153,8 +206,8 @@ class _EmptyFavorites extends StatelessWidget {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    AppColors.hotPink.withOpacity(0.18),
-                    AppColors.violet.withOpacity(0.18),
+                    AppColors.hotPink.withValues(alpha: 0.18),
+                    AppColors.violet.withValues(alpha: 0.18),
                   ],
                 ),
                 shape: BoxShape.circle,

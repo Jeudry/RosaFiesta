@@ -2,10 +2,24 @@ import '../../../core/api_client.dart';
 import 'product_models.dart';
 
 class ProductsApiService {
-  Future<List<Product>> getProducts({int limit = 20, int offset = 0}) async {
-    final data = await ApiClient.get(
-      '/articles?limit=$limit&offset=$offset',
-    );
+  Future<List<Product>> getProducts({
+    int limit = 20,
+    int offset = 0,
+    String? search,
+    String? categoryId,
+    bool availableOnly = false,
+    String? sort,
+  }) async {
+    final params = <String, String>{};
+    params['limit'] = limit.toString();
+    params['offset'] = offset.toString();
+    if (search != null && search.isNotEmpty) params['search'] = search;
+    if (categoryId != null && categoryId.isNotEmpty) params['category_id'] = categoryId;
+    if (availableOnly) params['available_only'] = 'true';
+    if (sort != null && sort.isNotEmpty) params['sort'] = sort;
+
+    final queryString = params.entries.map((e) => '${e.key}=${Uri.encodeComponent(e.value)}').join('&');
+    final data = await ApiClient.get('/articles?$queryString');
     return (data as List).map((e) => Product.fromJson(e)).toList();
   }
 

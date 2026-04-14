@@ -134,8 +134,9 @@ func TestCreateToken(t *testing.T) {
 
 		userID := uuid.New()
 		user := &models.User{
-			ID:    userID,
-			Email: "test@example.com",
+			ID:       userID,
+			Email:    "test@example.com",
+			IsActive: true,
 		}
 		user.Password.Set("password123")
 
@@ -143,6 +144,7 @@ func TestCreateToken(t *testing.T) {
 		app.Store.Users.(*storeMocks.UserStore).On("GetByEmail", mock.Anything, "test@example.com").Return(user, nil).Once()
 		app.Auth.(*authMocks.Authenticator).On("GenerateToken", mock.Anything).Return("access-token", nil).Once()
 		app.Store.RefreshTokens.(*storeMocks.RefreshTokenStore).On("Create", mock.Anything, mock.Anything).Return(nil).Once()
+		app.Store.Events.(*storeMocks.EventStore).On("GetPendingByUserID", mock.Anything, userID).Return([]models.Event{}, nil).Once()
 
 		rr := executeRequest(req, mux)
 		checkResponseCode(t, http.StatusOK, rr)

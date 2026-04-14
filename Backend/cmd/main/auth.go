@@ -245,6 +245,11 @@ func (app *Application) createTokenHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	if !user.IsActive {
+		app.forbidden(w, r, errors.New("please verify your email"))
+		return
+	}
+
 	// Generate access token
 	accessTokenExpiration := time.Now().Add(app.Config.Auth.Token.Exp)
 	claims := jwt.MapClaims{
@@ -285,7 +290,161 @@ func (app *Application) createTokenHandler(w http.ResponseWriter, r *http.Reques
 		RefreshToken:                   refreshTokenStr,
 	}
 
+	// Fetch pending events for this user
+	pendingEvents, err := app.Store.Events.GetPendingByUserID(r.Context(), user.ID)
+	if err == nil && len(pendingEvents) > 0 {
+		response.PendingEvents = make([]users.PendingEvent, len(pendingEvents))
+		for i, ev := range pendingEvents {
+			var dateStr *string
+			if ev.Date != nil {
+				s := ev.Date.Format("2006-01-02")
+				dateStr = &s
+			}
+			response.PendingEvents[i] = users.PendingEvent{
+				ID:            ev.ID,
+				Name:          ev.Name,
+				Date:          dateStr,
+				Status:        ev.Status,
+				PaymentStatus: ev.PaymentStatus,
+			}
+		}
+	}
+
 	if err := app.jsonResponse(w, http.StatusOK, response); err != nil {
+		app.internalServerError(w, r, err)
+	}
+}
+
+// forgotPasswordHandler godoc
+//
+//	@Summary		Request a password reset
+//	@Description	Request a password reset email for the given email address
+//	@Tags			authentication
+//	@Accept			json
+//	@Produce		json
+//	@Param			payload	body		users.ForgotPasswordRequest	true	"Email address"
+//	@Success		200		{string}	string					"Email sent if address exists"
+//	@Failure		400		{object}	error					"Bad request"
+//	@Failure		500		{object}	error					"Internal server error"
+//	@Router			/authentication/forgot-password [post]
+func (app *Application) forgotPasswordHandler(w http.ResponseWriter, r *http.Request) {
+	var payload users.ForgotPasswordRequest
+
+	if err := readJson(w, r, &payload); err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	if err := Validate.Struct(payload); err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	ctx := r.Context()
+
+	// Look up user by email - don't leak whether email exists
+	user, err := app.Store.Users.GetByEmail(ctx, payload.Email)
+	if err != nil {
+		// Still return 200 to prevent email enumeration
+		app.jsonResponse(w, http.StatusOK, map[string]string{"message": "If that email exists, a reset link has been sent"})
+		return
+	}
+
+	// Generate reset token
+	plainToken := uuid.New().String()
+
+	// Create password reset token in database
+	if err := app.Store.Users.CreatePasswordResetToken(ctx, user.ID, plainToken, app.Config.Mail.Exp); err != nil {
+		app.Logger.Errorw("error creating password reset token", "error", err)
+		app.internalServerError(w, r, err)
+		return
+	}
+
+	isProdEnv := app.Config.Env == "production"
+
+	resetURL := fmt.Sprintf("%s/reset-password/%s", app.Config.FrontendURL, plainToken)
+
+	vars := struct {
+		Username  string
+		ResetURL  string
+	}{
+		Username:  user.UserName,
+		ResetURL:  resetURL,
+	}
+
+	statusCode, err := app.Mailer.Send(mailer.PasswordResetTemplate, user.UserName, user.Email, vars, !isProdEnv)
+	if err != nil {
+		app.Logger.Errorw("error sending password reset email", "error", err)
+		app.internalServerError(w, r, err)
+		return
+	}
+
+	// Log reset URL in development mode
+	if !isProdEnv {
+		app.Logger.Infow("🔑 DEVELOPMENT MODE - Password Reset URL", "url", resetURL, "user", user.UserName, "email", user.Email)
+	}
+
+	app.Logger.Infow("Password reset email sent", "status code %v", statusCode)
+
+	if err := app.jsonResponse(w, http.StatusOK, map[string]string{"message": "If that email exists, a reset link has been sent"}); err != nil {
+		app.internalServerError(w, r, err)
+	}
+}
+
+// resetPasswordHandler godoc
+//
+//	@Summary		Reset password
+//	@Description	Reset password using a valid token
+//	@Tags			authentication
+//	@Accept			json
+//	@Produce		json
+//	@Param			payload	body		users.ResetPasswordRequest	true	"New password"
+//	@Success		200		{string}	string					"Password updated"
+//	@Failure		400		{object}	error					"Bad request"
+//	@Failure		401		{object}	error					"Unauthorized"
+//	@Failure		500		{object}	error					"Internal server error"
+//	@Router			/authentication/reset-password [post]
+func (app *Application) resetPasswordHandler(w http.ResponseWriter, r *http.Request) {
+	var payload users.ResetPasswordRequest
+
+	if err := readJson(w, r, &payload); err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	if err := Validate.Struct(payload); err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	ctx := r.Context()
+
+	// Get user by reset token
+	user, err := app.Store.Users.GetUserByResetToken(ctx, payload.Token)
+	if err != nil {
+		app.unauthorized(w, r, errors.New("invalid or expired token"))
+		return
+	}
+
+	// Hash the new password
+	if err := user.Password.Set(payload.NewPassword); err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+
+	// Update user password
+	if err := app.Store.Users.UpdatePassword(ctx, user.ID, user.Password.Hash); err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+
+	// Delete the reset token (single-use)
+	if err := app.Store.Users.DeletePasswordResetTokenByToken(ctx, payload.Token); err != nil {
+		app.Logger.Errorw("error deleting password reset token", "error", err)
+		// Don't fail the request, password was already updated
+	}
+
+	if err := app.jsonResponse(w, http.StatusOK, map[string]string{"message": "Password updated successfully"}); err != nil {
 		app.internalServerError(w, r, err)
 	}
 }

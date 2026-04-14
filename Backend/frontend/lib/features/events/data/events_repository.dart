@@ -1,6 +1,7 @@
 import '../../../core/api_client.dart';
 import 'event_model.dart';
 import 'event_debrief_model.dart';
+import 'event_photo_model.dart';
 
 class EventsRepository {
   Future<EventDebrief> getEventDebrief(String id) async {
@@ -51,9 +52,10 @@ class EventsRepository {
     return await updateEvent(id, {'status': 'confirmed'});
   }
 
-  Future<Event> payEvent(String id, String paymentMethod) async {
+  Future<Event> payEvent(String id, String paymentMethod, {String? phone}) async {
     final response = await ApiClient.post('/events/$id/pay', {
       'payment_method': paymentMethod,
+      if (phone != null && phone.isNotEmpty) 'phone': phone,
     });
     return Event.fromJson(response);
   }
@@ -81,5 +83,11 @@ class EventsRepository {
 
   Future<void> removeEventItem(String eventId, String itemId) async {
     await ApiClient.delete('/events/$eventId/items/$itemId');
+  }
+
+  Future<List<EventPhoto>> getEventPhotos(String eventId) async {
+    final response = await ApiClient.get('/events/$eventId/photos');
+    final List<dynamic> data = response;
+    return data.map((json) => EventPhoto.fromJson(json)).toList();
   }
 }

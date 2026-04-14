@@ -16,6 +16,7 @@ import (
 	"Backend/internal/notifications"
 	"Backend/internal/ratelimiter"
 	"Backend/internal/store"
+	"Backend/internal/whatsapp"
 	"Backend/internal/worker"
 
 	"github.com/go-redis/redis/v8"
@@ -104,6 +105,12 @@ func main() {
 			TimeFrame:            time.Second * 5,
 			Enabled:              env.GetBool("RATE_LIMITER_ENABLED", true),
 		},
+		R2: configModels.R2Config{
+			AccountID: env.GetString("R2_ACCOUNT_ID", ""),
+			AccessKey: env.GetString("R2_ACCESS_KEY", ""),
+			SecretKey: env.GetString("R2_SECRET_KEY", ""),
+			Bucket:    env.GetString("R2_BUCKET", "rosafiesta"),
+		},
 	}
 
 	logger := zap.Must(zap.NewProduction()).Sugar()
@@ -141,12 +148,46 @@ func main() {
 	mailGo, err := mailer.NewGoMailClient(cfg.Mail.Password, cfg.Mail.FromEmail)
 
 	jwtAuthenticator := auth.NewJWTAuthenticator(cfg.Auth.Token.Secret, cfg.Auth.Token.Aud, cfg.Auth.Token.Iss)
-	notificationService := notifications.NewNotificationService()
+	notificationService, _ := notifications.NewNotificationService()
+
 	chatHub := newHub()
 	go chatHub.run()
 
 	delayChecker := worker.NewDelayChecker(appStore, logger, notificationService)
 	go delayChecker.Start(context.Background())
+
+	emailSender := worker.NewEmailSender(appStore, logger, mailGo)
+	go emailSender.Start(context.Background(), 30*time.Minute)
+
+	if notificationService != nil {
+		notificationSender := worker.NewNotificationSender(appStore, logger, notificationService)
+		go notificationSender.Start(context.Background(), 30*time.Minute)
+	}
+
+	var r2Client *store.R2Client
+	if cfg.R2.AccountID != "" && cfg.R2.AccessKey != "" {
+		r2Client, err = store.NewR2Client(store.R2Config{
+			AccountID: cfg.R2.AccountID,
+			AccessKey: cfg.R2.AccessKey,
+			SecretKey: cfg.R2.SecretKey,
+			Bucket:    cfg.R2.Bucket,
+		})
+		if err != nil {
+			logger.Warnf("failed to initialize R2 client: %v", err)
+		} else {
+			logger.Info("R2 client initialized")
+		}
+	}
+
+	var whatsappClient *whatsapp.Client
+	if cfg.WhatsApp.AccessToken != "" && cfg.WhatsApp.PhoneNumberID != "" {
+		whatsappClient = whatsapp.NewClient(whatsapp.Config{
+			PhoneNumberID: cfg.WhatsApp.PhoneNumberID,
+			AccessToken:   cfg.WhatsApp.AccessToken,
+			FromName:     cfg.WhatsApp.FromName,
+		})
+		logger.Info("WhatsApp client initialized")
+	}
 
 	app := &Application{
 		Config:        cfg,
@@ -158,6 +199,8 @@ func main() {
 		RateLimiter:   rateLimiter,
 		Notifications: notificationService,
 		ChatHub:       chatHub,
+		R2:            r2Client,
+		WhatsApp:      whatsappClient,
 	}
 
 	expvar.NewString("version").Set(Version)

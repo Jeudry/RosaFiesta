@@ -7,6 +7,8 @@ class HiveService {
   static const String tasksBoxName = 'tasks';
   static const String timelineBoxName = 'timeline';
   static const String syncBoxName = 'sync_queue';
+  static const String languageBoxName = 'settings';
+  static const String localFavoritesBoxName = 'local_favorites';
 
   static Future<void> init() async {
     await Hive.initFlutter();
@@ -21,6 +23,8 @@ class HiveService {
     await Hive.openBox<EventTask>(tasksBoxName);
     await Hive.openBox<TimelineItem>(timelineBoxName);
     await Hive.openBox<SyncAction>(syncBoxName);
+    await Hive.openBox(languageBoxName);
+    await Hive.openBox<String>(localFavoritesBoxName);
   }
 
   // Generic methods for box access
@@ -30,6 +34,8 @@ class HiveService {
   static Box<EventTask> get tasksBox => getBox<EventTask>(tasksBoxName);
   static Box<TimelineItem> get timelineBox => getBox<TimelineItem>(timelineBoxName);
   static Box<SyncAction> get syncBox => getBox<SyncAction>(syncBoxName);
+  static Box get languageBox => getBox(languageBoxName);
+  static Box<String> get localFavoritesBox => getBox<String>(localFavoritesBoxName);
 
   static Future<void> clearAll() async {
     await tasksBox.clear();

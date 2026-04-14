@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import 'package:frontend/core/design_system.dart';
 import 'package:frontend/core/app_colors.dart';
+import '../company_reviews_provider.dart';
 
 class CompanyReviewsScreen extends StatefulWidget {
   const CompanyReviewsScreen({super.key});
@@ -30,6 +32,9 @@ class _CompanyReviewsScreenState extends State<CompanyReviewsScreen>
     _gradientCtrl = AnimationController(
         vsync: this, duration: const Duration(seconds: 12))
       ..repeat();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<CompanyReviewsProvider>().fetchAll();
+    });
   }
 
   @override
@@ -38,15 +43,6 @@ class _CompanyReviewsScreenState extends State<CompanyReviewsScreen>
     _commentController.dispose();
     super.dispose();
   }
-
-  // Placeholder — real data wired to backend via ReviewsApiService
-  final List<_FakeReview> _reviews = [
-    _FakeReview(userName: 'María González', rating: 5, comment: '¡Servicio excepcional! Todo llegó perfecto para mi boda.', daysAgo: 3),
-    _FakeReview(userName: 'Carlos Pérez', rating: 5, comment: 'La atención es de primera. Muy profesionales.', daysAgo: 7),
-    _FakeReview(userName: 'Laura Martínez', rating: 4, comment: 'Muy buena experiencia, los建议 decorations eran hermosos.', daysAgo: 12),
-    _FakeReview(userName: 'Juan Rodríguez', rating: 5, comment: 'Rápidos y confiables. Los recomiendo ampliamente.', daysAgo: 20),
-    _FakeReview(userName: 'Ana Sánchez', rating: 4, comment: 'Buen trabajo en general. El equipo fue muy amable.', daysAgo: 30),
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -88,10 +84,22 @@ class _CompanyReviewsScreenState extends State<CompanyReviewsScreen>
                 _buildSummaryCard(t),
                 const SizedBox(height: 16),
                 Expanded(
-                  child: ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    itemCount: _reviews.length,
-                    itemBuilder: (_, i) => _reviewCard(_reviews[i], t),
+                  child: Consumer<CompanyReviewsProvider>(
+                    builder: (_, provider, __) {
+                      if (provider.isLoading && provider.reviews.isEmpty) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                      if (provider.reviews.isEmpty) {
+                        return Center(
+                          child: Text('Sin reseñas aún', style: GoogleFonts.dmSans(color: t.textMuted)),
+                        );
+                      }
+                      return ListView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        itemCount: provider.reviews.length,
+                        itemBuilder: (_, i) => _reviewCard(provider.reviews[i], t),
+                      );
+                    },
                   ),
                 ),
               ],
@@ -105,71 +113,77 @@ class _CompanyReviewsScreenState extends State<CompanyReviewsScreen>
 
   Widget _buildSummaryCard(RfTheme t) {
     const starColor = Color(0xFFFFB800);
-    final avg = 4.7;
-    final count = _reviews.length;
-    return Container(
-      margin: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: t.isDark ? t.card : Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: t.borderFaint),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.hotPink.withOpacity(0.08),
-            blurRadius: 24,
-            offset: const Offset(0, 8),
+    return Consumer<CompanyReviewsProvider>(
+      builder: (_, provider, __) {
+        final avg = provider.averageRating;
+        final count = provider.reviewCount;
+        return Container(
+          margin: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: t.isDark ? t.card : Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: t.borderFaint),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.hotPink.withOpacity(0.08),
+                blurRadius: 24,
+                offset: const Offset(0, 8),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 72, height: 72,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                  colors: [AppColors.violet, AppColors.hotPink]),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Center(
-              child: Text(
-                avg.toStringAsFixed(1),
-                style: GoogleFonts.outfit(
-                  fontSize: 26, fontWeight: FontWeight.w900, color: Colors.white,
+          child: Row(
+            children: [
+              Container(
+                width: 72, height: 72,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                      colors: [AppColors.violet, AppColors.hotPink]),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Center(
+                  child: Text(
+                    avg > 0 ? avg.toStringAsFixed(1) : '--',
+                    style: GoogleFonts.outfit(
+                      fontSize: 26, fontWeight: FontWeight.w900, color: Colors.white,
+                    ),
+                  ),
                 ),
               ),
-            ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(children: List.generate(5, (i) => Icon(
+                      Icons.star_rounded,
+                      color: avg > 0
+                          ? (i < avg.floor()
+                              ? starColor
+                              : (i < avg.ceil() ? starColor.withOpacity(0.5) : starColor.withOpacity(0.2)))
+                          : starColor.withOpacity(0.2),
+                      size: 22,
+                    ))),
+                    const SizedBox(height: 6),
+                    Text(
+                      '$count reseñas verificadas',
+                      style: GoogleFonts.dmSans(
+                          fontSize: 13, fontWeight: FontWeight.w600, color: t.textMuted)),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Conoce la experiencia de otros clientes',
+                      style: GoogleFonts.dmSans(fontSize: 12, color: t.textDim)),
+                  ],
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 20),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(children: List.generate(5, (i) => Icon(
-                  Icons.star_rounded,
-                  color: i < avg.floor()
-                      ? starColor
-                      : (i < avg.ceil() ? starColor.withOpacity(0.5) : starColor.withOpacity(0.2)),
-                  size: 22,
-                ))),
-                const SizedBox(height: 6),
-                Text(
-                  '$count reseñas verificadas',
-                  style: GoogleFonts.dmSans(
-                      fontSize: 13, fontWeight: FontWeight.w600, color: t.textMuted)),
-                const SizedBox(height: 2),
-                Text(
-                  'Conoce la experiencia de otros clientes',
-                  style: GoogleFonts.dmSans(fontSize: 12, color: t.textDim)),
-              ],
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  Widget _reviewCard(_FakeReview review, RfTheme t) {
+  Widget _reviewCard(CompanyReview review, RfTheme t) {
     const starColor = Color(0xFFFFB800);
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -260,10 +274,10 @@ class _CompanyReviewsScreenState extends State<CompanyReviewsScreen>
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (_) => StatefulBuilder(
-        builder: (ctx, setState) => Padding(
+      builder: (sheetCtx) => StatefulBuilder(
+        builder: (sheetCtx, setSheetState) => Padding(
           padding: EdgeInsets.fromLTRB(
-              24, 24, 24, MediaQuery.of(ctx).viewInsets.bottom + 24),
+              24, 24, 24, MediaQuery.of(sheetCtx).viewInsets.bottom + 24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -290,7 +304,7 @@ class _CompanyReviewsScreenState extends State<CompanyReviewsScreen>
                           ? const Color(0xFFFFB800)
                           : const Color(0xFFFFB800).withOpacity(0.2),
                       size: 36),
-                  onPressed: () => setState(() => _selectedRating = i + 1),
+                  onPressed: () => setSheetState(() => _selectedRating = i + 1),
                 )),
               ),
               const SizedBox(height: 16),
@@ -320,21 +334,22 @@ class _CompanyReviewsScreenState extends State<CompanyReviewsScreen>
                 loading: _isSubmitting,
                 onTap: () async {
                   if (_commentController.text.trim().isEmpty) return;
-                  setState(() => _isSubmitting = true);
-                  await Future.delayed(const Duration(seconds: 1));
-                  if (ctx.mounted) {
-                    Navigator.pop(ctx);
-                    setState(() {
-                      _reviews.insert(0, _FakeReview(
-                        userName: 'Tú',
-                        rating: _selectedRating,
-                        comment: _commentController.text,
-                        daysAgo: 0,
-                      ));
+                  setSheetState(() => _isSubmitting = true);
+                  final success = await context.read<CompanyReviewsProvider>().addReview(
+                    _selectedRating,
+                    _commentController.text,
+                  );
+                  if (sheetCtx.mounted) {
+                    Navigator.pop(sheetCtx);
+                    if (success) {
                       _commentController.clear();
-                      _selectedRating = 5;
-                      _isSubmitting = false;
-                    });
+                      setSheetState(() {
+                        _selectedRating = 5;
+                        _isSubmitting = false;
+                      });
+                    } else {
+                      setSheetState(() => _isSubmitting = false);
+                    }
                   }
                 },
               ),
@@ -344,17 +359,4 @@ class _CompanyReviewsScreenState extends State<CompanyReviewsScreen>
       ),
     );
   }
-}
-
-class _FakeReview {
-  final String userName;
-  final int rating;
-  final String comment;
-  final int daysAgo;
-  _FakeReview({
-    required this.userName,
-    required this.rating,
-    required this.comment,
-    required this.daysAgo,
-  });
 }

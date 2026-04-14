@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:frontend/core/design_system.dart';
 import 'package:frontend/core/app_colors.dart';
 
+import '../../../auth/presentation/screens/auth_required_sheet.dart';
 import '../products_provider.dart';
 import '../../../categories/presentation/categories_provider.dart';
 import '../../../shell/main_shell.dart';
@@ -248,6 +249,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                       Icons.celebration_rounded,
                       t,
                       () {
+                        if (AuthRequiredSheet.checkAndShow(context)) return;
                         Navigator.push(
                             context,
                             MaterialPageRoute(

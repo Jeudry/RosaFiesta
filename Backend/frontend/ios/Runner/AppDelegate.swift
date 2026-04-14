@@ -8,6 +8,7 @@ import UIKit
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
     GeneratedPluginRegistrant.register(with: self)
+    // FlutterDeepLinkingEnabled is set in Info.plist for automatic route handling
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 }

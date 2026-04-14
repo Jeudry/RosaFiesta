@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 
@@ -57,7 +58,7 @@ func (app *Application) createEventHandler(w http.ResponseWriter, r *http.Reques
 	event := &models.Event{
 		UserID:     user.ID,
 		Name:       payload.Name,
-		Date:       date,
+		Date:       &date,
 		Location:   payload.Location,
 		GuestCount: payload.GuestCount,
 		Budget:     payload.Budget,
@@ -68,6 +69,15 @@ func (app *Application) createEventHandler(w http.ResponseWriter, r *http.Reques
 		app.internalServerError(w, r, err)
 		return
 	}
+
+	// Audit log
+	_ = app.Store.AuditLogs.Log(r.Context(), &models.AuditLog{
+		UserID:     &user.ID,
+		EventID:   &event.ID,
+		Action:    models.AuditActionEventCreate,
+		EntityType: "event",
+		EntityID:  &event.ID,
+	})
 
 	if err := app.jsonResponse(w, http.StatusCreated, event); err != nil {
 		app.internalServerError(w, r, err)
@@ -210,7 +220,7 @@ func (app *Application) updateEventHandler(w http.ResponseWriter, r *http.Reques
 				}
 			}
 		}
-		event.Date = date
+		event.Date = &date
 	}
 	if payload.Location != nil {
 		event.Location = *payload.Location
@@ -337,7 +347,7 @@ func (app *Application) addEventItemHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 	// Phase 17: Availability & Inventory Check
-	availability, err := app.Store.Articles.GetAvailability(r.Context(), payload.ArticleID, event.Date)
+	availability, err := app.Store.Articles.GetAvailability(r.Context(), payload.ArticleID, *event.Date)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			app.notFoundResponse(w, r, err)
@@ -493,6 +503,7 @@ func (app *Application) payEventHandler(w http.ResponseWriter, r *http.Request) 
 
 	var payload struct {
 		PaymentMethod string `json:"payment_method" validate:"required"`
+		Phone        string `json:"phone"`
 	}
 	if err := readJson(w, r, &payload); err != nil {
 		app.badRequest(w, r, err)
@@ -526,6 +537,14 @@ func (app *Application) payEventHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	// Update phone number if provided
+	if payload.Phone != "" {
+		if err := app.Store.Users.UpdatePhoneNumber(r.Context(), user.ID, payload.Phone); err != nil {
+			app.internalServerError(w, r, err)
+			return
+		}
+	}
+
 	// Update payment fields
 	now := time.Now()
 	event.PaymentStatus = "completed"
@@ -537,6 +556,16 @@ func (app *Application) payEventHandler(w http.ResponseWriter, r *http.Request) 
 		app.internalServerError(w, r, err)
 		return
 	}
+
+	// Audit log
+	_ = app.Store.AuditLogs.Log(r.Context(), &models.AuditLog{
+		UserID:     &user.ID,
+		EventID:   &event.ID,
+		Action:    models.AuditActionEventPay,
+		EntityType: "event",
+		EntityID:  &event.ID,
+		NewValue:  &payload.PaymentMethod,
+	})
 
 	// Phase 20: Notify user about payment
 	_ = app.Notifications.NotifyStatusChange(r.Context(), user.FCMToken, event.Name, "Pagado")
@@ -602,12 +631,180 @@ func (app *Application) adjustQuoteHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	// Audit log
+	adminUser := GetUserFromCtx(r)
+	newVal := fmt.Sprintf("additional_costs=%.2f", payload.AdditionalCosts)
+	_ = app.Store.AuditLogs.Log(r.Context(), &models.AuditLog{
+		UserID:     &adminUser.ID,
+		EventID:   &event.ID,
+		Action:    models.AuditActionEventAdjust,
+		EntityType: "event",
+		EntityID:  &event.ID,
+		NewValue:  &newVal,
+	})
+
 	// Phase 20: Notify user about adjustment
 	// We need to fetch the user to get their FCM token
 	user, err := app.Store.Users.RetrieveById(r.Context(), event.UserID)
 	if err == nil && user.FCMToken != "" {
-		_ = app.Notifications.NotifyStatusChange(r.Context(), user.FCMToken, event.Name, "Cotización Ajustada")
+		title := "Cotización ajustada 🌸"
+		body := fmt.Sprintf("Tu evento %s tiene una nueva cotización pendiente", event.Name)
+		_ = app.Notifications.SendPush(r.Context(), user.FCMToken, title, body)
+		_ = app.Store.NotificationLogs.LogNotification(r.Context(), event.ID, models.QuoteAdjusted)
 	}
+
+	if err := app.jsonResponse(w, http.StatusOK, event); err != nil {
+		app.internalServerError(w, r, err)
+	}
+}
+
+// approveQuoteHandler godoc
+//
+//	@Summary		Approve event quote
+//	@Description	Approve the adjusted quote for an event and set status to 'paid'
+//	@Tags			events
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string	true	"Event ID"
+//	@Success		200	{object}	models.Event
+//	@Failure		400	{object}	error
+//	@Failure		404	{object}	error
+//	@Failure		500	{object}	error
+//	@Router			/events/{id}/approve-quote [post]
+func (app *Application) approveQuoteHandler(w http.ResponseWriter, r *http.Request) {
+	idParam := chi.URLParam(r, "id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	event, err := app.Store.Events.GetByID(r.Context(), id)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			app.notFoundResponse(w, r, err)
+		} else {
+			app.internalServerError(w, r, err)
+		}
+		return
+	}
+
+	user := GetUserFromCtx(r)
+	if event.UserID != user.ID {
+		app.forbidden(w, r, errors.New("you do not have permission to approve this quote"))
+		return
+	}
+
+	if event.Status != models.EventStatusAdjusted {
+		app.badRequest(w, r, errors.New("only events with 'adjusted' status can be approved"))
+		return
+	}
+
+	if err := app.Store.Events.ApproveQuote(r.Context(), id, user.ID); err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			app.notFoundResponse(w, r, err)
+		} else {
+			app.internalServerError(w, r, err)
+		}
+		return
+	}
+
+	// Re-fetch the updated event
+	event, err = app.Store.Events.GetByID(r.Context(), id)
+	if err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+
+	// Audit log
+	_ = app.Store.AuditLogs.Log(r.Context(), &models.AuditLog{
+		UserID:     &user.ID,
+		EventID:   &event.ID,
+		Action:    models.AuditActionEventPay,
+		EntityType: "event",
+		EntityID:  &event.ID,
+	})
+
+	// Send FCM notification
+	eventOwner, err := app.Store.Users.RetrieveById(r.Context(), event.UserID)
+	if err == nil && eventOwner.FCMToken != "" {
+		title := "¡Evento aprobado! 🎉"
+		body := fmt.Sprintf("Tu evento %s ha sido aprobado", event.Name)
+		_ = app.Notifications.SendPush(r.Context(), eventOwner.FCMToken, title, body)
+		_ = app.Store.NotificationLogs.LogNotification(r.Context(), event.ID, models.QuoteApproved)
+	}
+
+	if err := app.jsonResponse(w, http.StatusOK, event); err != nil {
+		app.internalServerError(w, r, err)
+	}
+}
+
+// rejectQuoteHandler godoc
+//
+//	@Summary		Reject event quote
+//	@Description	Reject the adjusted quote for an event and set status to 'rejected'
+//	@Tags			events
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string	true	"Event ID"
+//	@Success		200	{object}	models.Event
+//	@Failure		400	{object}	error
+//	@Failure		404	{object}	error
+//	@Failure		500	{object}	error
+//	@Router			/events/{id}/reject-quote [post]
+func (app *Application) rejectQuoteHandler(w http.ResponseWriter, r *http.Request) {
+	idParam := chi.URLParam(r, "id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	event, err := app.Store.Events.GetByID(r.Context(), id)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			app.notFoundResponse(w, r, err)
+		} else {
+			app.internalServerError(w, r, err)
+		}
+		return
+	}
+
+	user := GetUserFromCtx(r)
+	if event.UserID != user.ID {
+		app.forbidden(w, r, errors.New("you do not have permission to reject this quote"))
+		return
+	}
+
+	if event.Status != models.EventStatusAdjusted {
+		app.badRequest(w, r, errors.New("only events with 'adjusted' status can be rejected"))
+		return
+	}
+
+	if err := app.Store.Events.RejectQuote(r.Context(), id, user.ID); err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			app.notFoundResponse(w, r, err)
+		} else {
+			app.internalServerError(w, r, err)
+		}
+		return
+	}
+
+	// Re-fetch the updated event
+	event, err = app.Store.Events.GetByID(r.Context(), id)
+	if err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+
+	// Audit log
+	_ = app.Store.AuditLogs.Log(r.Context(), &models.AuditLog{
+		UserID:     &user.ID,
+		EventID:   &event.ID,
+		Action:    models.AuditActionEventReject,
+		EntityType: "event",
+		EntityID:  &event.ID,
+	})
 
 	if err := app.jsonResponse(w, http.StatusOK, event); err != nil {
 		app.internalServerError(w, r, err)
@@ -633,6 +830,117 @@ func (app *Application) getEventDebriefHandler(w http.ResponseWriter, r *http.Re
 	}
 
 	if err := app.jsonResponse(w, http.StatusOK, debrief); err != nil {
+		app.internalServerError(w, r, err)
+	}
+}
+
+// uploadEventPhotoHandler godoc
+//
+//	@Summary		Upload photo for an event
+//	@Description	Upload a photo to R2 and associate it with an event
+//	@Tags			events
+//	@Accept			multipart/form-data
+//	@Produce		json
+//	@Param			id		path		string	true	"Event ID"
+//	@Param			file	formData	file	true	"Photo file"
+//	@Param			caption	formData	string	false	"Photo caption"
+//	@Success		200		{object}	models.EventPhoto
+//	@Failure		400		{object}	error
+//	@Failure		500		{object}	error
+//	@Router			/events/{id}/photos [post]
+func (app *Application) uploadEventPhotoHandler(w http.ResponseWriter, r *http.Request) {
+	idParam := chi.URLParam(r, "id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	if err := r.ParseMultipartForm(10 << 20); err != nil { // 10MB max
+		app.badRequest(w, r, err)
+		return
+	}
+
+	file, fileHeader, err := r.FormFile("file")
+	if err != nil {
+		app.badRequest(w, r, errors.New("file is required"))
+		return
+	}
+	defer file.Close()
+
+	filename := fileHeader.Filename
+	caption := r.FormValue("caption")
+
+	// Read file content
+	content, err := io.ReadAll(file)
+	if err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+
+	// Determine content type from file header
+	contentType := http.DetectContentType(content)
+	if contentType == "application/octet-stream" {
+		contentType = "image/jpeg"
+	}
+
+	var url string
+	if app.R2 != nil {
+		// Upload to R2
+		url, err = app.R2.UploadFromBytes(r.Context(), id, filename, contentType, content)
+		if err != nil {
+			app.internalServerError(w, r, err)
+			return
+		}
+	} else {
+		// R2 not configured, use a placeholder URL
+		url = fmt.Sprintf("https://pub.example.r2.cloudflarestorage.com/rosafiesta/events/%s/%s", id.String(), filename)
+	}
+
+	// Save to database
+	photo := &models.EventPhoto{
+		EventID: id,
+		URL:     url,
+	}
+	if caption != "" {
+		photo.Caption = &caption
+	}
+
+	if err := app.Store.EventPhotos.Create(r.Context(), photo); err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+
+	if err := app.jsonResponse(w, http.StatusOK, photo); err != nil {
+		app.internalServerError(w, r, err)
+	}
+}
+
+// getEventPhotosHandler godoc
+//
+//	@Summary		Get photos for an event
+//	@Description	Get all photos associated with an event
+//	@Tags			events
+//	@Produce		json
+//	@Param			id		path		string	true	"Event ID"
+//	@Success		200		{object}	[]models.EventPhoto
+//	@Failure		500		{object}	error
+//	@Router			/events/{id}/photos [get]
+func (app *Application) getEventPhotosHandler(w http.ResponseWriter, r *http.Request) {
+	idParam := chi.URLParam(r, "id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	photos, err := app.Store.EventPhotos.GetByEventID(r.Context(), id)
+	if err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+
+	if err := app.jsonResponse(w, http.StatusOK, photos); err != nil {
 		app.internalServerError(w, r, err)
 	}
 }

@@ -131,6 +131,8 @@ func (app *Application) Mount() http.Handler {
 			r.Post("/register", app.registerUserHandler)
 			r.Post("/token", app.createTokenHandler)
 			r.Post("/refresh", app.refreshTokenHandler)
+			r.Post("/forgot-password", app.forgotPasswordHandler)
+			r.Post("/reset-password", app.resetPasswordHandler)
 		})
 
 		r.Route("/favorites", func(r chi.Router) {
@@ -144,15 +146,15 @@ func (app *Application) Mount() http.Handler {
 			r.Use(app.AuthTokenMiddleware())
 			r.Post("/", app.createEventHandler)
 			r.Get("/", app.getUserEventsHandler)
-			// /events/active returns the user's draft event, creating it
-			// on demand. This is the entry point for the catalog "+" flow.
-			r.Get("/active", app.getActiveEventHandler)
-			r.Patch("/active/items/{itemId}", app.updateActiveEventItemHandler)
 			r.Get("/{id}", app.getEventHandler)
 			r.Put("/{id}", app.updateEventHandler)
 			r.Post("/{id}/pay", app.payEventHandler)
+			r.Post("/{id}/approve-quote", app.approveQuoteHandler)
+			r.Post("/{id}/reject-quote", app.rejectQuoteHandler)
 			r.Get("/{id}/calendar.ics", app.getEventCalendarHandler)
 			r.Get("/{id}/debrief", app.getEventDebriefHandler)
+			r.Get("/{id}/quote", app.getQuotePDFHandler)
+			r.Post("/{id}/whatsapp", app.sendWhatsAppHandler)
 			r.Route("/{id}/messages", func(r chi.Router) {
 				r.Get("/", app.getMessagesHandler)
 				r.Post("/", app.sendMessageHandler)
@@ -186,6 +188,11 @@ func (app *Application) Mount() http.Handler {
 				r.Get("/", app.getEventReviewsHandler) // public access typically, but protected under events group here
 			})
 
+			r.Route("/{id}/photos", func(r chi.Router) {
+				r.Post("/", app.uploadEventPhotoHandler)
+				r.Get("/", app.getEventPhotosHandler)
+			})
+
 			// The r.Group for admin-only adjustQuoteHandler was moved to /v1/admin
 		})
 
@@ -194,6 +201,7 @@ func (app *Application) Mount() http.Handler {
 			r.Use(app.RoleMiddleware("admin"))
 			r.Patch("/events/{id}/adjust", app.adjustQuoteHandler)
 			r.Get("/stats", app.getStatsHandler)
+			r.Get("/events/{id}/audit", app.getEventAuditLogHandler)
 		})
 
 		r.Route("/timeline/{itemId}", func(r chi.Router) {

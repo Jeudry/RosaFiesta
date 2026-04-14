@@ -185,6 +185,9 @@ func TestCreateEvent(t *testing.T) {
 					evt := args.Get(1).(*models.Event)
 					evt.ID = eventID
 				}).Return(nil).Once()
+
+				auditM := app.Store.AuditLogs.(*storeMocks.AuditLogsStore)
+				auditM.On("Log", mock.Anything, mock.Anything).Return(nil).Once()
 			},
 			expectedCode: http.StatusCreated,
 		},

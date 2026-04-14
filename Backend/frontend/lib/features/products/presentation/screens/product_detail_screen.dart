@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:frontend/core/design_system.dart';
 import 'package:frontend/core/app_colors.dart';
+import '../../../auth/presentation/screens/auth_required_sheet.dart';
 import '../products_provider.dart';
 import '../../data/product_models.dart';
 import '../widgets/add_to_event_sheet.dart';
@@ -813,7 +814,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                     fontSize: 14, fontWeight: FontWeight.w600,
                     color: t.textMuted)),
             GestureDetector(
-              onTap: () => _showAddReviewDialog(context, product.id),
+              onTap: () {
+                if (AuthRequiredSheet.checkAndShow(context)) return;
+                _showAddReviewDialog(context, product.id);
+              },
               child: Container(
                 padding: const EdgeInsets.symmetric(
                     horizontal: 14, vertical: 8),
@@ -1071,6 +1075,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
           Expanded(
             child: GestureDetector(
               onTap: () {
+                if (AuthRequiredSheet.checkAndShow(context)) return;
                 if (variant == null) return;
                 AddToEventSheet.show(
                   context: context,

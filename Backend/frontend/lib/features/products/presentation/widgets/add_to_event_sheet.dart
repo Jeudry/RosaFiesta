@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import 'package:frontend/core/design_system.dart';
 import 'package:frontend/core/app_colors.dart';
 
+import '../../../auth/presentation/auth_provider.dart';
+import '../../../auth/presentation/screens/auth_required_sheet.dart';
 import '../../../active_event/presentation/active_event_provider.dart';
 import '../../data/product_models.dart';
 
@@ -65,6 +67,8 @@ class _AddToEventSheetState extends State<AddToEventSheet> {
 
   Future<void> _submit() async {
     if (widget.variant == null || _submitting) return;
+    // Auth check — require login before adding items to event
+    if (AuthRequiredSheet.checkAndShow(context)) return;
     setState(() => _submitting = true);
 
     final messenger = ScaffoldMessenger.of(context);

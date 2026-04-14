@@ -1,0 +1,23 @@
+{{define "subject"}}Tu evento {{.EventName}} es en 7 días — Rosa Fiesta{{end}}
+
+{{define "body"}}
+<!doctype html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width" />
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+</head>
+<body>
+<p>Hola {{.UserName}},</p>
+<p>Queremos recordarte que tu evento <strong>{{.EventName}}</strong> es en <strong>7 días</strong>.</p>
+<p>Aquí tienes los detalles:</p>
+<ul>
+<li><strong>Fecha:</strong> {{.EventDate}}</li>
+<li><strong>Lugar:</strong> {{.EventLocation}}</li>
+</ul>
+<p>¿Todo listo? Si necesitas agregar algo más a tu evento o tienes alguna pregunta, no dudes en contactarnos.</p>
+<p>¡Estamos aquí para hacer de tu celebración un momento especial!</p>
+<p>Saludos,<br/>El equipo de Rosa Fiesta</p>
+</body>
+</html>
+{{end}}

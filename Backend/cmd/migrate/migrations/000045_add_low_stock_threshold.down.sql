@@ -1,0 +1,1 @@
+ALTER TABLE articles DROP COLUMN low_stock_threshold;

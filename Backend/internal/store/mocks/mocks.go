@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"time"
 
+	"Backend/internal/store"
 	"Backend/internal/store/models"
 
 	"github.com/google/uuid"
@@ -64,6 +65,39 @@ func (m *UserStore) GetOrganizersFCMTokens(ctx context.Context) ([]string, error
 	return args.Get(0).([]string), args.Error(1)
 }
 
+func (m *UserStore) UpdatePhoneNumber(ctx context.Context, userID uuid.UUID, phone string) error {
+	args := m.Called(ctx, userID, phone)
+	return args.Error(0)
+}
+
+func (m *UserStore) CreatePasswordResetToken(ctx context.Context, userID uuid.UUID, token string, exp time.Duration) error {
+	args := m.Called(ctx, userID, token, exp)
+	return args.Error(0)
+}
+
+func (m *UserStore) GetUserByResetToken(ctx context.Context, token string) (*models.User, error) {
+	args := m.Called(ctx, token)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.User), args.Error(1)
+}
+
+func (m *UserStore) DeletePasswordResetToken(ctx context.Context, userID uuid.UUID) error {
+	args := m.Called(ctx, userID)
+	return args.Error(0)
+}
+
+func (m *UserStore) DeletePasswordResetTokenByToken(ctx context.Context, token string) error {
+	args := m.Called(ctx, token)
+	return args.Error(0)
+}
+
+func (m *UserStore) UpdatePassword(ctx context.Context, userID uuid.UUID, passwordHash []byte) error {
+	args := m.Called(ctx, userID, passwordHash)
+	return args.Error(0)
+}
+
 type ArticlesStore struct {
 	mock.Mock
 }
@@ -103,6 +137,16 @@ func (m *ArticlesStore) Delete(ctx context.Context, id uuid.UUID) error {
 
 func (m *ArticlesStore) GetAll(ctx context.Context, limit, offset int) ([]models.Article, error) {
 	args := m.Called(ctx, limit, offset)
+	return args.Get(0).([]models.Article), args.Error(1)
+}
+
+func (m *ArticlesStore) GetLowStockCount(ctx context.Context) (int, error) {
+	args := m.Called(ctx)
+	return args.Int(0), args.Error(1)
+}
+
+func (m *ArticlesStore) Search(ctx context.Context, params store.ArticleSearchParams) ([]models.Article, error) {
+	args := m.Called(ctx, params)
 	return args.Get(0).([]models.Article), args.Error(1)
 }
 
@@ -202,6 +246,11 @@ func (m *EventStore) GetByUserID(ctx context.Context, id uuid.UUID) ([]models.Ev
 	return args.Get(0).([]models.Event), args.Error(1)
 }
 
+func (m *EventStore) GetPendingByUserID(ctx context.Context, id uuid.UUID) ([]models.Event, error) {
+	args := m.Called(ctx, id)
+	return args.Get(0).([]models.Event), args.Error(1)
+}
+
 func (m *EventStore) GetOrCreateDraft(ctx context.Context, userID uuid.UUID) (*models.Event, error) {
 	args := m.Called(ctx, userID)
 	if args.Get(0) == nil {
@@ -254,6 +303,16 @@ func (m *EventStore) GetDebrief(ctx context.Context, id uuid.UUID) (*models.Even
 		return nil, args.Error(1)
 	}
 	return args.Get(0).(*models.EventDebrief), args.Error(1)
+}
+
+func (m *EventStore) ApproveQuote(ctx context.Context, eventID, userID uuid.UUID) error {
+	args := m.Called(ctx, eventID, userID)
+	return args.Error(0)
+}
+
+func (m *EventStore) RejectQuote(ctx context.Context, eventID, userID uuid.UUID) error {
+	args := m.Called(ctx, eventID, userID)
+	return args.Error(0)
 }
 
 type GuestStore struct {
@@ -572,4 +631,43 @@ func (m *CommentsStore) RetrieveCommentsByPostId(ctx context.Context, postID uui
 		return nil, args.Error(1)
 	}
 	return args.Get(0).([]models.Comment), args.Error(1)
+}
+
+type EventPhotosStore struct {
+	mock.Mock
+}
+
+func (m *EventPhotosStore) Create(ctx context.Context, photo *models.EventPhoto) error {
+	args := m.Called(ctx, photo)
+	return args.Error(0)
+}
+
+func (m *EventPhotosStore) GetByEventID(ctx context.Context, eventID uuid.UUID) ([]models.EventPhoto, error) {
+	args := m.Called(ctx, eventID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]models.EventPhoto), args.Error(1)
+}
+
+func (m *EventPhotosStore) Delete(ctx context.Context, id uuid.UUID) error {
+	args := m.Called(ctx, id)
+	return args.Error(0)
+}
+
+type AuditLogsStore struct {
+	mock.Mock
+}
+
+func (m *AuditLogsStore) Log(ctx context.Context, log *models.AuditLog) error {
+	args := m.Called(ctx, log)
+	return args.Error(0)
+}
+
+func (m *AuditLogsStore) GetByEventID(ctx context.Context, eventID uuid.UUID) ([]models.AuditLogWithUser, error) {
+	args := m.Called(ctx, eventID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]models.AuditLogWithUser), args.Error(1)
 }

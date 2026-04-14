@@ -68,7 +68,9 @@ func (s *EventStore) GetOrCreateDraft(ctx context.Context, userID uuid.UUID) (*m
 	const selectQuery = `
 		SELECT id, user_id, name, date, location, guest_count, budget, status,
 		       additional_costs, admin_notes, payment_status, payment_method,
-		       paid_at, created_at, updated_at
+		       paid_at,
+		       quote_approved_at, quote_approved_by, quote_rejected_at, quote_rejected_by,
+		       created_at, updated_at
 		FROM events
 		WHERE user_id = $1 AND status = 'draft'
 		LIMIT 1
@@ -80,6 +82,7 @@ func (s *EventStore) GetOrCreateDraft(ctx context.Context, userID uuid.UUID) (*m
 			&ev.GuestCount, &ev.Budget, &ev.Status,
 			&ev.AdditionalCosts, &ev.AdminNotes,
 			&ev.PaymentStatus, &ev.PaymentMethod, &ev.PaidAt,
+			&ev.QuoteApprovedAt, &ev.QuoteApprovedBy, &ev.QuoteRejectedAt, &ev.QuoteRejectedBy,
 			&ev.CreatedAt, &ev.UpdatedAt,
 		)
 	}
@@ -115,8 +118,10 @@ func (s *EventStore) GetOrCreateDraft(ctx context.Context, userID uuid.UUID) (*m
 
 func (s *EventStore) GetByID(ctx context.Context, id uuid.UUID) (*models.Event, error) {
 	query := `
-		SELECT id, user_id, name, date, location, guest_count, budget, status, additional_costs, admin_notes, 
-		       payment_status, payment_method, paid_at, created_at, updated_at
+		SELECT id, user_id, name, date, location, guest_count, budget, status, additional_costs, admin_notes,
+		       payment_status, payment_method, paid_at,
+		       quote_approved_at, quote_approved_by, quote_rejected_at, quote_rejected_by,
+		       created_at, updated_at
 		FROM events
 		WHERE id = $1
 	`
@@ -136,6 +141,10 @@ func (s *EventStore) GetByID(ctx context.Context, id uuid.UUID) (*models.Event, 
 		&event.PaymentStatus,
 		&event.PaymentMethod,
 		&event.PaidAt,
+		&event.QuoteApprovedAt,
+		&event.QuoteApprovedBy,
+		&event.QuoteRejectedAt,
+		&event.QuoteRejectedBy,
 		&event.CreatedAt,
 		&event.UpdatedAt,
 	)
@@ -151,8 +160,10 @@ func (s *EventStore) GetByID(ctx context.Context, id uuid.UUID) (*models.Event, 
 
 func (s *EventStore) GetByUserID(ctx context.Context, userID uuid.UUID) ([]models.Event, error) {
 	query := `
-		SELECT id, user_id, name, date, location, guest_count, budget, status, additional_costs, admin_notes, 
-		       payment_status, payment_method, paid_at, created_at, updated_at
+		SELECT id, user_id, name, date, location, guest_count, budget, status, additional_costs, admin_notes,
+		       payment_status, payment_method, paid_at,
+		       quote_approved_at, quote_approved_by, quote_rejected_at, quote_rejected_by,
+		       created_at, updated_at
 		FROM events
 		WHERE user_id = $1
 		ORDER BY date ASC
@@ -181,6 +192,64 @@ func (s *EventStore) GetByUserID(ctx context.Context, userID uuid.UUID) ([]model
 			&event.PaymentStatus,
 			&event.PaymentMethod,
 			&event.PaidAt,
+			&event.QuoteApprovedAt,
+			&event.QuoteApprovedBy,
+			&event.QuoteRejectedAt,
+			&event.QuoteRejectedBy,
+			&event.CreatedAt,
+			&event.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		events = append(events, event)
+	}
+
+	return events, nil
+}
+
+// GetPendingByUserID returns events that are not completed or cancelled.
+func (s *EventStore) GetPendingByUserID(ctx context.Context, userID uuid.UUID) ([]models.Event, error) {
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
+	defer cancel()
+
+	query := `
+		SELECT id, user_id, name, date, location, guest_count, budget, status, additional_costs, admin_notes,
+		       payment_status, payment_method, paid_at,
+		       quote_approved_at, quote_approved_by, quote_rejected_at, quote_rejected_by,
+		       created_at, updated_at
+		FROM events
+		WHERE user_id = $1 AND status NOT IN ('completed', 'cancelled')
+		ORDER BY date ASC
+	`
+
+	rows, err := s.db.QueryContext(ctx, query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var events []models.Event
+	for rows.Next() {
+		var event models.Event
+		err := rows.Scan(
+			&event.ID,
+			&event.UserID,
+			&event.Name,
+			&event.Date,
+			&event.Location,
+			&event.GuestCount,
+			&event.Budget,
+			&event.Status,
+			&event.AdditionalCosts,
+			&event.AdminNotes,
+			&event.PaymentStatus,
+			&event.PaymentMethod,
+			&event.PaidAt,
+			&event.QuoteApprovedAt,
+			&event.QuoteApprovedBy,
+			&event.QuoteRejectedAt,
+			&event.QuoteRejectedBy,
 			&event.CreatedAt,
 			&event.UpdatedAt,
 		)
@@ -195,8 +264,10 @@ func (s *EventStore) GetByUserID(ctx context.Context, userID uuid.UUID) ([]model
 
 func (s *EventStore) GetAll(ctx context.Context) ([]models.Event, error) {
 	query := `
-		SELECT id, user_id, name, date, location, guest_count, budget, status, additional_costs, admin_notes, 
-		       payment_status, payment_method, paid_at, created_at, updated_at
+		SELECT id, user_id, name, date, location, guest_count, budget, status, additional_costs, admin_notes,
+		       payment_status, payment_method, paid_at,
+		       quote_approved_at, quote_approved_by, quote_rejected_at, quote_rejected_by,
+		       created_at, updated_at
 		FROM events
 		ORDER BY date ASC
 	`
@@ -224,6 +295,10 @@ func (s *EventStore) GetAll(ctx context.Context) ([]models.Event, error) {
 			&event.PaymentStatus,
 			&event.PaymentMethod,
 			&event.PaidAt,
+			&event.QuoteApprovedAt,
+			&event.QuoteApprovedBy,
+			&event.QuoteRejectedAt,
+			&event.QuoteRejectedBy,
 			&event.CreatedAt,
 			&event.UpdatedAt,
 		)
@@ -575,4 +650,50 @@ func (s *EventStore) GetDebrief(ctx context.Context, id uuid.UUID) (*models.Even
 			CompletedTimeline: completedTimeline,
 		},
 	}, nil
+}
+
+func (s *EventStore) ApproveQuote(ctx context.Context, eventID, userID uuid.UUID) error {
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
+	defer cancel()
+
+	query := `
+		UPDATE events
+		SET status = $1, quote_approved_at = NOW(), quote_approved_by = $2, updated_at = NOW()
+		WHERE id = $3
+	`
+	res, err := s.db.ExecContext(ctx, query, models.EventStatusPaid, userID, eventID)
+	if err != nil {
+		return err
+	}
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+func (s *EventStore) RejectQuote(ctx context.Context, eventID, userID uuid.UUID) error {
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
+	defer cancel()
+
+	query := `
+		UPDATE events
+		SET status = $1, quote_rejected_at = NOW(), quote_rejected_by = $2, updated_at = NOW()
+		WHERE id = $3
+	`
+	res, err := s.db.ExecContext(ctx, query, models.EventStatusRejected, userID, eventID)
+	if err != nil {
+		return err
+	}
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return ErrNotFound
+	}
+	return nil
 }

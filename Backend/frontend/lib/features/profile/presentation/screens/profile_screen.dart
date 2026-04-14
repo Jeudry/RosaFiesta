@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:frontend/core/app_theme.dart';
+import 'package:frontend/core/language_provider.dart';
 import 'package:frontend/features/auth/presentation/auth_provider.dart';
 import '../../../home/presentation/screens/welcome_onboarding_screen.dart';
 import '../profile_provider.dart';
@@ -128,6 +129,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
                        _buildInfoRow(Icons.badge, 'Username', user.userName),
                     ],
                   ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // Language Toggle
+                Consumer<LanguageProvider>(
+                  builder: (context, lang, _) {
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: AppDecorations.softShadow,
+                      ),
+                      child: SwitchListTile(
+                        title: const Text('Idioma', style: TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: Text(lang.isSpanish ? 'Español' : 'English', style: const TextStyle(fontSize: 12)),
+                        value: lang.isSpanish,
+                        activeColor: AppColors.primary,
+                        onChanged: (val) {
+                          lang.setLanguage(val ? 'es' : 'en');
+                        },
+                        secondary: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(Icons.language, color: AppColors.primary),
+                        ),
+                      ),
+                    );
+                  },
                 ),
 
                 const SizedBox(height: 24),

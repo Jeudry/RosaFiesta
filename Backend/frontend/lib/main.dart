@@ -4,14 +4,21 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:frontend/l10n/generated/app_localizations.dart';
 import 'core/app_theme.dart';
 import 'core/theme_provider.dart';
+import 'core/language_provider.dart';
 import 'features/auth/presentation/auth_provider.dart';
-import 'features/home/presentation/screens/welcome_onboarding_screen.dart';
+import 'features/auth/presentation/screens/auth_gate_screen.dart';
 import 'features/shell/main_shell.dart';
 import 'features/auth/presentation/screens/confirmation_screen.dart';
+import 'features/auth/presentation/screens/verify_email_screen.dart';
+import 'features/auth/presentation/screens/forgot_password_screen.dart';
+import 'features/auth/presentation/screens/reset_password_screen.dart';
+import 'features/events/presentation/screens/order_confirmation_screen.dart';
+import 'features/events/presentation/screens/event_detail_screen.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'core/api_client.dart';
 import 'features/products/presentation/products_provider.dart';
 import 'features/products/presentation/reviews_provider.dart';
+import 'features/reviews/presentation/company_reviews_provider.dart';
 import 'features/categories/presentation/categories_provider.dart';
 import 'features/profile/presentation/profile_provider.dart';
 import 'features/events/presentation/events_provider.dart';
@@ -78,6 +85,7 @@ Future<void> main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => LanguageProvider()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => ProductsProvider()),
         ChangeNotifierProvider(create: (_) => ActiveEventProvider()),
@@ -94,11 +102,27 @@ Future<void> main() async {
         ),
         ChangeNotifierProvider(create: (_) => StatsProvider()),
         ChangeNotifierProvider(create: (_) => ReviewsProvider()),
+        ChangeNotifierProvider(create: (_) => CompanyReviewsProvider()),
         ChangeNotifierProvider(create: (_) => ChatProvider()),
         ChangeNotifierProvider(create: (_) => DebriefProvider()),
         ChangeNotifierProvider(create: (_) => AssistantProvider()),
       ],
-      child: const RosaFiestaApp(),
+      child: Builder(
+        builder: (ctx) {
+          // Register FavoritesProvider with AuthProvider once the widget tree
+          // is built so both providers are accessible.
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            try {
+              final authProvider = Provider.of<AuthProvider>(ctx, listen: false);
+              final favoritesProvider = Provider.of<FavoritesProvider>(ctx, listen: false);
+              authProvider.registerFavoritesProvider(favoritesProvider);
+            } catch (_) {
+              // Best-effort; providers may not be ready on all platforms
+            }
+          });
+          return RosaFiestaApp();
+        },
+      ),
     ),
   );
 }
@@ -108,6 +132,7 @@ class RosaFiestaApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final languageProvider = context.watch<LanguageProvider>();
     return MaterialApp(
       title: 'Rosa Fiesta',
       theme: AppTheme.lightTheme,
@@ -119,19 +144,101 @@ class RosaFiestaApp extends StatelessWidget {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: const [Locale('en'), Locale('es')],
-      locale: const Locale('es', 'ES'),
+      locale: languageProvider.locale,
       home: const _AuthGate(),
       onGenerateRoute: (settings) {
-        if (settings.name != null && settings.name!.startsWith('/confirm/')) {
-          final uri = Uri.parse(settings.name!);
-          if (uri.pathSegments.length == 2 &&
-              uri.pathSegments[0] == 'confirm') {
+        final name = settings.name;
+        if (name == null) return null;
+
+        // Handle hash-based routes from deep linking
+        // e.g., /#/order-confirmation/123 -> /order-confirmation/123
+        String path = name;
+        if (path.startsWith('/#')) {
+          path = path.substring(1); // Remove the # prefix
+        }
+
+        // Handle /confirm/:token (existing)
+        if (path.startsWith('/confirm/')) {
+          final uri = Uri.parse(path);
+          if (uri.pathSegments.length == 2 && uri.pathSegments[0] == 'confirm') {
             final token = uri.pathSegments[1];
             return MaterialPageRoute(
               builder: (context) => ConfirmationScreen(token: token),
             );
           }
         }
+
+        // Handle /order-confirmation/:eventId
+        if (path.startsWith('/order-confirmation/')) {
+          final uri = Uri.parse(path);
+          if (uri.pathSegments.length == 2 && uri.pathSegments[0] == 'order-confirmation') {
+            final eventId = uri.pathSegments[1];
+            return MaterialPageRoute(
+              builder: (context) => OrderConfirmationScreen(eventId: eventId),
+            );
+          }
+        }
+
+        // Handle /verify-email/:token
+        if (path.startsWith('/verify-email/')) {
+          final uri = Uri.parse(path);
+          if (uri.pathSegments.length == 2 && uri.pathSegments[0] == 'verify-email') {
+            final token = uri.pathSegments[1];
+            return MaterialPageRoute(
+              builder: (context) => VerifyEmailScreen(token: token),
+            );
+          }
+        }
+
+        // Handle /forgot-password
+        if (path == '/forgot-password') {
+          return MaterialPageRoute(
+            builder: (context) => const ForgotPasswordScreen(),
+          );
+        }
+
+        // Handle /reset-password/:token
+        if (path.startsWith('/reset-password/')) {
+          final uri = Uri.parse(path);
+          if (uri.pathSegments.length == 2 && uri.pathSegments[0] == 'reset-password') {
+            final token = uri.pathSegments[1];
+            return MaterialPageRoute(
+              builder: (context) => ResetPasswordScreen(token: token),
+            );
+          }
+        }
+
+        // Handle /catalog (deep link to catalog)
+        if (path == '/catalog' || path == '/#/catalog') {
+          // Navigate to MainShell with catalog tab selected
+          // This will be handled by MainShell's initialIndex
+          return MaterialPageRoute(
+            builder: (context) => const MainShell(initialIndex: 0),
+          );
+        }
+
+        // Handle /events/:id (deep link to event detail)
+        if (path.startsWith('/events/')) {
+          final uri = Uri.parse(path);
+          if (uri.pathSegments.length == 2 && uri.pathSegments[0] == 'events') {
+            final eventId = uri.pathSegments[1];
+            return MaterialPageRoute(
+              builder: (context) => EventDetailScreen(eventId: eventId),
+            );
+          }
+        }
+
+        // Handle /event/:id (alternative event detail route)
+        if (path.startsWith('/event/')) {
+          final uri = Uri.parse(path);
+          if (uri.pathSegments.length == 2 && uri.pathSegments[0] == 'event') {
+            final eventId = uri.pathSegments[1];
+            return MaterialPageRoute(
+              builder: (context) => EventDetailScreen(eventId: eventId),
+            );
+          }
+        }
+
         return null;
       },
     );
@@ -168,6 +275,6 @@ class _AuthGateState extends State<_AuthGate> {
       return const MainShell();
     }
 
-    return const WelcomeOnboardingScreen();
+    return const AuthGateScreen();
   }
 }

@@ -21,3 +21,22 @@ type EventItem struct {
 	Variant *ArticleVariant `json:"variant,omitempty"`
 	Price   *float64        `json:"price,omitempty"`
 }
+
+// UnitPrice returns the effective unit price, falling back through PriceSnapshot → Variant.RentalPrice → Price.
+func (e *EventItem) UnitPrice() float64 {
+	if e.PriceSnapshot != nil {
+		return *e.PriceSnapshot
+	}
+	if e.Variant != nil {
+		return e.Variant.RentalPrice
+	}
+	if e.Price != nil {
+		return *e.Price
+	}
+	return 0
+}
+
+// LineTotal returns the total price for this line item.
+func (e *EventItem) LineTotal() float64 {
+	return e.UnitPrice() * float64(e.Quantity)
+}

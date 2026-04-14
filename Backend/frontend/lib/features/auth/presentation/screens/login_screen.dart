@@ -9,6 +9,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../auth_provider.dart';
 import '../../../shell/main_shell.dart';
 import 'register_screen.dart';
+import 'login_success_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -74,10 +75,17 @@ class _LoginScreenState extends State<LoginScreen>
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         duration: const Duration(seconds: 2),
       ));
-      navigator.pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const MainShell()),
-        (route) => false,
-      );
+      // If user has pending events, show the success screen first
+      if (auth.pendingEvents.isNotEmpty) {
+        navigator.pushReplacement(
+          MaterialPageRoute(builder: (_) => const LoginSuccessScreen()),
+        );
+      } else {
+        navigator.pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const MainShell()),
+          (route) => false,
+        );
+      }
     }
   }
 

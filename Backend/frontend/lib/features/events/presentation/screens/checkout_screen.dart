@@ -5,9 +5,12 @@ import 'package:provider/provider.dart';
 import 'package:frontend/core/app_colors.dart';
 import 'package:frontend/core/design_system.dart';
 
+import '../../../auth/presentation/screens/auth_required_sheet.dart';
 import '../events_provider.dart';
+import 'order_confirmation_screen.dart';
 
 class CheckoutScreen extends StatefulWidget {
+  final String eventId;
   final String eventName;
   final double totalAmount;
   final String? recipientName;
@@ -15,6 +18,7 @@ class CheckoutScreen extends StatefulWidget {
 
   const CheckoutScreen({
     super.key,
+    required this.eventId,
     required this.eventName,
     required this.totalAmount,
     this.recipientName,
@@ -32,12 +36,13 @@ class _CheckoutScreenState extends State<CheckoutScreen>
   final _expiryController = TextEditingController();
   final _cvvController = TextEditingController();
   final _nameController = TextEditingController();
+  final _phoneController = TextEditingController();
 
   final _methods = [
-    _PaymentMethod('Visa', Icons.credit_card, AppColors.sky),
-    _PaymentMethod('Mastercard', Icons.credit_card, AppColors.coral),
-    _PaymentMethod('PayPal', Icons.account_balance_wallet, AppColors.teal),
-    _PaymentMethod('Transferencia', Icons.account_balance, AppColors.violet),
+    _PaymentMethod('Tarjeta', Icons.credit_card, AppColors.sky),
+    _PaymentMethod('Banco Popular', Icons.account_balance, AppColors.violet),
+    _PaymentMethod('Banreservas', Icons.account_balance, AppColors.teal),
+    _PaymentMethod('Efectivo', Icons.payments, AppColors.amber),
   ];
 
   @override
@@ -46,6 +51,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
     _expiryController.dispose();
     _cvvController.dispose();
     _nameController.dispose();
+    _phoneController.dispose();
     super.dispose();
   }
 
@@ -374,7 +380,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Detalles de tarjeta',
+            'Detalles de contacto',
             style: GoogleFonts.outfit(
               fontSize: 16,
               fontWeight: FontWeight.w700,
@@ -383,62 +389,272 @@ class _CheckoutScreenState extends State<CheckoutScreen>
           ),
           const SizedBox(height: 16),
           _buildFormField(
-            label: 'Nombre en la tarjeta',
-            hint: 'Olivia Rhye',
-            controller: _nameController,
+            label: 'Teléfono',
+            hint: '(809) 555-1234',
+            controller: _phoneController,
             t: t,
-            prefixIcon: Icons.person_outline_rounded,
+            prefixIcon: Icons.phone_outlined,
+            keyboardType: TextInputType.phone,
           ),
-          const SizedBox(height: 14),
-          _buildFormField(
-            label: 'Número de tarjeta',
-            hint: '1234 1234 1234 1234',
-            controller: _cardNumberController,
-            t: t,
-            prefixIcon: Icons.credit_card_rounded,
-            keyboardType: TextInputType.number,
-            inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(16),
-              _CardNumberFormatter(),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: _buildFormField(
-                  label: 'Vence',
-                  hint: 'MM/YY',
-                  controller: _expiryController,
-                  t: t,
-                  keyboardType: TextInputType.datetime,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.digitsOnly,
-                    LengthLimitingTextInputFormatter(4),
-                    _ExpiryFormatter(),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: _buildFormField(
-                  label: 'CVV',
-                  hint: '123',
-                  controller: _cvvController,
-                  t: t,
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.digitsOnly,
-                    LengthLimitingTextInputFormatter(3),
-                  ],
-                  obscure: true,
-                ),
-              ),
-            ],
-          ),
+          const SizedBox(height: 24),
+          _buildPaymentDetails(t),
         ],
       ),
+    );
+  }
+
+  Widget _buildPaymentDetails(RfTheme t) {
+    final method = _methods[_selectedMethodIndex].name;
+    if (method == 'Tarjeta') {
+      return _buildCardFields(t);
+    } else if (method == 'Efectivo') {
+      return _buildCashInstructions(t);
+    } else {
+      return _buildBankTransferInstructions(t, method);
+    }
+  }
+
+  Widget _buildCardFields(RfTheme t) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Datos de tarjeta',
+          style: GoogleFonts.outfit(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: t.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 16),
+        _buildFormField(
+          label: 'Nombre en la tarjeta',
+          hint: 'Olivia Rhye',
+          controller: _nameController,
+          t: t,
+          prefixIcon: Icons.person_outline_rounded,
+        ),
+        const SizedBox(height: 14),
+        _buildFormField(
+          label: 'Número de tarjeta',
+          hint: '1234 1234 1234 1234',
+          controller: _cardNumberController,
+          t: t,
+          prefixIcon: Icons.credit_card_rounded,
+          keyboardType: TextInputType.number,
+          inputFormatters: [
+            FilteringTextInputFormatter.digitsOnly,
+            LengthLimitingTextInputFormatter(16),
+            _CardNumberFormatter(),
+          ],
+        ),
+        const SizedBox(height: 14),
+        Row(
+          children: [
+            Expanded(
+              child: _buildFormField(
+                label: 'Vence',
+                hint: 'MM/YY',
+                controller: _expiryController,
+                t: t,
+                keyboardType: TextInputType.datetime,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(4),
+                  _ExpiryFormatter(),
+                ],
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: _buildFormField(
+                label: 'CVV',
+                hint: '123',
+                controller: _cvvController,
+                t: t,
+                keyboardType: TextInputType.number,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(3),
+                ],
+                obscure: true,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBankTransferInstructions(RfTheme t, String bank) {
+    final bankInfo = bank == 'Banco Popular'
+        ? _BankInfo(
+            bankName: 'Banco Popular Dominicano',
+            accountType: 'Cuenta Corriente',
+            accountNumber: '0123-4567-8901-2345',
+            accountHolder: 'Rosa Fiesta Events SRL',
+            cedula: '012-3456789-0',
+          )
+        : _BankInfo(
+            bankName: 'Banreservas',
+            accountType: 'Cuenta de Ahorros',
+            accountNumber: '9876-5432-1098-7654',
+            accountHolder: 'Rosa Fiesta Events SRL',
+            cedula: '012-3456789-0',
+          );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Transferencia $bank',
+          style: GoogleFonts.outfit(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: t.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Realiza tu transferencia a la siguiente cuenta y envía el comprobante por WhatsApp.',
+          style: GoogleFonts.dmSans(
+            fontSize: 13,
+            color: t.textDim,
+          ),
+        ),
+        const SizedBox(height: 16),
+        _buildInfoRow('Banco', bankInfo.bankName, t),
+        const SizedBox(height: 10),
+        _buildInfoRow('Tipo', bankInfo.accountType, t),
+        const SizedBox(height: 10),
+        _buildInfoRow('Cuenta', bankInfo.accountNumber, t),
+        const SizedBox(height: 10),
+        _buildInfoRow('Titular', bankInfo.accountHolder, t),
+        const SizedBox(height: 10),
+        _buildInfoRow('Cédula', bankInfo.cedula, t),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: AppColors.amber.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.amber.withOpacity(0.3)),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.warning_amber_rounded, color: AppColors.amber, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Tu reserva se confirma al verificar el pago.',
+                  style: GoogleFonts.dmSans(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.amber,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCashInstructions(RfTheme t) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Pago en Efectivo',
+          style: GoogleFonts.outfit(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: t.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Puedes pagar en efectivo directamente en nuestra tienda o medianteelada.',
+          style: GoogleFonts.dmSans(
+            fontSize: 13,
+            color: t.textDim,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: AppColors.teal.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.location_on, color: AppColors.teal, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Av. Principal 123, San Cristóbal\nLunes a Viernes 9am - 6pm',
+                  style: GoogleFonts.dmSans(fontSize: 12, color: t.textPrimary),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: AppColors.amber.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.amber.withOpacity(0.3)),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.warning_amber_rounded, color: AppColors.amber, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Tu reserva se confirma al realizar el pago.',
+                  style: GoogleFonts.dmSans(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.amber,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value, RfTheme t) {
+    return Row(
+      children: [
+        SizedBox(
+          width: 80,
+          child: Text(
+            label,
+            style: GoogleFonts.dmSans(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: t.textDim,
+            ),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: GoogleFonts.dmSans(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: t.textPrimary,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -590,9 +806,25 @@ class _CheckoutScreenState extends State<CheckoutScreen>
   }
 
   Future<void> _processPayment(BuildContext context, EventsProvider provider) async {
-    // Simulate payment
-    await Future.delayed(const Duration(seconds: 1));
+    // Auth check — block unauthenticated users from paying
+    if (AuthRequiredSheet.checkAndShow(context)) return;
+
+    final method = _methods[_selectedMethodIndex].name;
+    final success = await provider.payEvent(
+      widget.eventId,
+      method,
+      phone: _phoneController.text,
+    );
     if (mounted) {
+      if (!success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(provider.error ?? 'Error procesando pago'),
+            backgroundColor: AppColors.coral,
+          ),
+        );
+        return;
+      }
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -644,6 +876,13 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                   onTap: () {
                     Navigator.pop(ctx);
                     Navigator.pop(context);
+                    // Navigate to order confirmation screen
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => OrderConfirmationScreen(eventId: widget.eventId),
+                      ),
+                    );
                   },
                   child: Container(
                     width: double.infinity,
@@ -654,7 +893,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                     ),
                     child: Center(
                       child: Text(
-                        'Aceptar',
+                        'Ver confirmación',
                         style: GoogleFonts.dmSans(
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
@@ -678,6 +917,21 @@ class _PaymentMethod {
   final IconData icon;
   final Color color;
   const _PaymentMethod(this.name, this.icon, this.color);
+}
+
+class _BankInfo {
+  final String bankName;
+  final String accountType;
+  final String accountNumber;
+  final String accountHolder;
+  final String cedula;
+  const _BankInfo({
+    required this.bankName,
+    required this.accountType,
+    required this.accountNumber,
+    required this.accountHolder,
+    required this.cedula,
+  });
 }
 
 class _CardNumberFormatter extends TextInputFormatter {

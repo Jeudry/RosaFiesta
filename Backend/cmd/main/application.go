@@ -8,6 +8,7 @@ import (
 	"Backend/internal/notifications"
 	"Backend/internal/ratelimiter"
 	"Backend/internal/store"
+	"Backend/internal/whatsapp"
 
 	"go.uber.org/zap"
 )
@@ -22,4 +23,6 @@ type Application struct {
 	RateLimiter   ratelimiter.RateLimiter
 	Notifications *notifications.NotificationService
 	ChatHub       *Hub
+	R2            *store.R2Client
+	WhatsApp      *whatsapp.Client
 }

@@ -43,7 +43,9 @@ func newTestApplication(t *testing.T, cfg configModels.Config) *Application {
 		NotificationLogs: &storeMocks.NotificationLogsStore{},
 		Favorites:        &storeMocks.FavoritesStore{},
 		Posts:            &storeMocks.PostsStore{},
-		Comments:          &storeMocks.CommentsStore{},
+		Comments:         &storeMocks.CommentsStore{},
+		EventPhotos:      &storeMocks.EventPhotosStore{},
+		AuditLogs:        &storeMocks.AuditLogsStore{},
 	}
 
 	mockCacheStore := cache.Storage{

@@ -45,5 +45,18 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>FlutterDeepLinkingEnabled</key>
+	<true/>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>rosafiesta</string>
+			</array>
+			<key>CFBundleURLName</key>
+			<string>com.jeudry.rosafiesta</string>
+		</dict>
+	</array>
 </dict>
 </plist>

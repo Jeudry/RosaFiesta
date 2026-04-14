@@ -203,38 +203,44 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingTitle1.
   ///
   /// In es, this message translates to:
-  /// **'Planifica Tu Evento Soñado'**
+  /// **'Mira lo que tenemos'**
   String get onboardingTitle1;
 
   /// No description provided for @onboardingDesc1.
   ///
   /// In es, this message translates to:
-  /// **'Organiza cada detalle de tu evento con herramientas inteligentes potenciadas por IA'**
+  /// **'Navega por nuestro catálogo de decoración y equipo para eventos. Sin registrarte, sin compromiso.'**
   String get onboardingDesc1;
 
   /// No description provided for @onboardingTitle2.
   ///
   /// In es, this message translates to:
-  /// **'Encuentra los Mejores Proveedores'**
+  /// **'Tu asistente con IA'**
   String get onboardingTitle2;
 
   /// No description provided for @onboardingDesc2.
   ///
   /// In es, this message translates to:
-  /// **'Conecta con proveedores verificados y compara cotizaciones en un solo lugar'**
+  /// **'Dinos qué evento planeas y te sugerimos artículos, categorías y más — todo guiado por nuestra asistente.'**
   String get onboardingDesc2;
 
   /// No description provided for @onboardingTitle3.
   ///
   /// In es, this message translates to:
-  /// **'Controla Todo en Tiempo Real'**
+  /// **'Confirma directo'**
   String get onboardingTitle3;
 
   /// No description provided for @onboardingDesc3.
   ///
   /// In es, this message translates to:
-  /// **'Presupuesto, tareas, invitados y cronograma — todo bajo control desde tu teléfono'**
+  /// **'Comparte tu lista por WhatsApp con María, la dueña, y confirma todo en minutos — sin trámites.'**
   String get onboardingDesc3;
+
+  /// No description provided for @welcomeSubheadlineAuth.
+  ///
+  /// In es, this message translates to:
+  /// **'Todo para tu evento, guiado por IA'**
+  String get welcomeSubheadlineAuth;
 
   /// No description provided for @skipButton.
   ///

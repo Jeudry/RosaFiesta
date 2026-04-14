@@ -26,6 +26,8 @@ type Storage struct {
 		Update(context.Context, *models.Article) error
 		Delete(context.Context, uuid.UUID) error
 		GetAll(context.Context, int, int) ([]models.Article, error)
+		GetLowStockCount(context.Context) (int, error)
+		Search(context.Context, ArticleSearchParams) ([]models.Article, error)
 	}
 	Categories interface {
 		Create(context.Context, *models.Category) error
@@ -50,6 +52,12 @@ type Storage struct {
 		GetByEmail(context.Context, string) (*models.User, error)
 		UpdateFCMToken(context.Context, uuid.UUID, string) error
 		GetOrganizersFCMTokens(context.Context) ([]string, error)
+		UpdatePhoneNumber(context.Context, uuid.UUID, string) error
+		CreatePasswordResetToken(context.Context, uuid.UUID, string, time.Duration) error
+		GetUserByResetToken(context.Context, string) (*models.User, error)
+		DeletePasswordResetToken(context.Context, uuid.UUID) error
+		DeletePasswordResetTokenByToken(context.Context, string) error
+		UpdatePassword(context.Context, uuid.UUID, []byte) error
 	}
 	Roles interface {
 		RetrieveByName(context.Context, string) (*models.Role, error)
@@ -68,6 +76,7 @@ type Storage struct {
 		Create(context.Context, *models.Event) error
 		GetByID(context.Context, uuid.UUID) (*models.Event, error)
 		GetByUserID(context.Context, uuid.UUID) ([]models.Event, error)
+		GetPendingByUserID(context.Context, uuid.UUID) ([]models.Event, error)
 		// GetOrCreateDraft returns the user's current draft event,
 		// creating an empty one if none exists. This is the entry point
 		// for the catalog "+" button — every user always has exactly
@@ -81,6 +90,8 @@ type Storage struct {
 		GetItems(context.Context, uuid.UUID) ([]models.EventItem, error)
 		GetDebrief(context.Context, uuid.UUID) (*models.EventDebrief, error)
 		GetAll(context.Context) ([]models.Event, error)
+		ApproveQuote(context.Context, uuid.UUID, uuid.UUID) error
+		RejectQuote(context.Context, uuid.UUID, uuid.UUID) error
 	}
 	Guests interface {
 		Create(context.Context, *models.Guest) error
@@ -128,6 +139,11 @@ type Storage struct {
 		GetByEventID(context.Context, uuid.UUID) ([]models.EventReview, error)
 		GetSummary(context.Context, uuid.UUID) (float64, int, error)
 	}
+	CompanyReviews interface {
+		Create(context.Context, *models.CompanyReview) error
+		GetAll(context.Context) ([]models.CompanyReview, error)
+		GetSummary(context.Context) (float64, int, error)
+	}
 	NotificationLogs interface {
 		LogNotification(context.Context, uuid.UUID, models.NotificationType) error
 		HasNotificationBeenSent(context.Context, uuid.UUID, models.NotificationType) (bool, error)
@@ -137,6 +153,15 @@ type Storage struct {
 		Add(context.Context, uuid.UUID, uuid.UUID) error
 		Remove(context.Context, uuid.UUID, uuid.UUID) error
 		IsFavorite(context.Context, uuid.UUID, uuid.UUID) (bool, error)
+	}
+	EventPhotos interface {
+		Create(context.Context, *models.EventPhoto) error
+		GetByEventID(context.Context, uuid.UUID) ([]models.EventPhoto, error)
+		Delete(context.Context, uuid.UUID) error
+	}
+	AuditLogs interface {
+		Log(context.Context, *models.AuditLog) error
+		GetByEventID(context.Context, uuid.UUID) ([]models.AuditLogWithUser, error)
 	}
 }
 
@@ -158,8 +183,11 @@ func NewStorage(db *sql.DB) Storage {
 		Stats:            &StatsStore{db: db},
 		Reviews:          &ReviewsStore{db: db},
 		EventReviews:     &EventReviewsStore{db: db},
+		CompanyReviews:   &CompanyReviewsStore{db: db},
 		NotificationLogs: &NotificationLogsStore{db: db},
 		Favorites:        &FavoritesStore{db: db},
+		EventPhotos:      &EventPhotosStore{db: db},
+		AuditLogs:        &AuditLogsStore{db: db},
 	}
 }
 

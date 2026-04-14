@@ -18,6 +18,7 @@ const (
 	EventStatusPaid      = "paid"
 	EventStatusCompleted = "completed"
 	EventStatusCancelled = "cancelled"
+	EventStatusRejected  = "rejected"
 )
 
 type Event struct {
@@ -34,6 +35,10 @@ type Event struct {
 	PaymentStatus   string     `json:"payment_status"`
 	PaymentMethod   *string    `json:"payment_method"`
 	PaidAt          *time.Time `json:"paid_at"`
+	QuoteApprovedAt *time.Time `json:"quote_approved_at,omitempty"`
+	QuoteApprovedBy *uuid.UUID `json:"quote_approved_by,omitempty"`
+	QuoteRejectedAt *time.Time `json:"quote_rejected_at,omitempty"`
+	QuoteRejectedBy *uuid.UUID `json:"quote_rejected_by,omitempty"`
 	CreatedAt       string     `json:"created_at"`
 	UpdatedAt       string     `json:"updated_at"`
 }
@@ -57,7 +62,7 @@ type UpdateEventPayload struct {
 	Budget          *float64 `json:"budget" validate:"omitempty,min=0"`
 	AdditionalCosts *float64 `json:"additional_costs" validate:"omitempty,min=0"`
 	AdminNotes      *string  `json:"admin_notes" validate:"omitempty"`
-	Status          *string  `json:"status" validate:"omitempty,oneof=draft planning requested adjusted confirmed paid completed cancelled"`
+	Status          *string  `json:"status" validate:"omitempty,oneof=draft planning requested adjusted confirmed paid completed cancelled rejected"`
 	PaymentStatus   *string  `json:"payment_status" validate:"omitempty"`
 	PaymentMethod   *string  `json:"payment_method" validate:"omitempty"`
 }

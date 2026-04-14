@@ -61,25 +61,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get loginSuccess => 'Login Successful';
 
   @override
-  String get onboardingTitle1 => 'Plan Your Dream Event';
+  String get onboardingTitle1 => 'Mira lo que tenemos';
 
   @override
   String get onboardingDesc1 =>
-      'Organize every detail of your event with smart tools powered by AI';
+      'Navega por nuestro catálogo de decoración y equipo para eventos. Sin registrarte, sin compromiso.';
 
   @override
-  String get onboardingTitle2 => 'Find the Best Suppliers';
+  String get onboardingTitle2 => 'Tu asistente con IA';
 
   @override
   String get onboardingDesc2 =>
-      'Connect with verified suppliers and compare quotes in one place';
+      'Dinos qué evento planeas y te sugerimos artículos, categorías y más — todo guiado por nuestra asistente.';
 
   @override
-  String get onboardingTitle3 => 'Track Everything in Real Time';
+  String get onboardingTitle3 => 'Confirma directo';
 
   @override
   String get onboardingDesc3 =>
-      'Budget, tasks, guests and timeline — all under control from your phone';
+      'Comparte tu lista por WhatsApp con María, la dueña, y confirma todo en minutos — sin trámites.';
+
+  @override
+  String get welcomeSubheadlineAuth => 'Todo para tu evento, guiado por IA';
 
   @override
   String get skipButton => 'Skip';

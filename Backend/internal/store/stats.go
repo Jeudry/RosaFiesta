@@ -18,6 +18,13 @@ func (s *StatsStore) GetSummary(ctx context.Context) (*models.AdminStats, error)
 		EventsByStatus: make(map[string]int),
 	}
 
+	// Get low stock count directly via SQL
+	var lowStockCount int
+	queryLowStock := `SELECT COUNT(*) FROM articles WHERE is_active = true AND stock_quantity <= low_stock_threshold`
+	if err := s.db.QueryRowContext(ctx, queryLowStock).Scan(&lowStockCount); err == nil {
+		stats.LowStockCount = lowStockCount
+	}
+
 	// 1. Total numbers and status distribution
 	queryTotals := `
 		SELECT status, COUNT(*), COALESCE(SUM(budget + additional_costs), 0)

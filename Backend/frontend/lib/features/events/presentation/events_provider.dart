@@ -72,6 +72,20 @@ class EventsProvider extends ChangeNotifier {
     }
   }
 
+  Future<Event> fetchEventDetails(String eventId) async {
+    _setLoading(true);
+    _error = null;
+    try {
+      final event = await _repository.getEvent(eventId);
+      return event;
+    } catch (e) {
+      _error = ErrorTranslator.translate(e.toString());
+      rethrow;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
   Future<bool> createEvent(Map<String, dynamic> eventData) async {
     _setLoading(true);
     _error = null;
@@ -163,10 +177,10 @@ class EventsProvider extends ChangeNotifier {
 
   double get totalSpent => realBudget;
 
-  Future<bool> payEvent(String eventId, String method) async {
+  Future<bool> payEvent(String eventId, String method, {String? phone}) async {
     _setLoading(true);
     try {
-      final updatedEvent = await _repository.payEvent(eventId, method);
+      final updatedEvent = await _repository.payEvent(eventId, method, phone: phone);
       _updateEventInList(updatedEvent);
       return true;
     } catch (e) {

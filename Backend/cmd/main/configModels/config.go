@@ -13,4 +13,24 @@ type Config struct {
 	Auth        AuthConfig
 	Redis       RedisConfig
 	RateLimiter ratelimiter.Config
+	R2          R2Config
+	Firebase    FirebaseConfig
+	WhatsApp    WhatsAppConfig
+}
+
+type R2Config struct {
+	AccountID string
+	AccessKey string
+	SecretKey string
+	Bucket    string
+}
+
+type FirebaseConfig struct {
+	Enabled bool
+}
+
+type WhatsAppConfig struct {
+	PhoneNumberID string
+	AccessToken   string
+	FromName     string
 }
