@@ -25,7 +25,7 @@ type Storage struct {
 		GetAvailability(context.Context, uuid.UUID, time.Time) (int, error)
 		Update(context.Context, *models.Article) error
 		Delete(context.Context, uuid.UUID) error
-		GetAll(context.Context, int, int) ([]models.Article, error)
+		GetAll(context.Context) ([]models.Article, error)
 	}
 	Categories interface {
 		Create(context.Context, *models.Category) error
@@ -64,23 +64,24 @@ type Storage struct {
 		Delete(context.Context, string) error
 		DeleteAllForUser(context.Context, uuid.UUID) error
 	}
+	Carts interface {
+		Create(context.Context, *models.Cart) error
+		GetByUserID(context.Context, uuid.UUID) (*models.Cart, error)
+		AddItem(context.Context, *models.CartItem) error
+		UpdateItemQuantity(context.Context, uuid.UUID, int) error
+		RemoveItem(context.Context, uuid.UUID) error
+		ClearCart(context.Context, uuid.UUID) error
+	}
 	Events interface {
 		Create(context.Context, *models.Event) error
 		GetByID(context.Context, uuid.UUID) (*models.Event, error)
 		GetByUserID(context.Context, uuid.UUID) ([]models.Event, error)
-		// GetOrCreateDraft returns the user's current draft event,
-		// creating an empty one if none exists. This is the entry point
-		// for the catalog "+" button — every user always has exactly
-		// one draft acting as their active event.
-		GetOrCreateDraft(context.Context, uuid.UUID) (*models.Event, error)
 		Update(context.Context, *models.Event) error
 		Delete(context.Context, uuid.UUID) error
 		AddItem(context.Context, *models.EventItem) error
-		UpdateItemQuantity(context.Context, uuid.UUID, int) error
 		RemoveItem(context.Context, uuid.UUID, uuid.UUID) error
 		GetItems(context.Context, uuid.UUID) ([]models.EventItem, error)
 		GetDebrief(context.Context, uuid.UUID) (*models.EventDebrief, error)
-		GetAll(context.Context) ([]models.Event, error)
 	}
 	Guests interface {
 		Create(context.Context, *models.Guest) error
@@ -123,49 +124,26 @@ type Storage struct {
 		GetByArticleID(context.Context, uuid.UUID) ([]models.Review, error)
 		GetSummary(context.Context, uuid.UUID) (float64, int, error)
 	}
-	EventReviews interface {
-		Create(context.Context, *models.EventReview) error
-		GetByEventID(context.Context, uuid.UUID) ([]models.EventReview, error)
-		GetSummary(context.Context, uuid.UUID) (float64, int, error)
-	}
-	CompanyReviews interface {
-		Create(context.Context, *models.CompanyReview) error
-		GetAll(context.Context) ([]models.CompanyReview, error)
-		GetSummary(context.Context) (float64, int, error)
-	}
-	NotificationLogs interface {
-		LogNotification(context.Context, uuid.UUID, models.NotificationType) error
-		HasNotificationBeenSent(context.Context, uuid.UUID, models.NotificationType) (bool, error)
-	}
-	Favorites interface {
-		List(context.Context, uuid.UUID) ([]models.Article, error)
-		Add(context.Context, uuid.UUID, uuid.UUID) error
-		Remove(context.Context, uuid.UUID, uuid.UUID) error
-		IsFavorite(context.Context, uuid.UUID, uuid.UUID) (bool, error)
-	}
 }
 
 func NewStorage(db *sql.DB) Storage {
 	return Storage{
-		Articles:         &ArticlesStore{db: db},
-		Categories:       &CategoriesStore{db: db},
-		Posts:            &PostsStore{db: db},
-		Users:            &UsersStore{db: db},
-		Comments:         &CommentsStore{db: db},
-		Roles:            &RolesStore{db: db},
-		RefreshTokens:    &RefreshTokensStore{db: db},
-		Events:           &EventStore{db: db},
-		Guests:           &GuestStore{db: db},
-		EventTasks:       &EventTaskStore{db: db},
-		Suppliers:        &SupplierStore{db: db},
-		Timeline:         &timelineStore{db: db},
-		Messages:         &MessagesStore{db: db},
-		Stats:            &StatsStore{db: db},
-		Reviews:          &ReviewsStore{db: db},
-		EventReviews:     &EventReviewsStore{db: db},
-		CompanyReviews:   &CompanyReviewsStore{db: db},
-		NotificationLogs: &NotificationLogsStore{db: db},
-		Favorites:        &FavoritesStore{db: db},
+		Articles:      &ArticlesStore{db: db},
+		Categories:    &CategoriesStore{db: db},
+		Posts:         &PostsStore{db: db},
+		Users:         &UsersStore{db: db},
+		Comments:      &CommentsStore{db: db},
+		Roles:         &RolesStore{db: db},
+		RefreshTokens: &RefreshTokensStore{db: db},
+		Carts:         &CartsStore{db: db},
+		Events:        &EventStore{db: db},
+		Guests:        &GuestStore{db: db},
+		EventTasks:    &EventTaskStore{db: db},
+		Suppliers:     &SupplierStore{db: db},
+		Timeline:      &timelineStore{db: db},
+		Messages:      &MessagesStore{db: db},
+		Stats:         &StatsStore{db: db},
+		Reviews:       &ReviewsStore{db: db},
 	}
 }
 

@@ -3,20 +3,24 @@ import 'package:provider/provider.dart';
 import '../../data/event_model.dart';
 import '../events_provider.dart';
 import '../../../guests/presentation/screens/guest_list_screen.dart';
+import '../../../tasks/presentation/screens/event_task_list_screen.dart';
+import 'budget_analysis_screen.dart';
+import '../../presentation/timeline_provider.dart';
 import '../../../guests/presentation/guests_provider.dart';
 import '../../../tasks/presentation/tasks_provider.dart';
-import '../timeline_provider.dart';
 import 'package:frontend/core/services/pdf_export_service.dart';
 import 'checkout_screen.dart';
 import '../widgets/quotation_chat_widget.dart';
 import 'package:frontend/core/app_theme.dart';
 import '../debrief_provider.dart';
 import '../../data/event_debrief_model.dart';
+import 'event_timeline_screen.dart';
+import 'event_execution_screen.dart';
 import 'event_debrief_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:frontend/core/config/env_config.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'widgets/event_reviews_sheet.dart';
+
 
 class EventDetailScreen extends StatefulWidget {
   final String eventId;
@@ -68,7 +72,77 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                   padding: const EdgeInsets.all(20),
                   child: Column(
                     children: [
-                    // Budget Comparison Group
+                      // Prominent Execution Mode Banner
+                      InkWell(
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => EventExecutionScreen(eventId: widget.eventId)),
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [AppColors.primary, AppColors.accent],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(color: AppColors.primary.withOpacity(0.4), blurRadius: 8, offset: const Offset(0, 4)),
+                            ],
+                          ),
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('MODO EJECUCIÓN', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, letterSpacing: 1.2, fontSize: 18)),
+                                  SizedBox(height: 4),
+                                  Text('Lista de verificación para hoy', style: TextStyle(color: Colors.white70, fontSize: 14)),
+                                ],
+                              ),
+                              Icon(Icons.play_circle_fill, color: Colors.white, size: 40),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
+                      _buildControlGroup([
+                        _buildNavAction(
+                          icon: Icons.check_circle_outline,
+                          label: 'Tareas',
+                          subtitle: 'Ver checklist',
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => EventTaskListScreen(eventId: widget.eventId)),
+                          ),
+                        ),
+                        const Divider(height: 1),
+                        _buildNavAction(
+                          icon: Icons.timer_outlined,
+                          label: 'Cronograma',
+                          subtitle: 'Ver planificación por horas',
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => EventTimelineScreen(eventId: widget.eventId)),
+                          ),
+                        ),
+                        const Divider(height: 1),
+                        _buildNavAction(
+                          icon: Icons.calendar_month,
+                          label: 'Sincronizar Calendario',
+                          subtitle: 'Exportar a Google/Apple Calendar',
+                          onTap: () => _syncCalendar(context, widget.eventId),
+                        ),
+                      ]),
+                      
+                      const SizedBox(height: 20),
+
+                      // Budget Comparison Group
                       _buildControlGroup([
                         _buildBudgetView(event, provider),
                       ]),
@@ -194,12 +268,9 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
   }
 
   Widget _buildBudgetView(Event event, EventsProvider provider) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: AppDecorations.softShadow,
-      ),
+    return InkWell(
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => BudgetAnalysisScreen(event: event))),
+      borderRadius: BorderRadius.circular(24),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -338,31 +409,17 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     }
 
     if (event.status == 'completed') {
-      return Column(
-        children: [
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              icon: const Icon(Icons.analytics),
-              label: const Text('Ver Análisis Post-Evento'),
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => EventDebriefScreen(eventId: widget.eventId)),
-              ),
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white),
-            ),
+      return SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          icon: const Icon(Icons.analytics),
+          label: const Text('Ver Análisis Post-Evento'),
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => EventDebriefScreen(eventId: widget.eventId)),
           ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              icon: const Icon(Icons.rate_review),
-              label: const Text('Reseñas del Evento'),
-              onPressed: () => EventReviewsSheet.show(context, widget.eventId),
-              style: OutlinedButton.styleFrom(foregroundColor: AppColors.primary, side: const BorderSide(color: AppColors.primary)),
-            ),
-          ),
-        ],
+          style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white),
+        ),
       );
     }
 
@@ -381,7 +438,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => CheckoutScreen(eventName: event.name.isEmpty ? 'Mi Evento' : event.name, totalAmount: total),
+        builder: (context) => CheckoutScreen(event: event, totalAmount: total),
       ),
     );
   }

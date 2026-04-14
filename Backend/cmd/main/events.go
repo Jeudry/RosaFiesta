@@ -57,11 +57,11 @@ func (app *Application) createEventHandler(w http.ResponseWriter, r *http.Reques
 	event := &models.Event{
 		UserID:     user.ID,
 		Name:       payload.Name,
-		Date:       &date,
+		Date:       date,
 		Location:   payload.Location,
 		GuestCount: payload.GuestCount,
 		Budget:     payload.Budget,
-		Status:     models.EventStatusPlanning,
+		Status:     "planning",
 	}
 
 	if err := app.Store.Events.Create(r.Context(), event); err != nil {
@@ -210,7 +210,7 @@ func (app *Application) updateEventHandler(w http.ResponseWriter, r *http.Reques
 				}
 			}
 		}
-		event.Date = &date
+		event.Date = date
 	}
 	if payload.Location != nil {
 		event.Location = *payload.Location
@@ -303,10 +303,8 @@ func (app *Application) addEventItemHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 	var payload struct {
-		ArticleID     uuid.UUID  `json:"article_id"`
-		VariantID     *uuid.UUID `json:"variant_id"`
-		Quantity      int        `json:"quantity"`
-		PriceSnapshot *float64   `json:"price_snapshot"`
+		ArticleID uuid.UUID `json:"article_id"`
+		Quantity  int       `json:"quantity"`
 	}
 	if err := readJson(w, r, &payload); err != nil {
 		app.badRequest(w, r, err)
@@ -330,35 +328,28 @@ func (app *Application) addEventItemHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 	item := &models.EventItem{
-		EventID:       eventID,
-		ArticleID:     payload.ArticleID,
-		VariantID:     payload.VariantID,
-		Quantity:      payload.Quantity,
-		PriceSnapshot: payload.PriceSnapshot,
+		EventID:   eventID,
+		ArticleID: payload.ArticleID,
+		Quantity:  payload.Quantity,
 	}
 	if item.Quantity <= 0 {
 		item.Quantity = 1
 	}
 
-	// Availability check — only enforced when the event has a date.
-	// Drafts (the user's "active event" while browsing the catalog) skip
-	// this check; availability gets validated again when the user picks
-	// a date and the event transitions out of draft.
-	if event.Date != nil {
-		availability, err := app.Store.Articles.GetAvailability(r.Context(), payload.ArticleID, *event.Date)
-		if err != nil {
-			if errors.Is(err, store.ErrNotFound) {
-				app.notFoundResponse(w, r, err)
-			} else {
-				app.internalServerError(w, r, err)
-			}
-			return
+	// Phase 17: Availability & Inventory Check
+	availability, err := app.Store.Articles.GetAvailability(r.Context(), payload.ArticleID, event.Date)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			app.notFoundResponse(w, r, err)
+		} else {
+			app.internalServerError(w, r, err)
 		}
+		return
+	}
 
-		if availability < item.Quantity {
-			app.badRequest(w, r, errors.New("insufficient stock for this date"))
-			return
-		}
+	if availability < item.Quantity {
+		app.badRequest(w, r, errors.New("insufficient stock for this date"))
+		return
 	}
 
 	if err := app.Store.Events.AddItem(r.Context(), item); err != nil {
@@ -644,106 +635,4 @@ func (app *Application) getEventDebriefHandler(w http.ResponseWriter, r *http.Re
 	if err := app.jsonResponse(w, http.StatusOK, debrief); err != nil {
 		app.internalServerError(w, r, err)
 	}
-}
-
-// getActiveEventHandler godoc
-//
-//	@Summary		Get the user's active (draft) event
-//	@Description	Returns the user's current draft event with its items.
-//	                Creates an empty draft on demand if none exists, so the
-//	                caller never has to handle a "no active event" case.
-//	@Tags			events
-//	@Produce		json
-//	@Security		BearerAuth
-//	@Success		200	{object}	map[string]interface{}
-//	@Failure		500	{object}	error
-//	@Router			/events/active [get]
-func (app *Application) getActiveEventHandler(w http.ResponseWriter, r *http.Request) {
-	user := GetUserFromCtx(r)
-
-	event, err := app.Store.Events.GetOrCreateDraft(r.Context(), user.ID)
-	if err != nil {
-		app.internalServerError(w, r, err)
-		return
-	}
-
-	items, err := app.Store.Events.GetItems(r.Context(), event.ID)
-	if err != nil {
-		app.internalServerError(w, r, err)
-		return
-	}
-
-	resp := map[string]interface{}{
-		"event": event,
-		"items": items,
-	}
-	if err := app.jsonResponse(w, http.StatusOK, resp); err != nil {
-		app.internalServerError(w, r, err)
-	}
-}
-
-// updateActiveEventItemHandler godoc
-//
-//	@Summary		Update quantity of an item in the active draft event
-//	@Description	Sets the absolute quantity of a single line in the user's
-//	                draft event. Quantity 0 deletes the line.
-//	@Tags			events
-//	@Accept			json
-//	@Produce		json
-//	@Param			itemId	path	string	true	"Event item ID"
-//	@Param			payload	body	object	true	"Quantity payload"
-//	@Security		BearerAuth
-//	@Success		200	{object}	models.EventItem
-//	@Failure		400	{object}	error
-//	@Failure		404	{object}	error
-//	@Failure		500	{object}	error
-//	@Router			/events/active/items/{itemId} [patch]
-func (app *Application) updateActiveEventItemHandler(w http.ResponseWriter, r *http.Request) {
-	user := GetUserFromCtx(r)
-
-	itemID, err := uuid.Parse(chi.URLParam(r, "itemId"))
-	if err != nil {
-		app.badRequest(w, r, err)
-		return
-	}
-
-	var payload struct {
-		Quantity int `json:"quantity"`
-	}
-	if err := readJson(w, r, &payload); err != nil {
-		app.badRequest(w, r, err)
-		return
-	}
-
-	// Resolve the user's draft so we can authorize the operation against it.
-	event, err := app.Store.Events.GetOrCreateDraft(r.Context(), user.ID)
-	if err != nil {
-		app.internalServerError(w, r, err)
-		return
-	}
-
-	// Quantity 0 (or negative) means "remove this line".
-	if payload.Quantity <= 0 {
-		if err := app.Store.Events.RemoveItem(r.Context(), event.ID, itemID); err != nil {
-			if errors.Is(err, store.ErrNotFound) {
-				app.notFoundResponse(w, r, err)
-			} else {
-				app.internalServerError(w, r, err)
-			}
-			return
-		}
-		w.WriteHeader(http.StatusNoContent)
-		return
-	}
-
-	if err := app.Store.Events.UpdateItemQuantity(r.Context(), itemID, payload.Quantity); err != nil {
-		if errors.Is(err, store.ErrNotFound) {
-			app.notFoundResponse(w, r, err)
-		} else {
-			app.internalServerError(w, r, err)
-		}
-		return
-	}
-
-	w.WriteHeader(http.StatusNoContent)
 }

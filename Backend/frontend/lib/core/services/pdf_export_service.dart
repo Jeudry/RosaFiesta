@@ -67,7 +67,7 @@ class PdfExportService {
                       pw.Text('DETALLES DEL EVENTO', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12, color: PdfColors.pink)),
                       pw.Divider(color: PdfColors.pink, thickness: 0.5),
                       pw.Text(event.name, style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
-                      pw.Text('Fecha: ${event.date != null ? dateFormat.format(event.date!) : "Sin definir"}'),
+                      pw.Text('Fecha: ${dateFormat.format(event.date)}'),
                       pw.Text('Ubicación: ${event.location}'),
                       pw.Text('Invitados: ${event.guestCount}'),
                     ]
