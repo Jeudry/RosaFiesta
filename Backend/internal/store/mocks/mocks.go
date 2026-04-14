@@ -521,3 +521,55 @@ func (m *NotificationLogsStore) HasNotificationBeenSent(ctx context.Context, eve
 	args := m.Called(ctx, eventID, notificationType)
 	return args.Bool(0), args.Error(1)
 }
+
+type PostsStore struct {
+	mock.Mock
+}
+
+func (m *PostsStore) Create(ctx context.Context, post *models.Post) error {
+	args := m.Called(ctx, post)
+	return args.Error(0)
+}
+
+func (m *PostsStore) RetrieveById(ctx context.Context, id uuid.UUID) (*models.Post, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.Post), args.Error(1)
+}
+
+func (m *PostsStore) Update(ctx context.Context, post *models.Post) error {
+	args := m.Called(ctx, post)
+	return args.Error(0)
+}
+
+func (m *PostsStore) Delete(ctx context.Context, id uuid.UUID) error {
+	args := m.Called(ctx, id)
+	return args.Error(0)
+}
+
+func (m *PostsStore) GetUserFeed(ctx context.Context, userID uuid.UUID, fq models.PaginatedFeedQueryModel) ([]models.PostWithMetadata, error) {
+	args := m.Called(ctx, userID, fq)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]models.PostWithMetadata), args.Error(1)
+}
+
+type CommentsStore struct {
+	mock.Mock
+}
+
+func (m *CommentsStore) CreatePostComment(ctx context.Context, comment *models.Comment) error {
+	args := m.Called(ctx, comment)
+	return args.Error(0)
+}
+
+func (m *CommentsStore) RetrieveCommentsByPostId(ctx context.Context, postID uuid.UUID) ([]models.Comment, error) {
+	args := m.Called(ctx, postID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]models.Comment), args.Error(1)
+}

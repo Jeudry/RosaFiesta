@@ -123,7 +123,7 @@ func (app *Application) APIKeyMiddleware() func(http.Handler) http.Handler {
 				UserName: "API-Key-User",
 				Role: models.Role{
 					Name:  "admin",
-					Level: 2, // Admin level
+					Level: 5, // Admin level (highest)
 				},
 			}
 			ctx := context.WithValue(r.Context(), UserCtx, virtualUser)
