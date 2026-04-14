@@ -40,6 +40,19 @@ class Product {
       reviewCount: json['review_count'] ?? 0,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name_template': nameTemplate,
+        'description_template': descriptionTemplate,
+        'is_active': isActive,
+        'type': type,
+        'stock_quantity': stockQuantity,
+        'category_id': categoryId,
+        'variants': variants.map((v) => v.toJson()).toList(),
+        'average_rating': averageRating,
+        'review_count': reviewCount,
+      };
 }
 
 class Review {
@@ -142,6 +155,22 @@ class ProductVariant {
           [],
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'article_id': articleId,
+        'sku': sku,
+        'name': name,
+        'description': description,
+        'image_url': imageUrl,
+        'is_active': isActive,
+        'stock': stock,
+        'rental_price': rentalPrice,
+        'sale_price': salePrice,
+        'replacement_cost': replacementCost,
+        'attributes': attributes,
+        'dimensions': dimensions.map((d) => d.toJson()).toList(),
+      };
 }
 
 class ProductDimension {
@@ -171,4 +200,13 @@ class ProductDimension {
       weight: (json['weight'] as num?)?.toDouble(),
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'variant_id': variantId,
+        'height': height,
+        'width': width,
+        'depth': depth,
+        'weight': weight,
+      };
 }

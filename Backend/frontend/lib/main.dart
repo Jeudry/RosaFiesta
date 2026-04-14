@@ -25,6 +25,7 @@ import 'features/events/presentation/timeline_provider.dart';
 import 'features/stats/presentation/stats_provider.dart';
 import 'package:frontend/features/events/data/timeline_repository.dart';
 import 'core/services/notification_service.dart';
+import 'core/services/voice_search_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'core/services/firebase_service.dart';
 import 'core/services/hive_service.dart';
@@ -69,6 +70,12 @@ Future<void> main() async {
     await NotificationService().init();
   } catch (e) {
     print("Warning: NotificationService initialization failed: $e");
+  }
+
+  try {
+    VoiceSearchService().initialize();
+  } catch (e) {
+    print("Warning: VoiceSearch initialization failed: $e");
   }
 
   final guestsRepository = GuestsRepository();

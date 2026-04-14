@@ -5,13 +5,24 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'package:frontend/core/design_system.dart';
 import 'package:frontend/core/app_colors.dart';
+import '../../../reviews/presentation/screens/company_reviews_screen.dart';
 
 /// Acerca de — Company info screen.
 ///
 /// Holds everything that doesn't need to clutter the home: stats, contact info,
-/// location with map, social media, and company description.
-class AboutScreen extends StatelessWidget {
+/// location with map, social media, reviews carousel, and company description.
+class AboutScreen extends StatefulWidget {
   const AboutScreen({super.key});
+
+  @override
+  State<AboutScreen> createState() => _AboutScreenState();
+}
+
+class _AboutScreenState extends State<AboutScreen>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _carouselCtrl;
+  late final PageController _pageController;
+  int _currentPage = 0;
 
   // Company constants
   static const _phoneRaw = '+1 (829) 942-4971';
@@ -23,6 +34,63 @@ class AboutScreen extends StatelessWidget {
   static const _address = 'Santo Domingo, República Dominicana';
   static const _mapsUrl =
       'https://www.google.com/maps/search/?api=1&query=RosaFiesta+Santo+Domingo';
+
+  // Portfolio-style review data
+  static const _carouselReviews = [
+    _CarouselReview(
+      name: 'María González',
+      rating: 5,
+      comment: '"El equipo de RosaFiesta hizo realidad la boda de mis sueños. '
+          'Cada detalle estaba perfecto, desde las flores hasta la iluminación. '
+          '¡Una experiencia inolvidable!"',
+      role: 'Boda — Santo Domingo',
+      photoUrl: null,
+    ),
+    _CarouselReview(
+      name: 'Carlos Pérez',
+      rating: 5,
+      comment: '"Profesionales de principio a fin. La decoración para '
+          'mi quinceañera fue espectacular. Mi hija y todas las ',
+      role: 'Quinceañera — Santiago',
+      photoUrl: null,
+    ),
+    _CarouselReview(
+      name: 'Laura Martínez',
+      rating: 5,
+      comment: '"Rápidos, creativos y muy atentos. Organizaron nuestro '
+          'evento corporativo con una elegancia increíble. ',
+      role: 'Evento corporativo — SDQ',
+      photoUrl: null,
+    ),
+    _CarouselReview(
+      name: 'Juan Rodríguez',
+      rating: 5,
+      comment: '"La atención al cliente es excepcional. Resolvieron todas '
+          'mis dudas y el resultado superó todas las expectativas."',
+      role: 'Cumpleaños — La Romana',
+      photoUrl: null,
+    ),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _carouselCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..forward();
+    _pageController = PageController(viewportFraction: 0.88);
+    _pageController.addListener(() {
+      setState(() => _currentPage = _pageController.page?.round() ?? 0);
+    });
+  }
+
+  @override
+  void dispose() {
+    _carouselCtrl.dispose();
+    _pageController.dispose();
+    super.dispose();
+  }
 
   Future<void> _launch(String url) async {
     final uri = Uri.parse(url);
@@ -47,6 +115,7 @@ class AboutScreen extends StatelessWidget {
             SliverToBoxAdapter(child: _buildContactCard(context, t)),
             SliverToBoxAdapter(child: _buildSocials(t)),
             SliverToBoxAdapter(child: _buildLocationCard(t)),
+            SliverToBoxAdapter(child: _buildReviewsSection(t)),
             SliverToBoxAdapter(child: _buildDescription(t)),
             const SliverToBoxAdapter(child: SizedBox(height: 40)),
           ],
@@ -103,14 +172,14 @@ class AboutScreen extends StatelessWidget {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(
-                  color: AppColors.hotPink.withOpacity(0.4), width: 3),
+                  color: AppColors.hotPink.withValues(alpha: 0.4), width: 3),
               image: const DecorationImage(
                 image: AssetImage('assets/images/logo_rosafiesta.png'),
                 fit: BoxFit.cover,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.hotPink.withOpacity(0.25),
+                  color: AppColors.hotPink.withValues(alpha: 0.25),
                   blurRadius: 30,
                   offset: const Offset(0, 12),
                 ),
@@ -236,7 +305,7 @@ class AboutScreen extends StatelessWidget {
                 Container(
                   width: 44, height: 44,
                   decoration: BoxDecoration(
-                    color: AppColors.hotPink.withOpacity(0.12),
+                    color: AppColors.hotPink.withValues(alpha: 0.12),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(Icons.phone_rounded,
@@ -296,7 +365,7 @@ class AboutScreen extends StatelessWidget {
     );
   }
 
-  // ── Social media ────────────────────────────────────────────────────────
+  // ── Social media ───────────────────────────────────────────────────────
 
   Widget _buildSocials(RfTheme t) {
     return Padding(
@@ -398,7 +467,6 @@ class AboutScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Map preview (fake tile with gradient + marker + grid)
               ClipRRect(
                 borderRadius:
                     const BorderRadius.vertical(top: Radius.circular(22)),
@@ -415,16 +483,14 @@ class AboutScreen extends StatelessWidget {
                   ),
                   child: Stack(
                     children: [
-                      // Fake streets grid
                       Positioned.fill(
                         child: CustomPaint(
                           painter: _MapGridPainter(
                               color: t.isDark
-                                  ? Colors.white.withOpacity(0.06)
-                                  : Colors.black.withOpacity(0.08)),
+                                  ? Colors.white.withValues(alpha: 0.06)
+                                  : Colors.black.withValues(alpha: 0.08)),
                         ),
                       ),
-                      // Marker pin
                       Center(
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
@@ -439,7 +505,7 @@ class AboutScreen extends StatelessWidget {
                                 shape: BoxShape.circle,
                                 boxShadow: [
                                   BoxShadow(
-                                    color: AppColors.hotPink.withOpacity(0.45),
+                                    color: AppColors.hotPink.withValues(alpha: 0.45),
                                     blurRadius: 20,
                                     spreadRadius: 2,
                                   ),
@@ -452,7 +518,7 @@ class AboutScreen extends StatelessWidget {
                             Container(
                               width: 6, height: 6,
                               decoration: BoxDecoration(
-                                color: AppColors.hotPink.withOpacity(0.5),
+                                color: AppColors.hotPink.withValues(alpha: 0.5),
                                 shape: BoxShape.circle,
                               ),
                             ),
@@ -494,7 +560,7 @@ class AboutScreen extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 10),
                       decoration: BoxDecoration(
-                        color: AppColors.hotPink.withOpacity(0.1),
+                        color: AppColors.hotPink.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Row(
@@ -518,6 +584,300 @@ class AboutScreen extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  // ── Portfolio Reviews Section ───────────────────────────────────────────
+
+  Widget _buildReviewsSection(RfTheme t) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(0, 24, 0, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+            child: Row(
+              children: [
+                // Elegant section title with icon
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [AppColors.hotPink, AppColors.violet],
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.format_quote_rounded,
+                      color: Colors.white, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Lo que dicen nuestros clientes',
+                        style: GoogleFonts.outfit(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: t.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          ...List.generate(5, (i) => Icon(
+                            Icons.star_rounded,
+                            color: const Color(0xFFFFB800),
+                            size: 14,
+                          )),
+                          const SizedBox(width: 4),
+                          Text(
+                            '4.9 de 5',
+                            style: GoogleFonts.dmSans(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: t.textMuted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const CompanyReviewsScreen()),
+                  ),
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: t.isDark
+                          ? Colors.white.withValues(alpha: 0.06)
+                          : const Color(0xFFF3F4F6),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Ver más',
+                          style: GoogleFonts.dmSans(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: t.textMuted,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(Icons.arrow_forward_rounded,
+                            color: t.textDim, size: 14),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Portfolio carousel
+          SizedBox(
+            height: 280,
+            child: AnimatedBuilder(
+              animation: _carouselCtrl,
+              builder: (context, _) {
+                return PageView.builder(
+                  controller: _pageController,
+                  itemCount: _carouselReviews.length,
+                  itemBuilder: (context, i) {
+                    final review = _carouselReviews[i];
+                    final delay = i * 0.12;
+                    final progress =
+                        ((_carouselCtrl.value - delay) / (1.0 - delay))
+                            .clamp(0.0, 1.0);
+
+                    return AnimatedOpacity(
+                      opacity: progress,
+                      duration: const Duration(milliseconds: 200),
+                      child: AnimatedSlide(
+                        offset: Offset((1 - progress) * 0.08, 0),
+                        duration: const Duration(milliseconds: 200),
+                        child: _portfolioCard(review, t),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+          // Elegant dot indicators
+          const SizedBox(height: 16),
+          Center(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(_carouselReviews.length, (i) {
+                final isActive = i == _currentPage;
+                return AnimatedContainer(
+                  duration: const Duration(milliseconds: 400),
+                  curve: Curves.easeOutCubic,
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  width: isActive ? 24 : 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(4),
+                    gradient: isActive
+                        ? const LinearGradient(
+                            colors: [AppColors.hotPink, AppColors.violet],
+                          )
+                        : null,
+                    color: isActive
+                        ? null
+                        : t.borderFaint.withValues(alpha: 0.5),
+                  ),
+                );
+              }),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _portfolioCard(_CarouselReview review, RfTheme t) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: t.isDark ? t.card : Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.hotPink.withValues(alpha: 0.08),
+            blurRadius: 32,
+            offset: const Offset(0, 8),
+          ),
+          BoxShadow(
+            color: AppColors.violet.withValues(alpha: 0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Top row: Avatar + name/info
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Profile photo with gradient ring
+                Container(
+                  padding: const EdgeInsets.all(3),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: const LinearGradient(
+                      colors: [AppColors.hotPink, AppColors.violet],
+                    ),
+                  ),
+                  child: Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: t.isDark
+                          ? const Color(0xFF2D2D3A)
+                          : const Color(0xFFF5F5F5),
+                    ),
+                    child: Center(
+                      child: Text(
+                        review.name[0].toUpperCase(),
+                        style: GoogleFonts.outfit(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 4),
+                      Text(
+                        review.name,
+                        style: GoogleFonts.outfit(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: t.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        review.role,
+                        style: GoogleFonts.dmSans(
+                          fontSize: 12,
+                          color: t.textMuted,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      // Gold stars
+                      Row(
+                        children: List.generate(5, (i) => Icon(
+                          i < review.rating
+                              ? Icons.star_rounded
+                              : Icons.star_outline_rounded,
+                          color: const Color(0xFFFFB800),
+                          size: 14,
+                        )),
+                      ),
+                    ],
+                  ),
+                ),
+                // Large decorative quote mark
+                Text(
+                  '\u201C',
+                  style: GoogleFonts.outfit(
+                    fontSize: 56,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.hotPink.withValues(alpha: 0.15),
+                  ),
+                ),
+              ],
+            ),
+            const Spacer(),
+            // Review quote text
+            Text(
+              review.comment,
+              style: GoogleFonts.dmSans(
+                fontSize: 13.5,
+                height: 1.6,
+                color: t.textMuted,
+                fontStyle: FontStyle.italic,
+              ),
+              maxLines: 5,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 16),
+            // Subtle gradient line accent
+            Container(
+              height: 2,
+              width: 40,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(1),
+                gradient: const LinearGradient(
+                  colors: [AppColors.hotPink, AppColors.violet],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -584,9 +944,8 @@ class _MapGridPainter extends CustomPainter {
     for (double y = 0; y < size.height; y += step) {
       canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
     }
-    // Some thicker "main streets"
     final main = Paint()
-      ..color = color.withOpacity((color.opacity * 2).clamp(0, 1))
+      ..color = color.withValues(alpha: (color.a * 2).clamp(0.0, 1.0))
       ..strokeWidth = 2.5;
     canvas.drawLine(
         Offset(0, size.height * 0.35),
@@ -601,4 +960,20 @@ class _MapGridPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _MapGridPainter oldDelegate) =>
       oldDelegate.color != color;
+}
+
+class _CarouselReview {
+  final String name;
+  final int rating;
+  final String comment;
+  final String role;
+  final String? photoUrl;
+
+  const _CarouselReview({
+    required this.name,
+    required this.rating,
+    required this.comment,
+    required this.role,
+    this.photoUrl,
+  });
 }

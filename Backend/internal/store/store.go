@@ -128,6 +128,11 @@ type Storage struct {
 		GetByEventID(context.Context, uuid.UUID) ([]models.EventReview, error)
 		GetSummary(context.Context, uuid.UUID) (float64, int, error)
 	}
+	CompanyReviews interface {
+		Create(context.Context, *models.CompanyReview) error
+		GetAll(context.Context) ([]models.CompanyReview, error)
+		GetSummary(context.Context) (float64, int, error)
+	}
 	NotificationLogs interface {
 		LogNotification(context.Context, uuid.UUID, models.NotificationType) error
 		HasNotificationBeenSent(context.Context, uuid.UUID, models.NotificationType) (bool, error)
@@ -158,6 +163,7 @@ func NewStorage(db *sql.DB) Storage {
 		Stats:            &StatsStore{db: db},
 		Reviews:          &ReviewsStore{db: db},
 		EventReviews:     &EventReviewsStore{db: db},
+		CompanyReviews:   &CompanyReviewsStore{db: db},
 		NotificationLogs: &NotificationLogsStore{db: db},
 		Favorites:        &FavoritesStore{db: db},
 	}
