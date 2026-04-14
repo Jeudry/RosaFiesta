@@ -124,7 +124,7 @@ class _QuoteApprovalScreenState extends State<QuoteApprovalScreen> {
                   gradient: AppColors.buttonGradient,
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.hotPink.withOpacity(0.4),
+                      color: AppColors.hotPink.withValues(alpha: 0.4),
                       blurRadius: 24,
                       offset: const Offset(0, 8),
                     ),
@@ -203,8 +203,8 @@ class _QuoteApprovalScreenState extends State<QuoteApprovalScreen> {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
               color: t.isDark
-                  ? Colors.white.withOpacity(0.06)
-                  : Colors.black.withOpacity(0.04),
+                  ? Colors.white.withValues(alpha: 0.06)
+                  : Colors.black.withValues(alpha: 0.04),
             ),
             child: Icon(Icons.arrow_back_ios_new_rounded,
                 color: t.textPrimary, size: 18),
@@ -283,8 +283,8 @@ class _QuoteApprovalScreenState extends State<QuoteApprovalScreen> {
         break;
       default:
         bannerColor = t.isDark
-            ? Colors.white.withOpacity(0.08)
-            : Colors.black.withOpacity(0.06);
+            ? Colors.white.withValues(alpha: 0.08)
+            : Colors.black.withValues(alpha: 0.06);
         iconColor = t.textMuted;
         icon = '●';
         message = 'Estado: ${status.toUpperCase()}';
@@ -465,10 +465,10 @@ class _QuoteApprovalScreenState extends State<QuoteApprovalScreen> {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
                 color: t.isDark
-                    ? AppColors.amber.withOpacity(0.08)
-                    : AppColors.amber.withOpacity(0.12),
+                    ? AppColors.amber.withValues(alpha: 0.08)
+                    : AppColors.amber.withValues(alpha: 0.12),
                 border: Border.all(
-                  color: AppColors.amber.withOpacity(0.3),
+                  color: AppColors.amber.withValues(alpha: 0.3),
                 ),
               ),
               child: Column(
@@ -623,7 +623,7 @@ class _QuoteApprovalScreenState extends State<QuoteApprovalScreen> {
           ),
           boxShadow: [
             BoxShadow(
-              color: AppColors.teal.withOpacity(0.35),
+              color: AppColors.teal.withValues(alpha: 0.35),
               blurRadius: 20,
               offset: const Offset(0, 8),
             ),
@@ -661,8 +661,8 @@ class _QuoteApprovalScreenState extends State<QuoteApprovalScreen> {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
           color: t.isDark
-              ? Colors.white.withOpacity(0.04)
-              : Colors.black.withOpacity(0.04),
+              ? Colors.white.withValues(alpha: 0.04)
+              : Colors.black.withValues(alpha: 0.04),
           border: Border.all(color: t.borderFaint, width: 1.5),
         ),
         alignment: Alignment.center,

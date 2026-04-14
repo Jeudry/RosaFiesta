@@ -2,18 +2,17 @@ import '../../../core/api_client.dart';
 import 'event_model.dart';
 import 'event_debrief_model.dart';
 import 'event_photo_model.dart';
+import 'event_review.dart';
 
 class EventsRepository {
   Future<EventDebrief> getEventDebrief(String id) async {
     final response = await ApiClient.get('/events/$id/debrief');
     return EventDebrief.fromJson(response);
   }
+
   Future<List<Event>> getEvents() async {
     final response = await ApiClient.get('/events');
-    // Assuming backend returns a list directly or wrapped in data which ApiClient handles?
-    // Based on previous patterns (products), ApiClient likely returns dynamic which we cast.
-    // If ApiClient returns the data directly:
-    final List<dynamic> data = response; 
+    final List<dynamic> data = response;
     return data.map((json) => Event.fromJson(json)).toList();
   }
 
@@ -89,5 +88,20 @@ class EventsRepository {
     final response = await ApiClient.get('/events/$eventId/photos');
     final List<dynamic> data = response;
     return data.map((json) => EventPhoto.fromJson(json)).toList();
+  }
+
+  Future<EventReview> createEventReview(String eventId, int rating, String comment, {List<String>? photoURLs}) async {
+    final response = await ApiClient.post('/events/$eventId/reviews', {
+      'rating': rating,
+      'comment': comment,
+      if (photoURLs != null) 'photoURLs': photoURLs,
+    });
+    return EventReview.fromJson(response);
+  }
+
+  Future<List<EventReview>> getEventReviews(String eventId) async {
+    final response = await ApiClient.get('/events/$eventId/reviews');
+    final List<dynamic> data = response;
+    return data.map((json) => EventReview.fromJson(json)).toList();
   }
 }

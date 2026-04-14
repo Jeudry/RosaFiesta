@@ -178,7 +178,7 @@ class _EventExecutionScreenState extends State<EventExecutionScreen> {
                               color: item.isCompleted ? Colors.grey[100] : Colors.white,
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
-                                color: item.isCompleted ? Colors.green.withOpacity(0.5) : Colors.transparent,
+                                color: item.isCompleted ? Colors.green.withValues(alpha: 0.5) : Colors.transparent,
                                 width: 2,
                               ),
                               boxShadow: item.isCompleted ? [] : AppDecorations.softShadow,

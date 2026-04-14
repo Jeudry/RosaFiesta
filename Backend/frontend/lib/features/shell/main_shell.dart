@@ -130,7 +130,7 @@ class _MainShellState extends State<MainShell>
               child: CustomPaint(
                 painter: RfGridPainter(
                     color: (isDark ? Colors.white : Colors.black)
-                        .withOpacity(0.006)),
+                        .withValues(alpha: 0.006)),
               ),
             ),
           ),
@@ -224,8 +224,8 @@ class _MainShellState extends State<MainShell>
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.hotPink.withOpacity(
-                        0.1 + _aiFabGlowController.value * 0.2),
+                    color: AppColors.hotPink.withValues(
+                        alpha: 0.1 + _aiFabGlowController.value * 0.2),
                     blurRadius: 20,
                     spreadRadius: _aiFabGlowController.value * 3,
                   ),
@@ -248,7 +248,7 @@ class _MainShellState extends State<MainShell>
                         borderRadius: BorderRadius.circular(10),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.12),
+                            color: Colors.black.withValues(alpha: 0.12),
                             blurRadius: 6,
                             offset: const Offset(0, 1),
                           ),
@@ -300,7 +300,7 @@ class _MainShellState extends State<MainShell>
           borderRadius: BorderRadius.circular(35),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.08),
+              color: Colors.black.withValues(alpha: 0.08),
               blurRadius: 24,
               offset: const Offset(0, 4),
             ),
@@ -390,7 +390,7 @@ class _MainShellState extends State<MainShell>
             Container(
               width: 40, height: 4,
               decoration: BoxDecoration(
-                color: t.textDim.withOpacity(0.3),
+                color: t.textDim.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -415,7 +415,7 @@ class _MainShellState extends State<MainShell>
       leading: Container(
         width: 42, height: 42,
         decoration: BoxDecoration(
-          color: AppColors.hotPink.withOpacity(0.08),
+          color: AppColors.hotPink.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Icon(icon, color: AppColors.hotPink, size: 22),

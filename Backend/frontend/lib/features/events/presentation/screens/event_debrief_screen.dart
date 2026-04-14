@@ -75,7 +75,7 @@ class _EventDebriefScreenState extends State<EventDebriefScreen> {
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [AppColors.primary, AppColors.primary.withOpacity(0.7)],
+          colors: [AppColors.primary, AppColors.primary.withValues(alpha: 0.7)],
         ),
         borderRadius: BorderRadius.circular(24),
         boxShadow: AppDecorations.softShadow,
@@ -96,7 +96,7 @@ class _EventDebriefScreenState extends State<EventDebriefScreen> {
                   ),
                   PieChartSectionData(
                     value: 100 - score,
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withValues(alpha: 0.2),
                     radius: 8,
                     showTitle: false,
                   ),
@@ -160,7 +160,7 @@ class _EventDebriefScreenState extends State<EventDebriefScreen> {
         const SizedBox(height: 8),
         LinearProgressIndicator(
           value: progress,
-          backgroundColor: color.withOpacity(0.1),
+          backgroundColor: color.withValues(alpha: 0.1),
           valueColor: AlwaysStoppedAnimation<Color>(color),
           borderRadius: BorderRadius.circular(4),
           minHeight: 8,
@@ -229,8 +229,8 @@ class _EventDebriefScreenState extends State<EventDebriefScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.red.withOpacity(0.05),
-        border: Border.all(color: Colors.red.withOpacity(0.2)),
+        color: Colors.red.withValues(alpha: 0.05),
+        border: Border.all(color: Colors.red.withValues(alpha: 0.2)),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(

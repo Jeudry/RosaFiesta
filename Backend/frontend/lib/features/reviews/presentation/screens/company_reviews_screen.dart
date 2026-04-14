@@ -74,7 +74,7 @@ class _CompanyReviewsScreenState extends State<CompanyReviewsScreen>
               child: CustomPaint(
                 painter: RfGridPainter(
                     color: (t.isDark ? Colors.white : Colors.black)
-                        .withOpacity(0.006)),
+                        .withValues(alpha: 0.006)),
               ),
             ),
           ),
@@ -126,7 +126,7 @@ class _CompanyReviewsScreenState extends State<CompanyReviewsScreen>
             border: Border.all(color: t.borderFaint),
             boxShadow: [
               BoxShadow(
-                color: AppColors.hotPink.withOpacity(0.08),
+                color: AppColors.hotPink.withValues(alpha: 0.08),
                 blurRadius: 24,
                 offset: const Offset(0, 8),
               ),
@@ -160,8 +160,8 @@ class _CompanyReviewsScreenState extends State<CompanyReviewsScreen>
                       color: avg > 0
                           ? (i < avg.floor()
                               ? starColor
-                              : (i < avg.ceil() ? starColor.withOpacity(0.5) : starColor.withOpacity(0.2)))
-                          : starColor.withOpacity(0.2),
+                              : (i < avg.ceil() ? starColor.withValues(alpha: 0.5) : starColor.withValues(alpha: 0.2)))
+                          : starColor.withValues(alpha: 0.2),
                       size: 22,
                     ))),
                     const SizedBox(height: 6),
@@ -189,7 +189,7 @@ class _CompanyReviewsScreenState extends State<CompanyReviewsScreen>
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: t.isDark ? t.card.withOpacity(0.7) : Colors.white,
+        color: t.isDark ? t.card.withValues(alpha: 0.7) : Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: t.borderFaint),
       ),
@@ -226,7 +226,7 @@ class _CompanyReviewsScreenState extends State<CompanyReviewsScreen>
                             color: t.textPrimary)),
                     Row(children: List.generate(5, (i) => Icon(
                       Icons.star_rounded,
-                      color: i < review.rating ? starColor : starColor.withOpacity(0.2),
+                      color: i < review.rating ? starColor : starColor.withValues(alpha: 0.2),
                       size: 14,
                     ))),
                   ],
@@ -256,7 +256,7 @@ class _CompanyReviewsScreenState extends State<CompanyReviewsScreen>
           borderRadius: BorderRadius.circular(18),
           boxShadow: [
             BoxShadow(
-              color: AppColors.hotPink.withOpacity(0.4),
+              color: AppColors.hotPink.withValues(alpha: 0.4),
               blurRadius: 16,
               offset: const Offset(0, 6),
             ),
@@ -284,7 +284,7 @@ class _CompanyReviewsScreenState extends State<CompanyReviewsScreen>
               Container(
                 width: 40, height: 4,
                 decoration: BoxDecoration(
-                  color: t.textDim.withOpacity(0.3),
+                  color: t.textDim.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(2)),
               ),
               const SizedBox(height: 20),
@@ -302,7 +302,7 @@ class _CompanyReviewsScreenState extends State<CompanyReviewsScreen>
                   icon: Icon(Icons.star_rounded,
                       color: i < _selectedRating
                           ? const Color(0xFFFFB800)
-                          : const Color(0xFFFFB800).withOpacity(0.2),
+                          : const Color(0xFFFFB800).withValues(alpha: 0.2),
                       size: 36),
                   onPressed: () => setSheetState(() => _selectedRating = i + 1),
                 )),
@@ -311,7 +311,7 @@ class _CompanyReviewsScreenState extends State<CompanyReviewsScreen>
               Container(
                 decoration: BoxDecoration(
                   color: t.isDark
-                      ? Colors.white.withOpacity(0.04)
+                      ? Colors.white.withValues(alpha: 0.04)
                       : const Color(0xFFF3F4F6),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: t.borderFaint),

@@ -67,7 +67,7 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen>
         ),
         Positioned.fill(child: IgnorePointer(child: CustomPaint(
           painter: RfGridPainter(
-            color: (t.isDark ? Colors.white : Colors.black).withOpacity(0.015),
+            color: (t.isDark ? Colors.white : Colors.black).withValues(alpha: 0.015),
           ),
         ))),
         SafeArea(
@@ -139,13 +139,13 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen>
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                AppColors.teal.withOpacity(value),
-                AppColors.sky.withOpacity(value),
+                AppColors.teal.withValues(alpha: value),
+                AppColors.sky.withValues(alpha: value),
               ],
             ),
             boxShadow: [
               BoxShadow(
-                color: AppColors.teal.withOpacity(0.4 * value),
+                color: AppColors.teal.withValues(alpha: 0.4 * value),
                 blurRadius: 30,
                 spreadRadius: 5,
               ),
@@ -154,7 +154,7 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen>
           child: Center(
             child: Icon(
               Icons.check_rounded,
-              color: Colors.white.withOpacity(value),
+              color: Colors.white.withValues(alpha: value),
               size: 60 * value,
             ),
           ),
@@ -185,12 +185,12 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen>
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: t.isDark ? Colors.white.withOpacity(0.06) : Colors.white.withOpacity(0.93),
+        color: t.isDark ? Colors.white.withValues(alpha: 0.06) : Colors.white.withValues(alpha: 0.93),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: t.borderFaint),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(t.isDark ? 0.0 : 0.07),
+            color: Colors.black.withValues(alpha: t.isDark ? 0.0 : 0.07),
             blurRadius: 28,
             offset: const Offset(0, 10),
           ),
@@ -281,7 +281,7 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen>
           width: 36,
           height: 36,
           decoration: BoxDecoration(
-            color: t.isDark ? Colors.white.withOpacity(0.06) : const Color(0xFFF5F6FF),
+            color: t.isDark ? Colors.white.withValues(alpha: 0.06) : const Color(0xFFF5F6FF),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Icon(icon, color: t.textDim, size: 18),
@@ -319,7 +319,7 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen>
             width: double.infinity,
             height: 54,
             decoration: BoxDecoration(
-              color: t.isDark ? Colors.white.withOpacity(0.06) : Colors.white.withOpacity(0.93),
+              color: t.isDark ? Colors.white.withValues(alpha: 0.06) : Colors.white.withValues(alpha: 0.93),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: t.borderFaint),
             ),
@@ -369,7 +369,7 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen>
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                color: AppColors.coral.withOpacity(0.1),
+                color: AppColors.coral.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.event_busy_rounded, color: AppColors.coral, size: 40),

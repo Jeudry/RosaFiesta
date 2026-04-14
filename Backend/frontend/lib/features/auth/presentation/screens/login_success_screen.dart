@@ -81,7 +81,7 @@ class LoginSuccessScreen extends StatelessWidget {
                   child: Container(
                     margin: const EdgeInsets.symmetric(horizontal: 20),
                     decoration: BoxDecoration(
-                      color: t.isDark ? t.card.withOpacity(0.8) : Colors.white,
+                      color: t.isDark ? t.card.withValues(alpha: 0.8) : Colors.white,
                       borderRadius: BorderRadius.circular(24),
                       border: Border.all(color: t.borderFaint),
                     ),
@@ -193,7 +193,7 @@ class _EventCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: t.isDark ? Colors.white.withOpacity(0.04) : const Color(0xFFF8F9FA),
+        color: t.isDark ? Colors.white.withValues(alpha: 0.04) : const Color(0xFFF8F9FA),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: t.borderFaint),
       ),
@@ -203,7 +203,7 @@ class _EventCard extends StatelessWidget {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.15),
+              color: statusColor.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
@@ -367,7 +367,7 @@ class _StatusBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: bgColor.withOpacity(0.15),
+        color: bgColor.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(

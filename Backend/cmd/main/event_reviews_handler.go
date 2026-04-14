@@ -12,8 +12,9 @@ import (
 )
 
 type EventReviewPayload struct {
-	Rating  int    `json:"rating" validate:"required,min=1,max=5"`
-	Comment string `json:"comment" validate:"required"`
+	Rating    int      `json:"rating" validate:"required,min=1,max=5"`
+	Comment   string   `json:"comment" validate:"required"`
+	PhotoURLs []string `json:"photoURLs"`
 }
 
 // createEventReviewHandler godoc
@@ -80,6 +81,14 @@ func (app *Application) createEventReviewHandler(w http.ResponseWriter, r *http.
 		return
 	}
 
+	// Save review photos if any were provided
+	for i, photoURL := range payload.PhotoURLs {
+		if err := app.Store.EventReviews.AddPhoto(r.Context(), review.ID, photoURL, "", i); err != nil {
+			app.internalServerError(w, r, err)
+			return
+		}
+	}
+
 	// Attach user information for response
 	review.User = user
 
@@ -123,6 +132,16 @@ func (app *Application) getEventReviewsHandler(w http.ResponseWriter, r *http.Re
 	if err != nil {
 		app.internalServerError(w, r, err)
 		return
+	}
+
+	// Fetch photos for each review
+	for i := range reviews {
+		photos, err := app.Store.EventReviews.GetPhotos(r.Context(), reviews[i].ID)
+		if err != nil {
+			app.internalServerError(w, r, err)
+			return
+		}
+		reviews[i].Photos = photos
 	}
 
 	if err := app.jsonResponse(w, http.StatusOK, reviews); err != nil {

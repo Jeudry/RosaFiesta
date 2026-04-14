@@ -69,7 +69,7 @@ class AssistantEntryModal extends StatelessWidget {
                 child: Container(
                   width: 44, height: 4,
                   decoration: BoxDecoration(
-                    color: t.textDim.withOpacity(0.3),
+                    color: t.textDim.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -167,7 +167,7 @@ class AssistantEntryModal extends StatelessWidget {
           border: Border.all(color: t.borderFaint),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 18,
               offset: const Offset(0, 6),
             ),
@@ -184,7 +184,7 @@ class AssistantEntryModal extends StatelessWidget {
                 boxShadow: gradient != null
                     ? [
                         BoxShadow(
-                          color: gradient.colors.first.withOpacity(0.3),
+                          color: gradient.colors.first.withValues(alpha: 0.3),
                           blurRadius: 14,
                           offset: const Offset(0, 6),
                         ),
@@ -222,7 +222,7 @@ class AssistantEntryModal extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: AppColors.teal.withOpacity(0.12),
+                            color: AppColors.teal.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(

@@ -103,12 +103,12 @@ class RfThemeToggle extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
           color: t.isDark
-              ? Colors.white.withOpacity(0.06)
-              : Colors.black.withOpacity(0.04),
+              ? Colors.white.withValues(alpha: 0.06)
+              : Colors.black.withValues(alpha: 0.04),
           border: Border.all(
             color: t.isDark
-                ? Colors.white.withOpacity(0.12)
-                : Colors.black.withOpacity(0.10),
+                ? Colors.white.withValues(alpha: 0.12)
+                : Colors.black.withValues(alpha: 0.10),
           ),
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -208,7 +208,7 @@ class RfLuxeButton extends StatelessWidget {
             gradient: AppColors.buttonGradient,
             boxShadow: [
               BoxShadow(
-                color: AppColors.hotPink.withOpacity(0.35),
+                color: AppColors.hotPink.withValues(alpha: 0.35),
                 blurRadius: 20,
                 offset: const Offset(0, 8),
               ),
@@ -247,8 +247,8 @@ class RfLuxeButton extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
           color: theme.isDark
-              ? Colors.white.withOpacity(0.04)
-              : Colors.black.withOpacity(0.04),
+              ? Colors.white.withValues(alpha: 0.04)
+              : Colors.black.withValues(alpha: 0.04),
           border: Border.all(color: theme.borderFaint, width: 1.5),
         ),
         alignment: Alignment.center,
@@ -292,10 +292,10 @@ class RfFormField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final enabledColor = t.isDark
-        ? Colors.white.withOpacity(0.10)
+        ? Colors.white.withValues(alpha: 0.10)
         : const Color(0xFFE8E8F0);
     final fillColor = t.isDark
-        ? Colors.white.withOpacity(0.04)
+        ? Colors.white.withValues(alpha: 0.04)
         : const Color(0xFFF8F8FC);
     return TextFormField(
       controller: controller,
@@ -327,7 +327,7 @@ class RfFormField extends StatelessWidget {
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(
-              color: AppColors.coral.withOpacity(0.6)),
+              color: AppColors.coral.withValues(alpha: 0.6)),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
@@ -397,8 +397,8 @@ class RfGradientOrbs extends StatelessWidget {
           shape: BoxShape.circle,
           gradient: RadialGradient(
             colors: [
-              c.withOpacity(opacity),
-              c.withOpacity(0),
+              c.withValues(alpha: opacity),
+              c.withValues(alpha: 0),
             ],
           ),
         ),
@@ -485,7 +485,7 @@ class RfDecoPainter extends CustomPainter {
       final dy  = math.cos(t + 1.57) * 7;
       final osc = 0.5 + 0.5 * math.sin(floatT * math.pi * 2 + (c[4] as double));
       final op  = ((0.10 + osc * 0.12) * baseOpacity).clamp(0.0, 1.0);
-      paint.color = (c[3] as Color).withOpacity(op);
+      paint.color = (c[3] as Color).withValues(alpha: op);
       canvas.drawCircle(
           Offset(c[0] as double, (c[1] as double) + dy),
           c[2] as double,
@@ -508,7 +508,7 @@ class RfDecoPainter extends CustomPainter {
       final rot = decoT * math.pi * 2 + (c[3] as double);
       final osc = 0.5 + 0.5 * math.sin(t);
       final op  = ((0.07 + osc * 0.09) * baseOpacity).clamp(0.0, 1.0);
-      paint.color = (c[2] as Color).withOpacity(op);
+      paint.color = (c[2] as Color).withValues(alpha: op);
       final cx = c[0] as double;
       final cy = (c[1] as double) + dy;
       canvas.save();
@@ -544,7 +544,7 @@ class RfDecoPainter extends CustomPainter {
       final rot = decoT * math.pi * 2 * 0.5 + (c[4] as double);
       final osc = 0.5 + 0.5 * math.sin(t);
       final op  = ((0.12 + osc * 0.14) * baseOpacity).clamp(0.0, 1.0);
-      paint.color = (c[3] as Color).withOpacity(op);
+      paint.color = (c[3] as Color).withValues(alpha: op);
       final cx = c[0] as double;
       final cy = (c[1] as double) + dy;
       final r  = c[2] as double;
@@ -579,7 +579,7 @@ class RfDecoPainter extends CustomPainter {
       final rot = decoT * math.pi * 2 + (c[4] as double);
       final osc = 0.5 + 0.5 * math.sin(t);
       final op  = ((0.15 + osc * 0.20) * baseOpacity).clamp(0.0, 1.0);
-      paint.color = (c[3] as Color).withOpacity(op);
+      paint.color = (c[3] as Color).withValues(alpha: op);
       final cx = c[0] as double;
       final cy = (c[1] as double) + dy;
       final r  = c[2] as double;

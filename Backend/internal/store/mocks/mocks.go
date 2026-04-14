@@ -567,6 +567,19 @@ func (m *EventReviewsStore) GetSummary(ctx context.Context, id uuid.UUID) (float
 	return args.Get(0).(float64), args.Int(1), args.Error(2)
 }
 
+func (m *EventReviewsStore) AddPhoto(ctx context.Context, reviewID uuid.UUID, photoURL string, caption string, sortOrder int) error {
+	args := m.Called(ctx, reviewID, photoURL, caption, sortOrder)
+	return args.Error(0)
+}
+
+func (m *EventReviewsStore) GetPhotos(ctx context.Context, reviewID uuid.UUID) ([]models.ReviewPhoto, error) {
+	args := m.Called(ctx, reviewID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]models.ReviewPhoto), args.Error(1)
+}
+
 type NotificationLogsStore struct {
 	mock.Mock
 }

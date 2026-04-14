@@ -95,13 +95,13 @@ class _AssistantScreenState extends State<AssistantScreen>
                       radius: 1.4,
                       colors: isDark
                           ? [
-                              AppColors.violet.withOpacity(0.15),
-                              AppColors.hotPink.withOpacity(0.08),
+                              AppColors.violet.withValues(alpha: 0.15),
+                              AppColors.hotPink.withValues(alpha: 0.08),
                               t.base,
                             ]
                           : [
-                              AppColors.hotPink.withOpacity(0.08),
-                              AppColors.violet.withOpacity(0.05),
+                              AppColors.hotPink.withValues(alpha: 0.08),
+                              AppColors.violet.withValues(alpha: 0.05),
                               t.base,
                             ],
                       stops: const [0.0, 0.45, 1.0],
@@ -232,8 +232,8 @@ class _AssistantScreenState extends State<AssistantScreen>
                               color: isActive
                                   ? AppColors.hotPink
                                   : isPast
-                                  ? AppColors.hotPink.withOpacity(0.4)
-                                  : t.textDim.withOpacity(0.2),
+                                  ? AppColors.hotPink.withValues(alpha: 0.4)
+                                  : t.textDim.withValues(alpha: 0.2),
                             ),
                           ),
                         );
@@ -375,7 +375,7 @@ class _AssistantScreenState extends State<AssistantScreen>
                                 ),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: AppColors.hotPink.withOpacity(glow),
+                                    color: AppColors.hotPink.withValues(alpha: glow),
                                     blurRadius: 22,
                                     spreadRadius: 4,
                                   ),
@@ -458,7 +458,7 @@ class _AssistantScreenState extends State<AssistantScreen>
                           gradient: LinearGradient(
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
-                            colors: [t.base.withOpacity(0.0), t.base],
+                            colors: [t.base.withValues(alpha: 0.0), t.base],
                           ),
                         ),
                       ),
@@ -508,7 +508,7 @@ class _AssistantScreenState extends State<AssistantScreen>
               borderRadius: BorderRadius.circular(22),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.12),
+                  color: Colors.black.withValues(alpha: 0.12),
                   blurRadius: 16,
                   offset: const Offset(0, 6),
                 ),
@@ -534,7 +534,7 @@ class _AssistantScreenState extends State<AssistantScreen>
                       child: Icon(
                         Icons.auto_awesome_rounded,
                         size: 50,
-                        color: Colors.white.withOpacity(0.3),
+                        color: Colors.white.withValues(alpha: 0.3),
                       ),
                     ),
                   // Dark gradient overlay for text readability
@@ -545,7 +545,7 @@ class _AssistantScreenState extends State<AssistantScreen>
                         end: Alignment.bottomCenter,
                         colors: [
                           Colors.transparent,
-                          Colors.black.withOpacity(0.55),
+                          Colors.black.withValues(alpha: 0.55),
                         ],
                         stops: const [0.3, 1.0],
                       ),
@@ -564,7 +564,7 @@ class _AssistantScreenState extends State<AssistantScreen>
                         color: Colors.white,
                         shadows: [
                           Shadow(
-                            color: Colors.black.withOpacity(0.4),
+                            color: Colors.black.withValues(alpha: 0.4),
                             blurRadius: 8,
                           ),
                         ],
@@ -682,16 +682,16 @@ class _AssistantScreenState extends State<AssistantScreen>
         decoration: BoxDecoration(
           color: omitted
               ? (t.isDark
-                    ? Colors.white.withOpacity(0.02)
+                    ? Colors.white.withValues(alpha: 0.02)
                     : const Color(0xFFF3F4F6))
               : chosen
-              ? AppColors.teal.withOpacity(0.08)
+              ? AppColors.teal.withValues(alpha: 0.08)
               : (t.isDark
-                    ? Colors.white.withOpacity(0.03)
+                    ? Colors.white.withValues(alpha: 0.03)
                     : const Color(0xFFF9FAFB)),
           borderRadius: BorderRadius.circular(16),
           border: chosen
-              ? Border.all(color: AppColors.teal.withOpacity(0.3))
+              ? Border.all(color: AppColors.teal.withValues(alpha: 0.3))
               : null,
         ),
         child: Row(
@@ -759,7 +759,7 @@ class _AssistantScreenState extends State<AssistantScreen>
                   ),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(14),
-                    color: AppColors.teal.withOpacity(0.1),
+                    color: AppColors.teal.withValues(alpha: 0.1),
                   ),
                   child: Text(
                     'Ver elegidos',
@@ -781,7 +781,7 @@ class _AssistantScreenState extends State<AssistantScreen>
                   ),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: AppColors.teal.withOpacity(0.3)),
+                    border: Border.all(color: AppColors.teal.withValues(alpha: 0.3)),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -942,13 +942,13 @@ class _AssistantScreenState extends State<AssistantScreen>
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: _hasSketch
-                    ? AppColors.teal.withOpacity(0.08)
-                    : AppColors.violet.withOpacity(0.06),
+                    ? AppColors.teal.withValues(alpha: 0.08)
+                    : AppColors.violet.withValues(alpha: 0.06),
                 borderRadius: BorderRadius.circular(18),
                 border: Border.all(
                   color: _hasSketch
-                      ? AppColors.teal.withOpacity(0.3)
-                      : AppColors.violet.withOpacity(0.15),
+                      ? AppColors.teal.withValues(alpha: 0.3)
+                      : AppColors.violet.withValues(alpha: 0.15),
                 ),
               ),
               child: Row(
@@ -1024,7 +1024,7 @@ class _AssistantScreenState extends State<AssistantScreen>
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
       decoration: BoxDecoration(
         color: t.isDark
-            ? Colors.white.withOpacity(0.04)
+            ? Colors.white.withValues(alpha: 0.04)
             : const Color(0xFFF9FAFB),
         borderRadius: BorderRadius.circular(14),
       ),
@@ -1162,7 +1162,7 @@ class _AssistantScreenState extends State<AssistantScreen>
             width: double.infinity,
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: AppColors.hotPink.withOpacity(0.06),
+              color: AppColors.hotPink.withValues(alpha: 0.06),
               borderRadius: BorderRadius.circular(14),
             ),
             child: Row(
@@ -1228,7 +1228,7 @@ class _AssistantScreenState extends State<AssistantScreen>
           height: 90,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: AppColors.teal.withOpacity(0.12),
+            color: AppColors.teal.withValues(alpha: 0.12),
           ),
           child: const Icon(
             Icons.check_circle_rounded,
@@ -1316,10 +1316,10 @@ class _AssistantScreenState extends State<AssistantScreen>
             decoration: BoxDecoration(
               color: t.isDark ? t.card : Colors.white,
               borderRadius: BorderRadius.circular(22),
-              border: Border.all(color: AppColors.hotPink.withOpacity(0.3)),
+              border: Border.all(color: AppColors.hotPink.withValues(alpha: 0.3)),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.hotPink.withOpacity(0.06),
+                  color: AppColors.hotPink.withValues(alpha: 0.06),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
@@ -1398,7 +1398,7 @@ class _AssistantScreenState extends State<AssistantScreen>
                 border: Border.all(color: t.borderFaint),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.04),
+                    color: Colors.black.withValues(alpha: 0.04),
                     blurRadius: 16,
                     offset: const Offset(0, 6),
                   ),
@@ -1438,7 +1438,7 @@ class _AssistantScreenState extends State<AssistantScreen>
                                   color: isActive
                                       ? null
                                       : (t.isDark
-                                            ? Colors.white.withOpacity(0.04)
+                                            ? Colors.white.withValues(alpha: 0.04)
                                             : const Color(0xFFF3F4F6)),
                                   borderRadius: BorderRadius.circular(19),
                                 ),
@@ -1494,7 +1494,7 @@ class _AssistantScreenState extends State<AssistantScreen>
       width: 180,
       decoration: BoxDecoration(
         color: t.isDark
-            ? Colors.white.withOpacity(0.04)
+            ? Colors.white.withValues(alpha: 0.04)
             : const Color(0xFFF9FAFB),
         borderRadius: BorderRadius.circular(18),
       ),
@@ -1519,10 +1519,10 @@ class _AssistantScreenState extends State<AssistantScreen>
                           imageUrl,
                           fit: BoxFit.cover,
                           errorBuilder: (_, __, ___) => Container(
-                            color: AppColors.hotPink.withOpacity(0.08),
+                            color: AppColors.hotPink.withValues(alpha: 0.08),
                           ),
                         )
-                      : Container(color: AppColors.hotPink.withOpacity(0.08)),
+                      : Container(color: AppColors.hotPink.withValues(alpha: 0.08)),
                 ),
               ),
             ),
@@ -1565,7 +1565,7 @@ class _AssistantScreenState extends State<AssistantScreen>
                           Icons.star_rounded,
                           color: i < rating.floor()
                               ? const Color(0xFFFFB800)
-                              : const Color(0xFFFFB800).withOpacity(0.25),
+                              : const Color(0xFFFFB800).withValues(alpha: 0.25),
                           size: 13,
                         ),
                       ),
@@ -1693,7 +1693,7 @@ class _AssistantScreenState extends State<AssistantScreen>
         border: Border.all(color: t.borderFaint),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 16,
             offset: const Offset(0, 6),
           ),
@@ -1721,10 +1721,10 @@ class _AssistantScreenState extends State<AssistantScreen>
                           imageUrl,
                           fit: BoxFit.cover,
                           errorBuilder: (_, __, ___) => Container(
-                            color: AppColors.hotPink.withOpacity(0.08),
+                            color: AppColors.hotPink.withValues(alpha: 0.08),
                           ),
                         )
-                      : Container(color: AppColors.hotPink.withOpacity(0.08)),
+                      : Container(color: AppColors.hotPink.withValues(alpha: 0.08)),
                 ),
               ),
             ),
@@ -1756,7 +1756,7 @@ class _AssistantScreenState extends State<AssistantScreen>
                         filled ? Icons.star_rounded : Icons.star_rounded,
                         color: filled
                             ? const Color(0xFFFFB800)
-                            : const Color(0xFFFFB800).withOpacity(0.25),
+                            : const Color(0xFFFFB800).withValues(alpha: 0.25),
                         size: 16,
                       );
                     }),
@@ -1889,7 +1889,7 @@ class _AssistantScreenState extends State<AssistantScreen>
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.hotPink.withOpacity(glow),
+                      color: AppColors.hotPink.withValues(alpha: glow),
                       blurRadius: 40,
                       spreadRadius: 10,
                     ),
@@ -2145,8 +2145,8 @@ class _AssistantScreenState extends State<AssistantScreen>
                     width: 2.5,
                     height: h,
                     decoration: BoxDecoration(
-                      color: AppColors.hotPink.withOpacity(
-                        0.3 + (i == 3 ? 0.4 : 0.1),
+                      color: AppColors.hotPink.withValues(
+                        alpha: 0.3 + (i == 3 ? 0.4 : 0.1),
                       ),
                       borderRadius: BorderRadius.circular(2),
                     ),
@@ -2165,7 +2165,7 @@ class _AssistantScreenState extends State<AssistantScreen>
                   height: 36,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: AppColors.hotPink.withOpacity(0.12),
+                    color: AppColors.hotPink.withValues(alpha: 0.12),
                   ),
                   child: const Icon(
                     Icons.stop_rounded,
@@ -2220,7 +2220,7 @@ class _AssistantScreenState extends State<AssistantScreen>
           borderRadius: BorderRadius.circular(29),
           border: Border.all(
             color: isActive
-                ? AppColors.hotPink.withOpacity(0.3)
+                ? AppColors.hotPink.withValues(alpha: 0.3)
                 : t.borderFaint,
           ),
         ),
@@ -2252,8 +2252,8 @@ class _AssistantScreenState extends State<AssistantScreen>
                         width: 3,
                         height: h,
                         decoration: BoxDecoration(
-                          color: AppColors.hotPink.withOpacity(
-                            0.25 +
+                          color: AppColors.hotPink.withValues(
+                            alpha: 0.25 +
                                 (i == 3
                                     ? 0.45
                                     : i % 2 == 0
@@ -2271,7 +2271,7 @@ class _AssistantScreenState extends State<AssistantScreen>
                     height: 36,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: AppColors.hotPink.withOpacity(0.12),
+                      color: AppColors.hotPink.withValues(alpha: 0.12),
                     ),
                     child: const Icon(
                       Icons.mic_rounded,

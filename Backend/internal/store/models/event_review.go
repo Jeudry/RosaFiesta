@@ -13,5 +13,14 @@ type EventReview struct {
 	Comment string    `json:"comment"`
 
 	// Relationships
-	User *User `json:"user,omitempty"`
+	User   *User         `json:"user,omitempty"`
+	Photos []ReviewPhoto `json:"photos,omitempty"`
+}
+
+type ReviewPhoto struct {
+	ID        uuid.UUID `json:"id"`
+	ReviewID  uuid.UUID `json:"review_id"`
+	PhotoURL  string    `json:"photo_url"`
+	Caption   string    `json:"caption,omitempty"`
+	SortOrder int       `json:"sort_order"`
 }

@@ -139,8 +139,8 @@ class EventsProvider extends ChangeNotifier {
     }
   }
 
-  Future<EventReview> createEventReview(String eventId, int rating, String comment) async {
-    return await _repository.createEventReview(eventId, rating, comment);
+  Future<EventReview> createEventReview(String eventId, int rating, String comment, {List<String>? photoURLs}) async {
+    return await _repository.createEventReview(eventId, rating, comment, photoURLs: photoURLs);
   }
 
   Future<List<EventReview>> getEventReviews(String eventId) async {

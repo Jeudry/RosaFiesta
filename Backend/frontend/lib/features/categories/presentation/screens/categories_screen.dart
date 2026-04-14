@@ -187,7 +187,7 @@ class _CategoryCard extends StatelessWidget {
           border: Border.all(color: t.borderFaint, width: 1),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -208,7 +208,7 @@ class _CategoryCard extends StatelessWidget {
                 loadingBuilder: (context, child, progress) {
                   if (progress == null) return child;
                   return Container(
-                    color: colors[0].withOpacity(0.08),
+                    color: colors[0].withValues(alpha: 0.08),
                   );
                 },
               )
@@ -223,8 +223,8 @@ class _CategoryCard extends StatelessWidget {
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      Colors.black.withOpacity(0.05),
-                      Colors.black.withOpacity(0.55),
+                      Colors.black.withValues(alpha: 0.05),
+                      Colors.black.withValues(alpha: 0.55),
                     ],
                   ),
                 ),
@@ -250,7 +250,7 @@ class _CategoryCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: colors[0].withOpacity(0.35),
+                          color: colors[0].withValues(alpha: 0.35),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -273,7 +273,7 @@ class _CategoryCard extends StatelessWidget {
                       shadows: hasImage
                           ? [
                               Shadow(
-                                color: Colors.black.withOpacity(0.5),
+                                color: Colors.black.withValues(alpha: 0.5),
                                 blurRadius: 6,
                                 offset: const Offset(0, 1),
                               ),
@@ -308,8 +308,8 @@ class _IconFallback extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            colors[0].withOpacity(0.18),
-            colors[1].withOpacity(0.18),
+            colors[0].withValues(alpha: 0.18),
+            colors[1].withValues(alpha: 0.18),
           ],
         ),
       ),

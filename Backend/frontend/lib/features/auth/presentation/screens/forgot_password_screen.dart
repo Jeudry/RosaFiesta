@@ -95,7 +95,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
         ),
         Positioned.fill(child: IgnorePointer(child: CustomPaint(
           painter: RfGridPainter(
-            color: (t.isDark ? Colors.white : Colors.black).withOpacity(0.015),
+            color: (t.isDark ? Colors.white : Colors.black).withValues(alpha: 0.015),
           ),
         ))),
         SafeArea(
@@ -162,7 +162,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
-          color: t.isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.04),
+          color: t.isDark ? Colors.white.withValues(alpha: 0.06) : Colors.black.withValues(alpha: 0.04),
           border: Border.all(color: t.borderFaint),
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -181,12 +181,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
         Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: t.isDark ? Colors.white.withOpacity(0.06) : Colors.white.withOpacity(0.93),
+            color: t.isDark ? Colors.white.withValues(alpha: 0.06) : Colors.white.withValues(alpha: 0.93),
             borderRadius: BorderRadius.circular(24),
             border: Border.all(color: t.borderFaint),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(t.isDark ? 0.0 : 0.07),
+                color: Colors.black.withValues(alpha: t.isDark ? 0.0 : 0.07),
                 blurRadius: 28,
                 offset: const Offset(0, 10),
               ),
@@ -209,9 +209,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.coral.withOpacity(0.1),
+                  color: AppColors.coral.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.coral.withOpacity(0.3)),
+                  border: Border.all(color: AppColors.coral.withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   children: [
@@ -243,12 +243,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
     return Container(
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: t.isDark ? Colors.white.withOpacity(0.06) : Colors.white.withOpacity(0.93),
+        color: t.isDark ? Colors.white.withValues(alpha: 0.06) : Colors.white.withValues(alpha: 0.93),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: t.borderFaint),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(t.isDark ? 0.0 : 0.07),
+            color: Colors.black.withValues(alpha: t.isDark ? 0.0 : 0.07),
             blurRadius: 28,
             offset: const Offset(0, 10),
           ),
@@ -264,11 +264,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [AppColors.teal.withOpacity(0.8), AppColors.sky.withOpacity(0.8)],
+                colors: [AppColors.teal.withValues(alpha: 0.8), AppColors.sky.withValues(alpha: 0.8)],
               ),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.teal.withOpacity(0.3),
+                  color: AppColors.teal.withValues(alpha: 0.3),
                   blurRadius: 20,
                   spreadRadius: 2,
                 ),

@@ -179,7 +179,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                         borderRadius: BorderRadius.circular(1),
                         color: i < _currentStep
                             ? AppColors.hotPink
-                            : (t.isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.1)),
+                            : (t.isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.1)),
                       ),
                     ),
                   ),
@@ -250,7 +250,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                     boxShadow: isSelected
                         ? [
                             BoxShadow(
-                              color: type.colors.first.withOpacity(0.2),
+                              color: type.colors.first.withValues(alpha: 0.2),
                               blurRadius: 12,
                               offset: const Offset(0, 4),
                             ),
@@ -405,7 +405,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: AppColors.teal.withOpacity(0.1),
+                    color: AppColors.teal.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: const Icon(Icons.location_on_rounded, color: AppColors.teal, size: 20),
@@ -568,7 +568,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
-                  color: eventType.colors.first.withOpacity(0.3),
+                  color: eventType.colors.first.withValues(alpha: 0.3),
                   blurRadius: 20,
                   offset: const Offset(0, 8),
                 ),
@@ -580,7 +580,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                   width: 70,
                   height: 70,
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withValues(alpha: 0.2),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(eventType.icon, color: Colors.white, size: 36),
@@ -644,7 +644,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   Widget _summaryRow(IconData icon, String text, Color color) {
     return Row(
       children: [
-        Icon(icon, color: Colors.white.withOpacity(0.8), size: 18),
+        Icon(icon, color: Colors.white.withValues(alpha: 0.8), size: 18),
         const SizedBox(width: 10),
         Flexible(
           child: Text(
@@ -697,7 +697,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                 borderRadius: BorderRadius.circular(30),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.hotPink.withOpacity(0.3),
+                    color: AppColors.hotPink.withValues(alpha: 0.3),
                     blurRadius: 16,
                     offset: const Offset(0, 4),
                   ),

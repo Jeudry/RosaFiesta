@@ -83,3 +83,40 @@ func (s *EventReviewsStore) GetSummary(ctx context.Context, eventID uuid.UUID) (
 
 	return avg.Float64, count, nil
 }
+
+func (s *EventReviewsStore) AddPhoto(ctx context.Context, reviewID uuid.UUID, photoURL string, caption string, sortOrder int) error {
+	query := `
+		INSERT INTO review_photos (review_id, photo_url, caption, sort_order)
+		VALUES ($1, $2, $3, $4)`
+
+	_, err := s.db.ExecContext(ctx, query, reviewID, photoURL, caption, sortOrder)
+	return err
+}
+
+func (s *EventReviewsStore) GetPhotos(ctx context.Context, reviewID uuid.UUID) ([]models.ReviewPhoto, error) {
+	query := `
+		SELECT id, review_id, photo_url, caption, sort_order
+		FROM review_photos
+		WHERE review_id = $1
+		ORDER BY sort_order ASC`
+
+	rows, err := s.db.QueryContext(ctx, query, reviewID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var photos []models.ReviewPhoto
+	for rows.Next() {
+		var p models.ReviewPhoto
+		if err := rows.Scan(&p.ID, &p.ReviewID, &p.PhotoURL, &p.Caption, &p.SortOrder); err != nil {
+			return nil, err
+		}
+		photos = append(photos, p)
+	}
+
+	if len(photos) == 0 {
+		return []models.ReviewPhoto{}, nil
+	}
+	return photos, nil
+}

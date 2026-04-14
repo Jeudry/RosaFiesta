@@ -55,7 +55,7 @@ class ProductCard extends StatelessWidget {
           border: Border.all(color: t.borderFaint),
           boxShadow: [
             BoxShadow(
-              color: AppColors.hotPink.withOpacity(0.06),
+              color: AppColors.hotPink.withValues(alpha: 0.06),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -76,7 +76,7 @@ class ProductCard extends StatelessWidget {
                         imageUrl,
                         fit: BoxFit.cover,
                         errorBuilder: (_, __, ___) => Container(
-                          color: AppColors.hotPink.withOpacity(0.08),
+                          color: AppColors.hotPink.withValues(alpha: 0.08),
                           child: const Icon(
                             Icons.image_not_supported_rounded,
                             color: AppColors.hotPink,
@@ -86,13 +86,13 @@ class ProductCard extends StatelessWidget {
                         loadingBuilder: (context, child, progress) {
                           if (progress == null) return child;
                           return Container(
-                            color: AppColors.hotPink.withOpacity(0.06),
+                            color: AppColors.hotPink.withValues(alpha: 0.06),
                           );
                         },
                       )
                     else
                       Container(
-                        color: AppColors.hotPink.withOpacity(0.08),
+                        color: AppColors.hotPink.withValues(alpha: 0.08),
                         child: const Icon(
                           Icons.image_not_supported_rounded,
                           color: AppColors.hotPink,
@@ -163,13 +163,13 @@ class ProductCard extends StatelessWidget {
                           decoration: BoxDecoration(
                             color: isFav
                                 ? AppColors.hotPink
-                                : Colors.white.withOpacity(0.92),
+                                : Colors.white.withValues(alpha: 0.92),
                             borderRadius: BorderRadius.circular(10),
                             boxShadow: isFav
                                 ? [
                                     BoxShadow(
                                       color: AppColors.hotPink
-                                          .withOpacity(0.35),
+                                          .withValues(alpha: 0.35),
                                       blurRadius: 8,
                                       offset: const Offset(0, 2),
                                     ),
@@ -182,7 +182,7 @@ class ProductCard extends StatelessWidget {
                                 : Icons.favorite_border_rounded,
                             color: isFav
                                 ? Colors.white
-                                : AppColors.hotPink.withOpacity(0.85),
+                                : AppColors.hotPink.withValues(alpha: 0.85),
                             size: 19,
                           ),
                         ),
@@ -334,7 +334,7 @@ class _StarRating extends StatelessWidget {
               5,
               (i) => Icon(
                     Icons.star_rounded,
-                    color: starColor.withOpacity(0.55),
+                    color: starColor.withValues(alpha: 0.55),
                     size: 18,
                   )),
           const SizedBox(width: 6),
@@ -360,7 +360,7 @@ class _StarRating extends StatelessWidget {
             half
                 ? Icons.star_half_rounded
                 : (filled ? Icons.star_rounded : Icons.star_rounded),
-            color: filled || half ? starColor : starColor.withOpacity(0.25),
+            color: filled || half ? starColor : starColor.withValues(alpha: 0.25),
             size: 18,
           );
         }),

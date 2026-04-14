@@ -75,7 +75,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    AppColors.violet.withOpacity(0.3),
+                    AppColors.violet.withValues(alpha: 0.3),
                     Colors.transparent,
                   ],
                 ),
@@ -92,7 +92,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    AppColors.hotPink.withOpacity(0.2),
+                    AppColors.hotPink.withValues(alpha: 0.2),
                     Colors.transparent,
                   ],
                 ),
@@ -173,7 +173,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
         border: Border.all(color: t.borderFaint),
         boxShadow: [
           BoxShadow(
-            color: AppColors.violet.withOpacity(0.08),
+            color: AppColors.violet.withValues(alpha: 0.08),
             blurRadius: 20,
             offset: const Offset(0, 6),
           ),
@@ -226,7 +226,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: AppColors.hotPink.withOpacity(0.08),
+                    color: AppColors.hotPink.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
@@ -246,7 +246,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: t.isDark
-                  ? Colors.white.withOpacity(0.05)
+                  ? Colors.white.withValues(alpha: 0.05)
                   : const Color(0xFFF5F0FF),
               borderRadius: BorderRadius.circular(12),
             ),
@@ -307,7 +307,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
         width: 80,
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: isSelected ? method.color.withOpacity(0.15) : t.card,
+          color: isSelected ? method.color.withValues(alpha: 0.15) : t.card,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected ? method.color : t.borderFaint,
@@ -316,7 +316,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: method.color.withOpacity(0.3),
+                    color: method.color.withValues(alpha: 0.3),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),
@@ -331,10 +331,10 @@ class _CheckoutScreenState extends State<CheckoutScreen>
               height: 36,
               decoration: BoxDecoration(
                 color: isSelected
-                    ? method.color.withOpacity(0.2)
+                    ? method.color.withValues(alpha: 0.2)
                     : t.isDark
-                        ? Colors.white.withOpacity(0.08)
-                        : Colors.grey.withOpacity(0.1),
+                        ? Colors.white.withValues(alpha: 0.08)
+                        : Colors.grey.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
@@ -370,7 +370,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
         border: Border.all(color: t.borderFaint),
         boxShadow: [
           BoxShadow(
-            color: AppColors.hotPink.withOpacity(0.06),
+            color: AppColors.hotPink.withValues(alpha: 0.06),
             blurRadius: 20,
             offset: const Offset(0, 6),
           ),
@@ -536,9 +536,9 @@ class _CheckoutScreenState extends State<CheckoutScreen>
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: AppColors.amber.withOpacity(0.1),
+            color: AppColors.amber.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.amber.withOpacity(0.3)),
+            border: Border.all(color: AppColors.amber.withValues(alpha: 0.3)),
           ),
           child: Row(
             children: [
@@ -585,7 +585,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: AppColors.teal.withOpacity(0.1),
+            color: AppColors.teal.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Row(
@@ -605,9 +605,9 @@ class _CheckoutScreenState extends State<CheckoutScreen>
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: AppColors.amber.withOpacity(0.1),
+            color: AppColors.amber.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.amber.withOpacity(0.3)),
+            border: Border.all(color: AppColors.amber.withValues(alpha: 0.3)),
           ),
           child: Row(
             children: [
@@ -684,7 +684,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
         Container(
           decoration: BoxDecoration(
             color: t.isDark
-                ? Colors.white.withOpacity(0.04)
+                ? Colors.white.withValues(alpha: 0.04)
                 : const Color(0xFFF8F6FF),
             borderRadius: BorderRadius.circular(14),
             border: Border.all(color: t.borderFaint),
@@ -749,7 +749,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                 borderRadius: BorderRadius.circular(30),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.hotPink.withOpacity(0.4),
+                    color: AppColors.hotPink.withValues(alpha: 0.4),
                     blurRadius: 20,
                     offset: const Offset(0, 6),
                   ),
@@ -783,7 +783,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                               vertical: 6,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
+                              color: Colors.white.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(

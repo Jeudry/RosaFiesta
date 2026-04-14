@@ -182,7 +182,7 @@ class _SketchCanvasScreenState extends State<SketchCanvasScreen> {
         child: Icon(icon,
             color: enabled
                 ? t.textPrimary
-                : t.textDim.withOpacity(0.3),
+                : t.textDim.withValues(alpha: 0.3),
             size: 20),
       ),
     );
@@ -198,12 +198,12 @@ class _SketchCanvasScreenState extends State<SketchCanvasScreen> {
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              AppColors.violet.withOpacity(0.08),
-              AppColors.hotPink.withOpacity(0.06),
+              AppColors.violet.withValues(alpha: 0.08),
+              AppColors.hotPink.withValues(alpha: 0.06),
             ],
           ),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.violet.withOpacity(0.15)),
+          border: Border.all(color: AppColors.violet.withValues(alpha: 0.15)),
         ),
         child: Row(
           children: [
@@ -247,7 +247,7 @@ class _SketchCanvasScreenState extends State<SketchCanvasScreen> {
           border: Border.all(color: t.borderFaint, width: 1.5),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.06),
+              color: Colors.black.withValues(alpha: 0.06),
               blurRadius: 20,
               offset: const Offset(0, 8),
             ),
@@ -285,8 +285,8 @@ class _SketchCanvasScreenState extends State<SketchCanvasScreen> {
               painter: _SketchPainter(
                 strokes: _strokes,
                 gridColor: t.isDark
-                    ? Colors.white.withOpacity(0.04)
-                    : Colors.black.withOpacity(0.04),
+                    ? Colors.white.withValues(alpha: 0.04)
+                    : Colors.black.withValues(alpha: 0.04),
               ),
               size: Size.infinite,
             ),
@@ -315,7 +315,7 @@ class _SketchCanvasScreenState extends State<SketchCanvasScreen> {
                   height: 42,
                   decoration: BoxDecoration(
                     color: _isEraser
-                        ? AppColors.violet.withOpacity(0.15)
+                        ? AppColors.violet.withValues(alpha: 0.15)
                         : (t.isDark ? t.card : Colors.white),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
@@ -367,7 +367,7 @@ class _SketchCanvasScreenState extends State<SketchCanvasScreen> {
                             boxShadow: isSelected
                                 ? [
                                     BoxShadow(
-                                      color: color.withOpacity(0.4),
+                                      color: color.withValues(alpha: 0.4),
                                       blurRadius: 8,
                                       spreadRadius: 1,
                                     )
@@ -399,7 +399,7 @@ class _SketchCanvasScreenState extends State<SketchCanvasScreen> {
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? AppColors.violet.withOpacity(0.12)
+                            ? AppColors.violet.withValues(alpha: 0.12)
                             : (t.isDark ? t.card : Colors.white),
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(
@@ -434,7 +434,7 @@ class _SketchCanvasScreenState extends State<SketchCanvasScreen> {
                             colors: [AppColors.violet, AppColors.hotPink])
                         : null,
                     color: _strokes.isEmpty
-                        ? t.textDim.withOpacity(0.15)
+                        ? t.textDim.withValues(alpha: 0.15)
                         : null,
                     borderRadius: BorderRadius.circular(24),
                   ),

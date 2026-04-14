@@ -126,8 +126,8 @@ class _WelcomeOnboardingScreenState extends State<WelcomeOnboardingScreen>
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              colors[0].withOpacity(t.isDark ? 0.15 : 0.08),
-              colors[1].withOpacity(t.isDark ? 0.08 : 0.05),
+              colors[0].withValues(alpha: t.isDark ? 0.15 : 0.08),
+              colors[1].withValues(alpha: t.isDark ? 0.08 : 0.05),
             ],
           ),
         ),
@@ -166,8 +166,8 @@ class _WelcomeOnboardingScreenState extends State<WelcomeOnboardingScreen>
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(20),
                       color: t.isDark
-                          ? Colors.white.withOpacity(0.06)
-                          : Colors.black.withOpacity(0.04),
+                          ? Colors.white.withValues(alpha: 0.06)
+                          : Colors.black.withValues(alpha: 0.04),
                       border: Border.all(color: t.borderFaint),
                     ),
                     child: Text(
@@ -221,7 +221,7 @@ class _WelcomeOnboardingScreenState extends State<WelcomeOnboardingScreen>
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: slide.gradient1.withOpacity(0.3),
+                    color: slide.gradient1.withValues(alpha: 0.3),
                     blurRadius: 30,
                     spreadRadius: 2,
                   ),
@@ -237,8 +237,8 @@ class _WelcomeOnboardingScreenState extends State<WelcomeOnboardingScreen>
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(24),
               color: t.isDark
-                  ? Colors.black.withOpacity(0.18)
-                  : Colors.white.withOpacity(0.93),
+                  ? Colors.black.withValues(alpha: 0.18)
+                  : Colors.white.withValues(alpha: 0.93),
               border: Border.all(color: t.borderFaint),
             ),
             child: Column(
@@ -294,7 +294,7 @@ class _WelcomeOnboardingScreenState extends State<WelcomeOnboardingScreen>
               color: Colors.white,
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.coral.withOpacity(0.2),
+                  color: AppColors.coral.withValues(alpha: 0.2),
                   blurRadius: 30,
                   spreadRadius: 5,
                 ),
@@ -390,8 +390,8 @@ class _WelcomeOnboardingScreenState extends State<WelcomeOnboardingScreen>
                   color: isActive
                       ? activeColor
                       : (t.isDark
-                          ? Colors.white.withOpacity(0.12)
-                          : Colors.black.withOpacity(0.1)),
+                          ? Colors.white.withValues(alpha: 0.12)
+                          : Colors.black.withValues(alpha: 0.1)),
                 ),
               );
             }),
@@ -407,7 +407,7 @@ class _WelcomeOnboardingScreenState extends State<WelcomeOnboardingScreen>
                     color: activeColor,
                     boxShadow: [
                       BoxShadow(
-                        color: activeColor.withOpacity(0.3),
+                        color: activeColor.withValues(alpha: 0.3),
                         blurRadius: 12, offset: const Offset(0, 4),
                       ),
                     ],

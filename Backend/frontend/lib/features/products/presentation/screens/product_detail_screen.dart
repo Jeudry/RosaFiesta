@@ -163,7 +163,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                           color: Colors.black,
                           child: Center(
                             child: Icon(Icons.play_circle_rounded,
-                                color: Colors.white.withOpacity(0.8),
+                                color: Colors.white.withValues(alpha: 0.8),
                                 size: 64),
                           ),
                         )
@@ -193,7 +193,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.45),
+                  color: Colors.black.withValues(alpha: 0.45),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Row(
@@ -227,12 +227,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                           border: Border.all(
                             color: active
                                 ? AppColors.hotPink
-                                : Colors.white.withOpacity(0.5),
+                                : Colors.white.withValues(alpha: 0.5),
                             width: active ? 2.5 : 1.5,
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
+                              color: Colors.black.withValues(alpha: 0.2),
                               blurRadius: 8,
                             ),
                           ],
@@ -254,7 +254,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                                 ),
                               if (isOverflow)
                                 Container(
-                                  color: Colors.black.withOpacity(0.6),
+                                  color: Colors.black.withValues(alpha: 0.6),
                                   child: Center(
                                     child: Text(
                                       '+${media.length - maxThumbs + 1}',
@@ -293,10 +293,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                 child: Container(
                   width: 44, height: 44,
                   decoration: BoxDecoration(
-                    color: (t.isDark ? Colors.black : Colors.white).withOpacity(0.85),
+                    color: (t.isDark ? Colors.black : Colors.white).withValues(alpha: 0.85),
                     shape: BoxShape.circle,
                     boxShadow: [
-                      BoxShadow(color: Colors.black.withOpacity(0.1),
+                      BoxShadow(color: Colors.black.withValues(alpha: 0.1),
                           blurRadius: 12, offset: const Offset(0, 4)),
                     ],
                   ),
@@ -392,7 +392,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                           if (isVid)
                             Center(
                               child: Icon(Icons.play_circle_rounded,
-                                  color: Colors.white.withOpacity(0.8),
+                                  color: Colors.white.withValues(alpha: 0.8),
                                   size: 36),
                             ),
                           if (i == _currentImagePage)
@@ -433,7 +433,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
   }
 
   Widget _placeholder() => Container(
-        color: AppColors.hotPink.withOpacity(0.06),
+        color: AppColors.hotPink.withValues(alpha: 0.06),
         child: const Center(
           child: Icon(Icons.image_not_supported_rounded,
               color: AppColors.hotPink, size: 48),
@@ -464,10 +464,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
       child: Container(
         width: 44, height: 44,
         decoration: BoxDecoration(
-          color: (t.isDark ? Colors.black : Colors.white).withOpacity(0.85),
+          color: (t.isDark ? Colors.black : Colors.white).withValues(alpha: 0.85),
           shape: BoxShape.circle,
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.1),
+            BoxShadow(color: Colors.black.withValues(alpha: 0.1),
                 blurRadius: 12, offset: const Offset(0, 4)),
           ],
         ),
@@ -520,9 +520,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: AppColors.coral.withOpacity(0.08),
+                color: AppColors.coral.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.coral.withOpacity(0.2)),
+                border: Border.all(color: AppColors.coral.withValues(alpha: 0.2)),
               ),
               child: Row(mainAxisSize: MainAxisSize.min, children: [
                 Icon(Icons.local_fire_department_rounded,
@@ -554,7 +554,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
           return const Icon(Icons.star_half_rounded, color: starColor, size: 22);
         }
         return Icon(Icons.star_rounded,
-            color: starColor.withOpacity(0.25), size: 22);
+            color: starColor.withValues(alpha: 0.25), size: 22);
       }),
       const SizedBox(width: 8),
       Text(
@@ -635,7 +635,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
         height: 54,
         decoration: BoxDecoration(
           color: t.isDark
-              ? Colors.white.withOpacity(0.04)
+              ? Colors.white.withValues(alpha: 0.04)
               : const Color(0xFFF3F4F6),
           borderRadius: BorderRadius.circular(16),
         ),
@@ -720,7 +720,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                     gradient: LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
-                      colors: [t.base.withOpacity(0.0), t.base],
+                      colors: [t.base.withValues(alpha: 0.0), t.base],
                     ),
                   ),
                 ),
@@ -854,7 +854,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
                   color: t.isDark
-                      ? Colors.white.withOpacity(0.03)
+                      ? Colors.white.withValues(alpha: 0.03)
                       : const Color(0xFFF9FAFB),
                   borderRadius: BorderRadius.circular(18),
                 ),
@@ -889,7 +889,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: t.isDark
-            ? Colors.white.withOpacity(0.04)
+            ? Colors.white.withValues(alpha: 0.04)
             : const Color(0xFFF9FAFB),
         borderRadius: BorderRadius.circular(16),
       ),
@@ -925,7 +925,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
         Row(children: List.generate(5, (i) => Icon(Icons.star_rounded,
             color: i < review.rating
                 ? starColor
-                : starColor.withOpacity(0.2),
+                : starColor.withValues(alpha: 0.2),
             size: 14))),
         const SizedBox(height: 8),
         Text(review.comment,
@@ -1038,7 +1038,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
           color: t.base,
           border: Border(top: BorderSide(color: t.borderFaint)),
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.05),
+            BoxShadow(color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 20, offset: const Offset(0, -8)),
           ],
         ),
@@ -1090,7 +1090,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                       colors: [AppColors.violet, AppColors.hotPink]),
                   borderRadius: BorderRadius.circular(18),
                   boxShadow: [
-                    BoxShadow(color: AppColors.hotPink.withOpacity(0.3),
+                    BoxShadow(color: AppColors.hotPink.withValues(alpha: 0.3),
                         blurRadius: 16, offset: const Offset(0, 6)),
                   ],
                 ),
@@ -1131,7 +1131,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
             Container(
               width: 40, height: 4,
               decoration: BoxDecoration(
-                color: t.textDim.withOpacity(0.3),
+                color: t.textDim.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(2)),
             ),
             const SizedBox(height: 20),
@@ -1178,7 +1178,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
           Container(
             width: 56, height: 56,
             decoration: BoxDecoration(
-              color: (color ?? t.textMuted).withOpacity(0.1),
+              color: (color ?? t.textMuted).withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(icon, color: color ?? t.textMuted, size: 24),
@@ -1213,7 +1213,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                 icon: Icon(Icons.star_rounded,
                     color: i < selectedRating
                         ? const Color(0xFFFFB800)
-                        : const Color(0xFFFFB800).withOpacity(0.2),
+                        : const Color(0xFFFFB800).withValues(alpha: 0.2),
                     size: 32),
                 onPressed: () => setState(() => selectedRating = i + 1),
               )),
@@ -1312,7 +1312,7 @@ class _FullscreenViewerState extends State<_FullscreenViewer> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(Icons.play_circle_rounded,
-                          color: Colors.white.withOpacity(0.7), size: 80),
+                          color: Colors.white.withValues(alpha: 0.7), size: 80),
                       const SizedBox(height: 12),
                       Text('Reproducir video',
                           style: GoogleFonts.dmSans(
@@ -1347,7 +1347,7 @@ class _FullscreenViewerState extends State<_FullscreenViewer> {
                       child: Container(
                         width: 40, height: 40,
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.1),
+                          color: Colors.white.withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(Icons.close_rounded,

@@ -54,7 +54,7 @@ class _ShopScreenState extends State<ShopScreen> {
     return SliverAppBar(
       floating: true,
       snap: true,
-      backgroundColor: AppColors.backgroundLight.withOpacity(0.8),
+      backgroundColor: AppColors.backgroundLight.withValues(alpha: 0.8),
       elevation: 0,
       leading: IconButton(
         icon: const Icon(Icons.menu, color: AppColors.purple),
@@ -79,7 +79,7 @@ class _ShopScreenState extends State<ShopScreen> {
             border: Border.all(color: Colors.grey.shade100),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 4,
               ),
             ],
@@ -121,7 +121,7 @@ class _ShopScreenState extends State<ShopScreen> {
                   boxShadow: isSelected
                       ? [
                           BoxShadow(
-                            color: AppColors.purple.withOpacity(0.2),
+                            color: AppColors.purple.withValues(alpha: 0.2),
                             blurRadius: 8,
                             offset: const Offset(0, 4),
                           ),
@@ -159,7 +159,7 @@ class _ShopScreenState extends State<ShopScreen> {
         ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.purple.withOpacity(0.1),
+            color: AppColors.purple.withValues(alpha: 0.1),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -176,7 +176,7 @@ class _ShopScreenState extends State<ShopScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Text(
@@ -228,7 +228,7 @@ class _ShopScreenState extends State<ShopScreen> {
               width: 128,
               height: 128,
               decoration: BoxDecoration(
-                color: AppColors.lime.withOpacity(0.3),
+                color: AppColors.lime.withValues(alpha: 0.3),
                 shape: BoxShape.circle,
               ),
             ),
@@ -241,7 +241,7 @@ class _ShopScreenState extends State<ShopScreen> {
               width: 64,
               height: 64,
               decoration: BoxDecoration(
-                color: AppColors.yellow.withOpacity(0.3),
+                color: AppColors.yellow.withValues(alpha: 0.3),
                 shape: BoxShape.circle,
               ),
             ),
@@ -314,7 +314,7 @@ class _ShopScreenState extends State<ShopScreen> {
               borderRadius: BorderRadius.circular(32),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
+                  color: Colors.black.withValues(alpha: 0.04),
                   blurRadius: 8,
                   offset: const Offset(0, 4),
                 ),
@@ -339,7 +339,7 @@ class _ShopScreenState extends State<ShopScreen> {
                     width: 32,
                     height: 32,
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.9),
+                      color: Colors.white.withValues(alpha: 0.9),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
@@ -445,7 +445,7 @@ class _ShopScreenState extends State<ShopScreen> {
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-              color: AppColors.purple.withOpacity(0.3),
+              color: AppColors.purple.withValues(alpha: 0.3),
               blurRadius: 16,
               offset: const Offset(0, 8),
             ),
@@ -496,7 +496,7 @@ class _ShopScreenState extends State<ShopScreen> {
   Widget _buildBottomNav() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.9),
+        color: Colors.white.withValues(alpha: 0.9),
         border: Border(top: BorderSide(color: Colors.grey.shade100)),
       ),
       child: SafeArea(

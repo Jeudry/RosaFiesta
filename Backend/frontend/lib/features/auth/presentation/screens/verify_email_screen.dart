@@ -90,7 +90,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
         ),
         Positioned.fill(child: IgnorePointer(child: CustomPaint(
           painter: RfGridPainter(
-            color: (t.isDark ? Colors.white : Colors.black).withOpacity(0.015),
+            color: (t.isDark ? Colors.white : Colors.black).withValues(alpha: 0.015),
           ),
         ))),
         SafeArea(
@@ -148,8 +148,8 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    AppColors.hotPink.withOpacity(value * 0.6),
-                    AppColors.violet.withOpacity(value * 0.6),
+                    AppColors.hotPink.withValues(alpha: value * 0.6),
+                    AppColors.violet.withValues(alpha: value * 0.6),
                   ],
                 ),
               ),
@@ -158,7 +158,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
                   width: 40,
                   height: 40,
                   child: CircularProgressIndicator(
-                    color: Colors.white.withOpacity(value),
+                    color: Colors.white.withValues(alpha: value),
                     strokeWidth: 3,
                   ),
                 ),
@@ -206,13 +206,13 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    AppColors.teal.withOpacity(value),
-                    AppColors.sky.withOpacity(value),
+                    AppColors.teal.withValues(alpha: value),
+                    AppColors.sky.withValues(alpha: value),
                   ],
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.teal.withOpacity(0.4 * value),
+                    color: AppColors.teal.withValues(alpha: 0.4 * value),
                     blurRadius: 30,
                     spreadRadius: 5,
                   ),
@@ -221,7 +221,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
               child: Center(
                 child: Icon(
                   Icons.check_rounded,
-                  color: Colors.white.withOpacity(value),
+                  color: Colors.white.withValues(alpha: value),
                   size: 60 * value,
                 ),
               ),
@@ -266,7 +266,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
           height: 100,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: AppColors.coral.withOpacity(0.15),
+            color: AppColors.coral.withValues(alpha: 0.15),
           ),
           child: const Icon(Icons.error_outline_rounded, color: AppColors.coral, size: 50),
         ),

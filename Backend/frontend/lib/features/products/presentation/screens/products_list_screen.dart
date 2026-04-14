@@ -312,7 +312,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
           boxShadow: elevated
               ? [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.06),
+                    color: Colors.black.withValues(alpha: 0.06),
                     blurRadius: 14,
                     offset: const Offset(0, 4),
                   ),
@@ -355,7 +355,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
           border: Border.all(color: t.borderFaint),
           boxShadow: [
             BoxShadow(
-              color: AppColors.hotPink.withOpacity(0.05),
+              color: AppColors.hotPink.withValues(alpha: 0.05),
               blurRadius: 24,
               offset: const Offset(0, 8),
             ),
@@ -454,7 +454,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                     color: isActive
                         ? null
                         : (t.isDark
-                            ? Colors.white.withOpacity(0.04)
+                            ? Colors.white.withValues(alpha: 0.04)
                             : const Color(0xFFF3F4F6)),
                     borderRadius: BorderRadius.circular(20),
                   ),
@@ -553,13 +553,13 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                         width: double.infinity,
                         fit: BoxFit.cover,
                         errorBuilder: (_, __, ___) => Container(
-                          color: AppColors.hotPink.withOpacity(0.08),
+                          color: AppColors.hotPink.withValues(alpha: 0.08),
                           child: const Icon(
                               Icons.image_not_supported_rounded,
                               color: AppColors.hotPink),
                         ),
                       )
-                    : Container(color: AppColors.hotPink.withOpacity(0.08)),
+                    : Container(color: AppColors.hotPink.withValues(alpha: 0.08)),
               ),
               Expanded(
                 flex: 4,
@@ -801,10 +801,10 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 14, vertical: 8),
                     decoration: BoxDecoration(
-                      color: AppColors.hotPink.withOpacity(0.08),
+                      color: AppColors.hotPink.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(18),
                       border: Border.all(
-                        color: AppColors.hotPink.withOpacity(0.15),
+                        color: AppColors.hotPink.withValues(alpha: 0.15),
                       ),
                     ),
                     child: Text(
@@ -844,7 +844,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
             Container(
               width: 72, height: 72,
               decoration: BoxDecoration(
-                color: AppColors.hotPink.withOpacity(0.1),
+                color: AppColors.hotPink.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.search_off_rounded,

@@ -1,3 +1,29 @@
+class ReviewPhoto {
+  final String id;
+  final String reviewId;
+  final String photoUrl;
+  final String? caption;
+  final int sortOrder;
+
+  ReviewPhoto({
+    required this.id,
+    required this.reviewId,
+    required this.photoUrl,
+    this.caption,
+    required this.sortOrder,
+  });
+
+  factory ReviewPhoto.fromJson(Map<String, dynamic> json) {
+    return ReviewPhoto(
+      id: json['id'],
+      reviewId: json['review_id'],
+      photoUrl: json['photo_url'],
+      caption: json['caption'],
+      sortOrder: json['sort_order'] ?? 0,
+    );
+  }
+}
+
 class EventReview {
   final String id;
   final String userId;
@@ -7,6 +33,7 @@ class EventReview {
   final DateTime createdAt;
   final String? userName;
   final String? avatar;
+  final List<ReviewPhoto> photos;
 
   EventReview({
     required this.id,
@@ -17,9 +44,11 @@ class EventReview {
     required this.createdAt,
     this.userName,
     this.avatar,
+    this.photos = const [],
   });
 
   factory EventReview.fromJson(Map<String, dynamic> json) {
+    final photosList = json['photos'] as List<dynamic>? ?? [];
     return EventReview(
       id: json['id'],
       userId: json['user_id'],
@@ -29,6 +58,7 @@ class EventReview {
       createdAt: DateTime.parse(json['created'] ?? json['created_at']),
       userName: json['user']?['user_name'],
       avatar: json['user']?['avatar'],
+      photos: photosList.map((p) => ReviewPhoto.fromJson(p)).toList(),
     );
   }
 

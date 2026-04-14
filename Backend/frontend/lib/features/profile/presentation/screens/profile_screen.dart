@@ -74,7 +74,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   width: 120,
                   height: 120,
                   decoration: BoxDecoration(
-                    color: AppColors.teal.withOpacity(0.1),
+                    color: AppColors.teal.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                     border: Border.all(color: AppColors.teal, width: 2),
                     image: user.avatar != null && user.avatar!.isNotEmpty
@@ -114,7 +114,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     borderRadius: BorderRadius.circular(24),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
+                        color: Colors.black.withValues(alpha: 0.05),
                         blurRadius: 20,
                         offset: const Offset(0, 10),
                       ),
@@ -154,7 +154,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         secondary: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: AppColors.primary.withOpacity(0.1),
+                            color: AppColors.primary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: const Icon(Icons.language, color: AppColors.primary),
@@ -187,7 +187,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     secondary: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.1),
+                        color: AppColors.primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: const Icon(Icons.notifications_active, color: AppColors.primary),
@@ -266,7 +266,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: AppColors.lime.withOpacity(0.2),
+            color: AppColors.lime.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Icon(icon, color: AppColors.teal, size: 20),

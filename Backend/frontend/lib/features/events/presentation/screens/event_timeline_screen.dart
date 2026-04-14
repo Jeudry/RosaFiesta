@@ -67,7 +67,7 @@ class _EventTimelineScreenState extends State<EventTimelineScreen> {
                           Expanded(
                             child: Container(
                               width: 2,
-                              color: Colors.blue.withOpacity(0.3),
+                              color: Colors.blue.withValues(alpha: 0.3),
                             ),
                           ),
                       ],

@@ -93,15 +93,15 @@ class AppDecorations {
   static BoxDecoration glass(
       {double opacity = 0.1, double blur = 10.0}) {
     return BoxDecoration(
-      color: Colors.white.withOpacity(opacity),
+      color: Colors.white.withValues(alpha: opacity),
       borderRadius: BorderRadius.circular(24),
-      border: Border.all(color: Colors.white.withOpacity(0.2)),
+      border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
     );
   }
 
   static List<BoxShadow> softShadow = [
     BoxShadow(
-      color: AppColors.hotPink.withOpacity(0.08),
+      color: AppColors.hotPink.withValues(alpha: 0.08),
       blurRadius: 24,
       offset: const Offset(0, 8),
     ),

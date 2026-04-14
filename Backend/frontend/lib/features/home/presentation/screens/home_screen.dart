@@ -267,7 +267,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
           child: Container(
-            color: t.card.withOpacity(0.85),
+            color: t.card.withValues(alpha: 0.85),
             child: SafeArea(
               bottom: false,
               child: Padding(
@@ -320,7 +320,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: AppColors.hotPink.withOpacity(0.4),
+                      color: AppColors.hotPink.withValues(alpha: 0.4),
                       width: 2,
                     ),
                     image: const DecorationImage(
@@ -390,7 +390,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   borderRadius: BorderRadius.circular(cartSize / 2),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.hotPink.withOpacity(0.35),
+                      color: AppColors.hotPink.withValues(alpha: 0.35),
                       blurRadius: 12,
                       offset: const Offset(0, 4),
                     ),
@@ -464,7 +464,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           boxShadow: elevated
               ? [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.06),
+                    color: Colors.black.withValues(alpha: 0.06),
                     blurRadius: 14,
                     offset: const Offset(0, 4),
                   ),
@@ -584,7 +584,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
           boxShadow: [
             BoxShadow(
-              color: AppColors.hotPink.withOpacity(0.3),
+              color: AppColors.hotPink.withValues(alpha: 0.3),
               blurRadius: 24,
               offset: const Offset(0, 8),
             ),
@@ -600,7 +600,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 height: 120,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.white.withOpacity(0.1),
+                  color: Colors.white.withValues(alpha: 0.1),
                 ),
               ),
             ),
@@ -612,7 +612,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 height: 80,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.white.withOpacity(0.08),
+                  color: Colors.white.withValues(alpha: 0.08),
                 ),
               ),
             ),
@@ -628,7 +628,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
+                      color: Colors.white.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
@@ -794,7 +794,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(4),
                 gradient: i == _trendingPage ? AppColors.buttonGradient : null,
-                color: i == _trendingPage ? null : t.textDim.withOpacity(0.3),
+                color: i == _trendingPage ? null : t.textDim.withValues(alpha: 0.3),
               ),
             ),
           ),
@@ -811,7 +811,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: item.colors.first.withOpacity(0.2),
+              color: item.colors.first.withValues(alpha: 0.2),
               blurRadius: 20,
               offset: const Offset(0, 8),
             ),
@@ -826,14 +826,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 item.image,
                 fit: BoxFit.cover,
                 errorBuilder: (_, __, ___) =>
-                    Container(color: item.colors.first.withOpacity(0.2)),
+                    Container(color: item.colors.first.withValues(alpha: 0.2)),
               ),
               Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [Colors.transparent, Colors.black.withOpacity(0.7)],
+                    colors: [Colors.transparent, Colors.black.withValues(alpha: 0.7)],
                     stops: const [0.3, 1.0],
                   ),
                 ),
@@ -886,10 +886,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         vertical: 8,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.15),
+                        color: Colors.white.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(14),
                         border: Border.all(
-                          color: Colors.white.withOpacity(0.2),
+                          color: Colors.white.withValues(alpha: 0.2),
                         ),
                       ),
                       child: Column(
@@ -979,7 +979,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           border: Border.all(color: t.borderFaint),
           boxShadow: [
             BoxShadow(
-              color: AppColors.hotPink.withOpacity(0.06),
+              color: AppColors.hotPink.withValues(alpha: 0.06),
               blurRadius: 16,
               offset: const Offset(0, 6),
             ),
@@ -1003,11 +1003,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           imageUrl,
                           fit: BoxFit.cover,
                           errorBuilder: (_, __, ___) => Container(
-                            color: AppColors.hotPink.withOpacity(0.08),
+                            color: AppColors.hotPink.withValues(alpha: 0.08),
                           ),
                         )
                       else
-                        Container(color: AppColors.hotPink.withOpacity(0.08)),
+                        Container(color: AppColors.hotPink.withValues(alpha: 0.08)),
                       Positioned(
                         top: 8,
                         left: 8,
@@ -1145,7 +1145,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: AppColors.hotPink.withOpacity(0.1),
+                  color: AppColors.hotPink.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
@@ -1189,7 +1189,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: t.textDim.withOpacity(0.3),
+                color: t.textDim.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -1213,7 +1213,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         width: 42,
         height: 42,
         decoration: BoxDecoration(
-          color: AppColors.hotPink.withOpacity(0.08),
+          color: AppColors.hotPink.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Icon(icon, color: AppColors.hotPink, size: 22),
@@ -1249,7 +1249,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           borderRadius: BorderRadius.circular(35),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.08),
+              color: Colors.black.withValues(alpha: 0.08),
               blurRadius: 24,
               offset: const Offset(0, 4),
             ),

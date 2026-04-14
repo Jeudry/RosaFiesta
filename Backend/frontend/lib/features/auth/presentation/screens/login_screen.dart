@@ -113,7 +113,7 @@ class _LoginScreenState extends State<LoginScreen>
         Positioned.fill(child: IgnorePointer(child: CustomPaint(
           painter: RfGridPainter(
             color: (t.isDark ? Colors.white : Colors.black)
-                .withOpacity(0.015)),
+                .withValues(alpha: 0.015)),
         ))),
         SafeArea(
           child: Column(children: [
@@ -181,8 +181,8 @@ class _LoginScreenState extends State<LoginScreen>
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
           color: t.isDark
-              ? Colors.white.withOpacity(0.06)
-              : Colors.black.withOpacity(0.04),
+              ? Colors.white.withValues(alpha: 0.06)
+              : Colors.black.withValues(alpha: 0.04),
           border: Border.all(color: t.borderFaint),
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -209,8 +209,8 @@ class _LoginScreenState extends State<LoginScreen>
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: t.isDark
-            ? Colors.white.withOpacity(0.05)
-            : Colors.white.withOpacity(0.85),
+            ? Colors.white.withValues(alpha: 0.05)
+            : Colors.white.withValues(alpha: 0.85),
         borderRadius: BorderRadius.circular(22),
         border: Border.all(color: t.borderFaint),
       ),
@@ -266,7 +266,7 @@ class _LoginScreenState extends State<LoginScreen>
           height: 50,
           decoration: BoxDecoration(
             color: t.isDark
-                ? Colors.white.withOpacity(0.06)
+                ? Colors.white.withValues(alpha: 0.06)
                 : const Color(0xFFF5F6FA),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: t.borderFaint),
@@ -282,13 +282,13 @@ class _LoginScreenState extends State<LoginScreen>
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: t.isDark
-            ? Colors.white.withOpacity(0.06)
-            : Colors.white.withOpacity(0.93),
+            ? Colors.white.withValues(alpha: 0.06)
+            : Colors.white.withValues(alpha: 0.93),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: t.borderFaint),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(t.isDark ? 0.0 : 0.07),
+            color: Colors.black.withValues(alpha: t.isDark ? 0.0 : 0.07),
             blurRadius: 28,
             offset: const Offset(0, 10),
           ),

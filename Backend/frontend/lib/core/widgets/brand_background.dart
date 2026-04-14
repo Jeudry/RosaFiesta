@@ -45,7 +45,7 @@ class _BrandBackgroundState extends State<BrandBackground> with SingleTickerProv
                   colors: [
                     AppColors.purple,
                     AppColors.pink,
-                    AppColors.purple.withOpacity(0.8),
+                    AppColors.purple.withValues(alpha: 0.8),
                   ],
                   stops: [
                     0.0,
@@ -93,7 +93,7 @@ class MovingStar extends StatelessWidget {
             angle: offset + star.angle,
             child: Icon(
               Icons.star,
-              color: star.color.withOpacity(0.3),
+              color: star.color.withValues(alpha: 0.3),
               size: star.size,
             ),
           ),

@@ -138,6 +138,8 @@ type Storage struct {
 		Create(context.Context, *models.EventReview) error
 		GetByEventID(context.Context, uuid.UUID) ([]models.EventReview, error)
 		GetSummary(context.Context, uuid.UUID) (float64, int, error)
+		AddPhoto(ctx context.Context, reviewID uuid.UUID, photoURL string, caption string, sortOrder int) error
+		GetPhotos(ctx context.Context, reviewID uuid.UUID) ([]models.ReviewPhoto, error)
 	}
 	CompanyReviews interface {
 		Create(context.Context, *models.CompanyReview) error

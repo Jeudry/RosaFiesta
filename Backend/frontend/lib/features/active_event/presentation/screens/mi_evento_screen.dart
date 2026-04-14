@@ -250,7 +250,7 @@ class _CategorySection extends StatelessWidget {
               border: Border.all(color: t.borderFaint),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
+                  color: Colors.black.withValues(alpha: 0.04),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -394,7 +394,7 @@ class _CartItemTile extends StatelessWidget {
         border: Border.all(color: t.borderFaint),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -413,7 +413,7 @@ class _CartItemTile extends StatelessWidget {
                       imageUrl,
                       fit: BoxFit.cover,
                       errorBuilder: (_, __, ___) => Container(
-                        color: categoryColors.first.withOpacity(0.1),
+                        color: categoryColors.first.withValues(alpha: 0.1),
                         child: Icon(
                           Icons.image_not_supported_rounded,
                           color: categoryColors.first,
@@ -421,7 +421,7 @@ class _CartItemTile extends StatelessWidget {
                       ),
                     )
                   : Container(
-                      color: categoryColors.first.withOpacity(0.1),
+                      color: categoryColors.first.withValues(alpha: 0.1),
                       child: Icon(
                         Icons.image_not_supported_rounded,
                         color: categoryColors.first,
@@ -541,8 +541,8 @@ class _CompactStepper extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: t.isDark
-            ? Colors.white.withOpacity(0.06)
-            : Colors.black.withOpacity(0.05),
+            ? Colors.white.withValues(alpha: 0.06)
+            : Colors.black.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(22),
       ),
       child: Row(
@@ -633,7 +633,7 @@ class _StickyFooter extends StatelessWidget {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 20,
             offset: const Offset(0, -4),
           ),
@@ -711,7 +711,7 @@ class _StickyFooter extends StatelessWidget {
                 borderRadius: BorderRadius.circular(28),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.hotPink.withOpacity(0.3),
+                    color: AppColors.hotPink.withValues(alpha: 0.3),
                     blurRadius: 16,
                     offset: const Offset(0, 4),
                   ),
@@ -766,8 +766,8 @@ class _EmptyState extends StatelessWidget {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    AppColors.violet.withOpacity(0.18),
-                    AppColors.hotPink.withOpacity(0.18),
+                    AppColors.violet.withValues(alpha: 0.18),
+                    AppColors.hotPink.withValues(alpha: 0.18),
                   ],
                 ),
                 shape: BoxShape.circle,
@@ -850,9 +850,9 @@ class _DateMissingBanner extends StatelessWidget {
       margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: AppColors.amber.withOpacity(0.12),
+        color: AppColors.amber.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.amber.withOpacity(0.3)),
+        border: Border.all(color: AppColors.amber.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
@@ -897,7 +897,7 @@ class _TotalsBar extends StatelessWidget {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: Colors.black.withValues(alpha: 0.06),
             blurRadius: 16,
             offset: const Offset(0, -4),
           ),

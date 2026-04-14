@@ -21,7 +21,7 @@ class AuthRequiredSheet extends StatelessWidget {
     return showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
-      barrierColor: Colors.black.withOpacity(0.55),
+      barrierColor: Colors.black.withValues(alpha: 0.55),
       builder: (_) => const AuthRequiredSheet(),
     );
   }
@@ -48,7 +48,7 @@ class AuthRequiredSheet extends StatelessWidget {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
         boxShadow: [
           BoxShadow(
-            color: AppColors.hotPink.withOpacity(0.1),
+            color: AppColors.hotPink.withValues(alpha: 0.1),
             blurRadius: 32,
             offset: const Offset(0, -8),
           ),
@@ -66,7 +66,7 @@ class AuthRequiredSheet extends StatelessWidget {
                 child: Container(
                   width: 44, height: 4,
                   decoration: BoxDecoration(
-                    color: t.textDim.withOpacity(0.3),
+                    color: t.textDim.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -125,7 +125,7 @@ class AuthRequiredSheet extends StatelessWidget {
                     borderRadius: BorderRadius.circular(18),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.hotPink.withOpacity(0.3),
+                        color: AppColors.hotPink.withValues(alpha: 0.3),
                         blurRadius: 16,
                         offset: const Offset(0, 6),
                       ),
@@ -158,7 +158,7 @@ class AuthRequiredSheet extends StatelessWidget {
                   height: 48,
                   decoration: BoxDecoration(
                     color: t.isDark
-                        ? Colors.white.withOpacity(0.06)
+                        ? Colors.white.withValues(alpha: 0.06)
                         : const Color(0xFFF3F4F6),
                     borderRadius: BorderRadius.circular(18),
                   ),

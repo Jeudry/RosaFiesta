@@ -44,7 +44,7 @@ class AddToEventSheet extends StatefulWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      barrierColor: Colors.black.withOpacity(0.55),
+      barrierColor: Colors.black.withValues(alpha: 0.55),
       builder: (_) => AddToEventSheet(
         product: product,
         variant: variant,
@@ -127,7 +127,7 @@ class _AddToEventSheetState extends State<AddToEventSheet> {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
         boxShadow: [
           BoxShadow(
-            color: AppColors.hotPink.withOpacity(0.08),
+            color: AppColors.hotPink.withValues(alpha: 0.08),
             blurRadius: 32,
             offset: const Offset(0, -8),
           ),
@@ -149,7 +149,7 @@ class _AddToEventSheetState extends State<AddToEventSheet> {
                 child: Container(
                   width: 44, height: 4,
                   decoration: BoxDecoration(
-                    color: t.textDim.withOpacity(0.3),
+                    color: t.textDim.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -226,8 +226,8 @@ class _ProductHeader extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: t.isDark
-            ? Colors.white.withOpacity(0.04)
-            : Colors.black.withOpacity(0.025),
+            ? Colors.white.withValues(alpha: 0.04)
+            : Colors.black.withValues(alpha: 0.025),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -241,7 +241,7 @@ class _ProductHeader extends StatelessWidget {
                       imageUrl!,
                       fit: BoxFit.cover,
                       errorBuilder: (_, __, ___) => Container(
-                        color: AppColors.hotPink.withOpacity(0.08),
+                        color: AppColors.hotPink.withValues(alpha: 0.08),
                         child: const Icon(
                           Icons.image_not_supported_rounded,
                           color: AppColors.hotPink,
@@ -249,7 +249,7 @@ class _ProductHeader extends StatelessWidget {
                       ),
                     )
                   : Container(
-                      color: AppColors.hotPink.withOpacity(0.08),
+                      color: AppColors.hotPink.withValues(alpha: 0.08),
                       child: const Icon(
                         Icons.image_not_supported_rounded,
                         color: AppColors.hotPink,
@@ -328,8 +328,8 @@ class _QtyPicker extends StatelessWidget {
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: t.isDark
-            ? Colors.white.withOpacity(0.05)
-            : Colors.black.withOpacity(0.04),
+            ? Colors.white.withValues(alpha: 0.05)
+            : Colors.black.withValues(alpha: 0.04),
         borderRadius: BorderRadius.circular(40),
       ),
       child: Row(
@@ -399,12 +399,12 @@ class _QtyCircleBtn extends StatelessWidget {
           color: enabled
               ? null
               : (t.isDark
-                  ? Colors.white.withOpacity(0.04)
-                  : Colors.black.withOpacity(0.04)),
+                  ? Colors.white.withValues(alpha: 0.04)
+                  : Colors.black.withValues(alpha: 0.04)),
           boxShadow: enabled
               ? [
                   BoxShadow(
-                    color: AppColors.hotPink.withOpacity(0.28),
+                    color: AppColors.hotPink.withValues(alpha: 0.28),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -415,7 +415,7 @@ class _QtyCircleBtn extends StatelessWidget {
           icon,
           color: enabled
               ? Colors.white
-              : t.textDim.withOpacity(0.5),
+              : t.textDim.withValues(alpha: 0.5),
           size: 18,
         ),
       ),

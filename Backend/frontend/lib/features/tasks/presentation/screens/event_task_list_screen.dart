@@ -92,7 +92,7 @@ class _EventTaskListScreenState extends State<EventTaskListScreen> {
         
         return Container(
           padding: const EdgeInsets.all(16),
-          color: Colors.blue.withOpacity(0.1),
+          color: Colors.blue.withValues(alpha: 0.1),
           child: Column(
             children: [
               Row(

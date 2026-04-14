@@ -89,7 +89,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                             ),
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
-                              BoxShadow(color: AppColors.primary.withOpacity(0.4), blurRadius: 8, offset: const Offset(0, 4)),
+                              BoxShadow(color: AppColors.primary.withValues(alpha: 0.4), blurRadius: 8, offset: const Offset(0, 4)),
                             ],
                           ),
                           child: const Row(
@@ -193,7 +193,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                                         leading: Container(
                                           padding: const EdgeInsets.all(8),
                                           decoration: BoxDecoration(
-                                            color: AppColors.primary.withOpacity(0.1),
+                                            color: AppColors.primary.withValues(alpha: 0.1),
                                             borderRadius: BorderRadius.circular(8),
                                           ),
                                           child: const Icon(Icons.chair, color: AppColors.primary),
@@ -246,7 +246,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
           children: [
             Container(
               padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: AppColors.accent.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+              decoration: BoxDecoration(color: AppColors.accent.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
               child: Icon(icon, color: AppColors.accent),
             ),
             const SizedBox(width: 16),

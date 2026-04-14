@@ -85,7 +85,7 @@ class _QuoteHistoryScreenState extends State<QuoteHistoryScreen>
               child: CustomPaint(
                 painter: RfGridPainter(
                     color: (t.isDark ? Colors.white : Colors.black)
-                        .withOpacity(0.006)),
+                        .withValues(alpha: 0.006)),
               ),
             ),
           ),
@@ -123,7 +123,7 @@ class _QuoteHistoryScreenState extends State<QuoteHistoryScreen>
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.history_rounded,
-              color: t.textDim.withOpacity(0.4), size: 64),
+              color: t.textDim.withValues(alpha: 0.4), size: 64),
           const SizedBox(height: 16),
           Text('Sin cotizaciones aún',
               style: GoogleFonts.outfit(
@@ -155,7 +155,7 @@ class _QuoteHistoryScreenState extends State<QuoteHistoryScreen>
           border: Border.all(color: t.borderFaint),
           boxShadow: [
             BoxShadow(
-              color: AppColors.hotPink.withOpacity(0.06),
+              color: AppColors.hotPink.withValues(alpha: 0.06),
               blurRadius: 20,
               offset: const Offset(0, 6),
             ),
@@ -193,13 +193,13 @@ class _QuoteHistoryScreenState extends State<QuoteHistoryScreen>
                     color: (isCancelled
                             ? AppColors.coral
                             : _statuses[idx].color)
-                        .withOpacity(0.12),
+                        .withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: (isCancelled
                               ? AppColors.coral
                               : _statuses[idx].color)
-                          .withOpacity(0.3),
+                          .withValues(alpha: 0.3),
                     ),
                   ),
                   child: Text(
@@ -273,7 +273,7 @@ class _QuoteHistoryScreenState extends State<QuoteHistoryScreen>
                           colors: [AppColors.teal, AppColors.hotPink])
                       : null,
                   color: i >= currentIdx
-                      ? t.borderFaint.withOpacity(0.4)
+                      ? t.borderFaint.withValues(alpha: 0.4)
                       : null,
                   borderRadius: BorderRadius.circular(1),
                 ),
@@ -320,7 +320,7 @@ class _QuoteHistoryScreenState extends State<QuoteHistoryScreen>
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: t.isDark
-            ? Colors.white.withOpacity(0.04)
+            ? Colors.white.withValues(alpha: 0.04)
             : const Color(0xFFF3F4F6),
         borderRadius: BorderRadius.circular(10),
       ),
