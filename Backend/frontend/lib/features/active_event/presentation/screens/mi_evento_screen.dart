@@ -3,10 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:frontend/core/design_system.dart';
 import 'package:frontend/core/app_colors.dart';
-import 'package:frontend/core/services/share_service.dart';
 
 import '../../../events/data/event_model.dart';
-import '../../../events/presentation/screens/event_detail_screen.dart';
 import '../active_event_provider.dart';
 
 /// "Mi Evento" — replaces the cart screen.
@@ -60,23 +58,6 @@ class _MiEventoScreenState extends State<MiEventoScreen> {
           ),
         ),
         actions: [
-          // Share button
-          IconButton(
-            icon: Icon(Icons.share_rounded, color: t.textPrimary),
-            onPressed: () {
-              final provider = context.read<ActiveEventProvider>();
-              ShareService().shareEvent(
-                eventName: provider.event?.name ?? 'Mi evento',
-                eventDate: provider.event?.date != null
-                    ? '${provider.event!.date!.day}/${provider.event!.date!.month}/${provider.event!.date!.year}'
-                    : 'Por confirmar',
-                location: provider.event?.location ?? '',
-                itemCount: provider.itemCount,
-                totalEstimate: provider.subtotal,
-                eventId: provider.event?.id,
-              );
-            },
-          ),
           Padding(
             padding: const EdgeInsets.only(right: 16),
             child: Row(
@@ -153,7 +134,7 @@ class _MiEventoScreenState extends State<MiEventoScreen> {
             ),
           ),
         ),
-        _StickyFooter(provider: provider, t: t, eventId: provider.event?.id),
+        _StickyFooter(provider: provider, t: t),
       ],
     );
   }
@@ -635,9 +616,8 @@ class _StepBtn extends StatelessWidget {
 class _StickyFooter extends StatelessWidget {
   final ActiveEventProvider provider;
   final RfTheme t;
-  final String? eventId;
 
-  const _StickyFooter({required this.provider, required this.t, this.eventId});
+  const _StickyFooter({required this.provider, required this.t});
 
   @override
   Widget build(BuildContext context) {
@@ -711,14 +691,13 @@ class _StickyFooter extends StatelessWidget {
           // CTA Button
           GestureDetector(
             onTap: () {
-              if (eventId != null) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => EventDetailScreen(eventId: eventId!),
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                    'Ver detalle del evento: próximamente conectado al flujo de eventos',
                   ),
-                );
-              }
+                ),
+              );
             },
             child: Container(
               width: double.infinity,
@@ -965,32 +944,17 @@ class _TotalsBar extends StatelessWidget {
           const SizedBox(height: 16),
           RfLuxeButton(
             label: 'Solicitar cotización',
-            onTap: () => _onRequestQuote(context, provider),
+            onTap: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                      'Solicitar cotización: próximamente conectado al flujo de eventos'),
+                ),
+              );
+            },
           ),
         ],
       ),
     );
-  }
-
-  Future<void> _onRequestQuote(BuildContext context, ActiveEventProvider provider) async {
-    final messenger = ScaffoldMessenger.of(context);
-    final result = await provider.requestQuote();
-    if (result != null) {
-      messenger.showSnackBar(
-        SnackBar(
-          content: const Text('¡Solicitud de cotización enviada! Te contactaremos pronto.'),
-          backgroundColor: AppColors.teal,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-      );
-    } else {
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text('Error: ${provider.error ?? "No se pudo enviar la solicitud"}'),
-          backgroundColor: AppColors.coral,
-        ),
-      );
-    }
   }
 }

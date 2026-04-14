@@ -50,17 +50,12 @@ class AssistantScreen extends StatefulWidget {
 class _AssistantScreenState extends State<AssistantScreen>
     with TickerProviderStateMixin {
   late final AnimationController _orbController;
-  late final AnimationController _guideController;
-  late final AnimationController _pulseController;
   bool _isListening = false;
   int _activeBottomIdx = -1; // -1=none, 0=chatear, 1=hablar, 2=volver
   final TextEditingController _chatController = TextEditingController();
   String _transcript = '';
   bool _hasSketch = false;
   final Set<String> _omittedCategories = {};
-  bool _showGuideOverlay = false;
-  bool _hasEngaged = false;
-  int _guidedStep = 0; // 0=event type, 1=bottom bar, 2=done guiding
 
   @override
   void initState() {
@@ -69,27 +64,11 @@ class _AssistantScreenState extends State<AssistantScreen>
       vsync: this,
       duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
-    _guideController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 600),
-    );
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1200),
-    )..repeat(reverse: true);
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Future.delayed(const Duration(milliseconds: 800), () {
-        if (mounted) _startGuide();
-      });
-    });
   }
 
   @override
   void dispose() {
     _orbController.dispose();
-    _guideController.dispose();
-    _pulseController.dispose();
     _chatController.dispose();
     super.dispose();
   }
@@ -152,8 +131,6 @@ class _AssistantScreenState extends State<AssistantScreen>
               },
             ),
           ),
-          // Guide overlay — visual indicators for first-time users
-          if (_showGuideOverlay) _buildGuideOverlay(t),
         ],
       ),
     );
@@ -525,10 +502,7 @@ class _AssistantScreenState extends State<AssistantScreen>
         final imagePath = _eventImages[e];
         final hasImage = imagePath != null;
         return GestureDetector(
-          onTap: () {
-            _onUserEngage();
-            provider.handleChipTap(e);
-          },
+          onTap: () => provider.handleChipTap(e),
           child: Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(22),
@@ -1336,10 +1310,7 @@ class _AssistantScreenState extends State<AssistantScreen>
       alignment: WrapAlignment.center,
       children: chips.map((c) {
         return GestureDetector(
-          onTap: () {
-            _onUserEngage();
-            provider.handleChipTap(c);
-          },
+          onTap: () => provider.handleChipTap(c),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
             decoration: BoxDecoration(
@@ -1375,10 +1346,7 @@ class _AssistantScreenState extends State<AssistantScreen>
     required bool filled,
   }) {
     return GestureDetector(
-      onTap: () {
-        _onUserEngage();
-        provider.handleChipTap(label);
-      },
+      onTap: () => provider.handleChipTap(label),
       child: Container(
         height: 56,
         alignment: Alignment.center,
@@ -1945,214 +1913,6 @@ class _AssistantScreenState extends State<AssistantScreen>
     );
   }
 
-  // ── Guide Overlay ─────────────────────────────────────────────────────────
-  // First-time user visual indicators: show pulsing highlights and tooltips
-  // on key interaction points, then dismiss when user engages.
-
-  Widget _buildGuideOverlay(RfTheme t) {
-    return AnimatedOpacity(
-      opacity: _showGuideOverlay ? 1.0 : 0.0,
-      duration: const Duration(milliseconds: 300),
-      child: IgnorePointer(
-        ignoring: !_showGuideOverlay,
-        child: Stack(
-          children: [
-            // Dim background
-            Positioned.fill(
-              child: Container(color: Colors.black.withOpacity(0.35)),
-            ),
-            // Step 0: pulse ring around event grid (center of screen)
-            if (_guidedStep == 0) _guideRing(t, Alignment.center, 80),
-            // Step 1: pulse ring around bottom bar area
-            if (_guidedStep == 1)
-              _guideRing(t, const Alignment(0, 0.92), 60),
-            // Tooltip card pointing to the current guide target
-            _buildGuideTooltip(t),
-            // "Entendido" skip button
-            Positioned(
-              bottom: 120,
-              left: 0,
-              right: 0,
-              child: Center(
-                child: GestureDetector(
-                  onTap: _dismissGuide,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 12,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(
-                        color: Colors.white.withOpacity(0.3),
-                      ),
-                    ),
-                    child: Text(
-                      'Entendido',
-                      style: GoogleFonts.dmSans(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _guideRing(RfTheme t, Alignment align, double size) {
-    return AnimatedBuilder(
-      animation: _pulseController,
-      builder: (context, _) {
-        final scale = 0.8 + _pulseController.value * 0.4;
-        final opacity = 0.5 + _pulseController.value * 0.4;
-        return Positioned.fill(
-          child: Align(
-            alignment: align,
-            child: Transform.scale(
-              scale: scale,
-              child: Container(
-                width: size,
-                height: size,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: AppColors.hotPink.withOpacity(opacity),
-                    width: 3,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.hotPink.withOpacity(opacity * 0.5),
-                      blurRadius: 20,
-                      spreadRadius: 4,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildGuideTooltip(RfTheme t) {
-    final tips = [
-      'Selecciona un tipo de evento arriba',
-      'Usa el micrófono o chat de abajo',
-    ];
-    if (_guidedStep >= tips.length) return const SizedBox.shrink();
-    final tip = tips[_guidedStep];
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 400),
-      child: Positioned(
-        key: ValueKey('tip_$_guidedStep'),
-        bottom: 170,
-        left: 24,
-        right: 24,
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: t.isDark ? const Color(0xFF1E1E2E) : Colors.white,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: AppColors.hotPink.withOpacity(0.4)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.2),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [AppColors.violet, AppColors.hotPink],
-                  ),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.touch_app_rounded,
-                  color: Colors.white,
-                  size: 18,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  tip,
-                  style: GoogleFonts.dmSans(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: t.textPrimary,
-                    height: 1.3,
-                  ),
-                ),
-              ),
-              // Next indicator dots
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: List.generate(tips.length, (i) {
-                  return Container(
-                    width: 6,
-                    height: 6,
-                    margin: const EdgeInsets.only(left: 4),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: i == _guidedStep
-                          ? AppColors.hotPink
-                          : t.textDim.withOpacity(0.3),
-                    ),
-                  );
-                }),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _startGuide() {
-    if (_hasEngaged) return;
-    setState(() {
-      _showGuideOverlay = true;
-      _guidedStep = 0;
-    });
-    // Auto-advance to next step every 3 seconds
-    Future.delayed(const Duration(seconds: 3), () {
-      if (!mounted || !_showGuideOverlay) return;
-      setState(() {
-        _guidedStep = 1;
-      });
-      Future.delayed(const Duration(seconds: 3), () {
-        if (!mounted || !_showGuideOverlay) return;
-        _dismissGuide();
-      });
-    });
-  }
-
-  void _dismissGuide() {
-    setState(() {
-      _showGuideOverlay = false;
-      _hasEngaged = true;
-    });
-  }
-
-  void _onUserEngage() {
-    if (_showGuideOverlay) _dismissGuide();
-  }
-
   // ── Bottom Controls ──────────────────────────────────────────────────────
 
   Widget _buildBottomBar(AssistantProvider provider, RfTheme t) {
@@ -2178,13 +1938,10 @@ class _AssistantScreenState extends State<AssistantScreen>
                   icon: Icons.chat_bubble_outline_rounded,
                   label: 'Chatear',
                   compact: compact,
-                  onTap: () {
-                  _onUserEngage();
-                  setState(() {
+                  onTap: () => setState(() {
                     _activeBottomIdx = _activeBottomIdx == 0 ? -1 : 0;
                     _isListening = false;
-                  });
-                },
+                  }),
                   t: t,
                 ),
                 const SizedBox(width: 10),
@@ -2195,19 +1952,16 @@ class _AssistantScreenState extends State<AssistantScreen>
                     label: 'Hablar',
                     compact: compact,
                     expanded: true,
-                    onTap: () {
-                      _onUserEngage();
-                      setState(() {
-                        if (_activeBottomIdx == 1 && _isListening) {
-                          _isListening = false;
-                          _activeBottomIdx = -1;
-                        } else {
-                          _activeBottomIdx = 1;
-                          _isListening = true;
-                          _transcript = '';
-                        }
-                      });
-                    },
+                    onTap: () => setState(() {
+                      if (_activeBottomIdx == 1 && _isListening) {
+                        _isListening = false;
+                        _activeBottomIdx = -1;
+                      } else {
+                        _activeBottomIdx = 1;
+                        _isListening = true;
+                        _transcript = '';
+                      }
+                    }),
                     t: t,
                     showWaveform: _isListening && _activeBottomIdx == 1,
                   ),

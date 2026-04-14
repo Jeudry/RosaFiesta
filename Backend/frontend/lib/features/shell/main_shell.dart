@@ -14,8 +14,6 @@ import '../home/presentation/screens/home_screen.dart';
 import '../products/presentation/screens/products_list_screen.dart';
 import '../profile/presentation/screens/profile_screen.dart';
 import '../ai_assistant/presentation/screens/assistant_screen.dart';
-import '../reviews/presentation/screens/company_reviews_screen.dart';
-import '../events/presentation/screens/quote_history_screen.dart';
 
 /// Persistent shell that wraps the 4 main tabs with a shared bottom bar,
 /// AI assistant FAB, animated background and welcome tooltip.
@@ -397,28 +395,14 @@ class _MainShellState extends State<MainShell>
               ),
             ),
             const SizedBox(height: 20),
-            Flexible(
-              child: ListView(
-                shrinkWrap: true,
-                physics: const BouncingScrollPhysics(),
-                children: [
-                  _moreMenuItem(Icons.person_outline_rounded, 'Mi perfil', t,
-                      () => Navigator.push(context, MaterialPageRoute(
-                          builder: (_) => const ProfileScreen()))),
-                  _moreMenuItem(Icons.calendar_month_outlined, 'Calendario', t,
-                      () => Navigator.push(context, MaterialPageRoute(
-                          builder: (_) => const EventCalendarScreen()))),
-                  _moreMenuItem(Icons.settings_outlined, 'Configuración', t, () {}),
-                  _moreMenuItem(Icons.help_outline_rounded, 'Ayuda', t, () {}),
-                  _moreMenuItem(Icons.history_rounded, 'Mis cotizaciones', t,
-                      () => Navigator.push(context, MaterialPageRoute(
-                          builder: (_) => const QuoteHistoryScreen()))),
-                  _moreMenuItem(Icons.business_rounded, 'Reseñas de la empresa', t,
-                      () => Navigator.push(context, MaterialPageRoute(
-                          builder: (_) => const CompanyReviewsScreen()))),
-                ],
-              ),
-            ),
+            _moreMenuItem(Icons.person_outline_rounded, 'Mi perfil', t,
+                () => Navigator.push(context, MaterialPageRoute(
+                    builder: (_) => const ProfileScreen()))),
+            _moreMenuItem(Icons.calendar_month_outlined, 'Calendario', t,
+                () => Navigator.push(context, MaterialPageRoute(
+                    builder: (_) => const EventCalendarScreen()))),
+            _moreMenuItem(Icons.settings_outlined, 'Configuración', t, () {}),
+            _moreMenuItem(Icons.help_outline_rounded, 'Ayuda', t, () {}),
           ],
         ),
       ),
