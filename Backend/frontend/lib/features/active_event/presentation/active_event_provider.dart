@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/utils/error_translator.dart';
 import '../../events/data/event_model.dart';
+import '../../events/data/events_repository.dart';
 import '../../products/data/product_models.dart';
 import '../data/active_event_repository.dart';
 
@@ -141,6 +142,40 @@ class ActiveEventProvider extends ChangeNotifier {
     _items = const [];
     _error = null;
     notifyListeners();
+  }
+
+  /// Requests a quote for the active event. Transitions it from draft to
+  /// 'requested' status so the admin can review and send a quotation.
+  Future<Event?> requestQuote() async {
+    if (_event == null) return null;
+    final repo = EventsRepository();
+    try {
+      final updated = await repo.requestQuote(_event!.id);
+      _event = updated;
+      notifyListeners();
+      return updated;
+    } catch (e) {
+      _error = ErrorTranslator.translate(e.toString());
+      notifyListeners();
+      return null;
+    }
+  }
+
+  /// Confirms the quote for the active event after the user accepts the
+  /// admin's proposed quotation.
+  Future<Event?> confirmQuote() async {
+    if (_event == null) return null;
+    final repo = EventsRepository();
+    try {
+      final updated = await repo.confirmQuote(_event!.id);
+      _event = updated;
+      notifyListeners();
+      return updated;
+    } catch (e) {
+      _error = ErrorTranslator.translate(e.toString());
+      notifyListeners();
+      return null;
+    }
   }
 
   // ─── internals ─────────────────────────────────────────────────────────

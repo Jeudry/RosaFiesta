@@ -6,6 +6,7 @@ import 'package:frontend/core/app_colors.dart';
 import 'package:frontend/core/services/share_service.dart';
 
 import '../../../events/data/event_model.dart';
+import '../../../events/presentation/screens/event_detail_screen.dart';
 import '../active_event_provider.dart';
 
 /// "Mi Evento" — replaces the cart screen.
@@ -152,7 +153,7 @@ class _MiEventoScreenState extends State<MiEventoScreen> {
             ),
           ),
         ),
-        _StickyFooter(provider: provider, t: t),
+        _StickyFooter(provider: provider, t: t, eventId: provider.event?.id),
       ],
     );
   }
@@ -634,8 +635,9 @@ class _StepBtn extends StatelessWidget {
 class _StickyFooter extends StatelessWidget {
   final ActiveEventProvider provider;
   final RfTheme t;
+  final String? eventId;
 
-  const _StickyFooter({required this.provider, required this.t});
+  const _StickyFooter({required this.provider, required this.t, this.eventId});
 
   @override
   Widget build(BuildContext context) {
@@ -709,13 +711,14 @@ class _StickyFooter extends StatelessWidget {
           // CTA Button
           GestureDetector(
             onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    'Ver detalle del evento: próximamente conectado al flujo de eventos',
+              if (eventId != null) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => EventDetailScreen(eventId: eventId!),
                   ),
-                ),
-              );
+                );
+              }
             },
             child: Container(
               width: double.infinity,
@@ -962,17 +965,32 @@ class _TotalsBar extends StatelessWidget {
           const SizedBox(height: 16),
           RfLuxeButton(
             label: 'Solicitar cotización',
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                      'Solicitar cotización: próximamente conectado al flujo de eventos'),
-                ),
-              );
-            },
+            onTap: () => _onRequestQuote(context, provider),
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _onRequestQuote(BuildContext context, ActiveEventProvider provider) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final result = await provider.requestQuote();
+    if (result != null) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: const Text('¡Solicitud de cotización enviada! Te contactaremos pronto.'),
+          backgroundColor: AppColors.teal,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+    } else {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Error: ${provider.error ?? "No se pudo enviar la solicitud"}'),
+          backgroundColor: AppColors.coral,
+        ),
+      );
+    }
   }
 }

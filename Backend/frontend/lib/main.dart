@@ -33,6 +33,8 @@ import 'core/services/sync_service.dart';
 import 'features/active_event/presentation/active_event_provider.dart';
 import 'features/ai_assistant/presentation/assistant_provider.dart';
 import 'features/favorites/presentation/favorites_provider.dart';
+import 'features/events/presentation/screens/event_detail_screen.dart';
+import 'features/products/presentation/screens/product_detail_screen.dart';
 
 import 'package:flutter/foundation.dart';
 
@@ -50,6 +52,10 @@ Future<void> main() async {
       await Firebase.initializeApp();
       await FirebaseService().initialize();
       FirebaseService().setupInteractions();
+      // Wire up notification tap to store pending navigation
+      FirebaseService.onNotificationTap = (screen, eventId) {
+        FirebaseService.navigateFromNotification(screen, eventId);
+      };
     } else {
       print("Warning: Firebase initialization skipped on Web");
     }
@@ -130,16 +136,30 @@ class RosaFiestaApp extends StatelessWidget {
       locale: const Locale('es', 'ES'),
       home: const _AuthGate(),
       onGenerateRoute: (settings) {
-        if (settings.name != null && settings.name!.startsWith('/confirm/')) {
-          final uri = Uri.parse(settings.name!);
-          if (uri.pathSegments.length == 2 &&
-              uri.pathSegments[0] == 'confirm') {
-            final token = uri.pathSegments[1];
-            return MaterialPageRoute(
-              builder: (context) => ConfirmationScreen(token: token),
-            );
-          }
+        final uri = Uri.parse(settings.name ?? '');
+        final pathSegments = uri.pathSegments;
+
+        // /confirm/:token — email confirmation
+        if (pathSegments.length == 2 && pathSegments[0] == 'confirm') {
+          return MaterialPageRoute(
+            builder: (context) => ConfirmationScreen(token: pathSegments[1]),
+          );
         }
+
+        // /event/:id — event detail
+        if (pathSegments.length == 2 && pathSegments[0] == 'event') {
+          return MaterialPageRoute(
+            builder: (context) => EventDetailScreen(eventId: pathSegments[1]),
+          );
+        }
+
+        // /product/:id — product detail
+        if (pathSegments.length == 2 && pathSegments[0] == 'product') {
+          return MaterialPageRoute(
+            builder: (context) => ProductDetailScreen(productId: pathSegments[1]),
+          );
+        }
+
         return null;
       },
     );
@@ -173,9 +193,18 @@ class _AuthGateState extends State<_AuthGate> {
     }
 
     if (auth.isAuthenticated) {
+      // Check if there's pending navigation from a notification tap
+      _handlePendingNavigation(context);
       return const MainShell();
     }
 
     return const WelcomeOnboardingScreen();
+  }
+
+  void _handlePendingNavigation(BuildContext context) {
+    final pending = FirebaseService.getPendingNavigation();
+    if (pending['screen'] != null) {
+      FirebaseService.performNavigationFromPending(context);
+    }
   }
 }
