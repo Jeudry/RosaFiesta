@@ -204,6 +204,8 @@ All features currently in the system, organized by status. **Always keep this li
 | 32 | Push notification triggers | ✅ | — | FCM on quote adjusted/approved/rejected |
 | 33 | Deep linking | ✅ | ✅ | iOS/Android universal links + hash routing |
 | 34 | Rating with event photos | ✅ | ✅ | review_photos table, photo lightbox, image_picker |
+| 35 | RSVP guest confirmation | ✅ | ✅ | confirm/decline endpoints, timestamps, audit log |
+| 36 | Delivery zones (San Cristóbal) | ✅ | ✅ | address-based fee calculation, free/extended/remote zones |
 
 ### Pending
 

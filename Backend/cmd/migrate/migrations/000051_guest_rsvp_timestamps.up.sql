@@ -1,0 +1,2 @@
+ALTER TABLE guests ADD COLUMN confirmed_at TIMESTAMPTZ;
+ALTER TABLE guests ADD COLUMN declined_at TIMESTAMPTZ;

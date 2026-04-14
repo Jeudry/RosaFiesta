@@ -71,4 +71,28 @@ class GuestsProvider with ChangeNotifier {
       return false;
     }
   }
+
+  Future<bool> confirmGuest(String guestId, String eventId) async {
+    try {
+      await _repository.confirmGuest(guestId);
+      await fetchGuests(eventId); // Refresh list
+      return true;
+    } catch (e) {
+      _error = ErrorTranslator.translate(e.toString());
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> declineGuest(String guestId, String eventId) async {
+    try {
+      await _repository.declineGuest(guestId);
+      await fetchGuests(eventId); // Refresh list
+      return true;
+    } catch (e) {
+      _error = ErrorTranslator.translate(e.toString());
+      notifyListeners();
+      return false;
+    }
+  }
 }

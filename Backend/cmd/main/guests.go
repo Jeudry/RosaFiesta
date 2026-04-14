@@ -167,3 +167,83 @@ func (app *Application) deleteGuestHandler(w http.ResponseWriter, r *http.Reques
 
 	w.WriteHeader(http.StatusNoContent)
 }
+
+func (app *Application) confirmGuestHandler(w http.ResponseWriter, r *http.Request) {
+	guestIDStr := chi.URLParam(r, "guestId")
+	guestID, err := uuid.Parse(guestIDStr)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	guest, err := app.Store.Guests.GetByID(r.Context(), guestID)
+	if err != nil {
+		if err == store.ErrNotFound {
+			app.notFoundResponse(w, r, err)
+			return
+		}
+		app.internalServerError(w, r, err)
+		return
+	}
+
+	if err := app.Store.Guests.Confirm(r.Context(), guestID); err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+
+	// Audit log
+	user := GetUserFromCtx(r)
+	_ = app.Store.AuditLogs.Log(r.Context(), &models.AuditLog{
+		UserID:      &user.ID,
+		EventID:     &guest.EventID,
+		Action:      "guest_confirmed",
+		EntityType:  "guest",
+		EntityID:    &guestID,
+	})
+
+	// Re-fetch updated guest
+	guest, _ = app.Store.Guests.GetByID(r.Context(), guestID)
+	if err := app.jsonResponse(w, http.StatusOK, guest); err != nil {
+		app.internalServerError(w, r, err)
+	}
+}
+
+func (app *Application) declineGuestHandler(w http.ResponseWriter, r *http.Request) {
+	guestIDStr := chi.URLParam(r, "guestId")
+	guestID, err := uuid.Parse(guestIDStr)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	guest, err := app.Store.Guests.GetByID(r.Context(), guestID)
+	if err != nil {
+		if err == store.ErrNotFound {
+			app.notFoundResponse(w, r, err)
+			return
+		}
+		app.internalServerError(w, r, err)
+		return
+	}
+
+	if err := app.Store.Guests.Decline(r.Context(), guestID); err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+
+	// Audit log
+	user := GetUserFromCtx(r)
+	_ = app.Store.AuditLogs.Log(r.Context(), &models.AuditLog{
+		UserID:      &user.ID,
+		EventID:     &guest.EventID,
+		Action:      "guest_declined",
+		EntityType:  "guest",
+		EntityID:    &guestID,
+	})
+
+	// Re-fetch updated guest
+	guest, _ = app.Store.Guests.GetByID(r.Context(), guestID)
+	if err := app.jsonResponse(w, http.StatusOK, guest); err != nil {
+		app.internalServerError(w, r, err)
+	}
+}

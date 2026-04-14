@@ -44,7 +44,7 @@ func (s *GuestStore) Create(ctx context.Context, guest *models.Guest) error {
 
 func (s *GuestStore) GetByID(ctx context.Context, id uuid.UUID) (*models.Guest, error) {
 	query := `
-		SELECT id, event_id, name, email, phone, rsvp_status, plus_one, dietary_restrictions, created_at, updated_at
+		SELECT id, event_id, name, email, phone, rsvp_status, confirmed_at, declined_at, plus_one, dietary_restrictions, created_at, updated_at
 		FROM guests
 		WHERE id = $1
 	`
@@ -57,6 +57,8 @@ func (s *GuestStore) GetByID(ctx context.Context, id uuid.UUID) (*models.Guest, 
 		&guest.Email,
 		&guest.Phone,
 		&guest.RSVPStatus,
+		&guest.ConfirmedAt,
+		&guest.DeclinedAt,
 		&guest.PlusOne,
 		&guest.DietaryRestrictions,
 		&guest.CreatedAt,
@@ -74,7 +76,7 @@ func (s *GuestStore) GetByID(ctx context.Context, id uuid.UUID) (*models.Guest, 
 
 func (s *GuestStore) GetByEventID(ctx context.Context, eventID uuid.UUID) ([]models.Guest, error) {
 	query := `
-		SELECT id, event_id, name, email, phone, rsvp_status, plus_one, dietary_restrictions, created_at, updated_at
+		SELECT id, event_id, name, email, phone, rsvp_status, confirmed_at, declined_at, plus_one, dietary_restrictions, created_at, updated_at
 		FROM guests
 		WHERE event_id = $1
 		ORDER BY name ASC
@@ -96,6 +98,8 @@ func (s *GuestStore) GetByEventID(ctx context.Context, eventID uuid.UUID) ([]mod
 			&guest.Email,
 			&guest.Phone,
 			&guest.RSVPStatus,
+			&guest.ConfirmedAt,
+			&guest.DeclinedAt,
 			&guest.PlusOne,
 			&guest.DietaryRestrictions,
 			&guest.CreatedAt,
@@ -112,6 +116,54 @@ func (s *GuestStore) GetByEventID(ctx context.Context, eventID uuid.UUID) ([]mod
 	}
 
 	return guests, nil
+}
+
+func (s *GuestStore) Confirm(ctx context.Context, guestID uuid.UUID) error {
+	query := `
+		UPDATE guests
+		SET rsvp_status = 'confirmed', confirmed_at = NOW(), updated_at = NOW()
+		WHERE id = $1
+	`
+
+	res, err := s.db.ExecContext(ctx, query, guestID)
+	if err != nil {
+		return err
+	}
+
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rows == 0 {
+		return ErrNotFound
+	}
+
+	return nil
+}
+
+func (s *GuestStore) Decline(ctx context.Context, guestID uuid.UUID) error {
+	query := `
+		UPDATE guests
+		SET rsvp_status = 'declined', declined_at = NOW(), updated_at = NOW()
+		WHERE id = $1
+	`
+
+	res, err := s.db.ExecContext(ctx, query, guestID)
+	if err != nil {
+		return err
+	}
+
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rows == 0 {
+		return ErrNotFound
+	}
+
+	return nil
 }
 
 func (s *GuestStore) Update(ctx context.Context, guest *models.Guest) error {

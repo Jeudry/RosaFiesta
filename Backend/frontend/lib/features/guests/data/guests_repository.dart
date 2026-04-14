@@ -21,4 +21,14 @@ class GuestsRepository {
   Future<void> deleteGuest(String guestId) async {
     await ApiClient.delete('/v1/guests/$guestId');
   }
+
+  Future<Guest> confirmGuest(String guestId) async {
+    final response = await ApiClient.post('/v1/guests/$guestId/confirm', {});
+    return Guest.fromJson(response);
+  }
+
+  Future<Guest> declineGuest(String guestId) async {
+    final response = await ApiClient.post('/v1/guests/$guestId/decline', {});
+    return Guest.fromJson(response);
+  }
 }

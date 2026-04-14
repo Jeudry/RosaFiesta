@@ -112,6 +112,16 @@ func (app *Application) Mount() http.Handler {
 			})
 		})
 
+		// Bundles - public with API key auth
+		r.Route("/bundles", func(r chi.Router) {
+			r.Group(func(r chi.Router) {
+				r.Use(app.APIKeyMiddleware())
+				r.Get("/", app.getBundlesHandler)
+				r.Get("/{id}", app.getBundleHandler)
+				r.Get("/category/{categoryId}", app.getBundlesByCategoryHandler)
+			})
+		})
+
 		r.Route("/users", func(r chi.Router) {
 			r.Put("/active/{token}", app.activateUserHandler)
 
@@ -153,6 +163,7 @@ func (app *Application) Mount() http.Handler {
 			r.Post("/{id}/reject-quote", app.rejectQuoteHandler)
 			r.Get("/{id}/calendar.ics", app.getEventCalendarHandler)
 			r.Get("/{id}/debrief", app.getEventDebriefHandler)
+			r.Get("/{id}/share-card", app.getShareCardHandler)
 			r.Get("/{id}/quote", app.getQuotePDFHandler)
 			r.Post("/{id}/whatsapp", app.sendWhatsAppHandler)
 			r.Route("/{id}/messages", func(r chi.Router) {
@@ -193,6 +204,8 @@ func (app *Application) Mount() http.Handler {
 				r.Get("/", app.getEventPhotosHandler)
 			})
 
+			r.Post("/{id}/calculate-delivery", app.calculateDeliveryHandler)
+
 			// The r.Group for admin-only adjustQuoteHandler was moved to /v1/admin
 		})
 
@@ -211,8 +224,11 @@ func (app *Application) Mount() http.Handler {
 		})
 
 		r.Route("/guests/{guestId}", func(r chi.Router) {
+			r.Use(app.AuthTokenMiddleware())
 			r.Put("/", app.updateGuestHandler)
 			r.Delete("/", app.deleteGuestHandler)
+			r.Post("/confirm", app.confirmGuestHandler)
+			r.Post("/decline", app.declineGuestHandler)
 		})
 
 		r.Route("/tasks/{taskId}", func(r chi.Router) {

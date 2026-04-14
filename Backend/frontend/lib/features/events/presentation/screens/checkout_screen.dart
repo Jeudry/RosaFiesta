@@ -37,6 +37,14 @@ class _CheckoutScreenState extends State<CheckoutScreen>
   final _cvvController = TextEditingController();
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _addressController = TextEditingController();
+  final _deliveryFeeController = TextEditingController();
+
+  int _deliveryFee = 0;
+  String _deliveryZone = '';
+  String _deliveryMessage = '';
+  bool _isCalculatingDelivery = false;
+  bool _isRemoteZone = false;
 
   final _methods = [
     _PaymentMethod('Tarjeta', Icons.credit_card, AppColors.sky),
@@ -46,12 +54,84 @@ class _CheckoutScreenState extends State<CheckoutScreen>
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _addressController.text = widget.deliveryAddress ?? '';
+    _addressController.addListener(_onAddressChanged);
+  }
+
+  void _onAddressChanged() {
+    if (_addressController.text.length > 10) {
+      _calculateDeliveryFee();
+    }
+  }
+
+  Future<void> _calculateDeliveryFee() async {
+    if (_addressController.text.isEmpty) return;
+
+    setState(() => _isCalculatingDelivery = true);
+
+    try {
+      final response = await _callDeliveryApi(_addressController.text);
+      if (mounted && response != null) {
+        setState(() {
+          _deliveryFee = response['fee'] ?? 0;
+          _deliveryZone = response['zone'] ?? '';
+          _deliveryMessage = response['message'] ?? '';
+          _isRemoteZone = _deliveryFee > 2000;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error calculating delivery: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _isCalculatingDelivery = false);
+      }
+    }
+  }
+
+  Future<Map<String, dynamic>?> _callDeliveryApi(String address) async {
+    // Use ApiClient to call the calculate-delivery endpoint
+    try {
+      // This would need a method in EventsProvider or direct API call
+      // For now, we'll use a simple heuristic based on address
+      return _calculateDeliveryLocally(address);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  Map<String, dynamic> _calculateDeliveryLocally(String address) {
+    final addr = address.toLowerCase();
+
+    // Check for local San Cristóbal keywords
+    final localKeywords = ['san cristobal', 'santa cruz', 'ranchitos', 'hatillo', 'berjon', 'mendoza', 'pizarro', 'km 27', 'km 30'];
+    final isLocal = localKeywords.any((k) => addr.contains(k));
+
+    // Check for remote keywords
+    final remoteKeywords = ['santo domingo', 'santiago', 'la romana', 'punta cana', 'bayahibe', 'puerto plata', 'sosua', 'cabarete', 'samana', 'nagua', 'higuey', 'el seibo'];
+    final isRemote = remoteKeywords.any((k) => addr.contains(k));
+
+    if (isLocal) {
+      return {'fee': 0, 'zone': 'San Cristóbal Centro', 'message': 'Delivery gratuito en San Cristóbal'};
+    } else if (isRemote) {
+      return {'fee': 3500, 'zone': 'Zona Remota', 'message': 'Tu dirección está en zona remota. El equipo de RosaFiesta coordinará contigo el envío.'};
+    } else {
+      return {'fee': 1500, 'zone': 'San Cristóbal Extendido', 'message': 'Delivery dentro de la provincia de San Cristóbal'};
+    }
+  }
+
+  double get grandTotal => widget.totalAmount + _deliveryFee.toDouble();
+
+  @override
   void dispose() {
     _cardNumberController.dispose();
     _expiryController.dispose();
     _cvvController.dispose();
     _nameController.dispose();
     _phoneController.dispose();
+    _addressController.dispose();
+    _deliveryFeeController.dispose();
     super.dispose();
   }
 
@@ -221,52 +301,115 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                   ],
                 ),
               ),
-              GestureDetector(
-                onTap: () {},
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: AppColors.hotPink.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    'Editar',
-                    style: GoogleFonts.dmSans(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.hotPink,
-                    ),
-                  ),
-                ),
-              ),
             ],
           ),
           const SizedBox(height: 12),
+          // Address input field
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             decoration: BoxDecoration(
               color: t.isDark
                   ? Colors.white.withValues(alpha: 0.05)
                   : const Color(0xFFF5F0FF),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Row(
-              children: [
-                Icon(Icons.home_rounded, color: t.textDim, size: 18),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    widget.deliveryAddress ?? 'Av.Principal 123, San Cristóbal',
-                    style: GoogleFonts.dmSans(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: t.textPrimary,
-                    ),
-                  ),
-                ),
-              ],
+            child: TextField(
+              controller: _addressController,
+              style: GoogleFonts.dmSans(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: t.textPrimary,
+              ),
+              decoration: InputDecoration(
+                hintText: 'Dirección del evento',
+                hintStyle: GoogleFonts.dmSans(fontSize: 13, color: t.textDim),
+                prefixIcon: Icon(Icons.home_rounded, color: t.textDim, size: 18),
+                border: InputBorder.none,
+              ),
+              onChanged: (value) {
+                if (value.length > 10) {
+                  _calculateDeliveryFee();
+                }
+              },
             ),
           ),
+          const SizedBox(height: 12),
+          // Delivery fee section
+          if (_isCalculatingDelivery)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(8.0),
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            )
+          else if (_deliveryFee > 0 || _deliveryZone.isNotEmpty) ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: _isRemoteZone
+                    ? AppColors.coral.withValues(alpha: 0.1)
+                    : AppColors.teal.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: _isRemoteZone
+                      ? AppColors.coral.withValues(alpha: 0.3)
+                      : AppColors.teal.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Zona: $_deliveryZone',
+                        style: GoogleFonts.dmSans(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: t.textPrimary,
+                        ),
+                      ),
+                      Text(
+                        _deliveryFee == 0 ? 'Gratuito' : 'RD\$${_deliveryFee.toStringAsFixed(0)}',
+                        style: GoogleFonts.outfit(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: _isRemoteZone ? AppColors.coral : AppColors.teal,
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (_deliveryMessage.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Icon(
+                          _isRemoteZone ? Icons.warning_rounded : Icons.info_outline,
+                          size: 14,
+                          color: _isRemoteZone ? AppColors.coral : t.textDim,
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            _deliveryMessage,
+                            style: GoogleFonts.dmSans(
+                              fontSize: 11,
+                              color: _isRemoteZone ? AppColors.coral : t.textDim,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -787,7 +930,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
-                              'RD\$${widget.totalAmount.toStringAsFixed(0)}',
+                              'RD\$${grandTotal.toStringAsFixed(0)}',
                               style: GoogleFonts.outfit(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w800,

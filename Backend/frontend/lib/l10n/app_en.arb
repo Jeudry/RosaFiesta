@@ -1,6 +1,13 @@
 {
   "@@locale": "en",
   "appTitle": "RosaFiesta",
+  "countdownDays": "days",
+  "countdownHours": "hours",
+  "countdownMinutes": "min",
+  "countdownSeconds": "sec",
+  "countdownForYourEvent": "for your event",
+  "countdownEventInProgress": "Event in progress!",
+  "countdownEventFinished": "Event finished",
   "welcomeHeadline": "RosaFiesta",
   "welcomeSubheadline": "Decoration & Events with AI",
   "beginButton": "GET STARTED",
@@ -26,5 +33,23 @@
   "welcomeSubheadlineAuth": "Todo para tu evento, guiado por IA",
   "skipButton": "Skip",
   "nextButton": "Next",
-  "alreadyHaveAccount": "Already have an account?"
+  "alreadyHaveAccount": "Already have an account?",
+  "deliveryFree": "Free",
+  "deliveryZone": "Zone",
+  "deliveryFee": "Delivery fee",
+  "deliveryFreeInSanCristobal": "Free delivery in San Cristóbal",
+  "deliveryExtendedZone": "Delivery within San Cristóbal province",
+  "deliveryRemoteZone": "Your address is in a remote zone. The RosaFiesta team will coordinate delivery with you.",
+  "deliveryAddressHint": "Event address",
+  "rsvpPending": "Pending",
+  "rsvpConfirmed": "Confirmed",
+  "rsvpDeclined": "Declined",
+  "rsvpStatus": "Status",
+  "confirmedCount": "{count} of {total} confirmed",
+  "@confirmedCount": {
+    "placeholders": {
+      "count": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  }
 }

@@ -944,3 +944,165 @@ func (app *Application) getEventPhotosHandler(w http.ResponseWriter, r *http.Req
 		app.internalServerError(w, r, err)
 	}
 }
+
+// calculateDeliveryHandler godoc
+//
+//	@Summary		Calculate delivery fee
+//	@Description	Calculate delivery fee based on event address
+//	@Tags			events
+//	@Accept			json
+//	@Produce		json
+//	@Param			id		path		string	true	"Event ID"
+//	@Param			payload	body		object	true	"Address payload"
+//	@Success		200		{object}	models.DeliveryFeeResponse
+//	@Failure		400		{object}	error
+//	@Failure		500		{object}	error
+//	@Router			/events/{id}/calculate-delivery [post]
+func (app *Application) calculateDeliveryHandler(w http.ResponseWriter, r *http.Request) {
+	idParam := chi.URLParam(r, "id")
+	eventID, err := uuid.Parse(idParam)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	// Verify event exists and user has access
+	event, err := app.Store.Events.GetByID(r.Context(), eventID)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			app.notFoundResponse(w, r, err)
+		} else {
+			app.internalServerError(w, r, err)
+		}
+		return
+	}
+
+	user := GetUserFromCtx(r)
+	if event.UserID != user.ID {
+		app.forbidden(w, r, errors.New("you do not have permission to view this event"))
+		return
+	}
+
+	var payload struct {
+		Address string `json:"address" validate:"required"`
+	}
+	if err := readJson(w, r, &payload); err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	if payload.Address == "" {
+		app.badRequest(w, r, errors.New("address is required"))
+		return
+	}
+
+	feeResponse, err := app.Store.DeliveryZones.CalculateFee(r.Context(), payload.Address)
+	if err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+
+	if err := app.jsonResponse(w, http.StatusOK, feeResponse); err != nil {
+		app.internalServerError(w, r, err)
+	}
+}
+
+// getShareCardHandler godoc
+//
+//	@Summary		Get shareable event card as HTML
+//	@Description	Returns an HTML page with event summary for sharing via WhatsApp/social media
+//	@Tags			events
+//	@Produce		html
+//	@Param			id	path		string	true	"Event ID"
+//	@Success		200	{string}	html
+//	@Failure		404	{object}	error
+//	@Failure		500	{object}	error
+//	@Router			/events/{id}/share-card [get]
+func (app *Application) getShareCardHandler(w http.ResponseWriter, r *http.Request) {
+	idParam := chi.URLParam(r, "id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	event, err := app.Store.Events.GetByID(r.Context(), id)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			app.notFoundResponse(w, r, err)
+		} else {
+			app.internalServerError(w, r, err)
+		}
+		return
+	}
+
+	// Get first photo if available
+	photos, _ := app.Store.EventPhotos.GetByEventID(r.Context(), id)
+	photoUrl := ""
+	if len(photos) > 0 {
+		photoUrl = photos[0].URL
+	}
+
+	eventDate := ""
+	if event.Date != nil {
+		eventDate = event.Date.Format("2 de enero de 2006")
+	}
+
+	statusLabel := map[string]string{
+		"planning":   "Planeando",
+		"requested":   "En Revision",
+		"adjusted":   "Cotizacion Lista",
+		"confirmed":  "Confirmado",
+		"paid":       "Pagado y Reservado",
+		"completed":  "Evento Finalizado",
+	}[event.Status]
+	if statusLabel == "" {
+		statusLabel = event.Status
+	}
+
+	html := fmt.Sprintf(`<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta property="og:title" content="Mi Evento: %s | RosaFiesta">
+  <meta property="og:description" content="🎉 ¡Mi evento '%s' (%s) esta confirmado! Organizado con RosaFiesta 🌸">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <title>%s | RosaFiesta</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: linear-gradient(135deg, #FF3CAC 0%%, #8B5CF6 100%%); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .card { background: white; border-radius: 24px; overflow: hidden; max-width: 400px; width: 100%%; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+    .card-image { width: 100%%; height: 200px; object-fit: cover; background: linear-gradient(135deg, #FF3CAC 0%%, #8B5CF6 100%%); }
+    .card-body { padding: 28px 24px; }
+    .badge { display: inline-block; background: linear-gradient(135deg, #FF3CAC, #8B5CF6); color: white; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; margin-bottom: 12px; }
+    h1 { font-size: 26px; font-weight: 800; color: #1a1a2e; margin-bottom: 8px; line-height: 1.2; }
+    .date { color: #8B5CF6; font-size: 16px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 6px; }
+    .location { color: #666; font-size: 14px; margin-bottom: 20px; display: flex; align-items: center; gap: 6px; }
+    .footer { background: linear-gradient(135deg, #FF3CAC 0%%, #8B5CF6 100%%); padding: 20px; text-align: center; }
+    .footer p { color: white; font-size: 14px; font-weight: 600; }
+    .footer span { opacity: 0.9; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <img src="%s" alt="Event photo" class="card-image" onerror="this.style.display='none'">
+    <div class="card-body">
+      <span class="badge">%s</span>
+      <h1>%s</h1>
+      <div class="date">📅 %s</div>
+      <div class="location">📍 %s</div>
+    </div>
+    <div class="footer">
+      <p>Organizado con RosaFiesta 🌸</p>
+      <span>rosafiesta.com</span>
+    </div>
+  </div>
+</body>
+</html>`, event.Name, event.Name, statusLabel, event.Name, photoUrl, statusLabel, event.Name, eventDate, event.Location)
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(html))
+}

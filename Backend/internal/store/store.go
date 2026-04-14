@@ -99,6 +99,8 @@ type Storage struct {
 		GetByID(context.Context, uuid.UUID) (*models.Guest, error)
 		Update(context.Context, *models.Guest) error
 		Delete(context.Context, uuid.UUID) error
+		Confirm(context.Context, uuid.UUID) error
+		Decline(context.Context, uuid.UUID) error
 	}
 	EventTasks interface {
 		Create(context.Context, *models.EventTask) error
@@ -165,6 +167,16 @@ type Storage struct {
 		Log(context.Context, *models.AuditLog) error
 		GetByEventID(context.Context, uuid.UUID) ([]models.AuditLogWithUser, error)
 	}
+	DeliveryZones interface {
+		GetAll(context.Context) ([]models.DeliveryZone, error)
+		GetByID(context.Context, uuid.UUID) (*models.DeliveryZone, error)
+		CalculateFee(context.Context, string) (*models.DeliveryFeeResponse, error)
+	}
+	Bundles interface {
+		GetAll(context.Context) ([]models.Bundle, error)
+		GetByID(context.Context, uuid.UUID) (*models.Bundle, error)
+		GetByCategory(context.Context, uuid.UUID) ([]models.Bundle, error)
+	}
 }
 
 func NewStorage(db *sql.DB) Storage {
@@ -190,6 +202,8 @@ func NewStorage(db *sql.DB) Storage {
 		Favorites:        &FavoritesStore{db: db},
 		EventPhotos:      &EventPhotosStore{db: db},
 		AuditLogs:        &AuditLogsStore{db: db},
+		DeliveryZones:    &DeliveryZonesStore{db: db},
+		Bundles:          &BundlesStore{db: db},
 	}
 }
 
