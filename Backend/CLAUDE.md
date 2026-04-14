@@ -203,6 +203,7 @@ All features currently in the system, organized by status. **Always keep this li
 | 31 | Email reminder triggers | ✅ | — | worker cron: 7d/24h/post-event |
 | 32 | Push notification triggers | ✅ | — | FCM on quote adjusted/approved/rejected |
 | 33 | Deep linking | ✅ | ✅ | iOS/Android universal links + hash routing |
+| 34 | Rating with event photos | ✅ | ✅ | review_photos table, photo lightbox, image_picker |
 
 ### Pending
 
