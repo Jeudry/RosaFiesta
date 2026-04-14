@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'dart:ui';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:frontend/core/app_colors.dart';
 import 'package:frontend/core/design_system.dart';
+import 'package:frontend/core/services/voice_search_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
@@ -104,6 +106,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       if (productsProvider.products.isEmpty) {
         productsProvider.fetchProducts(refresh: true);
       }
+      // Voice search result → trigger product search
+      VoiceSearchService().onResult = (text) {
+        if (text.trim().isEmpty) return;
+        productsProvider.search(text);
+        if (kDebugMode) print('Voice search: $text');
+      };
       // Show tooltip after entrance animations finish
       Future.delayed(const Duration(milliseconds: 1500), () {
         if (mounted && _showAiTooltip) {
@@ -299,8 +307,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Widget _topBarContent(RfTheme t, {bool compact = false}) {
     final logoSize = compact ? 40.0 : 52.0;
     final titleSize = compact ? 22.0 : 30.0;
-    final iconSize = compact ? 44.0 : 48.0;
-    final cartSize = compact ? 48.0 : 54.0;
+    final iconSize = compact ? 40.0 : 46.0;
+    final cartSize = compact ? 40.0 : 46.0;
 
     return Row(
       children: [
@@ -405,7 +413,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         Icon(
                           Icons.celebration_rounded,
                           color: Colors.white,
-                          size: iconSize - 4,
+                          size: iconSize - 8,
                         ),
                         // Notification dot — pulses gently when items > 0
                         if (active.itemCount > 0)
@@ -560,20 +568,46 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             ),
           ),
           const SizedBox(width: 10),
-          // Mic button
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              color: t.isDark ? t.card : Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: t.borderFaint),
-            ),
-            child: const Icon(
-              Icons.mic_outlined,
-              color: Color(0xFF8D8E90),
-              size: 28,
-            ),
+          // Mic button — voice search
+          Consumer<VoiceSearchService>(
+            builder: (context, voice, _) {
+              final listening = voice.isListening;
+              return GestureDetector(
+                onTap: () async {
+                  if (listening) {
+                    await voice.stopListening();
+                    setState(() {});
+                  } else {
+                    await voice.startListening();
+                    setState(() {});
+                  }
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: listening
+                        ? AppColors.hotPink.withOpacity(0.15)
+                        : (t.isDark ? t.card : Colors.white),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: listening
+                          ? AppColors.hotPink.withOpacity(0.4)
+                          : t.borderFaint,
+                      width: listening ? 1.5 : 1,
+                    ),
+                  ),
+                  child: listening
+                      ? _buildMicWaveform(t)
+                      : const Icon(
+                          Icons.mic_outlined,
+                          color: Color(0xFF8D8E90),
+                          size: 28,
+                        ),
+                ),
+              );
+            },
           ),
         ],
       ),
@@ -1456,6 +1490,28 @@ class _ChatBubblePainter extends CustomPainter {
   @override
   bool shouldRepaint(_ChatBubblePainter old) => color != old.color;
 }
+
+  Widget _buildMicWaveform(RfTheme t) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: List.generate(7, (i) {
+        final h = 8.0 +
+            (i == 3 ? 20 : i % 2 == 0 ? 14 : 9);
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 2),
+          child: AnimatedContainer(
+            duration: Duration(milliseconds: 150 + i * 30),
+            width: 3,
+            height: h,
+            decoration: BoxDecoration(
+              color: AppColors.hotPink.withOpacity(0.5 + (i == 3 ? 0.4 : 0.15)),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+        );
+      }),
+    );
+  }
 
 // ── Data ──────────────────────────────────────────────────────────────────────
 

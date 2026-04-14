@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:frontend/core/design_system.dart';
 import 'package:frontend/core/app_colors.dart';
+import 'package:frontend/core/services/share_service.dart';
 
 import '../../../events/data/event_model.dart';
 import '../active_event_provider.dart';
@@ -58,6 +59,23 @@ class _MiEventoScreenState extends State<MiEventoScreen> {
           ),
         ),
         actions: [
+          // Share button
+          IconButton(
+            icon: Icon(Icons.share_rounded, color: t.textPrimary),
+            onPressed: () {
+              final provider = context.read<ActiveEventProvider>();
+              ShareService().shareEvent(
+                eventName: provider.event?.name ?? 'Mi evento',
+                eventDate: provider.event?.date != null
+                    ? '${provider.event!.date!.day}/${provider.event!.date!.month}/${provider.event!.date!.year}'
+                    : 'Por confirmar',
+                location: provider.event?.location ?? '',
+                itemCount: provider.itemCount,
+                totalEstimate: provider.subtotal,
+                eventId: provider.event?.id,
+              );
+            },
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 16),
             child: Row(
