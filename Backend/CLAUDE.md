@@ -208,6 +208,8 @@ All features currently in the system, organized by status. **Always keep this li
 | 36 | Delivery zones (San Cristóbal) | ✅ | ✅ | address-based fee calculation, free/extended/remote zones |
 | 37 | Themed bundles with adjustable items | ✅ | ✅ | bundles table, bundle_items, configurable bundles, discount badges |
 | 38 | Availability urgency counter | ✅ | ✅ | "Solo X" / "AGOTADO" badges using low_stock_threshold column |
+| 39 | Share event to social | ✅ | ✅ | WhatsApp card URL, share_plus, share button sheet |
+| 40 | Event countdown widget | ✅ | ✅ | live days/hours/min/sec, pulse when <7 days |
 
 ### Pending
 
