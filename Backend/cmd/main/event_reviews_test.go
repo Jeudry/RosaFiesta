@@ -209,6 +209,7 @@ func TestGetEventReviews(t *testing.T) {
 				reviewM.On("GetByEventID", mock.Anything, eventID).Return([]models.EventReview{
 					{BaseModel: models.BaseModel{ID: uuid.New()}, EventID: eventID, Rating: 5, Comment: "Great!"},
 				}, nil).Once()
+				reviewM.On("GetPhotos", mock.Anything, mock.Anything).Return([]models.ReviewPhoto{}, nil).Maybe()
 			},
 			expectedCode: http.StatusOK,
 		},
