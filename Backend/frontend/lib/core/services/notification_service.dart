@@ -3,12 +3,20 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz_data;
 
-class NotificationService {
+abstract class NotificationServiceInterface {
+  Future<void> init();
+  Future<void> scheduleNotification({required int id, required String title, required String body, required DateTime scheduledDate});
+  Future<void> cancelNotification(int id);
+  Future<void> cancelAll();
+}
+
+class NotificationService implements NotificationServiceInterface {
   static final NotificationService _instance = NotificationService._internal();
   factory NotificationService() => _instance;
   NotificationService._internal();
 
   final FlutterLocalNotificationsPlugin _notificationsPlugin = FlutterLocalNotificationsPlugin();
+  bool _initialized = false;
 
   Future<void> init() async {
     tz_data.initializeTimeZones();

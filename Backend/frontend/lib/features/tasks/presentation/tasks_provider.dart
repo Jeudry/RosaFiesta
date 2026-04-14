@@ -9,14 +9,16 @@ import '../../../core/models/sync_action.dart';
 
 class EventTasksProvider with ChangeNotifier {
   final EventTasksRepository _repository;
-  final NotificationService _notificationService = NotificationService();
-  final SyncService _syncService = SyncService();
-  
+  final NotificationServiceInterface _notificationService;
+  final SyncService _syncService;
+
+  EventTasksProvider(this._repository, {NotificationServiceInterface? notificationService, SyncService? syncService})
+      : _notificationService = notificationService ?? NotificationService(),
+        _syncService = syncService ?? SyncService();
+
   List<EventTask> _tasks = [];
   bool _isLoading = false;
   String? _error;
-
-  EventTasksProvider(this._repository);
 
   List<EventTask> get tasks => _tasks;
   bool get isLoading => _isLoading;

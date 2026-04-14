@@ -1,5 +1,4 @@
-import 'package:flutter/foundation.dart';
-import 'package:share_plus/share_plus.dart';
+import 'package:share_plus/share_plus.dart' as share_plus;
 
 class ShareService {
   static final ShareService _instance = ShareService._internal();
@@ -35,7 +34,7 @@ class ShareService {
       buffer.writeln('https://rosafiesta.com');
     }
 
-    await Share.share(
+    await share_plus.Share.share(
       buffer.toString(),
       subject: '🎉 Invitación: $eventName — RosaFiesta',
     );
@@ -46,6 +45,6 @@ class ShareService {
     final text = productName != null
         ? '¡Mira este producto de RosaFiesta: $productName! https://rosafiesta.com/catalog'
         : '¡Echa un vistazo al catálogo de RosaFiesta! https://rosafiesta.com/catalog';
-    await Share.share(text, subject: 'RosaFiesta — Decoración para eventos');
+    await share_plus.Share.share(text, subject: 'RosaFiesta — Decoración para eventos');
   }
 }
