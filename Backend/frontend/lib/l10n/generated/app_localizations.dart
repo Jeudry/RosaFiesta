@@ -104,6 +104,48 @@ abstract class AppLocalizations {
   /// **'RosaFiesta'**
   String get appTitle;
 
+  /// No description provided for @countdownDays.
+  ///
+  /// In es, this message translates to:
+  /// **'dias'**
+  String get countdownDays;
+
+  /// No description provided for @countdownHours.
+  ///
+  /// In es, this message translates to:
+  /// **'horas'**
+  String get countdownHours;
+
+  /// No description provided for @countdownMinutes.
+  ///
+  /// In es, this message translates to:
+  /// **'min'**
+  String get countdownMinutes;
+
+  /// No description provided for @countdownSeconds.
+  ///
+  /// In es, this message translates to:
+  /// **'seg'**
+  String get countdownSeconds;
+
+  /// No description provided for @countdownForYourEvent.
+  ///
+  /// In es, this message translates to:
+  /// **'para tu evento'**
+  String get countdownForYourEvent;
+
+  /// No description provided for @countdownEventInProgress.
+  ///
+  /// In es, this message translates to:
+  /// **'¡El evento está en curso!'**
+  String get countdownEventInProgress;
+
+  /// No description provided for @countdownEventFinished.
+  ///
+  /// In es, this message translates to:
+  /// **'Evento finalizado'**
+  String get countdownEventFinished;
+
   /// No description provided for @welcomeHeadline.
   ///
   /// In es, this message translates to:
@@ -259,6 +301,78 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'¿Ya tienes una cuenta?'**
   String get alreadyHaveAccount;
+
+  /// No description provided for @deliveryFree.
+  ///
+  /// In es, this message translates to:
+  /// **'Gratuito'**
+  String get deliveryFree;
+
+  /// No description provided for @deliveryZone.
+  ///
+  /// In es, this message translates to:
+  /// **'Zona'**
+  String get deliveryZone;
+
+  /// No description provided for @deliveryFee.
+  ///
+  /// In es, this message translates to:
+  /// **'Costo de envío'**
+  String get deliveryFee;
+
+  /// No description provided for @deliveryFreeInSanCristobal.
+  ///
+  /// In es, this message translates to:
+  /// **'Delivery gratuito en San Cristóbal'**
+  String get deliveryFreeInSanCristobal;
+
+  /// No description provided for @deliveryExtendedZone.
+  ///
+  /// In es, this message translates to:
+  /// **'Delivery dentro de la provincia de San Cristóbal'**
+  String get deliveryExtendedZone;
+
+  /// No description provided for @deliveryRemoteZone.
+  ///
+  /// In es, this message translates to:
+  /// **'Tu dirección está en zona remota. El equipo de RosaFiesta coordinará contigo el envío.'**
+  String get deliveryRemoteZone;
+
+  /// No description provided for @deliveryAddressHint.
+  ///
+  /// In es, this message translates to:
+  /// **'Dirección del evento'**
+  String get deliveryAddressHint;
+
+  /// No description provided for @rsvpPending.
+  ///
+  /// In es, this message translates to:
+  /// **'Pendiente'**
+  String get rsvpPending;
+
+  /// No description provided for @rsvpConfirmed.
+  ///
+  /// In es, this message translates to:
+  /// **'Confirmado'**
+  String get rsvpConfirmed;
+
+  /// No description provided for @rsvpDeclined.
+  ///
+  /// In es, this message translates to:
+  /// **'Rechazado'**
+  String get rsvpDeclined;
+
+  /// No description provided for @rsvpStatus.
+  ///
+  /// In es, this message translates to:
+  /// **'Estado'**
+  String get rsvpStatus;
+
+  /// No description provided for @confirmedCount.
+  ///
+  /// In es, this message translates to:
+  /// **'{count} de {total} confirmados'**
+  String confirmedCount(int count, int total);
 }
 
 class _AppLocalizationsDelegate

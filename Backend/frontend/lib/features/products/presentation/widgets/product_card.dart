@@ -33,8 +33,8 @@ class ProductCard extends StatelessWidget {
     final variant = product.variants.isNotEmpty ? product.variants.first : null;
     final imageUrl = variant?.imageUrl;
     final price = variant?.rentalPrice ?? 0;
-    final lowStock =
-        product.stockQuantity > 0 && product.stockQuantity < 10;
+    final isAgotado = product.stockQuantity <= 0;
+    final isLowStock = product.stockQuantity > 0 && product.stockQuantity <= product.lowStockThreshold;
 
     final isFav =
         context.watch<FavoritesProvider>().isFavorite(product.id);
@@ -124,7 +124,28 @@ class ProductCard extends StatelessWidget {
                           ),
                         ),
                       ),
-                    if (lowStock)
+                    if (isAgotado)
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppColors.coral,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            'AGOTADO',
+                            style: GoogleFonts.dmSans(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      )
+                    else if (isLowStock)
                       Positioned(
                         top: 8,
                         right: 8,

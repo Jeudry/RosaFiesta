@@ -128,7 +128,7 @@ func (s *ArticlesStore) GetById(ctx context.Context, id uuid.UUID) (*models.Arti
 
 	// 1. Get Article
 	query := `
-		SELECT id, name_template, description_template, COALESCE(type, ''), category_id, is_active, stock_quantity, created, updated, created_by, updated_by
+		SELECT id, name_template, description_template, COALESCE(type, ''), category_id, is_active, stock_quantity, low_stock_threshold, created, updated, created_by, updated_by
 		FROM articles
 		WHERE id = $1`
 
@@ -140,6 +140,7 @@ func (s *ArticlesStore) GetById(ctx context.Context, id uuid.UUID) (*models.Arti
 		&article.CategoryID,
 		&article.IsActive,
 		&article.StockQuantity,
+		&article.LowStockThreshold,
 		&article.Created,
 		&article.Updated,
 		&article.CreatedBy,
@@ -231,7 +232,7 @@ func (s *ArticlesStore) queryListWithPrimaryVariant(ctx context.Context, whereCl
 	query := `
 		SELECT
 			a.id, a.name_template, a.description_template, COALESCE(a.type, ''),
-			a.category_id, a.is_active, a.stock_quantity,
+			a.category_id, a.is_active, a.stock_quantity, a.low_stock_threshold,
 			a.created, a.updated, a.created_by, a.updated_by,
 			v.id, v.sku, v.name, v.description, v.image_url, v.is_active,
 			v.stock, v.rental_price, v.sale_price, v.replacement_cost
@@ -406,7 +407,7 @@ func (s *ArticlesStore) Search(ctx context.Context, params ArticleSearchParams) 
 	query := fmt.Sprintf(`
 		SELECT
 				a.id, a.name_template, a.description_template, COALESCE(a.type, ''),
-				a.category_id, a.is_active, a.stock_quantity,
+				a.category_id, a.is_active, a.stock_quantity, a.low_stock_threshold,
 				a.created, a.updated, a.created_by, a.updated_by,
 				v.id, v.sku, v.name, v.description, v.image_url, v.is_active,
 				v.stock, v.rental_price, v.sale_price, v.replacement_cost
@@ -454,7 +455,7 @@ func (s *ArticlesStore) scanArticleList(rows *sql.Rows) ([]models.Article, error
 		)
 		if err := rows.Scan(
 			&article.ID, &article.NameTemplate, &article.DescriptionTemplate, &article.Type,
-			&article.CategoryID, &article.IsActive, &article.StockQuantity,
+			&article.CategoryID, &article.IsActive, &article.StockQuantity, &article.LowStockThreshold,
 			&article.Created, &article.Updated, &article.CreatedBy, &article.UpdatedBy,
 			&vID, &vSku, &vName, &vDescription, &vImageURL, &vIsActive,
 			&vStock, &vRentalPrice, &vSalePrice, &vReplacementCost,

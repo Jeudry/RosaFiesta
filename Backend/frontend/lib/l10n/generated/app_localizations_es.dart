@@ -12,6 +12,27 @@ class AppLocalizationsEs extends AppLocalizations {
   String get appTitle => 'RosaFiesta';
 
   @override
+  String get countdownDays => 'dias';
+
+  @override
+  String get countdownHours => 'horas';
+
+  @override
+  String get countdownMinutes => 'min';
+
+  @override
+  String get countdownSeconds => 'seg';
+
+  @override
+  String get countdownForYourEvent => 'para tu evento';
+
+  @override
+  String get countdownEventInProgress => '¡El evento está en curso!';
+
+  @override
+  String get countdownEventFinished => 'Evento finalizado';
+
+  @override
   String get welcomeHeadline => 'RosaFiesta';
 
   @override
@@ -92,4 +113,44 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get alreadyHaveAccount => '¿Ya tienes una cuenta?';
+
+  @override
+  String get deliveryFree => 'Gratuito';
+
+  @override
+  String get deliveryZone => 'Zona';
+
+  @override
+  String get deliveryFee => 'Costo de envío';
+
+  @override
+  String get deliveryFreeInSanCristobal => 'Delivery gratuito en San Cristóbal';
+
+  @override
+  String get deliveryExtendedZone =>
+      'Delivery dentro de la provincia de San Cristóbal';
+
+  @override
+  String get deliveryRemoteZone =>
+      'Tu dirección está en zona remota. El equipo de RosaFiesta coordinará contigo el envío.';
+
+  @override
+  String get deliveryAddressHint => 'Dirección del evento';
+
+  @override
+  String get rsvpPending => 'Pendiente';
+
+  @override
+  String get rsvpConfirmed => 'Confirmado';
+
+  @override
+  String get rsvpDeclined => 'Rechazado';
+
+  @override
+  String get rsvpStatus => 'Estado';
+
+  @override
+  String confirmedCount(int count, int total) {
+    return '$count de $total confirmados';
+  }
 }

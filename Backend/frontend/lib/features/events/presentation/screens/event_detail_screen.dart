@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../data/event_model.dart';
 import '../events_provider.dart';
-import '../../../guests/presentation/screens/guest_list_screen.dart';
 import '../../../tasks/presentation/screens/event_task_list_screen.dart';
 import '../../presentation/timeline_provider.dart';
 import '../../../guests/presentation/guests_provider.dart';
@@ -12,13 +11,14 @@ import 'checkout_screen.dart';
 import '../widgets/quotation_chat_widget.dart';
 import 'package:frontend/core/app_theme.dart';
 import '../debrief_provider.dart';
-import '../../data/event_debrief_model.dart';
 import 'event_timeline_screen.dart';
 import 'event_execution_screen.dart';
 import 'event_debrief_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:frontend/core/config/env_config.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:share_plus/share_plus.dart' as share_plus;
+import '../widgets/event_countdown_widget.dart';
 
 
 class EventDetailScreen extends StatefulWidget {
@@ -57,6 +57,11 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
               icon: const Icon(Icons.picture_as_pdf),
               onPressed: () => _exportToPdf(context),
               tooltip: 'Exportar a PDF',
+            ),
+            IconButton(
+              icon: const Icon(Icons.share),
+              onPressed: () => _showShareSheet(context),
+              tooltip: 'Compartir',
             ),
           ],
         ),
@@ -108,6 +113,18 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                           ),
                         ),
                       ),
+                      const SizedBox(height: 20),
+
+                      // Event Countdown Widget (only show for upcoming confirmed/paid/adjusted events)
+                      if (event.date != null &&
+                          (event.status == 'confirmed' ||
+                              event.status == 'paid' ||
+                              event.status == 'adjusted'))
+                        EventCountdownWidget(
+                          eventDate: event.date!,
+                          eventName: event.name,
+                        ),
+
                       const SizedBox(height: 20),
 
                       _buildControlGroup([
@@ -508,5 +525,84 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
         );
       }
     }
+  }
+
+  void _showShareSheet(BuildContext context) {
+    final provider = context.read<EventsProvider>();
+    final Event event;
+    try {
+      event = provider.events.firstWhere((e) => e.id == widget.eventId);
+    } catch (_) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se pudo cargar la informacion del evento')),
+      );
+      return;
+    }
+
+    final eventDate = event.date != null
+        ? '${event.date!.day}/${event.date!.month}/${event.date!.year}'
+        : 'Fecha por confirmar';
+    final shareUrl = '${EnvConfig.apiUrl}/events/${event.id}/share-card';
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            ListTile(
+              leading: Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: AppColors.teal.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.text_fields, color: AppColors.teal),
+              ),
+              title: const Text('Compartir como texto'),
+              subtitle: const Text('Copiar invitacion al portapapeles'),
+              onTap: () {
+                final text = '🎉 ¡Mi evento "$event.name" ($eventDate) está confirmado! '
+                    'Organizado con RosaFiesta 🌸\n\n'
+                    'Visita rosafiesta.com/mi-evento/${event.id}';
+                share_plus.Share.share(text, subject: 'Mi evento RosaFiesta');
+                Navigator.pop(ctx);
+              },
+            ),
+            ListTile(
+              leading: Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: AppColors.hotPink.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.image, color: AppColors.hotPink),
+              ),
+              title: const Text('Generar tarjeta para WhatsApp'),
+              subtitle: const Text('Abrir tarjeta compartida en el navegador'),
+              onTap: () {
+                Navigator.pop(ctx);
+                launchUrl(Uri.parse(shareUrl), mode: LaunchMode.externalApplication);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

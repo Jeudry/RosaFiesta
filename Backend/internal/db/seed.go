@@ -194,6 +194,11 @@ func Seed(store store.Storage, db *sql.DB) error {
 		}
 	}
 
+	// Seed Bundles
+	if err := seedBundles(ctx, db); err != nil {
+		log.Println("Error seeding bundles:", err)
+	}
+
 	return nil
 }
 
@@ -586,4 +591,137 @@ func generatePosts(quantity int, users []*models.User) []*models.Post {
 	}
 
 	return posts
+}
+
+// seedBundles inserts themed bundles with their items.
+func seedBundles(ctx context.Context, db *sql.DB) error {
+	// Helper to get article ID by SKU
+	getArticleID := func(sku string) (uuid.UUID, error) {
+		var id uuid.UUID
+		err := db.QueryRowContext(ctx, `SELECT id FROM articles WHERE name_template = $1 LIMIT 1`, sku).Scan(&id)
+		return id, err
+	}
+
+	type bundleSeed struct {
+		name            string
+		description     string
+		discountPercent float64
+		imageURL        string
+		minPrice        float64
+		items           []struct {
+			sku        string
+			quantity   int
+			isOptional bool
+		}
+	}
+
+	seeds := []bundleSeed{
+		{
+			name:            "Bodas Rosa",
+			description:     "Paquete romántico completo para bodas. Incluye trasero floral, centros de mesa con velas, mantelería premium y cristalería elegante.",
+			discountPercent: 15,
+			imageURL:        "https://images.unsplash.com/photo-1519741497674-611481863552?w=800",
+			minPrice:        850,
+			items: []struct {
+				sku        string
+				quantity   int
+				isOptional bool
+			}{
+				{"Arco Floral Romántico", 1, false},
+				{"Centro de Mesa con Velas", 8, false},
+				{"Camino de Mesa Dorado", 8, false},
+				{"Candelabros de Cristal", 8, false},
+				{"Backdrop de Flores Eternas", 1, true},
+			},
+		},
+		{
+			name:            "Cumpleaños Infantil",
+			description:     "Kit completo para fiestas infantiles. Globos, banners, decoración de mesa y un animado centro de mesa.",
+			discountPercent: 10,
+			imageURL:        "https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=800",
+			minPrice:        450,
+			items: []struct {
+				sku        string
+				quantity   int
+				isOptional bool
+			}{
+				{"Globos Orgánicos Pastel", 1, false},
+				{"Mesa Dulcera Temática", 1, false},
+				{"Centro de Mesa con Velas", 2, false},
+				{"Arco Globos Gender Reveal", 1, true},
+			},
+		},
+		{
+			name:            "Quinceañera Premium",
+			description:     "Paquete de lujo para quinceañeras. Arco floral dramático, arco de globos, centros de mesa y letrero neón personalizado.",
+			discountPercent: 12,
+			imageURL:        "https://images.unsplash.com/photo-1513725673957-ab1b1a7f1b65?w=800",
+			minPrice:        1200,
+			items: []struct {
+				sku        string
+				quantity   int
+				isOptional bool
+			}{
+				{"Arco Floral Romántico", 1, false},
+				{"Arco Globos Gender Reveal", 1, false},
+				{"Centro de Mesa con Velas", 10, false},
+				{"Neón LED Personalizado", 1, true},
+				{"Backdrop de Flores Eternas", 1, true},
+			},
+		},
+		{
+			name:            "Evento Corporativo",
+			description:     "Solución profesional para eventos empresariales. Mantelería elegante, centros de mesa sobrios y señalización de calidad.",
+			discountPercent: 8,
+			imageURL:        "https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=800",
+			minPrice:        600,
+			items: []struct {
+				sku        string
+				quantity   int
+				isOptional bool
+			}{
+				{"Camino de Mesa Dorado", 10, false},
+				{"Centro de Mesa con Velas", 5, false},
+				{"Luces String Vintage", 2, false},
+				{"Candelabros de Cristal", 5, true},
+			},
+		},
+	}
+
+	for _, seed := range seeds {
+		// Insert bundle
+		var bundleID uuid.UUID
+		err := db.QueryRowContext(ctx, `
+			INSERT INTO bundles (name, description, discount_percent, image_url, min_price, is_active)
+			VALUES ($1, $2, $3, $4, $5, true)
+			ON CONFLICT DO NOTHING
+			RETURNING id`,
+			seed.name, seed.description, seed.discountPercent, seed.imageURL, seed.minPrice,
+		).Scan(&bundleID)
+		if err != nil {
+			// Bundle might already exist
+			log.Printf("Bundle %s might already exist: %v", seed.name, err)
+			continue
+		}
+
+		// Insert bundle items
+		for i, item := range seed.items {
+			articleID, err := getArticleID(item.sku)
+			if err != nil {
+				log.Printf("Article not found for SKU %s: %v", item.sku, err)
+				continue
+			}
+
+			_, err = db.ExecContext(ctx, `
+				INSERT INTO bundle_items (bundle_id, article_id, quantity, is_optional, sort_order)
+				VALUES ($1, $2, $3, $4, $5)`,
+				bundleID, articleID, item.quantity, item.isOptional, i,
+			)
+			if err != nil {
+				log.Printf("Error inserting bundle item %s: %v", item.sku, err)
+			}
+		}
+	}
+
+	return nil
 }

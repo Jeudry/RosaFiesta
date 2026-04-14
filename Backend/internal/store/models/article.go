@@ -16,6 +16,7 @@ type Article struct {
 	IsActive            bool        `json:"is_active"`
 	Type                ArticleType `json:"type"`
 	StockQuantity       int         `json:"stock_quantity"`
+	LowStockThreshold   int         `json:"low_stock_threshold"`
 	CategoryID          *uuid.UUID  `json:"category_id,omitempty"`
 	Category            *Category   `json:"category,omitempty"` // For eager loading
 

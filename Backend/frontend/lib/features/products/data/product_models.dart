@@ -5,6 +5,7 @@ class Product {
   final bool isActive;
   final String type; // 'Rental' or 'Sale'
   final int stockQuantity;
+  final int lowStockThreshold;
   final String? categoryId;
   final List<ProductVariant> variants;
   final double averageRating;
@@ -17,6 +18,7 @@ class Product {
     required this.isActive,
     required this.type,
     this.stockQuantity = 0,
+    this.lowStockThreshold = 5,
     this.categoryId,
     this.variants = const [],
     this.averageRating = 0.0,
@@ -31,6 +33,7 @@ class Product {
       isActive: json['is_active'],
       type: json['type'],
       stockQuantity: json['stock_quantity'] ?? 0,
+      lowStockThreshold: json['low_stock_threshold'] ?? 5,
       categoryId: json['category_id'],
       variants: (json['variants'] as List<dynamic>?)
               ?.map((e) => ProductVariant.fromJson(e))
@@ -48,6 +51,7 @@ class Product {
         'is_active': isActive,
         'type': type,
         'stock_quantity': stockQuantity,
+        'low_stock_threshold': lowStockThreshold,
         'category_id': categoryId,
         'variants': variants.map((v) => v.toJson()).toList(),
         'average_rating': averageRating,

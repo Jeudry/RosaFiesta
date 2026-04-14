@@ -206,6 +206,8 @@ All features currently in the system, organized by status. **Always keep this li
 | 34 | Rating with event photos | ✅ | ✅ | review_photos table, photo lightbox, image_picker |
 | 35 | RSVP guest confirmation | ✅ | ✅ | confirm/decline endpoints, timestamps, audit log |
 | 36 | Delivery zones (San Cristóbal) | ✅ | ✅ | address-based fee calculation, free/extended/remote zones |
+| 37 | Themed bundles with adjustable items | ✅ | ✅ | bundles table, bundle_items, configurable bundles, discount badges |
+| 38 | Availability urgency counter | ✅ | ✅ | "Solo X" / "AGOTADO" badges using low_stock_threshold column |
 
 ### Pending
 
