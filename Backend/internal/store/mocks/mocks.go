@@ -428,3 +428,61 @@ func (m *FavoritesStore) IsFavorite(ctx context.Context, userID, articleID uuid.
 	args := m.Called(ctx, userID, articleID)
 	return args.Bool(0), args.Error(1)
 }
+
+type CompanyReviewsStore struct {
+	mock.Mock
+}
+
+func (m *CompanyReviewsStore) Create(ctx context.Context, review *models.CompanyReview) error {
+	args := m.Called(ctx, review)
+	return args.Error(0)
+}
+
+func (m *CompanyReviewsStore) GetAll(ctx context.Context) ([]models.CompanyReview, error) {
+	args := m.Called(ctx)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]models.CompanyReview), args.Error(1)
+}
+
+func (m *CompanyReviewsStore) GetSummary(ctx context.Context) (float64, int, error) {
+	args := m.Called(ctx)
+	return args.Get(0).(float64), args.Int(1), args.Error(2)
+}
+
+type EventReviewsStore struct {
+	mock.Mock
+}
+
+func (m *EventReviewsStore) Create(ctx context.Context, review *models.EventReview) error {
+	args := m.Called(ctx, review)
+	return args.Error(0)
+}
+
+func (m *EventReviewsStore) GetByEventID(ctx context.Context, id uuid.UUID) ([]models.EventReview, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]models.EventReview), args.Error(1)
+}
+
+func (m *EventReviewsStore) GetSummary(ctx context.Context, id uuid.UUID) (float64, int, error) {
+	args := m.Called(ctx, id)
+	return args.Get(0).(float64), args.Int(1), args.Error(2)
+}
+
+type NotificationLogsStore struct {
+	mock.Mock
+}
+
+func (m *NotificationLogsStore) LogNotification(ctx context.Context, eventID uuid.UUID, notificationType models.NotificationType) error {
+	args := m.Called(ctx, eventID, notificationType)
+	return args.Error(0)
+}
+
+func (m *NotificationLogsStore) HasNotificationBeenSent(ctx context.Context, eventID uuid.UUID, notificationType models.NotificationType) (bool, error) {
+	args := m.Called(ctx, eventID, notificationType)
+	return args.Bool(0), args.Error(1)
+}
