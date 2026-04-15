@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:frontend/core/design_system.dart';
 import 'package:frontend/core/app_colors.dart';
 import 'package:frontend/features/events/presentation/events_provider.dart';
 import 'package:frontend/features/shell/main_shell.dart';
 import 'package:frontend/core/services/share_service.dart';
+import 'package:frontend/core/config/env_config.dart';
 
 class OrderConfirmationScreen extends StatefulWidget {
   final String eventId;
@@ -341,6 +344,36 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen>
           ),
         ),
         const SizedBox(height: 14),
+        // Download contract button (only for paid events)
+        if (event.status == 'paid')
+          GestureDetector(
+            onTap: () => _downloadContract(event.id),
+            child: Container(
+              width: double.infinity,
+              height: 54,
+              decoration: BoxDecoration(
+                color: t.isDark ? Colors.white.withValues(alpha: 0.06) : Colors.white.withValues(alpha: 0.93),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.hotPink.withValues(alpha: 0.5)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.description_outlined, color: AppColors.hotPink, size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Descargar contrato',
+                    style: GoogleFonts.dmSans(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.hotPink,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        if (event.status == 'paid') const SizedBox(height: 14),
         // View my events button
         RfLuxeButton(
           label: 'Ver mis eventos',
@@ -458,5 +491,30 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen>
       MaterialPageRoute(builder: (_) => const MainShell(initialIndex: 0)),
       (route) => false,
     );
+  }
+
+  Future<void> _downloadContract(String eventId) async {
+    const storage = FlutterSecureStorage();
+    final token = await storage.read(key: 'access_token');
+    if (token == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error de autenticación')),
+        );
+      }
+      return;
+    }
+
+    final url = Uri.parse('${EnvConfig.apiUrl}/events/$eventId/contract?token=$token');
+
+    try {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al descargar contrato: $e')),
+        );
+      }
+    }
   }
 }

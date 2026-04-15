@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../data/event_model.dart';
 import '../events_provider.dart';
+import '../inspiration_provider.dart';
 import '../../../tasks/presentation/screens/event_task_list_screen.dart';
 import '../../presentation/timeline_provider.dart';
 import '../../../guests/presentation/guests_provider.dart';
@@ -162,6 +163,11 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                       _buildControlGroup([
                         _buildBudgetView(event, provider),
                       ]),
+
+                      const SizedBox(height: 20),
+
+                      // Mood Board / Inspiration Section
+                      _MoodBoardSection(eventId: widget.eventId),
 
                       const SizedBox(height: 20),
 
@@ -427,6 +433,22 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
       );
     }
 
+    if (event.status == 'paid') {
+      return SizedBox(
+        width: double.infinity,
+        child: OutlinedButton.icon(
+          icon: const Icon(Icons.description),
+          label: const Text('Descargar Contrato'),
+          onPressed: () => _downloadContract(context, event.id),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppColors.primary,
+            side: const BorderSide(color: AppColors.primary),
+            padding: const EdgeInsets.symmetric(vertical: 12),
+          ),
+        ),
+      );
+    }
+
     if (event.status == 'completed') {
       return SizedBox(
         width: double.infinity,
@@ -443,6 +465,32 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     }
 
     return const SizedBox.shrink();
+  }
+
+  Future<void> _downloadContract(BuildContext context, String eventId) async {
+    const storage = FlutterSecureStorage();
+    final token = await storage.read(key: 'access_token');
+    if (token == null) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error de autenticación')),
+        );
+      }
+      return;
+    }
+
+    // Build URL with auth token - backend will redirect to PDF
+    final url = Uri.parse('${EnvConfig.apiUrl}/events/$eventId/contract?token=$token');
+
+    try {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al descargar contrato: $e')),
+        );
+      }
+    }
   }
 
   void _navigateToCheckout(BuildContext context, EventsProvider provider, Event event) {
@@ -602,6 +650,333 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// Mood Board / Inspiration Section Widget
+class _MoodBoardSection extends StatefulWidget {
+  final String eventId;
+
+  const _MoodBoardSection({required this.eventId});
+
+  @override
+  State<_MoodBoardSection> createState() => _MoodBoardSectionState();
+}
+
+class _MoodBoardSectionState extends State<_MoodBoardSection> {
+  bool _isExpanded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<InspirationProvider>().fetchInspiration(widget.eventId);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFFAF8F5),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: AppDecorations.softShadow,
+        border: Border.all(color: const Color(0xFFE8E0D5), width: 1),
+      ),
+      child: Column(
+        children: [
+          InkWell(
+            onTap: () => setState(() => _isExpanded = !_isExpanded),
+            borderRadius: BorderRadius.circular(24),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppColors.amber.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.photo_library, color: AppColors.amber, size: 24),
+                  ),
+                  const SizedBox(width: 16),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Tablero de Inspiración',
+                          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          'Fotos de referencia para tu evento',
+                          style: TextStyle(color: Colors.grey, fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Consumer<InspirationProvider>(
+                    builder: (context, provider, _) {
+                      final count = provider.photos.length;
+                      if (count > 0) {
+                        return Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppColors.hotPink.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            '$count',
+                            style: const TextStyle(
+                              color: AppColors.hotPink,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        );
+                      }
+                      return const SizedBox.shrink();
+                    },
+                  ),
+                  const SizedBox(width: 8),
+                  AnimatedRotation(
+                    turns: _isExpanded ? 0.5 : 0,
+                    duration: const Duration(milliseconds: 300),
+                    child: const Icon(Icons.keyboard_arrow_down, color: Colors.grey),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (_isExpanded) ...[
+            const Divider(height: 1),
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Consumer<InspirationProvider>(
+                    builder: (context, provider, _) {
+                      if (provider.isLoading) {
+                        return const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(20),
+                            child: CircularProgressIndicator(),
+                          ),
+                        );
+                      }
+
+                      if (provider.photos.isEmpty) {
+                        return _buildEmptyState(context);
+                      }
+
+                      return _buildPhotoGrid(context, provider);
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE8E0D5)),
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.add_photo_alternate_outlined, size: 48, color: Colors.grey.shade400),
+          const SizedBox(height: 12),
+          const Text(
+            '¿Quieres agregar fotos de inspiración?',
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Sube fotos de Pinterest, Instagram o tu galería',
+            style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              OutlinedButton(
+                onPressed: () => setState(() => _isExpanded = false),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.grey,
+                  side: const BorderSide(color: Colors.grey),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                ),
+                child: const Text('Ahora no'),
+              ),
+              const SizedBox(width: 12),
+              ElevatedButton.icon(
+                onPressed: () => _addPhoto(context),
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('Sí, agregar'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.hotPink,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPhotoGrid(BuildContext context, InspirationProvider provider) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          height: 200,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: provider.photos.length > 10 ? 10 : provider.photos.length,
+            itemBuilder: (context, index) {
+              final photo = provider.photos[index];
+              return _PolaroidFrame(
+                photoUrl: photo.photoUrl,
+                caption: photo.caption,
+                onDelete: () => _confirmDelete(context, provider, photo.id),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 16),
+        if (provider.photos.length < 10)
+          Center(
+            child: TextButton.icon(
+              onPressed: () => _addPhoto(context),
+              icon: const Icon(Icons.add_photo_alternate, size: 20),
+              label: const Text('Agregar foto'),
+              style: TextButton.styleFrom(foregroundColor: AppColors.hotPink),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Future<void> _addPhoto(BuildContext context) async {
+    final provider = context.read<InspirationProvider>();
+    final imageFile = await provider.pickImage(context);
+
+    if (imageFile != null) {
+      final success = await provider.uploadInspiration(context, widget.eventId, imageFile);
+      if (success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Foto agregada al tablero')),
+        );
+      }
+    }
+  }
+
+  void _confirmDelete(BuildContext context, InspirationProvider provider, String photoId) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Eliminar foto'),
+        content: const Text('¿Estás segura de eliminar esta foto de inspiración?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await provider.deleteInspiration(widget.eventId, photoId);
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PolaroidFrame extends StatelessWidget {
+  final String photoUrl;
+  final String? caption;
+  final VoidCallback onDelete;
+
+  const _PolaroidFrame({
+    required this.photoUrl,
+    this.caption,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 150,
+      margin: const EdgeInsets.only(right: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(4),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.15),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+            child: Image.network(
+              photoUrl,
+              width: 150,
+              height: 120,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Container(
+                width: 150,
+                height: 120,
+                color: Colors.grey.shade200,
+                child: const Icon(Icons.broken_image, color: Colors.grey),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8),
+            child: Row(
+              children: [
+                if (caption != null && caption!.isNotEmpty)
+                  Expanded(
+                    child: Text(
+                      caption!,
+                      style: const TextStyle(fontSize: 10, color: Colors.black87),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                GestureDetector(
+                  onTap: onDelete,
+                  child: Icon(Icons.close, size: 16, color: Colors.grey.shade600),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
