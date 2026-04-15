@@ -45,6 +45,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
   String _deliveryMessage = '';
   bool _isCalculatingDelivery = false;
   bool _isRemoteZone = false;
+  bool _isFullPayment = false;
 
   final _methods = [
     _PaymentMethod('Tarjeta', Icons.credit_card, AppColors.sky),
@@ -192,6 +193,8 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                       children: [
                         const SizedBox(height: 8),
                         _buildDeliveryCard(t),
+                        const SizedBox(height: 16),
+                        _buildInstallmentSelector(t),
                         const SizedBox(height: 16),
                         _buildPaymentMethodsSection(t),
                         const SizedBox(height: 20),
@@ -412,6 +415,173 @@ class _CheckoutScreenState extends State<CheckoutScreen>
           ],
         ],
       ),
+    );
+  }
+
+  double get depositAmount => (grandTotal * 0.5).roundToDouble();
+  double get remainingAmount => grandTotal - depositAmount;
+
+  Widget _buildInstallmentSelector(RfTheme t) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Opciones de pago',
+          style: GoogleFonts.outfit(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: t.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 12),
+        // Full payment option
+        GestureDetector(
+          onTap: () => setState(() => _isFullPayment = true),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: _isFullPayment
+                  ? AppColors.teal.withValues(alpha: 0.1)
+                  : t.card,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: _isFullPayment ? AppColors.teal : t.borderFaint,
+                width: _isFullPayment ? 2 : 1,
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: _isFullPayment ? AppColors.teal : t.borderFaint,
+                      width: 2,
+                    ),
+                    color: _isFullPayment ? AppColors.teal : Colors.transparent,
+                  ),
+                  child: _isFullPayment
+                      ? const Icon(Icons.check, color: Colors.white, size: 16)
+                      : null,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Pago completo',
+                        style: GoogleFonts.dmSans(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: t.textPrimary,
+                        ),
+                      ),
+                      Text(
+                        'RD\$${grandTotal.toStringAsFixed(0)} hoy',
+                        style: GoogleFonts.dmSans(
+                          fontSize: 13,
+                          color: AppColors.teal,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        // Deposit option
+        GestureDetector(
+          onTap: () => setState(() => _isFullPayment = false),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: !_isFullPayment
+                  ? AppColors.hotPink.withValues(alpha: 0.1)
+                  : t.card,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: !_isFullPayment ? AppColors.hotPink : t.borderFaint,
+                width: !_isFullPayment ? 2 : 1,
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: !_isFullPayment ? AppColors.hotPink : t.borderFaint,
+                      width: 2,
+                    ),
+                    color: !_isFullPayment ? AppColors.hotPink : Colors.transparent,
+                  ),
+                  child: !_isFullPayment
+                      ? const Icon(Icons.check, color: Colors.white, size: 16)
+                      : null,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Reserva ahora (50%)',
+                        style: GoogleFonts.dmSans(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: t.textPrimary,
+                        ),
+                      ),
+                      Text(
+                        'RD\$${depositAmount.toStringAsFixed(0)} hoy - RD\$${remainingAmount.toStringAsFixed(0)} después',
+                        style: GoogleFonts.dmSans(
+                          fontSize: 13,
+                          color: AppColors.hotPink,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        if (!_isFullPayment)
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.amber.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.amber.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.info_outline, color: AppColors.amber, size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'El resto debe pagarse antes del evento para confirmar la reserva.',
+                    style: GoogleFonts.dmSans(
+                      fontSize: 12,
+                      color: AppColors.amber,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
     );
   }
 
@@ -912,7 +1082,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            'Confirmar pedido',
+                            _isFullPayment ? 'Confirmar pedido' : 'Reservar ahora',
                             style: GoogleFonts.dmSans(
                               fontSize: 17,
                               fontWeight: FontWeight.w800,
@@ -930,7 +1100,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
-                              'RD\$${grandTotal.toStringAsFixed(0)}',
+                              'RD\$${_isFullPayment ? grandTotal.toStringAsFixed(0) : depositAmount.toStringAsFixed(0)}',
                               style: GoogleFonts.outfit(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w800,
@@ -957,6 +1127,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
       widget.eventId,
       method,
       phone: _phoneController.text,
+      isDeposit: !_isFullPayment,
     );
     if (mounted) {
       if (!success) {

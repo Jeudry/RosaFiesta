@@ -180,10 +180,10 @@ class EventsProvider extends ChangeNotifier {
 
   double get totalSpent => realBudget;
 
-  Future<bool> payEvent(String eventId, String method, {String? phone}) async {
+  Future<bool> payEvent(String eventId, String method, {String? phone, bool isDeposit = false}) async {
     _setLoading(true);
     try {
-      final updatedEvent = await _repository.payEvent(eventId, method, phone: phone);
+      final updatedEvent = await _repository.payEvent(eventId, method, phone: phone, isDeposit: isDeposit);
       _updateEventInList(updatedEvent);
       return true;
     } catch (e) {

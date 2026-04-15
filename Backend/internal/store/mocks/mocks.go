@@ -694,3 +694,44 @@ func (m *AuditLogsStore) GetByEventID(ctx context.Context, eventID uuid.UUID) ([
 	}
 	return args.Get(0).([]models.AuditLogWithUser), args.Error(1)
 }
+
+type InstallmentsStore struct {
+	mock.Mock
+}
+
+func (m *InstallmentsStore) CreateInstallmentPayment(ctx context.Context, eventID uuid.UUID, amount int, dueDate *time.Time) (*models.InstallmentPayment, error) {
+	args := m.Called(ctx, eventID, amount, dueDate)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.InstallmentPayment), args.Error(1)
+}
+
+func (m *InstallmentsStore) GetInstallmentByEventID(ctx context.Context, eventID uuid.UUID) ([]models.InstallmentPayment, error) {
+	args := m.Called(ctx, eventID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]models.InstallmentPayment), args.Error(1)
+}
+
+func (m *InstallmentsStore) MarkPaid(ctx context.Context, paymentID uuid.UUID, paymentMethod string) error {
+	args := m.Called(ctx, paymentID, paymentMethod)
+	return args.Error(0)
+}
+
+func (m *InstallmentsStore) GetPendingInstallments(ctx context.Context) ([]models.InstallmentPayment, error) {
+	args := m.Called(ctx)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]models.InstallmentPayment), args.Error(1)
+}
+
+func (m *InstallmentsStore) GetByID(ctx context.Context, paymentID uuid.UUID) (*models.InstallmentPayment, error) {
+	args := m.Called(ctx, paymentID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.InstallmentPayment), args.Error(1)
+}

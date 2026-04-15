@@ -14,6 +14,12 @@ class Event {
   final String paymentStatus;
   final String? paymentMethod;
   final DateTime? paidAt;
+  final bool depositPaid;
+  final int depositAmount;
+  final DateTime? depositPaidAt;
+  final int remainingAmount;
+  final DateTime? installmentDueDate;
+  final int totalQuote;
 
   Event({
     required this.id,
@@ -29,11 +35,26 @@ class Event {
     this.paymentStatus = 'pending',
     this.paymentMethod,
     this.paidAt,
+    this.depositPaid = false,
+    this.depositAmount = 0,
+    this.depositPaidAt,
+    this.remainingAmount = 0,
+    this.installmentDueDate,
+    this.totalQuote = 0,
   });
 
   /// True when this event is the user's draft "active event" — their
   /// working basket before they commit to a date / name.
   bool get isDraft => status == 'draft';
+
+  /// True when deposit has been paid but full payment is not complete
+  bool get isDepositPending => depositPaid && remainingAmount > 0;
+
+  /// True when the remaining payment is overdue
+  bool get isInstallmentOverdue =>
+      installmentDueDate != null &&
+      installmentDueDate!.isBefore(DateTime.now()) &&
+      remainingAmount > 0;
 
   factory Event.fromJson(Map<String, dynamic> json) {
     return Event(
@@ -50,6 +71,16 @@ class Event {
       paymentStatus: json['payment_status'] ?? 'pending',
       paymentMethod: json['payment_method'],
       paidAt: json['paid_at'] != null ? DateTime.parse(json['paid_at']) : null,
+      depositPaid: json['depositPaid'] ?? false,
+      depositAmount: json['depositAmount'] ?? 0,
+      depositPaidAt: json['depositPaidAt'] != null
+          ? DateTime.parse(json['depositPaidAt'])
+          : null,
+      remainingAmount: json['remainingAmount'] ?? 0,
+      installmentDueDate: json['installmentDueDate'] != null
+          ? DateTime.parse(json['installmentDueDate'])
+          : null,
+      totalQuote: json['totalQuote'] ?? 0,
     );
   }
 
@@ -68,6 +99,12 @@ class Event {
       'payment_status': paymentStatus,
       'payment_method': paymentMethod,
       'paid_at': paidAt?.toIso8601String(),
+      'depositPaid': depositPaid,
+      'depositAmount': depositAmount,
+      'depositPaidAt': depositPaidAt?.toIso8601String(),
+      'remainingAmount': remainingAmount,
+      'installmentDueDate': installmentDueDate?.toIso8601String(),
+      'totalQuote': totalQuote,
     };
   }
 }

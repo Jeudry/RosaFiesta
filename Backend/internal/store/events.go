@@ -21,8 +21,8 @@ func (s *EventStore) Create(ctx context.Context, event *models.Event) error {
 	}
 
 	query := `
-		INSERT INTO events (user_id, name, date, location, guest_count, budget, status, additional_costs, admin_notes, payment_status, payment_method, paid_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+		INSERT INTO events (user_id, name, date, location, guest_count, budget, status, additional_costs, admin_notes, payment_status, payment_method, paid_at, deposit_paid, deposit_amount, deposit_paid_at, remaining_amount, installment_due_date, total_quote)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
 		RETURNING id, created_at, updated_at
 	`
 
@@ -41,6 +41,12 @@ func (s *EventStore) Create(ctx context.Context, event *models.Event) error {
 		event.PaymentStatus,
 		event.PaymentMethod,
 		event.PaidAt,
+		event.DepositPaid,
+		event.DepositAmount,
+		event.DepositPaidAt,
+		event.RemainingAmount,
+		event.InstallmentDueDate,
+		event.TotalQuote,
 	).Scan(
 		&event.ID,
 		&event.CreatedAt,
@@ -70,6 +76,7 @@ func (s *EventStore) GetOrCreateDraft(ctx context.Context, userID uuid.UUID) (*m
 		       additional_costs, admin_notes, payment_status, payment_method,
 		       paid_at,
 		       quote_approved_at, quote_approved_by, quote_rejected_at, quote_rejected_by,
+		       deposit_paid, deposit_amount, deposit_paid_at, remaining_amount, installment_due_date, total_quote,
 		       created_at, updated_at
 		FROM events
 		WHERE user_id = $1 AND status = 'draft'
@@ -83,6 +90,7 @@ func (s *EventStore) GetOrCreateDraft(ctx context.Context, userID uuid.UUID) (*m
 			&ev.AdditionalCosts, &ev.AdminNotes,
 			&ev.PaymentStatus, &ev.PaymentMethod, &ev.PaidAt,
 			&ev.QuoteApprovedAt, &ev.QuoteApprovedBy, &ev.QuoteRejectedAt, &ev.QuoteRejectedBy,
+			&ev.DepositPaid, &ev.DepositAmount, &ev.DepositPaidAt, &ev.RemainingAmount, &ev.InstallmentDueDate, &ev.TotalQuote,
 			&ev.CreatedAt, &ev.UpdatedAt,
 		)
 	}
@@ -121,6 +129,7 @@ func (s *EventStore) GetByID(ctx context.Context, id uuid.UUID) (*models.Event, 
 		SELECT id, user_id, name, date, location, guest_count, budget, status, additional_costs, admin_notes,
 		       payment_status, payment_method, paid_at,
 		       quote_approved_at, quote_approved_by, quote_rejected_at, quote_rejected_by,
+		       deposit_paid, deposit_amount, deposit_paid_at, remaining_amount, installment_due_date, total_quote,
 		       created_at, updated_at
 		FROM events
 		WHERE id = $1
@@ -145,6 +154,12 @@ func (s *EventStore) GetByID(ctx context.Context, id uuid.UUID) (*models.Event, 
 		&event.QuoteApprovedBy,
 		&event.QuoteRejectedAt,
 		&event.QuoteRejectedBy,
+		&event.DepositPaid,
+		&event.DepositAmount,
+		&event.DepositPaidAt,
+		&event.RemainingAmount,
+		&event.InstallmentDueDate,
+		&event.TotalQuote,
 		&event.CreatedAt,
 		&event.UpdatedAt,
 	)
@@ -163,6 +178,7 @@ func (s *EventStore) GetByUserID(ctx context.Context, userID uuid.UUID) ([]model
 		SELECT id, user_id, name, date, location, guest_count, budget, status, additional_costs, admin_notes,
 		       payment_status, payment_method, paid_at,
 		       quote_approved_at, quote_approved_by, quote_rejected_at, quote_rejected_by,
+		       deposit_paid, deposit_amount, deposit_paid_at, remaining_amount, installment_due_date, total_quote,
 		       created_at, updated_at
 		FROM events
 		WHERE user_id = $1
@@ -196,6 +212,12 @@ func (s *EventStore) GetByUserID(ctx context.Context, userID uuid.UUID) ([]model
 			&event.QuoteApprovedBy,
 			&event.QuoteRejectedAt,
 			&event.QuoteRejectedBy,
+			&event.DepositPaid,
+			&event.DepositAmount,
+			&event.DepositPaidAt,
+			&event.RemainingAmount,
+			&event.InstallmentDueDate,
+			&event.TotalQuote,
 			&event.CreatedAt,
 			&event.UpdatedAt,
 		)
@@ -217,6 +239,7 @@ func (s *EventStore) GetPendingByUserID(ctx context.Context, userID uuid.UUID) (
 		SELECT id, user_id, name, date, location, guest_count, budget, status, additional_costs, admin_notes,
 		       payment_status, payment_method, paid_at,
 		       quote_approved_at, quote_approved_by, quote_rejected_at, quote_rejected_by,
+		       deposit_paid, deposit_amount, deposit_paid_at, remaining_amount, installment_due_date, total_quote,
 		       created_at, updated_at
 		FROM events
 		WHERE user_id = $1 AND status NOT IN ('completed', 'cancelled')
@@ -250,6 +273,12 @@ func (s *EventStore) GetPendingByUserID(ctx context.Context, userID uuid.UUID) (
 			&event.QuoteApprovedBy,
 			&event.QuoteRejectedAt,
 			&event.QuoteRejectedBy,
+			&event.DepositPaid,
+			&event.DepositAmount,
+			&event.DepositPaidAt,
+			&event.RemainingAmount,
+			&event.InstallmentDueDate,
+			&event.TotalQuote,
 			&event.CreatedAt,
 			&event.UpdatedAt,
 		)
@@ -267,6 +296,7 @@ func (s *EventStore) GetAll(ctx context.Context) ([]models.Event, error) {
 		SELECT id, user_id, name, date, location, guest_count, budget, status, additional_costs, admin_notes,
 		       payment_status, payment_method, paid_at,
 		       quote_approved_at, quote_approved_by, quote_rejected_at, quote_rejected_by,
+		       deposit_paid, deposit_amount, deposit_paid_at, remaining_amount, installment_due_date, total_quote,
 		       created_at, updated_at
 		FROM events
 		ORDER BY date ASC
@@ -299,6 +329,12 @@ func (s *EventStore) GetAll(ctx context.Context) ([]models.Event, error) {
 			&event.QuoteApprovedBy,
 			&event.QuoteRejectedAt,
 			&event.QuoteRejectedBy,
+			&event.DepositPaid,
+			&event.DepositAmount,
+			&event.DepositPaidAt,
+			&event.RemainingAmount,
+			&event.InstallmentDueDate,
+			&event.TotalQuote,
 			&event.CreatedAt,
 			&event.UpdatedAt,
 		)
@@ -314,9 +350,11 @@ func (s *EventStore) GetAll(ctx context.Context) ([]models.Event, error) {
 func (s *EventStore) Update(ctx context.Context, event *models.Event) error {
 	query := `
 		UPDATE events
-		SET name = $1, date = $2, location = $3, guest_count = $4, budget = $5, status = $6, 
-		    additional_costs = $7, admin_notes = $8, payment_status = $9, payment_method = $10, paid_at = $11, updated_at = NOW()
-		WHERE id = $12
+		SET name = $1, date = $2, location = $3, guest_count = $4, budget = $5, status = $6,
+		    additional_costs = $7, admin_notes = $8, payment_status = $9, payment_method = $10, paid_at = $11,
+		    deposit_paid = $12, deposit_amount = $13, deposit_paid_at = $14, remaining_amount = $15, installment_due_date = $16, total_quote = $17,
+		    updated_at = NOW()
+		WHERE id = $18
 		RETURNING updated_at
 	`
 
@@ -334,6 +372,12 @@ func (s *EventStore) Update(ctx context.Context, event *models.Event) error {
 		event.PaymentStatus,
 		event.PaymentMethod,
 		event.PaidAt,
+		event.DepositPaid,
+		event.DepositAmount,
+		event.DepositPaidAt,
+		event.RemainingAmount,
+		event.InstallmentDueDate,
+		event.TotalQuote,
 		event.ID,
 	).Scan(&event.UpdatedAt)
 	if err != nil {

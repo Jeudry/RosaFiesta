@@ -22,25 +22,31 @@ const (
 )
 
 type Event struct {
-	ID              uuid.UUID  `json:"id"`
-	UserID          uuid.UUID  `json:"user_id"`
-	Name            string     `json:"name"`
-	Date            *time.Time `json:"date,omitempty"`
-	Location        string     `json:"location"`
-	GuestCount      int        `json:"guest_count"`
-	Budget          float64    `json:"budget"`
-	AdditionalCosts float64    `json:"additional_costs"`
-	AdminNotes      string     `json:"admin_notes"`
-	Status          string     `json:"status"`
-	PaymentStatus   string     `json:"payment_status"`
-	PaymentMethod   *string    `json:"payment_method"`
-	PaidAt          *time.Time `json:"paid_at"`
-	QuoteApprovedAt *time.Time `json:"quote_approved_at,omitempty"`
-	QuoteApprovedBy *uuid.UUID `json:"quote_approved_by,omitempty"`
-	QuoteRejectedAt *time.Time `json:"quote_rejected_at,omitempty"`
-	QuoteRejectedBy *uuid.UUID `json:"quote_rejected_by,omitempty"`
-	CreatedAt       string     `json:"created_at"`
-	UpdatedAt       string     `json:"updated_at"`
+	ID                 uuid.UUID  `json:"id"`
+	UserID             uuid.UUID  `json:"user_id"`
+	Name               string     `json:"name"`
+	Date               *time.Time `json:"date,omitempty"`
+	Location           string     `json:"location"`
+	GuestCount         int        `json:"guest_count"`
+	Budget             float64    `json:"budget"`
+	AdditionalCosts    float64    `json:"additional_costs"`
+	AdminNotes         string     `json:"admin_notes"`
+	Status             string     `json:"status"`
+	PaymentStatus      string     `json:"payment_status"`
+	PaymentMethod      *string    `json:"payment_method"`
+	PaidAt             *time.Time `json:"paid_at"`
+	QuoteApprovedAt    *time.Time `json:"quote_approved_at,omitempty"`
+	QuoteApprovedBy    *uuid.UUID `json:"quote_approved_by,omitempty"`
+	QuoteRejectedAt    *time.Time `json:"quote_rejected_at,omitempty"`
+	QuoteRejectedBy    *uuid.UUID `json:"quote_rejected_by,omitempty"`
+	DepositPaid        bool       `json:"depositPaid"`
+	DepositAmount      int        `json:"depositAmount"`
+	DepositPaidAt      *time.Time `json:"depositPaidAt,omitempty"`
+	RemainingAmount    int        `json:"remainingAmount"`
+	InstallmentDueDate *time.Time `json:"installmentDueDate,omitempty"`
+	TotalQuote         int        `json:"totalQuote"`
+	CreatedAt          string     `json:"created_at"`
+	UpdatedAt          string     `json:"updated_at"`
 }
 
 // CreateEventPayload still requires name and date because the explicit

@@ -51,10 +51,11 @@ class EventsRepository {
     return await updateEvent(id, {'status': 'confirmed'});
   }
 
-  Future<Event> payEvent(String id, String paymentMethod, {String? phone}) async {
+  Future<Event> payEvent(String id, String paymentMethod, {String? phone, bool isDeposit = false}) async {
     final response = await ApiClient.post('/events/$id/pay', {
       'payment_method': paymentMethod,
       if (phone != null && phone.isNotEmpty) 'phone': phone,
+      'is_deposit': isDeposit,
     });
     return Event.fromJson(response);
   }
