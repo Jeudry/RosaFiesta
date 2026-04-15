@@ -57,5 +57,47 @@
   "colorsForEvent": "Colors for your event",
   "matchingItems": "Matching items",
   "filterByColors": "Filter by colors",
-  "maxColorsReached": "Maximum 5 colors"
+  "maxColorsReached": "Maximum 5 colors",
+  "downloadContract": "Download contract",
+  "contract": "Contract",
+  "yourEventIn": "Your event is in {days} days",
+  "@yourEventIn": {
+    "placeholders": {
+      "days": {"type": "int"}
+    }
+  },
+  "checklist": "Checklist",
+  "confirmGuests": "Confirm guests (RSVP)",
+  "reviewItems": "Review reserved items",
+  "verifyAddress": "Verify delivery address",
+  "prepareSpace": "Prepare space for setup",
+  "paymentPending": "Pending payment",
+  "openChecklist": "View checklist",
+  "checklistUpdated": "Checklist updated",
+  "myReservations": "My Reservations",
+  "upcoming": "Upcoming",
+  "past": "Past",
+  "all": "All",
+  "viewPhotos": "Event photos",
+  "leaveReview": "Leave review",
+  "noReservationsYet": "You don't have any reservations yet. Explore the catalog to plan your first event.",
+  "exploreCatalog": "Explore catalog",
+  "reservas": "Reservations",
+  "paymentProgress": "Deposit RD${paid} · Remaining RD${remaining}",
+  "@paymentProgress": {
+    "placeholders": {
+      "paid": {"type": "int"},
+      "remaining": {"type": "int"}
+    }
+  },
+  "completedItems": "{count} of {total} completed",
+  "@completedItems": {
+    "placeholders": {
+      "count": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "address": "Address",
+  "notes": "Notes",
+  "payNow": "Pay now"
 }

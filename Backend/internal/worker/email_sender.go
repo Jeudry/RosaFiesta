@@ -2,6 +2,7 @@ package worker
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"Backend/internal/mailer"
@@ -69,19 +70,21 @@ func (w *EmailSender) processEmailReminders(ctx context.Context) {
 			"UserName":        user.FirstName,
 			"EventName":       event.Name,
 			"EventDate":       event.Date.Format("02 Jan 2006"),
-			"EventLocation":   "",
+			"EventTime":       "",
+			"EventLocation":   event.Location,
 			"ReviewURL":       "https://rosafiesta.com/reviews",
+			"ChecklistURL":    fmt.Sprintf("https://rosafiesta.com/event/%s/checklist", event.ID.String()),
 		}
 
 		// 7-day email reminder (±12h window)
 		if event.Date.After(sevenDaysFromNow.Add(-12*time.Hour)) && event.Date.Before(sevenDaysFromNow.Add(12*time.Hour)) {
 			if event.Status == "confirmed" || event.Status == "paid" {
-				sent, _ := w.store.NotificationLogs.HasNotificationBeenSent(ctx, event.ID, models.EmailEventReminder7d)
+				sent, _ := w.store.NotificationLogs.HasNotificationBeenSent(ctx, event.ID, models.AutoReminder7d)
 				if !sent {
-					_, err := w.mailer.Send(mailer.EventReminder7dTemplate, user.FirstName, user.Email, emailData, false)
+					_, err := w.mailer.Send(mailer.AutoReminder7dTemplate, user.FirstName, user.Email, emailData, false)
 					if err == nil {
-						_ = w.store.NotificationLogs.LogNotification(ctx, event.ID, models.EmailEventReminder7d)
-						w.logger.Infof("Sent 7-day email reminder for event %s to %s", event.ID, user.Email)
+						_ = w.store.NotificationLogs.LogNotification(ctx, event.ID, models.AutoReminder7d)
+						w.logger.Infof("Sent 7-day auto-reminder for event %s to %s", event.ID, user.Email)
 					}
 				}
 			}

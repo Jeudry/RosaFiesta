@@ -1,0 +1,34 @@
+{{define "subject"}}🎉 ¡Tu evento es en 7 días! | RosaFiesta{{end}}
+
+{{define "body"}}
+<!doctype html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width" />
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+</head>
+<body>
+<p>Hola <strong>{{.UserName}}</strong>,</p>
+<p>¡Ya casi llega el gran día! Tu evento <strong>"{{.EventName}}"</strong> es en exactamente <strong>7 días</strong>.</p>
+
+<p>📋 <strong>Tu checklist:</strong></p>
+<ul>
+<li>☐ Confirmar invitados (RSVP)</li>
+<li>☐ Revisar los artículos reservados</li>
+<li>☐ Verificar la dirección de entrega</li>
+<li>☐ Preparar el espacio para montaje</li>
+<li>☐ Tener el pago restante listo</li>
+</ul>
+
+<p>📍 <strong>Fecha:</strong> {{.EventDate}}</p>
+<p>📍 <strong>Hora del evento:</strong> {{.EventTime}}</p>
+<p>📍 <strong>Lugar:</strong> {{.EventLocation}}</p>
+
+<p>🔗 <a href="{{.ChecklistURL}}">Ver tu checklist completo aquí</a></p>
+
+<p>¿Necesitas algo? Responde este email o contáctanos por WhatsApp.</p>
+<p>¡Te esperamos!</p>
+<p>RosaFiesta 🌸</p>
+</body>
+</html>
+{{end}}

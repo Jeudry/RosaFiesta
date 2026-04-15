@@ -200,7 +200,7 @@ All features currently in the system, organized by status. **Always keep this li
 | 28 | Email verification flow | ✅ | ✅ | verify-email/{token} screen |
 | 29 | Password reset | ✅ | ✅ | forgot-password/reset-password screens |
 | 30 | Order confirmation screen | ✅ | ✅ | post-checkout success screen |
-| 31 | Email reminder triggers | ✅ | — | worker cron: 7d/24h/post-event |
+| 31 | Email reminder triggers | ✅ | ✅ | worker cron: 7d/24h/post-event; 7d now includes checklist email template + push notification + event_checklist_screen |
 | 32 | Push notification triggers | ✅ | — | FCM on quote adjusted/approved/rejected |
 | 33 | Deep linking | ✅ | ✅ | iOS/Android universal links + hash routing |
 | 34 | Rating with event photos | ✅ | ✅ | review_photos table, photo lightbox, image_picker |

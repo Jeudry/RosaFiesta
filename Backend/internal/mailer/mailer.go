@@ -10,6 +10,7 @@ const (
 	EventReminder24hTemplate   = "event_reminder_24h.tmpl"
 	EventThankYouTemplate      = "event_thank_you.tmpl"
 	PasswordResetTemplate      = "password_reset.tmpl"
+	AutoReminder7dTemplate     = "auto_reminder_7d.tmpl"
 )
 
 //go:embed "templates"

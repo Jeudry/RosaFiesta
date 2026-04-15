@@ -156,6 +156,7 @@ func (app *Application) Mount() http.Handler {
 			r.Use(app.AuthTokenMiddleware())
 			r.Post("/", app.createEventHandler)
 			r.Get("/", app.getUserEventsHandler)
+			r.Get("/my-reservations", app.getMyReservationsHandler)
 			r.Get("/{id}", app.getEventHandler)
 			r.Put("/{id}", app.updateEventHandler)
 			r.Post("/{id}/pay", app.payEventHandler)

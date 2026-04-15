@@ -152,4 +152,104 @@ class AppLocalizationsEn extends AppLocalizations {
   String confirmedCount(int count, int total) {
     return '$count of $total confirmed';
   }
+
+  @override
+  String get colorPalette => 'Color palette';
+
+  @override
+  String get selectColors => 'Select colors';
+
+  @override
+  String get colorsForEvent => 'Colors for your event';
+
+  @override
+  String get matchingItems => 'Matching items';
+
+  @override
+  String get filterByColors => 'Filter by colors';
+
+  @override
+  String get maxColorsReached => 'Maximum 5 colors';
+
+  @override
+  String get downloadContract => 'Download contract';
+
+  @override
+  String get contract => 'Contract';
+
+  @override
+  String yourEventIn(int days) {
+    return 'Your event is in $days days';
+  }
+
+  @override
+  String get checklist => 'Checklist';
+
+  @override
+  String get confirmGuests => 'Confirm guests (RSVP)';
+
+  @override
+  String get reviewItems => 'Review reserved items';
+
+  @override
+  String get verifyAddress => 'Verify delivery address';
+
+  @override
+  String get prepareSpace => 'Prepare space for setup';
+
+  @override
+  String get paymentPending => 'Pending payment';
+
+  @override
+  String get openChecklist => 'View checklist';
+
+  @override
+  String get checklistUpdated => 'Checklist updated';
+
+  @override
+  String get myReservations => 'My Reservations';
+
+  @override
+  String get upcoming => 'Upcoming';
+
+  @override
+  String get past => 'Past';
+
+  @override
+  String get all => 'All';
+
+  @override
+  String get viewPhotos => 'Event photos';
+
+  @override
+  String get leaveReview => 'Leave review';
+
+  @override
+  String get noReservationsYet =>
+      'You don\'t have any reservations yet. Explore the catalog to plan your first event.';
+
+  @override
+  String get exploreCatalog => 'Explore catalog';
+
+  @override
+  String get reservas => 'Reservations';
+
+  @override
+  String paymentProgress(int paid, int remaining) {
+    return 'Deposit RD\$$paid · Remaining RD\$$remaining';
+  }
+
+  @override
+  String completedItems(int count, int total) {
+    return '$count of $total completed';
+  }
+
+  @override
+  String get address => 'Address';
+
+  @override
+  String get notes => 'Notes';
+
+  @override
+  String get payNow => 'Pay now';
 }

@@ -12,6 +12,8 @@ import '../../../active_event/presentation/active_event_provider.dart';
 import '../../../active_event/presentation/screens/mi_evento_screen.dart';
 import '../../../events/presentation/screens/event_calendar_screen.dart';
 import '../../../events/presentation/screens/events_list_screen.dart';
+import '../../../events/presentation/screens/event_checklist_screen.dart';
+import '../../../events/presentation/events_provider.dart';
 import '../../../products/data/product_models.dart';
 import '../../../products/presentation/products_provider.dart';
 import '../../../products/presentation/screens/product_detail_screen.dart';
@@ -44,7 +46,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   final bool _showAiTooltip = true;
   Timer? _aiTooltipDismiss;
 
-  static const _sectionCount = 8;
+  static const _sectionCount = 9;
 
   @override
   void initState() {
@@ -241,11 +243,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               SliverToBoxAdapter(child: _staggered(0, _buildHeader(t))),
               SliverToBoxAdapter(child: _staggered(1, _buildSearchBar(t))),
               SliverToBoxAdapter(child: _staggered(2, _buildHeroBanner(t))),
+              SliverToBoxAdapter(child: _staggered(3, _build7DayReminderBanner(t))),
               SliverToBoxAdapter(
-                child: _staggered(3, _buildServicesSection(t)),
+                child: _staggered(4, _buildServicesSection(t)),
               ),
-              SliverToBoxAdapter(child: _staggered(4, _buildTrendingSlider(t))),
-              SliverToBoxAdapter(child: _staggered(5, _buildOffersSection(t))),
+              SliverToBoxAdapter(child: _staggered(5, _buildTrendingSlider(t))),
+              SliverToBoxAdapter(child: _staggered(6, _buildOffersSection(t))),
               const SliverToBoxAdapter(child: SizedBox(height: 100)),
             ],
           ),
@@ -684,6 +687,134 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ],
         ),
       ),
+    );
+  }
+
+  // ── 7-Day Reminder Banner ───────────────────────────────────────────────
+
+  Widget _build7DayReminderBanner(RfTheme t) {
+    return Consumer<EventsProvider>(
+      builder: (context, eventsProvider, _) {
+        // Find events within 7 days that are confirmed/paid
+        final now = DateTime.now();
+        final sevenDaysFromNow = now.add(const Duration(days: 7));
+
+        final upcomingEvents = eventsProvider.events.where((e) {
+          if (e.date == null) return false;
+          if (e.status != 'confirmed' && e.status != 'paid') return false;
+          return e.date!.isAfter(now) && e.date!.isBefore(sevenDaysFromNow);
+        }).toList();
+
+        if (upcomingEvents.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        final event = upcomingEvents.first;
+        final daysUntil = event.date!.difference(now).inDays;
+
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+          child: GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => EventChecklistScreen(eventId: event.id),
+                ),
+              );
+            },
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    AppColors.teal.withValues(alpha: 0.9),
+                    AppColors.hotPink.withValues(alpha: 0.8),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.teal.withValues(alpha: 0.3),
+                    blurRadius: 16,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Center(
+                      child: Text(
+                        '$daysUntil',
+                        style: GoogleFonts.outfit(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '¡Tu evento es en $daysUntil días!',
+                          style: GoogleFonts.outfit(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          event.name,
+                          style: GoogleFonts.dmSans(
+                            fontSize: 13,
+                            color: Colors.white.withValues(alpha: 0.9),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.checklist, color: Colors.white, size: 16),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Ver checklist',
+                          style: GoogleFonts.dmSans(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 

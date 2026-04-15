@@ -14,6 +14,8 @@ import 'features/auth/presentation/screens/forgot_password_screen.dart';
 import 'features/auth/presentation/screens/reset_password_screen.dart';
 import 'features/events/presentation/screens/order_confirmation_screen.dart';
 import 'features/events/presentation/screens/event_detail_screen.dart';
+import 'features/events/presentation/screens/my_reservations_screen.dart';
+import 'features/events/presentation/screens/event_checklist_screen.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'core/api_client.dart';
 import 'features/products/presentation/products_provider.dart';
@@ -239,6 +241,24 @@ class RosaFiestaApp extends StatelessWidget {
               builder: (context) => EventDetailScreen(eventId: eventId),
             );
           }
+        }
+
+        // Handle /event/:id/checklist (event checklist)
+        if (path.startsWith('/event/') && path.contains('/checklist')) {
+          final uri = Uri.parse(path);
+          if (uri.pathSegments.length >= 2) {
+            final eventId = uri.pathSegments[1];
+            return MaterialPageRoute(
+              builder: (context) => EventChecklistScreen(eventId: eventId),
+            );
+          }
+        }
+
+        // Handle /my-reservations
+        if (path == '/my-reservations') {
+          return MaterialPageRoute(
+            builder: (context) => const MyReservationsScreen(),
+          );
         }
 
         return null;

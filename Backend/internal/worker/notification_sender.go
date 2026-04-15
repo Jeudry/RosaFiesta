@@ -47,6 +47,8 @@ func (w *NotificationSender) processNotifications(ctx context.Context) {
 	now := time.Now()
 	// Reminders threshold (24 hours from now)
 	reminderThreshold := now.Add(24 * time.Hour)
+	// 7-day reminder threshold
+	sevenDaysFromNow := now.Add(7 * 24 * time.Hour)
 
 	// We'll iterate over all events or create a custom query in a production environment.
 	// For this prototype, we'll try to get all events by creating a GetAll method if we don't have one,
@@ -65,7 +67,26 @@ func (w *NotificationSender) processNotifications(ctx context.Context) {
 			continue
 		}
 
-		// 1. Pre-event reminder
+		// 1. Auto-reminder 7 days before event
+		if (event.Status == "confirmed" || event.Status == "paid") &&
+			event.Date.After(sevenDaysFromNow.Add(-12*time.Hour)) && event.Date.Before(sevenDaysFromNow.Add(12*time.Hour)) {
+
+			sent, err := w.store.NotificationLogs.HasNotificationBeenSent(ctx, event.ID, models.AutoReminder7d)
+			if err != nil {
+				w.logger.Errorf("error checking notification log: %v", err)
+				continue
+			}
+			if !sent {
+				user, err := w.store.Users.RetrieveById(ctx, event.UserID)
+				if err == nil {
+					_ = w.notif.NotifyStatusChange(ctx, user.FCMToken, "🎉 ¡Tu evento es en 7 días!", event.Name+" - Revisa tu checklist y prepárate")
+					_ = w.store.NotificationLogs.LogNotification(ctx, event.ID, models.AutoReminder7d)
+					w.logger.Infof("Sent 7-day auto-reminder for event %s", event.ID)
+				}
+			}
+		}
+
+		// 2. Pre-event reminder (24 hours)
 		if (event.Status == "confirmed" || event.Status == "paid") &&
 			event.Date.After(now) && event.Date.Before(reminderThreshold) {
 
@@ -87,7 +108,7 @@ func (w *NotificationSender) processNotifications(ctx context.Context) {
 			}
 		}
 
-		// 2. Post-event review
+		// 3. Post-event review
 		if event.Status == "completed" || event.Status == "finished" {
 			// Check if it's been at least 24h since the event ended. Or just send if completed.
 			if now.After(event.Date.Add(24 * time.Hour)) {

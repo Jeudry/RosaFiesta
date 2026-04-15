@@ -59,5 +59,45 @@
   "filterByColors": "Filtrar por colores",
   "maxColorsReached": "Máximo 5 colores",
   "downloadContract": "Descargar contrato",
-  "contract": "Contrato"
+  "contract": "Contrato",
+  "yourEventIn": "Tu evento es en {days} días",
+  "@yourEventIn": {
+    "placeholders": {
+      "days": {"type": "int"}
+    }
+  },
+  "checklist": "Checklist",
+  "confirmGuests": "Confirmar invitados (RSVP)",
+  "reviewItems": "Revisar los artículos reservados",
+  "verifyAddress": "Verificar dirección de entrega",
+  "prepareSpace": "Preparar espacio para montaje",
+  "paymentPending": "Pago restante pendiente",
+  "openChecklist": "Ver checklist",
+  "checklistUpdated": "Checklist actualizado",
+  "myReservations": "Mis Reservas",
+  "upcoming": "Próximas",
+  "past": "Pasadas",
+  "all": "Todas",
+  "viewPhotos": "Fotos del evento",
+  "leaveReview": "Dejar reseña",
+  "noReservationsYet": "Aún no tienes reservas. Explora el catálogo para planificar tu primer evento.",
+  "exploreCatalog": "Explorar catálogo",
+  "reservas": "Reservas",
+  "paymentProgress": "Reserva RD${paid} · Resto RD${remaining}",
+  "@paymentProgress": {
+    "placeholders": {
+      "paid": {"type": "int"},
+      "remaining": {"type": "int"}
+    }
+  },
+  "completedItems": "{count} de {total} completado",
+  "@completedItems": {
+    "placeholders": {
+      "count": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "address": "Dirección",
+  "notes": "Notas",
+  "payNow": "Pagar ahora"
 }

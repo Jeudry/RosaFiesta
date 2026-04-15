@@ -20,6 +20,7 @@ const (
 	QuoteAdjusted         NotificationType = "quote_adjusted"
 	QuoteApproved        NotificationType = "quote_approved"
 	QuoteRejected        NotificationType = "quote_rejected"
+	AutoReminder7d       NotificationType = "auto_reminder_7d"
 )
 
 type NotificationLog struct {

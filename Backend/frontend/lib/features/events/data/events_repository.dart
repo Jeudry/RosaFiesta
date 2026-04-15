@@ -117,4 +117,8 @@ class EventsRepository {
     final List<dynamic> data = response;
     return data.map((json) => json as String).toList();
   }
+
+  Future<List<dynamic>> getMyReservations() async {
+    return await ApiClient.get('/events/my-reservations');
+  }
 }

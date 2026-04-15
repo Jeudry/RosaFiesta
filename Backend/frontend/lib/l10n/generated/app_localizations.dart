@@ -373,6 +373,192 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'{count} de {total} confirmados'**
   String confirmedCount(int count, int total);
+
+  /// No description provided for @colorPalette.
+  ///
+  /// In es, this message translates to:
+  /// **'Paleta de colores'**
+  String get colorPalette;
+
+  /// No description provided for @selectColors.
+  ///
+  /// In es, this message translates to:
+  /// **'Seleccionar colores'**
+  String get selectColors;
+
+  /// No description provided for @colorsForEvent.
+  ///
+  /// In es, this message translates to:
+  /// **'Colores para tu evento'**
+  String get colorsForEvent;
+
+  /// No description provided for @matchingItems.
+  ///
+  /// In es, this message translates to:
+  /// **'Artículos que combinan'**
+  String get matchingItems;
+
+  /// No description provided for @filterByColors.
+  ///
+  /// In es, this message translates to:
+  /// **'Filtrar por colores'**
+  String get filterByColors;
+
+  /// No description provided for @maxColorsReached.
+  ///
+  /// In es, this message translates to:
+  /// **'Máximo 5 colores'**
+  String get maxColorsReached;
+
+  /// No description provided for @downloadContract.
+  ///
+  /// In es, this message translates to:
+  /// **'Descargar contrato'**
+  String get downloadContract;
+
+  /// No description provided for @contract.
+  ///
+  /// In es, this message translates to:
+  /// **'Contrato'**
+  String get contract;
+
+  /// No description provided for @yourEventIn.
+  ///
+  /// In es, this message translates to:
+  /// **'Tu evento es en {days} días'**
+  String yourEventIn(int days);
+
+  /// No description provided for @checklist.
+  ///
+  /// In es, this message translates to:
+  /// **'Checklist'**
+  String get checklist;
+
+  /// No description provided for @confirmGuests.
+  ///
+  /// In es, this message translates to:
+  /// **'Confirmar invitados (RSVP)'**
+  String get confirmGuests;
+
+  /// No description provided for @reviewItems.
+  ///
+  /// In es, this message translates to:
+  /// **'Revisar los artículos reservados'**
+  String get reviewItems;
+
+  /// No description provided for @verifyAddress.
+  ///
+  /// In es, this message translates to:
+  /// **'Verificar dirección de entrega'**
+  String get verifyAddress;
+
+  /// No description provided for @prepareSpace.
+  ///
+  /// In es, this message translates to:
+  /// **'Preparar espacio para montaje'**
+  String get prepareSpace;
+
+  /// No description provided for @paymentPending.
+  ///
+  /// In es, this message translates to:
+  /// **'Pago restante pendiente'**
+  String get paymentPending;
+
+  /// No description provided for @openChecklist.
+  ///
+  /// In es, this message translates to:
+  /// **'Ver checklist'**
+  String get openChecklist;
+
+  /// No description provided for @checklistUpdated.
+  ///
+  /// In es, this message translates to:
+  /// **'Checklist actualizado'**
+  String get checklistUpdated;
+
+  /// No description provided for @myReservations.
+  ///
+  /// In es, this message translates to:
+  /// **'Mis Reservas'**
+  String get myReservations;
+
+  /// No description provided for @upcoming.
+  ///
+  /// In es, this message translates to:
+  /// **'Próximas'**
+  String get upcoming;
+
+  /// No description provided for @past.
+  ///
+  /// In es, this message translates to:
+  /// **'Pasadas'**
+  String get past;
+
+  /// No description provided for @all.
+  ///
+  /// In es, this message translates to:
+  /// **'Todas'**
+  String get all;
+
+  /// No description provided for @viewPhotos.
+  ///
+  /// In es, this message translates to:
+  /// **'Fotos del evento'**
+  String get viewPhotos;
+
+  /// No description provided for @leaveReview.
+  ///
+  /// In es, this message translates to:
+  /// **'Dejar reseña'**
+  String get leaveReview;
+
+  /// No description provided for @noReservationsYet.
+  ///
+  /// In es, this message translates to:
+  /// **'Aún no tienes reservas. Explora el catálogo para planificar tu primer evento.'**
+  String get noReservationsYet;
+
+  /// No description provided for @exploreCatalog.
+  ///
+  /// In es, this message translates to:
+  /// **'Explorar catálogo'**
+  String get exploreCatalog;
+
+  /// No description provided for @reservas.
+  ///
+  /// In es, this message translates to:
+  /// **'Reservas'**
+  String get reservas;
+
+  /// No description provided for @paymentProgress.
+  ///
+  /// In es, this message translates to:
+  /// **'Reserva RD\${paid} · Resto RD\${remaining}'**
+  String paymentProgress(int paid, int remaining);
+
+  /// No description provided for @completedItems.
+  ///
+  /// In es, this message translates to:
+  /// **'{count} de {total} completado'**
+  String completedItems(int count, int total);
+
+  /// No description provided for @address.
+  ///
+  /// In es, this message translates to:
+  /// **'Dirección'**
+  String get address;
+
+  /// No description provided for @notes.
+  ///
+  /// In es, this message translates to:
+  /// **'Notas'**
+  String get notes;
+
+  /// No description provided for @payNow.
+  ///
+  /// In es, this message translates to:
+  /// **'Pagar ahora'**
+  String get payNow;
 }
 
 class _AppLocalizationsDelegate

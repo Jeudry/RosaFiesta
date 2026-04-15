@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	evm "Backend/cmd/main/view_models/events"
 	"Backend/internal/pdf"
 	"Backend/internal/store"
 	"Backend/internal/store/models"
@@ -1643,6 +1644,73 @@ func (app *Application) getEventColorsHandler(w http.ResponseWriter, r *http.Req
 	}
 
 	if err := app.jsonResponse(w, http.StatusOK, colors); err != nil {
+		app.internalServerError(w, r, err)
+	}
+}
+
+// getMyReservationsHandler godoc
+//
+//	@Summary		Get all reservations for current user
+//	@Description	Returns all events (past and upcoming) with payment summary, contract/photo/review availability
+//	@Tags			events
+//	@Produce		json
+//	@Success		200	{array}	events.ReservationSummary
+//	@Failure		401	{object}	error
+//	@Failure		500	{object}	error
+//	@Router			/events/my-reservations [get]
+func (app *Application) getMyReservationsHandler(w http.ResponseWriter, r *http.Request) {
+	user := GetUserFromCtx(r)
+
+	events, err := app.Store.Events.GetByUserID(r.Context(), user.ID)
+	if err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+
+	summaries := make([]evm.ReservationSummary, 0, len(events))
+	now := time.Now()
+
+	for _, event := range events {
+		dateStr := ""
+		if event.Date != nil {
+			dateStr = event.Date.Format("2006-01-02")
+		}
+
+		// Check if contract is ready (status = paid)
+		contractReady := event.Status == "paid"
+
+		// Receipt is available when paid
+		receiptReady := event.PaidAt != nil
+
+		// Check if event has photos
+		photos, _ := app.Store.EventPhotos.GetByEventID(r.Context(), event.ID)
+		hasPhotos := len(photos) > 0
+
+		// Check if review was already given
+		reviews, _ := app.Store.EventReviews.GetByEventID(r.Context(), event.ID)
+		reviewGiven := len(reviews) > 0
+
+		summaries = append(summaries, evm.ReservationSummary{
+			ID:            event.ID,
+			Name:          event.Name,
+			Date:          &dateStr,
+			Status:        event.Status,
+			PaymentStatus: event.PaymentStatus,
+			TotalQuote:    event.TotalQuote,
+			DepositPaid:   event.DepositAmount,
+			Remaining:     event.RemainingAmount,
+			ContractReady: contractReady,
+			ReceiptReady:  receiptReady,
+			HasPhotos:     hasPhotos,
+			GuestCount:    event.GuestCount,
+			ReviewGiven:   reviewGiven,
+			Location:      event.Location,
+		})
+	}
+
+	_ = now // suppress unused warning
+
+	if err := app.jsonResponse(w, http.StatusOK, summaries); err != nil {
 		app.internalServerError(w, r, err)
 	}
 }
