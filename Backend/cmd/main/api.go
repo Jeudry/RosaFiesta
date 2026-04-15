@@ -159,12 +159,14 @@ func (app *Application) Mount() http.Handler {
 			r.Get("/{id}", app.getEventHandler)
 			r.Put("/{id}", app.updateEventHandler)
 			r.Post("/{id}/pay", app.payEventHandler)
+			r.Get("/{id}/payment-schedule", app.getPaymentScheduleHandler)
 			r.Post("/{id}/approve-quote", app.approveQuoteHandler)
 			r.Post("/{id}/reject-quote", app.rejectQuoteHandler)
 			r.Get("/{id}/calendar.ics", app.getEventCalendarHandler)
 			r.Get("/{id}/debrief", app.getEventDebriefHandler)
 			r.Get("/{id}/share-card", app.getShareCardHandler)
 			r.Get("/{id}/quote", app.getQuotePDFHandler)
+			r.Get("/{id}/contract", app.getContractPDFHandler)
 			r.Post("/{id}/whatsapp", app.sendWhatsAppHandler)
 			r.Route("/{id}/messages", func(r chi.Router) {
 				r.Get("/", app.getMessagesHandler)
@@ -202,6 +204,18 @@ func (app *Application) Mount() http.Handler {
 			r.Route("/{id}/photos", func(r chi.Router) {
 				r.Post("/", app.uploadEventPhotoHandler)
 				r.Get("/", app.getEventPhotosHandler)
+			})
+
+			r.Route("/{id}/inspiration", func(r chi.Router) {
+				r.Post("/", app.uploadInspirationHandler)
+				r.Get("/", app.getInspirationHandler)
+				r.Delete("/{photoId}", app.deleteInspirationHandler)
+			})
+
+			r.Route("/{id}/colors", func(r chi.Router) {
+				r.Use(app.AuthTokenMiddleware())
+				r.Put("/", app.setEventColorsHandler)
+				r.Get("/", app.getEventColorsHandler)
 			})
 
 			r.Post("/{id}/calculate-delivery", app.calculateDeliveryHandler)

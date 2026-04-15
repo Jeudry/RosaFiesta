@@ -51,5 +51,11 @@
       "count": {"type": "int"},
       "total": {"type": "int"}
     }
-  }
+  },
+  "colorPalette": "Color palette",
+  "selectColors": "Select colors",
+  "colorsForEvent": "Colors for your event",
+  "matchingItems": "Matching items",
+  "filterByColors": "Filter by colors",
+  "maxColorsReached": "Maximum 5 colors"
 }

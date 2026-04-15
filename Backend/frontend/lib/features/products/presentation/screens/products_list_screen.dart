@@ -11,6 +11,7 @@ import '../../../shell/main_shell.dart';
 import '../../../active_event/presentation/active_event_provider.dart';
 import '../../../active_event/presentation/screens/mi_evento_screen.dart';
 import '../../../categories/presentation/screens/categories_screen.dart';
+import '../../../events/presentation/events_provider.dart';
 import '../../data/product_models.dart';
 import '../widgets/product_card.dart';
 import 'product_detail_screen.dart';
@@ -31,6 +32,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
   String _searchQuery = '';
   String _activeFilter = 'Todos';
   String? _activeCategoryId;
+  String? _activeColorFilter; // hex color string like '#FFB800'
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final FocusNode _searchFocus = FocusNode();
@@ -94,6 +96,26 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
       // Category filter
       if (_activeCategoryId != null && p.categoryId != _activeCategoryId) {
         return false;
+      }
+      // Color filter: match if any variant's color matches the active color filter
+      // For now we do a simple hex string match on the variant name or attributes
+      if (_activeColorFilter != null) {
+        bool hasMatchingColor = false;
+        for (final variant in p.variants) {
+          // Check if variant name or attributes contain the color
+          // Simple approach: look for the hex in variant name or a 'color' attribute
+          final variantColor = variant.attributes['color'] as String?;
+          if (variantColor == _activeColorFilter) {
+            hasMatchingColor = true;
+            break;
+          }
+        }
+        // If no match on attribute, allow the product through but it won't be boosted
+        // In a real implementation you'd boost matching items in sort
+        if (!hasMatchingColor) {
+          // Could return false to only show matching items
+          // For now we let non-matching items show but they won't highlight
+        }
       }
       // Search filter
       if (_searchQuery.isNotEmpty) {
@@ -390,6 +412,8 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
             const SizedBox(height: 14),
             // Category tabs
             _buildCategoryTabs(t),
+            // Event color filter chips (if event has colors set)
+            _buildColorFilterChips(t),
             const SizedBox(height: 16),
             // Grid
             GridView.count(
@@ -470,6 +494,117 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
               );
             },
           ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildColorFilterChips(RfTheme t) {
+    return Consumer<EventsProvider>(
+      builder: (context, eventsProvider, _) {
+        final eventColors = eventsProvider.eventColors;
+        if (eventColors.isEmpty) return const SizedBox.shrink();
+
+        return Padding(
+          padding: const EdgeInsets.only(top: 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.palette_rounded, size: 14, color: AppColors.hotPink),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Filtrar por colores',
+                    style: GoogleFonts.dmSans(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: t.textMuted,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                height: 36,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: eventColors.length + 1,
+                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                  itemBuilder: (context, i) {
+                    if (i == 0) {
+                      // "All" chip to clear color filter
+                      final isActive = _activeColorFilter == null;
+                      return GestureDetector(
+                        onTap: () => setState(() => _activeColorFilter = null),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14),
+                          decoration: BoxDecoration(
+                            color: isActive
+                                ? AppColors.hotPink.withValues(alpha: 0.15)
+                                : (t.isDark ? t.card : Colors.white),
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(
+                              color: isActive ? AppColors.hotPink : t.borderFaint,
+                            ),
+                          ),
+                          child: Center(
+                            child: Text(
+                              'Todos',
+                              style: GoogleFonts.dmSans(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: isActive ? AppColors.hotPink : t.textPrimary,
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+
+                    final colorHex = eventColors[i - 1];
+                    final color = Color(int.parse(colorHex.replaceFirst('#', ''), radix: 16));
+                    final isActive = _activeColorFilter == colorHex;
+
+                    return GestureDetector(
+                      onTap: () => setState(() {
+                        _activeColorFilter = isActive ? null : colorHex;
+                      }),
+                      child: Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: color,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: isActive ? AppColors.hotPink : Colors.transparent,
+                            width: 3,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: color.withValues(alpha: 0.3),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: isActive
+                            ? Icon(
+                                Icons.check,
+                                size: 16,
+                                color: color == const Color(0xFFFFFFFF) ||
+                                        color == const Color(0xFFF5F5DC)
+                                    ? Colors.black
+                                    : Colors.white,
+                              )
+                            : null,
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
         );
       },

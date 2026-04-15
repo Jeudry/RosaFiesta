@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"Backend/internal/pdf"
 	"Backend/internal/store"
 	"Backend/internal/store/models"
 
@@ -504,6 +505,7 @@ func (app *Application) payEventHandler(w http.ResponseWriter, r *http.Request) 
 	var payload struct {
 		PaymentMethod string `json:"payment_method" validate:"required"`
 		Phone        string `json:"phone"`
+		IsDeposit    bool   `json:"is_deposit"`
 	}
 	if err := readJson(w, r, &payload); err != nil {
 		app.badRequest(w, r, err)
@@ -545,12 +547,72 @@ func (app *Application) payEventHandler(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 
-	// Update payment fields
 	now := time.Now()
-	event.PaymentStatus = "completed"
-	event.PaymentMethod = &payload.PaymentMethod
-	event.PaidAt = &now
-	event.Status = "paid"
+
+	// Handle deposit vs full payment
+	if payload.IsDeposit {
+		// Deposit payment - 50% of total quote
+		if event.DepositPaid {
+			app.badRequest(w, r, errors.New("deposit already paid for this event"))
+			return
+		}
+
+		// Calculate 50% deposit
+		depositAmount := event.TotalQuote / 2
+		remainingAmount := event.TotalQuote - depositAmount
+
+		// Set deposit fields
+		event.DepositPaid = true
+		event.DepositAmount = depositAmount
+		event.DepositPaidAt = &now
+		event.RemainingAmount = remainingAmount
+
+		// Set installment due date to 7 days before event (or 30 days from now, whichever is earlier)
+		dueDate := now.AddDate(0, 0, 30) // Default: 30 days from now
+		if event.Date != nil {
+			daysUntilEvent := int(time.Until(*event.Date).Hours() / 24)
+			if daysUntilEvent > 7 {
+				dueDate = now.AddDate(0, 0, daysUntilEvent-7)
+			} else {
+				dueDate = now.AddDate(0, 0, 7) // Minimum 7 days
+			}
+		}
+		event.InstallmentDueDate = &dueDate
+
+		// Create pending installment payment record for the remaining amount
+		_, err = app.Store.Installments.CreateInstallmentPayment(r.Context(), event.ID, remainingAmount, &dueDate)
+		if err != nil {
+			app.internalServerError(w, r, err)
+			return
+		}
+
+		// Mark the deposit payment as completed via installment system
+		// (We use event.PaymentStatus for tracking overall status)
+		event.PaymentStatus = "deposit_paid"
+		event.PaymentMethod = &payload.PaymentMethod
+		event.PaidAt = &now
+		// Event status remains "confirmed" until full payment
+	} else {
+		// Full payment
+		if event.DepositPaid {
+			// This is the final payment - mark the pending installment as paid
+			installments, _ := app.Store.Installments.GetInstallmentByEventID(r.Context(), event.ID)
+			for _, inst := range installments {
+				if inst.PaymentStatus == "pending" {
+					_ = app.Store.Installments.MarkPaid(r.Context(), inst.ID, payload.PaymentMethod)
+				}
+			}
+			event.PaymentStatus = "completed"
+		} else {
+			// Paying full amount directly (no deposit was made)
+			event.PaymentStatus = "completed"
+		}
+
+		event.PaymentMethod = &payload.PaymentMethod
+		event.PaidAt = &now
+		event.Status = "paid"
+		event.RemainingAmount = 0
+	}
 
 	if err := app.Store.Events.Update(r.Context(), event); err != nil {
 		app.internalServerError(w, r, err)
@@ -567,10 +629,82 @@ func (app *Application) payEventHandler(w http.ResponseWriter, r *http.Request) 
 		NewValue:  &payload.PaymentMethod,
 	})
 
-	// Phase 20: Notify user about payment
-	_ = app.Notifications.NotifyStatusChange(r.Context(), user.FCMToken, event.Name, "Pagado")
+	// Notify based on payment type
+	if payload.IsDeposit {
+		_ = app.Notifications.NotifyStatusChange(r.Context(), user.FCMToken, event.Name, "Reserva pagada")
+	} else {
+		_ = app.Notifications.NotifyStatusChange(r.Context(), user.FCMToken, event.Name, "Pagado")
+	}
 
 	if err := app.jsonResponse(w, http.StatusOK, event); err != nil {
+		app.internalServerError(w, r, err)
+	}
+}
+
+// getPaymentScheduleHandler godoc
+//
+//	@Summary		Get payment schedule for an event
+//	@Description	Get payment schedule showing deposit status and remaining payments
+//	@Tags			events
+//	@Accept			json
+//	@Produce		json
+//	@Param			id		path		string	true	"Event ID"
+//	@Success		200		{object}	models.PaymentSchedule
+//	@Failure		400		{object}	error
+//	@Failure		404		{object}	error
+//	@Failure		500		{object}	error
+//	@Router			/events/{id}/payment-schedule [get]
+func (app *Application) getPaymentScheduleHandler(w http.ResponseWriter, r *http.Request) {
+	idParam := chi.URLParam(r, "id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	event, err := app.Store.Events.GetByID(r.Context(), id)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			app.notFoundResponse(w, r, err)
+		} else {
+			app.internalServerError(w, r, err)
+		}
+		return
+	}
+
+	// Authorization check
+	user := GetUserFromCtx(r)
+	if event.UserID != user.ID {
+		app.forbidden(w, r, errors.New("you do not have permission to view this event"))
+		return
+	}
+
+	// Get pending installments
+	installments, err := app.Store.Installments.GetInstallmentByEventID(r.Context(), id)
+	if err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+
+	// Filter pending payments
+	var pendingPayments []models.InstallmentPayment
+	for _, inst := range installments {
+		if inst.PaymentStatus == "pending" {
+			pendingPayments = append(pendingPayments, inst)
+		}
+	}
+
+	schedule := models.PaymentSchedule{
+		DepositPaid:        event.DepositPaid,
+		DepositAmount:      event.DepositAmount,
+		DepositPaidAt:      event.DepositPaidAt,
+		RemainingAmount:    event.RemainingAmount,
+		InstallmentDueDate: event.InstallmentDueDate,
+		TotalQuote:         event.TotalQuote,
+		PendingPayments:    pendingPayments,
+	}
+
+	if err := app.jsonResponse(w, http.StatusOK, schedule); err != nil {
 		app.internalServerError(w, r, err)
 	}
 }
@@ -1105,4 +1239,410 @@ func (app *Application) getShareCardHandler(w http.ResponseWriter, r *http.Reque
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(html))
+}
+
+// uploadInspirationHandler godoc
+//
+//	@Summary		Upload inspiration photo for an event
+//	@Description	Upload a mood board / inspiration photo to R2 and associate it with an event
+//	@Tags			events
+//	@Accept			multipart/form-data
+//	@Produce		json
+//	@Param			id		path		string	true	"Event ID"
+//	@Param			file	formData	file	true	"Photo file"
+//	@Param			caption	formData	string	false	"Photo caption"
+//	@Success		200		{object}	models.EventInspiration
+//	@Failure		400		{object}	error
+//	@Failure		500		{object}	error
+//	@Router			/events/{id}/inspiration [post]
+func (app *Application) uploadInspirationHandler(w http.ResponseWriter, r *http.Request) {
+	idParam := chi.URLParam(r, "id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	if err := r.ParseMultipartForm(10 << 20); err != nil { // 10MB max
+		app.badRequest(w, r, err)
+		return
+	}
+
+	file, fileHeader, err := r.FormFile("file")
+	if err != nil {
+		app.badRequest(w, r, errors.New("file is required"))
+		return
+	}
+	defer file.Close()
+
+	filename := fileHeader.Filename
+	caption := r.FormValue("caption")
+
+	// Read file content
+	content, err := io.ReadAll(file)
+	if err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+
+	// Determine content type from file header
+	contentType := http.DetectContentType(content)
+	if contentType == "application/octet-stream" {
+		contentType = "image/jpeg"
+	}
+
+	var url string
+	if app.R2 != nil {
+		// Upload to R2 under inspiration/ prefix for mood boards
+		uploadedURL, err := app.R2.UploadFromBytes(r.Context(), id, filename, contentType, content)
+		if err != nil {
+			app.internalServerError(w, r, err)
+			return
+		}
+		url = uploadedURL
+	} else {
+		// R2 not configured, use a placeholder URL
+		url = fmt.Sprintf("https://pub.example.r2.cloudflarestorage.com/rosafiesta/inspiration/%s/%s", id.String(), filename)
+	}
+
+	user := GetUserFromCtx(r)
+
+	if err := app.Store.Inspiration.Upload(r.Context(), id, url, caption, user.ID); err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+
+	inspiration := &models.EventInspiration{
+		EventID:    id,
+		PhotoURL:   url,
+		UploadedBy: user.ID,
+	}
+	if caption != "" {
+		inspiration.Caption = &caption
+	}
+
+	if err := app.jsonResponse(w, http.StatusOK, inspiration); err != nil {
+		app.internalServerError(w, r, err)
+	}
+}
+
+// getInspirationHandler godoc
+//
+//	@Summary		Get inspiration photos for an event
+//	@Description	Get all mood board / inspiration photos for an event
+//	@Tags			events
+//	@Produce		json
+//	@Param			id		path		string	true	"Event ID"
+//	@Success		200		{object}	[]models.EventInspiration
+//	@Failure		500		{object}	error
+//	@Router			/events/{id}/inspiration [get]
+func (app *Application) getInspirationHandler(w http.ResponseWriter, r *http.Request) {
+	idParam := chi.URLParam(r, "id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	photos, err := app.Store.Inspiration.GetByEventID(r.Context(), id)
+	if err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+
+	if err := app.jsonResponse(w, http.StatusOK, photos); err != nil {
+		app.internalServerError(w, r, err)
+	}
+}
+
+// deleteInspirationHandler godoc
+//
+//	@Summary		Delete an inspiration photo
+//	@Description	Delete an inspiration photo from an event's mood board
+//	@Tags			events
+//	@Param			id		path		string	true	"Event ID"
+//	@Param			photoId	path		string	true	"Inspiration Photo ID"
+//	@Success		204		{object}	nil
+//	@Failure		404		{object}	error
+//	@Failure		500		{object}	error
+//	@Router			/events/{id}/inspiration/{photoId} [delete]
+func (app *Application) deleteInspirationHandler(w http.ResponseWriter, r *http.Request) {
+	eventIDParam := chi.URLParam(r, "id")
+	eventID, err := uuid.Parse(eventIDParam)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	photoIDParam := chi.URLParam(r, "photoId")
+	photoID, err := uuid.Parse(photoIDParam)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	// Verify ownership
+	event, err := app.Store.Events.GetByID(r.Context(), eventID)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			app.notFoundResponse(w, r, err)
+		} else {
+			app.internalServerError(w, r, err)
+		}
+		return
+	}
+	user := GetUserFromCtx(r)
+	if event.UserID != user.ID {
+		app.forbidden(w, r, errors.New("you do not have permission to modify this event"))
+		return
+	}
+
+	if err := app.Store.Inspiration.Delete(r.Context(), photoID); err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			app.notFoundResponse(w, r, err)
+		} else {
+			app.internalServerError(w, r, err)
+		}
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// getContractPDFHandler godoc
+//
+//	@Summary		Generate contract PDF for an event
+//	@Description	Generates a formal contract PDF for a paid event with all items, terms, and signature lines
+//	@Tags			events
+//	@Produce		application/pdf
+//	@Param			id	path		string	true	"Event ID"
+//	@Success		200	{file}		file	"PDF contract"
+//	@Failure		400	{object}	error
+//	@Failure		403	{object}	error
+//	@Failure		404	{object}	error
+//	@Failure		500	{object}	error
+//	@Router			/events/{id}/contract [get]
+func (app *Application) getContractPDFHandler(w http.ResponseWriter, r *http.Request) {
+	idParam := chi.URLParam(r, "id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	event, err := app.Store.Events.GetByID(r.Context(), id)
+	if err != nil {
+		app.notFoundResponse(w, r, err)
+		return
+	}
+
+	user := GetUserFromCtx(r)
+	if event.UserID != user.ID {
+		app.forbidden(w, r, nil)
+		return
+	}
+
+	if event.Status != "paid" {
+		app.badRequest(w, r, fmt.Errorf("contract is only available for paid events"))
+		return
+	}
+
+	clientUser, err := app.Store.Users.RetrieveById(r.Context(), event.UserID)
+	if err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+
+	items, err := app.Store.Events.GetItems(r.Context(), id)
+	if err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+
+	var contractItems []pdf.ContractItem
+	var subtotal float64
+	for _, item := range items {
+		unitPrice := item.UnitPrice()
+		lineTotal := unitPrice * float64(item.Quantity)
+		subtotal += lineTotal
+		name := ""
+		if item.Article != nil {
+			name = item.Article.NameTemplate
+			if item.Variant != nil {
+				name = fmt.Sprintf("%s - %s", item.Article.NameTemplate, item.Variant.Name)
+			}
+		}
+		if name == "" {
+			name = "Artículo"
+		}
+		contractItems = append(contractItems, pdf.ContractItem{
+			Name:       name,
+			Quantity:   item.Quantity,
+			UnitPrice:  unitPrice,
+			TotalPrice: lineTotal,
+		})
+	}
+
+	eventDate := ""
+	if event.Date != nil {
+		eventDate = event.Date.Format("2 de enero de 2006")
+	}
+
+	paymentMethod := "No especificado"
+	if event.PaymentMethod != nil {
+		paymentMethod = *event.PaymentMethod
+	}
+
+	total := subtotal + event.AdditionalCosts
+	depositPaid := total
+	remainingAmount := 0.0
+
+	dueDate := "N/A"
+	if event.PaidAt != nil {
+		dueDate = event.PaidAt.Format("02 de enero de 2006")
+	}
+
+	contractData := pdf.ContractData{
+		EventName:       event.Name,
+		EventDate:       eventDate,
+		EventLocation:   event.Location,
+		EventType:       "",
+		ClientName:      formatClientName(clientUser),
+		ClientEmail:     clientUser.Email,
+		ClientPhone:     clientUser.PhoneNumber,
+		Items:           contractItems,
+		Subtotal:        subtotal,
+		DeliveryFee:     0,
+		AdditionalCosts: event.AdditionalCosts,
+		Total:           total,
+		DepositPaid:     depositPaid,
+		RemainingAmount: remainingAmount,
+		DueDate:         dueDate,
+		PaymentMethod:   paymentMethod,
+		GeneratedAt:     time.Now(),
+	}
+
+	pdfBytes, err := pdf.GenerateContract(contractData)
+	if err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+
+	dateStr := ""
+	if event.Date != nil {
+		dateStr = event.Date.Format("20060102")
+	}
+	fileName := fmt.Sprintf("contrato_%s_%s.pdf", sanitizeFileName(event.Name), dateStr)
+	w.Header().Set("Content-Type", "application/pdf")
+	w.Header().Set("Content-Disposition", fmt.Sprintf("inline; filename=\"%s\"", fileName))
+	w.Write(pdfBytes)
+}
+
+// setEventColorsHandler godoc
+//
+//	@Summary		Set event color palette
+//	@Description	Replace the color palette for an event with a new list of hex colors (max 5)
+//	@Tags			events
+//	@Accept			json
+//	@Produce		json
+//	@Param			id		path		string	true	"Event ID"
+//	@Param			payload	body		object	true	"Colors payload {colors: ['#FFB800']}"
+//	@Success		200		{array}	string	"Array of color hex strings"
+//	@Failure		400		{object}	error
+//	@Failure		401		{object}	error
+//	@Failure		404		{object}	error
+//	@Failure		500		{object}	error
+//	@Router			/events/{id}/colors [put]
+func (app *Application) setEventColorsHandler(w http.ResponseWriter, r *http.Request) {
+	idParam := chi.URLParam(r, "id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	var payload struct {
+		Colors []string `json:"colors"`
+	}
+	if err := readJson(w, r, &payload); err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	if len(payload.Colors) > 5 {
+		app.badRequest(w, r, errors.New("maximum 5 colors allowed"))
+		return
+	}
+
+	// Verify ownership
+	event, err := app.Store.Events.GetByID(r.Context(), id)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			app.notFoundResponse(w, r, err)
+		} else {
+			app.internalServerError(w, r, err)
+		}
+		return
+	}
+	user := GetUserFromCtx(r)
+	if event.UserID != user.ID {
+		app.forbidden(w, r, errors.New("you do not have permission to modify this event"))
+		return
+	}
+
+	if err := app.Store.EventColors.SetColors(r.Context(), id, payload.Colors); err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+
+	if err := app.jsonResponse(w, http.StatusOK, payload.Colors); err != nil {
+		app.internalServerError(w, r, err)
+	}
+}
+
+// getEventColorsHandler godoc
+//
+//	@Summary		Get event color palette
+//	@Description	Get all color hex strings for a given event
+//	@Tags			events
+//	@Produce		json
+//	@Param			id	path		string	true	"Event ID"
+//	@Success		200	{array}	string	"Array of color hex strings"
+//	@Failure		401	{object}	error
+//	@Failure		404	{object}	error
+//	@Failure		500	{object}	error
+//	@Router			/events/{id}/colors [get]
+func (app *Application) getEventColorsHandler(w http.ResponseWriter, r *http.Request) {
+	idParam := chi.URLParam(r, "id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	// Verify ownership
+	event, err := app.Store.Events.GetByID(r.Context(), id)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			app.notFoundResponse(w, r, err)
+		} else {
+			app.internalServerError(w, r, err)
+		}
+		return
+	}
+	user := GetUserFromCtx(r)
+	if event.UserID != user.ID {
+		app.forbidden(w, r, errors.New("you do not have permission to view this event"))
+		return
+	}
+
+	colors, err := app.Store.EventColors.GetByEventID(r.Context(), id)
+	if err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+
+	if err := app.jsonResponse(w, http.StatusOK, colors); err != nil {
+		app.internalServerError(w, r, err)
+	}
 }

@@ -104,4 +104,16 @@ class EventsRepository {
     final List<dynamic> data = response;
     return data.map((json) => EventReview.fromJson(json)).toList();
   }
+
+  Future<List<String>> getEventColors(String eventId) async {
+    final response = await ApiClient.get('/events/$eventId/colors');
+    final List<dynamic> data = response;
+    return data.map((json) => json as String).toList();
+  }
+
+  Future<List<String>> setEventColors(String eventId, List<String> colors) async {
+    final response = await ApiClient.put('/events/$eventId/colors', {'colors': colors});
+    final List<dynamic> data = response;
+    return data.map((json) => json as String).toList();
+  }
 }

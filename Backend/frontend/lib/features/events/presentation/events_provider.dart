@@ -16,6 +16,9 @@ class EventsProvider extends ChangeNotifier {
   List<EventItem> _currentEventItems = [];
   List<EventItem> get currentEventItems => _currentEventItems;
 
+  List<String> _eventColors = [];
+  List<String> get eventColors => _eventColors;
+
   List<EventMessage> _messages = [];
   List<EventMessage> get messages => _messages;
 
@@ -248,6 +251,28 @@ class EventsProvider extends ChangeNotifier {
           );
         }
       }
+    }
+  }
+
+  Future<List<String>> fetchEventColors(String eventId) async {
+    try {
+      _eventColors = await _repository.getEventColors(eventId);
+      notifyListeners();
+      return _eventColors;
+    } catch (e) {
+      _error = ErrorTranslator.translate(e.toString());
+      return [];
+    }
+  }
+
+  Future<bool> setEventColors(String eventId, List<String> colors) async {
+    try {
+      _eventColors = await _repository.setEventColors(eventId, colors);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = ErrorTranslator.translate(e.toString());
+      return false;
     }
   }
 }

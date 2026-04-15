@@ -51,5 +51,13 @@
       "count": {"type": "int"},
       "total": {"type": "int"}
     }
-  }
+  },
+  "colorPalette": "Paleta de colores",
+  "selectColors": "Seleccionar colores",
+  "colorsForEvent": "Colores para tu evento",
+  "matchingItems": "Artículos que combinan",
+  "filterByColors": "Filtrar por colores",
+  "maxColorsReached": "Máximo 5 colores",
+  "downloadContract": "Descargar contrato",
+  "contract": "Contrato"
 }

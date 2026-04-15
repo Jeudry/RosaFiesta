@@ -177,6 +177,22 @@ type Storage struct {
 		GetByID(context.Context, uuid.UUID) (*models.Bundle, error)
 		GetByCategory(context.Context, uuid.UUID) ([]models.Bundle, error)
 	}
+	Inspiration interface {
+		Upload(ctx context.Context, eventID uuid.UUID, photoURL string, caption string, uploadedBy uuid.UUID) error
+		GetByEventID(ctx context.Context, eventID uuid.UUID) ([]models.EventInspiration, error)
+		Delete(ctx context.Context, inspirationID uuid.UUID) error
+	}
+	EventColors interface {
+		SetColors(context.Context, uuid.UUID, []string) error
+		GetByEventID(context.Context, uuid.UUID) ([]string, error)
+	}
+	Installments interface {
+		CreateInstallmentPayment(ctx context.Context, eventID uuid.UUID, amount int, dueDate *time.Time) (*models.InstallmentPayment, error)
+		GetInstallmentByEventID(ctx context.Context, eventID uuid.UUID) ([]models.InstallmentPayment, error)
+		MarkPaid(ctx context.Context, paymentID uuid.UUID, paymentMethod string) error
+		GetPendingInstallments(ctx context.Context) ([]models.InstallmentPayment, error)
+		GetByID(ctx context.Context, paymentID uuid.UUID) (*models.InstallmentPayment, error)
+	}
 }
 
 func NewStorage(db *sql.DB) Storage {
@@ -204,6 +220,9 @@ func NewStorage(db *sql.DB) Storage {
 		AuditLogs:        &AuditLogsStore{db: db},
 		DeliveryZones:    &DeliveryZonesStore{db: db},
 		Bundles:          &BundlesStore{db: db},
+		Inspiration:      &InspirationStore{db: db},
+		EventColors:      &EventColorsStore{db: db},
+		Installments:     &InstallmentStore{db: db},
 	}
 }
 

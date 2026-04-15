@@ -33,6 +33,24 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     _EventType('Otro', Icons.celebration_rounded, [AppColors.coral, AppColors.amber]),
   ];
 
+  // Pre-defined event color palette (max 5 selectable)
+  static const _colorPalette = [
+    Color(0xFFFFB800), // Gold
+    Color(0xFFFF3CAC), // Hot Pink
+    Color(0xFF8B5CF6), // Violet
+    Color(0xFF00D4AA), // Teal
+    Color(0xFF4FC3F7), // Sky Blue
+    Color(0xFF10B981), // Emerald
+    Color(0xFFF472B6), // Blush Pink
+    Color(0xFF1E3A5F), // Navy
+    Color(0xFF7C3AED), // Lavender
+    Color(0xFFF5F5DC), // Ivory
+    Color(0xFF1F2937), // Black
+    Color(0xFFFFFFFF), // White
+  ];
+
+  final List<Color> _selectedColors = [];
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -49,7 +67,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       );
       return;
     }
-    if (_currentStep < 3) {
+    if (_currentStep < 4) {
       setState(() => _currentStep++);
     } else {
       _submit();
@@ -80,6 +98,15 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     });
 
     if (success && mounted) {
+      // Fetch the new event to get its ID
+      final eventsProvider = context.read<EventsProvider>();
+      final latestEvent = eventsProvider.events.isNotEmpty ? eventsProvider.events.last : null;
+      // Set event colors if any were selected
+      if (latestEvent != null && _selectedColors.isNotEmpty) {
+        final colorHexes = _selectedColors.map((c) => '#${c.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}').toList();
+        await eventsProvider.setEventColors(latestEvent.id, colorHexes);
+      }
+      if (!mounted) return;
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('¡Evento creado! Ahora agrega artículos desde el catálogo')),
@@ -138,7 +165,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       child: Row(
-        children: List.generate(4, (i) {
+        children: List.generate(5, (i) {
           final isActive = i <= _currentStep;
           final isCompleted = i < _currentStep;
           return Expanded(
@@ -170,7 +197,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                           ),
                   ),
                 ),
-                if (i < 3)
+                if (i < 4)
                   Expanded(
                     child: Container(
                       height: 2,
@@ -200,6 +227,8 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       case 2:
         return _buildBudgetGuestsStep(t);
       case 3:
+        return _buildColorPaletteStep(t);
+      case 4:
         return _buildSummaryStep(t);
       default:
         return const SizedBox.shrink();
@@ -527,6 +556,121 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     );
   }
 
+  Widget _buildColorPaletteStep(RfTheme t) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Paleta de colores',
+            style: GoogleFonts.outfit(
+              fontSize: 28,
+              fontWeight: FontWeight.w800,
+              color: t.textPrimary,
+              height: 1.2,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Selecciona hasta 5 colores dominantes para tu evento. La asistente IA usará estos colores para sugerir artículos que combinen.',
+            style: GoogleFonts.dmSans(
+              fontSize: 14,
+              color: t.textMuted,
+            ),
+          ),
+          const SizedBox(height: 24),
+          // Color grid
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: t.card,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: t.borderFaint),
+            ),
+            child: Wrap(
+              spacing: 16,
+              runSpacing: 16,
+              children: _colorPalette.map((color) {
+                final isSelected = _selectedColors.contains(color);
+                final colorHex = '#${color.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}';
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      if (isSelected) {
+                        _selectedColors.remove(color);
+                      } else if (_selectedColors.length < 5) {
+                        _selectedColors.add(color);
+                      }
+                    });
+                  },
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: color,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: isSelected
+                                ? AppColors.hotPink
+                                : (color == const Color(0xFFFFFFFF)
+                                    ? t.borderFaint
+                                    : Colors.transparent),
+                            width: isSelected ? 3 : 1,
+                          ),
+                          boxShadow: isSelected
+                              ? [
+                                  BoxShadow(
+                                    color: color.withValues(alpha: 0.4),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ]
+                              : null,
+                        ),
+                        child: isSelected
+                            ? Icon(
+                                Icons.check,
+                                color: color == const Color(0xFFFFFFFF) ||
+                                        color == const Color(0xFFF5F5DC)
+                                    ? Colors.black
+                                    : Colors.white,
+                                size: 24,
+                              )
+                            : null,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        colorHex,
+                        style: GoogleFonts.dmSans(
+                          fontSize: 10,
+                          color: t.textDim,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+          if (_selectedColors.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Text(
+              '${_selectedColors.length}/5 colores seleccionados',
+              style: GoogleFonts.dmSans(
+                fontSize: 13,
+                color: AppColors.hotPink,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _buildSummaryStep(RfTheme t) {
     final eventType = _eventTypes.firstWhere(
       (e) => e.name == _selectedEventType,
@@ -624,6 +768,28 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                     Colors.white,
                   ),
                 ],
+                if (_selectedColors.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Container(
+                        width: 20,
+                        height: 20,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: LinearGradient(
+                            colors: _selectedColors.take(2).toList(),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        '${_selectedColors.length} colores seleccionados',
+                        style: GoogleFonts.dmSans(fontSize: 14, color: Colors.white),
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),
@@ -660,7 +826,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   }
 
   Widget _buildBottomBar(RfTheme t) {
-    final stepLabels = ['Tipo', 'Fecha', 'Detalles', 'Crear'];
+    final stepLabels = ['Tipo', 'Fecha', 'Detalles', 'Colores', 'Resumen'];
     return Container(
       padding: EdgeInsets.fromLTRB(
         24,
