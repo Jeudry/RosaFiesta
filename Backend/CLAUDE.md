@@ -210,14 +210,18 @@ All features currently in the system, organized by status. **Always keep this li
 | 38 | Availability urgency counter | ✅ | ✅ | "Solo X" / "AGOTADO" badges using low_stock_threshold column |
 | 39 | Share event to social | ✅ | ✅ | WhatsApp card URL, share_plus, share button sheet |
 | 40 | Event countdown widget | ✅ | ✅ | live days/hours/min/sec, pulse when <7 days |
+| 41 | Payment in installments | ✅ | ✅ | 50% deposit, rest before event, installment_payments table |
+| 42 | Mood board / inspiration | ✅ | ✅ | optional reference photos per event, event_inspiration table |
+| 43 | PDF contract generation | ✅ | ✅ | contract PDF on quote approval with terms and conditions |
+| 44 | Event color palette | ✅ | ✅ | client selects colors, catalog prioritizes matching items |
 
 ### Pending
 
 | # | Feature | Description | Priority |
 |---|---------|-------------|----------|
-| 34 | Admin quotation workflow | Admin adjusts quote → client approves/rejects | medium |
-| 35 | Admin analytics dashboard | Stats endpoint, admin-only summary view | low |
-| 36 | Enterprise app (separate frontend) | Admin-focused app for RosaFiesta staff | low |
+| 45 | Admin quotation workflow | Admin adjusts quote → client approves/rejects | medium |
+| 46 | Admin analytics dashboard | Stats endpoint, admin-only summary view | low |
+| 47 | Enterprise app (separate frontend) | Admin-focused app for RosaFiesta staff | low |
 
 ### Legend
 - `NEW` — just added, not yet started
