@@ -171,6 +171,25 @@ func (s *BundlesStore) GetByCategory(ctx context.Context, categoryID uuid.UUID) 
 	return bundles, nil
 }
 
+func (s *BundlesStore) AddItem(ctx context.Context, bundleID, articleID uuid.UUID, quantity int, isOptional bool, sortOrder int) (uuid.UUID, error) {
+	id := uuid.New()
+	_, err := s.db.ExecContext(ctx,
+		`INSERT INTO bundle_items (id, bundle_id, article_id, quantity, is_optional, sort_order)
+		 VALUES ($1, $2, $3, $4, $5, $6)
+		 ON CONFLICT (bundle_id, article_id) DO UPDATE SET quantity=$4, is_optional=$5, sort_order=$6`,
+		id, bundleID, articleID, quantity, isOptional, sortOrder,
+	)
+	return id, err
+}
+
+func (s *BundlesStore) RemoveItem(ctx context.Context, bundleID, articleID uuid.UUID) error {
+	_, err := s.db.ExecContext(ctx,
+		`DELETE FROM bundle_items WHERE bundle_id = $1 AND article_id = $2`,
+		bundleID, articleID,
+	)
+	return err
+}
+
 // parseNullStringUUID safely parses a UUID from sql.NullString.
 func parseNullStringUUID(ns sql.NullString) uuid.UUID {
 	if ns.Valid {

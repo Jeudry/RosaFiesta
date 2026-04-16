@@ -201,6 +201,7 @@ func main() {
 		ChatHub:       chatHub,
 		R2:            r2Client,
 		WhatsApp:      whatsappClient,
+		Redis:         rdb,
 	}
 
 	expvar.NewString("version").Set(Version)

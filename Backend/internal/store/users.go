@@ -346,3 +346,36 @@ func (s *UsersStore) UpdatePassword(ctx context.Context, userID uuid.UUID, passw
 	_, err := s.db.ExecContext(ctx, query, passwordHash, userID)
 	return err
 }
+
+// GetAllClientsForExport returns all users with client role for export
+func (s *UsersStore) GetAllClientsForExport(ctx context.Context) ([]models.ClientExport, error) {
+	query := `
+		SELECT u.id, u.first_name, u.last_name, u.email, COALESCE(u.phone_number, ''),
+		       COALESCE(u.created_at, NOW()), u.is_active,
+		       COUNT(e.id) as events_count,
+		       COALESCE(SUM(e.total_quote), 0) as total_spent
+		FROM users u
+		LEFT JOIN events e ON e.user_id = u.id AND e.status = 'paid'
+		WHERE u.role_id = (SELECT id FROM roles WHERE name = 'client')
+		GROUP BY u.id
+		ORDER BY u.created_at DESC`
+
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
+	defer cancel()
+
+	rows, err := s.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var clients []models.ClientExport
+	for rows.Next() {
+		var c models.ClientExport
+		if err := rows.Scan(&c.ID, &c.FirstName, &c.LastName, &c.Email, &c.Phone, &c.CreatedAt, &c.IsActive, &c.EventsCount, &c.TotalSpent); err != nil {
+			return nil, err
+		}
+		clients = append(clients, c)
+	}
+	return clients, nil
+}
