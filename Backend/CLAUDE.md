@@ -210,14 +210,26 @@ All features currently in the system, organized by status. **Always keep this li
 | 38 | Availability urgency counter | ✅ | ✅ | "Solo X" / "AGOTADO" badges using low_stock_threshold column |
 | 39 | Share event to social | ✅ | ✅ | WhatsApp card URL, share_plus, share button sheet |
 | 40 | Event countdown widget | ✅ | ✅ | live days/hours/min/sec, pulse when <7 days |
+| 41 | Payment in installments | ✅ | ✅ | 50% deposit, rest before event, installment_payments table |
+| 42 | Mood board / inspiration | ✅ | ✅ | optional reference photos per event, event_inspiration table |
+| 43 | PDF contract generation | ✅ | ✅ | contract PDF on quote approval with terms and conditions |
+| 44 | Event color palette | ✅ | ✅ | client selects colors, catalog prioritizes matching items |
+| 45 | Admin quotation workflow | ✅ | ✅ | Admin adjusts quote → client approves/rejects; PATCH /admin/events/{id}/adjust |
+| 46 | Admin analytics dashboard | ✅ | ✅ | Full stats endpoint set in /admin/analytics/* with charts UI |
+| 47 | Enterprise app (separate frontend) | ✅ | ✅ | Admin-focused Flutter app with dark theme, Provider, all admin endpoints connected |
+| 48 | Event templates | ✅ | ✅ | Pre-configured event types (Cumpleaños 15, Boda, Baby Shower) with suggested items and budget ranges |
+| 49 | Equipment maintenance log | ✅ | ✅ | Tracking cleaning/repair/inspection/maintenance logs per article |
+| 50 | Recurring events | ✅ | ✅ | Weekly/monthly event patterns, auto-generate events from templates |
+| 51 | CSV export | ✅ | ✅ | Export events, clients, articles to CSV via /admin/export/{type} |
+| 52 | Client Portal | ✅ | ✅ | Client dashboard, events, documents, payments, notifications |
+| 53 | Financial Module | ✅ | ✅ | Financial records, invoices, vendors, expense tracking |
+| 54 | PayPal Integration | ✅ | ✅ | Real PayPal checkout, transaction tracking |
+| 55 | Article Insurance | ✅ | ✅ | Article and event insurance policies, claims |
+| 56 | Advanced Reporting | ✅ | ✅ | Analytics, charts, export reports |
 
 ### Pending
 
-| # | Feature | Description | Priority |
-|---|---------|-------------|----------|
-| 34 | Admin quotation workflow | Admin adjusts quote → client approves/rejects | medium |
-| 35 | Admin analytics dashboard | Stats endpoint, admin-only summary view | low |
-| 36 | Enterprise app (separate frontend) | Admin-focused app for RosaFiesta staff | low |
+None — all features implemented.
 
 ### Legend
 - `NEW` — just added, not yet started

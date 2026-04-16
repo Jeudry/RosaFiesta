@@ -10,6 +10,8 @@ import (
 	"Backend/internal/store"
 	"Backend/internal/whatsapp"
 
+	"github.com/go-chi/chi/v5"
+	"github.com/go-redis/redis/v8"
 	"go.uber.org/zap"
 )
 
@@ -25,4 +27,6 @@ type Application struct {
 	ChatHub       *Hub
 	R2            *store.R2Client
 	WhatsApp      *whatsapp.Client
+	Mux           *chi.Mux
+	Redis         *redis.Client
 }
