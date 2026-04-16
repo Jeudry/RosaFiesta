@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"time"
 
 	"Backend/internal/store/models"
@@ -138,6 +139,8 @@ func (app *Application) getFinancialRecordsHandler(w http.ResponseWriter, r *htt
 	endDate := r.URL.Query().Get("end_date")
 	recordType := r.URL.Query().Get("type")
 	categoryID := r.URL.Query().Get("category_id")
+	limit := r.URL.Query().Get("limit")
+	offset := r.URL.Query().Get("offset")
 
 	if startDate == "" || endDate == "" {
 		render.JSON(w, r, map[string]interface{}{
@@ -147,12 +150,37 @@ func (app *Application) getFinancialRecordsHandler(w http.ResponseWriter, r *htt
 		return
 	}
 
+	limitInt := 50
+	offsetInt := 0
+	if limit != "" {
+		if parsed, err := strconv.Atoi(limit); err == nil && parsed > 0 && parsed <= 100 {
+			limitInt = parsed
+		}
+	}
+	if offset != "" {
+		if parsed, err := strconv.Atoi(offset); err == nil && parsed >= 0 {
+			offsetInt = parsed
+		}
+	}
+
 	records, err := app.Store.Financial.GetFinancialRecords(r.Context(), startDate, endDate, recordType, categoryID)
 	if err != nil {
 		render.JSON(w, r, map[string]interface{}{"error": err.Error()})
 		return
 	}
-	render.JSON(w, r, map[string]interface{}{"data": records})
+
+	total := len(records)
+	if offsetInt > 0 || limitInt < total {
+		if offsetInt < len(records) {
+			endIdx := offsetInt + limitInt
+			if endIdx > len(records) {
+				endIdx = len(records)
+			}
+			records = records[offsetInt:endIdx]
+		}
+	}
+
+	render.JSON(w, r, map[string]interface{}{"data": records, "total": total, "limit": limitInt, "offset": offsetInt})
 }
 
 func (app *Application) createFinancialRecordHandler(w http.ResponseWriter, r *http.Request) {

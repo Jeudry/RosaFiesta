@@ -98,6 +98,14 @@ func (m *UserStore) UpdatePassword(ctx context.Context, userID uuid.UUID, passwo
 	return args.Error(0)
 }
 
+func (m *UserStore) GetAllClientsForExport(ctx context.Context) ([]models.ClientExport, error) {
+	args := m.Called(ctx)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]models.ClientExport), args.Error(1)
+}
+
 type ArticlesStore struct {
 	mock.Mock
 }
@@ -148,6 +156,11 @@ func (m *ArticlesStore) GetLowStockCount(ctx context.Context) (int, error) {
 func (m *ArticlesStore) Search(ctx context.Context, params store.ArticleSearchParams) ([]models.Article, error) {
 	args := m.Called(ctx, params)
 	return args.Get(0).([]models.Article), args.Error(1)
+}
+
+func (m *ArticlesStore) Count(ctx context.Context, search string, categoryID string) (int, error) {
+	args := m.Called(ctx, search, categoryID)
+	return args.Int(0), args.Error(1)
 }
 
 type RoleStore struct {

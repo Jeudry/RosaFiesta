@@ -45,6 +45,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
   String _deliveryMessage = '';
   bool _isCalculatingDelivery = false;
   bool _isRemoteZone = false;
+  bool _isFullPayment = false;
 
   final _methods = [
     _PaymentMethod('Tarjeta', Icons.credit_card, AppColors.sky),
@@ -474,8 +475,6 @@ class _CheckoutScreenState extends State<CheckoutScreen>
     );
   }
 
-<<<<<<< Updated upstream
-=======
   double get depositAmount => (grandTotal * 0.5).roundToDouble();
   double get remainingAmount => grandTotal - depositAmount;
 
@@ -651,7 +650,6 @@ class _CheckoutScreenState extends State<CheckoutScreen>
     );
   }
 
->>>>>>> Stashed changes
   Widget _buildPaymentMethodsSection(RfTheme t) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1234,13 +1232,9 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-<<<<<<< Updated upstream
-                            'Confirmar pedido',
-=======
                             _isFullPayment
                                 ? 'Confirmar pedido'
                                 : 'Reservar ahora',
->>>>>>> Stashed changes
                             style: GoogleFonts.dmSans(
                               fontSize: 17,
                               fontWeight: FontWeight.w800,

@@ -134,7 +134,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
           Container(
             padding: EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: color, size: 28),
@@ -345,7 +345,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
               child: Row(
                 children: [
                   CircleAvatar(
-                    backgroundColor: AppColors.violet.withOpacity(0.2),
+                    backgroundColor: AppColors.violet.withValues(alpha: 0.2),
                     child: Icon(Icons.business, color: AppColors.violet),
                   ),
                   SizedBox(width: 12),
@@ -374,7 +374,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                     Container(
                       padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: AppColors.teal.withOpacity(0.1),
+                        color: AppColors.teal.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
@@ -437,8 +437,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                         ),
                         decoration: BoxDecoration(
                           color: insurance['is_active'] == true
-                              ? AppColors.teal.withOpacity(0.1)
-                              : AppColors.coral.withOpacity(0.1),
+                              ? AppColors.teal.withValues(alpha: 0.1)
+                              : AppColors.coral.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
@@ -502,7 +502,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                   Container(
                     padding: EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppColors.sky.withOpacity(0.1),
+                      color: AppColors.sky.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(Icons.history, color: AppColors.sky, size: 20),
@@ -616,7 +616,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                   decoration: BoxDecoration(
                     color: t.card,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.amber.withOpacity(0.3)),
+                    border: Border.all(
+                      color: AppColors.amber.withValues(alpha: 0.3),
+                    ),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -685,7 +687,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
           Container(
             padding: EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(icon, color: color),
