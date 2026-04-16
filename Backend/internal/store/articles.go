@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	"Backend/internal/store/models"
@@ -219,6 +220,22 @@ func (s *ArticlesStore) GetById(ctx context.Context, id uuid.UUID) (*models.Arti
 
 func (s *ArticlesStore) GetAll(ctx context.Context, limit, offset int) ([]models.Article, error) {
 	return s.queryListWithPrimaryVariant(ctx, "", nil, &limit, &offset)
+}
+
+func (s *ArticlesStore) Count(ctx context.Context, search, categoryID string) (int, error) {
+	query := `SELECT COUNT(*) FROM articles WHERE 1=1`
+	args := []interface{}{}
+	if search != "" {
+		query += ` AND name_template ILIKE $` + strconv.Itoa(len(args)+1)
+		args = append(args, "%"+search+"%")
+	}
+	if categoryID != "" {
+		query += ` AND category_id = $` + strconv.Itoa(len(args)+1)
+		args = append(args, categoryID)
+	}
+	var total int
+	err := s.db.QueryRowContext(ctx, query, args...).Scan(&total)
+	return total, err
 }
 
 func (s *ArticlesStore) GetByCategoryID(ctx context.Context, categoryID uuid.UUID) ([]models.Article, error) {

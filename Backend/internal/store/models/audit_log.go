@@ -18,6 +18,7 @@ const (
 	AuditActionEventStatus     AuditAction = "status_changed"
 	AuditActionEventPhotoAdd   AuditAction = "photo_added"
 	AuditActionEventReject     AuditAction = "quote_rejected"
+	AuditActionQuoteApprove    AuditAction = "quote_approved"
 )
 
 // AuditLog represents an entry in the audit trail.

@@ -200,7 +200,7 @@ All features currently in the system, organized by status. **Always keep this li
 | 28 | Email verification flow | ✅ | ✅ | verify-email/{token} screen |
 | 29 | Password reset | ✅ | ✅ | forgot-password/reset-password screens |
 | 30 | Order confirmation screen | ✅ | ✅ | post-checkout success screen |
-| 31 | Email reminder triggers | ✅ | ✅ | worker cron: 7d/24h/post-event; 7d now includes checklist email template + push notification + event_checklist_screen |
+| 31 | Email reminder triggers | ✅ | — | worker cron: 7d/24h/post-event |
 | 32 | Push notification triggers | ✅ | — | FCM on quote adjusted/approved/rejected |
 | 33 | Deep linking | ✅ | ✅ | iOS/Android universal links + hash routing |
 | 34 | Rating with event photos | ✅ | ✅ | review_photos table, photo lightbox, image_picker |
@@ -214,14 +214,22 @@ All features currently in the system, organized by status. **Always keep this li
 | 42 | Mood board / inspiration | ✅ | ✅ | optional reference photos per event, event_inspiration table |
 | 43 | PDF contract generation | ✅ | ✅ | contract PDF on quote approval with terms and conditions |
 | 44 | Event color palette | ✅ | ✅ | client selects colors, catalog prioritizes matching items |
+| 45 | Admin quotation workflow | ✅ | ✅ | Admin adjusts quote → client approves/rejects; PATCH /admin/events/{id}/adjust |
+| 46 | Admin analytics dashboard | ✅ | ✅ | Full stats endpoint set in /admin/analytics/* with charts UI |
+| 47 | Enterprise app (separate frontend) | ✅ | ✅ | Admin-focused Flutter app with dark theme, Provider, all admin endpoints connected |
+| 48 | Event templates | ✅ | ✅ | Pre-configured event types (Cumpleaños 15, Boda, Baby Shower) with suggested items and budget ranges |
+| 49 | Equipment maintenance log | ✅ | ✅ | Tracking cleaning/repair/inspection/maintenance logs per article |
+| 50 | Recurring events | ✅ | ✅ | Weekly/monthly event patterns, auto-generate events from templates |
+| 51 | CSV export | ✅ | ✅ | Export events, clients, articles to CSV via /admin/export/{type} |
+| 52 | Client Portal | ✅ | ✅ | Client dashboard, events, documents, payments, notifications |
+| 53 | Financial Module | ✅ | ✅ | Financial records, invoices, vendors, expense tracking |
+| 54 | PayPal Integration | ✅ | ✅ | Real PayPal checkout, transaction tracking |
+| 55 | Article Insurance | ✅ | ✅ | Article and event insurance policies, claims |
+| 56 | Advanced Reporting | ✅ | ✅ | Analytics, charts, export reports |
 
 ### Pending
 
-| # | Feature | Description | Priority |
-|---|---------|-------------|----------|
-| 45 | Admin quotation workflow | Admin adjusts quote → client approves/rejects | medium |
-| 46 | Admin analytics dashboard | Stats endpoint, admin-only summary view | low |
-| 47 | Enterprise app (separate frontend) | Admin-focused app for RosaFiesta staff | low |
+None — all features implemented.
 
 ### Legend
 - `NEW` — just added, not yet started

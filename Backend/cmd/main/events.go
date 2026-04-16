@@ -855,7 +855,7 @@ func (app *Application) approveQuoteHandler(w http.ResponseWriter, r *http.Reque
 	_ = app.Store.AuditLogs.Log(r.Context(), &models.AuditLog{
 		UserID:     &user.ID,
 		EventID:   &event.ID,
-		Action:    models.AuditActionEventPay,
+		Action:    models.AuditActionQuoteApprove,
 		EntityType: "event",
 		EntityID:  &event.ID,
 	})

@@ -45,13 +45,13 @@ class _CheckoutScreenState extends State<CheckoutScreen>
   String _deliveryMessage = '';
   bool _isCalculatingDelivery = false;
   bool _isRemoteZone = false;
-  bool _isFullPayment = false;
 
   final _methods = [
     _PaymentMethod('Tarjeta', Icons.credit_card, AppColors.sky),
     _PaymentMethod('Banco Popular', Icons.account_balance, AppColors.violet),
     _PaymentMethod('Banreservas', Icons.account_balance, AppColors.teal),
     _PaymentMethod('Efectivo', Icons.payments, AppColors.amber),
+    _PaymentMethod('PayPal', Icons.paypal_outlined, Color(0xFF0070BA)),
   ];
 
   @override
@@ -106,19 +106,55 @@ class _CheckoutScreenState extends State<CheckoutScreen>
     final addr = address.toLowerCase();
 
     // Check for local San Cristóbal keywords
-    final localKeywords = ['san cristobal', 'santa cruz', 'ranchitos', 'hatillo', 'berjon', 'mendoza', 'pizarro', 'km 27', 'km 30'];
+    final localKeywords = [
+      'san cristobal',
+      'santa cruz',
+      'ranchitos',
+      'hatillo',
+      'berjon',
+      'mendoza',
+      'pizarro',
+      'km 27',
+      'km 30',
+    ];
     final isLocal = localKeywords.any((k) => addr.contains(k));
 
     // Check for remote keywords
-    final remoteKeywords = ['santo domingo', 'santiago', 'la romana', 'punta cana', 'bayahibe', 'puerto plata', 'sosua', 'cabarete', 'samana', 'nagua', 'higuey', 'el seibo'];
+    final remoteKeywords = [
+      'santo domingo',
+      'santiago',
+      'la romana',
+      'punta cana',
+      'bayahibe',
+      'puerto plata',
+      'sosua',
+      'cabarete',
+      'samana',
+      'nagua',
+      'higuey',
+      'el seibo',
+    ];
     final isRemote = remoteKeywords.any((k) => addr.contains(k));
 
     if (isLocal) {
-      return {'fee': 0, 'zone': 'San Cristóbal Centro', 'message': 'Delivery gratuito en San Cristóbal'};
+      return {
+        'fee': 0,
+        'zone': 'San Cristóbal Centro',
+        'message': 'Delivery gratuito en San Cristóbal',
+      };
     } else if (isRemote) {
-      return {'fee': 3500, 'zone': 'Zona Remota', 'message': 'Tu dirección está en zona remota. El equipo de RosaFiesta coordinará contigo el envío.'};
+      return {
+        'fee': 3500,
+        'zone': 'Zona Remota',
+        'message':
+            'Tu dirección está en zona remota. El equipo de RosaFiesta coordinará contigo el envío.',
+      };
     } else {
-      return {'fee': 1500, 'zone': 'San Cristóbal Extendido', 'message': 'Delivery dentro de la provincia de San Cristóbal'};
+      return {
+        'fee': 1500,
+        'zone': 'San Cristóbal Extendido',
+        'message': 'Delivery dentro de la provincia de San Cristóbal',
+      };
     }
   }
 
@@ -142,7 +178,9 @@ class _CheckoutScreenState extends State<CheckoutScreen>
     final isDark = context.watch<ThemeProvider>().isDark;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0D0B1E) : const Color(0xFFF5F0FF),
+      backgroundColor: isDark
+          ? const Color(0xFF0D0B1E)
+          : const Color(0xFFF5F0FF),
       body: Stack(
         children: [
           // Background orbs
@@ -194,8 +232,6 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                         const SizedBox(height: 8),
                         _buildDeliveryCard(t),
                         const SizedBox(height: 16),
-                        _buildInstallmentSelector(t),
-                        const SizedBox(height: 16),
                         _buildPaymentMethodsSection(t),
                         const SizedBox(height: 20),
                         _buildCardForm(t),
@@ -228,7 +264,11 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(color: t.borderFaint),
               ),
-              child: Icon(Icons.arrow_back_rounded, color: t.textPrimary, size: 22),
+              child: Icon(
+                Icons.arrow_back_rounded,
+                color: t.textPrimary,
+                size: 22,
+              ),
             ),
           ),
           const SizedBox(width: 16),
@@ -276,7 +316,11 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                   ),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.location_on_rounded, color: Colors.white, size: 20),
+                child: const Icon(
+                  Icons.location_on_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -326,7 +370,11 @@ class _CheckoutScreenState extends State<CheckoutScreen>
               decoration: InputDecoration(
                 hintText: 'Dirección del evento',
                 hintStyle: GoogleFonts.dmSans(fontSize: 13, color: t.textDim),
-                prefixIcon: Icon(Icons.home_rounded, color: t.textDim, size: 18),
+                prefixIcon: Icon(
+                  Icons.home_rounded,
+                  color: t.textDim,
+                  size: 18,
+                ),
                 border: InputBorder.none,
               ),
               onChanged: (value) {
@@ -378,11 +426,15 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                         ),
                       ),
                       Text(
-                        _deliveryFee == 0 ? 'Gratuito' : 'RD\$${_deliveryFee.toStringAsFixed(0)}',
+                        _deliveryFee == 0
+                            ? 'Gratuito'
+                            : 'RD\$${_deliveryFee.toStringAsFixed(0)}',
                         style: GoogleFonts.outfit(
                           fontSize: 16,
                           fontWeight: FontWeight.w800,
-                          color: _isRemoteZone ? AppColors.coral : AppColors.teal,
+                          color: _isRemoteZone
+                              ? AppColors.coral
+                              : AppColors.teal,
                         ),
                       ),
                     ],
@@ -392,7 +444,9 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                     Row(
                       children: [
                         Icon(
-                          _isRemoteZone ? Icons.warning_rounded : Icons.info_outline,
+                          _isRemoteZone
+                              ? Icons.warning_rounded
+                              : Icons.info_outline,
                           size: 14,
                           color: _isRemoteZone ? AppColors.coral : t.textDim,
                         ),
@@ -402,7 +456,9 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                             _deliveryMessage,
                             style: GoogleFonts.dmSans(
                               fontSize: 11,
-                              color: _isRemoteZone ? AppColors.coral : t.textDim,
+                              color: _isRemoteZone
+                                  ? AppColors.coral
+                                  : t.textDim,
                             ),
                           ),
                         ),
@@ -418,6 +474,8 @@ class _CheckoutScreenState extends State<CheckoutScreen>
     );
   }
 
+<<<<<<< Updated upstream
+=======
   double get depositAmount => (grandTotal * 0.5).roundToDouble();
   double get remainingAmount => grandTotal - depositAmount;
 
@@ -518,10 +576,14 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: !_isFullPayment ? AppColors.hotPink : t.borderFaint,
+                      color: !_isFullPayment
+                          ? AppColors.hotPink
+                          : t.borderFaint,
                       width: 2,
                     ),
-                    color: !_isFullPayment ? AppColors.hotPink : Colors.transparent,
+                    color: !_isFullPayment
+                        ? AppColors.hotPink
+                        : Colors.transparent,
                   ),
                   child: !_isFullPayment
                       ? const Icon(Icons.check, color: Colors.white, size: 16)
@@ -566,7 +628,11 @@ class _CheckoutScreenState extends State<CheckoutScreen>
             ),
             child: Row(
               children: [
-                const Icon(Icons.info_outline, color: AppColors.amber, size: 18),
+                const Icon(
+                  Icons.info_outline,
+                  color: AppColors.amber,
+                  size: 18,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -585,6 +651,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
     );
   }
 
+>>>>>>> Stashed changes
   Widget _buildPaymentMethodsSection(RfTheme t) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -646,8 +713,8 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                 color: isSelected
                     ? method.color.withValues(alpha: 0.2)
                     : t.isDark
-                        ? Colors.white.withValues(alpha: 0.08)
-                        : Colors.grey.withValues(alpha: 0.1),
+                    ? Colors.white.withValues(alpha: 0.08)
+                    : Colors.grey.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
@@ -722,9 +789,95 @@ class _CheckoutScreenState extends State<CheckoutScreen>
       return _buildCardFields(t);
     } else if (method == 'Efectivo') {
       return _buildCashInstructions(t);
+    } else if (method == 'PayPal') {
+      return _buildPayPalInstructions(t);
     } else {
       return _buildBankTransferInstructions(t, method);
     }
+  }
+
+  Widget _buildPayPalInstructions(RfTheme t) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Pago con PayPal',
+          style: GoogleFonts.outfit(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: t.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Serás redirigido a PayPal para completar tu pago de forma segura.',
+          style: GoogleFonts.dmSans(fontSize: 13, color: t.textDim),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          padding: EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Color(0xFF0070BA).withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Color(0xFF0070BA).withValues(alpha: 0.3)),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.paypal, color: Color(0xFF0070BA), size: 32),
+              SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'PayPal',
+                      style: GoogleFonts.outfit(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF0070BA),
+                      ),
+                    ),
+                    Text(
+                      'Pago seguro con tu cuenta PayPal',
+                      style: GoogleFonts.dmSans(fontSize: 12, color: t.textDim),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        if (_isFullPayment)
+          Text(
+            'Total a pagar: RD\$${grandTotal.toStringAsFixed(0)}',
+            style: GoogleFonts.outfit(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: AppColors.teal,
+            ),
+          )
+        else
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Depósito (50%): RD\$${depositAmount.toStringAsFixed(0)}',
+                style: GoogleFonts.outfit(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.hotPink,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Resto pendiente: RD\$${remainingAmount.toStringAsFixed(0)}',
+                style: GoogleFonts.dmSans(fontSize: 13, color: t.textMuted),
+              ),
+            ],
+          ),
+      ],
+    );
   }
 
   Widget _buildCardFields(RfTheme t) {
@@ -830,10 +983,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
         const SizedBox(height: 8),
         Text(
           'Realiza tu transferencia a la siguiente cuenta y envía el comprobante por WhatsApp.',
-          style: GoogleFonts.dmSans(
-            fontSize: 13,
-            color: t.textDim,
-          ),
+          style: GoogleFonts.dmSans(fontSize: 13, color: t.textDim),
         ),
         const SizedBox(height: 16),
         _buildInfoRow('Banco', bankInfo.bankName, t),
@@ -855,7 +1005,11 @@ class _CheckoutScreenState extends State<CheckoutScreen>
           ),
           child: Row(
             children: [
-              const Icon(Icons.warning_amber_rounded, color: AppColors.amber, size: 20),
+              const Icon(
+                Icons.warning_amber_rounded,
+                color: AppColors.amber,
+                size: 20,
+              ),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
@@ -889,10 +1043,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
         const SizedBox(height: 8),
         Text(
           'Puedes pagar en efectivo directamente en nuestra tienda o medianteelada.',
-          style: GoogleFonts.dmSans(
-            fontSize: 13,
-            color: t.textDim,
-          ),
+          style: GoogleFonts.dmSans(fontSize: 13, color: t.textDim),
         ),
         const SizedBox(height: 16),
         Container(
@@ -924,7 +1075,11 @@ class _CheckoutScreenState extends State<CheckoutScreen>
           ),
           child: Row(
             children: [
-              const Icon(Icons.warning_amber_rounded, color: AppColors.amber, size: 20),
+              const Icon(
+                Icons.warning_amber_rounded,
+                color: AppColors.amber,
+                size: 20,
+              ),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
@@ -1014,10 +1169,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
             ),
             decoration: InputDecoration(
               hintText: hint,
-              hintStyle: GoogleFonts.dmSans(
-                fontSize: 14,
-                color: t.textDim,
-              ),
+              hintStyle: GoogleFonts.dmSans(fontSize: 14, color: t.textDim),
               prefixIcon: prefixIcon != null
                   ? Icon(prefixIcon, color: t.textDim, size: 20)
                   : null,
@@ -1043,14 +1195,14 @@ class _CheckoutScreenState extends State<CheckoutScreen>
       ),
       decoration: BoxDecoration(
         color: t.card,
-        border: Border(
-          top: BorderSide(color: t.borderFaint),
-        ),
+        border: Border(top: BorderSide(color: t.borderFaint)),
       ),
       child: Consumer<EventsProvider>(
         builder: (context, provider, _) {
           return GestureDetector(
-            onTap: provider.isLoading ? null : () => _processPayment(context, provider),
+            onTap: provider.isLoading
+                ? null
+                : () => _processPayment(context, provider),
             child: Container(
               height: 60,
               decoration: BoxDecoration(
@@ -1082,7 +1234,13 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            _isFullPayment ? 'Confirmar pedido' : 'Reservar ahora',
+<<<<<<< Updated upstream
+                            'Confirmar pedido',
+=======
+                            _isFullPayment
+                                ? 'Confirmar pedido'
+                                : 'Reservar ahora',
+>>>>>>> Stashed changes
                             style: GoogleFonts.dmSans(
                               fontSize: 17,
                               fontWeight: FontWeight.w800,
@@ -1100,7 +1258,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
-                              'RD\$${_isFullPayment ? grandTotal.toStringAsFixed(0) : depositAmount.toStringAsFixed(0)}',
+                              'RD\$${grandTotal.toStringAsFixed(0)}',
                               style: GoogleFonts.outfit(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w800,
@@ -1118,16 +1276,126 @@ class _CheckoutScreenState extends State<CheckoutScreen>
     );
   }
 
-  Future<void> _processPayment(BuildContext context, EventsProvider provider) async {
-    // Auth check — block unauthenticated users from paying
+  Future<void> _processPayment(
+    BuildContext context,
+    EventsProvider provider,
+  ) async {
     if (AuthRequiredSheet.checkAndShow(context)) return;
 
     final method = _methods[_selectedMethodIndex].name;
+
+    if (method == 'PayPal') {
+      final amount = _isFullPayment ? grandTotal : depositAmount;
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => Scaffold(
+            backgroundColor: Colors.white,
+            appBar: AppBar(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              leading: IconButton(
+                icon: Icon(Icons.close, color: Colors.black),
+                onPressed: () => Navigator.pop(context),
+              ),
+              title: Text(
+                'PayPal',
+                style: GoogleFonts.outfit(
+                  color: Colors.black,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              centerTitle: true,
+            ),
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      color: Color(0xFF0070BA).withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.paypal,
+                      color: Color(0xFF0070BA),
+                      size: 50,
+                    ),
+                  ),
+                  SizedBox(height: 24),
+                  Text(
+                    'Procesando pago PayPal',
+                    style: GoogleFonts.outfit(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'RD\$${amount.toStringAsFixed(0)}',
+                    style: GoogleFonts.outfit(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF0070BA),
+                    ),
+                  ),
+                  SizedBox(height: 32),
+                  SizedBox(
+                    width: 200,
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        Navigator.pop(context);
+                        final success = await provider.payEvent(
+                          widget.eventId,
+                          'PayPal',
+                          phone: _phoneController.text,
+                          isDeposit: !_isFullPayment,
+                        );
+                        if (success) {
+                          _showPayPalSuccessDialog(context);
+                        } else {
+                          if (mounted)
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  provider.error ?? 'Error con PayPal',
+                                ),
+                                backgroundColor: AppColors.coral,
+                              ),
+                            );
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Color(0xFF0070BA),
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                      ),
+                      child: Text(
+                        'Confirmar con PayPal',
+                        style: GoogleFonts.dmSans(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+      return;
+    }
+
     final success = await provider.payEvent(
       widget.eventId,
       method,
       phone: _phoneController.text,
-      isDeposit: !_isFullPayment,
     );
     if (mounted) {
       if (!success) {
@@ -1162,11 +1430,16 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                     ),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.check_rounded, color: Colors.white, size: 36),
+                  child: const Icon(
+                    Icons.check_rounded,
+                    color: Colors.white,
+                    size: 36,
+                  ),
                 ),
                 const SizedBox(height: 20),
                 ShaderMask(
-                  shaderCallback: (b) => AppColors.titleGradient.createShader(b),
+                  shaderCallback: (b) =>
+                      AppColors.titleGradient.createShader(b),
                   child: Text(
                     '¡Pago Exitoso!',
                     style: GoogleFonts.outfit(
@@ -1194,7 +1467,8 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => OrderConfirmationScreen(eventId: widget.eventId),
+                        builder: (_) =>
+                            OrderConfirmationScreen(eventId: widget.eventId),
                       ),
                     );
                   },
@@ -1223,6 +1497,96 @@ class _CheckoutScreenState extends State<CheckoutScreen>
         ),
       );
     }
+  }
+
+  void _showPayPalSuccessDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(28),
+          decoration: BoxDecoration(
+            color: RfTheme.of(ctx).card,
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 70,
+                height: 70,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [AppColors.teal, AppColors.sky],
+                  ),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.check_rounded,
+                  color: Colors.white,
+                  size: 36,
+                ),
+              ),
+              const SizedBox(height: 20),
+              ShaderMask(
+                shaderCallback: (b) => AppColors.titleGradient.createShader(b),
+                child: Text(
+                  '¡Pago Exitoso!',
+                  style: GoogleFonts.outfit(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Tu evento ha sido reservado correctamente.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.dmSans(
+                  fontSize: 14,
+                  color: RfTheme.of(ctx).textDim,
+                ),
+              ),
+              const SizedBox(height: 24),
+              GestureDetector(
+                onTap: () {
+                  Navigator.pop(ctx);
+                  Navigator.pop(context);
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          OrderConfirmationScreen(eventId: widget.eventId),
+                    ),
+                  );
+                },
+                child: Container(
+                  width: double.infinity,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    gradient: AppColors.buttonGradient,
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                  child: Center(
+                    child: Text(
+                      'Ver confirmación',
+                      style: GoogleFonts.dmSans(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

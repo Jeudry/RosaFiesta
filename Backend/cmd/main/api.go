@@ -25,6 +25,8 @@ func (app *Application) Mount() http.Handler {
 
 	r := chi.NewRouter()
 
+	app.Mux = r
+
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
@@ -232,6 +234,9 @@ func (app *Application) Mount() http.Handler {
 			r.Get("/events/{id}/audit", app.getEventAuditLogHandler)
 		})
 
+		// Mount all admin-specific routes (new admin app endpoints)
+		app.MountAdmin()
+
 		r.Route("/timeline/{itemId}", func(r chi.Router) {
 			r.Use(app.AuthTokenMiddleware())
 			r.Put("/", app.updateTimelineItemHandler)
@@ -261,6 +266,9 @@ func (app *Application) Mount() http.Handler {
 				r.Delete("/", app.deleteSupplierHandler)
 			})
 		})
+
+		r.Mount("/financial", app.MountFinancialRoutes())
+		r.Mount("/client-portal", app.MountClientPortalRoutes())
 	})
 
 	return r

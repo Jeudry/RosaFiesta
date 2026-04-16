@@ -26,6 +26,7 @@ type Storage struct {
 		Update(context.Context, *models.Article) error
 		Delete(context.Context, uuid.UUID) error
 		GetAll(context.Context, int, int) ([]models.Article, error)
+		Count(context.Context, string, string) (int, error)
 		GetLowStockCount(context.Context) (int, error)
 		Search(context.Context, ArticleSearchParams) ([]models.Article, error)
 	}
@@ -58,6 +59,7 @@ type Storage struct {
 		DeletePasswordResetToken(context.Context, uuid.UUID) error
 		DeletePasswordResetTokenByToken(context.Context, string) error
 		UpdatePassword(context.Context, uuid.UUID, []byte) error
+		GetAllClientsForExport(context.Context) ([]models.ClientExport, error)
 	}
 	Roles interface {
 		RetrieveByName(context.Context, string) (*models.Role, error)
@@ -176,6 +178,8 @@ type Storage struct {
 		GetAll(context.Context) ([]models.Bundle, error)
 		GetByID(context.Context, uuid.UUID) (*models.Bundle, error)
 		GetByCategory(context.Context, uuid.UUID) ([]models.Bundle, error)
+		AddItem(context.Context, uuid.UUID, uuid.UUID, int, bool, int) (uuid.UUID, error)
+		RemoveItem(context.Context, uuid.UUID, uuid.UUID) error
 	}
 	Inspiration interface {
 		Upload(ctx context.Context, eventID uuid.UUID, photoURL string, caption string, uploadedBy uuid.UUID) error
@@ -186,12 +190,86 @@ type Storage struct {
 		SetColors(context.Context, uuid.UUID, []string) error
 		GetByEventID(context.Context, uuid.UUID) ([]string, error)
 	}
+	Variants interface {
+		Create(context.Context, *models.ArticleVariant) error
+		GetByArticleID(context.Context, uuid.UUID) ([]models.ArticleVariant, error)
+		GetByID(context.Context, uuid.UUID) (*models.ArticleVariant, error)
+		Update(context.Context, *models.ArticleVariant) error
+		Delete(context.Context, uuid.UUID) error
+	}
 	Installments interface {
 		CreateInstallmentPayment(ctx context.Context, eventID uuid.UUID, amount int, dueDate *time.Time) (*models.InstallmentPayment, error)
 		GetInstallmentByEventID(ctx context.Context, eventID uuid.UUID) ([]models.InstallmentPayment, error)
 		MarkPaid(ctx context.Context, paymentID uuid.UUID, paymentMethod string) error
 		GetPendingInstallments(ctx context.Context) ([]models.InstallmentPayment, error)
 		GetByID(ctx context.Context, paymentID uuid.UUID) (*models.InstallmentPayment, error)
+	}
+	EventTypes interface {
+		GetAll(context.Context) ([]models.EventType, error)
+		GetByID(context.Context, uuid.UUID) (*models.EventType, error)
+		Create(context.Context, *models.EventType) error
+		Update(context.Context, *models.EventType) error
+		Delete(context.Context, uuid.UUID) error
+		GetItemsByType(context.Context, uuid.UUID) ([]models.EventTypeItem, error)
+		SetItems(context.Context, uuid.UUID, []models.EventTypeItem) error
+	}
+	MaintenanceLogs interface {
+		Create(context.Context, *models.ArticleMaintenanceLog) error
+		GetAll(context.Context, string, string) ([]models.ArticleMaintenanceLog, error)
+		GetByArticleID(context.Context, uuid.UUID) ([]models.ArticleMaintenanceLog, error)
+		GetOverdue(context.Context) ([]models.ArticleMaintenanceLog, error)
+		Update(context.Context, *models.ArticleMaintenanceLog) error
+	}
+	RecurringEvents interface {
+		GetAll(context.Context) ([]models.RecurringEvent, error)
+		GetByUserID(context.Context, uuid.UUID) ([]models.RecurringEvent, error)
+		GetByID(context.Context, uuid.UUID) (*models.RecurringEvent, error)
+		Create(context.Context, *models.RecurringEvent) error
+		Update(context.Context, *models.RecurringEvent) error
+		Delete(context.Context, uuid.UUID) error
+		GetGeneratedEvents(context.Context, uuid.UUID) ([]models.Event, error)
+		UpdateLastRun(context.Context, uuid.UUID, uuid.UUID, time.Time) error
+	}
+	Financial interface {
+		CreateFinancialCategory(context.Context, *models.FinancialCategory) error
+		GetAllFinancialCategories(context.Context) ([]models.FinancialCategory, error)
+		CreateFinancialRecord(context.Context, *models.FinancialRecord) error
+		GetFinancialRecords(context.Context, string, string, string, string) ([]models.FinancialRecord, error)
+		GetFinancialSummary(context.Context, string, string) (*models.FinancialSummary, error)
+		GetIncomeByCategory(context.Context, string, string) (map[string]float64, error)
+		GetExpensesByCategory(context.Context, string, string) (map[string]float64, error)
+		ReconcileRecord(context.Context, uuid.UUID) error
+		CreateInvoice(context.Context, *models.Invoice) error
+		GetInvoices(context.Context, string, string) ([]models.Invoice, error)
+		CreateExpenseVendor(context.Context, *models.ExpenseVendor) error
+		GetExpenseVendors(context.Context) ([]models.ExpenseVendor, error)
+		CreateVendorPayment(context.Context, *models.VendorPayment) error
+		GetVendorPayments(context.Context, uuid.UUID) ([]models.VendorPayment, error)
+	}
+	Insurance interface {
+		CreateArticleInsurance(context.Context, *models.ArticleInsurance) error
+		GetArticleInsurance(context.Context, uuid.UUID) ([]models.ArticleInsurance, error)
+		GetAllArticleInsurance(context.Context) ([]models.InsuranceWithArticle, error)
+		CreateEventInsurance(context.Context, *models.EventInsurance) error
+		GetEventInsurance(context.Context, uuid.UUID) (*models.EventInsurance, error)
+		CreateInsuranceClaim(context.Context, *models.InsuranceClaim) error
+		GetInsuranceClaims(context.Context, string) ([]models.InsuranceClaim, error)
+		UpdateInsuranceClaimStatus(context.Context, uuid.UUID, string, *float64, string) error
+	}
+	PayPal interface {
+		CreateTransaction(context.Context, *models.PayPalTransaction) error
+		UpdateTransactionCapture(context.Context, string, string) error
+		GetTransactionByOrderID(context.Context, string) (*models.PayPalTransaction, error)
+		GetTransactionsByEvent(context.Context, uuid.UUID) ([]models.PayPalTransaction, error)
+	}
+	Audit interface {
+		LogClientAction(context.Context, *models.ClientAuditLog) error
+		GetClientAuditLog(context.Context, uuid.UUID, int) ([]models.ClientAuditLog, error)
+		GetAllAuditLogs(context.Context, *uuid.UUID, string, string, string, string, int, int) ([]models.ClientAuditLog, int, error)
+	}
+	Notifications interface {
+		GetUserNotifications(context.Context, uuid.UUID, int) ([]models.Notification, error)
+		Create(context.Context, *models.Notification) error
 	}
 }
 
@@ -223,6 +301,15 @@ func NewStorage(db *sql.DB) Storage {
 		Inspiration:      &InspirationStore{db: db},
 		EventColors:      &EventColorsStore{db: db},
 		Installments:     &InstallmentStore{db: db},
+		Variants:         &VariantsStore{db: db},
+		EventTypes:       &EventTypesStore{db: db},
+		MaintenanceLogs:  &MaintenanceLogsStore{db: db},
+		RecurringEvents:  &RecurringEventsStore{db: db},
+		Financial:        NewFinancialStore(db),
+		Insurance:        NewInsuranceStore(db),
+		PayPal:           NewPayPalStore(db),
+		Audit:            NewClientAuditStore(db),
+		Notifications:    NewNotificationsStore(db),
 	}
 }
 
