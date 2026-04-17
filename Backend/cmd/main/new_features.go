@@ -52,17 +52,19 @@ func (app *Application) MountAvailabilityRoutes() http.Handler {
 func (app *Application) MountChatbotRoutes() http.Handler {
 	r := chi.NewRouter()
 
+	r.Group(func(r chi.Router) {
+		r.Use(app.AuthTokenMiddleware())
+		r.Use(app.RoleMiddleware("admin"))
+		r.Post("/faqs", app.createFAQHandler)
+		r.Put("/faqs/{id}", app.updateFAQHandler)
+		r.Delete("/faqs/{id}", app.deleteFAQHandler)
+	})
+
 	r.Get("/faqs", app.getFAQsHandler)
 	r.Get("/faqs/category/{category}", app.getFAQsByCategoryHandler)
 	r.Post("/message", app.handleChatbotMessageHandler)
 	r.Get("/conversations", app.getChatbotConversationsHandler)
 	r.Patch("/conversations/{id}/feedback", app.provideChatbotFeedbackHandler)
-
-	r.Use(app.AuthTokenMiddleware())
-	r.Use(app.RoleMiddleware("admin"))
-	r.Post("/faqs", app.createFAQHandler)
-	r.Put("/faqs/{id}", app.updateFAQHandler)
-	r.Delete("/faqs/{id}", app.deleteFAQHandler)
 
 	return r
 }
@@ -70,12 +72,14 @@ func (app *Application) MountChatbotRoutes() http.Handler {
 func (app *Application) MountReviewsRoutes() http.Handler {
 	r := chi.NewRouter()
 
+	r.Group(func(r chi.Router) {
+		r.Use(app.AuthTokenMiddleware())
+		r.Use(app.RoleMiddleware("admin"))
+		r.Patch("/{id}/verify", app.verifyReviewHandler)
+	})
+
 	r.Get("/event/{eventId}", app.getEventVerifiedReviewsHandler)
 	r.Get("/verified", app.getAllVerifiedReviewsHandler)
-
-	r.Use(app.AuthTokenMiddleware())
-	r.Use(app.RoleMiddleware("admin"))
-	r.Patch("/{id}/verify", app.verifyReviewHandler)
 
 	return r
 }

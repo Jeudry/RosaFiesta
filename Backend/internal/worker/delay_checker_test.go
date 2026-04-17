@@ -16,7 +16,10 @@ import (
 
 func TestDelayChecker_checkDelayedItems(t *testing.T) {
 	logger := zap.NewNop().Sugar()
-	notificationService := notifications.NewNotificationService()
+	notificationService, err := notifications.NewNotificationService()
+	if err != nil {
+		t.Fatalf("failed to create notification service: %v", err)
+	}
 
 	t.Run("should notify owner and organizers for delayed items", func(t *testing.T) {
 		mockTimeline := &mocks.TimelineStore{}
