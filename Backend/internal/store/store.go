@@ -271,6 +271,28 @@ type Storage struct {
 		GetUserNotifications(context.Context, uuid.UUID, int) ([]models.Notification, error)
 		Create(context.Context, *models.Notification) error
 	}
+	Leads interface {
+		CreateLead(context.Context, *models.Lead) error
+		GetLeadByID(context.Context, uuid.UUID) (*models.Lead, error)
+		GetLeads(context.Context, string, string, int, int) ([]models.Lead, int, error)
+		UpdateLeadStatus(context.Context, uuid.UUID, string) error
+		AddLeadFollowup(context.Context, *models.LeadFollowup) error
+		GetLeadFollowups(context.Context, uuid.UUID) ([]models.LeadFollowup, error)
+		CompleteFollowup(context.Context, uuid.UUID) error
+		LogLeadActivity(context.Context, uuid.UUID, string, string) error
+		GetLeadActivities(context.Context, uuid.UUID) ([]models.LeadActivity, error)
+		GetOverdueFollowups(context.Context) ([]models.LeadFollowup, error)
+		GetLeadsStats(context.Context) (*models.LeadStats, error)
+	}
+	Availability interface {
+		CheckArticleAvailability(context.Context, uuid.UUID, time.Time) (int, error)
+		GetArticleAvailabilityRange(context.Context, uuid.UUID, time.Time, time.Time) ([]CalendarDay, error)
+		GetAllArticlesAvailability(context.Context, time.Time) ([]ArticleAvailability, error)
+		GetCalendarView(context.Context, time.Time, time.Time) ([]CalendarDay, error)
+		ReserveInventory(context.Context, uuid.UUID, uuid.UUID, time.Time, int) error
+		ConfirmInventory(context.Context, uuid.UUID, uuid.UUID, time.Time) error
+		ReleaseInventory(context.Context, uuid.UUID, uuid.UUID, time.Time) error
+	}
 }
 
 func NewStorage(db *sql.DB) Storage {
@@ -310,6 +332,8 @@ func NewStorage(db *sql.DB) Storage {
 		PayPal:           NewPayPalStore(db),
 		Audit:            NewClientAuditStore(db),
 		Notifications:    NewNotificationsStore(db),
+		Leads:            &LeadsStore{db: db},
+		Availability:     &AvailabilityStore{db: db},
 	}
 }
 

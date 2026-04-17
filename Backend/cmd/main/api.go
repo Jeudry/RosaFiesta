@@ -269,6 +269,10 @@ func (app *Application) Mount() http.Handler {
 
 		r.Mount("/financial", app.MountFinancialRoutes())
 		r.Mount("/client-portal", app.MountClientPortalRoutes())
+		r.Mount("/leads", app.MountLeadsRoutes())
+		r.Mount("/availability", app.MountAvailabilityRoutes())
+		r.Mount("/chatbot", app.MountChatbotRoutes())
+		r.Mount("/reviews", app.MountReviewsRoutes())
 	})
 
 	return r
