@@ -226,6 +226,10 @@ All features currently in the system, organized by status. **Always keep this li
 | 54 | PayPal Integration | ✅ | ✅ | Real PayPal checkout, transaction tracking |
 | 55 | Article Insurance | ✅ | ✅ | Article and event insurance policies, claims |
 | 56 | Advanced Reporting | ✅ | ✅ | Analytics, charts, export reports |
+| 57 | Lead Management (CRM) | ✅ | ✅ | Leads pipeline, follow-ups, activities, conversion stats |
+| 58 | Live Inventory Calendar | ✅ | ✅ | Availability calendar, date-based stock checking |
+| 59 | WhatsApp Chatbot | ✅ | ✅ | Auto-respond FAQs, keyword matching, conversation tracking |
+| 60 | Verified Reviews | ✅ | ✅ | Review verification workflow, admin approval/rejection |
 
 ### Pending
 
