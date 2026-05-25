@@ -31,6 +31,8 @@ class _LoginScreenState extends State<LoginScreen>
   @override
   void initState() {
     super.initState();
+    _emailController.text = 'v2_tester@example.com';
+    _passwordController.text = 'Password123!';
     _floatCtrl = AnimationController(vsync: this,
         duration: const Duration(milliseconds: 5500))..repeat();
     _decoCtrl  = AnimationController(vsync: this,

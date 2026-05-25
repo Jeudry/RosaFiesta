@@ -102,7 +102,12 @@ class ApiClient {
     if (e.response != null) {
       final statusCode = e.response!.statusCode;
       final data = e.response!.data;
-      final message = data['error'] ?? 'Unknown error occurred';
+      String message = 'Unknown error occurred';
+      if (data is Map) {
+        message = data['error'] ?? 'Unknown error occurred';
+      } else if (data is String) {
+        message = data;
+      }
 
       switch (statusCode) {
         case 400:

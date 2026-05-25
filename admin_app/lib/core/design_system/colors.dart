@@ -55,15 +55,15 @@ class AdminTheme {
         error: AppColors.error,
       ),
       cardTheme: CardThemeData(
-        color: AppColors.cardDark,
+        color: AppColors.cardDark.withOpacity(0.75), // Glassmorphic translucent cards!
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: const BorderSide(color: AppColors.borderDark, width: 1),
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: AppColors.borderDark.withOpacity(0.5), width: 1),
         ),
         elevation: 0,
       ),
       appBarTheme: AppBarTheme(
-        backgroundColor: AppColors.surfaceDark,
+        backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: false,
         titleTextStyle: GoogleFonts.outfit(
@@ -87,17 +87,17 @@ class AdminTheme {
       textTheme: _buildTextTheme(AppColors.textOnDark),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.cardDark,
+        fillColor: AppColors.cardDark.withOpacity(0.6),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: AppColors.borderDark),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: AppColors.borderDark.withOpacity(0.5)),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: AppColors.borderDark),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: AppColors.borderDark.withOpacity(0.5)),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: AppColors.primary, width: 2),
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -107,7 +107,7 @@ class AdminTheme {
           backgroundColor: AppColors.primary,
           foregroundColor: AppColors.white,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
@@ -115,70 +115,73 @@ class AdminTheme {
           foregroundColor: AppColors.primary,
           side: const BorderSide(color: AppColors.primary),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       ),
       chipTheme: ChipThemeData(
-        backgroundColor: AppColors.cardDark,
+        backgroundColor: AppColors.cardDark.withOpacity(0.6),
         labelStyle: GoogleFonts.dmSans(color: AppColors.textOnDark),
-        side: const BorderSide(color: AppColors.borderDark),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        side: BorderSide(color: AppColors.borderDark.withOpacity(0.5)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
 
   static ThemeData get light {
+    const textPurple = Color(0xFF2C1A4D);
+    const borderPink = Color(0x2BD42A8F);
+    
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
-      scaffoldBackgroundColor: AppColors.surface,
+      scaffoldBackgroundColor: const Color(0xFFFFF0F5),
       colorScheme: const ColorScheme.light(
         primary: AppColors.primary,
         secondary: AppColors.accent,
-        surface: AppColors.surface,
+        surface: Color(0xFFFFF5F8),
         error: AppColors.error,
       ),
       cardTheme: CardThemeData(
-        color: AppColors.white,
+        color: AppColors.white.withOpacity(0.68), // Ultra-premium glassmorphism!
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: const BorderSide(color: Color(0xFFE5E7EB), width: 1),
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: AppColors.primary.withOpacity(0.16), width: 1.5), // Custom pinkish border
         ),
         elevation: 0,
       ),
       appBarTheme: AppBarTheme(
-        backgroundColor: AppColors.white,
+        backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: false,
         titleTextStyle: GoogleFonts.outfit(
           fontSize: 20,
           fontWeight: FontWeight.w600,
-          color: AppColors.textPrimary,
+          color: textPurple,
         ),
-        iconTheme: const IconThemeData(color: AppColors.textPrimary),
+        iconTheme: const IconThemeData(color: textPurple),
       ),
       listTileTheme: const ListTileThemeData(
-        iconColor: AppColors.textSecondary,
-        textColor: AppColors.textPrimary,
+        iconColor: AppColors.primary,
+        textColor: textPurple,
       ),
-      dividerTheme: const DividerThemeData(
-        color: Color(0xFFE5E7EB),
+      dividerTheme: DividerThemeData(
+        color: AppColors.primary.withOpacity(0.12),
         thickness: 1,
       ),
-      textTheme: _buildTextTheme(AppColors.textPrimary),
+      textTheme: _buildTextTheme(textPurple),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.white,
+        fillColor: AppColors.white.withOpacity(0.55),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: AppColors.primary.withOpacity(0.16), width: 1),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: AppColors.primary.withOpacity(0.16), width: 1),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: AppColors.primary, width: 2),
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -188,7 +191,7 @@ class AdminTheme {
           backgroundColor: AppColors.primary,
           foregroundColor: AppColors.white,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       ),
     );

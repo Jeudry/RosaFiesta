@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiClient {
-  static const String baseUrl = 'http://localhost:3000/v1';
+  static const String baseUrl = 'http://localhost:3001/v1';
 
   late final Dio _dio;
   String? _token;
@@ -61,7 +61,49 @@ class ApiClient {
 
   // Auth
   Future<Response> login(String email, String password) async {
-    return _dio.post('/authentication/login', data: {'email': email, 'password': password});
+    try {
+      final response = await _dio.post('/authentication/token', data: {
+        'email': email,
+        'password': password,
+      });
+      
+      final responseBody = response.data;
+      final responseData = responseBody['data'];
+      final token = responseData['accessToken'] as String;
+      
+      // Temporarily set the token on this client so we can request the profile
+      setToken(token);
+      
+      final profileResponse = await getAdminProfile();
+      var profileData = profileResponse.data['data'];
+      
+      // Dynamically unwrap nested 'data' key if returned by the backend
+      if (profileData is Map && profileData.containsKey('data')) {
+        profileData = profileData['data'];
+      }
+      
+      final mappedData = {
+        'data': {
+          'token': token,
+          'user': profileData,
+        }
+      };
+      
+      return Response(
+        requestOptions: response.requestOptions,
+        data: mappedData,
+        statusCode: response.statusCode,
+        statusMessage: response.statusMessage,
+        headers: response.headers,
+        isRedirect: response.isRedirect,
+        redirects: response.redirects,
+        extra: response.extra,
+      );
+    } catch (e) {
+      // Clear token on failure (e.g. if the user isn't an admin and /admin/profile fails)
+      setToken(null);
+      rethrow;
+    }
   }
 
   Future<Response> registerAdmin(String name, String email, String password) async {

@@ -44,6 +44,77 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // 1. Spectacular Gradient Banner Card (Mirroring customer app!)
+                    Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(bottom: 20),
+                      padding: const EdgeInsets.all(22),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFFF3CAC), Color(0xFF7C3AED)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFFFF3CAC).withOpacity(0.3),
+                            blurRadius: 20,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                            child: Text(
+                              'TEMPORADA ACTIVA 2026',
+                              style: GoogleFonts.outfit(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                                letterSpacing: 1.5,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          Text(
+                            'Planifica Momentos\nInolvidables',
+                            style: GoogleFonts.outfit(
+                              fontSize: 26,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.white,
+                              height: 1.1,
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          ElevatedButton(
+                            onPressed: () => Navigator.pushNamed(context, '/events/create'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              foregroundColor: const Color(0xFFFF3CAC),
+                              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                              elevation: 0,
+                            ),
+                            child: Text(
+                              'Explorar Eventos',
+                              style: GoogleFonts.outfit(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
                     // Stats grid
                     GridView.count(
                       crossAxisCount: 2,
@@ -51,7 +122,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       physics: const NeverScrollableScrollPhysics(),
                       mainAxisSpacing: 12,
                       crossAxisSpacing: 12,
-                      childAspectRatio: 1.4,
+                      childAspectRatio: 1.12,
                       children: [
                         StatCard(
                           title: 'Eventos hoy',
@@ -119,34 +190,92 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       const SizedBox(height: 16),
                     ],
 
-                    // Quick actions
+                    // Quick actions horizontal carousel
                     SectionHeader(title: 'Accesos Rápidos'),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      height: 52,
+                      child: ListView(
+                        scrollDirection: Axis.horizontal,
+                        physics: const BouncingScrollPhysics(),
+                        children: [
+                          _buildCarouselPill(
+                            icon: Icons.add_circle_outline,
+                            label: 'Nuevo Evento',
+                            color: const Color(0xFFFF3CAC),
+                            onTap: () => Navigator.pushNamed(context, '/events/create'),
+                          ),
+                          const SizedBox(width: 10),
+                          _buildCarouselPill(
+                            icon: Icons.search,
+                            label: 'Buscar Cliente',
+                            color: const Color(0xFF00D4AA),
+                            onTap: () => Navigator.pushNamed(context, '/clients'),
+                          ),
+                          const SizedBox(width: 10),
+                          _buildCarouselPill(
+                            icon: Icons.request_quote,
+                            label: 'Nueva Cotización',
+                            color: const Color(0xFF8B5CF6),
+                            onTap: () => Navigator.pushNamed(context, '/quotes/create'),
+                          ),
+                          const SizedBox(width: 10),
+                          _buildCarouselPill(
+                            icon: Icons.pending_actions,
+                            label: 'Ver Pendientes',
+                            color: const Color(0xFFFFB800),
+                            onTap: () => Navigator.pushNamed(context, '/quotes'),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // 2. Operaciones Workflow Stepper (Mirroring personal app style)
+                    SectionHeader(title: 'Hitos y Tareas de Hoy'),
                     const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        _QuickAction(
-                          icon: Icons.add_circle_outline,
-                          label: 'Nuevo Evento',
-                          onTap: () => Navigator.pushNamed(context, '/events/create'),
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildStepperStep(
+                              context: context,
+                              isCompleted: true,
+                              title: 'Montaje de Boda de Laura & Carlos',
+                              subtitle: 'Completado a las 09:30 AM',
+                              icon: Icons.check_circle_outline,
+                              color: AppColors.teal,
+                            ),
+                            _buildStepperConnector(color: AppColors.teal),
+                            _buildStepperStep(
+                              context: context,
+                              isActive: true,
+                              title: 'Revisar Cotizaciones Pendientes',
+                              subtitle: 'En progreso - 3 cotizaciones nuevas hoy',
+                              icon: Icons.pending_actions_outlined,
+                              color: AppColors.primary,
+                            ),
+                            _buildStepperConnector(color: AppColors.primary.withOpacity(0.3)),
+                            _buildStepperStep(
+                              context: context,
+                              title: 'Reunión con Proveedor de Flores',
+                              subtitle: 'Programado para las 04:00 PM',
+                              icon: Icons.local_florist_outlined,
+                              color: AppColors.violet,
+                            ),
+                            _buildStepperConnector(color: AppColors.primary.withOpacity(0.3)),
+                            _buildStepperStep(
+                              context: context,
+                              title: 'Cierre de Caja del Día',
+                              subtitle: 'Programado para las 08:00 PM',
+                              icon: Icons.account_balance_wallet_outlined,
+                              color: AppColors.amber,
+                            ),
+                          ],
                         ),
-                        _QuickAction(
-                          icon: Icons.search,
-                          label: 'Buscar Cliente',
-                          onTap: () => Navigator.pushNamed(context, '/clients'),
-                        ),
-                        _QuickAction(
-                          icon: Icons.request_quote,
-                          label: 'Nueva Cotización',
-                          onTap: () => Navigator.pushNamed(context, '/quotes/create'),
-                        ),
-                        _QuickAction(
-                          icon: Icons.pending_actions,
-                          label: 'Ver Pendientes',
-                          onTap: () => Navigator.pushNamed(context, '/quotes'),
-                        ),
-                      ],
+                      ),
                     ),
                     const SizedBox(height: 24),
 
@@ -218,6 +347,165 @@ class _DashboardScreenState extends State<DashboardScreen> {
       return 'RD\$${(amount / 1000).toStringAsFixed(0)}K';
     }
     return 'RD\$$amount';
+  }
+
+  Widget _buildStepperStep({
+    required BuildContext context,
+    bool isCompleted = false,
+    bool isActive = false,
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color color,
+  }) {
+    final titleColor = isCompleted ? const Color(0xFF5A5A80) : const Color(0xFF2C1A4D);
+    
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Column(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isCompleted
+                    ? color.withOpacity(0.15)
+                    : isActive
+                        ? color.withOpacity(0.2)
+                        : Colors.white.withOpacity(0.5),
+                border: Border.all(
+                  color: isCompleted || isActive ? color : Colors.grey.withOpacity(0.4),
+                  width: 2,
+                ),
+                boxShadow: isActive
+                    ? [
+                        BoxShadow(
+                          color: color.withOpacity(0.4),
+                          blurRadius: 10,
+                          spreadRadius: 2,
+                        )
+                      ]
+                    : null,
+              ),
+              child: Icon(
+                isCompleted ? Icons.check : icon,
+                size: 16,
+                color: isCompleted || isActive ? color : Colors.grey,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: isActive ? color.withOpacity(0.08) : Colors.transparent,
+              borderRadius: BorderRadius.circular(12),
+              border: isActive
+                  ? Border.all(color: color.withOpacity(0.25), width: 1.5)
+                  : null,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: GoogleFonts.outfit(
+                    fontSize: 14,
+                    fontWeight: isCompleted || isActive ? FontWeight.w700 : FontWeight.w600,
+                    color: titleColor,
+                    decoration: isCompleted ? TextDecoration.lineThrough : null,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: GoogleFonts.dmSans(
+                    fontSize: 11,
+                    color: isCompleted ? Colors.grey : AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (isActive)
+          const Padding(
+            padding: EdgeInsets.only(top: 10),
+            child: Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.primary),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildStepperConnector({required Color color}) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 15),
+      child: Container(
+        width: 2,
+        height: 24,
+        color: color,
+      ),
+    );
+  }
+
+  Widget _buildCarouselPill({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: isDark ? Colors.white.withOpacity(0.04) : Colors.white.withOpacity(0.68),
+          borderRadius: BorderRadius.circular(30),
+          border: Border.all(
+            color: color.withOpacity(0.16),
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.02),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            )
+          ]
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: color.withOpacity(0.12),
+              ),
+              child: Icon(
+                icon,
+                size: 16,
+                color: color,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: GoogleFonts.outfit(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: isDark ? Colors.white70 : const Color(0xFF2C1A4D),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

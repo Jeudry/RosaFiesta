@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../features/auth/presentation/providers/auth_provider.dart';
@@ -188,7 +189,7 @@ class _DrawerItem extends StatelessWidget {
   }
 }
 
-class AdminScaffold extends StatelessWidget {
+class AdminScaffold extends StatefulWidget {
   final String title;
   final Widget body;
   final List<Widget>? actions;
@@ -205,11 +206,52 @@ class AdminScaffold extends StatelessWidget {
   });
 
   @override
+  State<AdminScaffold> createState() => _AdminScaffoldState();
+}
+
+class _AdminScaffoldState extends State<AdminScaffold> with TickerProviderStateMixin {
+  late AnimationController _floatController;
+  late AnimationController _decoController;
+  late AnimationController _pulseController;
+
+  @override
+  void initState() {
+    super.initState();
+    _floatController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 25),
+    )..repeat();
+    _decoController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 45),
+    )..repeat();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 6),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _floatController.dispose();
+    _decoController.dispose();
+    _pulseController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    // Purplish-magenta Candy Pop theme variations
+    const candyMagenta = Color(0xFFD42A8F);
+    const candyViolet = Color(0xFF7C3AED);
+
     return Scaffold(
+      extendBodyBehindAppBar: true, // Let the background gradient flow up behind the app bar!
       appBar: AppBar(
-        title: Text(title),
-        leading: showBack
+        title: Text(widget.title),
+        leading: widget.showBack
             ? IconButton(
                 icon: const Icon(Icons.arrow_back),
                 onPressed: () => Navigator.pop(context),
@@ -220,11 +262,103 @@ class AdminScaffold extends StatelessWidget {
                   onPressed: () => Scaffold.of(ctx).openDrawer(),
                 ),
               ),
-        actions: actions,
+        actions: widget.actions,
+        backgroundColor: Colors.transparent, // Translucent glass appbar!
+        elevation: 0,
+        flexibleSpace: ClipRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+            child: Container(
+              color: isDark ? Colors.black.withOpacity(0.2) : Colors.white.withOpacity(0.2),
+            ),
+          ),
+        ),
       ),
       drawer: const AdminDrawer(),
-      body: body,
-      floatingActionButton: floatingActionButton,
+      body: Stack(
+        children: [
+          // 1. Base background (Vibrant Pastel Gradient for Light Mode!)
+          Container(
+            decoration: BoxDecoration(
+              gradient: isDark
+                  ? const LinearGradient(
+                      colors: [Color(0xFF07070F), Color(0xFF140D26)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    )
+                  : const LinearGradient(
+                      colors: [Color(0xFFFFF0F5), Color(0xFFF3E8FF)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+            ),
+          ),
+
+          // 2. Animated Candy Orbs (Purplish Accent Variation)
+          RfGradientOrbs(
+            controller: _floatController,
+            color1: candyMagenta,
+            color2: candyViolet,
+            isDark: isDark,
+          ),
+
+          // High blur filter to blend gradient orbs
+          Positioned.fill(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 75, sigmaY: 75),
+              child: Container(color: Colors.transparent),
+            ),
+          ),
+
+          // 3. Sublte layout grid
+          Positioned.fill(
+            child: CustomPaint(
+              painter: _RfGridPainter(
+                color: isDark ? Colors.white.withOpacity(0.015) : Colors.black.withOpacity(0.015),
+              ),
+            ),
+          ),
+
+          // 4. Subtle background decorations layer
+          RfDecoLayer(
+            floatController: _floatController,
+            decoController: _decoController,
+            pulseController: _pulseController,
+            baseOpacity: isDark ? 0.28 : 0.48,
+          ),
+
+          // 5. Main content
+          Positioned.fill(
+            child: SafeArea(
+              child: widget.body,
+            ),
+          ),
+        ],
+      ),
+      floatingActionButton: widget.floatingActionButton,
     );
   }
+}
+
+// Subtle grid painter for the background
+class _RfGridPainter extends CustomPainter {
+  final Color color;
+  const _RfGridPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 0.5;
+    const step = 48.0;
+    for (double x = 0; x < size.width; x += step) {
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
+    }
+    for (double y = 0; y < size.height; y += step) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_RfGridPainter old) => old.color != color;
 }

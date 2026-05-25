@@ -34,7 +34,7 @@ class RosaFiestaAdminApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         theme: AdminTheme.light,
         darkTheme: AdminTheme.dark,
-        themeMode: ThemeMode.dark, // Admin app defaults to dark
+        themeMode: ThemeMode.light, // Default to light theme
         localizationsDelegates: const [
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,
