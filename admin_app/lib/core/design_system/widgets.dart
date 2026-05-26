@@ -67,54 +67,156 @@ class StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final c = color ?? AppColors.primary;
-    return Card(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: c.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(icon, color: c, size: 18),
-                  ),
-                  const Spacer(),
-                  if (onTap != null)
-                    Icon(Icons.arrow_forward_ios, size: 12, color: AppColors.textMuted),
-                ],
-              ),
-              const SizedBox(height: 6),
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  value,
-                  style: GoogleFonts.outfit(fontSize: 24, fontWeight: FontWeight.w700),
-                ),
-              ),
-              const SizedBox(height: 2),
-              Expanded(
-                child: Align(
-                  alignment: Alignment.bottomLeft,
-                  child: Text(
-                    title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.dmSans(color: AppColors.textMuted, fontSize: 12),
-                  ),
-                ),
-              ),
+    
+    // Gradiente de fondo acoplado y refinado estilo Candy Pop
+    final backgroundGradient = isDark
+        ? LinearGradient(
+            colors: [
+              Colors.white.withOpacity(0.05),
+              c.withOpacity(0.025),
             ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          )
+        : LinearGradient(
+            colors: [
+              Colors.white,
+              c.withOpacity(0.06),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          );
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: backgroundGradient,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: isDark ? Colors.white.withOpacity(0.08) : c.withOpacity(0.12),
+          width: 1.5,
+        ),
+        boxShadow: [
+          // Sombra ambiental sutil
+          BoxShadow(
+            color: isDark ? Colors.black.withOpacity(0.2) : c.withOpacity(0.03),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
+          // Resplandor de color premium de fondo (glow shadow)
+          BoxShadow(
+            color: c.withOpacity(isDark ? 0.08 : 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: Stack(
+          children: [
+            // Aura de resplandor radial difuminada en la esquina inferior derecha (Efecto Mesh Glow)
+            Positioned(
+              right: -30,
+              bottom: -30,
+              child: Container(
+                width: 90,
+                height: 90,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      c.withOpacity(isDark ? 0.16 : 0.12),
+                      c.withOpacity(0.0),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            
+            // Contenido interactivo principal
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: onTap,
+                borderRadius: BorderRadius.circular(24),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          // Contenedor de Icono con Gradiente y Sombra Vibrante
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: LinearGradient(
+                                colors: [c, c.withOpacity(0.75)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: c.withOpacity(0.35),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Icon(icon, color: Colors.white, size: 18),
+                          ),
+                          const Spacer(),
+                          if (onTap != null)
+                            Container(
+                              padding: const EdgeInsets.all(5),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: isDark ? Colors.white.withOpacity(0.08) : c.withOpacity(0.08),
+                              ),
+                              child: Icon(
+                                Icons.arrow_forward_ios, 
+                                size: 10, 
+                                color: isDark ? Colors.white70 : c,
+                              ),
+                            ),
+                        ],
+                      ),
+                      const Spacer(),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          value,
+                          style: GoogleFonts.outfit(
+                            fontSize: 26,
+                            fontWeight: FontWeight.w900,
+                            color: isDark ? Colors.white : const Color(0xFF1E1E2C),
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.outfit(
+                          color: isDark ? const Color(0xFFC0C0D8) : const Color(0xFF5A5A80),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.2,
+                          height: 1.15,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
