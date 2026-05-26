@@ -30,56 +30,56 @@ class AppRouter {
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
       case '/':
-        return MaterialPageRoute(builder: (_) => const LoginScreen());
+        return MaterialPageRoute(settings: settings, builder: (_) => const LoginScreen());
       case '/login':
-        return MaterialPageRoute(builder: (_) => const LoginScreen());
+        return MaterialPageRoute(settings: settings, builder: (_) => const LoginScreen());
       case '/dashboard':
-        return MaterialPageRoute(builder: (_) => const DashboardScreen());
+        return MaterialPageRoute(settings: settings, builder: (_) => const DashboardScreen());
       case '/events':
-        return MaterialPageRoute(builder: (_) => const EventsScreen());
+        return MaterialPageRoute(settings: settings, builder: (_) => const EventsScreen());
       case '/events/create':
-        return MaterialPageRoute(builder: (_) => const CreateEventScreen());
+        return MaterialPageRoute(settings: settings, builder: (_) => const CreateEventScreen());
       case '/events/:id':
         final id = settings.arguments as String;
-        return MaterialPageRoute(builder: (_) => EventDetailScreen(eventId: id));
+        return MaterialPageRoute(settings: settings, builder: (_) => EventDetailScreen(eventId: id));
       case '/quotes':
-        return MaterialPageRoute(builder: (_) => const QuotesScreen());
+        return MaterialPageRoute(settings: settings, builder: (_) => const QuotesScreen());
       case '/quotes/create':
-        return MaterialPageRoute(builder: (_) => const CreateQuoteScreen());
+        return MaterialPageRoute(settings: settings, builder: (_) => const CreateQuoteScreen());
       case '/clients':
-        return MaterialPageRoute(builder: (_) => const ClientsScreen());
+        return MaterialPageRoute(settings: settings, builder: (_) => const ClientsScreen());
       case '/clients/:id':
         final id = settings.arguments as String;
-        return MaterialPageRoute(builder: (_) => ClientDetailScreen(clientId: id));
+        return MaterialPageRoute(settings: settings, builder: (_) => ClientDetailScreen(clientId: id));
       case '/products':
-        return MaterialPageRoute(builder: (_) => const ProductsScreen());
+        return MaterialPageRoute(settings: settings, builder: (_) => const ProductsScreen());
       case '/products/:id':
         final id = settings.arguments as String;
-        return MaterialPageRoute(builder: (_) => ProductEditScreen(productId: id));
+        return MaterialPageRoute(settings: settings, builder: (_) => ProductEditScreen(productId: id));
       case '/products/new':
-        return MaterialPageRoute(builder: (_) => const ProductEditScreen());
+        return MaterialPageRoute(settings: settings, builder: (_) => const ProductEditScreen());
       case '/products/categories':
-        return MaterialPageRoute(builder: (_) => const CategoriesScreen());
+        return MaterialPageRoute(settings: settings, builder: (_) => const CategoriesScreen());
       case '/products/bundles':
-        return MaterialPageRoute(builder: (_) => const BundlesScreen());
+        return MaterialPageRoute(settings: settings, builder: (_) => const BundlesScreen());
       case '/ai-config':
-        return MaterialPageRoute(builder: (_) => const AIConfigScreen());
+        return MaterialPageRoute(settings: settings, builder: (_) => const AIConfigScreen());
       case '/ai-config/history':
-        return MaterialPageRoute(builder: (_) => const AIHistoryScreen());
+        return MaterialPageRoute(settings: settings, builder: (_) => const AIHistoryScreen());
       case '/notifications':
-        return MaterialPageRoute(builder: (_) => const NotificationsScreen());
+        return MaterialPageRoute(settings: settings, builder: (_) => const NotificationsScreen());
       case '/notifications/email':
-        return MaterialPageRoute(builder: (_) => const EmailTemplatesScreen());
+        return MaterialPageRoute(settings: settings, builder: (_) => const EmailTemplatesScreen());
       case '/notifications/whatsapp':
-        return MaterialPageRoute(builder: (_) => const WhatsAppTemplatesScreen());
+        return MaterialPageRoute(settings: settings, builder: (_) => const WhatsAppTemplatesScreen());
       case '/analytics':
-        return MaterialPageRoute(builder: (_) => const AnalyticsScreen());
+        return MaterialPageRoute(settings: settings, builder: (_) => const AnalyticsScreen());
       case '/config':
-        return MaterialPageRoute(builder: (_) => const ConfigScreen());
+        return MaterialPageRoute(settings: settings, builder: (_) => const ConfigScreen());
       case '/activity-log':
-        return MaterialPageRoute(builder: (_) => const ActivityLogScreen());
+        return MaterialPageRoute(settings: settings, builder: (_) => const ActivityLogScreen());
       default:
-        return MaterialPageRoute(builder: (_) => const Scaffold(body: Center(child: Text('Not Found'))));
+        return MaterialPageRoute(settings: settings, builder: (_) => const Scaffold(body: Center(child: Text('Not Found'))));
     }
   }
 }
