@@ -142,7 +142,7 @@ class StatCard extends StatelessWidget {
                 onTap: onTap,
                 borderRadius: BorderRadius.circular(24),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -150,7 +150,7 @@ class StatCard extends StatelessWidget {
                         children: [
                           // Contenedor de Icono con Gradiente y Sombra Vibrante
                           Container(
-                            padding: const EdgeInsets.all(8),
+                            padding: const EdgeInsets.all(6),
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               gradient: LinearGradient(
@@ -160,26 +160,45 @@ class StatCard extends StatelessWidget {
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: c.withOpacity(0.35),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
+                                  color: c.withOpacity(0.3),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 3),
                                 ),
                               ],
                             ),
-                            child: Icon(icon, color: Colors.white, size: 18),
+                            child: Icon(icon, color: Colors.white, size: 16),
                           ),
                           const Spacer(),
                           if (onTap != null)
                             Container(
-                              padding: const EdgeInsets.all(5),
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: isDark ? Colors.white.withOpacity(0.08) : c.withOpacity(0.08),
+                                color: isDark ? c.withOpacity(0.18) : c.withOpacity(0.08),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: c.withOpacity(0.2),
+                                  width: 0.8,
+                                ),
                               ),
-                              child: Icon(
-                                Icons.arrow_forward_ios, 
-                                size: 10, 
-                                color: isDark ? Colors.white70 : c,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'VER',
+                                    style: GoogleFonts.outfit(
+                                      fontSize: 8.5,
+                                      fontWeight: FontWeight.w800,
+                                      color: c,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 2),
+                                  Icon(
+                                    Icons.chevron_right_rounded, 
+                                    size: 12, 
+                                    color: c,
+                                  ),
+                                ],
                               ),
                             ),
                         ],
@@ -191,23 +210,23 @@ class StatCard extends StatelessWidget {
                         child: Text(
                           value,
                           style: GoogleFonts.outfit(
-                            fontSize: 26,
+                            fontSize: 22,
                             fontWeight: FontWeight.w900,
                             color: isDark ? Colors.white : const Color(0xFF1E1E2C),
                             letterSpacing: -0.5,
                           ),
                         ),
                       ),
-                      const SizedBox(height: 5),
+                      const SizedBox(height: 2),
                       Text(
                         title,
-                        maxLines: 2,
+                        maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: GoogleFonts.outfit(
                           color: isDark ? const Color(0xFFC0C0D8) : const Color(0xFF5A5A80),
-                          fontSize: 11,
+                          fontSize: 10,
                           fontWeight: FontWeight.w600,
-                          letterSpacing: 0.2,
+                          letterSpacing: 0.1,
                           height: 1.15,
                         ),
                       ),

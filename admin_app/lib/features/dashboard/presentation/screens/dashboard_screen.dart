@@ -44,85 +44,42 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // 1. Spectacular Gradient Banner Card (Mirroring customer app!)
-                    Container(
-                      width: double.infinity,
-                      margin: const EdgeInsets.only(bottom: 20),
-                      padding: const EdgeInsets.all(22),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFFFF3CAC), Color(0xFF7C3AED)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(24),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFFFF3CAC).withOpacity(0.3),
-                            blurRadius: 20,
-                            offset: const Offset(0, 10),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(30),
-                            ),
-                            child: Text(
-                              'TEMPORADA ACTIVA 2026',
+                    // 1. Executive Welcome Header
+                    Row(
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '¡Hola, Administrador! 👋',
                               style: GoogleFonts.outfit(
-                                fontSize: 10,
+                                fontSize: 22,
                                 fontWeight: FontWeight.w800,
-                                color: Colors.white,
-                                letterSpacing: 1.5,
+                                color: isDark ? Colors.white : const Color(0xFF2C1A4D),
                               ),
                             ),
-                          ),
-                          const SizedBox(height: 14),
-                          Text(
-                            'Planifica Momentos\nInolvidables',
-                            style: GoogleFonts.outfit(
-                              fontSize: 26,
-                              fontWeight: FontWeight.w900,
-                              color: Colors.white,
-                              height: 1.1,
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-                          ElevatedButton(
-                            onPressed: () => Navigator.pushNamed(context, '/events/create'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              foregroundColor: const Color(0xFFFF3CAC),
-                              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                              elevation: 0,
-                            ),
-                            child: Text(
-                              'Explorar Eventos',
-                              style: GoogleFonts.outfit(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
+                            const SizedBox(height: 2),
+                            Text(
+                              'Aquí tienes el resumen de operaciones de hoy.',
+                              style: GoogleFonts.dmSans(
+                                fontSize: 12,
+                                color: isDark ? const Color(0xFF8B8BAA) : const Color(0xFF6B7280),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
+                          ],
+                        ),
+                      ],
                     ),
+                    const SizedBox(height: 20),
 
-                    // Stats grid
+                    // Stats grid (Slightly smaller, 1.28 aspect ratio!)
                     GridView.count(
                       crossAxisCount: 2,
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       mainAxisSpacing: 12,
                       crossAxisSpacing: 12,
-                      childAspectRatio: 1.08,
+                      childAspectRatio: 1.28,
                       children: [
                         StatCard(
                           title: 'Eventos de hoy',
@@ -190,48 +147,46 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       const SizedBox(height: 16),
                     ],
 
-                    // Quick actions horizontal carousel
+                    // Quick actions 2x2 Grid (Instead of horizontal listview!)
                     SectionHeader(title: 'Accesos Rápidos'),
                     const SizedBox(height: 12),
-                    SizedBox(
-                      height: 52,
-                      child: ListView(
-                        scrollDirection: Axis.horizontal,
-                        physics: const BouncingScrollPhysics(),
-                        children: [
-                          _buildCarouselPill(
-                            icon: Icons.add_circle_outline,
-                            label: 'Nuevo Evento',
-                            color: const Color(0xFFFF3CAC),
-                            onTap: () => Navigator.pushNamed(context, '/events/create'),
-                          ),
-                          const SizedBox(width: 10),
-                          _buildCarouselPill(
-                            icon: Icons.search,
-                            label: 'Buscar Cliente',
-                            color: const Color(0xFF00D4AA),
-                            onTap: () => Navigator.pushNamed(context, '/clients'),
-                          ),
-                          const SizedBox(width: 10),
-                          _buildCarouselPill(
-                            icon: Icons.request_quote,
-                            label: 'Nueva Cotización',
-                            color: const Color(0xFF8B5CF6),
-                            onTap: () => Navigator.pushNamed(context, '/quotes/create'),
-                          ),
-                          const SizedBox(width: 10),
-                          _buildCarouselPill(
-                            icon: Icons.pending_actions,
-                            label: 'Ver Pendientes',
-                            color: const Color(0xFFFFB800),
-                            onTap: () => Navigator.pushNamed(context, '/quotes'),
-                          ),
-                        ],
-                      ),
+                    GridView.count(
+                      crossAxisCount: 2,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      mainAxisSpacing: 10,
+                      crossAxisSpacing: 10,
+                      childAspectRatio: 2.65,
+                      children: [
+                        _buildCarouselPill(
+                          icon: Icons.add_circle_outline_rounded,
+                          label: 'Nuevo Evento',
+                          color: const Color(0xFFFF3CAC),
+                          onTap: () => Navigator.pushNamed(context, '/events/create'),
+                        ),
+                        _buildCarouselPill(
+                          icon: Icons.search_rounded,
+                          label: 'Buscar Cliente',
+                          color: const Color(0xFF00D4AA),
+                          onTap: () => Navigator.pushNamed(context, '/clients'),
+                        ),
+                        _buildCarouselPill(
+                          icon: Icons.request_quote_rounded,
+                          label: 'Nueva Cotización',
+                          color: const Color(0xFF8B5CF6),
+                          onTap: () => Navigator.pushNamed(context, '/quotes/create'),
+                        ),
+                        _buildCarouselPill(
+                          icon: Icons.pending_actions_rounded,
+                          label: 'Ver Pendientes',
+                          color: const Color(0xFFFFB800),
+                          onTap: () => Navigator.pushNamed(context, '/quotes'),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 24),
 
-                    // 2. Operaciones Workflow Stepper (Mirroring personal app style)
+                    // 2. Operaciones Workflow Stepper (Dynamic from database!)
                     SectionHeader(title: 'Hitos y Tareas de Hoy'),
                     const SizedBox(height: 8),
                     Card(
@@ -240,37 +195,56 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            if (provider.todayEvents.isNotEmpty) ...[
+                              // Dynamic events from the database
+                              for (int i = 0; i < provider.todayEvents.length; i++) ...[
+                                _buildStepperStep(
+                                  context: context,
+                                  isCompleted: provider.todayEvents[i]['status'] == 'completed',
+                                  isActive: provider.todayEvents[i]['status'] == 'confirmed' || provider.todayEvents[i]['status'] == 'paid',
+                                  title: provider.todayEvents[i]['client_name'] ?? 'Evento',
+                                  subtitle: 'Hoy a las ${provider.todayEvents[i]['time'] ?? '12:00 PM'} - Estado: ${provider.todayEvents[i]['status']}',
+                                  icon: Icons.celebration_rounded,
+                                  color: AppColors.teal,
+                                ),
+                                if (i < provider.todayEvents.length - 1)
+                                  _buildStepperConnector(color: AppColors.teal.withOpacity(0.3)),
+                              ],
+                              // Connector to general administrative tasks
+                              _buildStepperConnector(color: AppColors.primary.withOpacity(0.3)),
+                            ],
+                            // Dynamic task 1: Quotes
                             _buildStepperStep(
                               context: context,
-                              isCompleted: true,
-                              title: 'Montaje de Boda de Laura & Carlos',
-                              subtitle: 'Completado a las 09:30 AM',
-                              icon: Icons.check_circle_outline,
-                              color: AppColors.teal,
-                            ),
-                            _buildStepperConnector(color: AppColors.teal),
-                            _buildStepperStep(
-                              context: context,
-                              isActive: true,
+                              isCompleted: provider.pendingQuotes == 0,
+                              isActive: provider.pendingQuotes > 0,
                               title: 'Revisar Cotizaciones Pendientes',
-                              subtitle: 'En progreso - 3 cotizaciones nuevas hoy',
+                              subtitle: provider.pendingQuotes > 0
+                                  ? 'En progreso - ${provider.pendingQuotes} cotizaciones pendientes hoy'
+                                  : 'Completado - No hay cotizaciones pendientes hoy',
                               icon: Icons.pending_actions_outlined,
                               color: AppColors.primary,
                             ),
                             _buildStepperConnector(color: AppColors.primary.withOpacity(0.3)),
+                            // Dynamic task 2: Cash flow
                             _buildStepperStep(
                               context: context,
-                              title: 'Reunión con Proveedor de Flores',
-                              subtitle: 'Programado para las 04:00 PM',
-                              icon: Icons.local_florist_outlined,
-                              color: AppColors.violet,
+                              isCompleted: provider.monthRevenue > 0,
+                              isActive: provider.monthRevenue == 0,
+                              title: 'Conciliación de Ingresos del Mes',
+                              subtitle: provider.monthRevenue > 0
+                                  ? 'Ingresos acumulados: ${_formatCurrency(provider.monthRevenue)}'
+                                  : 'Pendiente - Registrar primeros ingresos del mes',
+                              icon: Icons.account_balance_wallet_outlined,
+                              color: AppColors.teal,
                             ),
                             _buildStepperConnector(color: AppColors.primary.withOpacity(0.3)),
+                            // Dynamic task 3: Standard audit close
                             _buildStepperStep(
                               context: context,
                               title: 'Cierre de Caja del Día',
                               subtitle: 'Programado para las 08:00 PM',
-                              icon: Icons.account_balance_wallet_outlined,
+                              icon: Icons.history_toggle_off_outlined,
                               color: AppColors.amber,
                             ),
                           ],
@@ -299,7 +273,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               border: Border.all(color: AppColors.primary),
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            titleTextStyle: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w600),
+                            formatButtonTextStyle: GoogleFonts.outfit(color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.w600),
+                            titleTextStyle: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.w700),
                           ),
                           calendarStyle: CalendarStyle(
                             todayDecoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.3), shape: BoxShape.circle),
@@ -333,6 +308,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       const SizedBox(height: 8),
                       ...provider.todayEvents.map((event) => _EventListItem(event: event)),
                     ],
+                    // UX Scroll padding to float over BottomNavBar
+                    const SizedBox(height: 110),
                   ],
                 ),
               ),
@@ -359,6 +336,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     required Color color,
   }) {
     final titleColor = isCompleted ? const Color(0xFF5A5A80) : const Color(0xFF2C1A4D);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -371,72 +349,83 @@ class _DashboardScreenState extends State<DashboardScreen> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: isCompleted
-                    ? color.withOpacity(0.15)
+                    ? color.withOpacity(0.12)
                     : isActive
-                        ? color.withOpacity(0.2)
-                        : Colors.white.withOpacity(0.5),
+                        ? color.withOpacity(0.15)
+                        : Colors.white.withOpacity(0.3),
                 border: Border.all(
-                  color: isCompleted || isActive ? color : Colors.grey.withOpacity(0.4),
-                  width: 2,
+                  color: isCompleted || isActive ? color : Colors.grey.withOpacity(0.3),
+                  width: 1.8,
                 ),
                 boxShadow: isActive
                     ? [
                         BoxShadow(
-                          color: color.withOpacity(0.4),
-                          blurRadius: 10,
-                          spreadRadius: 2,
+                          color: color.withOpacity(0.15),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
                         )
                       ]
                     : null,
               ),
               child: Icon(
                 isCompleted ? Icons.check : icon,
-                size: 16,
+                size: 14,
                 color: isCompleted || isActive ? color : Colors.grey,
               ),
             ),
           ],
         ),
-        const SizedBox(width: 16),
+        const SizedBox(width: 12),
         Expanded(
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
-              color: isActive ? color.withOpacity(0.08) : Colors.transparent,
-              borderRadius: BorderRadius.circular(12),
+              color: isActive 
+                  ? (isDark ? Colors.white.withOpacity(0.04) : color.withOpacity(0.04))
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(16),
               border: isActive
-                  ? Border.all(color: color.withOpacity(0.25), width: 1.5)
+                  ? Border.all(color: color.withOpacity(0.15), width: 1.2)
                   : null,
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
               children: [
-                Text(
-                  title,
-                  style: GoogleFonts.outfit(
-                    fontSize: 14,
-                    fontWeight: isCompleted || isActive ? FontWeight.w700 : FontWeight.w600,
-                    color: titleColor,
-                    decoration: isCompleted ? TextDecoration.lineThrough : null,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: GoogleFonts.outfit(
+                          fontSize: 13.5,
+                          fontWeight: isCompleted || isActive ? FontWeight.w700 : FontWeight.w600,
+                          color: isDark ? (isCompleted ? const Color(0xFF8B8BAA) : Colors.white) : titleColor,
+                          decoration: isCompleted ? TextDecoration.lineThrough : null,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        subtitle,
+                        style: GoogleFonts.dmSans(
+                          fontSize: 11,
+                          color: isCompleted 
+                              ? (isDark ? Colors.white54 : Colors.grey) 
+                              : (isDark ? const Color(0xFF8B8BAA) : AppColors.textSecondary),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: GoogleFonts.dmSans(
-                    fontSize: 11,
-                    color: isCompleted ? Colors.grey : AppColors.textSecondary,
+                if (isActive)
+                  Icon(
+                    Icons.chevron_right_rounded, 
+                    size: 18, 
+                    color: color,
                   ),
-                ),
               ],
             ),
           ),
         ),
-        if (isActive)
-          const Padding(
-            padding: EdgeInsets.only(top: 10),
-            child: Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.primary),
-          ),
       ],
     );
   }

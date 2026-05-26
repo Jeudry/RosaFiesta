@@ -242,6 +242,7 @@ class _AdminScaffoldState extends State<AdminScaffold> with TickerProviderStateM
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final currentRoute = ModalRoute.of(context)?.settings.name;
     
     // Purplish-magenta Candy Pop theme variations
     const candyMagenta = Color(0xFFD42A8F);
@@ -249,32 +250,107 @@ class _AdminScaffoldState extends State<AdminScaffold> with TickerProviderStateM
 
     return Scaffold(
       extendBodyBehindAppBar: true, // Let the background gradient flow up behind the app bar!
+      extendBody: true, // Let the body flow beautifully behind the bottom navigation bar!
       appBar: AppBar(
-        title: Text(widget.title),
+        automaticallyImplyLeading: false, // We use custom leading logo and actions
+        titleSpacing: 16,
         leading: widget.showBack
             ? IconButton(
-                icon: const Icon(Icons.arrow_back),
+                icon: Icon(
+                  Icons.arrow_back_ios_new_rounded, 
+                  size: 18, 
+                  color: isDark ? Colors.white : const Color(0xFF2C1A4D)
+                ),
                 onPressed: () => Navigator.pop(context),
               )
-            : Builder(
-                builder: (ctx) => IconButton(
-                  icon: const Icon(Icons.menu),
-                  onPressed: () => Scaffold.of(ctx).openDrawer(),
+            : Padding(
+                padding: const EdgeInsets.only(left: 12),
+                child: Center(
+                  child: Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: AppColors.hotPink.withOpacity(0.4),
+                        width: 1.5,
+                      ),
+                      image: const DecorationImage(
+                        image: AssetImage('assets/images/logo_rosafiesta.png'),
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
                 ),
               ),
-        actions: widget.actions,
+        title: widget.showBack
+            ? Text(
+                widget.title,
+                style: GoogleFonts.outfit(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: isDark ? Colors.white : const Color(0xFF2C1A4D),
+                ),
+              )
+            : Row(
+                children: [
+                  ShaderMask(
+                    shaderCallback: (bounds) => const LinearGradient(
+                      colors: [AppColors.hotPink, AppColors.violet],
+                    ).createShader(bounds),
+                    child: Text(
+                      'RosaFiesta',
+                      style: GoogleFonts.outfit(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: AppColors.primary.withOpacity(0.18),
+                        width: 0.8,
+                      ),
+                    ),
+                    child: Text(
+                      'Portal',
+                      style: GoogleFonts.outfit(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.primary,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+        actions: [
+          // Notifications
+          IconButton(
+            icon: const Icon(Icons.notifications_outlined, color: AppColors.primary, size: 22),
+            onPressed: () => Navigator.pushNamed(context, '/notifications'),
+          ),
+          const SizedBox(width: 8),
+        ],
         backgroundColor: Colors.transparent, // Translucent glass appbar!
         elevation: 0,
         flexibleSpace: ClipRect(
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
             child: Container(
-              color: isDark ? Colors.black.withOpacity(0.2) : Colors.white.withOpacity(0.2),
+              color: isDark ? Colors.black.withOpacity(0.25) : Colors.white.withOpacity(0.25),
             ),
           ),
         ),
       ),
-      drawer: const AdminDrawer(),
+      endDrawer: const AdminDrawer(), // Opens on the right!
       body: Stack(
         children: [
           // 1. Base background (Vibrant Pastel Gradient for Light Mode!)
@@ -336,6 +412,130 @@ class _AdminScaffoldState extends State<AdminScaffold> with TickerProviderStateM
         ],
       ),
       floatingActionButton: widget.floatingActionButton,
+      bottomNavigationBar: Builder(
+        builder: (ctx) => _buildBottomNav(ctx, isDark, currentRoute),
+      ),
+    );
+  }
+
+  Widget _buildBottomNav(BuildContext context, bool isDark, String? currentRoute) {
+    final bottomPad = MediaQuery.of(context).padding.bottom;
+    
+    // Detect active tab index
+    int activeIndex = 0;
+    if (currentRoute == '/dashboard') {
+      activeIndex = 0;
+    } else if (currentRoute != null && currentRoute.startsWith('/events')) {
+      activeIndex = 1;
+    } else if (currentRoute != null && currentRoute.startsWith('/quotes')) {
+      activeIndex = 2;
+    } else if (currentRoute != null && currentRoute.startsWith('/clients')) {
+      activeIndex = 3;
+    } else {
+      activeIndex = 0; // Default or fallback
+    }
+
+    final cardBg = isDark ? AppColors.cardDark : Colors.white;
+    final textDim = isDark ? const Color(0xFF8B8BAA) : const Color(0xFF6B7280);
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(16, 0, 16, bottomPad + 12),
+      child: Container(
+        height: 68,
+        decoration: BoxDecoration(
+          color: cardBg.withOpacity(0.92),
+          borderRadius: BorderRadius.circular(34),
+          border: Border.all(
+            color: isDark ? Colors.white.withOpacity(0.08) : AppColors.primary.withOpacity(0.12),
+            width: 1.2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(isDark ? 0.25 : 0.08),
+              blurRadius: 20,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6),
+          child: Row(
+            children: [
+              _navItem(context, Icons.dashboard_rounded, 'Inicio', activeIndex == 0, textDim, () {
+                if (currentRoute != '/dashboard') {
+                  Navigator.pushReplacementNamed(context, '/dashboard');
+                }
+              }),
+              _navItem(context, Icons.event_rounded, 'Eventos', activeIndex == 1, textDim, () {
+                if (currentRoute != '/events') {
+                  Navigator.pushReplacementNamed(context, '/events');
+                }
+              }),
+              _navItem(context, Icons.request_quote_rounded, 'Cotizaciones', activeIndex == 2, textDim, () {
+                if (currentRoute != '/quotes') {
+                  Navigator.pushReplacementNamed(context, '/quotes');
+                }
+              }),
+              _navItem(context, Icons.people_rounded, 'Clientes', activeIndex == 3, textDim, () {
+                if (currentRoute != '/clients') {
+                  Navigator.pushReplacementNamed(context, '/clients');
+                }
+              }),
+              _navItem(context, Icons.more_horiz_rounded, 'Más', false, textDim, () {
+                Scaffold.of(context).openEndDrawer();
+              }),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _navItem(
+    BuildContext context,
+    IconData icon,
+    String label,
+    bool isActive,
+    Color textDim,
+    VoidCallback onTap,
+  ) {
+    return Expanded(
+      flex: isActive ? 3 : 1,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: isActive
+            ? Container(
+                margin: const EdgeInsets.symmetric(vertical: 7, horizontal: 4),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [AppColors.primary, AppColors.violet],
+                  ),
+                  borderRadius: BorderRadius.circular(28),
+                ),
+                alignment: Alignment.center,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(icon, color: Colors.white, size: 20),
+                    const SizedBox(width: 6),
+                    Text(
+                      label,
+                      style: GoogleFonts.dmSans(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            : Center(
+                child: Icon(icon, color: textDim, size: 24),
+              ),
+      ),
     );
   }
 }
