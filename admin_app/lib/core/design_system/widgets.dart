@@ -70,20 +70,20 @@ class StatCard extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final c = color ?? AppColors.primary;
     
-    // Gradiente de fondo acoplado y refinado estilo Candy Pop
+    // Gradiente de fondo translúcido Candy Pop que se integra con el efecto Glassmorphism
     final backgroundGradient = isDark
         ? LinearGradient(
             colors: [
-              Colors.white.withOpacity(0.05),
-              c.withOpacity(0.025),
+              c.withOpacity(0.08),
+              c.withOpacity(0.02),
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           )
         : LinearGradient(
             colors: [
-              Colors.white,
-              c.withOpacity(0.06),
+              c.withOpacity(0.12),
+              c.withOpacity(0.03),
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -94,148 +94,151 @@ class StatCard extends StatelessWidget {
         gradient: backgroundGradient,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: isDark ? Colors.white.withOpacity(0.08) : c.withOpacity(0.12),
+          color: isDark ? c.withOpacity(0.18) : c.withOpacity(0.22),
           width: 1.5,
         ),
         boxShadow: [
-          // Sombra ambiental sutil
+          // Sombra ambiental sutil y profunda
           BoxShadow(
-            color: isDark ? Colors.black.withOpacity(0.2) : c.withOpacity(0.03),
-            blurRadius: 20,
+            color: Colors.black.withOpacity(isDark ? 0.25 : 0.04),
+            blurRadius: 18,
             offset: const Offset(0, 8),
           ),
-          // Resplandor de color premium de fondo (glow shadow)
+          // Resplandor de color Candy Pop ampliado y flotante
           BoxShadow(
-            color: c.withOpacity(isDark ? 0.08 : 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
+            color: c.withOpacity(isDark ? 0.16 : 0.10),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(24),
-        child: Stack(
-          children: [
-            // Aura de resplandor radial difuminada en la esquina inferior derecha (Efecto Mesh Glow)
-            Positioned(
-              right: -30,
-              bottom: -30,
-              child: Container(
-                width: 90,
-                height: 90,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      c.withOpacity(isDark ? 0.16 : 0.12),
-                      c.withOpacity(0.0),
-                    ],
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16), // Premium frosted glass effect!
+          child: Stack(
+            children: [
+              // Aura de resplandor radial difuminada en la esquina inferior derecha (Efecto Mesh Glow)
+              Positioned(
+                right: -25,
+                bottom: -25,
+                child: Container(
+                  width: 110,
+                  height: 110,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [
+                        c.withOpacity(isDark ? 0.24 : 0.18),
+                        c.withOpacity(0.0),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-            
-            // Contenido interactivo principal
-            Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: onTap,
-                borderRadius: BorderRadius.circular(24),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          // Contenedor de Icono con Gradiente y Sombra Vibrante
-                          Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: LinearGradient(
-                                colors: [c, c.withOpacity(0.75)],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: c.withOpacity(0.3),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 3),
-                                ),
-                              ],
-                            ),
-                            child: Icon(icon, color: Colors.white, size: 16),
-                          ),
-                          const Spacer(),
-                          if (onTap != null)
+              
+              // Contenido interactivo principal
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: onTap,
+                  borderRadius: BorderRadius.circular(24),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            // Contenedor de Icono con Gradiente y Sombra Vibrante
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              padding: const EdgeInsets.all(6),
                               decoration: BoxDecoration(
-                                color: isDark ? c.withOpacity(0.18) : c.withOpacity(0.08),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: c.withOpacity(0.2),
-                                  width: 0.8,
+                                shape: BoxShape.circle,
+                                gradient: LinearGradient(
+                                  colors: [c, c.withOpacity(0.75)],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
                                 ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    'VER',
-                                    style: GoogleFonts.outfit(
-                                      fontSize: 8.5,
-                                      fontWeight: FontWeight.w800,
-                                      color: c,
-                                      letterSpacing: 0.5,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 2),
-                                  Icon(
-                                    Icons.chevron_right_rounded, 
-                                    size: 12, 
-                                    color: c,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: c.withOpacity(0.45),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 3),
                                   ),
                                 ],
                               ),
+                              child: Icon(icon, color: Colors.white, size: 16),
                             ),
-                        ],
-                      ),
-                      const Spacer(),
-                      FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          value,
-                          style: GoogleFonts.outfit(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w900,
-                            color: isDark ? Colors.white : const Color(0xFF1E1E2C),
-                            letterSpacing: -0.5,
+                            const Spacer(),
+                            if (onTap != null)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: isDark ? c.withOpacity(0.22) : c.withOpacity(0.12),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: c.withOpacity(0.25),
+                                    width: 0.8,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      'VER',
+                                      style: GoogleFonts.outfit(
+                                        fontSize: 8.5,
+                                        fontWeight: FontWeight.w800,
+                                        color: isDark ? Colors.white : c,
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 2),
+                                    Icon(
+                                      Icons.chevron_right_rounded, 
+                                      size: 12, 
+                                      color: isDark ? Colors.white : c,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                          ],
+                        ),
+                        const Spacer(),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            value,
+                            style: GoogleFonts.outfit(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w900,
+                              color: isDark ? Colors.white : const Color(0xFF1E1E2C),
+                              letterSpacing: -0.5,
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.outfit(
-                          color: isDark ? const Color(0xFFC0C0D8) : const Color(0xFF5A5A80),
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.1,
-                          height: 1.15,
+                        const SizedBox(height: 2),
+                        Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.outfit(
+                            color: isDark ? const Color(0xFFE2E2F0) : const Color(0xFF2C1A4D),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.1,
+                            height: 1.15,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

@@ -44,31 +44,108 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // 1. Executive Welcome Header
-                    Row(
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                    // 1. Executive Welcome Hero Card (Candy Pop Premium!)
+                    Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [AppColors.violet, AppColors.hotPink],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.hotPink.withOpacity(0.24),
+                            blurRadius: 18,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(24),
+                        child: Stack(
                           children: [
-                            Text(
-                              '¡Hola, Administrador! 👋',
-                              style: GoogleFonts.outfit(
-                                fontSize: 22,
-                                fontWeight: FontWeight.w800,
-                                color: isDark ? Colors.white : const Color(0xFF2C1A4D),
+                            // Ambient circular decoration
+                            Positioned(
+                              right: -40,
+                              top: -40,
+                              child: Container(
+                                width: 140,
+                                height: 140,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.white.withOpacity(0.12),
+                                ),
                               ),
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              'Aquí tienes el resumen de operaciones de hoy.',
-                              style: GoogleFonts.dmSans(
-                                fontSize: 12,
-                                color: isDark ? const Color(0xFF8B8BAA) : const Color(0xFF6B7280),
+                            Padding(
+                              padding: const EdgeInsets.all(20),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.18),
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: Text(
+                                      'RESUMEN OPERATIVO 2026',
+                                      style: GoogleFonts.outfit(
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.w800,
+                                        color: Colors.white,
+                                        letterSpacing: 0.8,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 14),
+                                  Text(
+                                    '¡Hola, Administrador! 👋',
+                                    style: GoogleFonts.outfit(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.w900,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'El portal de operaciones está listo. Monitorea cotizaciones y eventos activos para hoy.',
+                                    style: GoogleFonts.dmSans(
+                                      fontSize: 13,
+                                      color: Colors.white.withOpacity(0.85),
+                                      height: 1.4,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  // Premium white button with purple text matching the personal app Packets button!
+                                  ElevatedButton.icon(
+                                    onPressed: () => Navigator.pushNamed(context, '/ai-config'),
+                                    icon: const Icon(Icons.smart_toy_rounded, size: 16, color: AppColors.violet),
+                                    label: Text(
+                                      'Configurar IA Rosa',
+                                      style: GoogleFonts.outfit(
+                                        fontWeight: FontWeight.w800,
+                                        fontSize: 12.5,
+                                        color: AppColors.violet,
+                                      ),
+                                    ),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.white,
+                                      elevation: 0,
+                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
                         ),
-                      ],
+                      ),
                     ),
                     const SizedBox(height: 20),
 

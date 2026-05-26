@@ -439,12 +439,12 @@ class _AdminScaffoldState extends State<AdminScaffold> with TickerProviderStateM
     final textDim = isDark ? const Color(0xFF8B8BAA) : const Color(0xFF6B7280);
 
     return Padding(
-      padding: EdgeInsets.fromLTRB(16, 0, 16, bottomPad + 12),
+      padding: EdgeInsets.fromLTRB(16, 0, 16, bottomPad + 20), // 100% mirrored margin!
       child: Container(
-        height: 68,
+        height: 70, // 100% mirrored height!
         decoration: BoxDecoration(
           color: cardBg.withOpacity(0.92),
-          borderRadius: BorderRadius.circular(34),
+          borderRadius: BorderRadius.circular(35), // 100% mirrored radius!
           border: Border.all(
             color: isDark ? Colors.white.withOpacity(0.08) : AppColors.primary.withOpacity(0.12),
             width: 1.2,
@@ -511,7 +511,7 @@ class _AdminScaffoldState extends State<AdminScaffold> with TickerProviderStateM
                   gradient: const LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [AppColors.primary, AppColors.violet],
+                    colors: [AppColors.violet, AppColors.hotPink], // 100% mirrored gradient colors!
                   ),
                   borderRadius: BorderRadius.circular(28),
                 ),
