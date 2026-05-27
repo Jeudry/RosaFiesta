@@ -149,108 +149,236 @@ class _ProductCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isActive = product['is_active'] != false;
-    final isLowStock = (product['stock_quantity'] ?? 999) <= (product['low_stock_threshold'] ?? 5);
+    final stockVal = product['stock_quantity'] ?? 0;
+    final isLowStock = stockVal <= (product['low_stock_threshold'] ?? 5);
 
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: InkWell(
-        onTap: selectable
-            ? onSelect
-            : () => Navigator.pushNamed(context, '/products/${product['id']}'),
-        child: Stack(
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      Container(
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.1),
-                        ),
-                        child: product['image_url'] != null && product['image_url'] != ''
-                            ? Image.network(product['image_url'], fit: BoxFit.cover)
-                            : const Center(child: Icon(Icons.inventory_2, size: 48, color: AppColors.primary)),
-                      ),
-                      if (!isActive)
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardTheme.color ?? Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: AppColors.primary.withValues(alpha: 0.14),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: InkWell(
+          onTap: selectable
+              ? onSelect
+              : () => Navigator.pushNamed(context, '/products/${product['id']}'),
+          child: Stack(
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
                         Container(
-                          color: Colors.black54,
-                          child: const Center(child: Text('INACTIVO', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12))),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                AppColors.primary.withValues(alpha: 0.08),
+                                AppColors.violet.withValues(alpha: 0.14),
+                              ],
+                            ),
+                          ),
+                          child: product['image_url'] != null && product['image_url'] != ''
+                              ? Image.network(product['image_url'], fit: BoxFit.cover)
+                              : Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(12),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.primary.withValues(alpha: 0.12),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Icon(
+                                          Icons.inventory_2_outlined,
+                                          size: 32,
+                                          color: AppColors.primary,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        'SIN IMAGEN',
+                                        style: GoogleFonts.dmSans(
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.w800,
+                                          letterSpacing: 0.8,
+                                          color: AppColors.primary.withValues(alpha: 0.6),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                         ),
-                      if (isLowStock && isActive)
-                        Positioned(
-                          top: 8,
-                          right: 8,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(color: AppColors.error, borderRadius: BorderRadius.circular(4)),
-                            child: Text('AGOTADO', style: GoogleFonts.dmSans(fontSize: 10, color: Colors.white)),
+                        if (!isActive)
+                          Container(
+                            color: Colors.black.withValues(alpha: 0.55),
+                            child: const Center(
+                              child: Text(
+                                'INACTIVO',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 11,
+                                  letterSpacing: 1.2,
+                                ),
+                              ),
+                            ),
                           ),
+                        if (isLowStock && isActive)
+                          Positioned(
+                            top: 8,
+                            right: 8,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: AppColors.error.withValues(alpha: 0.9),
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.1),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Text(
+                                'AGOTADO',
+                                style: GoogleFonts.dmSans(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 0.8,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        if (product['type'] == 'Sale')
+                          Positioned(
+                            top: 8,
+                            left: 8,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: AppColors.teal.withValues(alpha: 0.9),
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.1),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Text(
+                                'VENTA',
+                                style: GoogleFonts.dmSans(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 0.8,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          product['name'] ?? 'Sin Nombre',
+                          style: GoogleFonts.dmSans(
+                            fontSize: 13, 
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xFF2C1A4D),
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                      if (product['type'] == 'Sale')
-                        Positioned(
-                          top: 8,
-                          left: 8,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(color: AppColors.teal, borderRadius: BorderRadius.circular(4)),
-                            child: Text('VENTA', style: GoogleFonts.dmSans(fontSize: 10, color: Colors.white)),
-                          ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Text(
+                              'RD\$${product['rental_price'] ?? 0}',
+                              style: GoogleFonts.outfit(
+                                fontSize: 15, 
+                                fontWeight: FontWeight.w900, 
+                                color: AppColors.primary,
+                              ),
+                            ),
+                            const Spacer(),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: (isLowStock ? AppColors.error : AppColors.teal).withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    isLowStock ? Icons.warning_amber_rounded : Icons.check_circle_outline,
+                                    size: 11,
+                                    color: isLowStock ? AppColors.error : AppColors.teal,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    isLowStock ? 'Min: $stockVal' : 'Stock: $stockVal',
+                                    style: GoogleFonts.dmSans(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w800,
+                                      color: isLowStock ? AppColors.error : AppColors.teal,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(8),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        product['name'] ?? '',
-                        style: GoogleFonts.dmSans(fontSize: 13, fontWeight: FontWeight.w600),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Text(
-                            'RD\$${product['rental_price'] ?? 0}',
-                            style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.primary),
-                          ),
-                          const Spacer(),
-                          Text(
-                            'Stock: ${product['stock_quantity'] ?? 0}',
-                            style: GoogleFonts.dmSans(fontSize: 11, color: AppColors.textMuted),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            if (selectable)
-              Positioned(
-                top: 8,
-                left: 8,
-                child: Container(
-                  width: 24,
-                  height: 24,
-                  decoration: BoxDecoration(
-                    color: selected ? AppColors.primary : Colors.white,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: selected ? AppColors.primary : Colors.grey, width: 2),
-                  ),
-                  child: selected
-                      ? const Icon(Icons.check, size: 14, color: Colors.white)
-                      : null,
-                ),
+                ],
               ),
-          ],
+              if (selectable)
+                Positioned(
+                  top: 8,
+                  left: 8,
+                  child: Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      color: selected ? AppColors.primary : Colors.white,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: selected ? AppColors.primary : Colors.grey, width: 2),
+                    ),
+                    child: selected
+                        ? const Icon(Icons.check, size: 14, color: Colors.white)
+                        : null,
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
