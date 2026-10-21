@@ -53,3 +53,36 @@ func (r *Repository) UpsertQuote(ctx context.Context, q domain.Quote, now time.T
 		CreatedAt:  now,
 	})
 }
+
+// ListQuotes consulta todas las cotizaciones almacenadas en PostgreSQL.
+func (r *Repository) ListQuotes(ctx context.Context) ([]domain.Quote, error) {
+	if !r.Enabled() {
+		return nil, nil
+	}
+	rows, err := r.queries.ListQuotes(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]domain.Quote, 0, len(rows))
+	for _, row := range rows {
+		q := domain.Quote{
+			ID:             row.ID,
+			Code:           row.EventID,
+			ClientName:     row.ClientName,
+			EventTitle:     row.EventTitle,
+			TotalRD:        row.TotalDop,
+			DepositPercent: 30,
+			DepositRD:      row.DepositDop,
+			BalanceRD:      row.BalanceDop,
+			Status:         domain.QuoteStatus(row.Status),
+		}
+		switch q.Status {
+		case domain.QuoteStatusSigned:
+			q.SignedByName = row.Notes
+		case domain.QuoteStatusDeclined:
+			q.RejectionReason = row.Notes
+		}
+		out = append(out, q)
+	}
+	return out, nil
+}

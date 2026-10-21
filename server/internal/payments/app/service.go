@@ -13,6 +13,10 @@ import (
 
 // Store persiste pagos en almacenamiento duradero (PostgreSQL).
 type Store interface {
+	// Enabled indica si hay conexión PostgreSQL activa.
+	Enabled() bool
+	// ListPayments consulta los pagos almacenados en PostgreSQL.
+	ListPayments(ctx context.Context) ([]domain.Payment, error)
 	// UpsertPayment inserta o actualiza un pago en PostgreSQL.
 	UpsertPayment(ctx context.Context, p domain.Payment, now time.Time) error
 }
@@ -49,7 +53,28 @@ func (s *Service) WithStore(store Store) *Service {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.store = store
+	s.syncFromStoreLocked(context.Background())
 	return s
+}
+
+func (s *Service) syncFromStoreLocked(ctx context.Context) {
+	if s.store == nil || !s.store.Enabled() {
+		return
+	}
+	dbPayments, err := s.store.ListPayments(ctx)
+	if err != nil {
+		return
+	}
+	for _, dbP := range dbPayments {
+		if existing, ok := s.payments[dbP.ID]; ok {
+			existing.AmountRD = dbP.AmountRD
+			existing.Status = dbP.Status
+			s.payments[dbP.ID] = existing
+		} else {
+			s.payments[dbP.ID] = dbP
+			s.order = append(s.order, dbP.ID)
+		}
+	}
 }
 
 // GetSummary devuelve el resumen financiero del mes (s69, A20).
@@ -62,8 +87,9 @@ func (s *Service) GetSummary() domain.FinanceSummary {
 
 // ListPayments devuelve los pagos registrados, filtrando opcionalmente por evento.
 func (s *Service) ListPayments(eventID string) []domain.Payment {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.syncFromStoreLocked(context.Background())
 
 	result := make([]domain.Payment, 0, len(s.order))
 	for _, id := range s.order {

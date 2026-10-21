@@ -83,3 +83,34 @@ func (r *Repository) UpdateStatus(ctx context.Context, id string, status domain.
 		Status: string(status),
 	})
 }
+
+// ListEvents consulta todos los eventos almacenados en PostgreSQL.
+func (r *Repository) ListEvents(ctx context.Context) ([]domain.Event, error) {
+	if !r.Enabled() {
+		return nil, nil
+	}
+	rows, err := r.queries.ListEvents(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]domain.Event, 0, len(rows))
+	for _, row := range rows {
+		out = append(out, domain.Event{
+			ID:              row.ID,
+			Title:           row.Title,
+			ClientName:      row.ClientName,
+			EventType:       row.EventType,
+			DateLabel:       row.EventDateLabel,
+			DaysUntilEvent:  row.DaysUntil,
+			Venue:           row.Venue,
+			Guests:          row.GuestsCount,
+			ArticleCount:    row.ArticlesCount,
+			TotalRD:         row.TotalDop,
+			PaidDepositRD:   row.PaidDop,
+			BalanceDueDate:  row.BalanceDueLabel,
+			Status:          domain.EventStatus(row.Status),
+			DateChangesUsed: row.DateChangesCount,
+		})
+	}
+	return out, nil
+}

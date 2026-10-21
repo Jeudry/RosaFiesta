@@ -11,6 +11,10 @@ import (
 
 // Store persiste mutaciones de eventos en almacenamiento duradero (PostgreSQL).
 type Store interface {
+	// Enabled indica si hay conexión PostgreSQL activa.
+	Enabled() bool
+	// ListEvents consulta los eventos almacenados en PostgreSQL.
+	ListEvents(ctx context.Context) ([]domain.Event, error)
 	// UpdateDate actualiza la fecha y contador de cambios de un evento.
 	UpdateDate(ctx context.Context, e domain.Event) error
 	// UpdateStatus actualiza el estado de un evento.
@@ -47,13 +51,38 @@ func (s *Service) WithStore(store Store) *Service {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.store = store
+	s.syncFromStoreLocked(context.Background())
 	return s
 }
 
+func (s *Service) syncFromStoreLocked(ctx context.Context) {
+	if s.store == nil || !s.store.Enabled() {
+		return
+	}
+	dbEvents, err := s.store.ListEvents(ctx)
+	if err != nil {
+		return
+	}
+	for _, dbEvt := range dbEvents {
+		if existing, ok := s.events[dbEvt.ID]; ok {
+			existing.DateLabel = dbEvt.DateLabel
+			existing.DaysUntilEvent = dbEvt.DaysUntilEvent
+			existing.TotalRD = dbEvt.TotalRD
+			existing.Status = dbEvt.Status
+			existing.DateChangesUsed = dbEvt.DateChangesUsed
+			s.events[dbEvt.ID] = existing
+		} else {
+			s.events[dbEvt.ID] = dbEvt
+			s.order = append(s.order, dbEvt.ID)
+		}
+	}
+}
+
 // ActiveEventsForClient cuenta los eventos activos de un cliente para validar s88 (eliminación de cuenta).
-func (s *Service) ActiveEventsForClient(_ context.Context, clientName string) int {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+func (s *Service) ActiveEventsForClient(ctx context.Context, clientName string) int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.syncFromStoreLocked(ctx)
 
 	target := strings.TrimSpace(strings.ToLower(clientName))
 	count := 0
@@ -78,8 +107,9 @@ func (s *Service) ListTemplates() []domain.EventTemplate {
 
 // ListEvents devuelve los eventos filtrados opcionalmente por estado.
 func (s *Service) ListEvents(status string) []domain.Event {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.syncFromStoreLocked(context.Background())
 
 	result := make([]domain.Event, 0, len(s.order))
 	for _, id := range s.order {
@@ -94,8 +124,9 @@ func (s *Service) ListEvents(status string) []domain.Event {
 
 // GetEvent obtiene el detalle de un evento por ID.
 func (s *Service) GetEvent(id string) (domain.Event, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.syncFromStoreLocked(context.Background())
 
 	evt, ok := s.events[id]
 	if !ok {

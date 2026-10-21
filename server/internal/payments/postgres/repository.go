@@ -51,3 +51,29 @@ func (r *Repository) UpsertPayment(ctx context.Context, p domain.Payment, now ti
 		CreatedAt:      now,
 	})
 }
+
+// ListPayments consulta todos los pagos almacenados en PostgreSQL.
+func (r *Repository) ListPayments(ctx context.Context) ([]domain.Payment, error) {
+	if !r.Enabled() {
+		return nil, nil
+	}
+	rows, err := r.queries.ListPayments(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]domain.Payment, 0, len(rows))
+	for _, row := range rows {
+		out = append(out, domain.Payment{
+			ID:            row.ID,
+			ReceiptNumber: row.ID,
+			EventID:       row.EventID,
+			ClientName:    row.ClientName,
+			AmountRD:      row.AmountDop,
+			Method:        domain.PaymentMethod(row.Method),
+			PaidDateLabel: row.PaidDateLabel,
+			ReferenceCode: row.IdempotencyKey,
+			Status:        domain.PaymentStatus(row.Status),
+		})
+	}
+	return out, nil
+}

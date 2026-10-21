@@ -103,3 +103,65 @@ func (r *Repository) ListArticles(ctx context.Context) ([]domain.Article, error)
 	}
 	return out, nil
 }
+
+// ListCategories consulta las categorías almacenadas en PostgreSQL.
+func (r *Repository) ListCategories(ctx context.Context) ([]domain.Category, error) {
+	if !r.Enabled() {
+		return nil, nil
+	}
+	rows, err := r.queries.ListCategories(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]domain.Category, 0, len(rows))
+	for _, row := range rows {
+		out = append(out, domain.Category{
+			ID:        row.ID,
+			Name:      row.Name,
+			IlloKey:   row.IlloKey,
+			ItemCount: row.ItemCount,
+		})
+	}
+	return out, nil
+}
+
+// ListPackages consulta los paquetes almacenados en PostgreSQL.
+func (r *Repository) ListPackages(ctx context.Context) ([]domain.PackageBundle, error) {
+	if !r.Enabled() {
+		return nil, nil
+	}
+	rows, err := r.queries.ListPackages(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]domain.PackageBundle, 0, len(rows))
+	for _, row := range rows {
+		out = append(out, domain.PackageBundle{
+			ID:            row.ID,
+			Name:          row.Name,
+			EventType:     row.EventType,
+			PhotoKey:      row.PhotoKey,
+			TotalPriceDop: row.TotalPriceDop,
+			GuestCapacity: row.GuestCapacity,
+			ItemsSummary:  row.ItemsSummary,
+		})
+	}
+	return out, nil
+}
+
+// UpsertArticle inserta o actualiza un artículo en PostgreSQL.
+func (r *Repository) UpsertArticle(ctx context.Context, a domain.Article) error {
+	if !r.Enabled() {
+		return nil
+	}
+	return r.queries.UpsertArticle(ctx, sqlcgen.UpsertArticleParams{
+		ID:                a.ID,
+		Name:              a.Name,
+		CategoryID:        a.CategoryID,
+		PhotoKey:          a.PhotoKey,
+		DailyPriceDop:     a.DailyPriceDop,
+		TotalStock:        a.TotalStock,
+		LowStockThreshold: a.LowStockThreshold,
+		Description:       a.Description,
+	})
+}

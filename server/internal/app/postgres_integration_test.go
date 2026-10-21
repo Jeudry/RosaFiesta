@@ -110,3 +110,80 @@ func TestPostgresIntegration_PersistsHttpMutations(t *testing.T) {
 		t.Fatalf("expected postgres session active_view='personal', got %q", activeView)
 	}
 }
+
+func TestPostgresIntegration_CatalogOperationsQuotesAndPaymentsPersistence(t *testing.T) {
+	pool := dbtest.Pool(t)
+	ctx := t.Context()
+
+	handler, _ := httpapi.New(slog.New(slog.DiscardHandler), app.Modules(app.Dependencies{Pool: pool})...)
+
+	for _, path := range []string{"/v1/catalog/articles", "/v1/catalog/categories", "/v1/catalog/packages"} {
+		req := httptest.NewRequestWithContext(ctx, http.MethodGet, path, nil)
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected 200 on %s, got %d: %s", path, rec.Code, rec.Body.String())
+		}
+	}
+
+	chkReq := httptest.NewRequestWithContext(
+		ctx,
+		http.MethodPatch,
+		"/v1/operations/events/evt-boda-real/checklist/chk-5",
+		strings.NewReader(`{"completed":true,"staffName":"Pedro Santos"}`),
+	)
+	chkReq.Header.Set("Content-Type", "application/json")
+	chkRec := httptest.NewRecorder()
+	handler.ServeHTTP(chkRec, chkReq)
+	if chkRec.Code != http.StatusOK {
+		t.Fatalf("expected 200 on checklist patch, got %d: %s", chkRec.Code, chkRec.Body.String())
+	}
+
+	var chkCompleted bool
+	if err := pool.QueryRow(ctx, "SELECT completed FROM event_tasks WHERE id = 'chk-5'").Scan(&chkCompleted); err != nil || !chkCompleted {
+		t.Fatalf("expected event_tasks chk-5 completed=true in postgres, err=%v", err)
+	}
+}
+
+func TestPostgresIntegration_QuotesAndPaymentsPersistence(t *testing.T) {
+	pool := dbtest.Pool(t)
+	ctx := t.Context()
+
+	handler, _ := httpapi.New(slog.New(slog.DiscardHandler), app.Modules(app.Dependencies{Pool: pool})...)
+
+	signReq := httptest.NewRequestWithContext(
+		ctx,
+		http.MethodPost,
+		"/v1/quotes/quo-cumple-mateo/sign",
+		strings.NewReader(`{"signedByName":"Laura Peña","signatureSvg":"<svg><path d='M0 0'/></svg>"}`),
+	)
+	signReq.Header.Set("Content-Type", "application/json")
+	signRec := httptest.NewRecorder()
+	handler.ServeHTTP(signRec, signReq)
+	if signRec.Code != http.StatusOK {
+		t.Fatalf("expected 200 on quote sign, got %d: %s", signRec.Code, signRec.Body.String())
+	}
+
+	var quoteStatus string
+	if err := pool.QueryRow(ctx, "SELECT status FROM quotes WHERE id = 'quo-cumple-mateo'").Scan(&quoteStatus); err != nil || quoteStatus != "signed" {
+		t.Fatalf("expected quote status 'signed' in postgres, got %q (err=%v)", quoteStatus, err)
+	}
+
+	payReq := httptest.NewRequestWithContext(
+		ctx,
+		http.MethodPost,
+		"/v1/payments",
+		strings.NewReader(`{"eventId":"evt-boda-real","eventTitle":"Boda Real Rosa & Dorado","clientName":"Camila Rodríguez","amountRD":1500,"method":"efectivo","kind":"saldo","referenceCode":"EFE-2026-900"}`),
+	)
+	payReq.Header.Set("Content-Type", "application/json")
+	payRec := httptest.NewRecorder()
+	handler.ServeHTTP(payRec, payReq)
+	if payRec.Code != http.StatusOK {
+		t.Fatalf("expected 200 on payment register, got %d: %s", payRec.Code, payRec.Body.String())
+	}
+
+	var paidAmount int
+	if err := pool.QueryRow(ctx, "SELECT amount_dop FROM payments WHERE idempotency_key = 'EFE-2026-900'").Scan(&paidAmount); err != nil || paidAmount != 1500 {
+		t.Fatalf("expected payment amount 1500 in postgres, got %d (err=%v)", paidAmount, err)
+	}
+}

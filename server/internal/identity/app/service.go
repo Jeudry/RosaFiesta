@@ -40,6 +40,10 @@ type StaffMember struct {
 
 // Store persiste mutaciones de identidad y sesiones en almacenamiento duradero (PostgreSQL).
 type Store interface {
+	// Enabled indica si hay conexión PostgreSQL activa.
+	Enabled() bool
+	// Authenticate busca el usuario dueño de un token de sesión en PostgreSQL.
+	Authenticate(ctx context.Context, sessionKey string) (uuid.UUID, error)
 	// UpdateActiveView actualiza la vista activa de las sesiones del usuario (`A30`).
 	UpdateActiveView(ctx context.Context, userID uuid.UUID, view domain.AppView) error
 	// DeleteUser elimina un usuario de PostgreSQL (`s88`).
@@ -148,11 +152,18 @@ func defaultStaff() []StaffMember {
 }
 
 // Authenticate valida un token de acceso.
-func (s *Service) Authenticate(_ context.Context, accessToken string) (uuid.UUID, error) {
+func (s *Service) Authenticate(ctx context.Context, accessToken string) (uuid.UUID, error) {
 	s.mu.RLock()
-	defer s.mu.RUnlock()
+	store := s.store
 	id, ok := s.tokens[strings.TrimSpace(accessToken)]
-	if !ok {
+	_, userExists := s.users[id]
+	s.mu.RUnlock()
+	if store != nil && store.Enabled() {
+		if dbUserID, err := store.Authenticate(ctx, accessToken); err == nil {
+			return dbUserID, nil
+		}
+	}
+	if !ok || !userExists {
 		return uuid.Nil, domain.ErrInvalidCredentials
 	}
 	return id, nil

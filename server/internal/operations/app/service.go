@@ -2,16 +2,31 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/Jeudry/rosafiesta/server/internal/operations/domain"
 )
 
+// Store persiste y consulta operaciones de montaje, checklist e incidencias en PostgreSQL.
+type Store interface {
+	// Enabled indica si hay conexión PostgreSQL activa.
+	Enabled() bool
+	// UpsertChecklistItem persiste el estado de un ítem del checklist en PostgreSQL.
+	UpsertChecklistItem(ctx context.Context, eventID string, item domain.ChecklistItem) error
+	// ListChecklistItems devuelve los ítems de checklist persistidos para un evento en PostgreSQL.
+	ListChecklistItems(ctx context.Context, eventID string) (map[string]domain.ChecklistItem, error)
+	// RecordDamageIncident persiste un reporte de daño post-evento en PostgreSQL.
+	RecordDamageIncident(ctx context.Context, report domain.DamageReport, now time.Time) error
+}
+
 // Service administra la logística de montaje, checklist, rutas y sincronización offline.
 type Service struct {
 	mu           sync.RWMutex
+	store        Store
 	logistics    map[string]domain.EventLogistics
 	routeStops   []domain.RouteStop
 	offlineQueue []domain.OfflineMutation
@@ -33,14 +48,40 @@ func NewService() *Service {
 	}
 }
 
+// WithStore conecta un repositorio PostgreSQL opcional al servicio de operaciones.
+func (s *Service) WithStore(store Store) *Service {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.store = store
+	return s
+}
+
 // GetEventLogistics devuelve la logística de montaje de un evento (s66, s68, A11).
 func (s *Service) GetEventLogistics(eventID string) (domain.EventLogistics, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	l, ok := s.logistics[eventID]
 	if !ok {
 		return domain.EventLogistics{}, domain.ErrOperationNotFound
+	}
+	if s.store != nil && s.store.Enabled() {
+		if dbItems, err := s.store.ListChecklistItems(context.Background(), eventID); err == nil && len(dbItems) > 0 {
+			for i := range l.Checklist {
+				if persisted, exists := dbItems[l.Checklist[i].ID]; exists {
+					l.Checklist[i].Completed = persisted.Completed
+					l.Checklist[i].CompletedBy = persisted.CompletedBy
+					if persisted.Completed {
+						if l.Checklist[i].CompletedAt == "" {
+							l.Checklist[i].CompletedAt = persisted.CompletedAt
+						}
+					} else {
+						l.Checklist[i].CompletedAt = ""
+					}
+				}
+			}
+			s.logistics[eventID] = l
+		}
 	}
 	return l, nil
 }
@@ -54,6 +95,7 @@ func (s *Service) ToggleChecklistItem(eventID string, itemID string, completed b
 	if !ok {
 		return domain.EventLogistics{}, domain.ErrOperationNotFound
 	}
+	var updatedItem domain.ChecklistItem
 	found := false
 	for i := range l.Checklist {
 		if l.Checklist[i].ID == itemID {
@@ -65,6 +107,7 @@ func (s *Service) ToggleChecklistItem(eventID string, itemID string, completed b
 				l.Checklist[i].CompletedBy = ""
 				l.Checklist[i].CompletedAt = ""
 			}
+			updatedItem = l.Checklist[i]
 			found = true
 			break
 		}
@@ -73,6 +116,9 @@ func (s *Service) ToggleChecklistItem(eventID string, itemID string, completed b
 		return domain.EventLogistics{}, domain.ErrChecklistNotFound
 	}
 	s.logistics[eventID] = l
+	if s.store != nil && s.store.Enabled() {
+		_ = s.store.UpsertChecklistItem(context.Background(), eventID, updatedItem)
+	}
 	return l, nil
 }
 
@@ -119,6 +165,9 @@ func (s *Service) ReportDamage(
 	}
 	l.DamageReports = append(l.DamageReports, report)
 	s.logistics[eventID] = l
+	if s.store != nil && s.store.Enabled() {
+		_ = s.store.RecordDamageIncident(context.Background(), report, time.Now().UTC())
+	}
 	return report, nil
 }
 

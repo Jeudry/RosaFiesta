@@ -13,6 +13,10 @@ import (
 
 // Store persiste cotizaciones y firmas en almacenamiento duradero (PostgreSQL).
 type Store interface {
+	// Enabled indica si hay conexión PostgreSQL activa.
+	Enabled() bool
+	// ListQuotes consulta las cotizaciones almacenadas en PostgreSQL.
+	ListQuotes(ctx context.Context) ([]domain.Quote, error)
 	// UpsertQuote inserta o actualiza una cotización en PostgreSQL.
 	UpsertQuote(ctx context.Context, q domain.Quote, now time.Time) error
 }
@@ -47,13 +51,43 @@ func (s *Service) WithStore(store Store) *Service {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.store = store
+	s.syncFromStoreLocked(context.Background())
 	return s
+}
+
+func (s *Service) syncFromStoreLocked(ctx context.Context) {
+	if s.store == nil || !s.store.Enabled() {
+		return
+	}
+	dbQuotes, err := s.store.ListQuotes(ctx)
+	if err != nil {
+		return
+	}
+	for _, dbQ := range dbQuotes {
+		if existing, ok := s.quotes[dbQ.ID]; ok {
+			existing.Status = dbQ.Status
+			existing.TotalRD = dbQ.TotalRD
+			existing.DepositRD = dbQ.DepositRD
+			existing.BalanceRD = dbQ.BalanceRD
+			if dbQ.SignedByName != "" {
+				existing.SignedByName = dbQ.SignedByName
+			}
+			if dbQ.RejectionReason != "" {
+				existing.RejectionReason = dbQ.RejectionReason
+			}
+			s.quotes[dbQ.ID] = existing
+		} else {
+			s.quotes[dbQ.ID] = dbQ
+			s.order = append(s.order, dbQ.ID)
+		}
+	}
 }
 
 // ListQuotes devuelve todas las cotizaciones, filtradas opcionalmente por estado.
 func (s *Service) ListQuotes(status string) []domain.Quote {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.syncFromStoreLocked(context.Background())
 
 	result := make([]domain.Quote, 0, len(s.order))
 	for _, id := range s.order {
@@ -68,8 +102,9 @@ func (s *Service) ListQuotes(status string) []domain.Quote {
 
 // GetQuote devuelve una cotización por su ID.
 func (s *Service) GetQuote(id string) (domain.Quote, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.syncFromStoreLocked(context.Background())
 
 	q, ok := s.quotes[id]
 	if !ok {
