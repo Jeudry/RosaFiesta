@@ -13,3 +13,5 @@ public actual class DriverFactory(
         return driver
     }
 }
+
+public actual fun createDefaultSqlDriverOrNull(): SqlDriver? = runCatching { DriverFactory().createDriver() }.getOrNull()

@@ -579,4 +579,17 @@ public object CanonicalSampleData {
             vipTag = "Corporativo VIP",
         ),
     )
+
+    public val initialFavorites: Set<String> = setOf(
+        "art-silla-tiffany",
+        "art-mesa-redonda",
+        "art-centro-floral",
+        "art-arco-rosa",
+    )
+
+    public val initialChatMessages: List<String> = listOf(
+        "María (Dueña): ¡Hola Camila! Confirmamos 120 sillas Tiffany doradas y 15 mesas redondas para el vie 23 oct en Jardín Botánico.",
+        "Pedro (Logística): Camión #01 programado para descarga a las 8:30 a. m. en Pabellón de Orquídeas.",
+        "Rosa IA: Agregué 8 centros florales y 1 arco orgánico rosa de 3.2 m dentro de tu presupuesto de RD$ 4,500.",
+    )
 }

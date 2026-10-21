@@ -27,6 +27,65 @@ CREATE TABLE LocalOfflineMutationEntity (
     synced INTEGER NOT NULL DEFAULT 0
 );
 
+CREATE TABLE eventEntity (
+    id TEXT NOT NULL PRIMARY KEY,
+    code TEXT NOT NULL,
+    title TEXT NOT NULL,
+    clientName TEXT NOT NULL,
+    eventType TEXT NOT NULL,
+    dateLabel TEXT NOT NULL,
+    daysUntilEvent INTEGER NOT NULL,
+    venue TEXT NOT NULL,
+    zone TEXT NOT NULL,
+    guests INTEGER NOT NULL,
+    articleCount INTEGER NOT NULL,
+    totalDop INTEGER NOT NULL,
+    paidDepositDop INTEGER NOT NULL,
+    depositMethodLabel TEXT NOT NULL,
+    depositDateLabel TEXT NOT NULL,
+    balanceDueDateLabel TEXT NOT NULL,
+    status TEXT NOT NULL,
+    leadStaffName TEXT NOT NULL,
+    photoKey TEXT NOT NULL,
+    priorChangesCount INTEGER NOT NULL DEFAULT 0,
+    sortOrder INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE paymentEntity (
+    id TEXT NOT NULL PRIMARY KEY,
+    receiptNumber TEXT NOT NULL,
+    eventId TEXT NOT NULL,
+    eventTitle TEXT NOT NULL,
+    clientName TEXT NOT NULL,
+    amountDop INTEGER NOT NULL,
+    methodLabel TEXT NOT NULL,
+    kindLabel TEXT NOT NULL,
+    dateLabel TEXT NOT NULL,
+    referenceCode TEXT NOT NULL,
+    verified INTEGER NOT NULL DEFAULT 1,
+    sortOrder INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE favoriteEntity (
+    articleId TEXT NOT NULL PRIMARY KEY
+);
+
+CREATE TABLE staffPermissionEntity (
+    id TEXT NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    roleLabel TEXT NOT NULL,
+    role TEXT NOT NULL,
+    activeEventsCount INTEGER NOT NULL,
+    permissionsCsv TEXT NOT NULL,
+    canViewPayments INTEGER NOT NULL DEFAULT 1,
+    sortOrder INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE chatMessageEntity (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    formattedMessage TEXT NOT NULL
+);
+
 selectAllArticles:
 SELECT * FROM LocalArticleEntity ORDER BY code ASC;
 
@@ -63,3 +122,68 @@ VALUES (?, ?, ?, ?, ?);
 
 markAllOfflineMutationsSynced:
 UPDATE LocalOfflineMutationEntity SET synced = 1;
+
+selectAllEvents:
+SELECT * FROM eventEntity ORDER BY sortOrder ASC, id ASC;
+
+upsertEvent:
+INSERT OR REPLACE INTO eventEntity(
+    id, code, title, clientName, eventType, dateLabel, daysUntilEvent, venue, zone,
+    guests, articleCount, totalDop, paidDepositDop, depositMethodLabel, depositDateLabel,
+    balanceDueDateLabel, status, leadStaffName, photoKey, priorChangesCount, sortOrder
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateEventDateAndTotal:
+UPDATE eventEntity
+SET dateLabel = ?, totalDop = ?, priorChangesCount = ?
+WHERE id = ?;
+
+updateEventStatus:
+UPDATE eventEntity
+SET status = ?
+WHERE id = ?;
+
+updateEventPaidDeposit:
+UPDATE eventEntity
+SET paidDepositDop = ?, depositMethodLabel = ?
+WHERE id = ?;
+
+selectAllPayments:
+SELECT * FROM paymentEntity ORDER BY sortOrder ASC, id ASC;
+
+upsertPayment:
+INSERT OR REPLACE INTO paymentEntity(
+    id, receiptNumber, eventId, eventTitle, clientName, amountDop,
+    methodLabel, kindLabel, dateLabel, referenceCode, verified, sortOrder
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+selectAllFavorites:
+SELECT articleId FROM favoriteEntity ORDER BY articleId ASC;
+
+insertFavorite:
+INSERT OR REPLACE INTO favoriteEntity(articleId) VALUES (?);
+
+deleteFavorite:
+DELETE FROM favoriteEntity WHERE articleId = ?;
+
+selectAllStaffPermissions:
+SELECT * FROM staffPermissionEntity ORDER BY sortOrder ASC;
+
+upsertStaffPermission:
+INSERT OR REPLACE INTO staffPermissionEntity(
+    id, name, roleLabel, role, activeEventsCount, permissionsCsv, canViewPayments, sortOrder
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+updateStaffPaymentAccess:
+UPDATE staffPermissionEntity
+SET canViewPayments = ?, permissionsCsv = ?, roleLabel = ?
+WHERE name = ?;
+
+selectAllChatMessages:
+SELECT formattedMessage FROM chatMessageEntity ORDER BY id ASC;
+
+insertChatMessage:
+INSERT INTO chatMessageEntity(formattedMessage) VALUES (?);

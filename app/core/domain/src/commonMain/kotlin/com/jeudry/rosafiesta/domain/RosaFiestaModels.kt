@@ -134,9 +134,13 @@ public data class ClientEvent(
     public val leadStaffName: String,
     public val photo: PhotoAsset,
     public val items: List<EventLineItem>,
+    public val priorChangesCount: Int = 0,
 ) {
     public val balanceDop: Int
         get() = (totalDop - paidDepositDop).coerceAtLeast(0)
+
+    public val statusLabel: String
+        get() = status.label
 }
 
 /**
@@ -214,7 +218,10 @@ public data class StaffProfile(
     public val role: UserRole,
     public val activeEventsCount: Int,
     public val permissions: Set<StaffPermission>,
+    public val canViewPayments: Boolean = name != "Yuli",
 )
+
+public typealias StaffMember = StaffProfile
 
 /**
  * Ficha de cliente en la cartera administrativa (`A26`, `A27`).

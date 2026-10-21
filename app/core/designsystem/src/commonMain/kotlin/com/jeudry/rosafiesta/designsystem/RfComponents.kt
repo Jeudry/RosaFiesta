@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -36,6 +37,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -666,6 +668,8 @@ public fun RfField(
     modifier: Modifier = Modifier,
     helperOrError: String? = null,
     isError: Boolean = false,
+    placeholder: String = "",
+    onValueChange: ((String) -> Unit)? = null,
 ) {
     val palette = LocalRfPalette.current
     val typo = LocalRfTypography.current
@@ -688,11 +692,39 @@ public fun RfField(
                 .border(1.2.dp, borderColor, shape)
                 .padding(horizontal = 14.dp),
         ) {
-            BasicText(
-                text = value,
-                style = typo.body.copy(color = palette.ink),
-                maxLines = 1,
-            )
+            if (onValueChange != null) {
+                BasicTextField(
+                    value = value,
+                    onValueChange = onValueChange,
+                    singleLine = true,
+                    textStyle = typo.body.copy(color = palette.ink),
+                    cursorBrush = SolidColor(palette.primaryAccent),
+                    modifier = Modifier.fillMaxWidth(),
+                    decorationBox = { innerTextField ->
+                        Box(
+                            contentAlignment = Alignment.CenterStart,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            if (value.isEmpty() && placeholder.isNotEmpty()) {
+                                BasicText(
+                                    text = placeholder,
+                                    style = typo.body.copy(color = palette.muted),
+                                    maxLines = 1,
+                                )
+                            }
+                            innerTextField()
+                        }
+                    },
+                )
+            } else {
+                val displayText = if (value.isEmpty() && placeholder.isNotEmpty()) placeholder else value
+                val displayColor = if (value.isEmpty() && placeholder.isNotEmpty()) palette.muted else palette.ink
+                BasicText(
+                    text = displayText,
+                    style = typo.body.copy(color = displayColor),
+                    maxLines = 1,
+                )
+            }
         }
         if (!helperOrError.isNullOrBlank()) {
             Spacer(Modifier.height(4.dp))

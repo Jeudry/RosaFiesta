@@ -8,3 +8,8 @@ import app.cash.sqldelight.db.SqlDriver
 public expect class DriverFactory {
     public fun createDriver(): SqlDriver
 }
+
+/**
+ * Crea un [SqlDriver] por defecto cuando la plataforma no requiere un contexto externo.
+ */
+public expect fun createDefaultSqlDriverOrNull(): SqlDriver?

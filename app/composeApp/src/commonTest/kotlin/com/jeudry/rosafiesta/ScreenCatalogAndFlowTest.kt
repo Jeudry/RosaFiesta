@@ -145,4 +145,50 @@ class ScreenCatalogAndFlowTest {
         onNodeWithTag("checklist-step-chk-5").performClick()
         assertTrue(viewModel.checklist.value.first { it.id == "chk-5" }.completed)
     }
+
+    @Test
+    fun `RosaFiestaViewModel valida formularios alterna roles permisos y ejecuta acciones de negocio`() {
+        val koin = org.koin.dsl.koinApplication {
+            modules(com.jeudry.rosafiesta.di.appModule)
+        }.koin
+        val viewModel = koin.get<com.jeudry.rosafiesta.ui.RosaFiestaViewModel>()
+
+        viewModel.setLoginEmail("correo-invalido")
+        assertFalse(viewModel.submitLogin())
+        assertTrue(viewModel.formError.value != null)
+
+        viewModel.setLoginEmail("yuli@rosafiesta.do")
+        viewModel.setLoginPassword("rosa2026")
+        assertTrue(viewModel.submitLogin())
+        assertEquals("staff_yuli", viewModel.activeRole.value)
+
+        assertFalse(viewModel.staffMembers.value.first { it.name == "Yuli" }.canViewPayments)
+        viewModel.toggleStaffPaymentAccess("Yuli")
+        assertTrue(viewModel.staffMembers.value.first { it.name == "Yuli" }.canViewPayments)
+
+        viewModel.setNewEventTitle("Aniversario Coral")
+        viewModel.setNewEventClient("Patricia Lora")
+        viewModel.setNewEventDate("Vie 20 nov")
+        viewModel.setNewEventVenue("Hotel Jaragua")
+        viewModel.setNewEventGuests("90")
+        assertTrue(viewModel.submitNewEvent())
+        assertTrue(viewModel.events.value.any { it.title == "Aniversario Coral" })
+
+        viewModel.setNewArticleCode("RF-110")
+        viewModel.setNewArticleName("Lámpara Colgante")
+        viewModel.setNewArticlePrice("250")
+        viewModel.setNewArticleStock("15")
+        assertTrue(viewModel.submitNewArticle())
+        assertTrue(viewModel.articles.value.any { it.code == "RF-110" })
+
+        viewModel.setPaymentAmountInput("1500")
+        viewModel.setPaymentMethodInput("Transferencia Popular")
+        viewModel.setPaymentRefInput("POP-2026-11")
+        val payment = viewModel.submitPayment("evt-boda-real")
+        assertEquals(1500, payment?.amountDop)
+
+        viewModel.setChatInput("Todo listo para el montaje en Jardín Botánico")
+        viewModel.submitChatMessage("Camila")
+        assertTrue(viewModel.chatMessages.value.last().contains("Todo listo para el montaje"))
+    }
 }

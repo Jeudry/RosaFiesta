@@ -10,6 +10,8 @@ public actual class DriverFactory {
     public actual fun createDriver(): SqlDriver = WasmInMemorySqlDriver()
 }
 
+public actual fun createDefaultSqlDriverOrNull(): SqlDriver? = null
+
 private class WasmInMemorySqlDriver : SqlDriver {
     private var currentTransaction: Transacter.Transaction? = null
 

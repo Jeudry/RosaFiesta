@@ -15,3 +15,5 @@ public actual class DriverFactory(
         name = databaseName,
     )
 }
+
+public actual fun createDefaultSqlDriverOrNull(): SqlDriver? = null

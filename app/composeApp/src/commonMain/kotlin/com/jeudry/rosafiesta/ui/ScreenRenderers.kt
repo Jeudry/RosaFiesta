@@ -70,6 +70,7 @@ import com.jeudry.rosafiesta.designsystem.RfToast
 import com.jeudry.rosafiesta.designsystem.RosaAvatar
 import com.jeudry.rosafiesta.designsystem.RosaAvatarSize
 import com.jeudry.rosafiesta.domain.CanonicalSampleData
+import com.jeudry.rosafiesta.domain.EventStatus
 import com.jeudry.rosafiesta.domain.PhotoAsset
 
 private fun PhotoAsset.toPhotoKey(): RfPhotoKey = when (this) {
@@ -169,7 +170,7 @@ fun RenderScreenSpec(
                     onDismiss = onPrimaryAction,
                     modifier = Modifier.weight(1f),
                 ) {
-                    RenderSheetSpecificContent(spec, onPrimaryAction, onSelectScreenCode)
+                    RenderSheetSpecificContent(spec, viewModel, onPrimaryAction, onSelectScreenCode)
                 }
             }
             return@RfPhoneFrame
@@ -299,6 +300,7 @@ private fun ScreenHeaderBlock(
 @Composable
 private fun RenderSheetSpecificContent(
     spec: ScreenSpec,
+    viewModel: RosaFiestaViewModel?,
     onPrimaryAction: () -> Unit,
     onSelectScreenCode: (String) -> Unit,
 ) {
@@ -332,6 +334,8 @@ private fun RenderSheetSpecificContent(
         }
 
         "s77" -> {
+            val commentVal = viewModel?.supportMessage?.collectAsState()?.value
+                ?: "El arco orgánico y las 120 sillas Tiffany quedaron impecables en Jardín Botánico."
             RfCard {
                 BasicText("Boda Real Rosa & Dorado · Vie 23 oct", style = typo.cardTitle)
                 Spacer(Modifier.height(6.dp))
@@ -343,17 +347,28 @@ private fun RenderSheetSpecificContent(
                 Spacer(Modifier.height(8.dp))
                 RfField(
                     label = "Tu comentario para María, Pedro y Yuli",
-                    value = "El arco orgánico y las 120 sillas Tiffany quedaron impecables en Jardín Botánico.",
+                    value = commentVal,
+                    placeholder = "Escribe tu reseña...",
+                    onValueChange = if (viewModel != null) ({ viewModel.setSupportMessage(it) }) else null,
                 )
             }
             RfButton(label = spec.primaryCta, onClick = onPrimaryAction)
         }
 
         "s81" -> {
+            val selectedCat = viewModel?.selectedCategory?.collectAsState()?.value ?: "Todos"
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 RfChip("Vie 23 oct", selected = true, onClick = {})
-                RfChip("Sillas y mesas", selected = true, onClick = {})
-                RfChip("Arcos", selected = false, onClick = {})
+                RfChip(
+                    label = "Sillas y mesas",
+                    selected = selectedCat == "Mobiliario" || selectedCat == "Todos",
+                    onClick = { viewModel?.setSelectedCategory("Mobiliario") },
+                )
+                RfChip(
+                    label = "Arcos",
+                    selected = selectedCat == "Arcos",
+                    onClick = { viewModel?.setSelectedCategory("Arcos") },
+                )
             }
             RfCard {
                 BasicText("Rango de precio por día", style = typo.fieldLabel)
@@ -367,13 +382,30 @@ private fun RenderSheetSpecificContent(
         }
 
         "s84" -> {
+            val nextDate = viewModel?.dateChangeInput?.collectAsState()?.value ?: "Vie 30 oct"
+            val banner = viewModel?.dateChangeBanner?.collectAsState()?.value ?: "Primer cambio de fecha gratis"
             RfCard {
-                RfTag(text = "Primer cambio de fecha gratis", tone = RfTagTone.LIMA)
+                RfTag(text = banner, tone = RfTagTone.LIMA)
                 Spacer(Modifier.height(6.dp))
                 BasicText("Fecha actual: Vie 23 oct · Jardín Botánico", style = typo.bodyStrong)
-                BasicText("Nueva fecha solicitada: Vie 30 oct · Stock de 145 artículos disponible", style = typo.secondary)
+                BasicText("Nueva fecha solicitada: $nextDate · Stock de 145 artículos disponible", style = typo.secondary)
+                if (viewModel != null) {
+                    Spacer(Modifier.height(6.dp))
+                    RfField(
+                        label = "Nueva fecha solicitada",
+                        value = nextDate,
+                        placeholder = "Ej. Vie 30 oct",
+                        onValueChange = { viewModel.setDateChangeInput(it) },
+                    )
+                }
             }
-            RfButton(label = spec.primaryCta, onClick = onPrimaryAction)
+            RfButton(
+                label = spec.primaryCta,
+                onClick = {
+                    viewModel?.submitDateChange()
+                    onPrimaryAction()
+                },
+            )
         }
 
         "s85" -> {
@@ -384,7 +416,14 @@ private fun RenderSheetSpecificContent(
                 BasicText("• De 3 a 7 días antes: 50 % de reembolso (RD$ 675)", style = typo.body)
                 BasicText("• Menos de 3 días antes: sin reembolso (RD$ 0)", style = typo.body)
             }
-            RfButton(label = spec.primaryCta, style = RfButtonStyle.DANGER, onClick = onPrimaryAction)
+            RfButton(
+                label = spec.primaryCta,
+                style = RfButtonStyle.DANGER,
+                onClick = {
+                    viewModel?.submitCancelEvent()
+                    onPrimaryAction()
+                },
+            )
         }
     }
 }
@@ -397,6 +436,14 @@ private fun RenderScreenBodyByCode(
     onSelectScreenCode: (String) -> Unit,
     onSwitchAppMode: () -> Unit,
 ) {
+    val activeRole = viewModel?.activeRole?.collectAsState()?.value ?: "client"
+    val staffList = viewModel?.staffMembers?.collectAsState()?.value ?: CanonicalSampleData.staffMembers
+    val yuliCanViewPayments = staffList.firstOrNull { it.name.equals("Yuli", ignoreCase = true) }?.canViewPayments ?: false
+    if (spec.code in setOf("A20", "A21", "A32", "A33") && activeRole == "staff_yuli" && !yuliCanViewPayments) {
+        RenderYuliPaymentRestrictedScreen(spec, onSelectScreenCode)
+        return
+    }
+
     when (spec.code) {
         // Estados explícitos de la Sección 5
         "s90", "A36" -> {
@@ -412,7 +459,7 @@ private fun RenderScreenBodyByCode(
         }
 
         "s88" -> {
-            RenderDeleteAccountDisabledScreen(spec, onPrimaryAction)
+            RenderDeleteAccountDisabledScreen(spec, viewModel, onPrimaryAction)
         }
 
         "s83", "A33" -> {
@@ -444,7 +491,7 @@ private fun RenderScreenBodyByCode(
         }
 
         "A05", "A06" -> {
-            RenderAdminManualEventWizardScreen(spec, onPrimaryAction, onSelectScreenCode)
+            RenderAdminManualEventWizardScreen(spec, viewModel, onPrimaryAction, onSelectScreenCode)
         }
 
         "s57", "s68" -> {
@@ -452,11 +499,11 @@ private fun RenderScreenBodyByCode(
         }
 
         "A28" -> {
-            RenderTeamPermissionsScreen(spec, onPrimaryAction)
+            RenderTeamPermissionsScreen(spec, viewModel, onPrimaryAction)
         }
 
         "A30" -> {
-            RenderAdminRoleSwitcherScreen(spec, onSwitchAppMode, onPrimaryAction, onSelectScreenCode)
+            RenderAdminRoleSwitcherScreen(spec, viewModel, onSwitchAppMode, onPrimaryAction, onSelectScreenCode)
         }
 
         "s55", "s56" -> {
@@ -464,11 +511,15 @@ private fun RenderScreenBodyByCode(
         }
 
         "s71", "A34" -> {
-            RenderReviewsAndReplyScreen(spec, onPrimaryAction)
+            RenderReviewsAndReplyScreen(spec, viewModel, onPrimaryAction)
         }
 
         "s72", "s73", "s74" -> {
-            RenderWhatsAppBotScreen(spec, onPrimaryAction)
+            RenderWhatsAppBotScreen(spec, viewModel, onPrimaryAction)
+        }
+
+        "s41" -> {
+            RenderTeamDirectChatScreen(spec, viewModel, onPrimaryAction)
         }
 
         else -> {
@@ -477,7 +528,7 @@ private fun RenderScreenBodyByCode(
                     RenderSplashAndOnboardingContent(spec, onPrimaryAction)
 
                 ScreenArchetype.AUTH_FORM ->
-                    RenderAuthFormByCode(spec, onPrimaryAction, onSelectScreenCode)
+                    RenderAuthFormByCode(spec, viewModel, onPrimaryAction, onSelectScreenCode)
 
                 ScreenArchetype.PERSONAL_HOME ->
                     RenderPersonalHomeContent(spec, viewModel, onPrimaryAction, onSelectScreenCode)
@@ -486,31 +537,31 @@ private fun RenderScreenBodyByCode(
                     RenderPersonalCatalogContent(spec, viewModel, onPrimaryAction, onSelectScreenCode)
 
                 ScreenArchetype.PERSONAL_CART_QUOTE, ScreenArchetype.PERSONAL_CONTRACT_SIGN, ScreenArchetype.PERSONAL_PAYMENT ->
-                    RenderPersonalQuoteAndPaymentContent(spec, viewModel, onPrimaryAction)
+                    RenderPersonalQuoteAndPaymentContent(spec, viewModel, onPrimaryAction, onSelectScreenCode)
 
                 ScreenArchetype.PERSONAL_EVENT_HUB, ScreenArchetype.PERSONAL_DATE_CANCEL ->
                     RenderPersonalEventsContent(spec, viewModel, onPrimaryAction, onSelectScreenCode)
 
                 ScreenArchetype.PERSONAL_ROSA_CHAT ->
-                    RenderRosaAssistantContent(spec, isAdmin = false, onPrimaryAction = onPrimaryAction)
+                    RenderRosaAssistantContent(spec, viewModel, isAdmin = false, onPrimaryAction = onPrimaryAction)
 
                 ScreenArchetype.PERSONAL_PROFILE, ScreenArchetype.PERSONAL_SYSTEM_STATE ->
-                    RenderPersonalProfileAndStateContent(spec, onPrimaryAction, onSelectScreenCode)
+                    RenderPersonalProfileAndStateContent(spec, viewModel, onPrimaryAction, onSelectScreenCode)
 
                 ScreenArchetype.ADMIN_LOGIN_GATE, ScreenArchetype.ADMIN_ROLE_SWITCHER ->
-                    RenderAdminRoleSwitcherScreen(spec, onSwitchAppMode, onPrimaryAction, onSelectScreenCode)
+                    RenderAdminRoleSwitcherScreen(spec, viewModel, onSwitchAppMode, onPrimaryAction, onSelectScreenCode)
 
                 ScreenArchetype.ADMIN_DASHBOARD, ScreenArchetype.ADMIN_CALENDAR ->
                     RenderAdminDashboardAndCalendarContent(spec, viewModel, onPrimaryAction, onSelectScreenCode)
 
                 ScreenArchetype.ADMIN_QUOTES ->
-                    RenderAdminQuotesContent(spec, viewModel, onPrimaryAction)
+                    RenderAdminQuotesContent(spec, viewModel, onPrimaryAction, onSelectScreenCode)
 
                 ScreenArchetype.ADMIN_LOGISTICS, ScreenArchetype.ADMIN_OFFLINE_SYNC ->
                     RenderAdminLogisticsContent(spec, viewModel, onPrimaryAction)
 
                 ScreenArchetype.ADMIN_ROSA_COPILOT ->
-                    RenderRosaAssistantContent(spec, isAdmin = true, onPrimaryAction = onPrimaryAction)
+                    RenderRosaAssistantContent(spec, viewModel, isAdmin = true, onPrimaryAction = onPrimaryAction)
 
                 ScreenArchetype.ADMIN_FINANCE ->
                     RenderAdminFinanceContent(spec, viewModel, onPrimaryAction)
@@ -643,13 +694,99 @@ private fun RenderNotificationsScreen(
 }
 
 @Composable
+private fun RenderYuliPaymentRestrictedScreen(
+    spec: ScreenSpec,
+    onSelectScreenCode: (String) -> Unit,
+) {
+    val typo = LocalRfTypography.current
+    RfCard {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            RfIconTile(
+                icon = RfIconKind.SHIELD,
+                backgroundColor = RfColors.ErrorTint,
+                iconTint = RfColors.Error,
+            )
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                RfTag(text = "Acceso restringido · Rol Yuli", tone = RfTagTone.SOL)
+                Spacer(Modifier.height(4.dp))
+                BasicText("Sin permiso de pagos ni reembolsos (${spec.code})", style = typo.cardTitle)
+                BasicText(
+                    "El perfil de Yuli tiene acceso exclusivo a decoración y tareas de campo. María puede habilitar el permiso en A28.",
+                    style = typo.secondary,
+                )
+            }
+        }
+    }
+    RfButton(
+        label = "Solicitar permiso en A28",
+        style = RfButtonStyle.SECONDARY,
+        onClick = { onSelectScreenCode("A28") },
+    )
+    RfButton(
+        label = "Volver al inicio administrativo",
+        onClick = { onSelectScreenCode("A01") },
+    )
+}
+
+@Composable
+private fun RenderTeamDirectChatScreen(
+    spec: ScreenSpec,
+    viewModel: RosaFiestaViewModel?,
+    onPrimaryAction: () -> Unit,
+) {
+    val typo = LocalRfTypography.current
+    val messages = viewModel?.chatMessages?.collectAsState()?.value ?: CanonicalSampleData.initialChatMessages
+    val chatInput = viewModel?.chatInput?.collectAsState()?.value ?: ""
+
+    RfCard {
+        Row(
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            BasicText("Canal directo · Boda Real Rosa & Dorado", style = typo.cardTitle, modifier = Modifier.weight(1f))
+            RfTag(text = "En línea", tone = RfTagTone.LIMA)
+        }
+        Spacer(Modifier.height(6.dp))
+        messages.takeLast(4).forEach { msg ->
+            val author = msg.substringBefore(":", "Equipo")
+            val body = msg.substringAfter(":", msg).trim()
+            Column(modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp)) {
+                BasicText(author, style = typo.bodyStrong.copy(fontSize = 12.5.sp))
+                BasicText(body, style = typo.secondary)
+            }
+        }
+        Spacer(Modifier.height(6.dp))
+        RfField(
+            label = "Mensaje para María, Pedro y Yuli",
+            value = chatInput,
+            placeholder = "Escribe un mensaje para el equipo...",
+            onValueChange = { viewModel?.setChatInput(it) },
+        )
+    }
+    RfButton(
+        label = spec.primaryCta,
+        onClick = {
+            viewModel?.submitChatMessage("Camila")
+            onPrimaryAction()
+        },
+    )
+}
+
+@Composable
 private fun RenderAdminManualEventWizardScreen(
     spec: ScreenSpec,
+    viewModel: RosaFiestaViewModel?,
     onPrimaryAction: () -> Unit,
     onSelectScreenCode: (String) -> Unit,
 ) {
     val typo = LocalRfTypography.current
     val isStep1 = spec.code == "A05"
+    val clientVal = viewModel?.newEventClient?.collectAsState()?.value ?: "Laura Méndez · +1 (809) 555-0194"
+    val titleVal = viewModel?.newEventTitle?.collectAsState()?.value ?: "Cumpleaños Safari Mateo · Infantil"
+    val dateVal = viewModel?.newEventDate?.collectAsState()?.value ?: "Dom 25 oct 2026 · 9:00 a. m. · Club Naco (60 inv.)"
+    val formError = viewModel?.formError?.collectAsState()?.value
 
     Row(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -674,11 +811,28 @@ private fun RenderAdminManualEventWizardScreen(
 
     if (isStep1) {
         RfCard {
-            RfField(label = "Cliente y WhatsApp", value = "Laura Méndez · +1 (809) 555-0194")
+            RfField(
+                label = "Cliente y WhatsApp",
+                value = if (viewModel == null) "Laura Méndez · +1 (809) 555-0194" else clientVal,
+                placeholder = "Nombre y teléfono del cliente",
+                onValueChange = if (viewModel != null) ({ viewModel.setNewEventClient(it) }) else null,
+            )
             Spacer(Modifier.height(8.dp))
-            RfField(label = "Nombre y tipo de evento", value = "Cumpleaños Safari Mateo · Infantil")
+            RfField(
+                label = "Nombre y tipo de evento",
+                value = if (viewModel == null) "Cumpleaños Safari Mateo · Infantil" else titleVal,
+                placeholder = "Título de la celebración",
+                onValueChange = if (viewModel != null) ({ viewModel.setNewEventTitle(it) }) else null,
+            )
             Spacer(Modifier.height(8.dp))
-            RfField(label = "Fecha, hora y salón", value = "Dom 25 oct 2026 · 9:00 a. m. · Club Naco (60 inv.)")
+            RfField(
+                label = "Fecha, hora y salón",
+                value = if (viewModel == null) "Dom 25 oct 2026 · 9:00 a. m. · Club Naco (60 inv.)" else dateVal,
+                placeholder = "Fecha y lugar del evento",
+                helperOrError = formError,
+                isError = formError != null,
+                onValueChange = if (viewModel != null) ({ viewModel.setNewEventDate(it) }) else null,
+            )
         }
     } else {
         val mateo = CanonicalSampleData.events[2]
@@ -715,7 +869,15 @@ private fun RenderAdminManualEventWizardScreen(
         }
     }
 
-    RfButton(label = spec.primaryCta, onClick = onPrimaryAction)
+    RfButton(
+        label = spec.primaryCta,
+        onClick = {
+            if (isStep1 && viewModel != null) {
+                viewModel.submitNewEvent()
+            }
+            onPrimaryAction()
+        },
+    )
 }
 
 @Composable
@@ -853,9 +1015,18 @@ private fun RenderOfflineAndServerErrorScreen(
 @Composable
 private fun RenderDeleteAccountDisabledScreen(
     spec: ScreenSpec,
+    viewModel: RosaFiestaViewModel?,
     onPrimaryAction: () -> Unit,
 ) {
     val typo = LocalRfTypography.current
+    val events = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
+    val activeEventsCount = events.count {
+        it.clientName.contains("Camila", ignoreCase = true) &&
+            it.status != EventStatus.CANCELLED &&
+            it.status != EventStatus.COMPLETED
+    }
+    val canDelete = RosaFiestaEngine.canDeleteAccount(activeEventsCount)
+
     RfCard {
         Row(verticalAlignment = Alignment.CenterVertically) {
             RfIconTile(
@@ -867,7 +1038,11 @@ private fun RenderDeleteAccountDisabledScreen(
             Column(modifier = Modifier.weight(1f)) {
                 BasicText("Validación de eventos activos", style = typo.cardTitle.copy(color = RfColors.Error))
                 BasicText(
-                    "Tienes 2 eventos activos (Boda Real Rosa & Dorado el vie 23 oct y Quinceañera Valentina Crystal el lun 2 nov).",
+                    if (activeEventsCount > 0) {
+                        "Tienes $activeEventsCount eventos activos (Boda Real Rosa & Dorado el vie 23 oct y Quinceañera Valentina Crystal el lun 2 nov)."
+                    } else {
+                        "No tienes eventos activos pendientes. Ya puedes eliminar tu cuenta si lo deseas."
+                    },
                     style = typo.secondary,
                 )
             }
@@ -876,8 +1051,8 @@ private fun RenderDeleteAccountDisabledScreen(
     RfButton(
         label = "Eliminar cuenta permanentemente",
         style = RfButtonStyle.DANGER,
-        enabled = false,
-        onClick = {},
+        enabled = canDelete,
+        onClick = onPrimaryAction,
     )
     RfButton(
         label = "Volver a mi perfil",
@@ -1076,10 +1251,12 @@ private fun RenderGuestsAndTablesScreen(
 @Composable
 private fun RenderTeamPermissionsScreen(
     spec: ScreenSpec,
+    viewModel: RosaFiestaViewModel?,
     onPrimaryAction: () -> Unit,
 ) {
     val typo = LocalRfTypography.current
-    CanonicalSampleData.staffMembers.forEach { staff ->
+    val staffList = viewModel?.staffMembers?.collectAsState()?.value ?: CanonicalSampleData.staffMembers
+    staffList.forEach { staff ->
         RfCard {
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -1091,8 +1268,8 @@ private fun RenderTeamPermissionsScreen(
                     BasicText(staff.roleLabel, style = typo.secondary)
                 }
                 RfTag(
-                    text = if (staff.name == "Yuli") "Sin pagos" else "Acceso rol",
-                    tone = if (staff.name == "Yuli") RfTagTone.SOL else RfTagTone.INDIGO,
+                    text = if (!staff.canViewPayments) "Sin pagos" else "Acceso rol",
+                    tone = if (!staff.canViewPayments) RfTagTone.SOL else RfTagTone.INDIGO,
                 )
             }
             Spacer(Modifier.height(6.dp))
@@ -1102,10 +1279,13 @@ private fun RenderTeamPermissionsScreen(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 BasicText(
-                    text = if (staff.name == "Yuli") "Decoración y tareas (Pagos desactivados)" else "Ver pagos y cobros",
+                    text = if (!staff.canViewPayments) "Decoración y tareas (Pagos desactivados)" else "Ver pagos y cobros",
                     style = typo.body,
                 )
-                RfSwitch(checked = staff.name != "Yuli")
+                RfSwitch(
+                    checked = staff.canViewPayments,
+                    onCheckedChange = { viewModel?.toggleStaffPaymentAccess(staff.name) },
+                )
             }
         }
     }
@@ -1115,6 +1295,7 @@ private fun RenderTeamPermissionsScreen(
 @Composable
 private fun RenderAdminRoleSwitcherScreen(
     spec: ScreenSpec,
+    viewModel: RosaFiestaViewModel?,
     onSwitchAppMode: () -> Unit,
     onPrimaryAction: () -> Unit,
     onSelectScreenCode: (String) -> Unit,
@@ -1138,11 +1319,21 @@ private fun RenderAdminRoleSwitcherScreen(
             RosaAvatar(size = RosaAvatarSize.MEDIUM, forceAdminPalette = true, glow = true)
         }
     }
-    RfCard(onClick = { onSelectScreenCode("A01") }) {
+    RfCard(
+        onClick = {
+            viewModel?.switchRole("admin")
+            onSelectScreenCode("A01")
+        },
+    ) {
         BasicText("Entrar como Dueña (María · Admin)", style = typo.cardTitle)
         BasicText("Acceso completo a eventos, inventario, pagos, reportes y configuración.", style = typo.secondary)
     }
-    RfCard(onClick = { onSelectScreenCode("A28") }) {
+    RfCard(
+        onClick = {
+            viewModel?.switchRole("staff_yuli")
+            onSelectScreenCode("A28")
+        },
+    ) {
         BasicText("Entrar como Equipo (Pedro, Yuli, Andrés)", style = typo.cardTitle)
         BasicText("Yuli: decoración y tareas, sin pagos · Pedro: logística · Andrés: almacén.", style = typo.secondary)
     }
@@ -1150,6 +1341,7 @@ private fun RenderAdminRoleSwitcherScreen(
         label = "Revisar App Personal como cliente",
         style = RfButtonStyle.SECONDARY,
         onClick = {
+            viewModel?.switchRole("client")
             onSwitchAppMode()
             onPrimaryAction()
         },
@@ -1188,9 +1380,12 @@ private fun RenderSuppliersScreen(
 @Composable
 private fun RenderReviewsAndReplyScreen(
     spec: ScreenSpec,
+    viewModel: RosaFiestaViewModel?,
     onPrimaryAction: () -> Unit,
 ) {
     val typo = LocalRfTypography.current
+    val depositVal = viewModel?.depositPercentInput?.collectAsState()?.value ?: "30"
+    val deliveryVal = viewModel?.deliveryBaseInput?.collectAsState()?.value ?: "450"
     RfCard {
         Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
             BasicText("Camila Rodríguez · Boda Real Rosa & Dorado", style = typo.cardTitle)
@@ -1204,20 +1399,39 @@ private fun RenderReviewsAndReplyScreen(
         if (spec.code == "A34") {
             Spacer(Modifier.height(8.dp))
             RfField(
-                label = "Respuesta sugerida por Rosa IA Admin",
-                value = "¡Gracias, Camila! Fue un honor acompañar tu Boda Real Rosa & Dorado junto a Pedro y Yuli.",
+                label = "Anticipo obligatorio (%)",
+                value = depositVal,
+                placeholder = "30",
+                onValueChange = { viewModel?.setDepositPercentInput(it) },
+            )
+            Spacer(Modifier.height(6.dp))
+            RfField(
+                label = "Tarifa base de transporte (RD$)",
+                value = deliveryVal,
+                placeholder = "450",
+                onValueChange = { viewModel?.setDeliveryBaseInput(it) },
             )
         }
     }
-    RfButton(label = spec.primaryCta, onClick = onPrimaryAction)
+    RfButton(
+        label = spec.primaryCta,
+        onClick = {
+            if (spec.code == "A34") {
+                viewModel?.saveBusinessConfig()
+            }
+            onPrimaryAction()
+        },
+    )
 }
 
 @Composable
 private fun RenderWhatsAppBotScreen(
     spec: ScreenSpec,
+    viewModel: RosaFiestaViewModel?,
     onPrimaryAction: () -> Unit,
 ) {
     val typo = LocalRfTypography.current
+    val whatsappEnabled = viewModel?.whatsappAlertsEnabled?.collectAsState()?.value ?: true
     RfCard {
         Row(
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -1225,13 +1439,30 @@ private fun RenderWhatsAppBotScreen(
             modifier = Modifier.fillMaxWidth(),
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                BasicText("Bot de WhatsApp + Rosa IA", style = typo.cardTitle)
+                BasicText(
+                    text = when (spec.code) {
+                        "s73" -> "Conversaciones activas en WhatsApp"
+                        "s74" -> "Embudo de conversión WhatsApp → Reserva"
+                        else -> "Bot de WhatsApp + Rosa IA"
+                    },
+                    style = typo.cardTitle,
+                )
                 BasicText("Línea +1 (809) 555-0199 · Responde precios por día y disponibilidad", style = typo.secondary)
             }
-            RfSwitch(checked = true)
+            RfSwitch(
+                checked = whatsappEnabled,
+                onCheckedChange = { viewModel?.toggleWhatsappAlerts() },
+            )
         }
         Spacer(Modifier.height(8.dp))
-        BasicText("Plantilla activa: «¡Hola! Silla Tiffany RD$ 4/día, Mesa redonda RD$ 25/día, Arco RD$ 95/día.»", style = typo.body)
+        BasicText(
+            text = when (spec.code) {
+                "s73" -> "Laura Méndez: «¿Tienen 60 sillas Tiffany para el dom 25 oct?» → Bot: «¡Sí! 160 libres (RD$ 4/día).»"
+                "s74" -> "42 consultas atendidas en oct · 14 cotizaciones generadas · 4 eventos confirmados con anticipo."
+                else -> "Plantilla activa: «¡Hola! Silla Tiffany RD$ 4/día, Mesa redonda RD$ 25/día, Arco RD$ 95/día.»"
+            },
+            style = typo.body,
+        )
     }
     RfButton(label = spec.primaryCta, onClick = onPrimaryAction)
 }
@@ -1285,10 +1516,18 @@ private fun RenderSplashAndOnboardingContent(spec: ScreenSpec, onPrimaryAction: 
 @Composable
 private fun RenderAuthFormByCode(
     spec: ScreenSpec,
+    viewModel: RosaFiestaViewModel?,
     onPrimaryAction: () -> Unit,
     onSelectScreenCode: (String) -> Unit,
 ) {
     val typo = LocalRfTypography.current
+    val loginEmail = viewModel?.loginEmail?.collectAsState()?.value ?: "camila@rosafiesta.do"
+    val loginPassword = viewModel?.loginPassword?.collectAsState()?.value ?: "••••••••••••"
+    val regName = viewModel?.registerName?.collectAsState()?.value ?: "Camila Rodríguez"
+    val regEmail = viewModel?.registerEmail?.collectAsState()?.value ?: "camila@rosafiesta.do"
+    val regPhone = viewModel?.registerPhone?.collectAsState()?.value ?: "+1 (809) 555-0142"
+    val formError = viewModel?.formError?.collectAsState()?.value
+
     when (spec.code) {
         "s06" -> {
             RfPhoto(
@@ -1304,11 +1543,29 @@ private fun RenderAuthFormByCode(
 
         "s07" -> {
             RfCard {
-                RfField(label = "Correo electrónico", value = "camila@rosafiesta.do")
+                RfField(
+                    label = "Correo electrónico",
+                    value = loginEmail,
+                    placeholder = "correo@rosafiesta.do",
+                    onValueChange = if (viewModel != null) ({ viewModel.setLoginEmail(it) }) else null,
+                )
                 Spacer(Modifier.height(10.dp))
-                RfField(label = "Contraseña", value = "••••••••••••", helperOrError = "¿Olvidaste tu contraseña? Recuperar en s09")
+                RfField(
+                    label = "Contraseña",
+                    value = if (viewModel == null) "••••••••••••" else loginPassword,
+                    placeholder = "Ingresa tu contraseña",
+                    helperOrError = formError ?: "¿Olvidaste tu contraseña? Recuperar en s09",
+                    isError = formError != null,
+                    onValueChange = if (viewModel != null) ({ viewModel.setLoginPassword(it) }) else null,
+                )
                 Spacer(Modifier.height(12.dp))
-                RfButton(label = spec.primaryCta, onClick = onPrimaryAction)
+                RfButton(
+                    label = spec.primaryCta,
+                    onClick = {
+                        val ok = viewModel?.submitLogin() ?: true
+                        if (ok) onPrimaryAction()
+                    },
+                )
             }
         }
 
@@ -1318,14 +1575,19 @@ private fun RenderAuthFormByCode(
                     RfIllo(kind = RfIlloKind.CANDADO, size = 52.dp)
                     Spacer(Modifier.width(12.dp))
                     BasicText(
-                        text = if (spec.code == "s09") "Enviaremos un enlace seguro a camila@rosafiesta.do" else "Ingresa tu nueva contraseña segura",
+                        text = if (spec.code == "s09") "Enviaremos un enlace seguro a $loginEmail" else "Ingresa tu nueva contraseña segura",
                         style = typo.body,
                     )
                 }
                 Spacer(Modifier.height(10.dp))
                 RfField(
                     label = if (spec.code == "s09") "Correo registrado" else "Nueva contraseña",
-                    value = if (spec.code == "s09") "camila@rosafiesta.do" else "RosaFiesta2026*",
+                    value = if (spec.code == "s09") loginEmail else loginPassword,
+                    onValueChange = if (viewModel != null) {
+                        { if (spec.code == "s09") viewModel.setLoginEmail(it) else viewModel.setLoginPassword(it) }
+                    } else {
+                        null
+                    },
                 )
             }
             RfButton(label = spec.primaryCta, onClick = onPrimaryAction)
@@ -1350,11 +1612,23 @@ private fun RenderAuthFormByCode(
 
         else -> {
             RfCard {
-                RfField(label = "Nombre completo", value = "Camila Rodríguez")
+                RfField(
+                    label = "Nombre completo",
+                    value = regName,
+                    onValueChange = if (viewModel != null) ({ viewModel.setRegisterName(it) }) else null,
+                )
                 Spacer(Modifier.height(8.dp))
-                RfField(label = "Correo electrónico", value = "camila@rosafiesta.do")
+                RfField(
+                    label = "Correo electrónico",
+                    value = regEmail,
+                    onValueChange = if (viewModel != null) ({ viewModel.setRegisterEmail(it) }) else null,
+                )
                 Spacer(Modifier.height(8.dp))
-                RfField(label = "Teléfono / WhatsApp", value = "+1 (809) 555-0142")
+                RfField(
+                    label = "Teléfono / WhatsApp",
+                    value = regPhone,
+                    onValueChange = if (viewModel != null) ({ viewModel.setRegisterPhone(it) }) else null,
+                )
                 Spacer(Modifier.height(12.dp))
                 RfButton(label = spec.primaryCta, onClick = onPrimaryAction)
             }
@@ -1373,6 +1647,84 @@ private fun RenderPersonalHomeContent(
     val events = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
     val articles = viewModel?.articles?.collectAsState()?.value ?: CanonicalSampleData.articles
     val boda = events.first()
+
+    when (spec.code) {
+        "s16" -> {
+            val evtType = viewModel?.eventTypeInput?.collectAsState()?.value ?: "Boda Real"
+            val evtDate = viewModel?.eventDateInput?.collectAsState()?.value ?: "Vie 23 oct"
+            val evtVenue = viewModel?.eventVenueInput?.collectAsState()?.value ?: "Jardín Botánico"
+            val evtGuests = viewModel?.eventGuestsInput?.collectAsState()?.value ?: "120"
+            RfCard {
+                BasicText("Configurador rápido de celebración", style = typo.cardTitle)
+                Spacer(Modifier.height(6.dp))
+                RfField(
+                    label = "Tipo de celebración",
+                    value = evtType,
+                    onValueChange = { viewModel?.setEventTypeInput(it) },
+                )
+                Spacer(Modifier.height(6.dp))
+                RfField(
+                    label = "Fecha y lugar",
+                    value = "$evtDate · $evtVenue",
+                    onValueChange = { viewModel?.setEventDateInput(it) },
+                )
+                Spacer(Modifier.height(6.dp))
+                RfField(
+                    label = "Invitados estimados",
+                    value = evtGuests,
+                    onValueChange = { viewModel?.setEventGuestsInput(it) },
+                )
+            }
+            CanonicalSampleData.templates.take(3).forEach { tpl ->
+                RfCard(onClick = { viewModel?.setEventTypeInput(tpl.name) }) {
+                    Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            BasicText(tpl.name, style = typo.bodyStrong)
+                            BasicText("${tpl.subtitle} · ${tpl.defaultGuests} inv.", style = typo.secondary)
+                        }
+                        RfTag(text = "Desde ${RosaFiestaEngine.formatDop(tpl.startingPriceDop)}", tone = RfTagTone.ROSA)
+                    }
+                }
+            }
+            RfButton(
+                label = spec.primaryCta,
+                onClick = {
+                    viewModel?.submitQuickClientEvent()
+                    onPrimaryAction()
+                },
+            )
+            return
+        }
+
+        "s17" -> {
+            val query = viewModel?.searchQuery?.collectAsState()?.value ?: ""
+            RfField(
+                label = "Buscar en RosaFiesta",
+                value = query,
+                placeholder = "Silla Tiffany, mesa redonda, arco...",
+                onValueChange = { viewModel?.setSearchQuery(it) },
+            )
+            val filtered = articles.filter {
+                query.isBlank() ||
+                    it.name.contains(query, ignoreCase = true) ||
+                    it.category.contains(query, ignoreCase = true) ||
+                    it.code.contains(query, ignoreCase = true)
+            }
+            filtered.take(4).forEach { art ->
+                RfCard(onClick = { onSelectScreenCode("s19") }) {
+                    Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            BasicText("${art.code} · ${art.name}", style = typo.bodyStrong)
+                            BasicText("${art.category} · ${art.availableOct23} disponibles", style = typo.secondary)
+                        }
+                        RfGradientPriceText(art.formattedDailyRate)
+                    }
+                }
+            }
+            RfButton(label = spec.primaryCta, onClick = onPrimaryAction)
+            return
+        }
+    }
 
     RfHeroCard {
         Row(
@@ -1454,6 +1806,166 @@ private fun RenderPersonalCatalogContent(
 ) {
     val typo = LocalRfTypography.current
     val articles = viewModel?.articles?.collectAsState()?.value ?: CanonicalSampleData.articles
+    val favs = viewModel?.favorites?.collectAsState()?.value ?: CanonicalSampleData.initialFavorites
+    val draftQty = viewModel?.draftQuantities?.collectAsState()?.value ?: emptyMap()
+
+    when (spec.code) {
+        "s02", "s19" -> {
+            val art = articles.first()
+            val qty = draftQty[art.id] ?: 120
+            val isFav = art.id in favs
+            RfPhoto(
+                photoKey = art.photo.toPhotoKey(),
+                contentDescription = art.name,
+                bottomScrim = true,
+                modifier = Modifier.fillMaxWidth().height(160.dp),
+            )
+            RfCard {
+                Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        BasicText("${art.code} · ${art.name}", style = typo.cardTitle)
+                        BasicText(art.description, style = typo.secondary)
+                    }
+                    RfGradientPriceText(art.formattedDailyRate, style = typo.backScreenTitle)
+                }
+                Spacer(Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    art.variants.forEachIndexed { idx, v ->
+                        RfChip(v, selected = idx == 0, onClick = {})
+                    }
+                    RfChip(
+                        label = if (isFav) "★ Favorito" else "☆ Guardar",
+                        selected = isFav,
+                        onClick = { viewModel?.toggleFavorite(art.id) },
+                    )
+                }
+                Spacer(Modifier.height(8.dp))
+                Row(
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    BasicText("Cantidad para tu evento: $qty u.", style = typo.bodyStrong)
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        RfChip("-10", selected = false, onClick = { viewModel?.adjustDraftQuantity(art.id, -10) })
+                        RfChip("+10", selected = true, onClick = { viewModel?.adjustDraftQuantity(art.id, 10) })
+                    }
+                }
+            }
+            RfButton(label = spec.primaryCta, onClick = onPrimaryAction)
+            return
+        }
+
+        "s20" -> {
+            val art = articles.first()
+            RfCard {
+                BasicText("Calendario de stock · ${art.name}", style = typo.cardTitle)
+                BasicText("Stock total en bodega: ${art.totalStock} unidades", style = typo.secondary)
+                Spacer(Modifier.height(8.dp))
+                listOf(
+                    Triple("Vie 23 oct 2026", "${art.availableOct23} libres de ${art.totalStock}", RfTagTone.LIMA),
+                    Triple("Sáb 24 oct 2026", "140 libres de ${art.totalStock}", RfTagTone.LIMA),
+                    Triple("Lun 2 nov 2026", "100 libres de ${art.totalStock}", RfTagTone.SOL),
+                ).forEach { (date, stockLabel, tone) ->
+                    Row(
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                    ) {
+                        BasicText(date, style = typo.bodyStrong)
+                        RfTag(text = stockLabel, tone = tone)
+                    }
+                }
+            }
+            RfButton(label = spec.primaryCta, onClick = onPrimaryAction)
+            return
+        }
+
+        "s21", "s22" -> {
+            val packages = CanonicalSampleData.packages
+            val displayed = if (spec.code == "s22") packages.take(1) else packages
+            displayed.forEach { pkg ->
+                RfCard(onClick = { onSelectScreenCode("s22") }) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        RfPhoto(
+                            photoKey = pkg.photo.toPhotoKey(),
+                            contentDescription = pkg.name,
+                            modifier = Modifier.size(68.dp),
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            BasicText(pkg.name, style = typo.cardTitle)
+                            BasicText("${pkg.subtitle} · ${pkg.suggestedGuests} inv.", style = typo.secondary)
+                            Spacer(Modifier.height(4.dp))
+                            Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                                RfGradientPriceText(RosaFiestaEngine.formatDop(pkg.priceDop))
+                                RfTag(text = "Ahorras ${RosaFiestaEngine.formatDop(pkg.savingsDop)}", tone = RfTagTone.LIMA)
+                            }
+                        }
+                    }
+                    if (spec.code == "s22") {
+                        Spacer(Modifier.height(8.dp))
+                        pkg.includedItems.forEach { line ->
+                            BasicText("• $line", style = typo.body)
+                        }
+                    }
+                }
+            }
+            RfButton(label = spec.primaryCta, onClick = onPrimaryAction)
+            return
+        }
+
+        "s24", "s25" -> {
+            val favArticles = articles.filter { it.id in favs }.ifEmpty { articles.take(3) }
+            RfCard {
+                Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                    BasicText(
+                        text = if (spec.code == "s25") "Tablero: Boda Real Rosa & Dorado" else "Mis piezas favoritas (${favArticles.size})",
+                        style = typo.cardTitle,
+                    )
+                    RfTag(text = "Vie 23 oct", tone = RfTagTone.ROSA)
+                }
+                BasicText("Toca cualquier pieza para alternar guardado o cotizar con Rosa IA.", style = typo.secondary)
+            }
+            favArticles.forEach { art ->
+                RfCard(onClick = { viewModel?.toggleFavorite(art.id) }) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        RfPhoto(photoKey = art.photo.toPhotoKey(), contentDescription = art.name, modifier = Modifier.size(56.dp))
+                        Spacer(Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            BasicText(art.name, style = typo.bodyStrong)
+                            BasicText(art.formattedDailyRate, style = typo.secondary)
+                        }
+                        RfTag(text = "★ Guardado", tone = RfTagTone.ROSA)
+                    }
+                }
+            }
+            RfButton(label = spec.primaryCta, onClick = onPrimaryAction)
+            return
+        }
+
+        "s80" -> {
+            RfCard {
+                BasicText("Comparativa de sillas y mesas", style = typo.cardTitle)
+                Spacer(Modifier.height(6.dp))
+                articles.take(3).forEach { art ->
+                    Row(
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            BasicText(art.name, style = typo.bodyStrong)
+                            BasicText("Stock 23 oct: ${art.availableOct23}/${art.totalStock} · ${art.variants.joinToString()}", style = typo.secondary)
+                        }
+                        RfGradientPriceText(art.formattedDailyRate)
+                    }
+                }
+            }
+            RfButton(label = spec.primaryCta, onClick = onPrimaryAction)
+            return
+        }
+    }
+
     Row(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         modifier = Modifier.fillMaxWidth(),
@@ -1500,10 +2012,105 @@ private fun RenderPersonalQuoteAndPaymentContent(
     spec: ScreenSpec,
     viewModel: RosaFiestaViewModel?,
     onPrimaryAction: () -> Unit,
+    onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
     val events = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
+    val payments = viewModel?.payments?.collectAsState()?.value ?: CanonicalSampleData.payments
     val boda = events.first()
+
+    when (spec.code) {
+        "s30" -> {
+            RfCard {
+                RfTag(text = "Contrato digital #CTR-2026-1023", tone = RfTagTone.VIOLETA)
+                Spacer(Modifier.height(6.dp))
+                BasicText("Cláusulas de alquiler y montaje · ${boda.title}", style = typo.cardTitle)
+                Spacer(Modifier.height(6.dp))
+                BasicText("1. Reserva confirmada con el 30 % de anticipo (${RosaFiestaEngine.formatDop(boda.paidDepositDop)}).", style = typo.body)
+                BasicText("2. Liquidación del 70 % restante (${RosaFiestaEngine.formatDop(boda.balanceDop)}) 24 h antes del evento.", style = typo.body)
+                BasicText("3. Primer cambio de fecha gratis con al menos 48 h de antelación.", style = typo.body)
+                BasicText("4. Reembolso por cancelación: 90 % (>7 días), 50 % (3–7 días), 0 % (<3 días).", style = typo.body)
+            }
+            RfButton(label = spec.primaryCta, onClick = onPrimaryAction)
+            return
+        }
+
+        "s31" -> {
+            val sigName = viewModel?.profileName?.collectAsState()?.value ?: "Camila Rodríguez"
+            RfCard {
+                BasicText("Firma electrónica del cliente", style = typo.cardTitle)
+                BasicText("Acepto las condiciones de entrega, montaje y depósito de garantía.", style = typo.secondary)
+                Spacer(Modifier.height(8.dp))
+                RfField(
+                    label = "Firma con tu nombre completo",
+                    value = sigName,
+                    onValueChange = { viewModel?.setProfileName(it) },
+                )
+            }
+            RfButton(label = spec.primaryCta, onClick = onPrimaryAction)
+            return
+        }
+
+        "s32", "s38" -> {
+            val amountVal = viewModel?.paymentAmountInput?.collectAsState()?.value ?: boda.balanceDop.toString()
+            val methodVal = viewModel?.paymentMethodInput?.collectAsState()?.value ?: "Transferencia Banreservas"
+            val refVal = viewModel?.paymentRefInput?.collectAsState()?.value ?: "BR-2026-9941"
+            val err = viewModel?.formError?.collectAsState()?.value
+            RfCard {
+                BasicText(
+                    text = if (spec.code == "s32") "Pago de anticipo 30 % (RD$ 1,350)" else "Liquidar saldo pendiente 70 % (${RosaFiestaEngine.formatDop(boda.balanceDop)})",
+                    style = typo.cardTitle,
+                )
+                Spacer(Modifier.height(8.dp))
+                RfField(
+                    label = "Monto a pagar (RD$)",
+                    value = amountVal,
+                    onValueChange = { viewModel?.setPaymentAmountInput(it) },
+                )
+                Spacer(Modifier.height(6.dp))
+                RfField(
+                    label = "Método bancario o tarjeta",
+                    value = methodVal,
+                    onValueChange = { viewModel?.setPaymentMethodInput(it) },
+                )
+                Spacer(Modifier.height(6.dp))
+                RfField(
+                    label = "Número de referencia / comprobante",
+                    value = refVal,
+                    helperOrError = err,
+                    isError = err != null,
+                    onValueChange = { viewModel?.setPaymentRefInput(it) },
+                )
+            }
+            RfButton(
+                label = spec.primaryCta,
+                onClick = {
+                    viewModel?.submitPayment(boda.id)
+                    onPrimaryAction()
+                },
+            )
+            return
+        }
+
+        "s39", "s82" -> {
+            payments.forEach { pay ->
+                RfCard(onClick = { onSelectScreenCode("s83") }) {
+                    Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            BasicText("${pay.receiptNumber} · ${pay.kindLabel}", style = typo.bodyStrong)
+                            BasicText("${pay.eventTitle} · ${pay.methodLabel}", style = typo.secondary)
+                        }
+                        Column(horizontalAlignment = Alignment.End) {
+                            RfGradientPriceText(RosaFiestaEngine.formatDop(pay.amountDop))
+                            RfTag(text = if (pay.verified) "Verificado" else "En revisión", tone = RfTagTone.LIMA)
+                        }
+                    }
+                }
+            }
+            RfButton(label = spec.primaryCta, onClick = onPrimaryAction)
+            return
+        }
+    }
 
     if (spec.code in setOf("s33", "s51")) {
         RfCard(padding = 12.dp) {
@@ -1601,6 +2208,110 @@ private fun RenderPersonalEventsContent(
 ) {
     val typo = LocalRfTypography.current
     val events = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
+    val boda = events.first()
+
+    when (spec.code) {
+        "s41" -> {
+            RfCard {
+                BasicText("Artículos reservados · ${boda.title}", style = typo.cardTitle)
+                Spacer(Modifier.height(6.dp))
+                boda.items.forEach { item ->
+                    Row(
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp),
+                    ) {
+                        BasicText("${item.quantity} × ${item.name} (${item.articleCode})", style = typo.body)
+                        BasicText(RosaFiestaEngine.formatDop(item.subtotalDop), style = typo.bodyStrong)
+                    }
+                }
+            }
+            RfButton(label = spec.primaryCta, onClick = onPrimaryAction)
+            return
+        }
+
+        "s42" -> {
+            val stop = CanonicalSampleData.deliveryStops.first()
+            RfCard {
+                RfTag(text = stop.statusLabel, tone = RfTagTone.LIMA)
+                Spacer(Modifier.height(6.dp))
+                BasicText("Ruta en vivo hacia ${stop.venue}", style = typo.cardTitle)
+                BasicText("Ventana: ${stop.windowLabel} · ${stop.vehicleAndCrew}", style = typo.secondary)
+            }
+            RfButton(label = spec.primaryCta, onClick = onPrimaryAction)
+            return
+        }
+
+        "s43" -> {
+            RfCard {
+                BasicText("Equipo asignado en campo", style = typo.cardTitle)
+                Spacer(Modifier.height(6.dp))
+                CanonicalSampleData.staffMembers.forEach { member ->
+                    Row(
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp),
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            BasicText(member.name, style = typo.bodyStrong)
+                            BasicText(member.roleLabel, style = typo.secondary)
+                        }
+                        RfTag(text = "${member.activeEventsCount} eventos", tone = RfTagTone.ROSA)
+                    }
+                }
+            }
+            RfButton(label = spec.primaryCta, onClick = onPrimaryAction)
+            return
+        }
+
+        "s48", "s49" -> {
+            RfPhoto(
+                photoKey = RfPhotoKey.BODA,
+                contentDescription = boda.title,
+                bottomScrim = true,
+                modifier = Modifier.fillMaxWidth().height(150.dp),
+            )
+            RfCard {
+                BasicText(
+                    text = if (spec.code == "s48") "Álbum compartido · 24 fotos del montaje" else "Cierre y recogida · Sin incidencias",
+                    style = typo.cardTitle,
+                )
+                BasicText("Jardín Botánico · Verificado por Pedro y Camila Rodríguez", style = typo.secondary)
+            }
+            RfButton(label = spec.primaryCta, onClick = onPrimaryAction)
+            return
+        }
+
+        "s52", "s53" -> {
+            val nextDate = viewModel?.dateChangeInput?.collectAsState()?.value ?: "Vie 30 oct"
+            val banner = viewModel?.dateChangeBanner?.collectAsState()?.value ?: "Primer cambio gratis (>48h antes)"
+            RfCard {
+                RfTag(
+                    text = if (spec.code == "s52") banner else "Política de reembolso 90 % / 50 % / 0 %",
+                    tone = if (spec.code == "s52") RfTagTone.LIMA else RfTagTone.SOL,
+                )
+                Spacer(Modifier.height(6.dp))
+                if (spec.code == "s52") {
+                    RfField(
+                        label = "Nueva fecha para ${boda.title}",
+                        value = nextDate,
+                        onValueChange = { viewModel?.setDateChangeInput(it) },
+                    )
+                } else {
+                    val refund = RosaFiestaEngine.calculateCancellationRefund(boda.paidDepositDop, boda.daysUntilEvent)
+                    BasicText("Reembolso aplicable hoy (${refund.refundPercent} %): ${RosaFiestaEngine.formatDop(refund.refundDop)}", style = typo.cardTitle)
+                    BasicText("Retención operativa: ${RosaFiestaEngine.formatDop(refund.retainedDop)}", style = typo.secondary)
+                }
+            }
+            RfButton(
+                label = spec.primaryCta,
+                style = if (spec.code == "s53") RfButtonStyle.DANGER else RfButtonStyle.PRIMARY,
+                onClick = {
+                    if (spec.code == "s52") viewModel?.submitDateChange(boda.id) else viewModel?.submitCancelEvent(boda.id)
+                    onPrimaryAction()
+                },
+            )
+            return
+        }
+    }
 
     if (spec.code == "s40") {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
@@ -1644,12 +2355,18 @@ private fun RenderPersonalEventsContent(
 @Composable
 private fun RenderRosaAssistantContent(
     spec: ScreenSpec,
+    viewModel: RosaFiestaViewModel?,
     isAdmin: Boolean,
     onPrimaryAction: () -> Unit,
 ) {
     val palette = LocalRfPalette.current
     val typo = LocalRfTypography.current
-    val proposal = RosaFiestaEngine.buildRosaProposal("Boda Real Rosa & Dorado", 120)
+    val rosaType = viewModel?.rosaEventType?.collectAsState()?.value ?: "Boda Real Rosa & Dorado"
+    val rosaGuests = viewModel?.rosaGuestsCount?.collectAsState()?.value ?: 120
+    val rosaPalette = viewModel?.rosaPalette?.collectAsState()?.value ?: "Rosa & Dorado"
+    val isCustomized = rosaGuests != 120 || rosaType != "Boda Real Rosa & Dorado" || rosaPalette != "Rosa & Dorado"
+    val proposal = RosaFiestaEngine.buildRosaProposal(rosaType, rosaGuests)
+    val canonicalBoda = CanonicalSampleData.events.first()
 
     Box(
         modifier = Modifier
@@ -1673,26 +2390,51 @@ private fun RenderRosaAssistantContent(
             }
             Spacer(Modifier.height(10.dp))
             BasicText(
-                text = if (isAdmin) {
-                    "«María, verifiqué almacén para el lun 2 nov: tenemos las 100 sillas Tiffany y 13 mesas redondas libres para Quinceañera Valentina Crystal (RD$ 6,200).»"
-                } else {
-                    "«Camila, para tus 120 invitados en Jardín Botánico preparé 120 sillas Tiffany, 15 mesas redondas, 8 centros florales, 1 arco orgánico y mesa dulce por RD$ 4,500.»"
+                text = when {
+                    isAdmin ->
+                        "«María, verifiqué almacén para el lun 2 nov: tenemos las 100 sillas Tiffany y 13 mesas redondas libres para Quinceañera Valentina Crystal (RD$ 6,200).»"
+
+                    isCustomized ->
+                        "«Camila, para tus $rosaGuests invitados en Jardín Botánico ($rosaPalette) preparé la propuesta completa por ${RosaFiestaEngine.formatDop(proposal.totalDop)}.»"
+
+                    else ->
+                        "«Camila, para tus 120 invitados en Jardín Botánico preparé 120 sillas Tiffany doradas, 15 mesas redondas, 8 centros florales y el arco orgánico rosa dentro de tu presupuesto de RD$ 4,500.»"
                 },
                 style = typo.body,
             )
         }
     }
 
+    if (spec.code in setOf("s26", "s34", "A08", "A17", "s66", "s67")) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            RfChip("80 inv.", selected = rosaGuests == 80, onClick = { viewModel?.updateRosaParameters(guests = 80) })
+            RfChip("120 inv.", selected = rosaGuests == 120, onClick = { viewModel?.updateRosaParameters(guests = 120) })
+            RfChip("180 inv.", selected = rosaGuests == 180, onClick = { viewModel?.updateRosaParameters(guests = 180) })
+        }
+    }
+
     RfCard {
         BasicText("Lista y cotización armada por Rosa IA", style = typo.cardTitle)
         Spacer(Modifier.height(6.dp))
-        proposal.lines.forEach { line ->
-            Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
-            ) {
-                BasicText("${line.quantity} × ${line.name}", style = typo.body)
-                BasicText(RosaFiestaEngine.formatDop(line.subtotalDop), style = typo.bodyStrong)
+        if (isCustomized) {
+            proposal.lines.forEach { line ->
+                Row(
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                ) {
+                    BasicText("${line.quantity} × ${line.name}", style = typo.body)
+                    BasicText(RosaFiestaEngine.formatDop(line.subtotalDop), style = typo.bodyStrong)
+                }
+            }
+        } else {
+            canonicalBoda.items.forEach { line ->
+                Row(
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                ) {
+                    BasicText("${line.quantity} × ${line.name}", style = typo.body)
+                    BasicText(RosaFiestaEngine.formatDop(line.subtotalDop), style = typo.bodyStrong)
+                }
             }
         }
     }
@@ -1703,10 +2445,15 @@ private fun RenderRosaAssistantContent(
 @Composable
 private fun RenderPersonalProfileAndStateContent(
     spec: ScreenSpec,
+    viewModel: RosaFiestaViewModel?,
     onPrimaryAction: () -> Unit,
     onSelectScreenCode: (String) -> Unit,
 ) {
     val typo = LocalRfTypography.current
+    val nameVal = viewModel?.profileName?.collectAsState()?.value ?: "Camila Rodríguez"
+    val emailVal = viewModel?.profileEmail?.collectAsState()?.value ?: "camila@rosafiesta.do"
+    val phoneVal = viewModel?.profilePhone?.collectAsState()?.value ?: "+1 (809) 555-0142"
+    val pushEnabled = viewModel?.pushNotificationsEnabled?.collectAsState()?.value ?: true
 
     RfCard {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1717,52 +2464,69 @@ private fun RenderPersonalProfileAndStateContent(
             )
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                BasicText("Camila Rodríguez", style = typo.cardTitle)
-                BasicText("camila@rosafiesta.do · +1 (809) 555-0142", style = typo.secondary)
+                BasicText(nameVal, style = typo.cardTitle)
+                BasicText("$emailVal · $phoneVal", style = typo.secondary)
                 Spacer(Modifier.height(4.dp))
                 RfTag(text = "2 eventos activos · Saldo RD$ 7,490", tone = RfTagTone.ROSA)
             }
         }
     }
 
-    if (spec.code == "s86") {
-        RfCard {
-            Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                BasicText("Recordatorios de pago y montaje", style = typo.bodyStrong)
-                RfSwitch(checked = true)
-            }
-            Spacer(Modifier.height(8.dp))
-            Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                BasicText("Modo oscuro (ver s15)", style = typo.bodyStrong)
-                RfSwitch(checked = false, onCheckedChange = { onSelectScreenCode("s15") })
-            }
-        }
-    } else {
-        RfCard(onClick = { onSelectScreenCode("s82") }) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                RfIconTile(icon = RfIconKind.RECEIPT, backgroundColor = RfColors.LimaTint, iconTint = RfColors.LimaTintInk)
-                Spacer(Modifier.width(10.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    BasicText("Mis pagos y recibos (s82 → s83)", style = typo.bodyStrong)
-                    BasicText("Anticipo Boda Real RD$ 1,350 · Quinceañera RD$ 1,860", style = typo.secondary)
+    when (spec.code) {
+        "s86" -> {
+            RfCard {
+                Row(
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    BasicText("Recordatorios de pago y montaje", style = typo.bodyStrong)
+                    RfSwitch(
+                        checked = pushEnabled,
+                        onCheckedChange = { viewModel?.togglePushNotifications() },
+                    )
+                }
+                Spacer(Modifier.height(8.dp))
+                Row(
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    BasicText("Modo oscuro (ver s15)", style = typo.bodyStrong)
+                    RfSwitch(checked = false, onCheckedChange = { onSelectScreenCode("s15") })
                 }
             }
         }
-        RfCard(onClick = { onSelectScreenCode("s86") }) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                RfIconTile(icon = RfIconKind.SHIELD, backgroundColor = RfColors.VioletaTint, iconTint = RfColors.VioletaTintInk)
-                Spacer(Modifier.width(10.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    BasicText("Ajustes, términos (s87) y eliminar cuenta (s88)", style = typo.bodyStrong)
-                    BasicText("Política 90 % / 50 % / 0 % y validación de eventos activos", style = typo.secondary)
+
+        "s87" -> {
+            RfCard {
+                BasicText("Términos y privacidad RosaFiesta", style = typo.cardTitle)
+                Spacer(Modifier.height(4.dp))
+                BasicText("• Reserva con 30 % de anticipo y saldo 24 h antes del evento.", style = typo.body)
+                BasicText("• Primer cambio de fecha gratis con 48 h de antelación.", style = typo.body)
+                BasicText("• Protección de datos personales y bancarios en Santo Domingo.", style = typo.body)
+            }
+        }
+
+        else -> {
+            RfCard(onClick = { onSelectScreenCode("s82") }) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    RfIconTile(icon = RfIconKind.RECEIPT, backgroundColor = RfColors.LimaTint, iconTint = RfColors.LimaTintInk)
+                    Spacer(Modifier.width(10.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        BasicText("Mis pagos y recibos (s82 → s83)", style = typo.bodyStrong)
+                        BasicText("Anticipo Boda Real RD$ 1,350 · Quinceañera RD$ 1,860", style = typo.secondary)
+                    }
+                }
+            }
+            RfCard(onClick = { onSelectScreenCode("s86") }) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    RfIconTile(icon = RfIconKind.SHIELD, backgroundColor = RfColors.VioletaTint, iconTint = RfColors.VioletaTintInk)
+                    Spacer(Modifier.width(10.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        BasicText("Ajustes, términos (s87) y eliminar cuenta (s88)", style = typo.bodyStrong)
+                        BasicText("Política 90 % / 50 % / 0 % y validación de eventos activos", style = typo.secondary)
+                    }
                 }
             }
         }
@@ -1782,6 +2546,28 @@ private fun RenderAdminDashboardAndCalendarContent(
     val metrics = viewModel?.metrics?.collectAsState()?.value ?: CanonicalSampleData.businessMetrics
     val events = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
 
+    if (spec.code in setOf("A02", "s60")) {
+        RfCard {
+            BasicText("Calendario operativo · Octubre – Noviembre 2026", style = typo.cardTitle)
+            Spacer(Modifier.height(6.dp))
+            events.forEach { evt ->
+                Row(
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        BasicText("${evt.dateLabel} · ${evt.title}", style = typo.bodyStrong)
+                        BasicText("${evt.venue} · Responsable: ${evt.leadStaffName}", style = typo.secondary)
+                    }
+                    RfTag(text = evt.statusLabel, tone = RfTagTone.INDIGO)
+                }
+            }
+        }
+        RfButton(label = spec.primaryCta, onClick = onPrimaryAction)
+        return
+    }
+
     Row(
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         modifier = Modifier.fillMaxWidth(),
@@ -1792,7 +2578,7 @@ private fun RenderAdminDashboardAndCalendarContent(
                 text = RosaFiestaEngine.formatDop(metrics.octoberRevenueDop),
                 style = typo.backScreenTitle.copy(color = RfColors.IndigoBrand),
             )
-            RfTag(text = "4 eventos activos", tone = RfTagTone.LIMA)
+            RfTag(text = "${metrics.activeEventsCount} eventos activos", tone = RfTagTone.LIMA)
         }
         RfCard(modifier = Modifier.weight(1f), onClick = { onSelectScreenCode("s59") }) {
             BasicText("Por cobrar", style = typo.secondary)
@@ -1841,12 +2627,40 @@ private fun RenderAdminQuotesContent(
     spec: ScreenSpec,
     viewModel: RosaFiestaViewModel?,
     onPrimaryAction: () -> Unit,
+    onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
     val events = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
+    val mateo = events.firstOrNull { it.id == "evt-cumple-mateo" } ?: events.first()
+
+    when (spec.code) {
+        "A04", "A07" -> {
+            RfCard {
+                Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                    BasicText("${mateo.code} · ${mateo.title}", style = typo.cardTitle, modifier = Modifier.weight(1f))
+                    RfTag(text = mateo.statusLabel, tone = RfTagTone.INDIGO)
+                }
+                BasicText("Cliente: ${mateo.clientName} · ${mateo.dateLabel} · ${mateo.venue}", style = typo.secondary)
+                Spacer(Modifier.height(6.dp))
+                mateo.items.forEach { item ->
+                    Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
+                        BasicText("${item.quantity} × ${item.name}", style = typo.body)
+                        BasicText(RosaFiestaEngine.formatDop(item.subtotalDop), style = typo.bodyStrong)
+                    }
+                }
+                Spacer(Modifier.height(6.dp))
+                BasicText(
+                    "Total: ${RosaFiestaEngine.formatDop(mateo.totalDop)} · Anticipo 30 %: ${RosaFiestaEngine.formatDop((mateo.totalDop * 30) / 100)}",
+                    style = typo.bodyStrong,
+                )
+            }
+            RfButton(label = spec.primaryCta, onClick = onPrimaryAction)
+            return
+        }
+    }
 
     events.filter { it.id in setOf("evt-cumple-mateo", "evt-grad-promo", "evt-boda-real") }.forEach { evt ->
-        RfCard {
+        RfCard(onClick = { onSelectScreenCode("A04") }) {
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
@@ -1881,6 +2695,38 @@ private fun RenderAdminLogisticsContent(
     val checklist = viewModel?.checklist?.collectAsState()?.value ?: CanonicalSampleData.bodaChecklist
     val completedCount = checklist.count { it.completed }
     val progressPct = (completedCount * 100) / checklist.size.coerceAtLeast(1)
+
+    when (spec.code) {
+        "A13", "s61" -> {
+            CanonicalSampleData.deliveryStops.forEach { stop ->
+                RfCard {
+                    Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                        BasicText("Parada #${stop.order} · ${stop.eventTitle}", style = typo.cardTitle, modifier = Modifier.weight(1f))
+                        RfTag(text = stop.statusLabel, tone = RfTagTone.TEAL)
+                    }
+                    BasicText("${stop.venue} · ${stop.windowLabel}", style = typo.bodyStrong)
+                    BasicText(stop.vehicleAndCrew, style = typo.secondary)
+                }
+            }
+            RfButton(label = spec.primaryCta, onClick = onPrimaryAction)
+            return
+        }
+
+        "A14", "A15", "s62" -> {
+            CanonicalSampleData.damageIncidents.forEach { inc ->
+                RfCard {
+                    Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                        BasicText("${inc.eventTitle} · ${inc.articleName}", style = typo.cardTitle, modifier = Modifier.weight(1f))
+                        RfTag(text = RosaFiestaEngine.formatDop(inc.replacementDop), tone = RfTagTone.SOL)
+                    }
+                    BasicText("Dañadas: ${inc.damagedUnits} u. · Faltantes: ${inc.missingUnits} u.", style = typo.bodyStrong)
+                    BasicText(inc.notes, style = typo.secondary)
+                }
+            }
+            RfButton(label = spec.primaryCta, onClick = onPrimaryAction)
+            return
+        }
+    }
 
     RfCard {
         Row(
@@ -1936,6 +2782,60 @@ private fun RenderAdminFinanceContent(
     val typo = LocalRfTypography.current
     val metrics = viewModel?.metrics?.collectAsState()?.value ?: CanonicalSampleData.businessMetrics
     val payments = viewModel?.payments?.collectAsState()?.value ?: CanonicalSampleData.payments
+    val events = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
+
+    when (spec.code) {
+        "A21" -> {
+            val amountVal = viewModel?.paymentAmountInput?.collectAsState()?.value ?: "3150"
+            val methodVal = viewModel?.paymentMethodInput?.collectAsState()?.value ?: "Transferencia Banreservas"
+            val refVal = viewModel?.paymentRefInput?.collectAsState()?.value ?: "BR-2026-9941"
+            RfCard {
+                BasicText("Registrar cobro o abono manual", style = typo.cardTitle)
+                Spacer(Modifier.height(6.dp))
+                RfField(
+                    label = "Monto recibido (RD$)",
+                    value = amountVal,
+                    onValueChange = { viewModel?.setPaymentAmountInput(it) },
+                )
+                Spacer(Modifier.height(6.dp))
+                RfField(
+                    label = "Banco / Método de pago",
+                    value = methodVal,
+                    onValueChange = { viewModel?.setPaymentMethodInput(it) },
+                )
+                Spacer(Modifier.height(6.dp))
+                RfField(
+                    label = "Referencia bancaria",
+                    value = refVal,
+                    onValueChange = { viewModel?.setPaymentRefInput(it) },
+                )
+            }
+            RfButton(
+                label = spec.primaryCta,
+                onClick = {
+                    viewModel?.submitPayment()
+                    onPrimaryAction()
+                },
+            )
+            return
+        }
+
+        "A32", "s59" -> {
+            events.filter { it.balanceDop > 0 }.forEach { evt ->
+                RfCard {
+                    Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            BasicText("${evt.title} · ${evt.clientName}", style = typo.bodyStrong)
+                            BasicText("Vence: ${evt.balanceDueDateLabel} · Anticipo: ${RosaFiestaEngine.formatDop(evt.paidDepositDop)}", style = typo.secondary)
+                        }
+                        RfTag(text = "Saldo ${RosaFiestaEngine.formatDop(evt.balanceDop)}", tone = RfTagTone.SOL)
+                    }
+                }
+            }
+            RfButton(label = spec.primaryCta, onClick = onPrimaryAction)
+            return
+        }
+    }
 
     RfHeroCard(useAdminGradient = true) {
         BasicText("Finanzas de ${metrics.monthLabel}", style = typo.secondary.copy(color = Color.White))
@@ -1978,6 +2878,102 @@ private fun RenderAdminInventoryAndStaffContent(
 ) {
     val typo = LocalRfTypography.current
     val articles = viewModel?.articles?.collectAsState()?.value ?: CanonicalSampleData.articles
+
+    when (spec.code) {
+        "A23", "s63" -> {
+            val codeVal = viewModel?.newArticleCode?.collectAsState()?.value ?: "RF-007"
+            val nameVal = viewModel?.newArticleName?.collectAsState()?.value ?: "Silla Chiavari Cristal"
+            val priceVal = viewModel?.newArticlePrice?.collectAsState()?.value ?: "120"
+            val stockVal = viewModel?.newArticleStock?.collectAsState()?.value ?: "60"
+            RfCard {
+                BasicText("Ficha de artículo de inventario", style = typo.cardTitle)
+                Spacer(Modifier.height(6.dp))
+                RfField(label = "Código SKU", value = codeVal, onValueChange = { viewModel?.setNewArticleCode(it) })
+                Spacer(Modifier.height(6.dp))
+                RfField(label = "Nombre del artículo", value = nameVal, onValueChange = { viewModel?.setNewArticleName(it) })
+                Spacer(Modifier.height(6.dp))
+                RfField(label = "Precio alquiler por día (RD$)", value = priceVal, onValueChange = { viewModel?.setNewArticlePrice(it) })
+                Spacer(Modifier.height(6.dp))
+                RfField(label = "Stock total en almacén", value = stockVal, onValueChange = { viewModel?.setNewArticleStock(it) })
+            }
+            RfButton(
+                label = spec.primaryCta,
+                onClick = {
+                    viewModel?.submitNewArticle()
+                    onPrimaryAction()
+                },
+            )
+            return
+        }
+
+        "A24" -> {
+            CanonicalSampleData.packages.forEach { pkg ->
+                RfCard {
+                    Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            BasicText(pkg.name, style = typo.cardTitle)
+                            BasicText("${pkg.suggestedGuests} inv. · ${pkg.includedItems.size} renglones incluidos", style = typo.secondary)
+                        }
+                        RfTag(text = RosaFiestaEngine.formatDop(pkg.priceDop), tone = RfTagTone.INDIGO)
+                    }
+                }
+            }
+            RfButton(label = spec.primaryCta, onClick = onPrimaryAction)
+            return
+        }
+
+        "A25" -> {
+            val promoCode = viewModel?.promoCodeInput?.collectAsState()?.value ?: "ROSA10"
+            val promoPct = viewModel?.promoDiscountInput?.collectAsState()?.value ?: "10"
+            RfCard {
+                BasicText("Promociones y tarifas por temporada", style = typo.cardTitle)
+                Spacer(Modifier.height(6.dp))
+                RfField(label = "Código promocional", value = promoCode, onValueChange = { viewModel?.setPromoCodeInput(it) })
+                Spacer(Modifier.height(6.dp))
+                RfField(label = "Descuento aplicable (%)", value = promoPct, onValueChange = { viewModel?.setPromoDiscountInput(it) })
+            }
+            RfButton(label = spec.primaryCta, onClick = onPrimaryAction)
+            return
+        }
+
+        "A26", "A27", "s65" -> {
+            CanonicalSampleData.clients.forEach { client ->
+                RfCard {
+                    Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            BasicText(client.fullName, style = typo.cardTitle)
+                            BasicText("${client.email} · ${client.phone} · ${client.zone}", style = typo.secondary)
+                            BasicText(
+                                "Contratado: ${RosaFiestaEngine.formatDop(client.totalContractedDop)} · Saldo: ${RosaFiestaEngine.formatDop(client.pendingBalanceDop)}",
+                                style = typo.bodyStrong,
+                            )
+                        }
+                        RfTag(text = client.vipTag, tone = RfTagTone.TEAL)
+                    }
+                }
+            }
+            RfButton(label = spec.primaryCta, onClick = onPrimaryAction)
+            return
+        }
+
+        "A31" -> {
+            val wifiOnly = viewModel?.autoSyncWifiOnly?.collectAsState()?.value ?: false
+            RfCard {
+                BasicText("Preferencias operativas y respaldo", style = typo.cardTitle)
+                Spacer(Modifier.height(6.dp))
+                Row(
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    BasicText("Sincronizar fotos solo con Wi-Fi", style = typo.bodyStrong)
+                    RfSwitch(checked = wifiOnly, onCheckedChange = { viewModel?.toggleAutoSyncWifiOnly() })
+                }
+            }
+            RfButton(label = spec.primaryCta, onClick = onPrimaryAction)
+            return
+        }
+    }
 
     articles.take(4).forEach { art ->
         RfCard(onClick = { viewModel?.adjustArticleStock(art.id, 1) }) {
