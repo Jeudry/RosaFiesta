@@ -1,4 +1,5 @@
-FROM golang:1.26-alpine AS builder
+# Imagen de producción del servidor: compila en una etapa y empaqueta solo el binario estático sin shell ni usuario root.
+FROM golang:1.26 AS build
 WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
@@ -6,7 +7,7 @@ COPY . .
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/api ./cmd/api
 
 FROM gcr.io/distroless/static-debian12:nonroot
-COPY --from=builder /out/api /api
+COPY --from=build /out/api /api
 EXPOSE 8788
-HEALTHCHECK --interval=10s --timeout=3s CMD ["/api", "healthcheck"]
+USER nonroot
 ENTRYPOINT ["/api"]

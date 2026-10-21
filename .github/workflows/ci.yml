@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  server:
+    name: Servidor (Go + PostgreSQL 17)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: rosafiesta
+          POSTGRES_PASSWORD: rosafiesta_test
+          POSTGRES_DB: rosafiesta_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U rosafiesta" --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgres://rosafiesta:rosafiesta_test@localhost:5432/rosafiesta_test?sslmode=disable
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: server/go.mod
+          cache-dependency-path: server/go.sum
+      - name: Instalar herramientas (golangci-lint y sqlc)
+        run: make server-tools
+      - name: Análisis estático y pruebas (con PostgreSQL real)
+        run: |
+          make server-lint
+          cd server && go test -race -count=1 ./...
+      - name: Verificar que sqlc coincide con las consultas SQL
+        run: |
+          make sqlc
+          git diff --exit-code server
+      - name: Verificar que api/openapi.json coincide con el código
+        run: |
+          make openapi
+          git diff --exit-code api/openapi.json
+      - name: Construir imagen Docker de producción
+        run: docker build -t rosafiesta-api server
+      - name: Validar configuración de Docker Compose de producción
+        run: docker compose -f deploy/docker-compose.yml --env-file deploy/.env.example config -q
+
+  app:
+    name: Apps Multiplataforma (Personal + Admin KMP)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Android SDK
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35"
+      - name: Formato, pruebas y verificación de las 2 aplicaciones
+        run: make app-check

@@ -1,0 +1,16 @@
+# HTTPS automático (Let's Encrypt) para el dominio de la API RosaFiesta.
+{$API_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy api:8788
+	header {
+		Strict-Transport-Security "max-age=63072000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+	log {
+		output stdout
+		format json
+	}
+}

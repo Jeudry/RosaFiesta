@@ -1,0 +1,54 @@
+# Producción en un VPS: API + PostgreSQL 17 + Caddy (HTTPS automático).
+# Se levanta con `docker compose up -d` desde deploy/.
+services:
+  api:
+    build:
+      context: ../server
+    image: rosafiesta-api:${API_TAG:-latest}
+    restart: unless-stopped
+    environment:
+      APP_ENV: production
+      PORT: "8788"
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?sslmode=disable
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-https://app.rosafiesta.do,https://admin.rosafiesta.do}
+    depends_on:
+      db:
+        condition: service_healthy
+    expose: ["8788"]
+    security_opt: ["no-new-privileges:true"]
+    read_only: true
+
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      API_DOMAIN: ${API_DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:
