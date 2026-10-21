@@ -9,6 +9,7 @@ import (
 	"io/fs"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
@@ -26,7 +27,15 @@ func Pool(t *testing.T) *pgxpool.Pool {
 	ctx := context.Background()
 	schema := randomSchema(t)
 
-	admin, err := db.Open(ctx, url)
+	var admin *pgxpool.Pool
+	var err error
+	for range 20 {
+		admin, err = db.Open(ctx, url)
+		if err == nil {
+			break
+		}
+		time.Sleep(250 * time.Millisecond)
+	}
 	if err != nil {
 		t.Fatalf("open test database: %v", err)
 	}

@@ -136,11 +136,16 @@ func Modules(deps Dependencies) []httpapi.Module {
 	if deps.Pool != nil {
 		_ = SeedDatabase(context.Background(), deps.Pool, clk)
 	}
-	eventsSvc := eventsapp.NewService()
-	identitySvc := identityapp.NewService(clk, eventsSvc)
+	eventsStore := eventspg.NewRepository(deps.Pool)
+	identityStore := identitypg.NewRepository(deps.Pool)
+	quotesStore := quotespg.NewRepository(deps.Pool)
+	paymentsStore := paymentspg.NewRepository(deps.Pool)
+
+	eventsSvc := eventsapp.NewService().WithStore(eventsStore)
+	identitySvc := identityapp.NewService(clk, eventsSvc).WithStore(identityStore)
 	catalogSvc := catalogapp.NewService()
-	quotesSvc := quotesapp.NewService()
-	paymentsSvc := paymentsapp.NewService()
+	quotesSvc := quotesapp.NewService().WithStore(quotesStore)
+	paymentsSvc := paymentsapp.NewService().WithStore(paymentsStore)
 	operationsSvc := operationsapp.NewService()
 
 	base := []httpapi.Module{
@@ -153,11 +158,11 @@ func Modules(deps Dependencies) []httpapi.Module {
 		operationshttp.Module{Service: operationsSvc},
 	}
 	return append(base, devModules(func() {
-		*eventsSvc = *eventsapp.NewService()
-		*identitySvc = *identityapp.NewService(clk, eventsSvc)
+		*eventsSvc = *eventsapp.NewService().WithStore(eventsStore)
+		*identitySvc = *identityapp.NewService(clk, eventsSvc).WithStore(identityStore)
 		*catalogSvc = *catalogapp.NewService()
-		*quotesSvc = *quotesapp.NewService()
-		*paymentsSvc = *paymentsapp.NewService()
+		*quotesSvc = *quotesapp.NewService().WithStore(quotesStore)
+		*paymentsSvc = *paymentsapp.NewService().WithStore(paymentsStore)
 		*operationsSvc = *operationsapp.NewService()
 		if deps.Pool != nil {
 			_ = SeedDatabase(context.Background(), deps.Pool, clk)

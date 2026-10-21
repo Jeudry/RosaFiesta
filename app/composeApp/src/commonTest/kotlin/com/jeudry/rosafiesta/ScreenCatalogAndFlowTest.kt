@@ -123,4 +123,26 @@ class ScreenCatalogAndFlowTest {
         viewModel.syncOfflineQueue()
         assertTrue(viewModel.offlineQueue.value.all { it.synced })
     }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun `pantalla s46 conectada a RosaFiestaViewModel alterna paso del checklist al hacer clic`() = runComposeUiTest {
+        val koin = org.koin.dsl.koinApplication {
+            modules(com.jeudry.rosafiesta.di.appModule)
+        }.koin
+        val viewModel = koin.get<com.jeudry.rosafiesta.ui.RosaFiestaViewModel>()
+        assertFalse(viewModel.checklist.value.first { it.id == "chk-5" }.completed)
+
+        setContent {
+            RosaFiestaApp(
+                initialAppView = AppView.PERSONAL,
+                initialScreenCode = "s46",
+                viewModel = viewModel,
+            )
+        }
+
+        onNodeWithTag("screen-s46").assertExists()
+        onNodeWithTag("checklist-step-chk-5").performClick()
+        assertTrue(viewModel.checklist.value.first { it.id == "chk-5" }.completed)
+    }
 }

@@ -28,6 +28,7 @@ import kotlinx.coroutines.withContext
 public class SqlRosaFiestaRepository(
     driver: SqlDriver,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.Default,
+    private val apiClient: RosaFiestaApiClient? = null,
 ) : RosaFiestaRepository {
     private val database: RosaFiestaDatabase = RosaFiestaDatabase(driver)
     private val queries = database.rosaFiestaDatabaseQueries
@@ -146,6 +147,16 @@ public class SqlRosaFiestaRepository(
             timeLabel = nextTimeLabel,
             id = stepId,
         )
+        runCatching {
+            apiClient?.toggleChecklistItem(
+                eventId = "evt-boda-real",
+                itemId = stepId,
+                input = ToggleChecklistInputDto(
+                    completed = nextCompleted,
+                    staffName = current.completedBy,
+                ),
+            )
+        }
         reloadFromSql()
     }
 
@@ -153,6 +164,9 @@ public class SqlRosaFiestaRepository(
      * Marca toda la cola offline como sincronizada en SQLite fuera del hilo principal.
      */
     public suspend fun syncOfflineQueueAsync(): Unit = withContext(ioDispatcher) {
+        runCatching {
+            apiClient?.syncOfflineQueue()
+        }
         queries.markAllOfflineMutationsSynced()
         reloadFromSql()
     }

@@ -2,16 +2,25 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/Jeudry/rosafiesta/server/internal/payments/domain"
 )
 
+// Store persiste pagos en almacenamiento duradero (PostgreSQL).
+type Store interface {
+	// UpsertPayment inserta o actualiza un pago en PostgreSQL.
+	UpsertPayment(ctx context.Context, p domain.Payment, now time.Time) error
+}
+
 // Service administra el registro y verificación de pagos y métricas de cobro.
 type Service struct {
 	mu       sync.RWMutex
+	store    Store
 	payments map[string]domain.Payment
 	order    []string
 	summary  domain.FinanceSummary
@@ -33,6 +42,14 @@ func NewService() *Service {
 		summary:  domain.CanonicalFinanceSummary(),
 		nextSeq:  200,
 	}
+}
+
+// WithStore conecta un repositorio PostgreSQL opcional al servicio de pagos.
+func (s *Service) WithStore(store Store) *Service {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.store = store
+	return s
 }
 
 // GetSummary devuelve el resumen financiero del mes (s69, A20).
@@ -103,6 +120,9 @@ func (s *Service) RegisterPayment(
 	s.summary.OctRevenueRD += amountRD
 	if s.summary.AccountsReceivable >= amountRD {
 		s.summary.AccountsReceivable -= amountRD
+	}
+	if s.store != nil {
+		_ = s.store.UpsertPayment(context.Background(), payment, time.Now().UTC())
 	}
 	return payment, nil
 }

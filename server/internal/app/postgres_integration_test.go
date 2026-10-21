@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/Jeudry/rosafiesta/server/internal/app"
@@ -56,5 +57,56 @@ func TestPostgresIntegration_SeedsAndQueriesAllModules(t *testing.T) {
 	handler.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200 on /v1/events with postgres pool, got %d", rec.Code)
+	}
+}
+
+func TestPostgresIntegration_PersistsHttpMutations(t *testing.T) {
+	pool := dbtest.Pool(t)
+	ctx := t.Context()
+
+	handler, _ := httpapi.New(slog.New(slog.DiscardHandler), app.Modules(app.Dependencies{Pool: pool})...)
+
+	dateReq := httptest.NewRequestWithContext(
+		ctx,
+		http.MethodPost,
+		"/v1/events/evt-boda-real/date-change",
+		strings.NewReader(`{"newDateLabel":"Vie 30 oct","newDaysUntilEvent":12}`),
+	)
+	dateReq.Header.Set("Content-Type", "application/json")
+	dateRec := httptest.NewRecorder()
+	handler.ServeHTTP(dateRec, dateReq)
+	if dateRec.Code != http.StatusOK {
+		t.Fatalf("expected 200 on date-change, got %d: %s", dateRec.Code, dateRec.Body.String())
+	}
+
+	var dateLabel string
+	var changesCount int
+	if err := pool.QueryRow(ctx, "SELECT event_date_label, date_changes_count FROM events WHERE id = 'evt-boda-real'").Scan(&dateLabel, &changesCount); err != nil {
+		t.Fatalf("query updated event in postgres: %v", err)
+	}
+	if dateLabel != "Vie 30 oct" || changesCount != 1 {
+		t.Fatalf("expected postgres event updated to Vie 30 oct (count=1), got %q (count=%d)", dateLabel, changesCount)
+	}
+
+	switchReq := httptest.NewRequestWithContext(
+		ctx,
+		http.MethodPost,
+		"/v1/auth/switch-view",
+		strings.NewReader(`{"view":"personal"}`),
+	)
+	switchReq.Header.Set("Content-Type", "application/json")
+	switchReq.Header.Set("Authorization", "Bearer rf-token-maria")
+	switchRec := httptest.NewRecorder()
+	handler.ServeHTTP(switchRec, switchReq)
+	if switchRec.Code != http.StatusOK {
+		t.Fatalf("expected 200 on switch-view, got %d: %s", switchRec.Code, switchRec.Body.String())
+	}
+
+	var activeView string
+	if err := pool.QueryRow(ctx, "SELECT active_view FROM sessions WHERE token_hash = 'rf-token-maria'").Scan(&activeView); err != nil {
+		t.Fatalf("query updated session in postgres: %v", err)
+	}
+	if activeView != "personal" {
+		t.Fatalf("expected postgres session active_view='personal', got %q", activeView)
 	}
 }

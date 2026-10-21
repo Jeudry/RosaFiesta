@@ -10,8 +10,9 @@ import org.koin.dsl.module
 /**
  * Módulo Koin compartido que registra `RosaFiestaRepository`, `RosaFiestaApiClient` y `RosaFiestaViewModel`.
  */
-public val appModule: Module = module {
-    single<RosaFiestaRepository> { DefaultRosaFiestaRepository() }
-    single { RosaFiestaApiClient(baseUrl = "http://localhost:8788") }
-    factory { RosaFiestaViewModel(repository = get()) }
-}
+public val appModule: Module
+    get() = module {
+        single<RosaFiestaRepository> { DefaultRosaFiestaRepository() }
+        single { RosaFiestaApiClient(baseUrl = "http://localhost:8788") }
+        factory { RosaFiestaViewModel(repository = get()) }
+    }

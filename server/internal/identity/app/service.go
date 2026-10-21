@@ -38,11 +38,20 @@ type StaffMember struct {
 	Permissions []string `json:"permissions" doc:"Permisos activos en A28."`
 }
 
+// Store persiste mutaciones de identidad y sesiones en almacenamiento duradero (PostgreSQL).
+type Store interface {
+	// UpdateActiveView actualiza la vista activa de las sesiones del usuario (`A30`).
+	UpdateActiveView(ctx context.Context, userID uuid.UUID, view domain.AppView) error
+	// DeleteUser elimina un usuario de PostgreSQL (`s88`).
+	DeleteUser(ctx context.Context, userID uuid.UUID) error
+}
+
 // Service coordina los casos de uso de identidad.
 type Service struct {
 	mu      sync.RWMutex
 	clock   clock.Clock
 	checker ActiveEventsChecker
+	store   Store
 	users   map[uuid.UUID]domain.User
 	tokens  map[string]uuid.UUID
 	clients []ClientSummary
@@ -86,6 +95,14 @@ func NewService(clk clock.Clock, checker ActiveEventsChecker) *Service {
 		clients: defaultClients(),
 		staff:   defaultStaff(),
 	}
+}
+
+// WithStore conecta un repositorio PostgreSQL opcional al servicio de identidad.
+func (s *Service) WithStore(store Store) *Service {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.store = store
+	return s
 }
 
 func defaultClients() []ClientSummary {
@@ -159,7 +176,7 @@ func (s *Service) Login(_ context.Context, email, password string) (domain.User,
 }
 
 // SwitchView cambia entre la App Administrativa y la App Personal (`A30`).
-func (s *Service) SwitchView(_ context.Context, userID uuid.UUID, view domain.AppView) (domain.User, error) {
+func (s *Service) SwitchView(ctx context.Context, userID uuid.UUID, view domain.AppView) (domain.User, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	user, ok := s.users[userID]
@@ -171,6 +188,9 @@ func (s *Service) SwitchView(_ context.Context, userID uuid.UUID, view domain.Ap
 	}
 	user.ActiveView = view
 	s.users[userID] = user
+	if s.store != nil {
+		_ = s.store.UpdateActiveView(ctx, userID, view)
+	}
 	return user, nil
 }
 
@@ -190,6 +210,9 @@ func (s *Service) DeleteAccount(ctx context.Context, userID uuid.UUID) error {
 		return err
 	}
 	delete(s.users, userID)
+	if s.store != nil {
+		_ = s.store.DeleteUser(ctx, userID)
+	}
 	return nil
 }
 

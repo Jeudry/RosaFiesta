@@ -2,16 +2,25 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/Jeudry/rosafiesta/server/internal/quotes/domain"
 )
 
+// Store persiste cotizaciones y firmas en almacenamiento duradero (PostgreSQL).
+type Store interface {
+	// UpsertQuote inserta o actualiza una cotización en PostgreSQL.
+	UpsertQuote(ctx context.Context, q domain.Quote, now time.Time) error
+}
+
 // Service administra las cotizaciones y el flujo conversacional de Rosa IA.
 type Service struct {
 	mu      sync.RWMutex
+	store   Store
 	quotes  map[string]domain.Quote
 	order   []string
 	nextSeq int
@@ -31,6 +40,14 @@ func NewService() *Service {
 		order:   order,
 		nextSeq: 1200,
 	}
+}
+
+// WithStore conecta un repositorio PostgreSQL opcional al servicio de cotizaciones.
+func (s *Service) WithStore(store Store) *Service {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.store = store
+	return s
 }
 
 // ListQuotes devuelve todas las cotizaciones, filtradas opcionalmente por estado.
@@ -101,6 +118,9 @@ func (s *Service) CreateQuote(
 	}
 	s.quotes[id] = quote
 	s.order = append(s.order, id)
+	if s.store != nil {
+		_ = s.store.UpsertQuote(context.Background(), quote, time.Now().UTC())
+	}
 	return quote, nil
 }
 
@@ -120,6 +140,9 @@ func (s *Service) SignContract(id string, signedByName string, signatureSVG stri
 	q.SignedByName = strings.TrimSpace(signedByName)
 	q.SignatureSVG = signatureSVG
 	s.quotes[id] = q
+	if s.store != nil {
+		_ = s.store.UpsertQuote(context.Background(), q, time.Now().UTC())
+	}
 	return q, nil
 }
 
@@ -135,6 +158,9 @@ func (s *Service) DeclineQuote(id string, reason string) (domain.Quote, error) {
 	q.Status = domain.QuoteStatusDeclined
 	q.RejectionReason = strings.TrimSpace(reason)
 	s.quotes[id] = q
+	if s.store != nil {
+		_ = s.store.UpsertQuote(context.Background(), q, time.Now().UTC())
+	}
 	return q, nil
 }
 

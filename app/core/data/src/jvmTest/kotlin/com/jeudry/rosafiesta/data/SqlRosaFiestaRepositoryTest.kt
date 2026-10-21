@@ -1,9 +1,17 @@
 package com.jeudry.rosafiesta.data
 
-import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
-import com.jeudry.rosafiesta.data.db.RosaFiestaDatabase
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.mock.MockEngine
+import io.ktor.client.engine.mock.respond
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
+import io.ktor.http.headersOf
+import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -13,10 +21,35 @@ class SqlRosaFiestaRepositoryTest {
     @Test
     fun `persiste articulos checklist y cola offline en SQLite fuera del hilo principal`() = runTest {
         val testDispatcher = StandardTestDispatcher(testScheduler)
-        val driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY)
-        RosaFiestaDatabase.Schema.create(driver)
+        val driver = DriverFactory().createDriver()
+        var syncEndpointCalled = false
 
-        val repo = SqlRosaFiestaRepository(driver = driver, ioDispatcher = testDispatcher)
+        val mockEngine = MockEngine { request ->
+            if (request.url.encodedPath == "/v1/operations/offline-queue/sync") {
+                syncEndpointCalled = true
+            }
+            respond(
+                content = """{"queue":[]}""",
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+            )
+        }
+        val httpClient = HttpClient(mockEngine) {
+            install(ContentNegotiation) {
+                json(Json { ignoreUnknownKeys = true })
+            }
+        }
+        val apiClient = RosaFiestaApiClient(
+            baseUrl = "http://localhost:8788",
+            ioDispatcher = testDispatcher,
+            httpClient = httpClient,
+        )
+
+        val repo = SqlRosaFiestaRepository(
+            driver = driver,
+            ioDispatcher = testDispatcher,
+            apiClient = apiClient,
+        )
 
         assertEquals(6, repo.articles.value.size)
         assertEquals(6, repo.checklist.value.size)
@@ -35,6 +68,7 @@ class SqlRosaFiestaRepositoryTest {
         assertEquals(8, updatedArco.availableOct23)
 
         repo.syncOfflineQueueAsync()
+        assertTrue(syncEndpointCalled)
         assertTrue(repo.offlineQueue.value.all { it.synced })
     }
 }

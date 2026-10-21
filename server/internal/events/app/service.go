@@ -9,9 +9,18 @@ import (
 	"github.com/Jeudry/rosafiesta/server/internal/events/domain"
 )
 
+// Store persiste mutaciones de eventos en almacenamiento duradero (PostgreSQL).
+type Store interface {
+	// UpdateDate actualiza la fecha y contador de cambios de un evento.
+	UpdateDate(ctx context.Context, e domain.Event) error
+	// UpdateStatus actualiza el estado de un evento.
+	UpdateStatus(ctx context.Context, id string, status domain.EventStatus) error
+}
+
 // Service administra el ciclo de vida de los eventos en RosaFiesta.
 type Service struct {
 	mu        sync.RWMutex
+	store     Store
 	templates []domain.EventTemplate
 	events    map[string]domain.Event
 	order     []string
@@ -31,6 +40,14 @@ func NewService() *Service {
 		events:    events,
 		order:     order,
 	}
+}
+
+// WithStore conecta un repositorio PostgreSQL opcional al servicio de eventos.
+func (s *Service) WithStore(store Store) *Service {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.store = store
+	return s
 }
 
 // ActiveEventsForClient cuenta los eventos activos de un cliente para validar s88 (eliminación de cuenta).
@@ -105,6 +122,9 @@ func (s *Service) RequestDateChange(id string, newDateLabel string, newDaysUntil
 	evt.DateChangesUsed = eval.NextCount
 	evt.TotalRD += eval.FeeRD
 	s.events[id] = evt
+	if s.store != nil {
+		_ = s.store.UpdateDate(context.Background(), evt)
+	}
 	return evt, eval, nil
 }
 
@@ -123,5 +143,8 @@ func (s *Service) CancelEvent(id string) (domain.Event, domain.RefundPolicyResul
 	refund := domain.CalculateCancellationRefund(evt.PaidDepositRD, evt.DaysUntilEvent)
 	evt.Status = domain.StatusCancelled
 	s.events[id] = evt
+	if s.store != nil {
+		_ = s.store.UpdateStatus(context.Background(), id, evt.Status)
+	}
 	return evt, refund, nil
 }

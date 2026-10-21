@@ -29,9 +29,12 @@ import com.jeudry.rosafiesta.designsystem.RfTagTone
 import com.jeudry.rosafiesta.designsystem.RfTheme
 import com.jeudry.rosafiesta.designsystem.RfThemeVariant
 import com.jeudry.rosafiesta.dev.DevPanelScreen
+import com.jeudry.rosafiesta.di.appModule
 import com.jeudry.rosafiesta.ui.Navigator
 import com.jeudry.rosafiesta.ui.RenderScreenSpec
+import com.jeudry.rosafiesta.ui.RosaFiestaViewModel
 import com.jeudry.rosafiesta.ui.ScreenCatalog
+import org.koin.dsl.koinApplication
 
 /**
  * Punto de entrada de la **App Personal** (`RfTheme.personal`: rosa → violeta, fondo rubor cálido).
@@ -69,6 +72,9 @@ public fun AdminApp(
 public fun RosaFiestaApp(
     initialAppView: AppView = AppView.PERSONAL,
     initialScreenCode: String = if (initialAppView == AppView.ADMIN) "A01" else "s14",
+    viewModel: RosaFiestaViewModel = remember {
+        koinApplication { modules(appModule) }.koin.get()
+    },
 ) {
     val navigator = remember(initialAppView, initialScreenCode) {
         Navigator(
@@ -175,6 +181,7 @@ public fun RosaFiestaApp(
             ) {
                 RenderScreenSpec(
                     spec = spec,
+                    viewModel = viewModel,
                     onSelectScreenCode = { nextCode -> navigator.navigateTo(nextCode) },
                     onSwitchAppMode = {
                         if (navigator.activeView == AppView.ADMIN) {

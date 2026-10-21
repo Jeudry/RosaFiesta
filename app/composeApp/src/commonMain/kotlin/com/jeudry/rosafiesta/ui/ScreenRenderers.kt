@@ -2,6 +2,7 @@ package com.jeudry.rosafiesta.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -91,6 +93,7 @@ private fun PhotoAsset.toPhotoKey(): RfPhotoKey = when (this) {
 @Composable
 fun RenderScreenSpec(
     spec: ScreenSpec,
+    viewModel: RosaFiestaViewModel? = null,
     onPrimaryAction: () -> Unit = {},
     onSelectScreenCode: (String) -> Unit = {},
     onSwitchAppMode: () -> Unit = {},
@@ -106,6 +109,7 @@ fun RenderScreenSpec(
         return
     }
 
+    val offlineQueue = viewModel?.offlineQueue?.collectAsState()?.value ?: CanonicalSampleData.offlineQueue
     val isAdmin = spec.variant == RfThemeVariant.ADMIN
     val showBottomBar = when {
         spec.code in setOf("p00", "A00", "s03", "s04", "s05", "s06", "s07", "s08", "s09", "s10", "s11", "s12", "s13", "A30") -> false
@@ -188,9 +192,12 @@ fun RenderScreenSpec(
             }
             if (spec.code in setOf("s91", "A37")) {
                 RfOfflineBanner(
-                    pendingChangesCount = CanonicalSampleData.offlineQueue.size,
+                    pendingChangesCount = offlineQueue.size,
                     isAdmin = isAdmin,
-                    onRetry = onPrimaryAction,
+                    onRetry = {
+                        viewModel?.syncOfflineQueue()
+                        onPrimaryAction()
+                    },
                 )
             }
 
@@ -198,6 +205,7 @@ fun RenderScreenSpec(
 
             RenderScreenBodyByCode(
                 spec = spec,
+                viewModel = viewModel,
                 onPrimaryAction = onPrimaryAction,
                 onSelectScreenCode = onSelectScreenCode,
                 onSwitchAppMode = onSwitchAppMode,
@@ -384,6 +392,7 @@ private fun RenderSheetSpecificContent(
 @Composable
 private fun RenderScreenBodyByCode(
     spec: ScreenSpec,
+    viewModel: RosaFiestaViewModel?,
     onPrimaryAction: () -> Unit,
     onSelectScreenCode: (String) -> Unit,
     onSwitchAppMode: () -> Unit,
@@ -399,7 +408,7 @@ private fun RenderScreenBodyByCode(
         }
 
         "s91", "A37" -> {
-            RenderOfflineAndServerErrorScreen(spec, onPrimaryAction)
+            RenderOfflineAndServerErrorScreen(spec, viewModel, onPrimaryAction)
         }
 
         "s88" -> {
@@ -422,8 +431,24 @@ private fun RenderScreenBodyByCode(
             RenderTimelineScheduleScreen(spec, onPrimaryAction)
         }
 
+        "s45", "s46" -> {
+            RenderPersonalChecklistAndTasksScreen(spec, viewModel, onPrimaryAction)
+        }
+
         "s47" -> {
             RenderGuestsAndTablesScreen(spec, onPrimaryAction)
+        }
+
+        "s79", "A29" -> {
+            RenderNotificationsScreen(spec, onPrimaryAction, onSelectScreenCode)
+        }
+
+        "A05", "A06" -> {
+            RenderAdminManualEventWizardScreen(spec, onPrimaryAction, onSelectScreenCode)
+        }
+
+        "s57", "s68" -> {
+            RenderAdminReportsAndUsageScreen(spec, onPrimaryAction)
         }
 
         "A28" -> {
@@ -455,16 +480,16 @@ private fun RenderScreenBodyByCode(
                     RenderAuthFormByCode(spec, onPrimaryAction, onSelectScreenCode)
 
                 ScreenArchetype.PERSONAL_HOME ->
-                    RenderPersonalHomeContent(spec, onPrimaryAction, onSelectScreenCode)
+                    RenderPersonalHomeContent(spec, viewModel, onPrimaryAction, onSelectScreenCode)
 
                 ScreenArchetype.PERSONAL_CATALOG, ScreenArchetype.PERSONAL_PRODUCT_DETAIL ->
-                    RenderPersonalCatalogContent(spec, onPrimaryAction, onSelectScreenCode)
+                    RenderPersonalCatalogContent(spec, viewModel, onPrimaryAction, onSelectScreenCode)
 
                 ScreenArchetype.PERSONAL_CART_QUOTE, ScreenArchetype.PERSONAL_CONTRACT_SIGN, ScreenArchetype.PERSONAL_PAYMENT ->
-                    RenderPersonalQuoteAndPaymentContent(spec, onPrimaryAction)
+                    RenderPersonalQuoteAndPaymentContent(spec, viewModel, onPrimaryAction)
 
                 ScreenArchetype.PERSONAL_EVENT_HUB, ScreenArchetype.PERSONAL_DATE_CANCEL ->
-                    RenderPersonalEventsContent(spec, onPrimaryAction, onSelectScreenCode)
+                    RenderPersonalEventsContent(spec, viewModel, onPrimaryAction, onSelectScreenCode)
 
                 ScreenArchetype.PERSONAL_ROSA_CHAT ->
                     RenderRosaAssistantContent(spec, isAdmin = false, onPrimaryAction = onPrimaryAction)
@@ -476,27 +501,264 @@ private fun RenderScreenBodyByCode(
                     RenderAdminRoleSwitcherScreen(spec, onSwitchAppMode, onPrimaryAction, onSelectScreenCode)
 
                 ScreenArchetype.ADMIN_DASHBOARD, ScreenArchetype.ADMIN_CALENDAR ->
-                    RenderAdminDashboardAndCalendarContent(spec, onPrimaryAction, onSelectScreenCode)
+                    RenderAdminDashboardAndCalendarContent(spec, viewModel, onPrimaryAction, onSelectScreenCode)
 
                 ScreenArchetype.ADMIN_QUOTES ->
-                    RenderAdminQuotesContent(spec, onPrimaryAction)
+                    RenderAdminQuotesContent(spec, viewModel, onPrimaryAction)
 
                 ScreenArchetype.ADMIN_LOGISTICS, ScreenArchetype.ADMIN_OFFLINE_SYNC ->
-                    RenderAdminLogisticsContent(spec, onPrimaryAction)
+                    RenderAdminLogisticsContent(spec, viewModel, onPrimaryAction)
 
                 ScreenArchetype.ADMIN_ROSA_COPILOT ->
                     RenderRosaAssistantContent(spec, isAdmin = true, onPrimaryAction = onPrimaryAction)
 
                 ScreenArchetype.ADMIN_FINANCE ->
-                    RenderAdminFinanceContent(spec, onPrimaryAction)
+                    RenderAdminFinanceContent(spec, viewModel, onPrimaryAction)
 
                 ScreenArchetype.ADMIN_INVENTORY_STAFF ->
-                    RenderAdminInventoryAndStaffContent(spec, onPrimaryAction)
+                    RenderAdminInventoryAndStaffContent(spec, viewModel, onPrimaryAction)
 
                 ScreenArchetype.ADMIN_WEB_DESKTOP -> Unit
             }
         }
     }
+}
+
+@Composable
+private fun RenderPersonalChecklistAndTasksScreen(
+    spec: ScreenSpec,
+    viewModel: RosaFiestaViewModel?,
+    onPrimaryAction: () -> Unit,
+) {
+    val typo = LocalRfTypography.current
+    val checklist = viewModel?.checklist?.collectAsState()?.value ?: CanonicalSampleData.bodaChecklist
+    val completedCount = checklist.count { it.completed }
+    val progressPct = (completedCount * 100) / checklist.size.coerceAtLeast(1)
+
+    RfCard {
+        Row(
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            BasicText(
+                text = "Boda Real Rosa & Dorado · Vie 23 oct",
+                style = typo.cardTitle,
+                modifier = Modifier.weight(1f),
+            )
+            Spacer(Modifier.width(8.dp))
+            RfTag(
+                text = "$progressPct % ($completedCount/${checklist.size})",
+                tone = RfTagTone.LIMA,
+            )
+        }
+        Spacer(Modifier.height(4.dp))
+        BasicText(
+            text = "Jardín Botánico · Entrega y montaje verificados paso a paso",
+            style = typo.secondary,
+        )
+        Spacer(Modifier.height(8.dp))
+        checklist.forEach { step ->
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { viewModel?.toggleChecklistStep(step.id) }
+                    .padding(vertical = 4.dp)
+                    .testTag("checklist-step-${step.id}"),
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    RfIcon(
+                        kind = if (step.completed) RfIconKind.CHECK else RfIconKind.CALENDAR,
+                        tint = if (step.completed) RfColors.LimaTintInk else RfColors.RosaTintInk,
+                        size = 16.dp,
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    BasicText(
+                        text = step.title,
+                        style = typo.body.copy(fontSize = 13.sp),
+                    )
+                }
+                Spacer(Modifier.width(8.dp))
+                RfTag(
+                    text = step.completedBy,
+                    tone = if (step.completed) RfTagTone.LIMA else RfTagTone.SOL,
+                )
+            }
+        }
+    }
+
+    RfButton(label = spec.primaryCta, onClick = onPrimaryAction)
+}
+
+@Composable
+private fun RenderNotificationsScreen(
+    spec: ScreenSpec,
+    onPrimaryAction: () -> Unit,
+    onSelectScreenCode: (String) -> Unit,
+) {
+    val typo = LocalRfTypography.current
+    val isAdmin = spec.variant == RfThemeVariant.ADMIN
+    val notifications = if (isAdmin) {
+        listOf(
+            Triple("Nueva solicitud · Cumpleaños Safari Mateo", "Laura Méndez · Dom 25 oct · 60 inv. · RD$ 1,920", RfTagTone.INDIGO),
+            Triple("Comprobante #REC-2026-0185 recibido", "Sofía Castillo · Quinceañera Valentina · RD$ 1,860", RfTagTone.SOL),
+            Triple("Alerta de stock · Silla Tiffany Dorada", "160 de 200 u. reservadas para el vie 23 oct (80 %)", RfTagTone.TEAL),
+            Triple("Checklist de montaje al 66 % (4/6)", "Pedro reportó avance en Jardín Botánico · Boda Real", RfTagTone.LIMA),
+        )
+    } else {
+        listOf(
+            Triple("Anticipo 30 % confirmado · RD$ 1,350", "Recibo #REC-2026-0184 · Boda Real Rosa & Dorado", RfTagTone.LIMA),
+            Triple("Pedro y Yuli están en Jardín Botánico", "Montaje de 15 mesas y 120 sillas Tiffany en curso (4/6)", RfTagTone.ROSA),
+            Triple("Recordatorio de saldo 70 % · RD$ 3,150", "Vence jue 22 oct (24 h antes de tu celebración)", RfTagTone.SOL),
+        )
+    }
+
+    notifications.forEach { (title, detail, tone) ->
+        RfCard(onClick = { onSelectScreenCode(if (isAdmin) "A03" else "s40") }) {
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    BasicText(title, style = typo.bodyStrong)
+                    Spacer(Modifier.height(2.dp))
+                    BasicText(detail, style = typo.secondary)
+                }
+                Spacer(Modifier.width(8.dp))
+                RfTag(
+                    text = if (tone == RfTagTone.LIMA) "Listo" else "Nuevo",
+                    tone = tone,
+                )
+            }
+        }
+    }
+
+    RfButton(label = spec.primaryCta, onClick = onPrimaryAction)
+}
+
+@Composable
+private fun RenderAdminManualEventWizardScreen(
+    spec: ScreenSpec,
+    onPrimaryAction: () -> Unit,
+    onSelectScreenCode: (String) -> Unit,
+) {
+    val typo = LocalRfTypography.current
+    val isStep1 = spec.code == "A05"
+
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        RfChip(
+            label = "1 · Datos",
+            selected = isStep1,
+            onClick = { onSelectScreenCode("A05") },
+        )
+        RfChip(
+            label = "2 · Artículos",
+            selected = !isStep1,
+            onClick = { onSelectScreenCode("A06") },
+        )
+        RfChip(
+            label = "3 · Resumen",
+            selected = false,
+            onClick = { onSelectScreenCode("A07") },
+        )
+    }
+
+    if (isStep1) {
+        RfCard {
+            RfField(label = "Cliente y WhatsApp", value = "Laura Méndez · +1 (809) 555-0194")
+            Spacer(Modifier.height(8.dp))
+            RfField(label = "Nombre y tipo de evento", value = "Cumpleaños Safari Mateo · Infantil")
+            Spacer(Modifier.height(8.dp))
+            RfField(label = "Fecha, hora y salón", value = "Dom 25 oct 2026 · 9:00 a. m. · Club Naco (60 inv.)")
+        }
+    } else {
+        val mateo = CanonicalSampleData.events[2]
+        RfCard {
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                BasicText(mateo.title, style = typo.cardTitle, modifier = Modifier.weight(1f))
+                Spacer(Modifier.width(8.dp))
+                RfTag(text = "Stock libre", tone = RfTagTone.LIMA)
+            }
+            Spacer(Modifier.height(6.dp))
+            mateo.items.forEach { item ->
+                Row(
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                ) {
+                    BasicText("${item.quantity} × ${item.name}", style = typo.body)
+                    BasicText(RosaFiestaEngine.formatDop(item.subtotalDop), style = typo.bodyStrong)
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                BasicText("Total cotizado (Anticipo 30 %: RD$ 576)", style = typo.bodyStrong, modifier = Modifier.weight(1f))
+                Spacer(Modifier.width(8.dp))
+                RfTag(text = RosaFiestaEngine.formatDop(mateo.totalDop), tone = RfTagTone.INDIGO)
+            }
+        }
+    }
+
+    RfButton(label = spec.primaryCta, onClick = onPrimaryAction)
+}
+
+@Composable
+private fun RenderAdminReportsAndUsageScreen(
+    spec: ScreenSpec,
+    onPrimaryAction: () -> Unit,
+) {
+    val typo = LocalRfTypography.current
+    val metrics = CanonicalSampleData.businessMetrics
+
+    RfHeroCard(useAdminGradient = true) {
+        BasicText("Rendimiento y rotación · ${metrics.monthLabel}", style = typo.secondary.copy(color = Color.White))
+        BasicText(
+            text = "${metrics.occupancyRatePercent} % uso de stock · Ingresos ${RosaFiestaEngine.formatDop(metrics.octoberRevenueDop)}",
+            style = typo.backScreenTitle.copy(color = Color.White),
+        )
+    }
+
+    val usageRows = listOf(
+        Triple("Silla Tiffany Dorada (ART-001)", "160 / 200 u. rotadas · 4 eventos en oct", "80 % uso"),
+        Triple("Arco Orgánico Rosa & Globos (ART-005)", "3 / 4 u. rotadas · Bodas y Quinceañeras", "75 % uso"),
+        Triple("Mesa Redonda 10 personas (ART-003)", "22 / 30 u. rotadas · Jardín Botánico y Embajador", "73 % uso"),
+        Triple("Centro Floral Rosa & Eucalipto (ART-004)", "18 / 25 u. rotadas · Margen neto 68 %", "72 % uso"),
+    )
+
+    usageRows.forEach { (name, detail, badge) ->
+        RfCard {
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    BasicText(name, style = typo.bodyStrong)
+                    BasicText(detail, style = typo.secondary)
+                }
+                Spacer(Modifier.width(8.dp))
+                RfTag(text = badge, tone = RfTagTone.TEAL)
+            }
+        }
+    }
+
+    RfButton(label = spec.primaryCta, onClick = onPrimaryAction)
 }
 
 @Composable
@@ -542,9 +804,11 @@ private fun RenderEmptyStateScreen(
 @Composable
 private fun RenderOfflineAndServerErrorScreen(
     spec: ScreenSpec,
+    viewModel: RosaFiestaViewModel?,
     onPrimaryAction: () -> Unit,
 ) {
     val typo = LocalRfTypography.current
+    val offlineQueue = viewModel?.offlineQueue?.collectAsState()?.value ?: CanonicalSampleData.offlineQueue
     RfCard {
         Row(verticalAlignment = Alignment.CenterVertically) {
             RfIconTile(
@@ -562,7 +826,7 @@ private fun RenderOfflineAndServerErrorScreen(
             }
         }
     }
-    CanonicalSampleData.offlineQueue.forEach { item ->
+    offlineQueue.forEach { item ->
         RfCard {
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -577,7 +841,13 @@ private fun RenderOfflineAndServerErrorScreen(
             }
         }
     }
-    RfButton(label = "Reintentar", onClick = onPrimaryAction)
+    RfButton(
+        label = "Reintentar",
+        onClick = {
+            viewModel?.syncOfflineQueue()
+            onPrimaryAction()
+        },
+    )
 }
 
 @Composable
@@ -1095,11 +1365,14 @@ private fun RenderAuthFormByCode(
 @Composable
 private fun RenderPersonalHomeContent(
     spec: ScreenSpec,
+    viewModel: RosaFiestaViewModel?,
     onPrimaryAction: () -> Unit,
     onSelectScreenCode: (String) -> Unit,
 ) {
     val typo = LocalRfTypography.current
-    val boda = CanonicalSampleData.events.first()
+    val events = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
+    val articles = viewModel?.articles?.collectAsState()?.value ?: CanonicalSampleData.articles
+    val boda = events.first()
 
     RfHeroCard {
         Row(
@@ -1150,7 +1423,7 @@ private fun RenderPersonalHomeContent(
         RfChip("Cómo planificar", selected = false, onClick = { onSelectScreenCode("s76") })
     }
 
-    CanonicalSampleData.articles.take(3).forEach { article ->
+    articles.take(3).forEach { article ->
         RfCard(onClick = { onSelectScreenCode("s19") }) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 RfPhoto(
@@ -1175,20 +1448,22 @@ private fun RenderPersonalHomeContent(
 @Composable
 private fun RenderPersonalCatalogContent(
     spec: ScreenSpec,
+    viewModel: RosaFiestaViewModel?,
     onPrimaryAction: () -> Unit,
     onSelectScreenCode: (String) -> Unit,
 ) {
     val typo = LocalRfTypography.current
+    val articles = viewModel?.articles?.collectAsState()?.value ?: CanonicalSampleData.articles
     Row(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         modifier = Modifier.fillMaxWidth(),
     ) {
-        RfChip("Todos (6)", selected = spec.code !in setOf("s21", "s22"), onClick = { onSelectScreenCode("s18") })
+        RfChip("Todos (${articles.size})", selected = spec.code !in setOf("s21", "s22"), onClick = { onSelectScreenCode("s18") })
         RfChip("Paquetes", selected = spec.code in setOf("s21", "s22"), onClick = { onSelectScreenCode("s21") })
         RfChip("Filtros", selected = false, onClick = { onSelectScreenCode("s81") })
     }
 
-    CanonicalSampleData.articles.take(4).forEach { article ->
+    articles.take(4).forEach { article ->
         RfCard(onClick = { onSelectScreenCode("s19") }) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 RfPhoto(
@@ -1221,20 +1496,28 @@ private fun RenderPersonalCatalogContent(
 }
 
 @Composable
-private fun RenderPersonalQuoteAndPaymentContent(spec: ScreenSpec, onPrimaryAction: () -> Unit) {
+private fun RenderPersonalQuoteAndPaymentContent(
+    spec: ScreenSpec,
+    viewModel: RosaFiestaViewModel?,
+    onPrimaryAction: () -> Unit,
+) {
     val typo = LocalRfTypography.current
-    val boda = CanonicalSampleData.events.first()
+    val events = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
+    val boda = events.first()
 
     if (spec.code in setOf("s33", "s51")) {
-        RfCard {
+        RfCard(padding = 12.dp) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier.fillMaxWidth(),
             ) {
-                RfIllo(kind = RfIlloKind.EXITO, size = 76.dp)
+                RfIllo(kind = RfIlloKind.EXITO, size = 48.dp)
                 BasicText(spec.title, style = typo.sheetOrEmptyTitle)
-                BasicText(spec.subtitle, style = typo.secondary)
+                BasicText(
+                    text = if (spec.code == "s51") "Recibo #REC-2026-0184 · Anticipo 30 % confirmado" else "Folio #COT-2026-1023 · Recibida por María",
+                    style = typo.secondary,
+                )
                 RfGradientPriceText(
                     text = if (spec.code == "s51") "RD$ 1,350" else "RD$ 4,500",
                     style = typo.bigAmount,
@@ -1246,24 +1529,26 @@ private fun RenderPersonalQuoteAndPaymentContent(spec: ScreenSpec, onPrimaryActi
     RfCard {
         Row(
             horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            BasicText(boda.title, style = typo.cardTitle)
+            BasicText(boda.title, style = typo.cardTitle, modifier = Modifier.weight(1f))
+            Spacer(Modifier.width(8.dp))
             RfTag(text = boda.code, tone = RfTagTone.VIOLETA)
         }
         Spacer(Modifier.height(4.dp))
         BasicText("${boda.dateLabel} · ${boda.venue} · ${boda.guests} invitados", style = typo.secondary)
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(6.dp))
         boda.items.forEach { line ->
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                modifier = Modifier.fillMaxWidth().padding(vertical = 1.5.dp),
             ) {
                 BasicText("${line.quantity} × ${line.name}", style = typo.body)
                 BasicText(RosaFiestaEngine.formatDop(line.subtotalDop), style = typo.bodyStrong)
             }
         }
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(6.dp))
         Row(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
@@ -1275,17 +1560,31 @@ private fun RenderPersonalQuoteAndPaymentContent(spec: ScreenSpec, onPrimaryActi
         Spacer(Modifier.height(4.dp))
         Row(
             horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            BasicText("Anticipo 30 % (transferencia, 18 oct)", style = typo.bodyStrong)
+            BasicText(
+                text = "Anticipo 30 % (transferencia, 18 oct)",
+                style = typo.bodyStrong.copy(fontSize = 13.sp),
+                maxLines = 1,
+                modifier = Modifier.weight(1f),
+            )
+            Spacer(Modifier.width(8.dp))
             RfTag(text = RosaFiestaEngine.formatDop(boda.paidDepositDop), tone = RfTagTone.LIMA)
         }
         Spacer(Modifier.height(4.dp))
         Row(
             horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            BasicText("Saldo 70 % (vence ${boda.balanceDueDateLabel})", style = typo.secondary)
+            BasicText(
+                text = "Saldo 70 % (vence ${boda.balanceDueDateLabel})",
+                style = typo.secondary.copy(fontSize = 13.sp),
+                maxLines = 1,
+                modifier = Modifier.weight(1f),
+            )
+            Spacer(Modifier.width(8.dp))
             RfTag(text = RosaFiestaEngine.formatDop(boda.balanceDop), tone = RfTagTone.SOL)
         }
     }
@@ -1296,10 +1595,12 @@ private fun RenderPersonalQuoteAndPaymentContent(spec: ScreenSpec, onPrimaryActi
 @Composable
 private fun RenderPersonalEventsContent(
     spec: ScreenSpec,
+    viewModel: RosaFiestaViewModel?,
     onPrimaryAction: () -> Unit,
     onSelectScreenCode: (String) -> Unit,
 ) {
     val typo = LocalRfTypography.current
+    val events = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
 
     if (spec.code == "s40") {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
@@ -1309,7 +1610,7 @@ private fun RenderPersonalEventsContent(
         }
     }
 
-    CanonicalSampleData.events.take(2).forEach { event ->
+    events.take(2).forEach { event ->
         RfCard(onClick = { onSelectScreenCode("s40") }) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 RfPhoto(
@@ -1473,11 +1774,13 @@ private fun RenderPersonalProfileAndStateContent(
 @Composable
 private fun RenderAdminDashboardAndCalendarContent(
     spec: ScreenSpec,
+    viewModel: RosaFiestaViewModel?,
     onPrimaryAction: () -> Unit,
     onSelectScreenCode: (String) -> Unit,
 ) {
     val typo = LocalRfTypography.current
-    val metrics = CanonicalSampleData.businessMetrics
+    val metrics = viewModel?.metrics?.collectAsState()?.value ?: CanonicalSampleData.businessMetrics
+    val events = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
 
     Row(
         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -1511,7 +1814,7 @@ private fun RenderAdminDashboardAndCalendarContent(
             RfTag(text = "Agenda viva", tone = RfTagTone.INDIGO)
         }
         Spacer(Modifier.height(8.dp))
-        CanonicalSampleData.events.take(4).forEach { evt ->
+        events.take(4).forEach { evt ->
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
@@ -1534,10 +1837,15 @@ private fun RenderAdminDashboardAndCalendarContent(
 }
 
 @Composable
-private fun RenderAdminQuotesContent(spec: ScreenSpec, onPrimaryAction: () -> Unit) {
+private fun RenderAdminQuotesContent(
+    spec: ScreenSpec,
+    viewModel: RosaFiestaViewModel?,
+    onPrimaryAction: () -> Unit,
+) {
     val typo = LocalRfTypography.current
+    val events = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
 
-    CanonicalSampleData.events.filter { it.id in setOf("evt-cumple-mateo", "evt-grad-promo", "evt-boda-real") }.forEach { evt ->
+    events.filter { it.id in setOf("evt-cumple-mateo", "evt-grad-promo", "evt-boda-real") }.forEach { evt ->
         RfCard {
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -1564,8 +1872,15 @@ private fun RenderAdminQuotesContent(spec: ScreenSpec, onPrimaryAction: () -> Un
 }
 
 @Composable
-private fun RenderAdminLogisticsContent(spec: ScreenSpec, onPrimaryAction: () -> Unit) {
+private fun RenderAdminLogisticsContent(
+    spec: ScreenSpec,
+    viewModel: RosaFiestaViewModel?,
+    onPrimaryAction: () -> Unit,
+) {
     val typo = LocalRfTypography.current
+    val checklist = viewModel?.checklist?.collectAsState()?.value ?: CanonicalSampleData.bodaChecklist
+    val completedCount = checklist.count { it.completed }
+    val progressPct = (completedCount * 100) / checklist.size.coerceAtLeast(1)
 
     RfCard {
         Row(
@@ -1575,14 +1890,18 @@ private fun RenderAdminLogisticsContent(spec: ScreenSpec, onPrimaryAction: () ->
         ) {
             BasicText("Boda Real Rosa & Dorado · Vie 23 oct", style = typo.cardTitle, modifier = Modifier.weight(1f))
             Spacer(Modifier.width(8.dp))
-            RfTag(text = "66 % (4/6)", tone = RfTagTone.TEAL)
+            RfTag(text = "$progressPct % ($completedCount/${checklist.size})", tone = RfTagTone.TEAL)
         }
         Spacer(Modifier.height(6.dp))
-        CanonicalSampleData.bodaChecklist.forEach { step ->
+        checklist.forEach { step ->
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { viewModel?.toggleChecklistStep(step.id) }
+                    .padding(vertical = 3.dp)
+                    .testTag("checklist-step-${step.id}"),
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -1609,9 +1928,14 @@ private fun RenderAdminLogisticsContent(spec: ScreenSpec, onPrimaryAction: () ->
 }
 
 @Composable
-private fun RenderAdminFinanceContent(spec: ScreenSpec, onPrimaryAction: () -> Unit) {
+private fun RenderAdminFinanceContent(
+    spec: ScreenSpec,
+    viewModel: RosaFiestaViewModel?,
+    onPrimaryAction: () -> Unit,
+) {
     val typo = LocalRfTypography.current
-    val metrics = CanonicalSampleData.businessMetrics
+    val metrics = viewModel?.metrics?.collectAsState()?.value ?: CanonicalSampleData.businessMetrics
+    val payments = viewModel?.payments?.collectAsState()?.value ?: CanonicalSampleData.payments
 
     RfHeroCard(useAdminGradient = true) {
         BasicText("Finanzas de ${metrics.monthLabel}", style = typo.secondary.copy(color = Color.White))
@@ -1621,7 +1945,7 @@ private fun RenderAdminFinanceContent(spec: ScreenSpec, onPrimaryAction: () -> U
         )
     }
 
-    CanonicalSampleData.payments.forEach { payment ->
+    payments.forEach { payment ->
         RfCard {
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -1647,11 +1971,16 @@ private fun RenderAdminFinanceContent(spec: ScreenSpec, onPrimaryAction: () -> U
 }
 
 @Composable
-private fun RenderAdminInventoryAndStaffContent(spec: ScreenSpec, onPrimaryAction: () -> Unit) {
+private fun RenderAdminInventoryAndStaffContent(
+    spec: ScreenSpec,
+    viewModel: RosaFiestaViewModel?,
+    onPrimaryAction: () -> Unit,
+) {
     val typo = LocalRfTypography.current
+    val articles = viewModel?.articles?.collectAsState()?.value ?: CanonicalSampleData.articles
 
-    CanonicalSampleData.articles.take(4).forEach { art ->
-        RfCard {
+    articles.take(4).forEach { art ->
+        RfCard(onClick = { viewModel?.adjustArticleStock(art.id, 1) }) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 RfPhoto(
                     photoKey = art.photo.toPhotoKey(),
