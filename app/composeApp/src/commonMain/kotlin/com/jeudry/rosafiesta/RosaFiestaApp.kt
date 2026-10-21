@@ -6,18 +6,13 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -34,8 +29,35 @@ import com.jeudry.rosafiesta.designsystem.RfTagTone
 import com.jeudry.rosafiesta.designsystem.RfTheme
 import com.jeudry.rosafiesta.designsystem.RfThemeVariant
 import com.jeudry.rosafiesta.dev.DevPanelScreen
+import com.jeudry.rosafiesta.ui.Navigator
 import com.jeudry.rosafiesta.ui.RenderScreenSpec
 import com.jeudry.rosafiesta.ui.ScreenCatalog
+
+/**
+ * Punto de entrada de la **App Personal** (`RfTheme.personal`: rosa → violeta, fondo rubor cálido).
+ */
+@Composable
+public fun PersonalApp(
+    initialScreenCode: String = "s14",
+) {
+    RosaFiestaApp(
+        initialAppView = AppView.PERSONAL,
+        initialScreenCode = initialScreenCode,
+    )
+}
+
+/**
+ * Punto de entrada de la **App Administrativa** (`RfTheme.admin`: índigo → turquesa, fondo lavanda frío).
+ */
+@Composable
+public fun AdminApp(
+    initialScreenCode: String = "A01",
+) {
+    RosaFiestaApp(
+        initialAppView = AppView.ADMIN,
+        initialScreenCode = initialScreenCode,
+    )
+}
 
 /**
  * Raíz compartida de RosaFiesta que soporta las dos aplicaciones del sistema:
@@ -46,32 +68,32 @@ import com.jeudry.rosafiesta.ui.ScreenCatalog
 @Composable
 public fun RosaFiestaApp(
     initialAppView: AppView = AppView.PERSONAL,
-    initialScreenCode: String = if (initialAppView == AppView.ADMIN) "s55" else "s14",
+    initialScreenCode: String = if (initialAppView == AppView.ADMIN) "A01" else "s14",
 ) {
-    var activeView by rememberSaveable { mutableStateOf(initialAppView) }
-    var currentCode by rememberSaveable { mutableStateOf(initialScreenCode) }
-    var adminPreviewingPersonal by rememberSaveable { mutableStateOf(false) }
-    var devOpen by rememberSaveable { mutableStateOf(false) }
+    val navigator = remember(initialAppView, initialScreenCode) {
+        Navigator(
+            initialAppView = initialAppView,
+            initialScreenCode = initialScreenCode,
+        )
+    }
 
-    if (devOpen) {
+    if (navigator.devOpen) {
         DevPanelScreen(
             onSwitchToPersonalApp = {
-                activeView = AppView.PERSONAL
-                currentCode = "s14"
-                devOpen = false
+                navigator.switchToPersonal("s14", fromAdminPreview = false)
+                navigator.devOpen = false
             },
             onSwitchToAdminApp = {
-                activeView = AppView.ADMIN
-                currentCode = "s55"
-                devOpen = false
+                navigator.switchToAdmin("A01")
+                navigator.devOpen = false
             },
-            onClose = { devOpen = false },
+            onClose = { navigator.devOpen = false },
         )
         return
     }
 
-    val spec = ScreenCatalog.findByCode(currentCode)
-    val themeVariant = if (activeView == AppView.ADMIN && !adminPreviewingPersonal) {
+    val spec = ScreenCatalog.findByCode(navigator.currentCode)
+    val themeVariant = if (navigator.activeView == AppView.ADMIN && !navigator.adminPreviewingPersonal) {
         RfThemeVariant.ADMIN
     } else {
         spec.variant
@@ -103,21 +125,14 @@ public fun RosaFiestaApp(
                 ) {
                     RfChip(
                         label = "App Personal",
-                        selected = activeView == AppView.PERSONAL,
-                        onClick = {
-                            activeView = AppView.PERSONAL
-                            currentCode = "s14"
-                        },
+                        selected = navigator.activeView == AppView.PERSONAL,
+                        onClick = { navigator.switchToPersonal("s14", fromAdminPreview = false) },
                         modifier = Modifier.testTag("switch-personal"),
                     )
                     RfChip(
                         label = "App Admin",
-                        selected = activeView == AppView.ADMIN,
-                        onClick = {
-                            activeView = AppView.ADMIN
-                            adminPreviewingPersonal = false
-                            currentCode = "s55"
-                        },
+                        selected = navigator.activeView == AppView.ADMIN,
+                        onClick = { navigator.switchToAdmin("A01") },
                         modifier = Modifier.testTag("switch-admin"),
                     )
                 }
@@ -126,16 +141,12 @@ public fun RosaFiestaApp(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    if (adminPreviewingPersonal) {
+                    if (navigator.adminPreviewingPersonal) {
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(999.dp))
                                 .background(RfColors.IndigoBrand)
-                                .clickable {
-                                    adminPreviewingPersonal = false
-                                    activeView = AppView.ADMIN
-                                    currentCode = "A30"
-                                }
+                                .clickable { navigator.switchToAdmin("A30") }
                                 .padding(horizontal = 10.dp, vertical = 4.dp)
                                 .testTag("banner-return-admin"),
                         ) {
@@ -149,7 +160,7 @@ public fun RosaFiestaApp(
                         text = "Dev · 133 pantallas",
                         tone = RfTagTone.SOL,
                         modifier = Modifier
-                            .clickable { devOpen = true }
+                            .clickable { navigator.devOpen = true }
                             .testTag("open-dev-panel"),
                     )
                 }
@@ -164,26 +175,16 @@ public fun RosaFiestaApp(
             ) {
                 RenderScreenSpec(
                     spec = spec,
-                    onSelectScreenCode = { nextCode -> currentCode = nextCode },
+                    onSelectScreenCode = { nextCode -> navigator.navigateTo(nextCode) },
                     onSwitchAppMode = {
-                        if (activeView == AppView.ADMIN) {
-                            adminPreviewingPersonal = true
-                            activeView = AppView.PERSONAL
-                            currentCode = "s14"
+                        if (navigator.activeView == AppView.ADMIN) {
+                            navigator.switchToPersonal("s14", fromAdminPreview = true)
                         } else {
-                            activeView = AppView.ADMIN
-                            currentCode = "s55"
+                            navigator.switchToAdmin("A01")
                         }
                     },
                     onPrimaryAction = {
-                        val list = if (activeView == AppView.ADMIN) {
-                            ScreenCatalog.adminScreens
-                        } else {
-                            ScreenCatalog.personalScreens
-                        }
-                        val idx = list.indexOfFirst { it.code == spec.code }
-                        val next = if (idx in 0 until list.lastIndex) list[idx + 1] else list.first()
-                        currentCode = next.code
+                        navigator.advanceFlow()
                     },
                 )
             }

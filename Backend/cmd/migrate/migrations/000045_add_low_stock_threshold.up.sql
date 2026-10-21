@@ -1,1 +1,0 @@
-ALTER TABLE articles ADD COLUMN low_stock_threshold INT NOT NULL DEFAULT 5;

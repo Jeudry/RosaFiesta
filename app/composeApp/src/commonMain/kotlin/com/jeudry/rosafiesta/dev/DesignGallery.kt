@@ -27,7 +27,14 @@ import com.jeudry.rosafiesta.designsystem.RfButton
 import com.jeudry.rosafiesta.designsystem.RfButtonStyle
 import com.jeudry.rosafiesta.designsystem.RfCard
 import com.jeudry.rosafiesta.designsystem.RfChip
+import com.jeudry.rosafiesta.designsystem.RfColors
 import com.jeudry.rosafiesta.designsystem.RfField
+import com.jeudry.rosafiesta.designsystem.RfGradientPriceText
+import com.jeudry.rosafiesta.designsystem.RfIconButton
+import com.jeudry.rosafiesta.designsystem.RfIconKind
+import com.jeudry.rosafiesta.designsystem.RfIconTile
+import com.jeudry.rosafiesta.designsystem.RfIllo
+import com.jeudry.rosafiesta.designsystem.RfIlloKind
 import com.jeudry.rosafiesta.designsystem.RfLogo
 import com.jeudry.rosafiesta.designsystem.RfLogoSize
 import com.jeudry.rosafiesta.designsystem.RfOfflineBanner
@@ -35,6 +42,7 @@ import com.jeudry.rosafiesta.designsystem.RfPhoneFrame
 import com.jeudry.rosafiesta.designsystem.RfPhoto
 import com.jeudry.rosafiesta.designsystem.RfPhotoKey
 import com.jeudry.rosafiesta.designsystem.RfSegmented
+import com.jeudry.rosafiesta.designsystem.RfSwitch
 import com.jeudry.rosafiesta.designsystem.RfTag
 import com.jeudry.rosafiesta.designsystem.RfTagTone
 import com.jeudry.rosafiesta.designsystem.RfThemeVariant
@@ -43,7 +51,7 @@ import com.jeudry.rosafiesta.designsystem.RosaAvatar
 import com.jeudry.rosafiesta.designsystem.RosaAvatarSize
 
 /**
- * Vitrina de los 11 componentes reutilizables del sistema de diseño (Sección 4 de `entrega-de-diseno.md`).
+ * Vitrina de los componentes reutilizables del sistema de diseño (Secciones 2 y 3 de `entrega-de-diseno.md`).
  */
 @Composable
 internal fun DesignGallery(
@@ -55,7 +63,7 @@ internal fun DesignGallery(
         screenCode = "DS",
         screenTitle = "Componentes del Sistema",
         bottomBar = {
-            PersonalTabBar(activeTab = PersonalTab.ROSA_IA, onSelectTab = {})
+            PersonalTabBar(activeTab = PersonalTab.ROSA, onSelectTab = {})
         },
         modifier = modifier,
     ) {
@@ -63,12 +71,12 @@ internal fun DesignGallery(
         val palette = LocalRfPalette.current
 
         Column(
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
             modifier = Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
                 .background(palette.bg)
-                .padding(bottom = 12.dp),
+                .padding(bottom = 4.dp),
         ) {
             if (onBack != null) {
                 RfButton(
@@ -78,35 +86,38 @@ internal fun DesignGallery(
                 )
             }
 
-            // 4.1 Logo y 4.2 Rosa Avatar (Personal vs Admin)
-            RfCard {
-                BasicText("4.1 Logo y 4.2 Avatar Rosa IA", style = typo.cardTitle)
-                Spacer(Modifier.height(8.dp))
+            // 3.1 Logo (siempre sobre círculo blanco) y Rosa Avatar (mujer con audífonos y micrófono)
+            RfCard(padding = 10.dp) {
+                BasicText("Logo, Rosa IA e Ilustraciones (globos)", style = typo.cardTitle)
+                Spacer(Modifier.height(6.dp))
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     RfLogo(size = RfLogoSize.MEDIUM)
-                    RosaAvatar(size = RosaAvatarSize.MEDIUM, forceAdminPalette = false)
-                    RosaAvatar(size = RosaAvatarSize.MEDIUM, forceAdminPalette = true)
-                    RfTag(text = "Personal vs Admin", tone = RfTagTone.VIOLETA)
+                    RosaAvatar(size = RosaAvatarSize.MEDIUM, forceAdminPalette = false, glow = true)
+                    RosaAvatar(size = RosaAvatarSize.MEDIUM, forceAdminPalette = true, glow = true)
+                    RfIllo(kind = RfIlloKind.GLOBOS, size = 44.dp)
                 }
             }
 
-            // 4.6 Foto real + 4.9 Tags & Chips
-            RfCard {
-                BasicText("4.6 Fotografía real, 4.9 Chips y Tags", style = typo.cardTitle)
-                Spacer(Modifier.height(8.dp))
+            // 3.2 Foto real + Texto gradiente + Chips y Tags
+            RfCard(padding = 10.dp) {
+                BasicText("Fotografía real, Precio Gradiente, Chips y Tags", style = typo.cardTitle)
+                Spacer(Modifier.height(6.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     RfPhoto(
                         photoKey = RfPhotoKey.SILLA_TIFFANY,
                         contentDescription = "Silla Tiffany dorada",
-                        modifier = Modifier.size(64.dp),
+                        modifier = Modifier.size(56.dp),
                     )
                     Spacer(Modifier.width(12.dp))
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            RfTag(text = "RD$ 4/día", tone = RfTagTone.ROSA)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            RfGradientPriceText("RD$ 4.00")
                             RfTag(text = "Anticipo 30 %", tone = RfTagTone.SOL)
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -117,26 +128,35 @@ internal fun DesignGallery(
                 }
             }
 
-            // 4.10 Campo + Segmentado
-            RfCard {
-                BasicText("4.10 Campo y Control Segmentado", style = typo.cardTitle)
+            // 2.5 Botón icono (44dp), Mosaico de icono (40×40dp), Interruptor (46×28dp), Campo y Segmentado
+            RfCard(padding = 10.dp) {
+                BasicText("Botón Icono, Mosaico, Switch, Campo y Segmentado", style = typo.cardTitle)
+                Spacer(Modifier.height(4.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    RfIconButton(icon = RfIconKind.BELL, contentDescription = "Notificaciones")
+                    RfIconTile(icon = RfIconKind.SPARKLE, backgroundColor = RfColors.RosaTint, iconTint = RfColors.RosaTintInk)
+                    RfSwitch(checked = true)
+                }
                 Spacer(Modifier.height(6.dp))
                 RfSegmented(
                     options = listOf("Personal", "Admin", "Oscuro"),
                     selectedIndex = 0,
                     onSelect = {},
                 )
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(6.dp))
                 RfField(
                     label = "Evento",
                     value = "Boda Real Rosa & Dorado · Vie 23 oct",
                 )
             }
 
-            // 4.4 AdminBar + 4.11 Toast y Banner sin conexión
+            // 3.3 AdminBar + Toast y Banner sin conexión
             RfOfflineBanner(pendingChangesCount = 3, isAdmin = true)
             RfToast(message = "Reserva confirmada · Anticipo RD$ 1,350", actionLabel = "Ver")
-            AdminTabBar(activeTab = AdminTab.ORDERS, onSelectTab = {})
+            AdminTabBar(activeTab = AdminTab.EVENTOS, onSelectTab = {})
         }
     }
 }

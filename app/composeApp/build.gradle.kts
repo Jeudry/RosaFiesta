@@ -72,6 +72,8 @@ kotlin {
 }
 
 tasks.withType<Test>().configureEach {
+    inputs.property("screenshots", project.hasProperty("screenshots"))
+    inputs.property("updateScreenshots", System.getenv("UPDATE_SCREENSHOTS") ?: "")
     if (!project.hasProperty("screenshots")) exclude("**/*Screenshots*", "**/dev/*ScreenshotTest*")
 }
 

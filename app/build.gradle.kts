@@ -11,6 +11,7 @@ plugins {
 
 // Formato y estilo de todo el código Kotlin del proyecto (ktlint, reglas en .editorconfig).
 spotless {
+    lineEndings = com.diffplug.spotless.LineEnding.UNIX
     kotlin {
         target("**/*.kt")
         targetExclude("**/build/**", "**/generated/**")
