@@ -1,0 +1,3199 @@
+{
+  "components": {
+    "schemas": {
+      "Article": {
+        "additionalProperties": false,
+        "properties": {
+          "availableStock": {
+            "description": "Stock disponible para la fecha consultada (s63).",
+            "format": "int64",
+            "type": "integer"
+          },
+          "categoryId": {
+            "description": "Categoría a la que pertenece.",
+            "type": "string"
+          },
+          "dailyPriceDop": {
+            "description": "Precio de alquiler por día en RD$.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "description": {
+            "description": "Descripción del artículo.",
+            "type": "string"
+          },
+          "id": {
+            "description": "Clave única del artículo (ej. silla-tiffany).",
+            "type": "string"
+          },
+          "lowStockThreshold": {
+            "description": "Umbral para insignia sol-tint de stock bajo.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "description": "Nombre comercial del artículo.",
+            "type": "string"
+          },
+          "photoKey": {
+            "description": "Clave de la foto real en frontend/assets/images.",
+            "type": "string"
+          },
+          "totalStock": {
+            "description": "Stock total en almacén.",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "categoryId",
+          "photoKey",
+          "dailyPriceDop",
+          "totalStock",
+          "availableStock",
+          "lowStockThreshold",
+          "description"
+        ],
+        "type": "object"
+      },
+      "ArticlesOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/ArticlesOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "articles": {
+            "description": "Artículos de alquiler con foto y precio por día.",
+            "items": {
+              "$ref": "#/components/schemas/Article"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "articles"
+        ],
+        "type": "object"
+      },
+      "CancelEventOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/CancelEventOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "event": {
+            "$ref": "#/components/schemas/Event"
+          },
+          "refund": {
+            "$ref": "#/components/schemas/RefundPolicyResult"
+          }
+        },
+        "required": [
+          "event",
+          "refund"
+        ],
+        "type": "object"
+      },
+      "CategoriesOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/CategoriesOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "categories": {
+            "description": "Categorías con su ilustración.",
+            "items": {
+              "$ref": "#/components/schemas/Category"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "categories"
+        ],
+        "type": "object"
+      },
+      "Category": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "description": "Identificador de la categoría.",
+            "type": "string"
+          },
+          "illoKey": {
+            "description": "Ilustración vectorial (globos, flores, sillas, dulces).",
+            "type": "string"
+          },
+          "itemCount": {
+            "description": "Cantidad de artículos en la categoría.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "description": "Nombre de la categoría.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "illoKey",
+          "itemCount"
+        ],
+        "type": "object"
+      },
+      "ChecklistItem": {
+        "additionalProperties": false,
+        "properties": {
+          "completed": {
+            "type": "boolean"
+          },
+          "completedAt": {
+            "type": "string"
+          },
+          "completedBy": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "stage": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "stage",
+          "title",
+          "completed"
+        ],
+        "type": "object"
+      },
+      "ClientSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "balanceDop": {
+            "description": "Saldo pendiente en RD$.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "email": {
+            "description": "Correo electrónico.",
+            "type": "string"
+          },
+          "eventsCount": {
+            "description": "Cantidad de eventos.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "fullName": {
+            "description": "Nombre completo del cliente.",
+            "type": "string"
+          },
+          "id": {
+            "description": "Identificador del cliente.",
+            "type": "string"
+          },
+          "phone": {
+            "description": "Teléfono de contacto.",
+            "type": "string"
+          },
+          "totalSpentDop": {
+            "description": "Total contratado en RD$.",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "fullName",
+          "email",
+          "phone",
+          "eventsCount",
+          "totalSpentDop",
+          "balanceDop"
+        ],
+        "type": "object"
+      },
+      "ClientsOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/ClientsOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "clients": {
+            "description": "Lista de clientes de RosaFiesta.",
+            "items": {
+              "$ref": "#/components/schemas/ClientSummary"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "clients"
+        ],
+        "type": "object"
+      },
+      "CreateQuoteInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/CreateQuoteInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "clientName": {
+            "minLength": 2,
+            "type": "string"
+          },
+          "deliveryFeeRD": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "discountRD": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "eventDateLabel": {
+            "minLength": 2,
+            "type": "string"
+          },
+          "eventTitle": {
+            "minLength": 2,
+            "type": "string"
+          },
+          "guests": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "lines": {
+            "items": {
+              "$ref": "#/components/schemas/QuoteLine"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "venue": {
+            "minLength": 2,
+            "type": "string"
+          }
+        },
+        "required": [
+          "eventTitle",
+          "clientName",
+          "eventDateLabel",
+          "venue",
+          "guests",
+          "lines",
+          "deliveryFeeRD",
+          "discountRD"
+        ],
+        "type": "object"
+      },
+      "DamageReport": {
+        "additionalProperties": false,
+        "properties": {
+          "articleCode": {
+            "type": "string"
+          },
+          "articleName": {
+            "type": "string"
+          },
+          "damagedUnits": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "eventId": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "missingUnits": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "replacementRD": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "eventId",
+          "articleCode",
+          "articleName",
+          "damagedUnits",
+          "missingUnits",
+          "replacementRD",
+          "notes"
+        ],
+        "type": "object"
+      },
+      "DateChangeEvaluation": {
+        "additionalProperties": false,
+        "properties": {
+          "allowed": {
+            "type": "boolean"
+          },
+          "feeRD": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "isFree": {
+            "type": "boolean"
+          },
+          "nextCount": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "allowed",
+          "isFree",
+          "feeRD",
+          "reason",
+          "nextCount"
+        ],
+        "type": "object"
+      },
+      "DateChangeInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/DateChangeInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "newDateLabel": {
+            "description": "Nueva fecha legible (ej. Sáb 31 oct)",
+            "type": "string"
+          },
+          "newDaysUntilEvent": {
+            "format": "int64",
+            "minimum": 2,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "newDateLabel",
+          "newDaysUntilEvent"
+        ],
+        "type": "object"
+      },
+      "DateChangeOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/DateChangeOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "evaluation": {
+            "$ref": "#/components/schemas/DateChangeEvaluation"
+          },
+          "event": {
+            "$ref": "#/components/schemas/Event"
+          }
+        },
+        "required": [
+          "event",
+          "evaluation"
+        ],
+        "type": "object"
+      },
+      "DeclineQuoteInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/DeclineQuoteInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "reason": {
+            "minLength": 2,
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "type": "object"
+      },
+      "DeleteAccountOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/DeleteAccountOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "deleted": {
+            "description": "Indica si la cuenta fue eliminada.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "deleted"
+        ],
+        "type": "object"
+      },
+      "ErrorDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "location": {
+            "description": "Where the error occurred, e.g. 'body.items[3].tags' or 'path.thing-id'",
+            "type": "string"
+          },
+          "message": {
+            "description": "Error message text",
+            "type": "string"
+          },
+          "value": {
+            "description": "The value at the given location"
+          }
+        },
+        "type": "object"
+      },
+      "ErrorModel": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/ErrorModel.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "detail": {
+            "description": "A human-readable explanation specific to this occurrence of the problem.",
+            "examples": [
+              "Property foo is required but is missing."
+            ],
+            "type": "string"
+          },
+          "errors": {
+            "description": "Optional list of individual error details",
+            "items": {
+              "$ref": "#/components/schemas/ErrorDetail"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "instance": {
+            "description": "A URI reference that identifies the specific occurrence of the problem.",
+            "examples": [
+              "https://example.com/error-log/abc123"
+            ],
+            "format": "uri",
+            "type": "string"
+          },
+          "status": {
+            "description": "HTTP status code",
+            "examples": [
+              400
+            ],
+            "format": "int64",
+            "type": "integer"
+          },
+          "title": {
+            "description": "A short, human-readable summary of the problem type. This value should not change between occurrences of the error.",
+            "examples": [
+              "Bad Request"
+            ],
+            "type": "string"
+          },
+          "type": {
+            "default": "about:blank",
+            "description": "A URI reference to human-readable documentation for the error.",
+            "examples": [
+              "https://example.com/errors/example"
+            ],
+            "format": "uri",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "Event": {
+        "additionalProperties": false,
+        "properties": {
+          "articleCount": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "assignedLead": {
+            "type": "string"
+          },
+          "balanceDueDate": {
+            "type": "string"
+          },
+          "clientName": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "dateChangesUsed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "dateLabel": {
+            "type": "string"
+          },
+          "daysUntilEvent": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "eventType": {
+            "type": "string"
+          },
+          "guests": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/EventItem"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "paidDepositRD": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "status": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "totalRD": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "venue": {
+            "type": "string"
+          },
+          "zone": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "clientName",
+          "title",
+          "eventType",
+          "dateLabel",
+          "daysUntilEvent",
+          "venue",
+          "zone",
+          "guests",
+          "articleCount",
+          "totalRD",
+          "paidDepositRD",
+          "balanceDueDate",
+          "status",
+          "dateChangesUsed",
+          "assignedLead",
+          "items"
+        ],
+        "type": "object"
+      },
+      "EventDetailOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/EventDetailOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "balanceRD": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "event": {
+            "$ref": "#/components/schemas/Event"
+          }
+        },
+        "required": [
+          "event",
+          "balanceRD"
+        ],
+        "type": "object"
+      },
+      "EventItem": {
+        "additionalProperties": false,
+        "properties": {
+          "articleCode": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "quantity": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "unitPriceRD": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "articleCode",
+          "name",
+          "quantity",
+          "unitPriceRD"
+        ],
+        "type": "object"
+      },
+      "EventLogistics": {
+        "additionalProperties": false,
+        "properties": {
+          "assignedCrew": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "checklist": {
+            "items": {
+              "$ref": "#/components/schemas/ChecklistItem"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "damageReports": {
+            "items": {
+              "$ref": "#/components/schemas/DamageReport"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "dateLabel": {
+            "type": "string"
+          },
+          "eventId": {
+            "type": "string"
+          },
+          "eventTitle": {
+            "type": "string"
+          },
+          "evidencePhotos": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "leadStaffName": {
+            "type": "string"
+          },
+          "setupWindow": {
+            "type": "string"
+          },
+          "teardownWindow": {
+            "type": "string"
+          },
+          "vehicleName": {
+            "type": "string"
+          },
+          "venue": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "eventId",
+          "eventTitle",
+          "dateLabel",
+          "setupWindow",
+          "teardownWindow",
+          "venue",
+          "leadStaffName",
+          "assignedCrew",
+          "vehicleName",
+          "checklist",
+          "evidencePhotos",
+          "damageReports"
+        ],
+        "type": "object"
+      },
+      "EventLogisticsOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/EventLogisticsOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "completionPercent": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "logistics": {
+            "$ref": "#/components/schemas/EventLogistics"
+          }
+        },
+        "required": [
+          "logistics",
+          "completionPercent"
+        ],
+        "type": "object"
+      },
+      "EventTemplate": {
+        "additionalProperties": false,
+        "properties": {
+          "defaultGuests": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "paletteColors": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "photoKey": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "startingPriceRD": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "subtitle": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "name",
+          "subtitle",
+          "defaultGuests",
+          "startingPriceRD",
+          "photoKey",
+          "paletteColors"
+        ],
+        "type": "object"
+      },
+      "EventsListOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/EventsListOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/Event"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "events"
+        ],
+        "type": "object"
+      },
+      "FinanceSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "accountsReceivableRD": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "activeEventsCount": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "monthLabel": {
+            "type": "string"
+          },
+          "newQuoteRequests": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "octRevenueRD": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "pendingVerificationCount": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "monthLabel",
+          "octRevenueRD",
+          "accountsReceivableRD",
+          "activeEventsCount",
+          "newQuoteRequests",
+          "pendingVerificationCount"
+        ],
+        "type": "object"
+      },
+      "FinanceSummaryOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/FinanceSummaryOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/FinanceSummary"
+          }
+        },
+        "required": [
+          "summary"
+        ],
+        "type": "object"
+      },
+      "LoginInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/LoginInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "email": {
+            "description": "Correo electrónico del usuario.",
+            "type": "string"
+          },
+          "password": {
+            "description": "Contraseña de la cuenta.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ],
+        "type": "object"
+      },
+      "LoginOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/LoginOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "accessToken": {
+            "description": "Token Bearer para llamadas autenticadas.",
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/User",
+            "description": "Datos del usuario y vista activa."
+          }
+        },
+        "required": [
+          "accessToken",
+          "user"
+        ],
+        "type": "object"
+      },
+      "OfflineMutation": {
+        "additionalProperties": false,
+        "properties": {
+          "actionLabel": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "entityCode": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "synced": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "actionLabel",
+          "entityCode",
+          "createdAt",
+          "synced"
+        ],
+        "type": "object"
+      },
+      "OfflineQueueOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/OfflineQueueOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "queue": {
+            "items": {
+              "$ref": "#/components/schemas/OfflineMutation"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "queue"
+        ],
+        "type": "object"
+      },
+      "OutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/OutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "product": {
+            "description": "Nombre del sistema.",
+            "type": "string"
+          },
+          "status": {
+            "description": "Estado del servicio.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "product"
+        ],
+        "type": "object"
+      },
+      "PackageBundle": {
+        "additionalProperties": false,
+        "properties": {
+          "eventType": {
+            "description": "Tipo de evento asociado.",
+            "type": "string"
+          },
+          "guestCapacity": {
+            "description": "Capacidad de invitados.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "id": {
+            "description": "Identificador del paquete.",
+            "type": "string"
+          },
+          "itemsSummary": {
+            "description": "Resumen de artículos incluidos.",
+            "type": "string"
+          },
+          "name": {
+            "description": "Nombre del paquete temático.",
+            "type": "string"
+          },
+          "photoKey": {
+            "description": "Foto real del paquete.",
+            "type": "string"
+          },
+          "totalPriceDop": {
+            "description": "Precio del paquete en RD$.",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "eventType",
+          "photoKey",
+          "totalPriceDop",
+          "guestCapacity",
+          "itemsSummary"
+        ],
+        "type": "object"
+      },
+      "PackagesOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/PackagesOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "packages": {
+            "description": "Paquetes preconfigurados para eventos.",
+            "items": {
+              "$ref": "#/components/schemas/PackageBundle"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "packages"
+        ],
+        "type": "object"
+      },
+      "Payment": {
+        "additionalProperties": false,
+        "properties": {
+          "amountRD": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "clientName": {
+            "type": "string"
+          },
+          "eventId": {
+            "type": "string"
+          },
+          "eventTitle": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "method": {
+            "type": "string"
+          },
+          "paidDateLabel": {
+            "type": "string"
+          },
+          "receiptNumber": {
+            "type": "string"
+          },
+          "referenceCode": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "receiptNumber",
+          "eventId",
+          "eventTitle",
+          "clientName",
+          "amountRD",
+          "method",
+          "kind",
+          "paidDateLabel",
+          "referenceCode",
+          "status"
+        ],
+        "type": "object"
+      },
+      "PaymentOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/PaymentOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "payment": {
+            "$ref": "#/components/schemas/Payment"
+          }
+        },
+        "required": [
+          "payment"
+        ],
+        "type": "object"
+      },
+      "PaymentsListOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/PaymentsListOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "payments": {
+            "items": {
+              "$ref": "#/components/schemas/Payment"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "payments"
+        ],
+        "type": "object"
+      },
+      "Quote": {
+        "additionalProperties": false,
+        "properties": {
+          "balanceRD": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "clientName": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "deliveryFeeRD": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "depositPercent": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "depositRD": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "discountRD": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "eventDateLabel": {
+            "type": "string"
+          },
+          "eventTitle": {
+            "type": "string"
+          },
+          "guests": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "lines": {
+            "items": {
+              "$ref": "#/components/schemas/QuoteLine"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "rejectionReason": {
+            "type": "string"
+          },
+          "signatureSvg": {
+            "type": "string"
+          },
+          "signedByName": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "totalRD": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "venue": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "eventTitle",
+          "clientName",
+          "eventDateLabel",
+          "venue",
+          "guests",
+          "lines",
+          "deliveryFeeRD",
+          "discountRD",
+          "totalRD",
+          "depositPercent",
+          "depositRD",
+          "balanceRD",
+          "status"
+        ],
+        "type": "object"
+      },
+      "QuoteLine": {
+        "additionalProperties": false,
+        "properties": {
+          "articleCode": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "quantity": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "unitPriceRD": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "articleCode",
+          "name",
+          "quantity",
+          "unitPriceRD"
+        ],
+        "type": "object"
+      },
+      "QuoteOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/QuoteOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "quote": {
+            "$ref": "#/components/schemas/Quote"
+          }
+        },
+        "required": [
+          "quote"
+        ],
+        "type": "object"
+      },
+      "QuotesListOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/QuotesListOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "quotes": {
+            "items": {
+              "$ref": "#/components/schemas/Quote"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "quotes"
+        ],
+        "type": "object"
+      },
+      "RefundPolicyResult": {
+        "additionalProperties": false,
+        "properties": {
+          "policyTier": {
+            "type": "string"
+          },
+          "refundPercent": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "refundRD": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "retainedRD": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "refundPercent",
+          "refundRD",
+          "retainedRD",
+          "policyTier"
+        ],
+        "type": "object"
+      },
+      "RegisterPaymentInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/RegisterPaymentInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "amountRD": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "clientName": {
+            "minLength": 2,
+            "type": "string"
+          },
+          "eventId": {
+            "minLength": 2,
+            "type": "string"
+          },
+          "eventTitle": {
+            "minLength": 2,
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "method": {
+            "type": "string"
+          },
+          "referenceCode": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "eventId",
+          "eventTitle",
+          "clientName",
+          "amountRD",
+          "method",
+          "kind",
+          "referenceCode"
+        ],
+        "type": "object"
+      },
+      "ReportDamageInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/ReportDamageInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "articleCode": {
+            "minLength": 2,
+            "type": "string"
+          },
+          "articleName": {
+            "minLength": 2,
+            "type": "string"
+          },
+          "damagedUnits": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "missingUnits": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "replacementRD": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "articleCode",
+          "articleName",
+          "damagedUnits",
+          "missingUnits",
+          "replacementRD",
+          "notes"
+        ],
+        "type": "object"
+      },
+      "ReportDamageOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/ReportDamageOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "report": {
+            "$ref": "#/components/schemas/DamageReport"
+          }
+        },
+        "required": [
+          "report"
+        ],
+        "type": "object"
+      },
+      "RosaMoodboardProposal": {
+        "additionalProperties": false,
+        "properties": {
+          "assistantReply": {
+            "type": "string"
+          },
+          "budgetRD": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "colorPalette": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "depositRequiredRD": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "estimatedTotalRD": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "eventType": {
+            "type": "string"
+          },
+          "guests": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "step": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "styleTitle": {
+            "type": "string"
+          },
+          "suggestedLines": {
+            "items": {
+              "$ref": "#/components/schemas/QuoteLine"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "step",
+          "eventType",
+          "styleTitle",
+          "colorPalette",
+          "guests",
+          "budgetRD",
+          "suggestedLines",
+          "estimatedTotalRD",
+          "depositRequiredRD",
+          "assistantReply"
+        ],
+        "type": "object"
+      },
+      "RosaProposalInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/RosaProposalInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "budgetRD": {
+            "format": "int64",
+            "minimum": 200,
+            "type": "integer"
+          },
+          "eventType": {
+            "type": "string"
+          },
+          "guests": {
+            "format": "int64",
+            "minimum": 10,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "eventType",
+          "guests",
+          "budgetRD"
+        ],
+        "type": "object"
+      },
+      "RosaProposalOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/RosaProposalOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "proposal": {
+            "$ref": "#/components/schemas/RosaMoodboardProposal"
+          }
+        },
+        "required": [
+          "proposal"
+        ],
+        "type": "object"
+      },
+      "RouteStop": {
+        "additionalProperties": false,
+        "properties": {
+          "assignedVehicle": {
+            "type": "string"
+          },
+          "eventId": {
+            "type": "string"
+          },
+          "eventTitle": {
+            "type": "string"
+          },
+          "order": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "status": {
+            "type": "string"
+          },
+          "venue": {
+            "type": "string"
+          },
+          "windowLabel": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "order",
+          "eventId",
+          "eventTitle",
+          "venue",
+          "windowLabel",
+          "assignedVehicle",
+          "status"
+        ],
+        "type": "object"
+      },
+      "RouteStopsOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/RouteStopsOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "stops": {
+            "items": {
+              "$ref": "#/components/schemas/RouteStop"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "stops"
+        ],
+        "type": "object"
+      },
+      "SignContractInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/SignContractInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "signatureSvg": {
+            "minLength": 5,
+            "type": "string"
+          },
+          "signedByName": {
+            "minLength": 2,
+            "type": "string"
+          }
+        },
+        "required": [
+          "signedByName",
+          "signatureSvg"
+        ],
+        "type": "object"
+      },
+      "StaffMember": {
+        "additionalProperties": false,
+        "properties": {
+          "fullName": {
+            "description": "Nombre del integrante.",
+            "type": "string"
+          },
+          "id": {
+            "description": "Identificador del miembro del equipo.",
+            "type": "string"
+          },
+          "permissions": {
+            "description": "Permisos activos en A28.",
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "role": {
+            "description": "Rol técnico (admin o staff).",
+            "type": "string"
+          },
+          "roleLabel": {
+            "description": "Cargo dentro de RosaFiesta.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "fullName",
+          "roleLabel",
+          "role",
+          "permissions"
+        ],
+        "type": "object"
+      },
+      "StaffOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/StaffOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "staff": {
+            "description": "Equipo operativo y sus permisos.",
+            "items": {
+              "$ref": "#/components/schemas/StaffMember"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "staff"
+        ],
+        "type": "object"
+      },
+      "SwitchViewInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/SwitchViewInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "view": {
+            "description": "Vista destino: personal o admin.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "view"
+        ],
+        "type": "object"
+      },
+      "SwitchViewOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/SwitchViewOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/User",
+            "description": "Usuario con su nueva vista activa."
+          }
+        },
+        "required": [
+          "user"
+        ],
+        "type": "object"
+      },
+      "TemplatesOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/TemplatesOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "templates": {
+            "items": {
+              "$ref": "#/components/schemas/EventTemplate"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "templates"
+        ],
+        "type": "object"
+      },
+      "ToggleChecklistInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/ToggleChecklistInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "completed": {
+            "type": "boolean"
+          },
+          "staffName": {
+            "minLength": 2,
+            "type": "string"
+          }
+        },
+        "required": [
+          "completed",
+          "staffName"
+        ],
+        "type": "object"
+      },
+      "User": {
+        "additionalProperties": false,
+        "properties": {
+          "activeView": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "fullName": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "permissions": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "phone": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "fullName",
+          "email",
+          "phone",
+          "role",
+          "permissions",
+          "activeView",
+          "createdAt"
+        ],
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "bearer": {
+        "description": "Token de acceso entregado por /v1/auth/login.",
+        "scheme": "bearer",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "description": "API de RosaFiesta (App Personal y App Administrativa). Documentación interactiva en /docs.",
+    "title": "RosaFiesta API",
+    "version": "1.0.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/healthz": {
+      "get": {
+        "operationId": "get-health",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Verifica que el servidor esté vivo",
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/v1/account": {
+      "delete": {
+        "operationId": "auth-delete-account",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteAccountOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Elimina la cuenta validando que no existan eventos activos (s88)",
+        "tags": [
+          "Identity"
+        ]
+      }
+    },
+    "/v1/admin/clients": {
+      "get": {
+        "operationId": "admin-list-clients",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientsOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Lista los clientes y su saldo (A26, A27)",
+        "tags": [
+          "Identity"
+        ]
+      }
+    },
+    "/v1/admin/staff": {
+      "get": {
+        "operationId": "admin-list-staff",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Lista el equipo y sus permisos operativos (A28)",
+        "tags": [
+          "Identity"
+        ]
+      }
+    },
+    "/v1/auth/login": {
+      "post": {
+        "operationId": "auth-login",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Inicia sesión en RosaFiesta (s07)",
+        "tags": [
+          "Identity"
+        ]
+      }
+    },
+    "/v1/auth/switch-view": {
+      "post": {
+        "operationId": "auth-switch-view",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SwitchViewInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SwitchViewOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Permite a un admin entrar como cliente o volver a negocio (A30)",
+        "tags": [
+          "Identity"
+        ]
+      }
+    },
+    "/v1/catalog/articles": {
+      "get": {
+        "operationId": "catalog-list-articles",
+        "parameters": [
+          {
+            "description": "Búsqueda opcional por nombre o categoría.",
+            "explode": false,
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "description": "Búsqueda opcional por nombre o categoría.",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArticlesOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Lista los artículos de alquiler y su disponibilidad (s01, s18, A09, s63)",
+        "tags": [
+          "Catalog"
+        ]
+      }
+    },
+    "/v1/catalog/categories": {
+      "get": {
+        "operationId": "catalog-list-categories",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoriesOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Lista las categorías del catálogo (s20)",
+        "tags": [
+          "Catalog"
+        ]
+      }
+    },
+    "/v1/catalog/packages": {
+      "get": {
+        "operationId": "catalog-list-packages",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackagesOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Lista los paquetes temáticos (s21, s22, A24)",
+        "tags": [
+          "Catalog"
+        ]
+      }
+    },
+    "/v1/events": {
+      "get": {
+        "operationId": "events-list",
+        "parameters": [
+          {
+            "description": "Estado opcional (confirmed, pending, completed, cancelled)",
+            "explode": false,
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "description": "Estado opcional (confirmed, pending, completed, cancelled)",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventsListOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Listar eventos de clientes y operación",
+        "tags": [
+          "Events"
+        ]
+      }
+    },
+    "/v1/events/templates": {
+      "get": {
+        "operationId": "events-list-templates",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplatesOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Listar plantillas de tipos de evento (Bodas, Quinceañeras, Cumpleaños, etc.)",
+        "tags": [
+          "Events"
+        ]
+      }
+    },
+    "/v1/events/{id}": {
+      "get": {
+        "operationId": "events-get-by-id",
+        "parameters": [
+          {
+            "description": "ID del evento",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "ID del evento",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventDetailOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Obtener detalle de un evento y saldo pendiente",
+        "tags": [
+          "Events"
+        ]
+      }
+    },
+    "/v1/events/{id}/cancel": {
+      "post": {
+        "operationId": "events-cancel",
+        "parameters": [
+          {
+            "description": "ID del evento",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "ID del evento",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CancelEventOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Cancelar evento aplicando política de reembolso 90%/50%/0%",
+        "tags": [
+          "Events"
+        ]
+      }
+    },
+    "/v1/events/{id}/date-change": {
+      "post": {
+        "operationId": "events-request-date-change",
+        "parameters": [
+          {
+            "description": "ID del evento",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "ID del evento",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DateChangeInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DateChangeOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Solicitar cambio de fecha (primer cambio gratis)",
+        "tags": [
+          "Events"
+        ]
+      }
+    },
+    "/v1/operations/events/{eventId}": {
+      "get": {
+        "operationId": "operations-get-event-logistics",
+        "parameters": [
+          {
+            "description": "ID del evento",
+            "in": "path",
+            "name": "eventId",
+            "required": true,
+            "schema": {
+              "description": "ID del evento",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventLogisticsOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Obtener logística, equipo y checklist de montaje de un evento (s66, s68, A11)",
+        "tags": [
+          "Operations"
+        ]
+      }
+    },
+    "/v1/operations/events/{eventId}/checklist/{itemId}": {
+      "patch": {
+        "operationId": "operations-toggle-checklist-item",
+        "parameters": [
+          {
+            "description": "ID del evento",
+            "in": "path",
+            "name": "eventId",
+            "required": true,
+            "schema": {
+              "description": "ID del evento",
+              "type": "string"
+            }
+          },
+          {
+            "description": "ID del paso del checklist",
+            "in": "path",
+            "name": "itemId",
+            "required": true,
+            "schema": {
+              "description": "ID del paso del checklist",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ToggleChecklistInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventLogisticsOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Marcar o desmarcar un paso del checklist de montaje (s68, A11)",
+        "tags": [
+          "Operations"
+        ]
+      }
+    },
+    "/v1/operations/events/{eventId}/damages": {
+      "post": {
+        "operationId": "operations-report-damage",
+        "parameters": [
+          {
+            "description": "ID del evento",
+            "in": "path",
+            "name": "eventId",
+            "required": true,
+            "schema": {
+              "description": "ID del evento",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReportDamageInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportDamageOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Registrar incidencia de daño o faltante post-evento (A14)",
+        "tags": [
+          "Operations"
+        ]
+      }
+    },
+    "/v1/operations/offline-queue": {
+      "get": {
+        "operationId": "operations-list-offline-queue",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfflineQueueOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Listar cambios pendientes de sincronizar en modo sin conexión (A37)",
+        "tags": [
+          "Operations"
+        ]
+      }
+    },
+    "/v1/operations/offline-queue/sync": {
+      "post": {
+        "operationId": "operations-sync-offline-queue",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfflineQueueOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Sincronizar todos los cambios pendientes en cola offline (A37)",
+        "tags": [
+          "Operations"
+        ]
+      }
+    },
+    "/v1/operations/routes/today": {
+      "get": {
+        "operationId": "operations-list-route-stops",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RouteStopsOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Listar paradas de la ruta de entrega del día (A13)",
+        "tags": [
+          "Operations"
+        ]
+      }
+    },
+    "/v1/payments": {
+      "get": {
+        "operationId": "payments-list",
+        "parameters": [
+          {
+            "description": "ID opcional del evento",
+            "explode": false,
+            "in": "query",
+            "name": "eventId",
+            "schema": {
+              "description": "ID opcional del evento",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentsListOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Listar pagos y comprobantes recibidos",
+        "tags": [
+          "Payments"
+        ]
+      },
+      "post": {
+        "operationId": "payments-register",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterPaymentInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Registrar anticipo o saldo pendiente (s30, s31, s38, s70)",
+        "tags": [
+          "Payments"
+        ]
+      }
+    },
+    "/v1/payments/summary": {
+      "get": {
+        "operationId": "payments-finance-summary",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinanceSummaryOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Obtener resumen financiero del mes (s69, A20)",
+        "tags": [
+          "Payments"
+        ]
+      }
+    },
+    "/v1/quotes": {
+      "get": {
+        "operationId": "quotes-list",
+        "parameters": [
+          {
+            "description": "Estado opcional (pending, sent, approved, signed, declined)",
+            "explode": false,
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "description": "Estado opcional (pending, sent, approved, signed, declined)",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuotesListOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Listar cotizaciones y solicitudes recibidas",
+        "tags": [
+          "Quotes"
+        ]
+      },
+      "post": {
+        "operationId": "quotes-create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateQuoteInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuoteOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Crear nueva cotización con cálculo automático de 30% de anticipo",
+        "tags": [
+          "Quotes"
+        ]
+      }
+    },
+    "/v1/quotes/rosa-proposal": {
+      "post": {
+        "operationId": "quotes-rosa-assistant-proposal",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RosaProposalInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RosaProposalOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Generar propuesta y moodboard con el asistente Rosa IA (s40-s48, A16-A18)",
+        "tags": [
+          "Quotes"
+        ]
+      }
+    },
+    "/v1/quotes/{id}": {
+      "get": {
+        "operationId": "quotes-get-by-id",
+        "parameters": [
+          {
+            "description": "ID de la cotización",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "ID de la cotización",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuoteOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Obtener detalle de cotización y contrato",
+        "tags": [
+          "Quotes"
+        ]
+      }
+    },
+    "/v1/quotes/{id}/decline": {
+      "post": {
+        "operationId": "quotes-decline",
+        "parameters": [
+          {
+            "description": "ID de la cotización",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "ID de la cotización",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeclineQuoteInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuoteOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Declinar solicitud con respuesta amable (A08)",
+        "tags": [
+          "Quotes"
+        ]
+      }
+    },
+    "/v1/quotes/{id}/sign": {
+      "post": {
+        "operationId": "quotes-sign-contract",
+        "parameters": [
+          {
+            "description": "ID de la cotización",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "ID de la cotización",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignContractInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuoteOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Firmar contrato digital de alquiler (s28)",
+        "tags": [
+          "Quotes"
+        ]
+      }
+    }
+  }
+}

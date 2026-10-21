@@ -1,0 +1,87 @@
+# Cada módulo genera su propio paquete y solo consulta sus tablas (ver CLAUDE.md).
+version: "2"
+sql:
+  - engine: postgresql
+    schema: db/migrations
+    queries: internal/identity/postgres/queries
+    gen:
+      go:
+        package: sqlcgen
+        out: internal/identity/postgres/sqlcgen
+        sql_package: pgx/v5
+        emit_interface: false
+        overrides:
+          - db_type: uuid
+            go_type: github.com/google/uuid.UUID
+          - db_type: timestamptz
+            go_type: time.Time
+  - engine: postgresql
+    schema: db/migrations
+    queries: internal/catalog/postgres/queries
+    gen:
+      go:
+        package: sqlcgen
+        out: internal/catalog/postgres/sqlcgen
+        sql_package: pgx/v5
+        emit_interface: false
+        overrides:
+          - db_type: uuid
+            go_type: github.com/google/uuid.UUID
+          - db_type: timestamptz
+            go_type: time.Time
+  - engine: postgresql
+    schema: db/migrations
+    queries: internal/events/postgres/queries
+    gen:
+      go:
+        package: sqlcgen
+        out: internal/events/postgres/sqlcgen
+        sql_package: pgx/v5
+        emit_interface: false
+        overrides:
+          - db_type: uuid
+            go_type: github.com/google/uuid.UUID
+          - db_type: timestamptz
+            go_type: time.Time
+  - engine: postgresql
+    schema: db/migrations
+    queries: internal/quotes/postgres/queries
+    gen:
+      go:
+        package: sqlcgen
+        out: internal/quotes/postgres/sqlcgen
+        sql_package: pgx/v5
+        emit_interface: false
+        overrides:
+          - db_type: uuid
+            go_type: github.com/google/uuid.UUID
+          - db_type: timestamptz
+            go_type: time.Time
+  - engine: postgresql
+    schema: db/migrations
+    queries: internal/payments/postgres/queries
+    gen:
+      go:
+        package: sqlcgen
+        out: internal/payments/postgres/sqlcgen
+        sql_package: pgx/v5
+        emit_interface: false
+        overrides:
+          - db_type: uuid
+            go_type: github.com/google/uuid.UUID
+          - db_type: timestamptz
+            go_type: time.Time
+  - engine: postgresql
+    schema: db/migrations
+    queries: internal/operations/postgres/queries
+    gen:
+      go:
+        package: sqlcgen
+        out: internal/operations/postgres/sqlcgen
+        sql_package: pgx/v5
+        emit_interface: false
+        overrides:
+          - db_type: uuid
+            go_type: github.com/google/uuid.UUID
+          - db_type: timestamptz
+            go_type: time.Time

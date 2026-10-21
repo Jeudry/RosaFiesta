@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: rosafiesta-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: rosafiesta
+      POSTGRES_PASSWORD: rosafiesta_dev
+      POSTGRES_DB: rosafiesta
+    ports:
+      - "5433:5432"
+    volumes:
+      - rosafiesta_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rosafiesta -d rosafiesta"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  rosafiesta_pgdata:

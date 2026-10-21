@@ -63,6 +63,9 @@ google-services.json
 # Build directories
 build/
 app/build/
+app/**/build/
+.kotlin/
+app/.kotlin/
 
 # --------------------
 # General / Misc
@@ -70,6 +73,7 @@ app/build/
 *.log
 *.class
 *.jar
+!gradle-wrapper.jar
 *.war
 *.nar
 *.ear

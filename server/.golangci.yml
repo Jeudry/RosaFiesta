@@ -1,0 +1,86 @@
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  default: standard
+  enable:
+    - bodyclose
+    - depguard
+    - errorlint
+    - funlen
+    - gocritic
+    - gocyclo
+    - gosec
+    - nilerr
+    - noctx
+    - nolintlint
+    - revive
+    - sloglint
+    - unconvert
+    - unparam
+    - whitespace
+  settings:
+    funlen:
+      lines: 60
+      statements: 40
+    gocyclo:
+      min-complexity: 12
+    revive:
+      rules:
+        - name: exported
+        - name: package-comments
+        - name: error-naming
+        - name: context-as-argument
+    depguard:
+      rules:
+        # Arquitectura: el dominio no conoce HTTP, base de datos ni frameworks.
+        domain-is-pure:
+          files:
+            - "**/domain/**"
+          deny:
+            - pkg: github.com/go-chi
+              desc: el dominio no depende del enrutador HTTP
+            - pkg: github.com/danielgtaylor/huma
+              desc: el dominio no depende del framework de la API
+            - pkg: github.com/jackc/pgx
+              desc: el dominio no depende de la base de datos; usa una interfaz de repositorio
+            - pkg: net/http
+              desc: el dominio no conoce HTTP
+        # Un módulo no debe importar al ensamblador.
+        no-internal-cross-imports:
+          files:
+            - "**/internal/health/**"
+            - "**/internal/identity/**"
+            - "**/internal/catalog/**"
+            - "**/internal/events/**"
+            - "**/internal/quotes/**"
+            - "**/internal/payments/**"
+            - "**/internal/operations/**"
+          deny:
+            - pkg: github.com/Jeudry/rosafiesta/server/internal/app
+              desc: los módulos no importan al ensamblador
+    sloglint:
+      no-mixed-args: true
+      kv-only: false
+      attr-only: true
+  exclusions:
+    presets:
+      - comments
+      - std-error-handling
+    rules:
+      - path: _test\.go
+        linters:
+          - funlen
+          - gosec
+          - errcheck
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/Jeudry/rosafiesta
