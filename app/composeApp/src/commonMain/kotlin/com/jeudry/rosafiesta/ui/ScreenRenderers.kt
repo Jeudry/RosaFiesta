@@ -490,7 +490,7 @@ private fun RenderScreenBodyByCode(
             RenderNotificationsScreen(spec, onPrimaryAction, onSelectScreenCode)
         }
 
-        "A05", "A06" -> {
+        "A05", "A06", "A07" -> {
             RenderAdminManualEventWizardScreen(spec, viewModel, onPrimaryAction, onSelectScreenCode)
         }
 
@@ -712,7 +712,7 @@ private fun RenderYuliPaymentRestrictedScreen(
                 Spacer(Modifier.height(4.dp))
                 BasicText("Sin permiso de pagos ni reembolsos (${spec.code})", style = typo.cardTitle)
                 BasicText(
-                    "El perfil de Yuli tiene acceso exclusivo a decoración y tareas de campo. María puede habilitar el permiso en A28.",
+                    "«Tu rol de Decoración y tareas no incluye acceso a pagos». María puede habilitar el permiso en A28.",
                     style = typo.secondary,
                 )
             }
@@ -783,6 +783,8 @@ private fun RenderAdminManualEventWizardScreen(
 ) {
     val typo = LocalRfTypography.current
     val isStep1 = spec.code == "A05"
+    val isStep2 = spec.code == "A06"
+    val isStep3 = spec.code == "A07"
     val clientVal = viewModel?.newEventClient?.collectAsState()?.value ?: "Laura Méndez · +1 (809) 555-0194"
     val titleVal = viewModel?.newEventTitle?.collectAsState()?.value ?: "Cumpleaños Safari Mateo · Infantil"
     val dateVal = viewModel?.newEventDate?.collectAsState()?.value ?: "Dom 25 oct 2026 · 9:00 a. m. · Club Naco (60 inv.)"
@@ -799,12 +801,12 @@ private fun RenderAdminManualEventWizardScreen(
         )
         RfChip(
             label = "2 · Artículos",
-            selected = !isStep1,
+            selected = isStep2,
             onClick = { onSelectScreenCode("A06") },
         )
         RfChip(
             label = "3 · Resumen",
-            selected = false,
+            selected = isStep3,
             onClick = { onSelectScreenCode("A07") },
         )
     }
@@ -842,9 +844,18 @@ private fun RenderAdminManualEventWizardScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                BasicText(mateo.title, style = typo.cardTitle, modifier = Modifier.weight(1f))
+                BasicText(
+                    text = if (isStep3) titleVal else mateo.title,
+                    style = typo.cardTitle,
+                    modifier = Modifier.weight(1f),
+                )
                 Spacer(Modifier.width(8.dp))
-                RfTag(text = "Stock libre", tone = RfTagTone.LIMA)
+                RfTag(text = if (isStep3) "3 · Resumen listo" else "Stock libre", tone = RfTagTone.LIMA)
+            }
+            if (isStep3) {
+                Spacer(Modifier.height(4.dp))
+                BasicText("Cliente: $clientVal", style = typo.secondary)
+                BasicText("Agenda: $dateVal", style = typo.secondary)
             }
             Spacer(Modifier.height(6.dp))
             mateo.items.forEach { item ->
@@ -872,7 +883,7 @@ private fun RenderAdminManualEventWizardScreen(
     RfButton(
         label = spec.primaryCta,
         onClick = {
-            if (isStep1 && viewModel != null) {
+            if ((isStep1 || isStep3) && viewModel != null) {
                 viewModel.submitNewEvent()
             }
             onPrimaryAction()

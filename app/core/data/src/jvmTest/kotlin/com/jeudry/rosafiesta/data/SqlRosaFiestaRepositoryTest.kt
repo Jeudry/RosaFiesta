@@ -124,5 +124,18 @@ class SqlRosaFiestaRepositoryTest {
         repo.sendChatMessageAsync("Camila", "Confirmado el montaje a las 9 AM")
         assertEquals(initialChatCount + 1, repo.chatMessages.value.size)
         assertTrue(repo.chatMessages.value.last().contains("Confirmado el montaje a las 9 AM"))
+        assertEquals(17450, repo.metrics.value.octoberRevenueDop)
+
+        val reloadedRepo = SqlRosaFiestaRepository(
+            driver = driver,
+            ioDispatcher = testDispatcher,
+            apiClient = apiClient,
+        )
+        assertTrue(reloadedRepo.articles.value.any { it.code == "RF-099" })
+        assertTrue(reloadedRepo.events.value.any { it.title == "Gala Aniversario" })
+        assertTrue(reloadedRepo.payments.value.any { it.referenceCode == "POP-778899" })
+        assertTrue(reloadedRepo.staffMembers.value.first { it.name == "Yuli" }.canViewPayments)
+        assertTrue(reloadedRepo.chatMessages.value.last().contains("Confirmado el montaje a las 9 AM"))
+        assertEquals(17450, reloadedRepo.metrics.value.octoberRevenueDop)
     }
 }

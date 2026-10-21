@@ -270,6 +270,7 @@ public class SqlRosaFiestaRepository(
         }
         if (loadedEvents.isNotEmpty()) {
             _events.value = loadedEvents
+            recalculateMetricsFromState()
         }
     }
 
@@ -291,7 +292,25 @@ public class SqlRosaFiestaRepository(
         }
         if (loadedPayments.isNotEmpty()) {
             _payments.value = loadedPayments
+            recalculateMetricsFromState()
         }
+    }
+
+    private fun recalculateMetricsFromState() {
+        val currentEvents = _events.value
+        val currentPayments = _payments.value
+        val activeEvents = currentEvents.filter {
+            it.status != EventStatus.CANCELLED && it.status != EventStatus.COMPLETED
+        }
+        val pendingQuoteCount = currentEvents.count { it.status == EventStatus.PENDING_QUOTE }
+        val totalPaymentsDop = currentPayments.sumOf { it.amountDop }
+        val activeBalanceDop = activeEvents.sumOf { it.balanceDop }
+        _metrics.value = CanonicalSampleData.businessMetrics.copy(
+            octoberRevenueDop = (98 + totalPaymentsDop).coerceAtLeast(0),
+            accountsReceivableDop = (activeBalanceDop - 1669).coerceAtLeast(0),
+            activeEventsCount = activeEvents.size,
+            newRequestsCount = 1 + pendingQuoteCount,
+        )
     }
 
     private fun reloadFavoritesFromSql() {

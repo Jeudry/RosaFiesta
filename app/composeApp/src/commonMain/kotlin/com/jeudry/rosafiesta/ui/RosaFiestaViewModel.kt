@@ -43,6 +43,9 @@ public class RosaFiestaViewModel(
     private val _selectedCategory = MutableStateFlow("Todos")
     public val selectedCategory: StateFlow<String> = _selectedCategory.asStateFlow()
 
+    private val _maxPriceFilterDop = MutableStateFlow(150)
+    public val maxPriceFilterDop: StateFlow<Int> = _maxPriceFilterDop.asStateFlow()
+
     private val _selectedEventId = MutableStateFlow("evt-boda-real")
     public val selectedEventId: StateFlow<String> = _selectedEventId.asStateFlow()
 
@@ -70,6 +73,7 @@ public class RosaFiestaViewModel(
 
     private val _rosaGuestsCount = MutableStateFlow(120)
     public val rosaGuestsCount: StateFlow<Int> = _rosaGuestsCount.asStateFlow()
+    public val rosaGuests: StateFlow<Int> = _rosaGuestsCount.asStateFlow()
 
     private val _rosaBudgetDop = MutableStateFlow(4500)
     public val rosaBudgetDop: StateFlow<Int> = _rosaBudgetDop.asStateFlow()
@@ -192,9 +196,11 @@ public class RosaFiestaViewModel(
     // Switches interactivos de preferencias y notificaciones
     private val _pushNotificationsEnabled = MutableStateFlow(true)
     public val pushNotificationsEnabled: StateFlow<Boolean> = _pushNotificationsEnabled.asStateFlow()
+    public val notificationsEnabled: StateFlow<Boolean> = _pushNotificationsEnabled.asStateFlow()
 
     private val _whatsappAlertsEnabled = MutableStateFlow(true)
     public val whatsappAlertsEnabled: StateFlow<Boolean> = _whatsappAlertsEnabled.asStateFlow()
+    public val whatsappBotEnabled: StateFlow<Boolean> = _whatsappAlertsEnabled.asStateFlow()
 
     private val _emailReceiptsEnabled = MutableStateFlow(true)
     public val emailReceiptsEnabled: StateFlow<Boolean> = _emailReceiptsEnabled.asStateFlow()
@@ -221,6 +227,10 @@ public class RosaFiestaViewModel(
 
     public fun setSelectedCategory(category: String) {
         _selectedCategory.value = category
+    }
+
+    public fun setMaxPriceFilterDop(priceDop: Int) {
+        _maxPriceFilterDop.value = priceDop.coerceAtLeast(1)
     }
 
     public fun selectEvent(eventId: String) {
@@ -477,6 +487,30 @@ public class RosaFiestaViewModel(
             }
             _formError.value = null
             _formFeedback.value = "Sesión iniciada como ${_loginEmail.value.trim()}"
+            return true
+        } finally {
+            _isSubmitting.value = false
+        }
+    }
+
+    public fun submitRegister(): Boolean {
+        if (_isSubmitting.value) return false
+        _isSubmitting.value = true
+        try {
+            val name = _registerName.value.trim()
+            val email = _registerEmail.value.trim().lowercase()
+            val phone = _registerPhone.value.trim()
+            val validEmail = email.contains("@") && email.substringAfter("@").contains(".")
+            if (name.isEmpty() || !validEmail || phone.length < 7) {
+                _formError.value = "Completa tu nombre, un correo válido y tu teléfono de contacto."
+                return false
+            }
+            repository.login(email, "rosa2026")
+            _profileName.value = name
+            _profileEmail.value = email
+            _profilePhone.value = phone
+            _formError.value = null
+            _formFeedback.value = "Cuenta creada para $name"
             return true
         } finally {
             _isSubmitting.value = false
