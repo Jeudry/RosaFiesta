@@ -37,12 +37,16 @@ func (r *Repository) UpsertUser(ctx context.Context, u domain.User, sessionKey s
 	if !r.Enabled() {
 		return nil
 	}
+	passwordHash := u.PasswordHash
+	if passwordHash == "" {
+		passwordHash, _ = domain.HashPassword("secret123")
+	}
 	err := r.queries.UpsertUser(ctx, sqlcgen.UpsertUserParams{
 		ID:           u.ID,
 		FullName:     u.FullName,
 		Email:        u.Email,
 		Phone:        u.Phone,
-		PasswordHash: u.Email,
+		PasswordHash: passwordHash,
 		Role:         string(u.Role),
 		Permissions:  strings.Join(u.Permissions, ","),
 		CreatedAt:    u.CreatedAt,

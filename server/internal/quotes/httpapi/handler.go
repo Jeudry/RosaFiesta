@@ -7,6 +7,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
+	"github.com/Jeudry/rosafiesta/server/internal/platform/httpapi"
 	"github.com/Jeudry/rosafiesta/server/internal/quotes/app"
 	"github.com/Jeudry/rosafiesta/server/internal/quotes/domain"
 )
@@ -89,11 +90,12 @@ type RosaProposalOutput struct {
 
 // Register registra los endpoints HTTP del módulo de cotizaciones.
 func (m Module) Register(api huma.API) {
-	m.registerReadAndCreateRoutes(api)
+	m.registerReadRoutes(api)
+	m.registerCreateRoute(api)
 	m.registerDecisionAndAssistantRoutes(api)
 }
 
-func (m Module) registerReadAndCreateRoutes(api huma.API) {
+func (m Module) registerReadRoutes(api huma.API) {
 	huma.Register(api, huma.Operation{
 		OperationID: "quotes-list",
 		Method:      http.MethodGet,
@@ -115,13 +117,22 @@ func (m Module) registerReadAndCreateRoutes(api huma.API) {
 	}, func(_ context.Context, in *QuoteByIDInput) (*QuoteOutput, error) {
 		q, err := m.Service.GetQuote(in.ID)
 		if err != nil {
-			return nil, huma.Error404NotFound(err.Error())
+			return nil, httpapi.NewAPIError(
+				http.StatusNotFound,
+				"QUOTE_NOT_FOUND",
+				err.Error(),
+				"GET /v1/quotes/"+in.ID,
+				"QuoteMustExist",
+				err.Error(),
+			)
 		}
 		out := &QuoteOutput{}
 		out.Body.Quote = q
 		return out, nil
 	})
+}
 
+func (m Module) registerCreateRoute(api huma.API) {
 	huma.Register(api, huma.Operation{
 		OperationID: "quotes-create",
 		Method:      http.MethodPost,
@@ -140,7 +151,14 @@ func (m Module) registerReadAndCreateRoutes(api huma.API) {
 			in.Body.DiscountRD,
 		)
 		if err != nil {
-			return nil, huma.Error400BadRequest(err.Error())
+			return nil, httpapi.NewAPIError(
+				http.StatusBadRequest,
+				"QUOTE_VALIDATION_FAILED",
+				err.Error(),
+				"POST /v1/quotes",
+				"CreateQuoteValidation",
+				err.Error(),
+			)
 		}
 		out := &QuoteOutput{}
 		out.Body.Quote = q
@@ -158,7 +176,14 @@ func (m Module) registerDecisionAndAssistantRoutes(api huma.API) {
 	}, func(_ context.Context, in *SignContractInput) (*QuoteOutput, error) {
 		q, err := m.Service.SignContract(in.ID, in.Body.SignedByName, in.Body.SignatureSVG)
 		if err != nil {
-			return nil, huma.Error400BadRequest(err.Error())
+			return nil, httpapi.NewAPIError(
+				http.StatusBadRequest,
+				"QUOTE_SIGNATURE_INVALID",
+				err.Error(),
+				"POST /v1/quotes/"+in.ID+"/sign",
+				"DigitalSignatureRequired",
+				err.Error(),
+			)
 		}
 		out := &QuoteOutput{}
 		out.Body.Quote = q
@@ -174,7 +199,14 @@ func (m Module) registerDecisionAndAssistantRoutes(api huma.API) {
 	}, func(_ context.Context, in *DeclineQuoteInput) (*QuoteOutput, error) {
 		q, err := m.Service.DeclineQuote(in.ID, in.Body.Reason)
 		if err != nil {
-			return nil, huma.Error404NotFound(err.Error())
+			return nil, httpapi.NewAPIError(
+				http.StatusNotFound,
+				"QUOTE_NOT_FOUND",
+				err.Error(),
+				"POST /v1/quotes/"+in.ID+"/decline",
+				"DeclineQuoteValidation",
+				err.Error(),
+			)
 		}
 		out := &QuoteOutput{}
 		out.Body.Quote = q

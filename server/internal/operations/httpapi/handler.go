@@ -9,6 +9,7 @@ import (
 
 	"github.com/Jeudry/rosafiesta/server/internal/operations/app"
 	"github.com/Jeudry/rosafiesta/server/internal/operations/domain"
+	"github.com/Jeudry/rosafiesta/server/internal/platform/httpapi"
 )
 
 // Module conecta el servicio de operaciones al enrutador Huma.
@@ -76,6 +77,7 @@ type OfflineQueueOutput struct {
 // Register registra las rutas HTTP del módulo de operaciones.
 func (m Module) Register(api huma.API) {
 	m.registerLogisticsRoutes(api)
+	m.registerDamageRoute(api)
 	m.registerRouteAndOfflineHandlers(api)
 }
 
@@ -89,7 +91,14 @@ func (m Module) registerLogisticsRoutes(api huma.API) {
 	}, func(_ context.Context, in *EventLogisticsInput) (*EventLogisticsOutput, error) {
 		l, err := m.Service.GetEventLogistics(in.EventID)
 		if err != nil {
-			return nil, huma.Error404NotFound(err.Error())
+			return nil, httpapi.NewAPIError(
+				http.StatusNotFound,
+				"LOGISTICS_NOT_FOUND",
+				err.Error(),
+				"GET /v1/operations/events/"+in.EventID,
+				"EventLogisticsMustExist",
+				err.Error(),
+			)
 		}
 		out := &EventLogisticsOutput{}
 		out.Body.Logistics = l
@@ -106,14 +115,23 @@ func (m Module) registerLogisticsRoutes(api huma.API) {
 	}, func(_ context.Context, in *ToggleChecklistInput) (*EventLogisticsOutput, error) {
 		l, err := m.Service.ToggleChecklistItem(in.EventID, in.ItemID, in.Body.Completed, in.Body.StaffName)
 		if err != nil {
-			return nil, huma.Error404NotFound(err.Error())
+			return nil, httpapi.NewAPIError(
+				http.StatusNotFound,
+				"CHECKLIST_ITEM_NOT_FOUND",
+				err.Error(),
+				"PATCH /v1/operations/events/"+in.EventID+"/checklist/"+in.ItemID,
+				"ChecklistItemMustExist",
+				err.Error(),
+			)
 		}
 		out := &EventLogisticsOutput{}
 		out.Body.Logistics = l
 		out.Body.CompletionPercent = l.CompletionPercent()
 		return out, nil
 	})
+}
 
+func (m Module) registerDamageRoute(api huma.API) {
 	huma.Register(api, huma.Operation{
 		OperationID: "operations-report-damage",
 		Method:      http.MethodPost,
@@ -131,7 +149,14 @@ func (m Module) registerLogisticsRoutes(api huma.API) {
 			in.Body.Notes,
 		)
 		if err != nil {
-			return nil, huma.Error400BadRequest(err.Error())
+			return nil, httpapi.NewAPIError(
+				http.StatusBadRequest,
+				"DAMAGE_REPORT_INVALID",
+				err.Error(),
+				"POST /v1/operations/events/"+in.EventID+"/damages",
+				"ReportDamageValidation",
+				err.Error(),
+			)
 		}
 		out := &ReportDamageOutput{}
 		out.Body.Report = r

@@ -9,6 +9,7 @@ import (
 
 	"github.com/Jeudry/rosafiesta/server/internal/events/app"
 	"github.com/Jeudry/rosafiesta/server/internal/events/domain"
+	platformhttp "github.com/Jeudry/rosafiesta/server/internal/platform/httpapi"
 )
 
 // Module conecta el servicio de eventos al enrutador Huma.
@@ -113,7 +114,14 @@ func (m Module) registerReadRoutes(api huma.API) {
 	}, func(_ context.Context, in *EventByIDInput) (*EventDetailOutput, error) {
 		evt, err := m.Service.GetEvent(in.ID)
 		if err != nil {
-			return nil, huma.Error404NotFound(err.Error())
+			return nil, platformhttp.NewAPIError(
+				http.StatusNotFound,
+				"EVENT_NOT_FOUND",
+				err.Error(),
+				"GET /v1/events/"+in.ID,
+				"EventMustExist",
+				err.Error(),
+			)
 		}
 		out := &EventDetailOutput{}
 		out.Body.Event = evt
@@ -132,7 +140,14 @@ func (m Module) registerMutationRoutes(api huma.API) {
 	}, func(_ context.Context, in *DateChangeInput) (*DateChangeOutput, error) {
 		evt, eval, err := m.Service.RequestDateChange(in.ID, in.Body.NewDateLabel, in.Body.NewDaysUntilEvent)
 		if err != nil {
-			return nil, huma.Error422UnprocessableEntity(err.Error())
+			return nil, platformhttp.NewAPIError(
+				http.StatusUnprocessableEntity,
+				"EVENT_DATE_CHANGE_REJECTED",
+				err.Error(),
+				"POST /v1/events/"+in.ID+"/date-change",
+				"DateChangePolicy",
+				err.Error(),
+			)
 		}
 		out := &DateChangeOutput{}
 		out.Body.Event = evt
@@ -149,7 +164,14 @@ func (m Module) registerMutationRoutes(api huma.API) {
 	}, func(_ context.Context, in *EventByIDInput) (*CancelEventOutput, error) {
 		evt, refund, err := m.Service.CancelEvent(in.ID)
 		if err != nil {
-			return nil, huma.Error422UnprocessableEntity(err.Error())
+			return nil, platformhttp.NewAPIError(
+				http.StatusUnprocessableEntity,
+				"EVENT_CANCEL_REJECTED",
+				err.Error(),
+				"POST /v1/events/"+in.ID+"/cancel",
+				"RefundCancellationPolicy",
+				err.Error(),
+			)
 		}
 		out := &CancelEventOutput{}
 		out.Body.Event = evt

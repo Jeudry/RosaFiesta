@@ -65,25 +65,31 @@ type Service struct {
 // NewService crea el servicio de identidad precargado con las cuentas canónicas del documento de diseño.
 func NewService(clk clock.Clock, checker ActiveEventsChecker) *Service {
 	now := clk.Now()
+	defaultHash, _ := domain.HashPassword("secret123")
 	camilaID := uuid.MustParse("11111111-1111-1111-1111-111111111111")
 	mariaID := uuid.MustParse("22222222-2222-2222-2222-222222222222")
 	yuliID := uuid.MustParse("33333333-3333-3333-3333-333333333333")
 	users := map[uuid.UUID]domain.User{
 		camilaID: {
 			ID: camilaID, FullName: "Camila Rodríguez", Email: "camila@rosafiesta.do",
-			Phone: "809-555-0142", Role: domain.RoleClient, ActiveView: domain.ViewPersonal, CreatedAt: now,
+			Phone: "809-555-0142", Role: domain.RoleClient, ActiveView: domain.ViewPersonal,
+			CreatedAt: now, PasswordHash: defaultHash,
 		},
 		mariaID: {
 			ID: mariaID, FullName: "María (Dueña)", Email: "maria@rosafiesta.do",
 			Phone: "809-555-0100", Role: domain.RoleAdmin,
-			Permissions: []string{"eventos", "decoracion", "tareas", "inventario", "pagos", "reembolsos", "reportes", "ajustes"},
-			ActiveView:  domain.ViewAdmin, CreatedAt: now,
+			Permissions:  []string{"eventos", "decoracion", "tareas", "inventario", "pagos", "reembolsos", "reportes", "ajustes"},
+			ActiveView:   domain.ViewAdmin,
+			CreatedAt:    now,
+			PasswordHash: defaultHash,
 		},
 		yuliID: {
 			ID: yuliID, FullName: "Yuli", Email: "yuli@rosafiesta.do",
 			Phone: "809-555-0102", Role: domain.RoleStaff,
-			Permissions: []string{"decoracion", "tareas"},
-			ActiveView:  domain.ViewAdmin, CreatedAt: now,
+			Permissions:  []string{"decoracion", "tareas"},
+			ActiveView:   domain.ViewAdmin,
+			CreatedAt:    now,
+			PasswordHash: defaultHash,
 		},
 	}
 	tokens := map[string]uuid.UUID{
@@ -169,7 +175,7 @@ func (s *Service) Authenticate(ctx context.Context, accessToken string) (uuid.UU
 	return id, nil
 }
 
-// Login autentica por correo y devuelve el usuario junto con su token.
+// Login autentica por correo y verifica el hash bcrypt de la contraseña antes de entregar el token.
 func (s *Service) Login(_ context.Context, email, password string) (domain.User, string, error) {
 	normalized, err := domain.NormalizeEmail(email)
 	if err != nil || strings.TrimSpace(password) == "" {
@@ -180,10 +186,27 @@ func (s *Service) Login(_ context.Context, email, password string) (domain.User,
 	for token, id := range s.tokens {
 		user := s.users[id]
 		if user.Email == normalized {
+			if !domain.VerifyPassword(user.PasswordHash, password) {
+				return domain.User{}, "", domain.ErrInvalidCredentials
+			}
 			return user, token, nil
 		}
 	}
 	return domain.User{}, "", domain.ErrInvalidCredentials
+}
+
+// AuthorizePermission verifica que el usuario posea el permiso operativo indicado (`A28`).
+func (s *Service) AuthorizePermission(_ context.Context, userID uuid.UUID, permission string) error {
+	s.mu.RLock()
+	user, ok := s.users[userID]
+	s.mu.RUnlock()
+	if !ok {
+		return domain.ErrInvalidCredentials
+	}
+	if !user.HasPermission(permission) {
+		return domain.ErrPermissionDenied
+	}
+	return nil
 }
 
 // SwitchView cambia entre la App Administrativa y la App Personal (`A30`).

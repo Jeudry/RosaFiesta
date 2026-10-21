@@ -58,3 +58,19 @@ func TestNormalizeEmail(t *testing.T) {
 		t.Fatalf("expected ErrInvalidInput, got %v", err)
 	}
 }
+
+func TestHashAndVerifyPassword(t *testing.T) {
+	hash, err := domain.HashPassword("secret123")
+	if err != nil {
+		t.Fatalf("hash password: %v", err)
+	}
+	if !domain.VerifyPassword(hash, "secret123") {
+		t.Fatal("expected VerifyPassword to accept matching password")
+	}
+	if domain.VerifyPassword(hash, "wrong-password") {
+		t.Fatal("expected VerifyPassword to reject wrong password")
+	}
+	if _, err := domain.HashPassword("short"); !errors.Is(err, domain.ErrInvalidInput) {
+		t.Fatalf("expected ErrInvalidInput for short password, got %v", err)
+	}
+}

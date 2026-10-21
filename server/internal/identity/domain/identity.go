@@ -48,14 +48,15 @@ var (
 
 // User representa una cuenta registrada en RosaFiesta.
 type User struct {
-	ID          uuid.UUID `json:"id"`
-	FullName    string    `json:"fullName"`
-	Email       string    `json:"email"`
-	Phone       string    `json:"phone"`
-	Role        Role      `json:"role"`
-	Permissions []string  `json:"permissions"`
-	ActiveView  AppView   `json:"activeView"`
-	CreatedAt   time.Time `json:"createdAt"`
+	ID           uuid.UUID `json:"id"`
+	FullName     string    `json:"fullName"`
+	Email        string    `json:"email"`
+	Phone        string    `json:"phone"`
+	Role         Role      `json:"role"`
+	Permissions  []string  `json:"permissions"`
+	ActiveView   AppView   `json:"activeView"`
+	CreatedAt    time.Time `json:"createdAt"`
+	PasswordHash string    `json:"-"`
 }
 
 // CanAccessView valida si el usuario puede abrir la vista indicada (`A30`).

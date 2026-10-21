@@ -71,11 +71,12 @@ type DeleteAccountOutput struct {
 
 // Register registra las operaciones HTTP del módulo identity.
 func (m Module) Register(api huma.API) {
-	m.registerAuthRoutes(api)
+	m.registerLoginAndSwitchRoutes(api)
+	m.registerDeleteAccountRoute(api)
 	m.registerAdminRoutes(api)
 }
 
-func (m Module) registerAuthRoutes(api huma.API) {
+func (m Module) registerLoginAndSwitchRoutes(api huma.API) {
 	huma.Register(api, huma.Operation{
 		OperationID: "auth-login",
 		Method:      http.MethodPost,
@@ -85,7 +86,14 @@ func (m Module) registerAuthRoutes(api huma.API) {
 	}, func(ctx context.Context, in *LoginInput) (*LoginOutput, error) {
 		user, token, err := m.Service.Login(ctx, in.Body.Email, in.Body.Password)
 		if err != nil {
-			return nil, huma.Error401Unauthorized("invalid email or password")
+			return nil, platformhttp.NewAPIError(
+				http.StatusUnauthorized,
+				"AUTH_INVALID_CREDENTIALS",
+				"invalid email or password",
+				"POST /v1/auth/login",
+				"VerifyCredentialsBcrypt",
+				"credenciales inválidas para "+in.Body.Email,
+			)
 		}
 		out := &LoginOutput{}
 		out.Body.AccessToken = token
@@ -105,13 +113,22 @@ func (m Module) registerAuthRoutes(api huma.API) {
 		userID, _ := platformhttp.UserID(ctx)
 		user, err := m.Service.SwitchView(ctx, userID, domain.AppView(in.Body.View))
 		if err != nil {
-			return nil, huma.Error403Forbidden(err.Error())
+			return nil, platformhttp.NewAPIError(
+				http.StatusForbidden,
+				"FORBIDDEN_APP_VIEW",
+				err.Error(),
+				"POST /v1/auth/switch-view",
+				"CanAccessView:"+in.Body.View,
+				err.Error(),
+			)
 		}
 		out := &SwitchViewOutput{}
 		out.Body.User = user
 		return out, nil
 	})
+}
 
+func (m Module) registerDeleteAccountRoute(api huma.API) {
 	huma.Register(api, huma.Operation{
 		OperationID: "auth-delete-account",
 		Method:      http.MethodDelete,
@@ -124,9 +141,23 @@ func (m Module) registerAuthRoutes(api huma.API) {
 		userID, _ := platformhttp.UserID(ctx)
 		if err := m.Service.DeleteAccount(ctx, userID); err != nil {
 			if errors.Is(err, domain.ErrActiveEventsPreventDeletion) {
-				return nil, huma.Error409Conflict("cannot delete account while active events exist")
+				return nil, platformhttp.NewAPIError(
+					http.StatusConflict,
+					"ACCOUNT_HAS_ACTIVE_EVENTS",
+					"cannot delete account while active events exist",
+					"DELETE /v1/account",
+					"NoActiveEventsOnDelete",
+					err.Error(),
+				)
 			}
-			return nil, huma.Error400BadRequest(err.Error())
+			return nil, platformhttp.NewAPIError(
+				http.StatusBadRequest,
+				"ACCOUNT_DELETE_INVALID",
+				err.Error(),
+				"DELETE /v1/account",
+				"ValidateAccountDeletion",
+				err.Error(),
+			)
 		}
 		out := &DeleteAccountOutput{}
 		out.Body.Deleted = true
@@ -141,6 +172,7 @@ func (m Module) registerAdminRoutes(api huma.API) {
 		Path:        "/v1/admin/clients",
 		Summary:     "Lista los clientes y su saldo (A26, A27)",
 		Tags:        []string{"Identity"},
+		Middlewares: huma.Middlewares{platformhttp.EnforcePermissionWhenAuthenticated(api, m.Service, "eventos")},
 	}, func(ctx context.Context, _ *struct{}) (*ClientsOutput, error) {
 		out := &ClientsOutput{}
 		out.Body.Clients = m.Service.Clients(ctx)
@@ -153,6 +185,7 @@ func (m Module) registerAdminRoutes(api huma.API) {
 		Path:        "/v1/admin/staff",
 		Summary:     "Lista el equipo y sus permisos operativos (A28)",
 		Tags:        []string{"Identity"},
+		Middlewares: huma.Middlewares{platformhttp.EnforcePermissionWhenAuthenticated(api, m.Service, "ajustes")},
 	}, func(ctx context.Context, _ *struct{}) (*StaffOutput, error) {
 		out := &StaffOutput{}
 		out.Body.Staff = m.Service.Staff(ctx)

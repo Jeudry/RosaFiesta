@@ -7,17 +7,22 @@ package httpapi
 import (
 	"log/slog"
 	"net/http"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/adapters/humachi"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+
+	"github.com/Jeudry/rosafiesta/server/internal/platform/redact"
 )
 
 const (
-	apiTitle   = "RosaFiesta API"
-	apiVersion = "1.0.0"
+	apiTitle             = "RosaFiesta API"
+	apiVersion           = "1.0.0"
+	defaultRateLimitReqs = 120
 )
 
 // Module es un módulo del monolito que publica rutas en la API.
@@ -26,10 +31,18 @@ type Module interface {
 	Register(api huma.API)
 }
 
-// New arma el enrutador con sus middlewares y registra los módulos.
+// New arma el enrutador con sus middlewares de seguridad, límite de tasa, logs censurados y registra los módulos.
 func New(logger *slog.Logger, modules ...Module) (http.Handler, huma.API) {
 	router := chi.NewRouter()
-	router.Use(corsMiddleware, middleware.RequestID, requestLogger(logger), middleware.Recoverer)
+	limiter := NewRateLimiter(defaultRateLimitReqs, time.Minute)
+	router.Use(
+		SecurityHeadersMiddleware,
+		corsMiddleware,
+		middleware.RequestID,
+		limiter.Middleware,
+		requestLogger(logger),
+		middleware.Recoverer,
+	)
 
 	config := huma.DefaultConfig(apiTitle, apiVersion)
 	config.Info.Description = "API de RosaFiesta (App Personal y App Administrativa). Documentación interactiva en /docs."
@@ -44,7 +57,7 @@ func New(logger *slog.Logger, modules ...Module) (http.Handler, huma.API) {
 	return router, api
 }
 
-// requestLogger registra cada petición con su método, ruta, estado, duración e identificador.
+// requestLogger registra cada petición con su método, ruta censurada, estado, duración e identificador.
 func requestLogger(logger *slog.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -55,7 +68,7 @@ func requestLogger(logger *slog.Logger) func(http.Handler) http.Handler {
 
 			logger.InfoContext(r.Context(), "http request",
 				slog.String("method", r.Method),
-				slog.String("path", r.URL.Path),
+				slog.String("path", redact.Text(r.URL.Path)),
 				slog.Int("status", wrapped.Status()),
 				slog.Duration("duration", time.Since(start)),
 				slog.String("request_id", middleware.GetReqID(r.Context())),
@@ -64,13 +77,17 @@ func requestLogger(logger *slog.Logger) func(http.Handler) http.Handler {
 	}
 }
 
-// corsMiddleware habilita Cross-Origin Resource Sharing para clientes web y preflight OPTIONS.
+// corsMiddleware habilita Cross-Origin Resource Sharing con lista blanca configurable por CORS_ALLOWED_ORIGINS.
 func corsMiddleware(next http.Handler) http.Handler {
+	allowedRaw := strings.TrimSpace(os.Getenv("CORS_ALLOWED_ORIGINS"))
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
+		origin := strings.TrimSpace(r.Header.Get("Origin"))
+		allowOrigin := resolveAllowedOrigin(origin, allowedRaw)
+		w.Header().Set("Access-Control-Allow-Origin", allowOrigin)
+		w.Header().Set("Vary", "Origin")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH")
 		w.Header().Set("Access-Control-Allow-Headers", "Accept, Authorization, Content-Type, Idempotency-Key, X-Request-ID")
-		w.Header().Set("Access-Control-Expose-Headers", "Link")
+		w.Header().Set("Access-Control-Expose-Headers", "Link, X-Request-ID")
 		w.Header().Set("Access-Control-Max-Age", "300")
 
 		if r.Method == http.MethodOptions {
@@ -80,4 +97,20 @@ func corsMiddleware(next http.Handler) http.Handler {
 
 		next.ServeHTTP(w, r)
 	})
+}
+
+func resolveAllowedOrigin(requestOrigin, allowedEnv string) string {
+	if allowedEnv == "" {
+		if requestOrigin != "" {
+			return requestOrigin
+		}
+		return "*"
+	}
+	for _, candidate := range strings.Split(allowedEnv, ",") {
+		trimmed := strings.TrimSpace(candidate)
+		if trimmed == "*" || strings.EqualFold(trimmed, requestOrigin) {
+			return requestOrigin
+		}
+	}
+	return "https://app.rosafiesta.do"
 }

@@ -25,6 +25,9 @@ func TestServiceLoginSwitchViewAndDeleteAccount(t *testing.T) {
 	if err != nil || token == "" || maria.Role != domain.RoleAdmin {
 		t.Fatalf("unexpected login result: %+v, token=%q, err=%v", maria, token, err)
 	}
+	if _, _, err := svc.Login(context.Background(), "maria@rosafiesta.do", "wrong-password"); !errors.Is(err, domain.ErrInvalidCredentials) {
+		t.Fatalf("expected ErrInvalidCredentials for wrong password, got %v", err)
+	}
 
 	switched, err := svc.SwitchView(context.Background(), maria.ID, domain.ViewPersonal)
 	if err != nil || switched.ActiveView != domain.ViewPersonal {

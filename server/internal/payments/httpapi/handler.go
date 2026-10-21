@@ -9,6 +9,7 @@ import (
 
 	"github.com/Jeudry/rosafiesta/server/internal/payments/app"
 	"github.com/Jeudry/rosafiesta/server/internal/payments/domain"
+	"github.com/Jeudry/rosafiesta/server/internal/platform/httpapi"
 )
 
 // Module conecta el servicio de pagos al enrutador Huma.
@@ -98,7 +99,14 @@ func (m Module) Register(api huma.API) {
 			in.Body.ReferenceCode,
 		)
 		if err != nil {
-			return nil, huma.Error400BadRequest(err.Error())
+			return nil, httpapi.NewAPIError(
+				http.StatusBadRequest,
+				"PAYMENT_VALIDATION_FAILED",
+				err.Error(),
+				"POST /v1/payments",
+				"RegisterPaymentValidation",
+				err.Error(),
+			)
 		}
 		out := &PaymentOutput{}
 		out.Body.Payment = p
