@@ -220,20 +220,26 @@ private fun ScreenHeaderBlock(spec: ScreenSpec) {
         horizontalArrangement = Arrangement.SpaceBetween,
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.weight(1f),
+        ) {
             RfLogo(size = RfLogoSize.SMALL)
             Spacer(Modifier.width(8.dp))
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 BasicText(
                     text = spec.sectionTitle.uppercase(),
                     style = typo.tagLabel.copy(color = palette.primaryAccent, fontSize = 10.sp),
+                    maxLines = 1,
                 )
                 BasicText(
                     text = spec.title,
-                    style = typo.screenTitle.copy(fontSize = 19.sp),
+                    style = typo.screenTitle.copy(fontSize = 18.sp),
+                    maxLines = 1,
                 )
             }
         }
+        Spacer(Modifier.width(8.dp))
         RfTag(
             text = spec.highlightMetric,
             tone = if (palette.isAdmin) RfTagTone.INDIGO else RfTagTone.SOL,
@@ -609,7 +615,7 @@ private fun RenderRosaAssistantContent(
 private fun RenderPersonalProfileAndStateContent(spec: ScreenSpec, onPrimaryAction: () -> Unit) {
     val typo = LocalRfTypography.current
 
-    if (spec.code == "s79") {
+    if (spec.code in setOf("s79", "s91")) {
         RfOfflineBanner(isAdmin = false)
     }
 
@@ -626,22 +632,34 @@ private fun RenderPersonalProfileAndStateContent(spec: ScreenSpec, onPrimaryActi
                 style = typo.body,
             )
         }
-    } else {
-        RfCard {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                RfIllo(title = spec.title, accentColor = RfColors.RosaBrand)
-                Spacer(Modifier.width(12.dp))
-                Column {
-                    BasicText("Camila Rodríguez", style = typo.cardTitle)
-                    BasicText("camila@rosafiesta.do · 809-555-0142", style = typo.caption)
-                    Spacer(Modifier.height(4.dp))
-                    RfTag(text = "2 eventos activos · Saldo RD$ 7,490", tone = RfTagTone.ROSA)
-                }
+        RfButton(
+            label = "Eliminar mi cuenta permanentemente",
+            style = RfButtonStyle.DANGER,
+            enabled = false,
+            onClick = {},
+        )
+        RfButton(
+            label = spec.primaryCta,
+            style = RfButtonStyle.SECONDARY,
+            onClick = onPrimaryAction,
+        )
+        return
+    }
+
+    RfCard {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            RfIllo(title = spec.title, accentColor = RfColors.RosaBrand)
+            Spacer(Modifier.width(12.dp))
+            Column {
+                BasicText("Camila Rodríguez", style = typo.cardTitle)
+                BasicText("camila@rosafiesta.do · 809-555-0142", style = typo.caption)
+                Spacer(Modifier.height(4.dp))
+                RfTag(text = "2 eventos activos · Saldo RD$ 7,490", tone = RfTagTone.ROSA)
             }
         }
     }
 
-    RfToast(message = "Cambios guardados en tu perfil de RosaFiesta", actionLabel = "OK")
+    RfToast(message = "Cambios guardados en tu perfil de RosaFiesta", actionLabel = "Deshacer")
     RfButton(label = spec.primaryCta, onClick = onPrimaryAction)
 }
 
@@ -682,10 +700,11 @@ private fun RenderAdminGateAndRoleSwitchContent(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     BasicText(member.name, style = typo.cardTitle)
                     BasicText(member.roleLabel, style = typo.caption)
                 }
+                Spacer(Modifier.width(8.dp))
                 RfTag(text = "${member.permissions.size} permisos", tone = RfTagTone.INDIGO)
             }
         }
@@ -752,6 +771,7 @@ private fun RenderAdminDashboardAndCalendarContent(spec: ScreenSpec, onPrimaryAc
                     BasicText("${evt.dateLabel} · ${evt.title}", style = typo.bodyStrong)
                     BasicText("${evt.clientName} · ${evt.venue} (${evt.guests} inv.)", style = typo.caption)
                 }
+                Spacer(Modifier.width(8.dp))
                 RfTag(
                     text = RosaFiestaEngine.formatDop(evt.totalDop),
                     tone = if (evt.paidDepositDop > 0) RfTagTone.LIMA else RfTagTone.SOL,
@@ -771,9 +791,11 @@ private fun RenderAdminQuotesContent(spec: ScreenSpec, onPrimaryAction: () -> Un
         RfCard {
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                BasicText(evt.title, style = typo.cardTitle)
+                BasicText(evt.title, style = typo.cardTitle, modifier = Modifier.weight(1f))
+                Spacer(Modifier.width(8.dp))
                 RfTag(text = evt.dateLabel, tone = RfTagTone.INDIGO)
             }
             BasicText("Cliente: ${evt.clientName} · ${evt.guests} invitados · ${evt.venue}", style = typo.caption)
@@ -807,6 +829,7 @@ private fun RenderAdminLogisticsContent(spec: ScreenSpec, onPrimaryAction: () ->
                         BasicText(item.actionLabel, style = typo.bodyStrong)
                         BasicText("${item.entityCode} · ${item.timeAgo}", style = typo.caption)
                     }
+                    Spacer(Modifier.width(8.dp))
                     RfTag(text = "En cola", tone = RfTagTone.SOL)
                 }
             }
@@ -815,9 +838,15 @@ private fun RenderAdminLogisticsContent(spec: ScreenSpec, onPrimaryAction: () ->
         RfCard {
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                BasicText("Checklist · Boda Real Rosa & Dorado", style = typo.cardTitle)
+                BasicText(
+                    text = "Checklist · Boda Real Rosa & Dorado",
+                    style = typo.cardTitle,
+                    modifier = Modifier.weight(1f),
+                )
+                Spacer(Modifier.width(8.dp))
                 RfTag(text = "66 % (4/6)", tone = RfTagTone.TEAL)
             }
             Spacer(Modifier.height(6.dp))
@@ -839,6 +868,7 @@ private fun RenderAdminLogisticsContent(spec: ScreenSpec, onPrimaryAction: () ->
                         Spacer(Modifier.width(8.dp))
                         BasicText(step.title, style = typo.body.copy(fontSize = 12.5.sp))
                     }
+                    Spacer(Modifier.width(8.dp))
                     RfTag(
                         text = step.completedBy,
                         tone = if (step.completed) RfTagTone.LIMA else RfTagTone.SOL,

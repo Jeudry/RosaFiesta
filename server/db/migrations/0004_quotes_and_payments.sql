@@ -19,7 +19,7 @@ CREATE TABLE payments (
     event_id TEXT NOT NULL,
     client_name TEXT NOT NULL,
     amount_dop INT NOT NULL CHECK (amount_dop > 0),
-    method TEXT NOT NULL CHECK (method IN ('transfer', 'cash', 'card')),
+    method TEXT NOT NULL CHECK (method IN ('transferencia', 'efectivo', 'tarjeta', 'transfer', 'cash', 'card')),
     paid_date_label TEXT NOT NULL,
     status TEXT NOT NULL DEFAULT 'confirmed',
     created_at TIMESTAMPTZ NOT NULL

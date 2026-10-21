@@ -27,7 +27,7 @@ import org.jetbrains.skia.Rect as SkiaRect
  */
 internal object ScreenshotAssertions {
     private const val MOBILE_WIDTH = 390
-    private const val MOBILE_HEIGHT = 820
+    private const val MOBILE_HEIGHT = 844
     private const val DESKTOP_WIDTH = 1440
     private const val DESKTOP_HEIGHT = 900
 

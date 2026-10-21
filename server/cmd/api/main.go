@@ -59,14 +59,15 @@ func run() error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
+	deps := app.Dependencies{Clock: clock.System{}}
 	if pool, openErr := db.Open(ctx, cfg.DatabaseURL); openErr == nil {
 		defer pool.Close()
 		if migErr := db.Migrate(ctx, pool, migrationFiles()); migErr != nil {
 			logger.Warn("database migration skipped", slog.String("err", migErr.Error()))
+		} else {
+			deps.Pool = pool
 		}
 	}
-
-	deps := app.Dependencies{Clock: clock.System{}}
 	handler, _ := httpapi.New(logger, app.Modules(deps)...)
 	server := &http.Server{
 		Addr:              fmt.Sprintf(":%d", cfg.Port),

@@ -21,6 +21,7 @@ import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -41,7 +42,7 @@ public enum class PersonalTab(public val label: String, public val icon: RfIconK
 
 /**
  * Componente `TabBar` de la App Personal (Sección 4.3):
- * 5 ítems con botón central elevado `Rosa IA` de 48 dp.
+ * 5 ítems con botón central elevado `Rosa IA` de 56 dp.
  */
 @Composable
 public fun PersonalTabBar(
@@ -67,18 +68,18 @@ public fun PersonalTabBar(
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
-                        .offset(y = (-8).dp)
+                        .offset(y = (-10).dp)
                         .clickable { onSelectTab(tab) },
                 ) {
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
-                            .size(48.dp)
+                            .size(56.dp)
                             .clip(CircleShape)
                             .background(RfColors.PersonalHeroGradient)
                             .border(2.dp, palette.surface, CircleShape),
                     ) {
-                        RfIcon(kind = RfIconKind.SPARK, tint = Color.White, size = 22.dp)
+                        RfIcon(kind = RfIconKind.SPARK, tint = Color.White, size = 24.dp)
                     }
                     Spacer(Modifier.height(2.dp))
                     BasicText(
@@ -249,7 +250,7 @@ public enum class RfButtonStyle {
 }
 
 /**
- * Botón de acción de RosaFiesta con soporte para degradado primario, Sol (`#FFD45C`), secundario y peligro.
+ * Botón de acción de RosaFiesta (alto 54 dp, radio 16 dp, opacidad 35 % cuando está deshabilitado en `s88`).
  */
 @Composable
 public fun RfButton(
@@ -258,11 +259,13 @@ public fun RfButton(
     modifier: Modifier = Modifier,
     style: RfButtonStyle = RfButtonStyle.PRIMARY,
     fullWidth: Boolean = true,
+    enabled: Boolean = true,
 ) {
     val palette = LocalRfPalette.current
     val typo = LocalRfTypography.current
-    val shape = RoundedCornerShape(14.dp)
+    val shape = RoundedCornerShape(RfDimens.ButtonRadius)
     val widthModifier = if (fullWidth) Modifier.fillMaxWidth() else Modifier
+    val alphaModifier = if (enabled) Modifier else Modifier.alpha(0.35f)
 
     val textColor = when (style) {
         RfButtonStyle.PRIMARY -> Color.White
@@ -275,12 +278,16 @@ public fun RfButton(
         RfButtonStyle.PRIMARY ->
             modifier
                 .then(widthModifier)
+                .then(alphaModifier)
+                .height(RfDimens.ButtonHeight)
                 .clip(shape)
                 .background(palette.primaryGradient)
 
         RfButtonStyle.SECONDARY ->
             modifier
                 .then(widthModifier)
+                .then(alphaModifier)
+                .height(RfDimens.ButtonHeight)
                 .clip(shape)
                 .background(palette.chipBg)
                 .border(1.dp, palette.line, shape)
@@ -288,12 +295,16 @@ public fun RfButton(
         RfButtonStyle.SOL ->
             modifier
                 .then(widthModifier)
+                .then(alphaModifier)
+                .height(RfDimens.ButtonHeight)
                 .clip(shape)
                 .background(RfColors.Sol)
 
         RfButtonStyle.DANGER ->
             modifier
                 .then(widthModifier)
+                .then(alphaModifier)
+                .height(RfDimens.ButtonHeight)
                 .clip(shape)
                 .background(RfColors.Error)
     }
@@ -301,18 +312,19 @@ public fun RfButton(
     Box(
         contentAlignment = Alignment.Center,
         modifier = boxModifier
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .then(if (enabled) Modifier.clickable(onClick = onClick) else Modifier)
+            .padding(horizontal = 16.dp),
     ) {
         BasicText(
             text = label,
             style = typo.bodyStrong.copy(color = textColor, fontWeight = FontWeight.Bold),
+            maxLines = 1,
         )
     }
 }
 
 /**
- * Componente `Chip` (Sección 4.9): píldora interactiva de filtro o categoría.
+ * Componente `Chip` (Sección 2.5 y 3): alto 36 dp, radio completo; el chip activo usa `hero` (personal) o `primary` (admin).
  */
 @Composable
 public fun RfChip(
@@ -324,13 +336,15 @@ public fun RfChip(
     val palette = LocalRfPalette.current
     val typo = LocalRfTypography.current
     val shape = RoundedCornerShape(999.dp)
-    val bgBrush = if (selected) palette.primaryGradient else null
+    val activeBrush = if (palette.isAdmin) RfColors.AdminPrimaryGradient else RfColors.PersonalHeroGradient
+    val bgBrush = if (selected) activeBrush else null
     val bgColor = if (selected) Color.Transparent else palette.chipBg
     val textColor = if (selected) Color.White else palette.ink
 
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
+            .height(RfDimens.ChipHeight)
             .clip(shape)
             .then(
                 if (bgBrush != null) {
@@ -340,17 +354,18 @@ public fun RfChip(
                 },
             )
             .clickable(onClick = onClick)
-            .padding(horizontal = 13.dp, vertical = 7.dp),
+            .padding(horizontal = 14.dp),
     ) {
         BasicText(
             text = label,
             style = typo.chipLabel.copy(color = textColor),
+            maxLines = 1,
         )
     }
 }
 
 /**
- * Tintes semánticos para el componente `Tag` (Sección 4.9).
+ * Tintes semánticos para el componente `Tag` (Sección 2.1).
  */
 public enum class RfTagTone(public val bg: Color, public val fg: Color) {
     ROSA(RfColors.RosaTint, RfColors.RosaTintInk),
@@ -363,7 +378,7 @@ public enum class RfTagTone(public val bg: Color, public val fg: Color) {
 }
 
 /**
- * Componente `Tag` (Sección 4.9): insignia semántica de estado o prioridad.
+ * Componente `Tag` (Sección 2.5): alto 24 dp, radio completo, 12 / 700.
  */
 @Composable
 public fun RfTag(
@@ -375,9 +390,10 @@ public fun RfTag(
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
+            .height(RfDimens.TagHeight)
             .clip(RoundedCornerShape(999.dp))
             .background(tone.bg)
-            .padding(horizontal = 10.dp, vertical = 4.dp),
+            .padding(horizontal = 10.dp),
     ) {
         BasicText(
             text = text,
@@ -388,7 +404,7 @@ public fun RfTag(
 }
 
 /**
- * Componente `Campo` (Sección 4.10): campo de formulario con etiqueta, valor y estado de validación.
+ * Componente `Campo` (Sección 2.5): campo de formulario con etiqueta 13/700, alto 50–52 dp y radio 14–16 dp.
  */
 @Composable
 public fun RfField(
@@ -406,20 +422,23 @@ public fun RfField(
     Column(modifier = modifier.fillMaxWidth()) {
         BasicText(
             text = label,
-            style = typo.caption.copy(color = palette.ink, fontWeight = FontWeight.SemiBold),
+            style = typo.caption.copy(color = palette.ink, fontWeight = FontWeight.Bold),
         )
         Spacer(Modifier.height(5.dp))
         Box(
+            contentAlignment = Alignment.CenterStart,
             modifier = Modifier
                 .fillMaxWidth()
+                .height(50.dp)
                 .clip(shape)
                 .background(palette.surface)
                 .border(1.2.dp, borderColor, shape)
-                .padding(horizontal = 13.dp, vertical = 11.dp),
+                .padding(horizontal = 13.dp),
         ) {
             BasicText(
                 text = value,
                 style = typo.body.copy(color = palette.ink),
+                maxLines = 1,
             )
         }
         if (!helperOrError.isNullOrBlank()) {
@@ -435,7 +454,7 @@ public fun RfField(
 }
 
 /**
- * Componente `Segmentado` (Sección 4.10): control de selección entre 2 a 4 vistas.
+ * Componente `Segmentado` (Sección 2.3 y 3): control de selección entre 2 a 4 vistas.
  */
 @Composable
 public fun RfSegmented(
@@ -473,6 +492,7 @@ public fun RfSegmented(
                         color = if (active) palette.ink else palette.muted,
                         fontWeight = if (active) FontWeight.Bold else FontWeight.Medium,
                     ),
+                    maxLines = 1,
                 )
             }
         }
@@ -480,7 +500,7 @@ public fun RfSegmented(
 }
 
 /**
- * Componente `Toast` (Sección 4.11): notificación flotante en `#1A1A2E` (personal) o `#151729` (admin).
+ * Componente `Toast` (Sección 2.1 y 3): fondo `toast` (`#1A1A2E` personal / `#151729` admin), icono lima con ✓ y acción en `#FFD45C`.
  */
 @Composable
 public fun RfToast(
@@ -509,6 +529,7 @@ public fun RfToast(
             BasicText(
                 text = message,
                 style = typo.bodyStrong.copy(color = Color.White, fontSize = 12.5.sp),
+                maxLines = 1,
             )
         }
         if (actionLabel != null) {
@@ -516,13 +537,14 @@ public fun RfToast(
             BasicText(
                 text = actionLabel,
                 style = typo.tagLabel.copy(color = RfColors.Sol),
+                maxLines = 1,
             )
         }
     }
 }
 
 /**
- * Componente `Banner sin conexión` (Sección 4.11): cinta superior informativa en `s79`, `A36`, `A37`.
+ * Componente `Banner sin conexión` (Sección 2.1, 3 y 5): franja oscura (`toastBg`) con icono wifi tachado y acción "Reintentar".
  */
 @Composable
 public fun RfOfflineBanner(
@@ -530,9 +552,8 @@ public fun RfOfflineBanner(
     isAdmin: Boolean = LocalRfPalette.current.isAdmin,
     modifier: Modifier = Modifier,
 ) {
+    val palette = LocalRfPalette.current
     val typo = LocalRfTypography.current
-    val bgColor = if (isAdmin) RfColors.SolTint else RfColors.RosaTint
-    val fgColor = if (isAdmin) RfColors.SolTintInk else RfColors.RosaTintInk
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -540,21 +561,31 @@ public fun RfOfflineBanner(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(bgColor)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+            .background(palette.toastBg)
+            .padding(horizontal = 12.dp, vertical = 9.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            RfIcon(kind = RfIconKind.WIFI_OFF, tint = fgColor, size = 16.dp)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.weight(1f),
+        ) {
+            RfIcon(kind = RfIconKind.WIFI_OFF, tint = RfColors.Sol, size = 16.dp)
             Spacer(Modifier.width(8.dp))
             BasicText(
                 text = if (isAdmin) {
-                    "Modo sin señal en salón · $pendingChangesCount cambios en cola"
+                    "Sin conexión · $pendingChangesCount cambios guardados localmente"
                 } else {
-                    "Sin conexión · Mostrando catálogo y reservas guardadas"
+                    "Sin conexión · Guardado local activo"
                 },
-                style = typo.caption.copy(color = fgColor, fontWeight = FontWeight.Bold),
+                style = typo.caption.copy(color = Color.White, fontWeight = FontWeight.Bold),
+                maxLines = 1,
             )
         }
+        Spacer(Modifier.width(8.dp))
+        BasicText(
+            text = "Reintentar",
+            style = typo.tagLabel.copy(color = RfColors.Sol),
+            maxLines = 1,
+        )
     }
 }
 
