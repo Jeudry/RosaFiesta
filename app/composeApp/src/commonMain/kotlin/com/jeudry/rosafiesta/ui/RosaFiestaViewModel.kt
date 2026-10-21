@@ -12,6 +12,11 @@ import com.jeudry.rosafiesta.domain.OfflineQueueItem
 import com.jeudry.rosafiesta.domain.PaymentRecord
 import com.jeudry.rosafiesta.domain.RosaFiestaRepository
 import com.jeudry.rosafiesta.domain.StaffMember
+import com.jeudry.rosafiesta.domain.security.InMemorySecureStorage
+import com.jeudry.rosafiesta.domain.security.SecureStorage
+import com.jeudry.rosafiesta.domain.security.SensitiveDataRedactor
+import com.jeudry.rosafiesta.domain.sound.NoOpSoundPlayer
+import com.jeudry.rosafiesta.domain.sound.SoundPlayer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,10 +24,12 @@ import kotlinx.coroutines.flow.update
 
 /**
  * ViewModel multiplataforma compartido para `PersonalApp` y `AdminApp`.
- * Mantiene el estado reactivo de formularios, filtros, Rosa IA, permisos y operaciones de negocio.
+ * Mantiene el estado reactivo de formularios, filtros, Rosa IA, sonidos CC0, almacenamiento seguro y operaciones de negocio.
  */
 public class RosaFiestaViewModel(
     private val repository: RosaFiestaRepository,
+    public val soundPlayer: SoundPlayer = NoOpSoundPlayer(),
+    private val secureStorage: SecureStorage = InMemorySecureStorage(),
 ) : ViewModel() {
     public val articles: StateFlow<List<CatalogArticle>> = repository.articles
     public val events: StateFlow<List<ClientEvent>> = repository.events
@@ -211,6 +218,9 @@ public class RosaFiestaViewModel(
     private val _autoSyncWifiOnly = MutableStateFlow(false)
     public val autoSyncWifiOnly: StateFlow<Boolean> = _autoSyncWifiOnly.asStateFlow()
 
+    private val _soundEffectsEnabled = MutableStateFlow(true)
+    public val soundEffectsEnabled: StateFlow<Boolean> = _soundEffectsEnabled.asStateFlow()
+
     // Estado de validación, feedback y protección contra doble envío
     private val _formError = MutableStateFlow<String?>(null)
     public val formError: StateFlow<String?> = _formError.asStateFlow()
@@ -246,6 +256,7 @@ public class RosaFiestaViewModel(
     }
 
     public fun adjustDraftQuantity(articleId: String, delta: Int) {
+        soundPlayer.playCartAdd()
         _draftQuantities.update { current ->
             val next = ((current[articleId] ?: 1) + delta).coerceAtLeast(0)
             current + (articleId to next)
@@ -258,6 +269,7 @@ public class RosaFiestaViewModel(
         budgetDop: Int = _rosaBudgetDop.value,
         palette: String = _rosaPalette.value,
     ) {
+        soundPlayer.playRosaReply()
         _rosaEventType.value = eventType.trim().ifEmpty { "Boda Real Rosa & Dorado" }
         _rosaGuestsCount.value = guests.coerceIn(10, 500)
         _rosaBudgetDop.value = budgetDop.coerceAtLeast(500)
@@ -447,32 +459,48 @@ public class RosaFiestaViewModel(
     }
 
     public fun toggleAutoSyncWifiOnly() {
+        soundPlayer.playTap()
         _autoSyncWifiOnly.update { !it }
     }
 
+    public fun toggleSoundEffects() {
+        val next = !_soundEffectsEnabled.value
+        _soundEffectsEnabled.value = next
+        soundPlayer.isEnabled = next
+        if (next) {
+            soundPlayer.playTap()
+        }
+    }
+
     public fun toggleChecklistStep(stepId: String) {
+        soundPlayer.playChecklistTick()
         repository.toggleChecklistStep(stepId)
     }
 
     public fun syncOfflineQueue() {
+        soundPlayer.playPaymentSuccess()
         repository.syncOfflineQueue()
         _formFeedback.value = "Cola offline sincronizada correctamente."
     }
 
     public fun adjustArticleStock(articleId: String, delta: Int) {
+        soundPlayer.playCartAdd()
         repository.adjustArticleStock(articleId, delta)
     }
 
     public fun switchRole(role: String) {
+        soundPlayer.playTap()
         repository.switchRole(role)
         _formFeedback.value = "Vista cambiada al rol: $role"
     }
 
     public fun toggleFavorite(articleId: String) {
+        soundPlayer.playTap()
         repository.toggleFavorite(articleId)
     }
 
     public fun toggleStaffPaymentAccess(staffName: String) {
+        soundPlayer.playTap()
         repository.toggleStaffPaymentAccess(staffName)
     }
 
@@ -482,11 +510,14 @@ public class RosaFiestaViewModel(
         try {
             val ok = repository.login(_loginEmail.value, _loginPassword.value)
             if (!ok) {
-                _formError.value = "Verifica el correo electrónico y una contraseña de al menos 4 caracteres."
+                soundPlayer.playAlertError()
+                _formError.value = SensitiveDataRedactor.translateBusinessError("AUTH_INVALID_CREDENTIALS", null)
                 return false
             }
+            soundPlayer.playPaymentSuccess()
             _formError.value = null
-            _formFeedback.value = "Sesión iniciada como ${_loginEmail.value.trim()}"
+            val maskedEmail = SensitiveDataRedactor.maskEmail(_loginEmail.value)
+            _formFeedback.value = "Sesión iniciada como $maskedEmail"
             return true
         } finally {
             _isSubmitting.value = false
@@ -590,13 +621,16 @@ public class RosaFiestaViewModel(
             val method = _paymentMethodInput.value.trim()
             val ref = _paymentRefInput.value.trim()
             if (amount <= 0 || method.isEmpty()) {
-                _formError.value = "Ingresa un monto mayor a RD$ 0 y el método de pago."
+                soundPlayer.playAlertError()
+                _formError.value = SensitiveDataRedactor.translateBusinessError("PAYMENT_VALIDATION_FAILED", null)
                 return null
             }
             val record = repository.registerPayment(eventId, amount, method, ref)
             if (record != null) {
+                soundPlayer.playPaymentSuccess()
                 _formError.value = null
-                _formFeedback.value = "Pago registrado (${record.receiptNumber})."
+                val maskedRef = if (ref.contains("-")) SensitiveDataRedactor.maskBankReference(ref) else record.receiptNumber
+                _formFeedback.value = "Pago registrado ($maskedRef)."
             }
             return record
         } finally {
@@ -607,16 +641,19 @@ public class RosaFiestaViewModel(
     public fun submitDateChange(eventId: String = _selectedEventId.value): DateChangeResult {
         val nextDate = _dateChangeInput.value.trim()
         if (nextDate.isEmpty()) {
+            soundPlayer.playAlertError()
             _formError.value = "Indica la nueva fecha solicitada."
             return DateChangeResult(allowed = false, isFree = false, feeDop = 0, message = "Fecha vacía.")
         }
         val res = repository.changeEventDate(eventId, nextDate)
+        if (res.allowed) soundPlayer.playPaymentSuccess() else soundPlayer.playAlertError()
         _dateChangeBanner.value = res.message
         _formError.value = if (res.allowed) null else res.message
         return res
     }
 
     public fun submitCancelEvent(eventId: String = _selectedEventId.value): CancellationRefund {
+        soundPlayer.playAlertError()
         val refund = repository.cancelEvent(eventId)
         _formFeedback.value = "Evento cancelado · Reembolso ${refund.refundPercent}% (${RosaFiestaEngine.formatDop(refund.refundDop)})"
         return refund
@@ -625,7 +662,8 @@ public class RosaFiestaViewModel(
     public fun submitChatMessage(author: String = "Camila") {
         val text = _chatInput.value.trim()
         if (text.isEmpty()) return
-        repository.sendChatMessage(author, text)
+        soundPlayer.playRosaSend()
+        repository.sendChatMessage(author, SensitiveDataRedactor.redactText(text))
         _chatInput.value = ""
     }
 

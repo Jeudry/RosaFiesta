@@ -8,6 +8,8 @@ import com.jeudry.rosafiesta.data.db.RosaFiestaDatabase
 private var androidApplicationContext: Context? = null
 private var androidDatabaseName: String = "rosafiesta.db"
 
+internal fun currentAndroidContext(): Context? = androidApplicationContext
+
 /**
  * Inicializa el contexto de aplicación de Android para crear el [SqlDriver] persistente en disco.
  */

@@ -1,5 +1,17 @@
 package com.jeudry.rosafiesta
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ContentTransform
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -30,6 +42,7 @@ import com.jeudry.rosafiesta.designsystem.RfTheme
 import com.jeudry.rosafiesta.designsystem.RfThemeVariant
 import com.jeudry.rosafiesta.dev.DevPanelScreen
 import com.jeudry.rosafiesta.di.appModule
+import com.jeudry.rosafiesta.ui.NavigationTransitionKind
 import com.jeudry.rosafiesta.ui.Navigator
 import com.jeudry.rosafiesta.ui.RenderScreenSpec
 import com.jeudry.rosafiesta.ui.RosaFiestaViewModel
@@ -66,7 +79,7 @@ public fun AdminApp(
  * Raíz compartida de RosaFiesta que soporta las dos aplicaciones del sistema:
  * - **App Personal** (`AppView.PERSONAL`: `p00`, `s01`–`s54`, `s75`–`s92`)
  * - **App Administrativa** (`AppView.ADMIN`: `A00`–`A39`, `s55`–`s74`)
- * Incluye cambio de vista de administrador (`A30`) y modo desarrollador (`DevPanelScreen`).
+ * Incluye transiciones direccionales naturales, sonidos CC0, cambio de vista de administrador (`A30`) y modo desarrollador.
  */
 @Composable
 public fun RosaFiestaApp(
@@ -86,14 +99,19 @@ public fun RosaFiestaApp(
     if (navigator.devOpen) {
         DevPanelScreen(
             onSwitchToPersonalApp = {
+                viewModel.soundPlayer.playTap()
                 navigator.switchToPersonal("s14", fromAdminPreview = false)
                 navigator.devOpen = false
             },
             onSwitchToAdminApp = {
+                viewModel.soundPlayer.playTap()
                 navigator.switchToAdmin("A01")
                 navigator.devOpen = false
             },
-            onClose = { navigator.devOpen = false },
+            onClose = {
+                viewModel.soundPlayer.playTap()
+                navigator.devOpen = false
+            },
         )
         return
     }
@@ -116,7 +134,6 @@ public fun RosaFiestaApp(
                 .background(palette.bg)
                 .testTag("rosafiesta-root"),
         ) {
-            // Barra superior de control de vista (App Personal / App Administrativa / Galería 133 pantallas)
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -132,13 +149,19 @@ public fun RosaFiestaApp(
                     RfChip(
                         label = "App Personal",
                         selected = navigator.activeView == AppView.PERSONAL,
-                        onClick = { navigator.switchToPersonal("s14", fromAdminPreview = false) },
+                        onClick = {
+                            viewModel.soundPlayer.playTap()
+                            navigator.switchToPersonal("s14", fromAdminPreview = false)
+                        },
                         modifier = Modifier.testTag("switch-personal"),
                     )
                     RfChip(
                         label = "App Admin",
                         selected = navigator.activeView == AppView.ADMIN,
-                        onClick = { navigator.switchToAdmin("A01") },
+                        onClick = {
+                            viewModel.soundPlayer.playTap()
+                            navigator.switchToAdmin("A01")
+                        },
                         modifier = Modifier.testTag("switch-admin"),
                     )
                 }
@@ -152,7 +175,10 @@ public fun RosaFiestaApp(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(999.dp))
                                 .background(RfColors.IndigoBrand)
-                                .clickable { navigator.switchToAdmin("A30") }
+                                .clickable {
+                                    viewModel.soundPlayer.playTap()
+                                    navigator.switchToAdmin("A30")
+                                }
                                 .padding(horizontal = 10.dp, vertical = 4.dp)
                                 .testTag("banner-return-admin"),
                         ) {
@@ -166,7 +192,10 @@ public fun RosaFiestaApp(
                         text = "Dev · 133 pantallas",
                         tone = RfTagTone.SOL,
                         modifier = Modifier
-                            .clickable { navigator.devOpen = true }
+                            .clickable {
+                                viewModel.soundPlayer.playTap()
+                                navigator.devOpen = true
+                            }
                             .testTag("open-dev-panel"),
                     )
                 }
@@ -179,22 +208,83 @@ public fun RosaFiestaApp(
                     .fillMaxWidth()
                     .padding(8.dp),
             ) {
-                RenderScreenSpec(
-                    spec = spec,
-                    viewModel = viewModel,
-                    onSelectScreenCode = { nextCode -> navigator.navigateTo(nextCode) },
-                    onSwitchAppMode = {
-                        if (navigator.activeView == AppView.ADMIN) {
-                            navigator.switchToPersonal("s14", fromAdminPreview = true)
-                        } else {
-                            navigator.switchToAdmin("A01")
-                        }
-                    },
-                    onPrimaryAction = {
-                        navigator.advanceFlow()
-                    },
-                )
+                val transitionKind = navigator.lastTransition
+                AnimatedContent(
+                    targetState = spec,
+                    transitionSpec = { buildScreenTransition(transitionKind) },
+                    contentKey = { it.code },
+                    label = "rf-screen-transition",
+                ) { targetSpec ->
+                    RenderScreenSpec(
+                        spec = targetSpec,
+                        viewModel = viewModel,
+                        onSelectScreenCode = { nextCode ->
+                            viewModel.soundPlayer.playTap()
+                            navigator.navigateTo(nextCode)
+                        },
+                        onSwitchAppMode = {
+                            viewModel.soundPlayer.playTap()
+                            if (navigator.activeView == AppView.ADMIN) {
+                                navigator.switchToPersonal("s14", fromAdminPreview = true)
+                            } else {
+                                navigator.switchToAdmin("A01")
+                            }
+                        },
+                        onPrimaryAction = {
+                            viewModel.soundPlayer.playTap()
+                            navigator.advanceFlow()
+                        },
+                    )
+                }
             }
         }
     }
+}
+
+private fun buildScreenTransition(kind: NavigationTransitionKind): ContentTransform = when (kind) {
+    NavigationTransitionKind.MODAL_SHEET -> (
+        slideInVertically(
+            animationSpec = tween(durationMillis = 260, easing = FastOutSlowInEasing),
+            initialOffsetY = { fullHeight -> fullHeight / 5 },
+        ) + fadeIn(animationSpec = tween(durationMillis = 220))
+        ).togetherWith(
+        slideOutVertically(
+            animationSpec = tween(durationMillis = 200, easing = FastOutSlowInEasing),
+            targetOffsetY = { fullHeight -> fullHeight / 6 },
+        ) + fadeOut(animationSpec = tween(durationMillis = 160)),
+    )
+
+    NavigationTransitionKind.FORWARD -> (
+        slideInHorizontally(
+            animationSpec = tween(durationMillis = 260, easing = FastOutSlowInEasing),
+            initialOffsetX = { fullWidth -> fullWidth / 6 },
+        ) + fadeIn(animationSpec = tween(durationMillis = 220))
+        ).togetherWith(
+        slideOutHorizontally(
+            animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing),
+            targetOffsetX = { fullWidth -> -fullWidth / 8 },
+        ) + fadeOut(animationSpec = tween(durationMillis = 180)),
+    )
+
+    NavigationTransitionKind.BACKWARD -> (
+        slideInHorizontally(
+            animationSpec = tween(durationMillis = 240, easing = FastOutSlowInEasing),
+            initialOffsetX = { fullWidth -> -fullWidth / 6 },
+        ) + fadeIn(animationSpec = tween(durationMillis = 200))
+        ).togetherWith(
+        slideOutHorizontally(
+            animationSpec = tween(durationMillis = 200, easing = FastOutSlowInEasing),
+            targetOffsetX = { fullWidth -> fullWidth / 8 },
+        ) + fadeOut(animationSpec = tween(durationMillis = 160)),
+    )
+
+    NavigationTransitionKind.TAB_SWITCH, NavigationTransitionKind.NONE -> (
+        fadeIn(animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing)) +
+            scaleIn(
+                initialScale = 0.985f,
+                animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing),
+            )
+        ).togetherWith(
+        fadeOut(animationSpec = tween(durationMillis = 160)),
+    )
 }

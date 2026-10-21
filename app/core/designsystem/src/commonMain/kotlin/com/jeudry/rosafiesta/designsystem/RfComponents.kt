@@ -2,15 +2,20 @@ package com.jeudry.rosafiesta.designsystem
 
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,6 +35,7 @@ import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -38,6 +44,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -320,6 +327,35 @@ public fun AdminTabBar(
     }
 }
 
+@Composable
+private fun Modifier.rfTactileClickable(
+    enabled: Boolean = true,
+    pressedScale: Float = 0.975f,
+    onClick: () -> Unit,
+): Modifier {
+    if (!enabled) return this
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) pressedScale else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMediumLow,
+        ),
+        label = "rf-tactile-press",
+    )
+    return this
+        .graphicsLayer {
+            scaleX = scale
+            scaleY = scale
+        }
+        .clickable(
+            interactionSource = interactionSource,
+            indication = null,
+            onClick = onClick,
+        )
+}
+
 /**
  * Componente `Tarjeta` estándar (Sección 2.5): radio 20 dp, borde `#F2EDF5` (personal) o `#ECECF5` (admin).
  */
@@ -332,7 +368,7 @@ public fun RfCard(
 ) {
     val palette = LocalRfPalette.current
     val shape = RoundedCornerShape(RfDimens.CardRadius)
-    val clickableModifier = if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier
+    val clickableModifier = if (onClick != null) Modifier.rfTactileClickable(pressedScale = 0.985f, onClick = onClick) else Modifier
 
     Column(
         modifier = modifier
@@ -441,7 +477,7 @@ public fun RfButton(
     Box(
         contentAlignment = Alignment.Center,
         modifier = boxModifier
-            .then(if (enabled) Modifier.clickable(onClick = onClick) else Modifier)
+            .rfTactileClickable(enabled = enabled, pressedScale = 0.97f, onClick = onClick)
             .padding(horizontal = 16.dp),
     ) {
         BasicText(
@@ -476,7 +512,7 @@ public fun RfIconButton(
             .background(bg)
             .border(1.dp, palette.line, CircleShape)
             .semantics { this.contentDescription = resolvedLabel }
-            .clickable(onClick = onClick),
+            .rfTactileClickable(pressedScale = 0.92f, onClick = onClick),
     ) {
         RfIcon(kind = icon, tint = palette.ink, size = 20.dp)
         if (badgeDot) {
@@ -608,7 +644,7 @@ public fun RfChip(
                     Modifier.background(bgColor).border(1.dp, palette.line, shape)
                 },
             )
-            .clickable(onClick = onClick)
+            .rfTactileClickable(pressedScale = 0.95f, onClick = onClick)
             .padding(horizontal = 14.dp),
     ) {
         BasicText(
