@@ -102,11 +102,13 @@ fun RenderScreenSpec(
         "p00", "A00", "s01", "s02", "s03", "s04", "s05", "s06", "s07", "s08", "s09", "s10", "s11", "s12", "s13", "s14", "s15",
         "s18", "s19", "s20", "s21", "s22", "s23", "s24",
         "s25", "s26", "s27", "s28", "s29", "s30", "s31", "s32", "s33", "s34", "s35", "s36", "s78", "A08",
+        "s37", "s38", "s39", "s40", "s43", "s44", "s45", "s46", "s47", "s48",
     )
     val showBottomBar = when {
         spec.code in setOf(
             "p00", "A00", "s03", "s04", "s05", "s06", "s07", "s08", "s09", "s10", "s11", "s12", "s13", "s19", "s22", "A30",
             "s25", "s26", "s27", "s28", "s29", "s30", "s31", "s32", "s33", "s34", "s35", "s36", "s78", "A08",
+            "s38", "s39", "s40", "s43", "s44", "s45", "s46", "s47", "s48",
         ) -> false
 
         else -> true
@@ -208,6 +210,16 @@ fun RenderScreenSpec(
                 "s36" -> RenderRosaSketchS36(onSelectScreenCode = onSelectScreenCode)
                 "s78" -> RenderRosaSketchConfirmS78(onSelectScreenCode = onSelectScreenCode)
                 "A08" -> RenderAdminRosaA08(onSelectScreenCode = onSelectScreenCode)
+                "s37" -> RenderMyEventsScreenS37(onSelectScreenCode = onSelectScreenCode)
+                "s38" -> RenderNewEventScreenS38(onSelectScreenCode = onSelectScreenCode)
+                "s39" -> RenderCalendarScreenS39(onSelectScreenCode = onSelectScreenCode)
+                "s40" -> RenderEventDetailScreenS40(onSelectScreenCode = onSelectScreenCode)
+                "s43" -> RenderExecutionModeScreenS43(onSelectScreenCode = onSelectScreenCode)
+                "s44" -> RenderTimelineScreenS44(onSelectScreenCode = onSelectScreenCode)
+                "s45" -> RenderTasksScreenS45(onSelectScreenCode = onSelectScreenCode)
+                "s46" -> RenderChecklistScreenS46(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                "s47" -> RenderGuestsScreenS47(onSelectScreenCode = onSelectScreenCode)
+                "s48" -> RenderQuoteScreenS48(onSelectScreenCode = onSelectScreenCode)
             }
             return@RfPhoneFrame
         }
