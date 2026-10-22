@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Tu cotización</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.rf,.rf *{box-sizing:border-box}
+.rf{font-family:'Figtree',system-ui,sans-serif;color:#1A1A2E;-webkit-font-smoothing:antialiased;position:relative;overflow:hidden}
+.rf p,.rf h1,.rf h2{margin:0}
+.rf .d{font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif;letter-spacing:-.02em}
+.rf button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:inherit}
+.rf .ib{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:0 0 0 1px #F0EBF4,0 8px 20px -14px rgba(180,80,180,.4);flex:none;color:#1A1A2E}
+.rf .mut{color:#62627A}
+.rf .btn{height:56px;border-radius:16px;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:16px}
+.rf .ln{display:flex;justify-content:space-between;align-items:baseline;font-size:15px}
+.rf .meta{display:flex;align-items:center;gap:8px;font-size:14px;color:#62627A}
+</style>
+</helmet>
+<div class="rf" style="width:390px;height:844px;background:radial-gradient(110% 40% at 0% 0%,#F9E3F1 0%,rgba(249,227,241,0) 60%),radial-gradient(80% 35% at 100% 15%,#EEE7FB 0%,rgba(238,231,251,0) 60%),#FAFAFC">
+  <div style="padding:56px 20px 0;display:flex;flex-direction:column;gap:14px">
+    <header style="display:flex;align-items:center;gap:12px">
+      <button class="ib" aria-label="Volver"><dc-import name="Icon" k="back" s="22" hint-size="22px,22px"></dc-import></button>
+      <h1 class="d" style="font-size:20px;font-weight:800;flex:1">Tu cotización</h1>
+      <span style="height:26px;padding:0 10px;border-radius:999px;background:#DDF4F3;color:#1F8A84;font-size:12px;font-weight:700;display:flex;align-items:center">Lista para aprobar</span>
+    </header>
+
+    <section style="border-radius:22px;background:#fff;box-shadow:0 0 0 1px #F2EDF5;overflow:hidden">
+      <div style="padding:16px 18px;display:flex;flex-direction:column;gap:6px">
+        <h2 class="d" style="font-size:20px;font-weight:800">Boda Real Rosa &amp; Dorado</h2>
+        <p class="meta"><dc-import name="Icon" k="calendar" s="16" hint-size="16px,16px"></dc-import>Viernes 23 de octubre, 2026</p>
+        <p class="meta"><dc-import name="Icon" k="pin" s="16" hint-size="16px,16px"></dc-import>Jardín Botánico Santo Domingo</p>
+        <p class="meta"><dc-import name="Icon" k="users" s="16" hint-size="16px,16px"></dc-import>120 invitados</p>
+      </div>
+      <div style="height:0;border-top:2px dashed #EEE9F2;margin:0 18px;position:relative"></div>
+      <div style="padding:16px 18px;display:flex;flex-direction:column;gap:12px">
+        <div class="ln"><span><b style="font-weight:600">Mobiliario</b><br><span class="mut" style="font-size:13px">120 sillas Tiffany · 12 mesas redondas</span></span><span style="font-weight:600">RD$ 780</span></div>
+        <div class="ln"><span><b style="font-weight:600">Decoración floral y arco</b><br><span class="mut" style="font-size:13px">Backdrop, centros y arco</span></span><span style="font-weight:600">RD$ 2,865</span></div>
+        <div class="ln"><span><b style="font-weight:600">Iluminación cálida</b><br><span class="mut" style="font-size:13px">Guirnaldas para el jardín</span></span><span style="font-weight:600">RD$ 600</span></div>
+        <div style="height:1px;background:#F2F0F5"></div>
+        <div class="ln mut"><span>Subtotal</span><span>RD$ 4,245</span></div>
+        <div class="ln mut"><span>Transporte e instalación</span><span>RD$ 255</span></div>
+        <div class="ln" style="align-items:center"><span style="font-size:16px;font-weight:700">Total</span><span class="d" style="font-size:28px;font-weight:800">RD$ 4,500</span></div>
+      </div>
+    </section>
+
+    <section style="border-radius:20px;background:#FFF2C9;padding:14px 16px;display:flex;gap:12px">
+      <span style="width:36px;height:36px;border-radius:50%;background:#fff;color:#7A5700;display:grid;place-items:center;font-weight:800;flex:none">M</span>
+      <div><p style="font-size:13px;font-weight:700;color:#7A5700">Nota de María · Rosa Fiesta</p><p style="font-size:14px;line-height:1.45;margin-top:2px">Incluye transporte e instalación VIP con arco orgánico doble.</p></div>
+    </section>
+  </div>
+
+  <div style="position:absolute;left:20px;right:20px;bottom:36px;display:flex;flex-direction:column;gap:6px">
+    <button class="btn" style="background:linear-gradient(90deg,#EA4EA9 0%,#B754CB 50%,#865DEC 100%);color:#fff;box-shadow:0 12px 26px -12px rgba(200,70,180,.7)">Aprobar cotización</button>
+    <button class="btn" style="height:48px;font-size:15px;color:#B42345">Rechazar</button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

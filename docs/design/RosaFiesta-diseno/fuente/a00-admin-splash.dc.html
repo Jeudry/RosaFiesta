@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Splash · App administrativa</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.rf,.rf *{box-sizing:border-box}
+.rf{font-family:'Figtree',system-ui,sans-serif;color:#151729;-webkit-font-smoothing:antialiased;position:relative;overflow:hidden}
+.rf p,.rf h1,.rf h2,.rf h3{margin:0}
+.rf .d{font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif;letter-spacing:-.02em}
+.rf button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:inherit}
+.rf a{color:inherit;text-decoration:none}
+.rf input,.rf textarea{font:inherit;color:inherit;border:0;outline:0;background:none;padding:0;min-width:0;flex:1;resize:none}
+.rf .mut{color:#5F6377}
+.rf .cap{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#5F6377}
+.rf .ib{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:0 0 0 1px #ECECF5,0 8px 20px -14px rgba(70,80,180,.45);flex:none;color:#151729}
+.rf .card{background:#fff;border-radius:20px;box-shadow:0 0 0 1px #ECECF5,0 12px 28px -22px rgba(70,80,180,.45)}
+.rf .btn{height:54px;border-radius:16px;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:16px}
+.rf .bp{background:linear-gradient(135deg,#7C5CF0 0%,#5B6CF0 100%);color:#fff;box-shadow:0 12px 24px -12px rgba(91,108,240,.75)}
+.rf .bs{background:#fff;color:#151729;box-shadow:0 0 0 1px #E3E4EF}
+.rf .chip{height:36px;padding:0 14px;border-radius:999px;display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:600;background:#fff;box-shadow:0 0 0 1px #E9E9F2;white-space:nowrap;flex:none}
+.rf .on{background:linear-gradient(135deg,#7C5CF0 0%,#5B6CF0 100%);color:#fff;box-shadow:0 8px 16px -8px rgba(91,108,240,.7)}
+.rf .tag{height:24px;padding:0 9px;border-radius:999px;display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;white-space:nowrap}
+.rf .one{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf .fld{height:50px;border-radius:14px;background:#fff;box-shadow:0 0 0 1px #E3E4EF;display:flex;align-items:center;gap:10px;padding:0 14px;color:#5F6377;font-size:15px}
+.rf .lbl{font-size:13px;font-weight:700;color:#3A3D52}
+.rf .ti{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;flex:none}
+.rf .stp{display:flex;align-items:center;gap:2px;height:34px;border-radius:999px;background:#F2F2F8;padding:0 3px;flex:none}
+.rf .stp button{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;color:#5B6CF0}
+.rf .seg{height:5px;border-radius:3px;flex:1}
+.rf .sg{flex:1;height:38px;border-radius:12px;font-size:14px;font-weight:600;display:grid;place-items:center;color:#5F6377}
+.rf .sg.sel{background:#fff;color:#151729;font-weight:700;box-shadow:0 2px 8px -3px rgba(70,80,180,.3)}
+</style>
+</helmet>
+<div class="rf" style="width:390px;height:844px;background:linear-gradient(160deg,#7C5CF0 0%,#5B6CF0 50%,#2FB8C8 100%);color:#fff">
+  <svg aria-hidden="true" width="390" height="844" viewBox="0 0 390 844" style="position:absolute;inset:0">
+    <circle cx="320" cy="140" r="110" fill="#fff" opacity=".07"></circle><circle cx="60" cy="720" r="120" fill="#fff" opacity=".06"></circle>
+    <path d="M0 640H390" stroke="#fff" stroke-opacity=".08"></path><path d="M0 680H390" stroke="#fff" stroke-opacity=".06"></path>
+    <path d="M0 -10L2.35 -3.24L9.5 -3.1L3.8 1.24L5.9 8.1L0 4L-5.9 8.1L-3.8 1.24L-9.5 -3.1L-2.35 -3.24Z" fill="#FFD45C" transform="translate(300 250) scale(.9)"></path><circle cx="84" cy="250" r="4" fill="#D6EA8C"></circle>
+  </svg>
+  <div style="position:absolute;top:290px;left:0;right:0;display:flex;flex-direction:column;align-items:center;text-align:center;gap:16px">
+    <div style="border-radius:50%;box-shadow:0 0 0 12px rgba(255,255,255,.14),0 0 0 26px rgba(255,255,255,.07),0 24px 50px -16px rgba(20,30,90,.55)"><dc-import name="Logo" s="136" hint-size="136px,136px"></dc-import></div>
+    <h1 class="d" style="font-size:38px;font-weight:800;margin-top:18px;line-height:1">Rosa Fiesta</h1>
+    <span class="tag" style="height:30px;padding:0 14px;font-size:13px;background:rgba(255,255,255,.2);color:#fff;letter-spacing:.06em;text-transform:uppercase">Administración</span>
+  </div>
+  <div aria-label="Cargando" style="position:absolute;left:110px;right:110px;bottom:76px;height:6px;border-radius:3px;background:rgba(255,255,255,.25);overflow:hidden"><span style="display:block;width:55%;height:100%;border-radius:3px;background:#FFD45C"></span></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

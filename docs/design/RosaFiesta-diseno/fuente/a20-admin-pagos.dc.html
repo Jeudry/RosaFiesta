@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Admin · Pagos y cobros</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.rf,.rf *{box-sizing:border-box}
+.rf{font-family:'Figtree',system-ui,sans-serif;color:#151729;-webkit-font-smoothing:antialiased;position:relative;overflow:hidden}
+.rf p,.rf h1,.rf h2,.rf h3{margin:0}
+.rf .d{font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif;letter-spacing:-.02em}
+.rf button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:inherit}
+.rf a{color:inherit;text-decoration:none}
+.rf input,.rf textarea{font:inherit;color:inherit;border:0;outline:0;background:none;padding:0;min-width:0;flex:1;resize:none}
+.rf .mut{color:#5F6377}
+.rf .cap{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#5F6377}
+.rf .ib{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:0 0 0 1px #ECECF5,0 8px 20px -14px rgba(70,80,180,.45);flex:none;color:#151729}
+.rf .card{background:#fff;border-radius:20px;box-shadow:0 0 0 1px #ECECF5,0 12px 28px -22px rgba(70,80,180,.45)}
+.rf .btn{height:54px;border-radius:16px;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:16px}
+.rf .bp{background:linear-gradient(135deg,#7C5CF0 0%,#5B6CF0 100%);color:#fff;box-shadow:0 12px 24px -12px rgba(91,108,240,.75)}
+.rf .bs{background:#fff;color:#151729;box-shadow:0 0 0 1px #E3E4EF}
+.rf .chip{height:36px;padding:0 14px;border-radius:999px;display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:600;background:#fff;box-shadow:0 0 0 1px #E9E9F2;white-space:nowrap;flex:none}
+.rf .on{background:linear-gradient(135deg,#7C5CF0 0%,#5B6CF0 100%);color:#fff;box-shadow:0 8px 16px -8px rgba(91,108,240,.7)}
+.rf .tag{height:24px;padding:0 9px;border-radius:999px;display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;white-space:nowrap}
+.rf .one{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf .fld{height:50px;border-radius:14px;background:#fff;box-shadow:0 0 0 1px #E3E4EF;display:flex;align-items:center;gap:10px;padding:0 14px;color:#5F6377;font-size:15px}
+.rf .lbl{font-size:13px;font-weight:700;color:#3A3D52}
+.rf .ti{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;flex:none}
+.rf .stp{display:flex;align-items:center;gap:2px;height:34px;border-radius:999px;background:#F2F2F8;padding:0 3px;flex:none}
+.rf .stp button{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;color:#5B6CF0}
+.rf .seg{height:5px;border-radius:3px;flex:1}
+.rf .sg{flex:1;height:38px;border-radius:12px;font-size:14px;font-weight:600;display:grid;place-items:center;color:#5F6377}
+.rf .sg.sel{background:#fff;color:#151729;font-weight:700;box-shadow:0 2px 8px -3px rgba(70,80,180,.3)}
+</style>
+</helmet>
+<div class="rf" style="width:390px;height:844px;background:radial-gradient(110% 40% at 100% 0%,#E6E7FF 0%,rgba(230,231,255,0) 60%),radial-gradient(80% 35% at 0% 12%,#F1E9FB 0%,rgba(241,233,251,0) 60%),#F6F6FB">
+  <div style="padding:54px 20px 0;display:flex;flex-direction:column;gap:12px">
+    <header style="display:flex;align-items:center;gap:12px">
+      <button class="ib" aria-label="Volver"><dc-import name="Icon" k="back" s="22" hint-size="22px,22px"></dc-import></button>
+      <div style="flex:1;min-width:0"><h1 class="d one" style="font-size:20px;font-weight:800;line-height:1.1">Pagos</h1><p class="mut one" style="font-size:13px">Octubre 2026</p></div>
+      
+    </header>
+    <div style="display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:10px">
+      <div style="padding:14px;border-radius:20px;background:linear-gradient(135deg,#7C5CF0 0%,#5B6CF0 55%,#2FB8C8 100%);color:#fff;box-shadow:0 18px 34px -20px rgba(80,110,230,.75)"><p style="font-size:12px;color:#E9EEFF;font-weight:600">Cobrado este mes</p><p class="d" style="font-size:22px;font-weight:800;margin-top:4px">RD$ 12,450</p></div>
+      <div style="padding:14px;border-radius:20px;background:#FFF2C9"><p style="font-size:12px;color:#7A5700;font-weight:600">Por cobrar</p><p class="d" style="font-size:22px;font-weight:800;margin-top:4px;color:#7A5700">RD$ 7,724</p></div>
+    </div>
+    <div style="display:flex;gap:4px;padding:4px;background:#EDEDF5;border-radius:14px"><button class="sg sel">Por cobrar · 3</button><button class="sg">Recibidos</button></div>
+    <section class="card">
+      <sc-for list="{{due}}" as="d" hint-placeholder-count="3">
+        <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;box-shadow:{{d.line}}">
+          <span class="d" style="width:40px;height:40px;border-radius:50%;background:{{d.bg}};color:{{d.fg}};display:grid;place-items:center;font-weight:800;flex:none">{{d.ini}}</span>
+          <div style="flex:1;min-width:0"><p class="one" style="font-size:14px;font-weight:700">{{d.ev}}</p><p style="font-size:12px;font-weight:600;color:{{d.vc}}">{{d.due}}</p></div>
+          <div style="text-align:right"><p class="d" style="font-size:16px;font-weight:800">RD$ {{d.amt}}</p><button style="font-size:12px;font-weight:700;color:#4B47D6;height:24px;display:inline-flex;align-items:center;gap:4px"><dc-import name="Icon" k="wa" s="13" hint-size="13px,13px"></dc-import>Recordar</button></div>
+        </div>
+      </sc-for>
+    </section>
+    <p class="cap">Recibidos recientes</p>
+    <section class="card" style="margin-top:-4px">
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 14px"><span class="ti" style="background:#EEF6D6;color:#4E6A10"><dc-import name="Icon" k="bank" s="18" hint-size="18px,18px"></dc-import></span><span style="flex:1;min-width:0"><span class="one" style="display:block;font-size:14px;font-weight:700">Camila Rodríguez · anticipo</span><span class="mut" style="font-size:12px">Transferencia · Banco Popular · 18 oct</span></span><b style="color:#4E6A10">+RD$ 1,350</b></div>
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;box-shadow:0 -1px 0 #F0F0F6"><span class="ti" style="background:#EEF6D6;color:#4E6A10"><dc-import name="Icon" k="cash" s="18" hint-size="18px,18px"></dc-import></span><span style="flex:1;min-width:0"><span class="one" style="display:block;font-size:14px;font-weight:700">Camila R. · anticipo quinceañera</span><span class="mut" style="font-size:12px">Efectivo · 15 oct</span></span><b style="color:#4E6A10">+RD$ 1,860</b></div>
+    </section>
+  </div>
+  <div style="position:absolute;left:20px;right:20px;bottom:36px"><a href="a21-admin-registrar-pago.dc.html" class="btn bp"><dc-import name="Icon" k="plus" s="20" hint-size="20px,20px"></dc-import>Registrar pago</a></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const L = '0 -1px 0 #F0F0F6';
+    return {
+      due: [
+        { ini: 'C', bg: '#FDE6F2', fg: '#C2338F', ev: 'Boda Real · Camila R.', due: 'Vence el jue 22 oct', vc: '#B42345', amt: '3,150', line: 'none' },
+        { ini: 'C', bg: '#FDE6F2', fg: '#C2338F', ev: 'Quinceañera · Camila R.', due: 'Vence el vie 30 oct', vc: '#7A5700', amt: '4,340', line: L },
+        { ini: 'L', bg: '#EEF6D6', fg: '#4E6A10', ev: 'Cumpleaños de Mateo · Laura P.', due: 'Anticipo para reservar', vc: '#5F6377', amt: '234', line: L }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

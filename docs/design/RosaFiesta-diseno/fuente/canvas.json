@@ -1,0 +1,1231 @@
+{
+ "v": 3,
+ "createdOnFiles": {
+  "v": 1,
+  "at": "2026-10-20T16:30:00Z"
+ },
+ "title": "Rosa Fiesta — Rediseño",
+ "launch": {
+  "view": "canvas"
+ },
+ "pages": [],
+ "designSystems": [],
+ "boards": {
+  "Main.dc.html": {
+   "x": 0,
+   "y": 0,
+   "w": 1400,
+   "h": 844,
+   "title": "Sistema visual"
+  },
+  "Logo.dc.html": {
+   "x": 1480,
+   "y": 0,
+   "w": 160,
+   "h": 160,
+   "title": "Componente · Logo"
+  },
+  "Rosa.dc.html": {
+   "x": 1720,
+   "y": 0,
+   "w": 120,
+   "h": 120,
+   "title": "Componente · Rosa IA"
+  },
+  "Icon.dc.html": {
+   "x": 1920,
+   "y": 0,
+   "w": 48,
+   "h": 48,
+   "title": "Componente · Icono"
+  },
+  "TabBar.dc.html": {
+   "x": 2048,
+   "y": 0,
+   "w": 390,
+   "h": 96,
+   "title": "Componente · Barra"
+  },
+  "Illo.dc.html": {
+   "x": 2518,
+   "y": 0,
+   "w": 240,
+   "h": 240,
+   "title": "Componente · Ilustración"
+  },
+  "s01-catalogo-invitado.dc.html": {
+   "x": 470,
+   "y": 1300,
+   "w": 390,
+   "h": 844,
+   "title": "01 · Catálogo (invitado)"
+  },
+  "s02-favoritos-invitado.dc.html": {
+   "x": 940,
+   "y": 1300,
+   "w": 390,
+   "h": 844,
+   "title": "02 · Favoritos (invitado)"
+  },
+  "s03-onboarding-catalogo.dc.html": {
+   "x": 1410,
+   "y": 1300,
+   "w": 390,
+   "h": 844,
+   "title": "03 · Onboarding · Catálogo"
+  },
+  "s04-onboarding-rosa.dc.html": {
+   "x": 1880,
+   "y": 1300,
+   "w": 390,
+   "h": 844,
+   "title": "04 · Onboarding · Rosa IA"
+  },
+  "s05-onboarding-whatsapp.dc.html": {
+   "x": 2350,
+   "y": 1300,
+   "w": 390,
+   "h": 844,
+   "title": "05 · Onboarding · WhatsApp"
+  },
+  "s06-bienvenida.dc.html": {
+   "x": 2820,
+   "y": 1300,
+   "w": 390,
+   "h": 844,
+   "title": "06 · Bienvenida"
+  },
+  "s07-iniciar-sesion.dc.html": {
+   "x": 3290,
+   "y": 1300,
+   "w": 390,
+   "h": 844,
+   "title": "07 · Iniciar sesión"
+  },
+  "s08-registro.dc.html": {
+   "x": 3760,
+   "y": 1300,
+   "w": 390,
+   "h": 844,
+   "title": "08 · Registro"
+  },
+  "s09-recuperar.dc.html": {
+   "x": 4230,
+   "y": 1300,
+   "w": 390,
+   "h": 844,
+   "title": "09 · Recuperar contraseña"
+  },
+  "s10-nueva-contrasena.dc.html": {
+   "x": 4700,
+   "y": 1300,
+   "w": 390,
+   "h": 844,
+   "title": "10 · Nueva contraseña"
+  },
+  "s11-cuenta-activada.dc.html": {
+   "x": 5170,
+   "y": 1300,
+   "w": 390,
+   "h": 844,
+   "title": "11 · Cuenta activada"
+  },
+  "s12-correo-verificado.dc.html": {
+   "x": 5640,
+   "y": 1300,
+   "w": 390,
+   "h": 844,
+   "title": "12 · Correo verificado"
+  },
+  "s13-hola-de-nuevo.dc.html": {
+   "x": 6110,
+   "y": 1300,
+   "w": 390,
+   "h": 844,
+   "title": "13 · Sesión iniciada"
+  },
+  "s14-inicio-claro.dc.html": {
+   "x": 0,
+   "y": 2600,
+   "w": 390,
+   "h": 844,
+   "title": "14 · Inicio (claro)"
+  },
+  "s15-inicio-oscuro.dc.html": {
+   "x": 470,
+   "y": 2600,
+   "w": 390,
+   "h": 844,
+   "title": "15 · Inicio (oscuro)"
+  },
+  "s16-acerca-de.dc.html": {
+   "x": 940,
+   "y": 2600,
+   "w": 390,
+   "h": 844,
+   "title": "16 · Acerca de"
+  },
+  "s17-resenas-empresa.dc.html": {
+   "x": 1410,
+   "y": 2600,
+   "w": 390,
+   "h": 844,
+   "title": "17 · Reseñas de Rosa Fiesta"
+  },
+  "s18-catalogo.dc.html": {
+   "x": 1880,
+   "y": 2600,
+   "w": 390,
+   "h": 844,
+   "title": "18 · Catálogo"
+  },
+  "s19-producto.dc.html": {
+   "x": 2350,
+   "y": 2600,
+   "w": 390,
+   "h": 844,
+   "title": "19 · Detalle de artículo"
+  },
+  "s20-categorias.dc.html": {
+   "x": 2820,
+   "y": 2600,
+   "w": 390,
+   "h": 844,
+   "title": "20 · Categorías"
+  },
+  "s21-paquetes.dc.html": {
+   "x": 3290,
+   "y": 2600,
+   "w": 390,
+   "h": 844,
+   "title": "21 · Paquetes"
+  },
+  "s22-paquete-detalle.dc.html": {
+   "x": 3760,
+   "y": 2600,
+   "w": 390,
+   "h": 844,
+   "title": "22 · Detalle de paquete"
+  },
+  "s23-tienda.dc.html": {
+   "x": 4230,
+   "y": 2600,
+   "w": 390,
+   "h": 844,
+   "title": "23 · Tienda de globos"
+  },
+  "s24-favoritos.dc.html": {
+   "x": 4700,
+   "y": 2600,
+   "w": 390,
+   "h": 844,
+   "title": "24 · Favoritos"
+  },
+  "s25-mi-evento.dc.html": {
+   "x": 5170,
+   "y": 2600,
+   "w": 390,
+   "h": 844,
+   "title": "25 · Mi evento (borrador)"
+  },
+  "s26-rosa-tipo-evento.dc.html": {
+   "x": 0,
+   "y": 3900,
+   "w": 390,
+   "h": 844,
+   "title": "26 · Rosa · Tipo de evento"
+  },
+  "s27-rosa-tutorial.dc.html": {
+   "x": 470,
+   "y": 3900,
+   "w": 390,
+   "h": 844,
+   "title": "27 · Rosa · Cómo hablarme"
+  },
+  "s28-rosa-ayuda.dc.html": {
+   "x": 940,
+   "y": 3900,
+   "w": 390,
+   "h": 844,
+   "title": "28 · Rosa · ¿Te ayudo?"
+  },
+  "s29-rosa-sugerencias.dc.html": {
+   "x": 1410,
+   "y": 3900,
+   "w": 390,
+   "h": 844,
+   "title": "29 · Rosa · Sugerencias"
+  },
+  "s30-rosa-categorias.dc.html": {
+   "x": 1880,
+   "y": 3900,
+   "w": 390,
+   "h": 844,
+   "title": "30 · Rosa · ¿Qué más necesitas?"
+  },
+  "s31-rosa-detalles.dc.html": {
+   "x": 2350,
+   "y": 3900,
+   "w": 390,
+   "h": 844,
+   "title": "31 · Rosa · Detalles del evento"
+  },
+  "s32-rosa-resumen.dc.html": {
+   "x": 2820,
+   "y": 3900,
+   "w": 390,
+   "h": 844,
+   "title": "32 · Rosa · Resumen"
+  },
+  "s33-rosa-enviado.dc.html": {
+   "x": 3290,
+   "y": 3900,
+   "w": 390,
+   "h": 844,
+   "title": "33 · Rosa · Solicitud enviada"
+  },
+  "s34-rosa-chat.dc.html": {
+   "x": 3760,
+   "y": 3900,
+   "w": 390,
+   "h": 844,
+   "title": "34 · Rosa · Modo chat"
+  },
+  "s35-rosa-voz.dc.html": {
+   "x": 4230,
+   "y": 3900,
+   "w": 390,
+   "h": 844,
+   "title": "35 · Rosa · Modo voz"
+  },
+  "s36-boceto.dc.html": {
+   "x": 4700,
+   "y": 3900,
+   "w": 390,
+   "h": 844,
+   "title": "36 · Boceto de distribución"
+  },
+  "s37-mis-eventos.dc.html": {
+   "x": 0,
+   "y": 5200,
+   "w": 390,
+   "h": 844,
+   "title": "37 · Mis eventos"
+  },
+  "s38-nuevo-evento.dc.html": {
+   "x": 470,
+   "y": 5200,
+   "w": 390,
+   "h": 844,
+   "title": "38 · Nuevo evento"
+  },
+  "s39-calendario.dc.html": {
+   "x": 940,
+   "y": 5200,
+   "w": 390,
+   "h": 844,
+   "title": "39 · Calendario"
+  },
+  "s40-evento-detalles.dc.html": {
+   "x": 1410,
+   "y": 5200,
+   "w": 390,
+   "h": 844,
+   "title": "40 · Evento · Detalles"
+  },
+  "s41-evento-chat-tab.dc.html": {
+   "x": 1880,
+   "y": 5200,
+   "w": 390,
+   "h": 844,
+   "title": "41 · Evento · Pestaña chat"
+  },
+  "s42-evento-chat.dc.html": {
+   "x": 2350,
+   "y": 5200,
+   "w": 390,
+   "h": 844,
+   "title": "42 · Chat del evento"
+  },
+  "s43-modo-ejecucion.dc.html": {
+   "x": 2820,
+   "y": 5200,
+   "w": 390,
+   "h": 844,
+   "title": "43 · Modo ejecución"
+  },
+  "s44-cronograma.dc.html": {
+   "x": 3290,
+   "y": 5200,
+   "w": 390,
+   "h": 844,
+   "title": "44 · Cronograma"
+  },
+  "s45-tareas.dc.html": {
+   "x": 3760,
+   "y": 5200,
+   "w": 390,
+   "h": 844,
+   "title": "45 · Tareas"
+  },
+  "s46-checklist.dc.html": {
+   "x": 4230,
+   "y": 5200,
+   "w": 390,
+   "h": 844,
+   "title": "46 · Checklist"
+  },
+  "s47-invitados.dc.html": {
+   "x": 4700,
+   "y": 5200,
+   "w": 390,
+   "h": 844,
+   "title": "47 · Invitados"
+  },
+  "s48-cotizacion.dc.html": {
+   "x": 0,
+   "y": 6500,
+   "w": 390,
+   "h": 844,
+   "title": "48 · Tu cotización"
+  },
+  "s49-historial-cotizaciones.dc.html": {
+   "x": 470,
+   "y": 6500,
+   "w": 390,
+   "h": 844,
+   "title": "49 · Historial de cotizaciones"
+  },
+  "s50-pago.dc.html": {
+   "x": 940,
+   "y": 6500,
+   "w": 390,
+   "h": 844,
+   "title": "50 · Pago"
+  },
+  "s51-confirmacion.dc.html": {
+   "x": 1410,
+   "y": 6500,
+   "w": 390,
+   "h": 844,
+   "title": "51 · Evento confirmado"
+  },
+  "s52-post-evento.dc.html": {
+   "x": 1880,
+   "y": 6500,
+   "w": 390,
+   "h": 844,
+   "title": "52 · Análisis post-evento"
+  },
+  "s53-mis-reservas.dc.html": {
+   "x": 2350,
+   "y": 6500,
+   "w": 390,
+   "h": 844,
+   "title": "53 · Mis reservas"
+  },
+  "s54-perfil.dc.html": {
+   "x": 2820,
+   "y": 6500,
+   "w": 390,
+   "h": 844,
+   "title": "54 · Mi perfil"
+  },
+  "s75-modal-sesion.dc.html": {
+   "x": 3290,
+   "y": 6500,
+   "w": 390,
+   "h": 844,
+   "title": "75 · Modal · Inicia sesión"
+  },
+  "s76-modal-planificar.dc.html": {
+   "x": 3760,
+   "y": 6500,
+   "w": 390,
+   "h": 844,
+   "title": "76 · Modal · Cómo planificar"
+  },
+  "s77-modal-resenas-evento.dc.html": {
+   "x": 4230,
+   "y": 6500,
+   "w": 390,
+   "h": 844,
+   "title": "77 · Modal · Reseñas del evento"
+  },
+  "s55-proveedores.dc.html": {
+   "x": 0,
+   "y": 10400,
+   "w": 390,
+   "h": 844,
+   "title": "55 · Proveedores"
+  },
+  "s56-nuevo-proveedor.dc.html": {
+   "x": 470,
+   "y": 10400,
+   "w": 390,
+   "h": 844,
+   "title": "56 · Nuevo proveedor"
+  },
+  "s57-analisis.dc.html": {
+   "x": 940,
+   "y": 10400,
+   "w": 390,
+   "h": 844,
+   "title": "57 · Análisis de negocio"
+  },
+  "s58-panel-resumen.dc.html": {
+   "x": 1410,
+   "y": 10400,
+   "w": 390,
+   "h": 844,
+   "title": "58 · Panel · Resumen"
+  },
+  "s59-panel-finanzas.dc.html": {
+   "x": 1880,
+   "y": 10400,
+   "w": 390,
+   "h": 844,
+   "title": "59 · Panel · Finanzas"
+  },
+  "s60-panel-seguros.dc.html": {
+   "x": 2350,
+   "y": 10400,
+   "w": 390,
+   "h": 844,
+   "title": "60 · Panel · Seguros"
+  },
+  "s61-panel-auditoria.dc.html": {
+   "x": 2820,
+   "y": 10400,
+   "w": 390,
+   "h": 844,
+   "title": "61 · Panel · Auditoría"
+  },
+  "s62-panel-clientes.dc.html": {
+   "x": 3290,
+   "y": 10400,
+   "w": 390,
+   "h": 844,
+   "title": "62 · Panel · Clientes"
+  },
+  "s63-inventario-calendario.dc.html": {
+   "x": 3760,
+   "y": 10400,
+   "w": 390,
+   "h": 844,
+   "title": "63 · Disponibilidad de inventario"
+  },
+  "s64-leads-pipeline.dc.html": {
+   "x": 4230,
+   "y": 10400,
+   "w": 390,
+   "h": 844,
+   "title": "64 · Leads · Pipeline"
+  },
+  "s65-leads-seguimientos.dc.html": {
+   "x": 4700,
+   "y": 10400,
+   "w": 390,
+   "h": 844,
+   "title": "65 · Leads · Seguimientos"
+  },
+  "s66-leads-estadisticas.dc.html": {
+   "x": 5170,
+   "y": 10400,
+   "w": 390,
+   "h": 844,
+   "title": "66 · Leads · Estadísticas"
+  },
+  "s67-reportes-ingresos.dc.html": {
+   "x": 5640,
+   "y": 10400,
+   "w": 390,
+   "h": 844,
+   "title": "67 · Reportes · Ingresos"
+  },
+  "s68-reportes-eventos.dc.html": {
+   "x": 6110,
+   "y": 10400,
+   "w": 390,
+   "h": 844,
+   "title": "68 · Reportes · Eventos"
+  },
+  "s69-reportes-clientes.dc.html": {
+   "x": 6580,
+   "y": 10400,
+   "w": 390,
+   "h": 844,
+   "title": "69 · Reportes · Clientes"
+  },
+  "s70-reportes-inventario.dc.html": {
+   "x": 7050,
+   "y": 10400,
+   "w": 390,
+   "h": 844,
+   "title": "70 · Reportes · Inventario"
+  },
+  "s71-moderar-resenas.dc.html": {
+   "x": 7520,
+   "y": 10400,
+   "w": 390,
+   "h": 844,
+   "title": "71 · Moderar reseñas"
+  },
+  "s72-bot-preguntas.dc.html": {
+   "x": 7990,
+   "y": 10400,
+   "w": 390,
+   "h": 844,
+   "title": "72 · Bot WhatsApp · Preguntas"
+  },
+  "s73-bot-palabras.dc.html": {
+   "x": 8460,
+   "y": 10400,
+   "w": 390,
+   "h": 844,
+   "title": "73 · Bot WhatsApp · Palabras clave"
+  },
+  "s74-bot-conversaciones.dc.html": {
+   "x": 8930,
+   "y": 10400,
+   "w": 390,
+   "h": 844,
+   "title": "74 · Bot WhatsApp · Conversaciones"
+  },
+  "Foto.dc.html": {
+   "x": 2838,
+   "y": 0,
+   "w": 240,
+   "h": 240,
+   "title": "Componente · Foto real"
+  },
+  "s78-boceto-confirmar.dc.html": {
+   "x": 5170,
+   "y": 3900,
+   "w": 390,
+   "h": 844,
+   "title": "78 · Boceto · Confirmar"
+  },
+  "AdminBar.dc.html": {
+   "x": 3158,
+   "y": 0,
+   "w": 390,
+   "h": 96,
+   "title": "Componente · Barra admin"
+  },
+  "a01-admin-inicio.dc.html": {
+   "x": 470,
+   "y": 7800,
+   "w": 390,
+   "h": 844,
+   "title": "A01 · Inicio"
+  },
+  "a02-admin-solicitudes.dc.html": {
+   "x": 940,
+   "y": 7800,
+   "w": 390,
+   "h": 844,
+   "title": "A02 · Solicitudes"
+  },
+  "a03-admin-cotizar.dc.html": {
+   "x": 1410,
+   "y": 7800,
+   "w": 390,
+   "h": 844,
+   "title": "A03 · Cotizar solicitud"
+  },
+  "a04-admin-crear-evento.dc.html": {
+   "x": 1880,
+   "y": 7800,
+   "w": 390,
+   "h": 844,
+   "title": "A04 · Crear evento (elegir modo)"
+  },
+  "a05-admin-evento-manual.dc.html": {
+   "x": 2350,
+   "y": 7800,
+   "w": 390,
+   "h": 844,
+   "title": "A05 · Nuevo evento · Datos"
+  },
+  "a06-admin-evento-articulos.dc.html": {
+   "x": 2820,
+   "y": 7800,
+   "w": 390,
+   "h": 844,
+   "title": "A06 · Nuevo evento · Artículos"
+  },
+  "a07-admin-evento-resumen.dc.html": {
+   "x": 3290,
+   "y": 7800,
+   "w": 390,
+   "h": 844,
+   "title": "A07 · Nuevo evento · Resumen"
+  },
+  "a08-admin-rosa.dc.html": {
+   "x": 3760,
+   "y": 7800,
+   "w": 390,
+   "h": 844,
+   "title": "A08 · Crear con Rosa IA"
+  },
+  "a09-admin-inventario.dc.html": {
+   "x": 4230,
+   "y": 7800,
+   "w": 390,
+   "h": 844,
+   "title": "A09 · Inventario"
+  },
+  "a10-admin-articulo-nuevo.dc.html": {
+   "x": 4700,
+   "y": 7800,
+   "w": 390,
+   "h": 844,
+   "title": "A10 · Nuevo artículo"
+  },
+  "a11-admin-eventos.dc.html": {
+   "x": 5170,
+   "y": 7800,
+   "w": 390,
+   "h": 844,
+   "title": "A11 · Eventos"
+  },
+  "a12-admin-mas.dc.html": {
+   "x": 5640,
+   "y": 7800,
+   "w": 390,
+   "h": 844,
+   "title": "A12 · Más"
+  },
+  "p00-splash.dc.html": {
+   "x": 0,
+   "y": 1300,
+   "w": 390,
+   "h": 844,
+   "title": "00 · Splash (app personal)"
+  },
+  "a00-admin-splash.dc.html": {
+   "x": 0,
+   "y": 7800,
+   "w": 390,
+   "h": 844,
+   "title": "A00 · Splash (app administrativa)"
+  },
+  "a13-admin-evento-detalle.dc.html": {
+   "x": 0,
+   "y": 9100,
+   "w": 390,
+   "h": 844,
+   "title": "A13 · Detalle del evento"
+  },
+  "a14-admin-chats.dc.html": {
+   "x": 470,
+   "y": 9100,
+   "w": 390,
+   "h": 844,
+   "title": "A14 · Chats"
+  },
+  "a15-admin-chat.dc.html": {
+   "x": 940,
+   "y": 9100,
+   "w": 390,
+   "h": 844,
+   "title": "A15 · Chat con cliente"
+  },
+  "a16-admin-ejecucion.dc.html": {
+   "x": 1410,
+   "y": 9100,
+   "w": 390,
+   "h": 844,
+   "title": "A16 · Modo ejecución del equipo"
+  },
+  "a17-admin-tareas.dc.html": {
+   "x": 1880,
+   "y": 9100,
+   "w": 390,
+   "h": 844,
+   "title": "A17 · Tareas del equipo"
+  },
+  "a18-admin-plano.dc.html": {
+   "x": 2350,
+   "y": 9100,
+   "w": 390,
+   "h": 844,
+   "title": "A18 · Boceto → plano"
+  },
+  "a19-admin-cierre.dc.html": {
+   "x": 2820,
+   "y": 9100,
+   "w": 390,
+   "h": 844,
+   "title": "A19 · Cierre del evento"
+  },
+  "a20-admin-pagos.dc.html": {
+   "x": 3290,
+   "y": 9100,
+   "w": 390,
+   "h": 844,
+   "title": "A20 · Pagos y cobros"
+  },
+  "a21-admin-registrar-pago.dc.html": {
+   "x": 3760,
+   "y": 9100,
+   "w": 390,
+   "h": 844,
+   "title": "A21 · Registrar pago"
+  },
+  "a22-admin-cotizaciones.dc.html": {
+   "x": 4230,
+   "y": 9100,
+   "w": 390,
+   "h": 844,
+   "title": "A22 · Historial de cotizaciones"
+  },
+  "a23-admin-articulo.dc.html": {
+   "x": 4700,
+   "y": 9100,
+   "w": 390,
+   "h": 844,
+   "title": "A23 · Detalle de artículo"
+  },
+  "a24-admin-paquetes.dc.html": {
+   "x": 5170,
+   "y": 9100,
+   "w": 390,
+   "h": 844,
+   "title": "A24 · Paquetes"
+  },
+  "a25-admin-paquete-editar.dc.html": {
+   "x": 5640,
+   "y": 9100,
+   "w": 390,
+   "h": 844,
+   "title": "A25 · Editar paquete"
+  },
+  "a26-admin-clientes.dc.html": {
+   "x": 6110,
+   "y": 9100,
+   "w": 390,
+   "h": 844,
+   "title": "A26 · Clientes"
+  },
+  "a27-admin-cliente-ficha.dc.html": {
+   "x": 6580,
+   "y": 9100,
+   "w": 390,
+   "h": 844,
+   "title": "A27 · Ficha de cliente"
+  },
+  "a28-admin-equipo.dc.html": {
+   "x": 7050,
+   "y": 9100,
+   "w": 390,
+   "h": 844,
+   "title": "A28 · Equipo y permisos"
+  },
+  "a29-admin-notificaciones.dc.html": {
+   "x": 7520,
+   "y": 9100,
+   "w": 390,
+   "h": 844,
+   "title": "A29 · Notificaciones"
+  },
+  "a30-admin-entrada.dc.html": {
+   "x": 7990,
+   "y": 9100,
+   "w": 390,
+   "h": 844,
+   "title": "A30 · Elegir cómo entrar"
+  },
+  "a31-admin-ajustes.dc.html": {
+   "x": 8460,
+   "y": 9100,
+   "w": 390,
+   "h": 844,
+   "title": "A31 · Ajustes del negocio"
+  },
+  "s79-notificaciones.dc.html": {
+   "x": 0,
+   "y": 11700,
+   "w": 390,
+   "h": 844,
+   "title": "79 · Notificaciones"
+  },
+  "s80-busqueda.dc.html": {
+   "x": 470,
+   "y": 11700,
+   "w": 390,
+   "h": 844,
+   "title": "80 · Resultados de búsqueda"
+  },
+  "s81-filtros.dc.html": {
+   "x": 940,
+   "y": 11700,
+   "w": 390,
+   "h": 844,
+   "title": "81 · Filtros"
+  },
+  "s82-mis-pagos.dc.html": {
+   "x": 1410,
+   "y": 11700,
+   "w": 390,
+   "h": 844,
+   "title": "82 · Mis pagos"
+  },
+  "s83-recibo.dc.html": {
+   "x": 1880,
+   "y": 11700,
+   "w": 390,
+   "h": 844,
+   "title": "83 · Recibo"
+  },
+  "s84-cambiar-fecha.dc.html": {
+   "x": 2350,
+   "y": 11700,
+   "w": 390,
+   "h": 844,
+   "title": "84 · Cambiar fecha"
+  },
+  "s85-cancelar-evento.dc.html": {
+   "x": 2820,
+   "y": 11700,
+   "w": 390,
+   "h": 844,
+   "title": "85 · Cancelar evento"
+  },
+  "s86-ajustes-cuenta.dc.html": {
+   "x": 3290,
+   "y": 11700,
+   "w": 390,
+   "h": 844,
+   "title": "86 · Ajustes de la cuenta"
+  },
+  "s87-terminos.dc.html": {
+   "x": 3760,
+   "y": 11700,
+   "w": 390,
+   "h": 844,
+   "title": "87 · Términos y privacidad"
+  },
+  "s88-eliminar-cuenta.dc.html": {
+   "x": 4230,
+   "y": 11700,
+   "w": 390,
+   "h": 844,
+   "title": "88 · Eliminar cuenta"
+  },
+  "a32-admin-cancelaciones.dc.html": {
+   "x": 0,
+   "y": 13000,
+   "w": 390,
+   "h": 844,
+   "title": "A32 · Cancelaciones"
+  },
+  "a33-admin-reembolso.dc.html": {
+   "x": 470,
+   "y": 13000,
+   "w": 390,
+   "h": 844,
+   "title": "A33 · Procesar reembolso"
+  },
+  "a34-admin-responder-resena.dc.html": {
+   "x": 940,
+   "y": 13000,
+   "w": 390,
+   "h": 844,
+   "title": "A34 · Responder reseña"
+  },
+  "a39-admin-web-inicio.dc.html": {
+   "x": 1410,
+   "y": 13000,
+   "w": 1440,
+   "h": 900,
+   "title": "A39 · Web · Inicio (1440 × 900)"
+  },
+  "s89-estado-vacio.dc.html": {
+   "x": 0,
+   "y": 14400,
+   "w": 390,
+   "h": 844,
+   "title": "89 · Estado · Vacío"
+  },
+  "s90-estado-cargando.dc.html": {
+   "x": 470,
+   "y": 14400,
+   "w": 390,
+   "h": 844,
+   "title": "90 · Estado · Cargando"
+  },
+  "s91-estado-sin-conexion.dc.html": {
+   "x": 940,
+   "y": 14400,
+   "w": 390,
+   "h": 844,
+   "title": "91 · Estado · Sin conexión / error"
+  },
+  "s92-estado-exito.dc.html": {
+   "x": 1410,
+   "y": 14400,
+   "w": 390,
+   "h": 844,
+   "title": "92 · Estado · Éxito (toast)"
+  },
+  "a35-admin-estado-vacio.dc.html": {
+   "x": 1880,
+   "y": 14400,
+   "w": 390,
+   "h": 844,
+   "title": "A35 · Estado · Vacío"
+  },
+  "a36-admin-estado-cargando.dc.html": {
+   "x": 2350,
+   "y": 14400,
+   "w": 390,
+   "h": 844,
+   "title": "A36 · Estado · Cargando"
+  },
+  "a37-admin-estado-error.dc.html": {
+   "x": 2820,
+   "y": 14400,
+   "w": 390,
+   "h": 844,
+   "title": "A37 · Estado · Sin conexión / error"
+  },
+  "a38-admin-estado-exito.dc.html": {
+   "x": 3290,
+   "y": 14400,
+   "w": 390,
+   "h": 844,
+   "title": "A38 · Estado · Éxito (toast)"
+  }
+ },
+ "order": [
+  "Main.dc.html",
+  "Logo.dc.html",
+  "Rosa.dc.html",
+  "Icon.dc.html",
+  "TabBar.dc.html",
+  "Illo.dc.html",
+  "Foto.dc.html",
+  "AdminBar.dc.html",
+  "p00-splash.dc.html",
+  "s01-catalogo-invitado.dc.html",
+  "s02-favoritos-invitado.dc.html",
+  "s03-onboarding-catalogo.dc.html",
+  "s04-onboarding-rosa.dc.html",
+  "s05-onboarding-whatsapp.dc.html",
+  "s06-bienvenida.dc.html",
+  "s07-iniciar-sesion.dc.html",
+  "s08-registro.dc.html",
+  "s09-recuperar.dc.html",
+  "s10-nueva-contrasena.dc.html",
+  "s11-cuenta-activada.dc.html",
+  "s12-correo-verificado.dc.html",
+  "s13-hola-de-nuevo.dc.html",
+  "s14-inicio-claro.dc.html",
+  "s15-inicio-oscuro.dc.html",
+  "s16-acerca-de.dc.html",
+  "s17-resenas-empresa.dc.html",
+  "s18-catalogo.dc.html",
+  "s19-producto.dc.html",
+  "s20-categorias.dc.html",
+  "s21-paquetes.dc.html",
+  "s22-paquete-detalle.dc.html",
+  "s23-tienda.dc.html",
+  "s24-favoritos.dc.html",
+  "s25-mi-evento.dc.html",
+  "s26-rosa-tipo-evento.dc.html",
+  "s27-rosa-tutorial.dc.html",
+  "s28-rosa-ayuda.dc.html",
+  "s29-rosa-sugerencias.dc.html",
+  "s30-rosa-categorias.dc.html",
+  "s31-rosa-detalles.dc.html",
+  "s32-rosa-resumen.dc.html",
+  "s33-rosa-enviado.dc.html",
+  "s34-rosa-chat.dc.html",
+  "s35-rosa-voz.dc.html",
+  "s36-boceto.dc.html",
+  "s78-boceto-confirmar.dc.html",
+  "s37-mis-eventos.dc.html",
+  "s38-nuevo-evento.dc.html",
+  "s39-calendario.dc.html",
+  "s40-evento-detalles.dc.html",
+  "s41-evento-chat-tab.dc.html",
+  "s42-evento-chat.dc.html",
+  "s43-modo-ejecucion.dc.html",
+  "s44-cronograma.dc.html",
+  "s45-tareas.dc.html",
+  "s46-checklist.dc.html",
+  "s47-invitados.dc.html",
+  "s48-cotizacion.dc.html",
+  "s49-historial-cotizaciones.dc.html",
+  "s50-pago.dc.html",
+  "s51-confirmacion.dc.html",
+  "s52-post-evento.dc.html",
+  "s53-mis-reservas.dc.html",
+  "s54-perfil.dc.html",
+  "s75-modal-sesion.dc.html",
+  "s76-modal-planificar.dc.html",
+  "s77-modal-resenas-evento.dc.html",
+  "a00-admin-splash.dc.html",
+  "a01-admin-inicio.dc.html",
+  "a02-admin-solicitudes.dc.html",
+  "a03-admin-cotizar.dc.html",
+  "a04-admin-crear-evento.dc.html",
+  "a05-admin-evento-manual.dc.html",
+  "a06-admin-evento-articulos.dc.html",
+  "a07-admin-evento-resumen.dc.html",
+  "a08-admin-rosa.dc.html",
+  "a09-admin-inventario.dc.html",
+  "a10-admin-articulo-nuevo.dc.html",
+  "a11-admin-eventos.dc.html",
+  "a12-admin-mas.dc.html",
+  "a13-admin-evento-detalle.dc.html",
+  "a14-admin-chats.dc.html",
+  "a15-admin-chat.dc.html",
+  "a16-admin-ejecucion.dc.html",
+  "a17-admin-tareas.dc.html",
+  "a18-admin-plano.dc.html",
+  "a19-admin-cierre.dc.html",
+  "a20-admin-pagos.dc.html",
+  "a21-admin-registrar-pago.dc.html",
+  "a22-admin-cotizaciones.dc.html",
+  "a23-admin-articulo.dc.html",
+  "a24-admin-paquetes.dc.html",
+  "a25-admin-paquete-editar.dc.html",
+  "a26-admin-clientes.dc.html",
+  "a27-admin-cliente-ficha.dc.html",
+  "a28-admin-equipo.dc.html",
+  "a29-admin-notificaciones.dc.html",
+  "a30-admin-entrada.dc.html",
+  "a31-admin-ajustes.dc.html",
+  "s55-proveedores.dc.html",
+  "s56-nuevo-proveedor.dc.html",
+  "s57-analisis.dc.html",
+  "s58-panel-resumen.dc.html",
+  "s59-panel-finanzas.dc.html",
+  "s60-panel-seguros.dc.html",
+  "s61-panel-auditoria.dc.html",
+  "s62-panel-clientes.dc.html",
+  "s63-inventario-calendario.dc.html",
+  "s64-leads-pipeline.dc.html",
+  "s65-leads-seguimientos.dc.html",
+  "s66-leads-estadisticas.dc.html",
+  "s67-reportes-ingresos.dc.html",
+  "s68-reportes-eventos.dc.html",
+  "s69-reportes-clientes.dc.html",
+  "s70-reportes-inventario.dc.html",
+  "s71-moderar-resenas.dc.html",
+  "s72-bot-preguntas.dc.html",
+  "s73-bot-palabras.dc.html",
+  "s74-bot-conversaciones.dc.html",
+  "s79-notificaciones.dc.html",
+  "s80-busqueda.dc.html",
+  "s81-filtros.dc.html",
+  "s82-mis-pagos.dc.html",
+  "s83-recibo.dc.html",
+  "s84-cambiar-fecha.dc.html",
+  "s85-cancelar-evento.dc.html",
+  "s86-ajustes-cuenta.dc.html",
+  "s87-terminos.dc.html",
+  "s88-eliminar-cuenta.dc.html",
+  "a32-admin-cancelaciones.dc.html",
+  "a33-admin-reembolso.dc.html",
+  "a34-admin-responder-resena.dc.html",
+  "a39-admin-web-inicio.dc.html",
+  "s89-estado-vacio.dc.html",
+  "s90-estado-cargando.dc.html",
+  "s91-estado-sin-conexion.dc.html",
+  "s92-estado-exito.dc.html",
+  "a35-admin-estado-vacio.dc.html",
+  "a36-admin-estado-cargando.dc.html",
+  "a37-admin-estado-error.dc.html",
+  "a38-admin-estado-exito.dc.html"
+ ],
+ "notes": {
+  "t0": {
+   "x": 0,
+   "y": -260,
+   "text": "Sistema: paleta, tipografía, motivos y componentes",
+   "kind": "title1",
+   "maxW": 2760
+  },
+  "t1": {
+   "x": 0,
+   "y": 1040,
+   "text": "App personal · Splash, bienvenida y acceso",
+   "kind": "title1",
+   "maxW": 6500
+  },
+  "t2": {
+   "x": 0,
+   "y": 2340,
+   "text": "App personal · Descubrir: inicio, catálogo, paquetes",
+   "kind": "title1",
+   "maxW": 5560
+  },
+  "t3": {
+   "x": 0,
+   "y": 3640,
+   "text": "App personal · Rosa, la asistente IA",
+   "kind": "title1",
+   "maxW": 5560
+  },
+  "t4": {
+   "x": 0,
+   "y": 4940,
+   "text": "App personal · Mis eventos",
+   "kind": "title1",
+   "maxW": 5090
+  },
+  "t5": {
+   "x": 0,
+   "y": 6240,
+   "text": "App personal · Cotización, pago, cuenta y hojas modales",
+   "kind": "title1",
+   "maxW": 4620
+  },
+  "t6": {
+   "x": 0,
+   "y": 7540,
+   "text": "App administrativa · Splash, inicio, creación de eventos (con Rosa IA o manual) e inventario",
+   "kind": "title1",
+   "maxW": 6030
+  },
+  "t7": {
+   "x": 0,
+   "y": 8840,
+   "text": "App administrativa · Operación de eventos, chats, pagos, catálogo, clientes, equipo y ajustes",
+   "kind": "title1",
+   "maxW": 8850
+  },
+  "t8": {
+   "x": 0,
+   "y": 10140,
+   "text": "App administrativa · Panel, reportes, CRM, proveedores, reseñas y bot",
+   "kind": "title1",
+   "maxW": 9320
+  },
+  "t9": {
+   "x": 0,
+   "y": 11440,
+   "text": "App personal · Notificaciones, búsqueda y filtros, pagos y recibos, cambios de fecha y cancelación, ajustes de la cuenta",
+   "kind": "title1",
+   "maxW": 4620
+  },
+  "t10": {
+   "x": 0,
+   "y": 12740,
+   "text": "App administrativa · Cancelaciones, reembolsos, respuesta a reseñas y versión web",
+   "kind": "title1",
+   "maxW": 2850
+  },
+  "t11": {
+   "x": 0,
+   "y": 14140,
+   "text": "Estados de pantalla · vacío, cargando, sin conexión o error y éxito (personal y administrativa)",
+   "kind": "title1",
+   "maxW": 3680
+  }
+ }
+}

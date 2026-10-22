@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Barra de navegación</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.tb button{font:inherit;border:0;background:none;padding:0;cursor:pointer;color:inherit}
+</style>
+</helmet>
+<nav class="tb" aria-label="Navegación principal" style="width:390px;height:96px;position:relative;font-family:'Figtree',system-ui,sans-serif;background:{{bg}};box-shadow:0 -1px 0 {{line}};display:flex;align-items:flex-start;padding:10px 8px 0">
+  <sc-for list="{{left}}" as="t" hint-placeholder-count="2">
+    <button aria-label="{{t.label}}" style="flex:1;height:56px;display:flex;flex-direction:column;align-items:center;gap:4px;color:{{t.col}}">
+      <span style="width:52px;height:30px;border-radius:999px;display:grid;place-items:center;background:{{t.pill}};color:{{t.ic}}">
+        <dc-import name="Icon" k="{{t.icon}}" s="22" f="{{t.f}}" hint-size="22px,22px"></dc-import>
+      </span>
+      <span style="font-size:11.5px;font-weight:{{t.wt}};letter-spacing:.01em">{{t.label}}</span>
+    </button>
+  </sc-for>
+  <button aria-label="Hablar con Rosa" style="flex:1;height:70px;display:flex;flex-direction:column;align-items:center;gap:4px;margin-top:-26px;color:{{mut}}">
+    <span style="border-radius:50%;padding:4px;background:{{bg}};display:block">
+      <dc-import name="Rosa" s="56" bg="{{rosaBg}}" hint-size="56px,56px"></dc-import>
+    </span>
+    <span style="font-size:11.5px;font-weight:700;color:{{rosaLbl}}">Rosa</span>
+  </button>
+  <sc-for list="{{right}}" as="t" hint-placeholder-count="2">
+    <button aria-label="{{t.label}}" style="flex:1;height:56px;display:flex;flex-direction:column;align-items:center;gap:4px;color:{{t.col}}">
+      <span style="width:52px;height:30px;border-radius:999px;display:grid;place-items:center;background:{{t.pill}};color:{{t.ic}}">
+        <dc-import name="Icon" k="{{t.icon}}" s="22" f="{{t.f}}" hint-size="22px,22px"></dc-import>
+      </span>
+      <span style="font-size:11.5px;font-weight:{{t.wt}};letter-spacing:.01em">{{t.label}}</span>
+    </button>
+  </sc-for>
+</nav>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"a":{"editor":"enum","options":["inicio","catalogo","eventos","favoritos","paquetes","entrar"],"default":"inicio"},"g":{"editor":"boolean","default":false},"dark":{"editor":"boolean","default":false},"cl":{"editor":"boolean","default":false},"lg":{"editor":"boolean","default":false},"$preview":{"width":390,"height":96}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const a = this.props.a ?? 'inicio';
+    const dark = !!this.props.dark;
+    const g = !!this.props.g;
+    const cl = !!this.props.cl;
+    const lg = !!this.props.lg;
+    const on = lg ? (dark ? '#FF8DC1' : '#B8186A') : cl ? '#A956D3' : (dark ? '#FF7DB8' : '#C02A72');
+    const off = lg ? (dark ? '#B3A6C6' : '#675A78') : (dark ? '#A6A3BA' : '#62627A');
+    const pill = lg ? (dark ? 'rgba(235,36,127,.22)' : '#FCE3EE') : cl ? 'linear-gradient(90deg,#EA4EA9,#865DEC)' : (dark ? 'rgba(236,79,151,.18)' : '#FCE4EF');
+    const mk = (k, icon, label) => ({
+      k, icon, label,
+      col: a === k ? on : off,
+      ic: a === k && cl ? '#FFFFFF' : a === k && lg ? (dark ? '#FF8DC1' : '#D81F73') : 'inherit',
+      pill: a === k ? pill : 'transparent',
+      wt: a === k ? 700 : 600,
+      f: false
+    });
+    const left = g ? [mk('catalogo', 'store', 'Catálogo'), mk('favoritos', 'heart', 'Favoritos')]
+                   : [mk('inicio', 'home', 'Inicio'), mk('catalogo', 'store', 'Catálogo')];
+    const right = g ? [mk('paquetes', 'gift', 'Paquetes'), mk('entrar', 'login', 'Entrar')]
+                    : [mk('eventos', 'calendar', 'Eventos'), mk('favoritos', 'heart', 'Favoritos')];
+    return {
+      left, right,
+      rosaBg: lg ? 'linear-gradient(145deg,#EB247F 0%,#6D3590 100%)' : 'linear-gradient(145deg,#E04FAF 0%,#945AE1 55%,#6664E9 100%)',
+      bg: lg ? (dark ? '#1E1230' : '#FFFFFF') : (dark ? '#161624' : '#FFFFFF'),
+      line: lg ? (dark ? '#33264A' : '#ECE7F1') : (dark ? '#2A2A40' : '#F0EBF4'),
+      mut: off,
+      rosaLbl: dark ? '#F2F0F8' : '#1A1A2E'
+    };
+  }
+}
+</script>
+</body>
+</html>

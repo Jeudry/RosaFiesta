@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Mis eventos</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.rf,.rf *{box-sizing:border-box}
+.rf{font-family:'Figtree',system-ui,sans-serif;color:#1A1A2E;-webkit-font-smoothing:antialiased;position:relative;overflow:hidden}
+.rf p,.rf h1,.rf h2,.rf h3{margin:0}
+.rf .d{font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif;letter-spacing:-.02em}
+.rf button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:inherit}
+.rf .ib{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:0 0 0 1px #F0EBF4,0 8px 20px -14px rgba(180,80,180,.4);flex:none;color:#1A1A2E}
+.rf .mut{color:#62627A}
+.rf .tag{height:24px;padding:0 9px;border-radius:999px;display:inline-flex;align-items:center;font-size:12px;font-weight:700;white-space:nowrap}
+.rf .one{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf .seg{flex:1;height:40px;border-radius:12px;font-size:14px;font-weight:600;display:grid;place-items:center}
+.rf .ev{display:flex;align-items:center;gap:14px;padding:10px;border-radius:20px;background:#fff;box-shadow:0 0 0 1px #F2EDF5;width:100%}
+</style>
+</helmet>
+<div class="rf" style="width:390px;height:844px;background:radial-gradient(110% 40% at 0% 0%,#F9E3F1 0%,rgba(249,227,241,0) 60%),radial-gradient(80% 35% at 100% 15%,#EEE7FB 0%,rgba(238,231,251,0) 60%),#FAFAFC">
+  <div style="padding:56px 20px 0;display:flex;flex-direction:column;gap:16px">
+    <div style="display:flex;align-items:center;gap:10px">
+      <h1 class="d" style="font-size:26px;font-weight:800;flex:1">Mis eventos</h1>
+      <button class="ib" aria-label="Ver calendario"><dc-import name="Icon" k="calendar" s="20" hint-size="20px,20px"></dc-import></button>
+      <button aria-label="Nuevo evento" style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#EA4EA9,#865DEC);color:#fff;display:grid;place-items:center;box-shadow:0 8px 16px -8px rgba(160,80,210,.7)"><dc-import name="Icon" k="plus" s="22" w="2.2" hint-size="22px,22px"></dc-import></button>
+    </div>
+    <div style="display:flex;gap:4px;padding:4px;background:#F1EFF5;border-radius:16px">
+      <button class="seg" style="background:#fff;font-weight:700;box-shadow:0 2px 6px -2px rgba(170,70,160,.2)">Próximos · 3</button>
+      <button class="seg mut">Pasados · 1</button>
+      <button class="seg mut">Todos</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <sc-for list="{{events}}" as="e" hint-placeholder-count="3">
+        <button class="ev">
+          <span style="width:64px;height:64px;border-radius:16px;background:{{e.bg}};display:grid;place-items:center;flex:none"><dc-import name="Foto" k="{{e.k}}" w="64" h="64" r="16" hint-size="64px,64px"></dc-import></span>
+          <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:5px">
+            <span class="one" style="font-size:16px;font-weight:700">{{e.name}}</span>
+            <span style="display:flex;align-items:center;gap:8px;font-size:13px" class="mut">{{e.date}} <span class="tag" style="background:{{e.sbg}};color:{{e.sfg}}">{{e.status}}</span></span>
+          </span>
+          <span class="mut"><dc-import name="Icon" k="chev-r" s="20" hint-size="20px,20px"></dc-import></span>
+        </button>
+      </sc-for>
+    </div>
+    <p class="mut" style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-top:6px">Pasados</p>
+    <div class="ev" style="opacity:.9">
+      <dc-import name="Foto" k="corporativo" w="64" h="64" r="16" hint-size="64px,64px"></dc-import>
+      <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:5px">
+        <span class="one" style="font-size:16px;font-weight:700">Gala Corporativa Grupo Caribe</span>
+        <span style="display:flex;align-items:center;gap:8px;font-size:13px" class="mut">Lun 12 oct <span class="tag" style="background:#EFE8FD;color:#7A4FD8">Completado</span></span>
+      </span>
+      <button style="height:36px;padding:0 12px;border-radius:999px;box-shadow:0 0 0 1px #E8E1EE,0 8px 20px -16px rgba(180,80,180,.35);font-size:13px;font-weight:700;display:flex;align-items:center;gap:4px"><dc-import name="Icon" k="star" s="14" hint-size="14px,14px"></dc-import>Reseñar</button>
+    </div>
+  </div>
+  <div style="position:absolute;left:0;bottom:0">
+    <dc-import name="TabBar" cl="{{true}}" a="eventos" hint-size="390px,96px"></dc-import>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      events: [
+        { name: 'Boda Real Rosa & Dorado', date: 'Vie 23 oct', status: 'Ajustado', sbg: '#DDF4F3', sfg: '#1F8A84', k: 'boda', bg: '#FDE6F2' },
+        { name: 'Quinceañera Valentina Crystal', date: 'Lun 2 nov', status: 'Confirmado', sbg: '#EEF6D6', sfg: '#4E6A10', k: 'quinceanera', bg: '#EFE8FD' },
+        { name: 'Baby Shower Sofía en Rosas', date: 'Lun 9 nov', status: 'Borrador', sbg: '#F1EFF5', sfg: '#62627A', k: 'baby-shower', bg: '#DDF4F3' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

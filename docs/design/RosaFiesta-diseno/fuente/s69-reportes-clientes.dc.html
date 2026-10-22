@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Reportes · Clientes</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.rf,.rf *{box-sizing:border-box}
+.rf{font-family:'Figtree',system-ui,sans-serif;color:#151729;-webkit-font-smoothing:antialiased;position:relative;overflow:hidden}
+.rf p,.rf h1,.rf h2{margin:0}
+.rf .d{font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif;letter-spacing:-.02em}
+.rf button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:inherit}
+.rf .ib{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:0 0 0 1px #ECECF5,0 8px 20px -14px rgba(70,80,180,.4);flex:none;color:#151729}
+.rf .mut{color:#5F6377}
+.rf .tab{height:44px;display:flex;align-items:center;font-size:15px;font-weight:600;color:#5F6377;white-space:nowrap;flex:none;text-decoration:none}
+.rf .tab.on{color:#151729;font-weight:700;box-shadow:inset 0 -2.5px 0 #5B6CF0}
+.rf .card{border-radius:22px;background:#fff;box-shadow:0 0 0 1px #ECECF5}
+.rf .lg{display:flex;align-items:center;gap:8px;font-size:14px}
+.rf .sq{width:10px;height:10px;border-radius:3px;flex:none}
+</style>
+</helmet>
+<div class="rf" style="width:390px;height:844px;background:radial-gradient(110% 40% at 100% 0%,#E6E7FF 0%,rgba(230,231,255,0) 60%),radial-gradient(80% 35% at 0% 12%,#F1E9FB 0%,rgba(241,233,251,0) 60%),#F6F6FB">
+  <div style="padding:56px 20px 0;display:flex;flex-direction:column;gap:12px">
+    <header style="display:flex;align-items:center;gap:10px">
+      <button class="ib" aria-label="Volver"><dc-import name="Icon" k="back" s="22" hint-size="22px,22px"></dc-import></button>
+      <h1 class="d" style="font-size:20px;font-weight:800;flex:1">Reportes</h1>
+      <button style="height:44px;padding:0 12px;border-radius:14px;background:#fff;box-shadow:0 0 0 1px #E9E9F2;font-size:14px;font-weight:600;display:flex;align-items:center;gap:6px">Ene–Jun <dc-import name="Icon" k="chev-d" s="16" hint-size="16px,16px"></dc-import></button>
+      <button class="ib" aria-label="Descargar reporte"><dc-import name="Icon" k="download" s="20" hint-size="20px,20px"></dc-import></button>
+    </header>
+    <nav style="display:flex;gap:20px;box-shadow:inset 0 -1px 0 #E9E9F2;margin:0 -20px;padding:0 20px">
+      <a class="tab" href="s67-reportes-ingresos.dc.html">Ingresos</a>
+      <a class="tab" href="s68-reportes-eventos.dc.html">Eventos</a>
+      <a class="tab on" href="s69-reportes-clientes.dc.html">Clientes</a>
+      <a class="tab" href="s70-reportes-inventario.dc.html">Inventario</a>
+    </nav>
+    <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:10px;margin-top:4px">
+      <div style="border-radius:22px;background:linear-gradient(135deg,#7C5CF0 0%,#5B6CF0 55%,#2FB8C8 100%);color:#fff;padding:16px;box-shadow:0 18px 34px -20px rgba(80,110,230,.75)"><p style="font-size:13px;color:#F6EAFB">Clientes</p><p class="d" style="font-size:34px;font-weight:800">248</p></div>
+      <div class="card" style="padding:16px"><p class="mut" style="font-size:13px">Nuevos este mes</p><p class="d" style="font-size:34px;font-weight:800;color:#4E6A10">+18</p></div>
+    </div>
+    <section class="card" style="padding:6px 0">
+      <p style="font-size:15px;font-weight:700;padding:12px 16px 6px">Mejores clientes</p>
+      <sc-for list="{{top}}" as="c" hint-placeholder-count="3">
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 16px;min-height:58px">
+          <span class="d" style="width:30px;height:30px;border-radius:50%;background:{{c.bg}};color:{{c.fg}};display:grid;place-items:center;font-size:14px;font-weight:800;flex:none">{{c.r}}</span>
+          <div style="flex:1"><p style="font-size:15px;font-weight:700">{{c.name}}</p><p class="mut" style="font-size:13px">{{c.ev}} eventos</p></div>
+          <p class="d" style="font-size:16px;font-weight:800">RD$ {{c.v}}</p>
+        </div>
+      </sc-for>
+    </section>
+    <section class="card" style="padding:16px;display:flex;flex-direction:column;gap:12px">
+      <p style="font-size:15px;font-weight:700">Retención</p>
+      <div style="display:flex;height:14px;border-radius:7px;overflow:hidden;gap:2px">
+        <span style="width:45%;background:#EA4EA9"></span><span style="width:38%;background:#8DB52C"></span><span style="width:17%;background:#F7B500"></span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <p class="lg"><span class="sq" style="background:#EA4EA9"></span><span style="flex:1">Primera vez</span><b>45%</b></p>
+        <p class="lg"><span class="sq" style="background:#8DB52C"></span><span style="flex:1">Recurrentes</span><b>38%</b></p>
+        <p class="lg"><span class="sq" style="background:#F7B500"></span><span style="flex:1">VIP</span><b>17%</b></p>
+      </div>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      top: [
+        { r: 1, name: 'María González', ev: 5, v: '42,500', bg: '#FFF2C9', fg: '#7A5700' },
+        { r: 2, name: 'Carlos Rodríguez', ev: 4, v: '38,200', bg: '#EDEDF5', fg: '#5F6377' },
+        { r: 3, name: 'Ana Martínez', ev: 3, v: '28,900', bg: '#ECEBFF', fg: '#4B47D6' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Pago</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.rf,.rf *{box-sizing:border-box}
+.rf{font-family:'Figtree',system-ui,sans-serif;color:#1A1A2E;-webkit-font-smoothing:antialiased;position:relative;overflow:hidden}
+.rf p,.rf h1,.rf h2{margin:0}
+.rf .d{font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif;letter-spacing:-.02em}
+.rf button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:inherit}
+.rf input{font:inherit;color:inherit;border:0;outline:0;background:none;padding:0;min-width:0;flex:1;width:100%}
+.rf input::placeholder{color:#62627A}
+.rf .ib{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:0 0 0 1px #F0EBF4,0 8px 20px -14px rgba(180,80,180,.4);flex:none;color:#1A1A2E}
+.rf .mut{color:#62627A}
+.rf .h{font-size:15px;font-weight:700}
+.rf .pm{height:62px;border-radius:16px;background:#fff;box-shadow:0 0 0 1px #EEE9F2;display:flex;align-items:center;gap:10px;padding:0 14px;font-size:14px;font-weight:600}
+.rf .fld{height:52px;border-radius:14px;background:#fff;box-shadow:0 0 0 1px #E8E1EE,0 8px 20px -16px rgba(180,80,180,.35);display:flex;align-items:center;gap:10px;padding:0 14px;color:#62627A}
+</style>
+</helmet>
+<div class="rf" style="width:390px;height:844px;background:radial-gradient(110% 40% at 0% 0%,#F9E3F1 0%,rgba(249,227,241,0) 60%),radial-gradient(80% 35% at 100% 15%,#EEE7FB 0%,rgba(238,231,251,0) 60%),#FAFAFC">
+  <div style="padding:56px 20px 0;display:flex;flex-direction:column;gap:14px">
+    <header style="display:flex;align-items:center;gap:12px">
+      <button class="ib" aria-label="Volver"><dc-import name="Icon" k="back" s="22" hint-size="22px,22px"></dc-import></button>
+      <h1 class="d" style="font-size:20px;font-weight:800;flex:1">Pago</h1>
+      <span class="mut" style="font-size:13px;display:flex;align-items:center;gap:4px"><dc-import name="Icon" k="lock" s="14" hint-size="14px,14px"></dc-import>Pago seguro</span>
+    </header>
+    <section style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:18px;background:#fff;box-shadow:0 0 0 1px #F2EDF5">
+      <span style="width:40px;height:40px;border-radius:12px;background:#EEF6D6;color:#4E6A10;display:grid;place-items:center;flex:none"><dc-import name="Icon" k="truck" s="20" hint-size="20px,20px"></dc-import></span>
+      <div style="flex:1;min-width:0"><p class="mut" style="font-size:12px">Entrega para Camila Rodríguez</p><p style="font-size:15px;font-weight:700">Jardín Botánico Santo Domingo</p></div>
+      <button style="font-size:14px;font-weight:700;color:#C2338F;height:40px">Cambiar</button>
+    </section>
+    <p class="h" style="margin-top:4px">Método de pago</p>
+    <div style="display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:8px">
+      <button class="pm" style="box-shadow:inset 0 0 0 2px #B754CB"><dc-import name="Icon" k="card" s="20" hint-size="20px,20px"></dc-import>Tarjeta<span style="margin-left:auto;width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#E04FAF 0%,#945AE1 55%,#6664E9 100%);color:#fff;display:grid;place-items:center;box-shadow:0 8px 16px -8px rgba(134,93,236,.7)"><dc-import name="Icon" k="check" s="12" w="3" hint-size="12px,12px"></dc-import></span></button>
+      <button class="pm"><dc-import name="Icon" k="bank" s="20" hint-size="20px,20px"></dc-import>Banco Popular</button>
+      <button class="pm"><dc-import name="Icon" k="bank" s="20" hint-size="20px,20px"></dc-import>Banreservas</button>
+      <button class="pm"><dc-import name="Icon" k="cash" s="20" hint-size="20px,20px"></dc-import>Efectivo</button>
+    </div>
+    <p class="h" style="margin-top:4px">Datos de la tarjeta</p>
+    <label class="fld"><dc-import name="Icon" k="user" s="18" hint-size="18px,18px"></dc-import><input placeholder="Nombre en la tarjeta" value="Olivia Rhye" style="color:#1A1A2E"></label>
+    <label class="fld"><dc-import name="Icon" k="card" s="18" hint-size="18px,18px"></dc-import><input placeholder="Número de tarjeta" inputmode="numeric"></label>
+    <div style="display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:8px">
+      <label class="fld"><input placeholder="MM/AA" aria-label="Vencimiento"></label>
+      <label class="fld"><input placeholder="CVC" aria-label="Código de seguridad"></label>
+    </div>
+    <label class="fld"><dc-import name="Icon" k="phone" s="18" hint-size="18px,18px"></dc-import><input placeholder="Teléfono de contacto" value="(809) 555-1234" style="color:#1A1A2E"></label>
+  </div>
+  <div style="position:absolute;left:0;right:0;bottom:0;padding:14px 20px 34px;background:#fff;box-shadow:0 -1px 0 #F2EDF5">
+    <button style="width:100%;height:58px;border-radius:16px;background:linear-gradient(90deg,#EA4EA9 0%,#B754CB 50%,#865DEC 100%);color:#fff;box-shadow:0 12px 26px -12px rgba(200,70,180,.7);font-weight:700;font-size:16px;display:flex;align-items:center;justify-content:space-between;padding:0 20px"><span>Pagar anticipo (30%)</span><span class="d" style="font-size:19px;font-weight:800">RD$ 1,350</span></button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

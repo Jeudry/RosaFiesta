@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Admin · Nuevo evento (artículos)</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.rf,.rf *{box-sizing:border-box}
+.rf{font-family:'Figtree',system-ui,sans-serif;color:#151729;-webkit-font-smoothing:antialiased;position:relative;overflow:hidden}
+.rf p,.rf h1,.rf h2,.rf h3{margin:0}
+.rf .d{font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif;letter-spacing:-.02em}
+.rf button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:inherit}
+.rf a{color:inherit;text-decoration:none}
+.rf input,.rf textarea{font:inherit;color:inherit;border:0;outline:0;background:none;padding:0;min-width:0;flex:1;resize:none}
+.rf .mut{color:#5F6377}
+.rf .cap{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#5F6377}
+.rf .ib{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:0 0 0 1px #ECECF5,0 8px 20px -14px rgba(70,80,180,.45);flex:none;color:#151729}
+.rf .card{background:#fff;border-radius:20px;box-shadow:0 0 0 1px #ECECF5,0 12px 28px -22px rgba(70,80,180,.45)}
+.rf .btn{height:54px;border-radius:16px;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:16px}
+.rf .bp{background:linear-gradient(135deg,#7C5CF0 0%,#5B6CF0 100%);color:#fff;box-shadow:0 12px 24px -12px rgba(91,108,240,.75)}
+.rf .bs{background:#fff;color:#151729;box-shadow:0 0 0 1px #E3E4EF}
+.rf .chip{height:36px;padding:0 14px;border-radius:999px;display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:600;background:#fff;box-shadow:0 0 0 1px #E9E9F2;white-space:nowrap;flex:none}
+.rf .on{background:linear-gradient(135deg,#7C5CF0 0%,#5B6CF0 100%);color:#fff;box-shadow:0 8px 16px -8px rgba(91,108,240,.7)}
+.rf .tag{height:24px;padding:0 9px;border-radius:999px;display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;white-space:nowrap}
+.rf .one{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf .fld{height:50px;border-radius:14px;background:#fff;box-shadow:0 0 0 1px #E3E4EF;display:flex;align-items:center;gap:10px;padding:0 14px;color:#5F6377;font-size:15px}
+.rf .lbl{font-size:13px;font-weight:700;color:#3A3D52}
+.rf .ti{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;flex:none}
+.rf .stp{display:flex;align-items:center;gap:2px;height:34px;border-radius:999px;background:#F2F2F8;padding:0 3px;flex:none}
+.rf .stp button{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;color:#5B6CF0}
+.rf .seg{height:5px;border-radius:3px;flex:1}
+.rf .sg{flex:1;height:38px;border-radius:12px;font-size:14px;font-weight:600;display:grid;place-items:center;color:#5F6377}
+.rf .sg.sel{background:#fff;color:#151729;font-weight:700;box-shadow:0 2px 8px -3px rgba(70,80,180,.3)}
+</style>
+</helmet>
+<div class="rf" style="width:390px;height:844px;background:radial-gradient(110% 40% at 100% 0%,#E6E7FF 0%,rgba(230,231,255,0) 60%),radial-gradient(80% 35% at 0% 12%,#F1E9FB 0%,rgba(241,233,251,0) 60%),#F6F6FB">
+  <div style="padding:54px 20px 0;display:flex;flex-direction:column;gap:12px">
+    <header style="display:flex;align-items:center;gap:12px">
+      <button class="ib" aria-label="Volver"><dc-import name="Icon" k="back" s="22" hint-size="22px,22px"></dc-import></button>
+      <div style="flex:1;min-width:0"><h1 class="d one" style="font-size:20px;font-weight:800;line-height:1.1">Agregar artículos</h1><p class="mut one" style="font-size:13px">Paso 2 de 3 · Cumpleaños de Mateo</p></div>
+      
+    </header>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <div style="display:flex;gap:4px"><span class="seg" style="background:linear-gradient(135deg,#7C5CF0 0%,#5B6CF0 100%)"></span><span class="seg" style="background:linear-gradient(135deg,#7C5CF0 0%,#5B6CF0 100%)"></span><span class="seg" style="background:#E3E4EF"></span></div>
+      <div style="display:grid;grid-template-columns:repeat(3, minmax(0, 1fr));font-size:12px;font-weight:600" class="mut"><span style="">Datos</span><span style="color:#4B47D6;font-weight:700">Artículos</span><span style="">Resumen</span></div>
+    </div>
+    <label class="fld" style="padding-right:6px"><dc-import name="Icon" k="search" s="18" hint-size="18px,18px"></dc-import><input placeholder="Buscar en el inventario" aria-label="Buscar en el inventario"></label>
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;background:#EEF6D6;color:#4E6A10;font-size:13px;font-weight:600"><dc-import name="Icon" k="calendar" s="16" hint-size="16px,16px"></dc-import>Disponibilidad para el sábado 7 de noviembre</div>
+    <section class="card">
+      <sc-for list="{{items}}" as="it" hint-placeholder-count="5">
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;box-shadow:{{it.line}}">
+          <dc-import name="Foto" k="{{it.k}}" w="50" h="50" r="12" hint-size="50px,50px"></dc-import>
+          <div style="flex:1;min-width:0">
+            <p class="one" style="font-size:14px;font-weight:700">{{it.name}}</p>
+            <p style="font-size:12px;font-weight:600;color:{{it.avc}}">{{it.av}} <span class="mut" style="font-weight:500">· RD$ {{it.price}}</span></p>
+          </div>
+          <div class="stp" style="background:{{it.sbg}}"><button aria-label="Quitar uno"><dc-import name="Icon" k="minus" s="14" hint-size="14px,14px"></dc-import></button><span style="min-width:22px;text-align:center;font-weight:700;font-size:14px">{{it.q}}</span><button aria-label="Agregar uno"><dc-import name="Icon" k="plus" s="14" hint-size="14px,14px"></dc-import></button></div>
+        </div>
+      </sc-for>
+    </section>
+  </div>
+  <div style="position:absolute;left:0;right:0;bottom:0;padding:12px 20px 32px;background:#fff;box-shadow:0 -1px 0 #ECECF5;display:flex;align-items:center;gap:14px">
+    <div style="flex:none"><p class="mut" style="font-size:12px">4 artículos · 47 unid.</p><p class="d" style="font-size:22px;font-weight:800">RD$ 530</p></div>
+    <a href="a07-admin-evento-resumen.dc.html" class="btn bp" style="flex:1">Ver resumen <dc-import name="Icon" k="next" s="18" w="2.2" hint-size="18px,18px"></dc-import></a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const L = '0 -1px 0 #F0F0F6';
+    const ok = '#4E6A10', low = '#7A5700';
+    return {
+      items: [
+        { name: 'Silla Tiffany Cristal', av: '80 libres de 120', avc: ok, price: '4', q: '40', k: 'silla-tiffany', line: 'none', sbg: '#ECEBFF' },
+        { name: 'Mesa redonda', av: '10 libres de 12', avc: ok, price: '25', q: '5', k: 'mesa-redonda', line: L, sbg: '#ECEBFF' },
+        { name: 'Arco de globos rosa', av: '2 libres de 3', avc: ok, price: '95', q: '1', k: 'arco-rosa', line: L, sbg: '#ECEBFF' },
+        { name: 'Mesa dulce temática', av: 'Última disponible', avc: low, price: '150', q: '1', k: 'mesa-helados', line: L, sbg: '#ECEBFF' },
+        { name: 'Centro de mesa floral', av: '20 libres', avc: ok, price: '35', q: '0', k: 'centro-floral', line: L, sbg: '#F2F2F8' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

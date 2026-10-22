@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Admin · Historial de cotizaciones</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.rf,.rf *{box-sizing:border-box}
+.rf{font-family:'Figtree',system-ui,sans-serif;color:#151729;-webkit-font-smoothing:antialiased;position:relative;overflow:hidden}
+.rf p,.rf h1,.rf h2,.rf h3{margin:0}
+.rf .d{font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif;letter-spacing:-.02em}
+.rf button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:inherit}
+.rf a{color:inherit;text-decoration:none}
+.rf input,.rf textarea{font:inherit;color:inherit;border:0;outline:0;background:none;padding:0;min-width:0;flex:1;resize:none}
+.rf .mut{color:#5F6377}
+.rf .cap{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#5F6377}
+.rf .ib{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:0 0 0 1px #ECECF5,0 8px 20px -14px rgba(70,80,180,.45);flex:none;color:#151729}
+.rf .card{background:#fff;border-radius:20px;box-shadow:0 0 0 1px #ECECF5,0 12px 28px -22px rgba(70,80,180,.45)}
+.rf .btn{height:54px;border-radius:16px;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:16px}
+.rf .bp{background:linear-gradient(135deg,#7C5CF0 0%,#5B6CF0 100%);color:#fff;box-shadow:0 12px 24px -12px rgba(91,108,240,.75)}
+.rf .bs{background:#fff;color:#151729;box-shadow:0 0 0 1px #E3E4EF}
+.rf .chip{height:36px;padding:0 14px;border-radius:999px;display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:600;background:#fff;box-shadow:0 0 0 1px #E9E9F2;white-space:nowrap;flex:none}
+.rf .on{background:linear-gradient(135deg,#7C5CF0 0%,#5B6CF0 100%);color:#fff;box-shadow:0 8px 16px -8px rgba(91,108,240,.7)}
+.rf .tag{height:24px;padding:0 9px;border-radius:999px;display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;white-space:nowrap}
+.rf .one{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf .fld{height:50px;border-radius:14px;background:#fff;box-shadow:0 0 0 1px #E3E4EF;display:flex;align-items:center;gap:10px;padding:0 14px;color:#5F6377;font-size:15px}
+.rf .lbl{font-size:13px;font-weight:700;color:#3A3D52}
+.rf .ti{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;flex:none}
+.rf .stp{display:flex;align-items:center;gap:2px;height:34px;border-radius:999px;background:#F2F2F8;padding:0 3px;flex:none}
+.rf .stp button{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;color:#5B6CF0}
+.rf .seg{height:5px;border-radius:3px;flex:1}
+.rf .sg{flex:1;height:38px;border-radius:12px;font-size:14px;font-weight:600;display:grid;place-items:center;color:#5F6377}
+.rf .sg.sel{background:#fff;color:#151729;font-weight:700;box-shadow:0 2px 8px -3px rgba(70,80,180,.3)}
+</style>
+</helmet>
+<div class="rf" style="width:390px;height:844px;background:radial-gradient(110% 40% at 100% 0%,#E6E7FF 0%,rgba(230,231,255,0) 60%),radial-gradient(80% 35% at 0% 12%,#F1E9FB 0%,rgba(241,233,251,0) 60%),#F6F6FB">
+  <div style="padding:54px 20px 0;display:flex;flex-direction:column;gap:12px">
+    <header style="display:flex;align-items:center;gap:12px">
+      <button class="ib" aria-label="Volver"><dc-import name="Icon" k="back" s="22" hint-size="22px,22px"></dc-import></button>
+      <div style="flex:1;min-width:0"><h1 class="d one" style="font-size:20px;font-weight:800;line-height:1.1">Cotizaciones</h1><p class="mut one" style="font-size:13px">6 este mes</p></div>
+      
+    </header>
+    <div style="display:flex;gap:8px;margin:0 -20px -18px;padding:2px 20px 14px;overflow:hidden"><button class="chip on">Enviadas · 3</button><button class="chip">Aprobadas · 2</button><button class="chip">Rechazadas · 1</button><button class="chip">Vencidas · 1</button></div>
+    <sc-for list="{{qs}}" as="q" hint-placeholder-count="3">
+      <article class="card" style="padding:14px;display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;gap:10px;align-items:flex-start">
+          <div style="flex:1;min-width:0"><p class="one" style="font-size:15px;font-weight:700">{{q.ev}}</p><p class="mut one" style="font-size:12px">{{q.client}} · enviada {{q.sent}}</p></div>
+          <span class="tag" style="background:{{q.sbg}};color:{{q.sfg}}">{{q.status}}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <p class="d" style="flex:1;font-size:18px;font-weight:800">RD$ {{q.amt}}</p>
+          <button style="height:34px;padding:0 12px;border-radius:999px;box-shadow:0 0 0 1px #E3E4EF;font-size:13px;font-weight:700;display:flex;align-items:center;gap:5px"><dc-import name="Icon" k="layers" s="14" hint-size="14px,14px"></dc-import>Duplicar</button>
+          <button class="on" style="height:34px;padding:0 12px;border-radius:999px;font-size:13px;font-weight:700;display:flex;align-items:center;gap:5px"><dc-import name="Icon" k="send" s="14" hint-size="14px,14px"></dc-import>Reenviar</button>
+        </div>
+      </article>
+    </sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      qs: [
+        { ev: 'Cumpleaños de Mateo', client: 'Laura Peña', sent: 'hoy', status: 'Sin abrir', sbg: '#FFF2C9', sfg: '#7A5700', amt: '780' },
+        { ev: 'Boda Real Rosa & Dorado', client: 'Camila R.', sent: 'el 16 oct', status: 'Vista', sbg: '#DDF4F3', sfg: '#1F8A84', amt: '4,500' },
+        { ev: 'Graduación Promo 2026', client: 'Ana Gómez', sent: 'el 12 oct', status: 'Vista', sbg: '#DDF4F3', sfg: '#1F8A84', amt: '2,140' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

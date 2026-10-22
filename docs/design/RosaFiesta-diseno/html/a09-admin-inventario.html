@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=390">
+<title>A09 · Inventario</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#E9E9EF;display:flex;justify-content:center;padding:24px 0}
+#screen{position:relative;overflow:hidden;width:390px;height:844px;box-shadow:0 20px 60px -20px rgba(0,0,0,.35)}
+
+body{margin:0}
+.rf,.rf *{box-sizing:border-box}
+.rf{font-family:'Figtree',system-ui,sans-serif;color:#151729;-webkit-font-smoothing:antialiased;position:relative;overflow:hidden}
+.rf p,.rf h1,.rf h2,.rf h3{margin:0}
+.rf .d{font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif;letter-spacing:-.02em}
+.rf button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:inherit}
+.rf a{color:inherit;text-decoration:none}
+.rf input,.rf textarea{font:inherit;color:inherit;border:0;outline:0;background:none;padding:0;min-width:0;flex:1;resize:none}
+.rf .mut{color:#5F6377}
+.rf .cap{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#5F6377}
+.rf .ib{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:0 0 0 1px #ECECF5,0 8px 20px -14px rgba(70,80,180,.45);flex:none;color:#151729}
+.rf .card{background:#fff;border-radius:20px;box-shadow:0 0 0 1px #ECECF5,0 12px 28px -22px rgba(70,80,180,.45)}
+.rf .btn{height:54px;border-radius:16px;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:16px}
+.rf .bp{background:linear-gradient(135deg,#7C5CF0 0%,#5B6CF0 100%);color:#fff;box-shadow:0 12px 24px -12px rgba(91,108,240,.75)}
+.rf .bs{background:#fff;color:#151729;box-shadow:0 0 0 1px #E3E4EF}
+.rf .chip{height:36px;padding:0 14px;border-radius:999px;display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:600;background:#fff;box-shadow:0 0 0 1px #E9E9F2;white-space:nowrap;flex:none}
+.rf .on{background:linear-gradient(135deg,#7C5CF0 0%,#5B6CF0 100%);color:#fff;box-shadow:0 8px 16px -8px rgba(91,108,240,.7)}
+.rf .tag{height:24px;padding:0 9px;border-radius:999px;display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;white-space:nowrap}
+.rf .one{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf .fld{height:50px;border-radius:14px;background:#fff;box-shadow:0 0 0 1px #E3E4EF;display:flex;align-items:center;gap:10px;padding:0 14px;color:#5F6377;font-size:15px}
+.rf .lbl{font-size:13px;font-weight:700;color:#3A3D52}
+.rf .ti{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;flex:none}
+.rf .stp{display:flex;align-items:center;gap:2px;height:34px;border-radius:999px;background:#F2F2F8;padding:0 3px;flex:none}
+.rf .stp button{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;color:#5B6CF0}
+.rf .seg{height:5px;border-radius:3px;flex:1}
+.rf .sg{flex:1;height:38px;border-radius:12px;font-size:14px;font-weight:600;display:grid;place-items:center;color:#5F6377}
+.rf .sg.sel{background:#fff;color:#151729;font-weight:700;box-shadow:0 2px 8px -3px rgba(70,80,180,.3)}
+
+
+body{margin:0}
+
+
+body{margin:0}
+
+
+body{margin:0}
+.ab button{font:inherit;border:0;background:none;padding:0;cursor:pointer;color:inherit}
+
+
+body{margin:0}
+
+</style>
+</head>
+<body>
+<!-- A09 · Inventario · Exportado del lienzo de Claude Design (HTML estático, sin lógica). -->
+<div id="screen">
+
+
+<div class="rf" style="width:390px;height:844px;background:radial-gradient(110% 40% at 100% 0%,#E6E7FF 0%,rgba(230,231,255,0) 60%),radial-gradient(80% 35% at 0% 12%,#F1E9FB 0%,rgba(241,233,251,0) 60%),#F6F6FB">
+  <div style="padding:54px 20px 0;display:flex;flex-direction:column;gap:12px">
+    <header style="display:flex;align-items:center;gap:10px">
+      <div style="flex:1"><h1 class="d" style="font-size:24px;font-weight:800">Inventario</h1><p class="mut" style="font-size:13px">15 artículos · 6 categorías</p></div>
+      <button class="ib" aria-label="Ver disponibilidad">
+
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:block;flex:none"><path d="M4 6.5A1.5 1.5 0 0 1 5.5 5h13A1.5 1.5 0 0 1 20 6.5v12a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5zM4 10h16M8 3v4M16 3v4"></path></svg>
+</button>
+      <a href="a10-admin-articulo-nuevo.dc.html" aria-label="Agregar artículo" style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#7C5CF0 0%,#5B6CF0 100%);color:#fff;display:grid;place-items:center;box-shadow:0 8px 16px -8px rgba(91,108,240,.7)">
+
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:block;flex:none"><path d="M12 5v14M5 12h14"></path></svg>
+</a>
+    </header>
+    <label class="fld" style="padding-right:6px">
+
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:block;flex:none"><path d="M4 11a7 7 0 1 0 14 0a7 7 0 1 0 -14 0M20 20l-3.6-3.6"></path></svg>
+<input placeholder="Buscar artículo" aria-label="Buscar artículo" style=""><button aria-label="Filtros" style="width:38px;height:38px;border-radius:10px;background:#ECEBFF;color:#4B47D6;display:grid;place-items:center">
+
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:block;flex:none"><path d="M4 7h9M17 7h3M15 5v4M4 17h3M11 17h9M9 15v4"></path></svg>
+</button></label>
+    <div style="display:flex;gap:8px;margin:0 -20px -18px;padding:2px 20px 14px;overflow:hidden">
+      <button class="chip on">Todos</button><button class="chip">Mobiliario</button><button class="chip">Floral</button><button class="chip">Globos</button><button class="chip">Mesa dulce</button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3, minmax(0, 1fr));gap:8px">
+      <div style="padding:10px 12px;border-radius:16px;background:#EEF6D6"><p class="d" style="font-size:20px;font-weight:800;color:#3F560C">12</p><p style="font-size:12px;font-weight:600;color:#4E6A10">Disponibles</p></div>
+      <div style="padding:10px 12px;border-radius:16px;background:#ECEBFF"><p class="d" style="font-size:20px;font-weight:800;color:#4B47D6">2</p><p style="font-size:12px;font-weight:600;color:#4B47D6">Reservados hoy</p></div>
+      <div style="padding:10px 12px;border-radius:16px;background:#FDE3EA"><p class="d" style="font-size:20px;font-weight:800;color:#B42345">1</p><p style="font-size:12px;font-weight:600;color:#B42345">Stock bajo</p></div>
+    </div>
+    <section class="card">
+      
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;box-shadow:none">
+          
+
+<div style="width:54px;height:54px;border-radius:12px;overflow:hidden;background:#F3EEF6;flex:none;display:block">
+  <img src="../assets/silla-tiffany.jpg" alt="silla tiffany" style="width:100%;height:100%;object-fit:cover;object-position:center;display:block">
+</div>
+
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+            <p class="one" style="font-size:15px;font-weight:700">Silla Tiffany Cristal</p>
+            <p class="mut" style="font-size:12px">120 unid. · <b style="color:#151729">RD$ 4</b>/día</p>
+          </div>
+          <span class="tag" style="background:#EEF6D6;color:#4E6A10">Activo</span>
+        </div>
+      
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;box-shadow:0 -1px 0 #F0F0F6">
+          
+
+<div style="width:54px;height:54px;border-radius:12px;overflow:hidden;background:#F3EEF6;flex:none;display:block">
+  <img src="../assets/mesa-redonda.jpg" alt="mesa redonda" style="width:100%;height:100%;object-fit:cover;object-position:center;display:block">
+</div>
+
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+            <p class="one" style="font-size:15px;font-weight:700">Mesa redonda</p>
+            <p class="mut" style="font-size:12px">12 unid. · <b style="color:#151729">RD$ 25</b>/día</p>
+          </div>
+          <span class="tag" style="background:#EEF6D6;color:#4E6A10">Activo</span>
+        </div>
+      
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;box-shadow:0 -1px 0 #F0F0F6">
+          
+
+<div style="width:54px;height:54px;border-radius:12px;overflow:hidden;background:#F3EEF6;flex:none;display:block">
+  <img src="../assets/centro-floral.jpg" alt="centro floral" style="width:100%;height:100%;object-fit:cover;object-position:center;display:block">
+</div>
+
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+            <p class="one" style="font-size:15px;font-weight:700">Centro de mesa floral</p>
+            <p class="mut" style="font-size:12px">20 unid. · <b style="color:#151729">RD$ 35</b>/día</p>
+          </div>
+          <span class="tag" style="background:#EEF6D6;color:#4E6A10">Activo</span>
+        </div>
+      
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;box-shadow:0 -1px 0 #F0F0F6">
+          
+
+<div style="width:54px;height:54px;border-radius:12px;overflow:hidden;background:#F3EEF6;flex:none;display:block">
+  <img src="../assets/arco-rosa.jpg" alt="arco rosa" style="width:100%;height:100%;object-fit:cover;object-position:center;display:block">
+</div>
+
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+            <p class="one" style="font-size:15px;font-weight:700">Arco de globos rosa</p>
+            <p class="mut" style="font-size:12px">3 unid. · <b style="color:#151729">RD$ 95</b>/día</p>
+          </div>
+          <span class="tag" style="background:#EEF6D6;color:#4E6A10">Activo</span>
+        </div>
+      
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;box-shadow:0 -1px 0 #F0F0F6">
+          
+
+<div style="width:54px;height:54px;border-radius:12px;overflow:hidden;background:#F3EEF6;flex:none;display:block">
+  <img src="../assets/mesa-helados.jpg" alt="mesa helados" style="width:100%;height:100%;object-fit:cover;object-position:center;display:block">
+</div>
+
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+            <p class="one" style="font-size:15px;font-weight:700">Mesa dulce temática</p>
+            <p class="mut" style="font-size:12px">2 unid. · <b style="color:#151729">RD$ 150</b>/día</p>
+          </div>
+          <span class="tag" style="background:#FDE3EA;color:#B42345">Stock bajo</span>
+        </div>
+      
+    </section>
+  </div>
+  <div style="position:absolute;left:0;bottom:0">
+    
+
+<nav class="ab" aria-label="Navegación de administración" style="width:390px;height:96px;position:relative;font-family:'Figtree',system-ui,sans-serif;background:#FFFFFF;box-shadow:0 -1px 0 #ECECF5;display:flex;align-items:flex-start;padding:10px 8px 0">
+  
+    <button aria-label="Inicio" style="flex:1;height:56px;display:flex;flex-direction:column;align-items:center;gap:4px;color:#5F6377">
+      <span style="width:52px;height:30px;border-radius:999px;display:grid;place-items:center;background:transparent;color:inherit">
+        
+
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:block;flex:none"><path d="M3 10.5L12 3l9 7.5M5 9v11h5v-6h4v6h5V9"></path></svg>
+
+      </span>
+      <span style="font-size:11.5px;font-weight:600">Inicio</span>
+    </button>
+  
+    <button aria-label="Eventos" style="flex:1;height:56px;display:flex;flex-direction:column;align-items:center;gap:4px;color:#5F6377">
+      <span style="width:52px;height:30px;border-radius:999px;display:grid;place-items:center;background:transparent;color:inherit">
+        
+
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:block;flex:none"><path d="M4 6.5A1.5 1.5 0 0 1 5.5 5h13A1.5 1.5 0 0 1 20 6.5v12a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5zM4 10h16M8 3v4M16 3v4"></path></svg>
+
+      </span>
+      <span style="font-size:11.5px;font-weight:600">Eventos</span>
+    </button>
+  
+  <button aria-label="Crear con Rosa" style="flex:1;height:70px;display:flex;flex-direction:column;align-items:center;gap:4px;margin-top:-26px">
+    <span style="border-radius:50%;padding:4px;background:#FFFFFF;display:block">
+      
+
+<div role="img" aria-label="Rosa, asistente IA" style="width:56px;height:56px;border-radius:50%;background:linear-gradient(145deg,#7C5CF0 0%,#5B6CF0 55%,#2FB8C8 100%);display:grid;place-items:center;flex:none;box-shadow:0 7px 19px -7px rgba(118,80,232,.55)">
+  <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:block">
+    <path d="M4.6 13.4V12a7.4 7.4 0 0 1 14.8 0v1.4"></path>
+    <rect x="3.1" y="11.9" width="3" height="5.2" rx="1.5" fill="#fff" stroke="none"></rect>
+    <rect x="17.9" y="11.9" width="3" height="5.2" rx="1.5" fill="#fff" stroke="none"></rect>
+    <path d="M7.6 12.4c0-2.8 1.9-4.9 4.4-4.9s4.4 2.1 4.4 4.9c0 2.7-1.9 4.6-4.4 4.6s-4.4-1.9-4.4-4.6z"></path>
+    <path d="M7.9 10.9c1.9 0 3.4-1 4.3-2.7.8 1.6 2.2 2.6 3.9 2.7"></path>
+    <circle cx="10.3" cy="12.6" r=".8" fill="#fff" stroke="none"></circle>
+    <circle cx="13.7" cy="12.6" r=".8" fill="#fff" stroke="none"></circle>
+    <path d="M19.4 17.1v.5a2.2 2.2 0 0 1-2.2 2.2h-3.4"></path>
+    <rect x="11.4" y="18.8" width="3" height="2" rx="1" fill="#fff" stroke="none"></rect>
+  </svg>
+</div>
+
+    </span>
+    <span style="font-size:11.5px;font-weight:700;color:#151729">Rosa</span>
+  </button>
+  
+    <button aria-label="Inventario" style="flex:1;height:56px;display:flex;flex-direction:column;align-items:center;gap:4px;color:#4B47D6">
+      <span style="width:52px;height:30px;border-radius:999px;display:grid;place-items:center;background:linear-gradient(135deg,#7C5CF0 0%,#5B6CF0 100%);color:#FFFFFF">
+        
+
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:block;flex:none"><path d="M3 7.5l9-4.5 9 4.5v9L12 21l-9-4.5zM3 7.5l9 4.5 9-4.5M12 12v9"></path></svg>
+
+      </span>
+      <span style="font-size:11.5px;font-weight:700">Inventario</span>
+    </button>
+  
+    <button aria-label="Más" style="flex:1;height:56px;display:flex;flex-direction:column;align-items:center;gap:4px;color:#5F6377">
+      <span style="width:52px;height:30px;border-radius:999px;display:grid;place-items:center;background:transparent;color:inherit">
+        
+
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:block;flex:none"><path d="M5 12h.01M12 12h.01M19 12h.01"></path></svg>
+
+      </span>
+      <span style="font-size:11.5px;font-weight:600">Más</span>
+    </button>
+  
+</nav>
+
+  </div>
+</div>
+
+</div>
+</body>
+</html>

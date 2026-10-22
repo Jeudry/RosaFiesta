@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Admin · Crear con Rosa IA</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.rf,.rf *{box-sizing:border-box}
+.rf{font-family:'Figtree',system-ui,sans-serif;color:#151729;-webkit-font-smoothing:antialiased;position:relative;overflow:hidden}
+.rf p,.rf h1,.rf h2,.rf h3{margin:0}
+.rf .d{font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif;letter-spacing:-.02em}
+.rf button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:inherit}
+.rf a{color:inherit;text-decoration:none}
+.rf input,.rf textarea{font:inherit;color:inherit;border:0;outline:0;background:none;padding:0;min-width:0;flex:1;resize:none}
+.rf .mut{color:#5F6377}
+.rf .cap{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#5F6377}
+.rf .ib{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:0 0 0 1px #ECECF5,0 8px 20px -14px rgba(70,80,180,.45);flex:none;color:#151729}
+.rf .card{background:#fff;border-radius:20px;box-shadow:0 0 0 1px #ECECF5,0 12px 28px -22px rgba(70,80,180,.45)}
+.rf .btn{height:54px;border-radius:16px;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:16px}
+.rf .bp{background:linear-gradient(135deg,#7C5CF0 0%,#5B6CF0 100%);color:#fff;box-shadow:0 12px 24px -12px rgba(91,108,240,.75)}
+.rf .bs{background:#fff;color:#151729;box-shadow:0 0 0 1px #E3E4EF}
+.rf .chip{height:36px;padding:0 14px;border-radius:999px;display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:600;background:#fff;box-shadow:0 0 0 1px #E9E9F2;white-space:nowrap;flex:none}
+.rf .on{background:linear-gradient(135deg,#7C5CF0 0%,#5B6CF0 100%);color:#fff;box-shadow:0 8px 16px -8px rgba(91,108,240,.7)}
+.rf .tag{height:24px;padding:0 9px;border-radius:999px;display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;white-space:nowrap}
+.rf .one{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf .fld{height:50px;border-radius:14px;background:#fff;box-shadow:0 0 0 1px #E3E4EF;display:flex;align-items:center;gap:10px;padding:0 14px;color:#5F6377;font-size:15px}
+.rf .lbl{font-size:13px;font-weight:700;color:#3A3D52}
+.rf .ti{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;flex:none}
+.rf .stp{display:flex;align-items:center;gap:2px;height:34px;border-radius:999px;background:#F2F2F8;padding:0 3px;flex:none}
+.rf .stp button{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;color:#5B6CF0}
+.rf .seg{height:5px;border-radius:3px;flex:1}
+.rf .sg{flex:1;height:38px;border-radius:12px;font-size:14px;font-weight:600;display:grid;place-items:center;color:#5F6377}
+.rf .sg.sel{background:#fff;color:#151729;font-weight:700;box-shadow:0 2px 8px -3px rgba(70,80,180,.3)}
+</style>
+</helmet>
+<div class="rf" style="width:390px;height:844px;background:linear-gradient(180deg,#E3E1FB 0%,#F1EEFA 40%,#F4F1FA 60%,#DCDDF8 100%)">
+  <header style="position:absolute;top:54px;left:16px;right:16px;display:flex;align-items:center;gap:12px">
+    <button class="ib" aria-label="Volver"><dc-import name="Icon" k="back" s="22" hint-size="22px,22px"></dc-import></button>
+    <dc-import name="Rosa" bg="linear-gradient(145deg,#7C5CF0 0%,#5B6CF0 55%,#2FB8C8 100%)" s="40" glow="{{false}}" hint-size="40px,40px"></dc-import>
+    <div style="flex:1;min-width:0"><p class="d" style="font-size:18px;font-weight:800;line-height:1.1">Rosa</p><p class="mut" style="font-size:12px;display:flex;align-items:center;gap:6px">Asistente <span class="tag" style="height:20px;padding:0 7px;font-size:11px;background:#ECEBFF;color:#4B47D6">Admin</span></p></div>
+  </header>
+
+  <div style="position:absolute;top:118px;left:16px;right:16px;display:flex;flex-direction:column;gap:12px">
+    <p style="align-self:flex-end;max-width:290px;background:linear-gradient(135deg,#7C5CF0 0%,#5B6CF0 100%);color:#fff;border-radius:20px 20px 6px 20px;padding:12px 14px;font-size:15px;line-height:1.4;box-shadow:0 8px 16px -10px rgba(91,108,240,.7)">Arma una boda para 120 personas el sábado 14 de noviembre en un jardín, blanco y dorado.</p>
+    <div style="display:flex;flex-direction:column;gap:8px;max-width:330px">
+      <p style="background:#fff;border-radius:20px 20px 20px 6px;padding:12px 14px;font-size:15px;line-height:1.4;box-shadow:0 8px 20px -16px rgba(70,80,180,.5)">Listo. Revisé el inventario para el <b>14 de noviembre</b> y te armé este borrador:</p>
+      <section style="background:#fff;border-radius:20px;box-shadow:0 0 0 1px #E9E9F2,0 14px 30px -22px rgba(70,80,180,.5);overflow:hidden">
+        <div style="padding:12px 14px;display:flex;align-items:center;justify-content:space-between;background:#F7F6FF">
+          <p style="font-size:14px;font-weight:700;display:flex;align-items:center;gap:6px"><dc-import name="Icon" k="ring" s="16" hint-size="16px,16px"></dc-import>Boda · Sáb 14 nov</p><span class="tag" style="background:#ECEBFF;color:#4B47D6">120 invitados</span>
+        </div>
+        <sc-for list="{{items}}" as="it" hint-placeholder-count="4">
+          <div style="display:flex;align-items:center;gap:10px;padding:9px 14px;box-shadow:{{it.line}}">
+            <dc-import name="Foto" k="{{it.k}}" w="36" h="36" r="10" hint-size="36px,36px"></dc-import>
+            <span class="one" style="flex:1;font-size:14px;font-weight:600">{{it.name}} <span class="mut" style="font-weight:500">× {{it.q}}</span></span>
+            <span class="tag" style="background:{{it.bg}};color:{{it.fg}};height:22px;font-size:11px">{{it.av}}</span>
+          </div>
+        </sc-for>
+        <div style="padding:10px 14px 14px;display:flex;flex-direction:column;gap:10px;box-shadow:0 -1px 0 #F0F0F6">
+          <div style="display:flex;justify-content:space-between;align-items:baseline"><span class="mut" style="font-size:13px">Estimado</span><span class="d" style="font-size:20px;font-weight:800">RD$ 1,295</span></div>
+          <div style="display:flex;gap:8px">
+            <a href="a07-admin-evento-resumen.dc.html" class="on" style="flex:1;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;gap:6px;font-size:14px;font-weight:700"><dc-import name="Icon" k="check" s="16" w="2.4" hint-size="16px,16px"></dc-import>Usar borrador</a>
+            <a href="a06-admin-evento-articulos.dc.html" style="flex:1;height:42px;border-radius:12px;box-shadow:0 0 0 1px #E3E4EF;display:flex;align-items:center;justify-content:center;gap:6px;font-size:14px;font-weight:700"><dc-import name="Icon" k="edit" s="16" hint-size="16px,16px"></dc-import>Ajustar</a>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div style="position:absolute;left:16px;right:16px;bottom:104px;display:flex;gap:8px;overflow:hidden">
+    <button class="chip"><dc-import name="Icon" k="user" s="16" hint-size="16px,16px"></dc-import>Asignar a un cliente</button><button class="chip"><dc-import name="Icon" k="bulb" s="16" hint-size="16px,16px"></dc-import>Agregar iluminación</button><button class="chip">Cambiar fecha</button>
+  </div>
+  <label style="position:absolute;left:16px;right:16px;bottom:34px;height:58px;border-radius:999px;background:#fff;box-shadow:0 0 0 1px #E3E4EF,0 12px 30px -20px rgba(70,80,180,.45);display:flex;align-items:center;gap:10px;padding:0 6px 0 20px">
+    <input placeholder="Pídele algo más a Rosa…" aria-label="Mensaje para Rosa">
+    <button aria-label="Hablar con Rosa" style="width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,#7C5CF0 0%,#5B6CF0 100%);color:#fff;display:grid;place-items:center;box-shadow:0 8px 16px -8px rgba(91,108,240,.7)"><dc-import name="Icon" k="mic" s="22" hint-size="22px,22px"></dc-import></button>
+  </label>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const L = '0 -1px 0 #F0F0F6';
+    const ok = { bg: '#EEF6D6', fg: '#4E6A10', av: 'Disponible' };
+    return {
+      items: [
+        Object.assign({ name: 'Silla Tiffany Cristal', q: '120', k: 'silla-tiffany', line: L }, ok),
+        Object.assign({ name: 'Mesa redonda', q: '12', k: 'mesa-redonda', line: L }, ok),
+        Object.assign({ name: 'Centro de mesa floral', q: '12', k: 'centro-floral', line: L }, ok),
+        { name: 'Arco de globos rosa', q: '1', k: 'arco-rosa', line: L, bg: '#FFF2C9', fg: '#7A5700', av: 'Queda 1' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

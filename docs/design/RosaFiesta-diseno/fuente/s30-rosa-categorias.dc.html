@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Rosa · ¿Qué más necesitas?</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.rf,.rf *{box-sizing:border-box}
+.rf{font-family:'Figtree',system-ui,sans-serif;color:#1A1A2E;-webkit-font-smoothing:antialiased;position:relative;overflow:hidden}
+.rf p,.rf h1,.rf h2,.rf h3{margin:0}
+.rf .d{font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif;letter-spacing:-.02em}
+.rf button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:inherit}
+.rf input{font:inherit;color:inherit;border:0;outline:0;background:none;padding:0;min-width:0;flex:1}
+.rf input::placeholder{color:#62627A}
+.rf .ib{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:0 0 0 1px #F0EBF4,0 8px 20px -14px rgba(180,80,180,.4);flex:none;color:#1A1A2E}
+.rf .mut{color:#62627A}
+.rf .seg{height:5px;border-radius:3px;flex:1}
+.rf .btn{height:54px;border-radius:16px;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:16px}
+</style>
+</helmet>
+<div class="rf" style="width:390px;height:844px;background:linear-gradient(180deg,#DED5F7 0%,#F2EAF7 40%,#F5EEF7 60%,#D9D0F2 100%)">
+  <header style="position:absolute;top:54px;left:16px;right:16px;display:flex;align-items:center;gap:12px">
+    <button class="ib" aria-label="Volver al paso anterior"><dc-import name="Icon" k="back" s="22" hint-size="22px,22px"></dc-import></button>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px">
+      <p style="font-size:13px;font-weight:700">Paso 4 de 6</p>
+      <div style="width:150px;display:flex;gap:4px">
+        <span class="seg" style="background:linear-gradient(90deg,#EA4EA9,#B754CB)"></span><span class="seg" style="background:linear-gradient(90deg,#EA4EA9,#B754CB)"></span><span class="seg" style="background:linear-gradient(90deg,#EA4EA9,#B754CB)"></span><span class="seg" style="background:linear-gradient(90deg,#EA4EA9,#B754CB)"></span><span class="seg" style="background:#DDD3F3"></span><span class="seg" style="background:#DDD3F3"></span>
+      </div>
+    </div>
+    <button class="ib" aria-label="Mi evento, 17 artículos" style="position:relative"><dc-import name="Icon" k="bag" s="22" hint-size="22px,22px"></dc-import><span style="position:absolute;top:-4px;right:-4px;min-width:20px;height:20px;border-radius:999px;background:#FFD45C;color:#2E1A47;font-size:11px;font-weight:800;display:grid;place-items:center;padding:0 5px">17</span></button>
+  </header>
+
+  <div style="position:absolute;top:128px;left:20px;right:20px;display:flex;flex-direction:column;gap:20px">
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <dc-import name="Rosa" s="40" glow="{{false}}" hint-size="40px,40px"></dc-import>
+      <h1 class="d" style="font-size:26px;font-weight:800;line-height:1.05">¿Te falta algo? Revisemos por categoría</h1>
+    </div>
+    <section style="background:#fff;border-radius:24px;padding:6px 0;box-shadow:0 14px 30px -22px rgba(170,70,160,.45)">
+      <sc-for list="{{cats}}" as="c" hint-placeholder-count="5">
+        <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;min-height:64px;box-shadow:{{c.line}}">
+          <span style="width:40px;height:40px;border-radius:12px;background:{{c.bg}};color:{{c.fg}};display:grid;place-items:center;flex:none"><dc-import name="Icon" k="{{c.icon}}" s="20" hint-size="20px,20px"></dc-import></span>
+          <div style="flex:1;min-width:0">
+            <p style="font-size:16px;font-weight:700">{{c.name}}</p>
+            <sc-if value="{{c.done}}" hint-placeholder-val="{{false}}"><p style="font-size:13px;font-weight:600;color:#4E6A10">{{c.note}}</p></sc-if>
+          </div>
+          <sc-if value="{{c.done}}" hint-placeholder-val="{{false}}">
+            <span style="color:#8DB52C"><dc-import name="Icon" k="check-c" s="24" hint-size="24px,24px"></dc-import></span>
+          </sc-if>
+          <sc-if value="{{c.todo}}" hint-placeholder-val="{{true}}">
+            <div style="display:flex;gap:4px">
+              <button style="height:36px;padding:0 10px;font-size:14px;font-weight:600;color:#62627A">Omitir</button>
+              <button style="height:36px;padding:0 14px;border-radius:999px;background:linear-gradient(135deg,#E04FAF 0%,#945AE1 55%,#6664E9 100%);color:#fff;font-size:14px;font-weight:700;box-shadow:0 8px 16px -8px rgba(134,93,236,.7)">Elegir</button>
+            </div>
+          </sc-if>
+        </div>
+      </sc-for>
+    </section>
+  </div>
+
+  <div style="position:absolute;left:20px;right:20px;bottom:110px;display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:10px">
+    <button class="btn" style="background:#fff">Más ideas</button>
+    <button class="btn" style="background:linear-gradient(90deg,#EA4EA9 0%,#B754CB 50%,#865DEC 100%);color:#fff;box-shadow:0 12px 26px -12px rgba(200,70,180,.7)">Siguiente</button>
+  </div>
+
+  <label style="position:absolute;left:16px;right:16px;bottom:34px;height:58px;border-radius:999px;background:#fff;box-shadow:0 0 0 1px #E7DEF5,0 12px 30px -20px rgba(170,70,160,.4);display:flex;align-items:center;gap:10px;padding:0 6px 0 20px">
+    <input placeholder="Escríbele a Rosa o habla…" aria-label="Mensaje para Rosa">
+    <button aria-label="Hablar con Rosa" style="width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,#E04FAF 0%,#945AE1 55%,#6664E9 100%);color:#fff;display:grid;place-items:center;box-shadow:0 8px 16px -8px rgba(134,93,236,.7)"><dc-import name="Icon" k="mic" s="22" hint-size="22px,22px"></dc-import></button>
+  </label>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const l = '0 -1px 0 #F2F0F5';
+    const mk = (o, i) => ({ ...o, todo: !o.done, line: i === 0 ? 'none' : l });
+    return {
+      cats: [
+        { name: 'Sillas', note: '2 elegidas', icon: 'chair', bg: '#FFF2C9', fg: '#7A5700', done: true },
+        { name: 'Mesas', note: '1 elegida', icon: 'table', bg: '#EEF6D6', fg: '#4E6A10', done: true },
+        { name: 'Iluminación', icon: 'bulb', bg: '#DDF4F3', fg: '#1F8A84', done: false },
+        { name: 'Mantelería', icon: 'cloth', bg: '#EFE8FD', fg: '#7A4FD8', done: false },
+        { name: 'Centros de mesa', icon: 'flower', bg: '#FDE6F2', fg: '#C2338F', done: false }
+      ].map(mk)
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Rosa · Solicitud enviada</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.rf,.rf *{box-sizing:border-box}
+.rf{font-family:'Figtree',system-ui,sans-serif;color:#1A1A2E;-webkit-font-smoothing:antialiased;position:relative;overflow:hidden}
+.rf p,.rf h1,.rf h2,.rf h3{margin:0}
+.rf .d{font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif;letter-spacing:-.02em}
+.rf button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:inherit}
+.rf .ib{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:0 0 0 1px #F0EBF4,0 8px 20px -14px rgba(180,80,180,.4);flex:none;color:#1A1A2E}
+.rf .mut{color:#62627A}
+.rf .btn{height:56px;border-radius:16px;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:16px}
+.rf .st{display:flex;gap:14px;align-items:flex-start}
+.rf .dot{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:800;flex:none}
+</style>
+</helmet>
+<div class="rf" style="width:390px;height:844px;background:linear-gradient(180deg,#DED5F7 0%,#F2EAF7 40%,#F5EEF7 60%,#D9D0F2 100%)">
+  <button class="ib" aria-label="Cerrar" style="position:absolute;left:16px;top:54px"><dc-import name="Icon" k="x" s="22" hint-size="22px,22px"></dc-import></button>
+
+  <div style="position:absolute;top:96px;left:24px;right:24px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px">
+    <dc-import name="Illo" k="exito" w="170" h="170" hint-size="170px,170px"></dc-import>
+    <h1 class="d" style="font-size:28px;font-weight:800;line-height:1.05">¡Solicitud enviada!</h1>
+    <p class="mut" style="font-size:16px;line-height:1.5">Gracias por confiar en nosotros. Te avisamos por correo y WhatsApp.</p>
+  </div>
+
+  <section style="position:absolute;top:452px;left:20px;right:20px;background:#fff;border-radius:24px;padding:20px;display:flex;flex-direction:column;gap:16px;box-shadow:0 14px 30px -22px rgba(170,70,160,.45)">
+    <p style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase" class="mut">Qué sigue</p>
+    <div class="st"><span class="dot" style="background:#865DEC;color:#fff;box-shadow:0 0 0 5px #EFE8FD">1</span><div><p style="font-size:15px;font-weight:700">Revisamos tu evento</p><p class="mut" style="font-size:13px">El equipo de Rosa Fiesta ya lo tiene</p></div></div>
+    <div class="st"><span class="dot" style="background:#F1EFF5;color:#62627A">2</span><div><p style="font-size:15px;font-weight:700">Recibes tu cotización</p><p class="mut" style="font-size:13px">Por correo y WhatsApp</p></div></div>
+    <div class="st"><span class="dot" style="background:#F1EFF5;color:#62627A">3</span><div><p style="font-size:15px;font-weight:700">Apruebas y reservas</p><p class="mut" style="font-size:13px">Desde la app, en un toque</p></div></div>
+  </section>
+
+  <div style="position:absolute;left:20px;right:20px;bottom:40px;display:flex;flex-direction:column;gap:6px">
+    <button class="btn" style="background:linear-gradient(90deg,#EA4EA9 0%,#B754CB 50%,#865DEC 100%);color:#fff;box-shadow:0 12px 26px -12px rgba(200,70,180,.7)">Ver mi evento</button>
+    <button class="btn" style="height:48px">Volver al inicio</button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

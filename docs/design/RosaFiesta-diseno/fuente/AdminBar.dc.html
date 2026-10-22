@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Barra de navegación (admin)</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.ab button{font:inherit;border:0;background:none;padding:0;cursor:pointer;color:inherit}
+</style>
+</helmet>
+<nav class="ab" aria-label="Navegación de administración" style="width:390px;height:96px;position:relative;font-family:'Figtree',system-ui,sans-serif;background:#FFFFFF;box-shadow:0 -1px 0 #ECECF5;display:flex;align-items:flex-start;padding:10px 8px 0">
+  <sc-for list="{{left}}" as="t" hint-placeholder-count="2">
+    <button aria-label="{{t.label}}" style="flex:1;height:56px;display:flex;flex-direction:column;align-items:center;gap:4px;color:{{t.col}}">
+      <span style="width:52px;height:30px;border-radius:999px;display:grid;place-items:center;background:{{t.pill}};color:{{t.ic}}">
+        <dc-import name="Icon" k="{{t.icon}}" s="22" hint-size="22px,22px"></dc-import>
+      </span>
+      <span style="font-size:11.5px;font-weight:{{t.wt}}">{{t.label}}</span>
+    </button>
+  </sc-for>
+  <button aria-label="Crear con Rosa" style="flex:1;height:70px;display:flex;flex-direction:column;align-items:center;gap:4px;margin-top:-26px">
+    <span style="border-radius:50%;padding:4px;background:#FFFFFF;display:block">
+      <dc-import name="Rosa" bg="linear-gradient(145deg,#7C5CF0 0%,#5B6CF0 55%,#2FB8C8 100%)" s="56" hint-size="56px,56px"></dc-import>
+    </span>
+    <span style="font-size:11.5px;font-weight:700;color:#151729">Rosa</span>
+  </button>
+  <sc-for list="{{right}}" as="t" hint-placeholder-count="2">
+    <button aria-label="{{t.label}}" style="flex:1;height:56px;display:flex;flex-direction:column;align-items:center;gap:4px;color:{{t.col}}">
+      <span style="width:52px;height:30px;border-radius:999px;display:grid;place-items:center;background:{{t.pill}};color:{{t.ic}}">
+        <dc-import name="Icon" k="{{t.icon}}" s="22" hint-size="22px,22px"></dc-import>
+      </span>
+      <span style="font-size:11.5px;font-weight:{{t.wt}}">{{t.label}}</span>
+    </button>
+  </sc-for>
+</nav>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"a":{"editor":"enum","options":["inicio","eventos","inventario","mas"],"default":"inicio"},"$preview":{"width":390,"height":96}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const a = this.props.a ?? 'inicio';
+    const mk = (k, icon, label) => ({
+      icon, label,
+      col: a === k ? '#4B47D6' : '#5F6377',
+      ic: a === k ? '#FFFFFF' : 'inherit',
+      pill: a === k ? 'linear-gradient(135deg,#7C5CF0 0%,#5B6CF0 100%)' : 'transparent',
+      wt: a === k ? 700 : 600
+    });
+    return {
+      left: [mk('inicio', 'home', 'Inicio'), mk('eventos', 'calendar', 'Eventos')],
+      right: [mk('inventario', 'box', 'Inventario'), mk('mas', 'more', 'Más')]
+    };
+  }
+}
+</script>
+</body>
+</html>

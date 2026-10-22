@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Disponibilidad de inventario</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.rf,.rf *{box-sizing:border-box}
+.rf{font-family:'Figtree',system-ui,sans-serif;color:#151729;-webkit-font-smoothing:antialiased;position:relative;overflow:hidden}
+.rf p,.rf h1,.rf h2{margin:0}
+.rf .d{font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif;letter-spacing:-.02em}
+.rf button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:inherit}
+.rf .ib{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:0 0 0 1px #ECECF5,0 8px 20px -14px rgba(70,80,180,.4);flex:none;color:#151729}
+.rf .mut{color:#5F6377}
+.rf .lg{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600}
+.rf .sq{width:12px;height:6px;border-radius:3px}
+</style>
+</helmet>
+<div class="rf" style="width:390px;height:844px;background:radial-gradient(110% 40% at 100% 0%,#E6E7FF 0%,rgba(230,231,255,0) 60%),radial-gradient(80% 35% at 0% 12%,#F1E9FB 0%,rgba(241,233,251,0) 60%),#F6F6FB">
+  <div style="padding:56px 20px 0;display:flex;flex-direction:column;gap:14px">
+    <header style="display:flex;align-items:center;gap:12px">
+      <button class="ib" aria-label="Volver"><dc-import name="Icon" k="back" s="22" hint-size="22px,22px"></dc-import></button>
+      <h1 class="d" style="font-size:20px;font-weight:800;flex:1">Disponibilidad</h1>
+    </header>
+    <section style="border-radius:22px;background:#fff;box-shadow:0 0 0 1px #ECECF5;padding:14px 10px 12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:0 4px 10px">
+        <button aria-label="Mes anterior" style="width:40px;height:40px;display:grid;place-items:center"><dc-import name="Icon" k="chev-l" s="20" hint-size="20px,20px"></dc-import></button>
+        <p class="d" style="font-size:19px;font-weight:800">Octubre 2026</p>
+        <button aria-label="Mes siguiente" style="width:40px;height:40px;display:grid;place-items:center"><dc-import name="Icon" k="chev-r" s="20" hint-size="20px,20px"></dc-import></button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(7, minmax(0, 1fr));text-align:center;font-size:12px;font-weight:700;padding-bottom:6px" class="mut">
+        <span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(7, minmax(0, 1fr));gap:4px">
+        <sc-for list="{{days}}" as="d" hint-placeholder-count="35">
+          <button style="height:50px;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;background:{{d.bg}};box-shadow:{{d.ring}};visibility:{{d.vis}}">
+            <span style="font-size:15px;font-weight:600">{{d.n}}</span>
+            <span style="width:18px;height:4px;border-radius:2px;background:{{d.c}}"></span>
+          </button>
+        </sc-for>
+      </div>
+    </section>
+    <div style="display:flex;gap:14px;flex-wrap:wrap;padding:0 4px">
+      <p class="lg"><span class="sq" style="background:#8DB52C"></span>Alta</p>
+      <p class="lg"><span class="sq" style="background:#F7B500"></span>Media</p>
+      <p class="lg"><span class="sq" style="background:#EA4EA9"></span>Baja</p>
+      <p class="lg"><span class="sq" style="background:#3B3550"></span>Agotado</p>
+    </div>
+    <section style="border-radius:20px;background:#EEF6D6;padding:14px 16px;display:flex;align-items:center;gap:12px">
+      <span style="color:#4E6A10"><dc-import name="Icon" k="box" s="22" hint-size="22px,22px"></dc-import></span>
+      <p style="font-size:14px;line-height:1.4;flex:1"><b>Martes 20 · Disponibilidad alta</b><br><span style="color:#4E6A10">Sin reservas para este día</span></p>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const C = { a: '#8DB52C', m: '#F7B500', b: '#EA4EA9', x: '#3B3550' };
+    const lvl = { 2: 'm', 3: 'm', 9: 'm', 10: 'b', 16: 'm', 17: 'm', 22: 'm', 23: 'x', 24: 'b', 30: 'm', 31: 'b' };
+    const days = [];
+    for (let i = 0; i < 3; i++) days.push({ n: '', c: 'transparent', bg: 'transparent', ring: 'none', vis: 'hidden' });
+    for (let n = 1; n <= 31; n++) {
+      const sel = n === 20;
+      days.push({ n, c: C[lvl[n] || 'a'], bg: sel ? '#ECEBFF' : '#FAFAFC', ring: sel ? 'inset 0 0 0 2px #D63F98' : 'none', vis: 'visible' });
+    }
+    return { days };
+  }
+}
+</script>
+</body>
+</html>

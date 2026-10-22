@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Rosa · Modo voz</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.rf,.rf *{box-sizing:border-box}
+.rf{font-family:'Figtree',system-ui,sans-serif;color:#1A1A2E;-webkit-font-smoothing:antialiased;position:relative;overflow:hidden}
+.rf p,.rf h1{margin:0}
+.rf .d{font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif;letter-spacing:-.02em}
+.rf button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer}
+.rf .bar{width:6px;border-radius:3px;flex:none}
+</style>
+</helmet>
+<div class="rf" style="width:390px;height:844px;background:linear-gradient(180deg,#DED5F7 0%,#F2EAF7 40%,#F5EEF7 60%,#D9D0F2 100%)">
+  <header style="position:absolute;top:54px;left:16px;right:16px;display:flex;align-items:center;justify-content:space-between">
+    <button aria-label="Cerrar modo voz" style="width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:0 6px 16px -10px rgba(90,60,160,.5)"><dc-import name="Icon" k="x" s="22" hint-size="22px,22px"></dc-import></button>
+    <p style="font-size:13px;font-weight:700;color:#5A5672">Paso 1 de 6 · Tipo de evento</p>
+    <span style="width:44px"></span>
+  </header>
+
+  <div style="position:absolute;top:150px;left:0;right:0;display:flex;justify-content:center">
+    <div style="width:240px;height:240px;border-radius:50%;background:rgba(255,255,255,.45);display:grid;place-items:center">
+      <div style="width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.7);display:grid;place-items:center">
+        <dc-import name="Rosa" s="124" hint-size="124px,124px"></dc-import>
+      </div>
+    </div>
+  </div>
+
+  <div style="position:absolute;top:430px;left:28px;right:28px;display:flex;flex-direction:column;gap:14px;align-items:center;text-align:center">
+    <p style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:#C2338F"><span style="width:8px;height:8px;border-radius:50%;background:#EA4EA9"></span>Te escucho…</p>
+    <p class="d" style="font-size:24px;font-weight:700;line-height:1.25">Una boda en un jardín para unas <span style="color:#9A92B0">120 personas…</span></p>
+  </div>
+
+  <div aria-hidden="true" style="position:absolute;top:620px;left:0;right:0;height:60px;display:flex;align-items:center;justify-content:center;gap:5px">
+    <span class="bar" style="height:10px;background:#865DEC"></span>
+    <span class="bar" style="height:22px;background:#B9D84A"></span>
+    <span class="bar" style="height:36px;background:#B54BD6"></span>
+    <span class="bar" style="height:52px;background:#EA4EA9"></span>
+    <span class="bar" style="height:30px;background:#EA4EA9"></span>
+    <span class="bar" style="height:44px;background:#EA4EA9"></span>
+    <span class="bar" style="height:58px;background:#FBCA3F"></span>
+    <span class="bar" style="height:40px;background:#EA4EA9"></span>
+    <span class="bar" style="height:24px;background:#EA4EA9"></span>
+    <span class="bar" style="height:46px;background:#B54BD6"></span>
+    <span class="bar" style="height:28px;background:#865DEC"></span>
+    <span class="bar" style="height:16px;background:#B9D84A"></span>
+    <span class="bar" style="height:8px;background:#865DEC"></span>
+  </div>
+
+  <div style="position:absolute;left:0;right:0;bottom:44px;display:flex;align-items:center;justify-content:center;gap:28px">
+    <button aria-label="Cambiar a teclado" style="width:52px;height:52px;border-radius:50%;background:#fff;box-shadow:0 6px 16px -10px rgba(90,60,160,.5);display:grid;place-items:center"><dc-import name="Icon" k="keyboard" s="22" hint-size="22px,22px"></dc-import></button>
+    <button aria-label="Detener y enviar" style="width:76px;height:76px;border-radius:50%;background:linear-gradient(135deg,#EA4EA9,#865DEC);display:grid;place-items:center;box-shadow:0 0 0 8px rgba(255,255,255,.6),0 16px 30px -12px rgba(150,70,200,.7)"><span style="width:24px;height:24px;border-radius:6px;background:#fff"></span></button>
+    <button aria-label="Empezar de nuevo" style="width:52px;height:52px;border-radius:50%;background:#fff;box-shadow:0 6px 16px -10px rgba(90,60,160,.5);display:grid;place-items:center"><dc-import name="Icon" k="undo" s="22" hint-size="22px,22px"></dc-import></button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

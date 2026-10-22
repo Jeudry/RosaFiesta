@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Mis reservas</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.rf,.rf *{box-sizing:border-box}
+.rf{font-family:'Figtree',system-ui,sans-serif;color:#1A1A2E;-webkit-font-smoothing:antialiased;position:relative;overflow:hidden}
+.rf p,.rf h1,.rf h2{margin:0}
+.rf .d{font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif;letter-spacing:-.02em}
+.rf button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:inherit}
+.rf .ib{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:0 0 0 1px #F0EBF4,0 8px 20px -14px rgba(180,80,180,.4);flex:none;color:#1A1A2E}
+.rf .mut{color:#62627A}
+.rf .tag{height:24px;padding:0 9px;border-radius:999px;display:inline-flex;align-items:center;font-size:12px;font-weight:700;white-space:nowrap}
+.rf .one{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf .seg{flex:1;height:40px;border-radius:12px;font-size:14px;font-weight:600;display:grid;place-items:center}
+</style>
+</helmet>
+<div class="rf" style="width:390px;height:844px;background:radial-gradient(110% 40% at 0% 0%,#F9E3F1 0%,rgba(249,227,241,0) 60%),radial-gradient(80% 35% at 100% 15%,#EEE7FB 0%,rgba(238,231,251,0) 60%),#FAFAFC">
+  <div style="padding:56px 20px 0;display:flex;flex-direction:column;gap:14px">
+    <header style="display:flex;align-items:center;gap:12px">
+      <button class="ib" aria-label="Volver"><dc-import name="Icon" k="back" s="22" hint-size="22px,22px"></dc-import></button>
+      <h1 class="d" style="font-size:20px;font-weight:800;flex:1">Mis reservas</h1>
+    </header>
+    <div style="display:flex;gap:4px;padding:4px;background:#F1EFF5;border-radius:16px">
+      <button class="seg" style="background:#fff;font-weight:700;box-shadow:0 2px 6px -2px rgba(170,70,160,.2)">Próximas</button>
+      <button class="seg mut">Pasadas</button>
+      <button class="seg mut">Todas</button>
+    </div>
+    <sc-for list="{{res}}" as="r" hint-placeholder-count="3">
+      <button style="width:100%;border-radius:22px;background:#fff;box-shadow:0 0 0 1px #F2EDF5;padding:14px;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;gap:12px;width:100%;align-items:flex-start">
+          <span style="width:52px;height:52px;border-radius:14px;background:{{r.bg}};display:grid;place-items:center;flex:none"><dc-import name="Foto" k="{{r.k}}" w="52" h="52" r="14" hint-size="52px,52px"></dc-import></span>
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+            <p class="one" style="font-size:16px;font-weight:700">{{r.name}}</p>
+            <p class="mut one" style="font-size:13px">{{r.date}} · {{r.place}}</p>
+            <span class="tag" style="background:{{r.sbg}};color:{{r.sfg}};align-self:flex-start;margin-top:2px">{{r.status}}</span>
+          </div>
+        </div>
+        <div style="width:100%;display:flex;flex-direction:column;gap:6px;padding:12px;border-radius:14px;background:#FAFAFC">
+          <div style="display:flex;justify-content:space-between;font-size:13px"><span class="mut">Pagado <b style="color:#1A1A2E">RD$ {{r.paid}}</b></span><span class="mut">de <b style="color:#1A1A2E">RD$ {{r.total}}</b></span></div>
+          <div style="height:6px;border-radius:3px;background:#EADFE7"><span style="display:block;width:30%;height:100%;border-radius:3px;background:#8DB52C"></span></div>
+          <p class="mut" style="font-size:12px">Resta RD$ {{r.rest}}</p>
+        </div>
+      </button>
+    </sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      res: [
+        { name: 'Boda Real Rosa & Dorado', date: 'Vie 23 oct', place: 'Jardín Botánico', status: 'Cotización lista', sbg: '#DDF4F3', sfg: '#1F8A84', k: 'boda', bg: '#FDE6F2', paid: '1,350', total: '4,500', rest: '3,150' },
+        { name: 'Quinceañera Valentina Crystal', date: 'Lun 2 nov', place: 'Hotel El Embajador', status: 'Confirmado', sbg: '#EEF6D6', sfg: '#4E6A10', k: 'quinceanera', bg: '#EFE8FD', paid: '1,860', total: '6,200', rest: '4,340' },
+        { name: 'Baby Shower Sofía en Rosas', date: 'Lun 9 nov', place: 'Terraza Cava Alta, Piantini', status: 'Borrador', sbg: '#F1EFF5', sfg: '#62627A', k: 'baby-shower', bg: '#DDF4F3', paid: '555', total: '1,850', rest: '1,295' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

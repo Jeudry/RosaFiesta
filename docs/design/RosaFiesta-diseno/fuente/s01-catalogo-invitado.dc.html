@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Catálogo (invitado)</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.rf,.rf *{box-sizing:border-box}
+.rf{font-family:'Figtree',system-ui,sans-serif;color:#1A1A2E;-webkit-font-smoothing:antialiased;position:relative;overflow:hidden}
+.rf p,.rf h1,.rf h2,.rf h3{margin:0}
+.rf .d{font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif;letter-spacing:-.02em}
+.rf button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:inherit}
+.rf input,.rf textarea{font:inherit;color:inherit;border:0;outline:0;background:none;padding:0;min-width:0;flex:1}
+.rf .btn{height:54px;border-radius:16px;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:16px;text-decoration:none}
+.rf .bp{background:linear-gradient(90deg,#EA4EA9 0%,#B754CB 50%,#865DEC 100%);color:#fff;box-shadow:0 12px 26px -12px rgba(200,70,180,.7)}
+.rf .bs{background:#fff;color:#1A1A2E;box-shadow:0 0 0 1px #EEE9F2,0 8px 20px -14px rgba(120,80,160,.4)}
+.rf .bi{background:linear-gradient(90deg,#EA4EA9 0%,#B754CB 50%,#865DEC 100%);color:#fff;box-shadow:0 12px 26px -12px rgba(200,70,180,.7)}
+.rf .ib{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:0 0 0 1px #F0EBF4,0 8px 20px -14px rgba(180,80,180,.4);flex:none;color:#1A1A2E}
+.rf .card{background:#fff;border-radius:20px;box-shadow:0 0 0 1px #F2EDF5,0 12px 28px -20px rgba(200,80,170,.4)}
+.rf .mut{color:#62627A}
+.rf .cap{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#62627A}
+.rf .fld{height:54px;border-radius:16px;background:#fff;box-shadow:0 0 0 1px #E8E1EE,0 8px 20px -16px rgba(180,80,180,.35);display:flex;align-items:center;gap:10px;padding:0 16px;color:#62627A}
+.rf .chip{height:38px;padding:0 15px;border-radius:999px;display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:600;background:#fff;box-shadow:0 0 0 1px #EEE9F2;white-space:nowrap;flex:none}
+.rf .on{background:linear-gradient(135deg,#E04FAF 0%,#945AE1 55%,#6664E9 100%);color:#fff;box-shadow:0 8px 18px -8px rgba(134,93,236,.7)}
+.rf .tag{height:24px;padding:0 9px;border-radius:999px;display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;white-space:nowrap}
+.rf .one{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+</style>
+</helmet>
+<div class="rf" style="width:390px;height:844px;background:radial-gradient(110% 40% at 0% 0%,#F9E3F1 0%,rgba(249,227,241,0) 60%),radial-gradient(80% 35% at 100% 15%,#EEE7FB 0%,rgba(238,231,251,0) 60%),#FAFAFC">
+  <div style="padding:58px 20px 0;display:flex;flex-direction:column;gap:16px">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <h1 class="d" style="font-size:26px;font-weight:800">Catálogo</h1>
+      <button class="ib" aria-label="Filtros"><dc-import name="Icon" k="sliders" s="22" hint-size="22px,22px"></dc-import></button>
+    </div>
+    <label class="fld" style="padding-right:6px">
+      <dc-import name="Icon" k="search" s="20" hint-size="20px,20px"></dc-import>
+      <input placeholder="Buscar sillas, mesas, flores…" aria-label="Buscar en el catálogo">
+      <button aria-label="Buscar por voz" style="width:42px;height:42px;border-radius:12px;background:#FDE6F2;color:#C2338F;display:grid;place-items:center"><dc-import name="Icon" k="mic" s="20" hint-size="20px,20px"></dc-import></button>
+    </label>
+    <div style="display:flex;gap:8px;margin:0 -20px -18px;padding:2px 20px 14px;overflow:hidden">
+      <button class="chip on">Todas</button>
+      <button class="chip">Iluminación</button>
+      <button class="chip">Floral</button>
+      <button class="chip">Globos</button>
+      <button class="chip">Mobiliario</button>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;font-size:14px">
+      <p class="mut">15 artículos de alquiler</p>
+      <button style="display:flex;align-items:center;gap:4px;font-weight:600;height:32px">Populares <dc-import name="Icon" k="chev-d" s="16" hint-size="16px,16px"></dc-import></button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:12px">
+      <sc-for list="{{items}}" as="it" hint-placeholder-count="4">
+        <article class="card" style="overflow:hidden">
+          <div style="height:136px;background:{{it.bg}};position:relative;display:grid;place-items:center">
+            <dc-import name="Foto" k="{{it.k}}" w="169" h="136" hint-size="169px,136px"></dc-import>
+            <button aria-label="Guardar en favoritos" style="position:absolute;top:8px;right:8px;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.92);display:grid;place-items:center;color:#1A1A2E"><dc-import name="Icon" k="heart" s="18" hint-size="18px,18px"></dc-import></button>
+          </div>
+          <div style="padding:12px 12px 12px 14px;display:flex;flex-direction:column;gap:3px">
+            <p class="one" style="font-size:15px;font-weight:700">{{it.name}}</p>
+            <p class="one mut" style="font-size:13px">{{it.desc}}</p>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px">
+              <p><span class="d" style="font-size:19px;font-weight:800">RD$ {{it.price}}</span> <span class="mut" style="font-size:12px">/día</span></p>
+              <button aria-label="Agregar a mi evento" style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#E04FAF 0%,#945AE1 55%,#6664E9 100%);color:#fff;display:grid;place-items:center;box-shadow:0 8px 16px -8px rgba(134,93,236,.7)"><dc-import name="Icon" k="plus" s="18" w="2.2" hint-size="18px,18px"></dc-import></button>
+            </div>
+          </div>
+        </article>
+      </sc-for>
+    </div>
+  </div>
+  <div style="position:absolute;left:0;bottom:0">
+    <dc-import name="TabBar" cl="{{true}}" a="catalogo" g="{{true}}" hint-size="390px,96px"></dc-import>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      items: [
+        { name: 'Silla Tiffany Cristal', desc: 'Acrílica transparente', price: '4', k: 'silla-tiffany', bg: '#EFE8FD' },
+        { name: 'Mesa dulce temática', desc: 'Decoración completa para dulces', price: '150', k: 'mesa-helados', bg: '#EEF6D6' },
+        { name: 'Arco de globos', desc: 'Rosa y nude, para la entrada', price: '95', k: 'arco-rosa', bg: '#FDE6F2' },
+        { name: 'Centro de mesa floral', desc: 'Flores naturales, base de madera', price: '35', k: 'centro-floral', bg: '#FFF2C9' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

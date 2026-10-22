@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Reportes · Eventos</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.rf,.rf *{box-sizing:border-box}
+.rf{font-family:'Figtree',system-ui,sans-serif;color:#151729;-webkit-font-smoothing:antialiased;position:relative;overflow:hidden}
+.rf p,.rf h1,.rf h2{margin:0}
+.rf .d{font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif;letter-spacing:-.02em}
+.rf button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:inherit}
+.rf .ib{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:0 0 0 1px #ECECF5,0 8px 20px -14px rgba(70,80,180,.4);flex:none;color:#151729}
+.rf .mut{color:#5F6377}
+.rf .tab{height:44px;display:flex;align-items:center;font-size:15px;font-weight:600;color:#5F6377;white-space:nowrap;flex:none;text-decoration:none}
+.rf .tab.on{color:#151729;font-weight:700;box-shadow:inset 0 -2.5px 0 #5B6CF0}
+.rf .card{border-radius:22px;background:#fff;box-shadow:0 0 0 1px #ECECF5}
+.rf .k{padding:12px;border-radius:18px;display:flex;flex-direction:column;gap:2px}
+</style>
+</helmet>
+<div class="rf" style="width:390px;height:844px;background:radial-gradient(110% 40% at 100% 0%,#E6E7FF 0%,rgba(230,231,255,0) 60%),radial-gradient(80% 35% at 0% 12%,#F1E9FB 0%,rgba(241,233,251,0) 60%),#F6F6FB">
+  <div style="padding:56px 20px 0;display:flex;flex-direction:column;gap:12px">
+    <header style="display:flex;align-items:center;gap:10px">
+      <button class="ib" aria-label="Volver"><dc-import name="Icon" k="back" s="22" hint-size="22px,22px"></dc-import></button>
+      <h1 class="d" style="font-size:20px;font-weight:800;flex:1">Reportes</h1>
+      <button style="height:44px;padding:0 12px;border-radius:14px;background:#fff;box-shadow:0 0 0 1px #E9E9F2;font-size:14px;font-weight:600;display:flex;align-items:center;gap:6px">Ene–Jun <dc-import name="Icon" k="chev-d" s="16" hint-size="16px,16px"></dc-import></button>
+      <button class="ib" aria-label="Descargar reporte"><dc-import name="Icon" k="download" s="20" hint-size="20px,20px"></dc-import></button>
+    </header>
+    <nav style="display:flex;gap:20px;box-shadow:inset 0 -1px 0 #E9E9F2;margin:0 -20px;padding:0 20px">
+      <a class="tab" href="s67-reportes-ingresos.dc.html">Ingresos</a>
+      <a class="tab on" href="s68-reportes-eventos.dc.html">Eventos</a>
+      <a class="tab" href="s69-reportes-clientes.dc.html">Clientes</a>
+      <a class="tab" href="s70-reportes-inventario.dc.html">Inventario</a>
+    </nav>
+    <section class="card" style="margin-top:4px;padding:18px 20px;display:flex;align-items:center;justify-content:space-between">
+      <div><p class="mut" style="font-size:13px">Eventos en total</p><p class="d" style="font-size:44px;font-weight:800;line-height:1">156</p></div>
+      <dc-import name="Illo" k="arco" w="96" h="96" hint-size="96px,96px"></dc-import>
+    </section>
+    <div style="display:grid;grid-template-columns:repeat(3, minmax(0, 1fr));gap:8px">
+      <div class="k" style="background:#EEF6D6"><span class="d" style="font-size:24px;font-weight:800;color:#3F560C">134</span><span style="font-size:12px;font-weight:600;color:#4E6A10">Completados</span></div>
+      <div class="k" style="background:#FFF2C9"><span class="d" style="font-size:24px;font-weight:800;color:#6E4300">18</span><span style="font-size:12px;font-weight:600;color:#7A5700">En proceso</span></div>
+      <div class="k" style="background:#FDE3EA"><span class="d" style="font-size:24px;font-weight:800;color:#8E1A35">4</span><span style="font-size:12px;font-weight:600;color:#B42345">Cancelados</span></div>
+    </div>
+    <section class="card" style="padding:16px;display:flex;flex-direction:column;gap:14px">
+      <p style="font-size:15px;font-weight:700">Por tipo de evento</p>
+      <sc-for list="{{types}}" as="t" hint-placeholder-count="4">
+        <div style="display:flex;align-items:center;gap:12px">
+          <span style="width:36px;height:36px;border-radius:11px;background:{{t.bg}};color:{{t.fg}};display:grid;place-items:center;flex:none"><dc-import name="Icon" k="{{t.icon}}" s="18" hint-size="18px,18px"></dc-import></span>
+          <div style="flex:1;display:flex;flex-direction:column;gap:5px">
+            <div style="display:flex;justify-content:space-between;font-size:14px"><span style="font-weight:600">{{t.name}}</span><span><b>{{t.n}}</b> <span class="mut">· {{t.p}}</span></span></div>
+            <div style="height:8px;border-radius:4px;background:#F3F1F6"><span style="display:block;height:100%;border-radius:4px;width:{{t.p}};background:{{t.c}}"></span></div>
+          </div>
+        </div>
+      </sc-for>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      types: [
+        { name: 'Bodas', n: 70, p: '45%', icon: 'ring', c: '#D63F98', bg: '#ECEBFF', fg: '#4B47D6' },
+        { name: 'Cumpleaños', n: 39, p: '25%', icon: 'cake', c: '#F7B500', bg: '#FFF2C9', fg: '#7A5700' },
+        { name: 'Otros', n: 24, p: '15%', icon: 'sparkle', c: '#865DEC', bg: '#EFE8FD', fg: '#7A4FD8' },
+        { name: 'Corporativos', n: 23, p: '15%', icon: 'briefcase', c: '#1FBDC0', bg: '#DDF4F3', fg: '#1F8A84' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

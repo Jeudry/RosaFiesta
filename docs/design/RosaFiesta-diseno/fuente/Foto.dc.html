@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Foto de producto</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width:{{w}}px;height:{{h}}px;border-radius:{{r}}px;overflow:hidden;background:#F3EEF6;flex:none;display:block">
+  <img src="{{src}}" alt="{{alt}}" style="width:100%;height:100%;object-fit:cover;object-position:{{pos}};display:block">
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"k":{"editor":"string","default":"arco-rosa"},"w":{"editor":"int","default":240},"h":{"editor":"int","default":240},"r":{"editor":"int","default":0},"pos":{"editor":"string","default":"center"},"$preview":{"width":240,"height":240}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const map = {
+      'arco-rosa': '/_blob/1e8810ed68d03979376a56763dfd062b',
+      'aventura': '/_blob/388bc82edbde7b59e02930f35a50baf4',
+      'baby-shower': '/_blob/3d15c58a93b8d9476acb0f86c9e4f343',
+      'boda': '/_blob/6d1970d193a98245552088d9e205aaa7',
+      'centro-floral': '/_blob/78d9ace54fa8e116cd04d4b217185253',
+      'cliente-1': '/_blob/1256fd0eaa31432dc0bcc4a5286d9084',
+      'cliente-2': '/_blob/9279a74db6d5f2f2712a9a0e7ef6819a',
+      'corporativo': '/_blob/41c6dadea7a154b411f61c332c248896',
+      'cumple-infantil': '/_blob/d8f245e7ad245501965f6f1e88e2dcd1',
+      'deportes': '/_blob/880efc1c432292bc59592354f9ef53e9',
+      'fiesta-ballet': '/_blob/58da9df3ed857c6b1c658cbcf36ba848',
+      'gender-reveal': '/_blob/6c9fed0e8b4b80dddb21e5f7df2e4c09',
+      'graduacion-azul': '/_blob/978942a349b4abf0c44622d3241b825f',
+      'graduacion': '/_blob/dc106e69f2356e4b9709d00ed977585e',
+      'granja': '/_blob/919eeeb2b56c46b5984e0a9ba62b2381',
+      'jardin-mariposas': '/_blob/6e292d0e0b38c9e21d1af1167b808c5f',
+      'mariposas': '/_blob/99460179afe8717ac4f2c2387ad8633a',
+      'mesa-helados': '/_blob/806730a5c395280b3439aee3442328ab',
+      'mesa-plegable': '/_blob/d3072d86a6777fa3739f3f4c811845ef',
+      'mesa-redonda': '/_blob/9fde6bdda64cefa04de127b5bf81cffd',
+      'navidad': '/_blob/f34747ef64ca5c8c3fe97d96fe4132d3',
+      'proveedores': '/_blob/afb64b479e16b4b0ed211ae5f81942a0',
+      'quinceanera': '/_blob/84441ed65f9c75084af47bef670fbe19',
+      'safari': '/_blob/20a36b26f5d08b2caa6aade0414648e8',
+      'silla-tiffany': '/_blob/7b06aecbe5875f50789786c748e5a47c'
+    };
+    const k = this.props.k ?? 'arco-rosa';
+    return {
+      src: map[k] || map['arco-rosa'],
+      alt: k.replace(/-/g, ' '),
+      w: this.props.w ?? 240, h: this.props.h ?? 240, r: this.props.r ?? 0,
+      pos: this.props.pos ?? 'center'
+    };
+  }
+}
+</script>
+</body>
+</html>

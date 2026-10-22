@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=390">
+<title>70 · Reportes · Inventario</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#E9E9EF;display:flex;justify-content:center;padding:24px 0}
+#screen{position:relative;overflow:hidden;width:390px;height:844px;box-shadow:0 20px 60px -20px rgba(0,0,0,.35)}
+
+body{margin:0}
+.rf,.rf *{box-sizing:border-box}
+.rf{font-family:'Figtree',system-ui,sans-serif;color:#151729;-webkit-font-smoothing:antialiased;position:relative;overflow:hidden}
+.rf p,.rf h1,.rf h2{margin:0}
+.rf .d{font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif;letter-spacing:-.02em}
+.rf button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:inherit}
+.rf .ib{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:0 0 0 1px #ECECF5,0 8px 20px -14px rgba(70,80,180,.4);flex:none;color:#151729}
+.rf .mut{color:#5F6377}
+.rf .tab{height:44px;display:flex;align-items:center;font-size:15px;font-weight:600;color:#5F6377;white-space:nowrap;flex:none;text-decoration:none}
+.rf .tab.on{color:#151729;font-weight:700;box-shadow:inset 0 -2.5px 0 #5B6CF0}
+.rf .card{border-radius:22px;background:#fff;box-shadow:0 0 0 1px #ECECF5}
+.rf .k{padding:12px 14px;border-radius:18px;display:flex;align-items:center;gap:10px}
+
+
+body{margin:0}
+
+</style>
+</head>
+<body>
+<!-- 70 · Reportes · Inventario · Exportado del lienzo de Claude Design (HTML estático, sin lógica). -->
+<div id="screen">
+
+
+<div class="rf" style="width:390px;height:844px;background:radial-gradient(110% 40% at 100% 0%,#E6E7FF 0%,rgba(230,231,255,0) 60%),radial-gradient(80% 35% at 0% 12%,#F1E9FB 0%,rgba(241,233,251,0) 60%),#F6F6FB">
+  <div style="padding:56px 20px 0;display:flex;flex-direction:column;gap:12px">
+    <header style="display:flex;align-items:center;gap:10px">
+      <button class="ib" aria-label="Volver">
+
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:block;flex:none"><path d="M19 12H5M11 18l-6-6 6-6"></path></svg>
+</button>
+      <h1 class="d" style="font-size:20px;font-weight:800;flex:1">Reportes</h1>
+      <button class="ib" aria-label="Descargar reporte">
+
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:block;flex:none"><path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"></path></svg>
+</button>
+    </header>
+    <nav style="display:flex;gap:20px;box-shadow:inset 0 -1px 0 #E9E9F2;margin:0 -20px;padding:0 20px">
+      <a class="tab" href="s67-reportes-ingresos.dc.html">Ingresos</a>
+      <a class="tab" href="s68-reportes-eventos.dc.html">Eventos</a>
+      <a class="tab" href="s69-reportes-clientes.dc.html">Clientes</a>
+      <a class="tab on" href="s70-reportes-inventario.dc.html">Inventario</a>
+    </nav>
+    <section class="card" style="margin-top:4px;padding:16px 18px;display:flex;align-items:center;gap:16px">
+      <svg role="img" aria-label="72% del inventario en uso" width="76" height="76" viewBox="0 0 76 76" style="flex:none">
+        <circle cx="38" cy="38" r="30" fill="none" stroke="#F3F1F6" stroke-width="9"></circle>
+        <circle cx="38" cy="38" r="30" fill="none" stroke="#D63F98" stroke-width="9" stroke-linecap="round" stroke-dasharray="136 189" transform="rotate(-90 38 38)"></circle>
+        <text x="38" y="43" text-anchor="middle" font-family="'Bricolage Grotesque', system-ui, sans-serif" font-weight="800" font-size="16" fill="#151729">72%</text>
+      </svg>
+      <div><p class="d" style="font-size:28px;font-weight:800;line-height:1">892 <span class="mut" style="font-size:16px;font-weight:600">de 1,245</span></p><p class="mut" style="font-size:14px;margin-top:4px">artículos en uso ahora</p></div>
+    </section>
+    <div style="display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:8px">
+      <div class="k" style="background:#FFF2C9"><span style="color:#7A5700">
+
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:block;flex:none"><path d="M12 4L2.5 20h19zM12 10v4.5M12 17.5h.01"></path></svg>
+</span><span><b class="d" style="font-size:20px">23</b><br><span style="font-size:12px;font-weight:600;color:#7A5700">Stock bajo</span></span></div>
+      <div class="k" style="background:#EFE8FD"><span style="color:#7A4FD8">
+
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:block;flex:none"><path d="M15 4a5 5 0 0 0-4.6 6.9L4 17.3V20h2.7l6.4-6.4A5 5 0 0 0 20 9l-3 1-2-2 1-3z"></path></svg>
+</span><span><b class="d" style="font-size:20px">8</b><br><span style="font-size:12px;font-weight:600;color:#7A4FD8">En mantenimiento</span></span></div>
+    </div>
+    <section class="card" style="padding:16px;display:flex;flex-direction:column;gap:12px">
+      <p style="font-size:15px;font-weight:700">Uso por categoría</p>
+      
+        <div style="display:flex;align-items:center;gap:10px;font-size:14px">
+          <span style="width:92px;font-weight:600">Sillas</span>
+          <span style="flex:1;height:10px;border-radius:5px;background:#F3F1F6"><span style="display:block;height:100%;border-radius:5px;width:92%;background:#5B6CF0;opacity:1"></span></span>
+          <b style="width:38px;text-align:right">92%</b>
+        </div>
+      
+        <div style="display:flex;align-items:center;gap:10px;font-size:14px">
+          <span style="width:92px;font-weight:600">Decoración</span>
+          <span style="flex:1;height:10px;border-radius:5px;background:#F3F1F6"><span style="display:block;height:100%;border-radius:5px;width:88%;background:#5B6CF0;opacity:0.85"></span></span>
+          <b style="width:38px;text-align:right">88%</b>
+        </div>
+      
+        <div style="display:flex;align-items:center;gap:10px;font-size:14px">
+          <span style="width:92px;font-weight:600">Mesas</span>
+          <span style="flex:1;height:10px;border-radius:5px;background:#F3F1F6"><span style="display:block;height:100%;border-radius:5px;width:80%;background:#5B6CF0;opacity:0.7"></span></span>
+          <b style="width:38px;text-align:right">80%</b>
+        </div>
+      
+        <div style="display:flex;align-items:center;gap:10px;font-size:14px">
+          <span style="width:92px;font-weight:600">Mantelería</span>
+          <span style="flex:1;height:10px;border-radius:5px;background:#F3F1F6"><span style="display:block;height:100%;border-radius:5px;width:76%;background:#5B6CF0;opacity:0.55"></span></span>
+          <b style="width:38px;text-align:right">76%</b>
+        </div>
+      
+        <div style="display:flex;align-items:center;gap:10px;font-size:14px">
+          <span style="width:92px;font-weight:600">Iluminación</span>
+          <span style="flex:1;height:10px;border-radius:5px;background:#F3F1F6"><span style="display:block;height:100%;border-radius:5px;width:64%;background:#5B6CF0;opacity:0.4"></span></span>
+          <b style="width:38px;text-align:right">64%</b>
+        </div>
+      
+    </section>
+    <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:18px;background:#fff;box-shadow:0 0 0 1px #ECECF5">
+      <span style="width:40px;height:40px;border-radius:12px;background:#EEF6D6;color:#4E6A10;display:grid;place-items:center">
+
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:block;flex:none"><path d="M15 4a5 5 0 0 0-4.6 6.9L4 17.3V20h2.7l6.4-6.4A5 5 0 0 0 20 9l-3 1-2-2 1-3z"></path></svg>
+</span>
+      <div style="flex:1"><p style="font-size:15px;font-weight:700">Sillas plegables</p><p class="mut" style="font-size:13px">Próximo mantenimiento · limpieza profunda</p></div>
+      <span style="height:26px;padding:0 10px;border-radius:999px;background:linear-gradient(135deg,#7C5CF0 0%,#5B6CF0 55%,#2FB8C8 100%);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;box-shadow:0 8px 16px -8px rgba(91,108,240,.7)">20 abr</span>
+    </div>
+  </div>
+</div>
+
+</div>
+</body>
+</html>

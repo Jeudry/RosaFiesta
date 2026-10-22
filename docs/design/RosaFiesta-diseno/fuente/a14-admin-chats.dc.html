@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Admin · Chats</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.rf,.rf *{box-sizing:border-box}
+.rf{font-family:'Figtree',system-ui,sans-serif;color:#151729;-webkit-font-smoothing:antialiased;position:relative;overflow:hidden}
+.rf p,.rf h1,.rf h2,.rf h3{margin:0}
+.rf .d{font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif;letter-spacing:-.02em}
+.rf button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:inherit}
+.rf a{color:inherit;text-decoration:none}
+.rf input,.rf textarea{font:inherit;color:inherit;border:0;outline:0;background:none;padding:0;min-width:0;flex:1;resize:none}
+.rf .mut{color:#5F6377}
+.rf .cap{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#5F6377}
+.rf .ib{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:0 0 0 1px #ECECF5,0 8px 20px -14px rgba(70,80,180,.45);flex:none;color:#151729}
+.rf .card{background:#fff;border-radius:20px;box-shadow:0 0 0 1px #ECECF5,0 12px 28px -22px rgba(70,80,180,.45)}
+.rf .btn{height:54px;border-radius:16px;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:16px}
+.rf .bp{background:linear-gradient(135deg,#7C5CF0 0%,#5B6CF0 100%);color:#fff;box-shadow:0 12px 24px -12px rgba(91,108,240,.75)}
+.rf .bs{background:#fff;color:#151729;box-shadow:0 0 0 1px #E3E4EF}
+.rf .chip{height:36px;padding:0 14px;border-radius:999px;display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:600;background:#fff;box-shadow:0 0 0 1px #E9E9F2;white-space:nowrap;flex:none}
+.rf .on{background:linear-gradient(135deg,#7C5CF0 0%,#5B6CF0 100%);color:#fff;box-shadow:0 8px 16px -8px rgba(91,108,240,.7)}
+.rf .tag{height:24px;padding:0 9px;border-radius:999px;display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;white-space:nowrap}
+.rf .one{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf .fld{height:50px;border-radius:14px;background:#fff;box-shadow:0 0 0 1px #E3E4EF;display:flex;align-items:center;gap:10px;padding:0 14px;color:#5F6377;font-size:15px}
+.rf .lbl{font-size:13px;font-weight:700;color:#3A3D52}
+.rf .ti{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;flex:none}
+.rf .stp{display:flex;align-items:center;gap:2px;height:34px;border-radius:999px;background:#F2F2F8;padding:0 3px;flex:none}
+.rf .stp button{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;color:#5B6CF0}
+.rf .seg{height:5px;border-radius:3px;flex:1}
+.rf .sg{flex:1;height:38px;border-radius:12px;font-size:14px;font-weight:600;display:grid;place-items:center;color:#5F6377}
+.rf .sg.sel{background:#fff;color:#151729;font-weight:700;box-shadow:0 2px 8px -3px rgba(70,80,180,.3)}
+</style>
+</helmet>
+<div class="rf" style="width:390px;height:844px;background:radial-gradient(110% 40% at 100% 0%,#E6E7FF 0%,rgba(230,231,255,0) 60%),radial-gradient(80% 35% at 0% 12%,#F1E9FB 0%,rgba(241,233,251,0) 60%),#F6F6FB">
+  <div style="padding:54px 20px 0;display:flex;flex-direction:column;gap:12px">
+    <header style="display:flex;align-items:center;gap:12px">
+      <button class="ib" aria-label="Volver"><dc-import name="Icon" k="back" s="22" hint-size="22px,22px"></dc-import></button>
+      <div style="flex:1;min-width:0"><h1 class="d one" style="font-size:20px;font-weight:800;line-height:1.1">Chats</h1><p class="mut one" style="font-size:13px">2 sin leer</p></div>
+      
+    </header>
+    <label class="fld" style="padding-right:6px"><dc-import name="Icon" k="search" s="18" hint-size="18px,18px"></dc-import><input placeholder="Buscar cliente o evento" aria-label="Buscar chats"></label>
+    <div style="display:flex;gap:8px;margin:0 -20px -18px;padding:2px 20px 14px;overflow:hidden"><button class="chip on">Todos</button><button class="chip">Sin leer · 2</button><button class="chip">Clientes</button><button class="chip">Equipo</button></div>
+    <section class="card">
+      <sc-for list="{{chats}}" as="c" hint-placeholder-count="6">
+        <a href="a15-admin-chat.dc.html" style="display:flex;align-items:center;gap:12px;padding:12px 14px;box-shadow:{{c.line}}">
+          <span class="d" style="width:44px;height:44px;border-radius:50%;background:{{c.bg}};color:{{c.fg}};display:grid;place-items:center;font-weight:800;flex:none">{{c.ini}}</span>
+          <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+            <span style="display:flex;align-items:baseline;gap:8px"><span class="one" style="flex:1;font-size:15px;font-weight:{{c.wt}}">{{c.name}}</span><span class="mut" style="font-size:12px">{{c.time}}</span></span>
+            <span class="mut one" style="font-size:12px;font-weight:600;color:#4B47D6">{{c.ev}}</span>
+            <span style="display:flex;align-items:center;gap:8px"><span class="one mut" style="flex:1;font-size:13px">{{c.msg}}</span><sc-if value="{{c.unread}}" hint-placeholder-val="{{false}}"><span style="min-width:20px;height:20px;border-radius:999px;background:#FFD45C;color:#2E1A47;font-size:11px;font-weight:800;display:grid;place-items:center;padding:0 5px">{{c.n}}</span></sc-if></span>
+          </span>
+        </a>
+      </sc-for>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const L = '0 -1px 0 #F0F0F6';
+    return {
+      chats: [
+        { ini: 'C', bg: '#FDE6F2', fg: '#C2338F', name: 'Camila Rodríguez', ev: 'Boda Real Rosa & Dorado', msg: 'Ya revisé el presupuesto ajustado y el montaje…', time: '9:08 p. m.', unread: true, n: '2', wt: 800, line: 'none' },
+        { ini: 'A', bg: '#FFF2C9', fg: '#7A5700', name: 'Ana Gómez', ev: 'Graduación Promo 2026', msg: '¿Tienen letreros con luces para la entrada?', time: '6:40 p. m.', unread: false, n: '', wt: 700, line: L },
+        { ini: 'L', bg: '#EEF6D6', fg: '#4E6A10', name: 'Laura Peña', ev: 'Cumpleaños de Mateo', msg: 'Tú: Te envié la cotización por aquí 🎈', time: 'Ayer', unread: false, n: '', wt: 700, line: L },
+        { ini: 'Y', bg: '#FDE6F2', fg: '#C2338F', name: 'Yuli · Decoración', ev: 'Equipo', msg: 'Ya tengo las flores para el viernes.', time: 'Ayer', unread: false, n: '', wt: 700, line: L },
+        { ini: 'P', bg: '#DDF4F3', fg: '#1F8A84', name: 'Pedro · Montaje', ev: 'Equipo', msg: 'Camión listo para el viernes a la 1:00.', time: 'Lun', unread: false, n: '', wt: 700, line: L },
+        { ini: 'G', bg: '#F2F2F8', fg: '#5F6377', name: 'Grupo Caribe', ev: 'Gala Corporativa Grupo Caribe', msg: '¡Gracias por todo, quedó increíble!', time: '12 oct', unread: false, n: '', wt: 700, line: L }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

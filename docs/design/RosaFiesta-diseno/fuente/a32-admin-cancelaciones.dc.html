@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Admin · Cancelaciones y reembolsos</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.rf,.rf *{box-sizing:border-box}
+.rf{font-family:'Figtree',system-ui,sans-serif;color:#151729;-webkit-font-smoothing:antialiased;position:relative;overflow:hidden}
+.rf p,.rf h1,.rf h2,.rf h3{margin:0}
+.rf .d{font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif;letter-spacing:-.02em}
+.rf button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:inherit}
+.rf a{color:inherit;text-decoration:none}
+.rf input,.rf textarea{font:inherit;color:inherit;border:0;outline:0;background:none;padding:0;min-width:0;flex:1;resize:none}
+.rf .mut{color:#5F6377}
+.rf .cap{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#5F6377}
+.rf .ib{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:0 0 0 1px #ECECF5,0 8px 20px -14px rgba(70,80,180,.45);flex:none;color:#151729}
+.rf .card{background:#fff;border-radius:20px;box-shadow:0 0 0 1px #ECECF5,0 12px 28px -22px rgba(70,80,180,.45)}
+.rf .btn{height:54px;border-radius:16px;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:16px}
+.rf .bp{background:linear-gradient(135deg,#7C5CF0 0%,#5B6CF0 100%);color:#fff;box-shadow:0 12px 24px -12px rgba(91,108,240,.75)}
+.rf .bs{background:#fff;color:#151729;box-shadow:0 0 0 1px #E3E4EF}
+.rf .chip{height:36px;padding:0 14px;border-radius:999px;display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:600;background:#fff;box-shadow:0 0 0 1px #E9E9F2;white-space:nowrap;flex:none}
+.rf .on{background:linear-gradient(135deg,#7C5CF0 0%,#5B6CF0 100%);color:#fff;box-shadow:0 8px 16px -8px rgba(91,108,240,.7)}
+.rf .tag{height:24px;padding:0 9px;border-radius:999px;display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;white-space:nowrap}
+.rf .one{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf .fld{height:50px;border-radius:14px;background:#fff;box-shadow:0 0 0 1px #E3E4EF;display:flex;align-items:center;gap:10px;padding:0 14px;color:#5F6377;font-size:15px}
+.rf .lbl{font-size:13px;font-weight:700;color:#3A3D52}
+.rf .ti{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;flex:none}
+.rf .stp{display:flex;align-items:center;gap:2px;height:34px;border-radius:999px;background:#F2F2F8;padding:0 3px;flex:none}
+.rf .stp button{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;color:#5B6CF0}
+.rf .seg{height:5px;border-radius:3px;flex:1}
+.rf .sg{flex:1;height:38px;border-radius:12px;font-size:14px;font-weight:600;display:grid;place-items:center;color:#5F6377}
+.rf .sg.sel{background:#fff;color:#151729;font-weight:700;box-shadow:0 2px 8px -3px rgba(70,80,180,.3)}
+</style>
+</helmet>
+<div class="rf" style="width:390px;height:844px;background:radial-gradient(110% 40% at 100% 0%,#E6E7FF 0%,rgba(230,231,255,0) 60%),radial-gradient(80% 35% at 0% 12%,#F1E9FB 0%,rgba(241,233,251,0) 60%),#F6F6FB">
+  <div style="padding:54px 20px 0;display:flex;flex-direction:column;gap:12px">
+    <header style="display:flex;align-items:center;gap:12px">
+      <button class="ib" aria-label="Volver"><dc-import name="Icon" k="back" s="22" hint-size="22px,22px"></dc-import></button>
+      <div style="flex:1;min-width:0"><h1 class="d one" style="font-size:20px;font-weight:800;line-height:1.1">Cancelaciones</h1><p class="mut one" style="font-size:13px">2 solicitudes por revisar</p></div>
+      
+    </header>
+    <div style="display:flex;gap:8px;margin:0 -20px -6px;padding:2px 20px 8px;overflow:hidden"><button class="chip on">Por revisar · 2</button><button class="chip">Reembolsos · 1</button><button class="chip">Historial</button></div>
+    <section class="card" style="padding:14px;display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;gap:12px;align-items:center"><span class="d" style="width:40px;height:40px;border-radius:50%;background:#DDF4F3;color:#1F8A84;display:grid;place-items:center;font-weight:800;font-size:15px;flex:none">R</span><div style="flex:1;min-width:0"><p class="one" style="font-size:15px;font-weight:700">Bautizo de Lucas</p><p class="mut one" style="font-size:13px">Rafael Soto · Sáb 31 oct</p></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px"><span class="tag" style="background:#FCE3E8;color:#B42345">Cancelación</span><span class="mut" style="font-size:11.5px">hace 2 h</span></div></div>
+      <div style="display:grid;grid-template-columns:repeat(3, minmax(0, 1fr));gap:8px;padding:10px 12px;border-radius:14px;background:#F6F6FB;font-size:12px">
+        <div><p class="mut">Pagado</p><b class="d" style="font-size:15px">RD$ 1,200</b></div><div><p class="mut">Política</p><b class="d" style="font-size:15px">90%</b></div><div><p class="mut">Reembolso</p><b class="d" style="font-size:15px;color:#4E6A10">RD$ 1,080</b></div>
+      </div>
+      <p class="mut" style="font-size:13px;line-height:1.4">Motivo: “Cambio de planes”. 11 días antes · 14 artículos vuelven al inventario.</p>
+      <div style="display:flex;gap:8px"><button class="btn bs" style="flex:1;height:44px;font-size:14px">Rechazar</button><a href="a33-admin-reembolso.dc.html" class="btn bp" style="flex:1.4;height:44px;font-size:14px">Revisar reembolso</a></div>
+    </section>
+    <section class="card" style="padding:14px;display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;gap:12px;align-items:center"><span class="d" style="width:40px;height:40px;border-radius:50%;background:#EEF6D6;color:#4E6A10;display:grid;place-items:center;font-weight:800;font-size:15px;flex:none">L</span><div style="flex:1;min-width:0"><p class="one" style="font-size:15px;font-weight:700">Cumpleaños de Mateo</p><p class="mut one" style="font-size:13px">Laura Peña · 40 invitados</p></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px"><span class="tag" style="background:#ECEBFF;color:#4B47D6">Reprogramar</span><span class="mut" style="font-size:11.5px">hace 5 h</span></div></div>
+      <div style="display:flex;align-items:center;gap:10px;font-size:14px;font-weight:700"><span style="padding:6px 10px;border-radius:10px;background:#F6F6FB;text-decoration:line-through;color:#5F6377">Sáb 7 nov</span><dc-import name="Icon" k="next" s="18" hint-size="18px,18px"></dc-import><span style="padding:6px 10px;border-radius:10px;background:#ECEBFF;color:#4B47D6">Sáb 14 nov</span></div>
+      <div style="display:flex;gap:8px;align-items:flex-start;padding:10px 12px;border-radius:12px;background:#FFF2C9;color:#5E4300;font-size:13px;line-height:1.4"><dc-import name="Icon" k="alert" s="16" hint-size="16px,16px"></dc-import><span>La mesa dulce temática ya está reservada el 14 nov. Sugiere otra fecha o un sustituto.</span></div>
+      <div style="display:flex;gap:8px"><button class="btn bs" style="flex:1;height:44px;font-size:14px">Proponer fecha</button><button class="btn bp" style="flex:1;height:44px;font-size:14px">Aprobar</button></div>
+    </section>
+    <p class="cap">Reembolsos en proceso</p>
+    <section class="card" style="display:flex;align-items:center;gap:12px;padding:12px 14px;margin-top:-4px"><span class="d" style="width:40px;height:40px;border-radius:50%;background:#FDE6F2;color:#C2338F;display:grid;place-items:center;font-weight:800;font-size:15px;flex:none">G</span><div style="flex:1;min-width:0"><p class="one" style="font-size:14.5px;font-weight:700">Gabriela Núñez · Baby shower</p><p class="mut one" style="font-size:13px">Transferencia · enviado 14 oct</p></div><b class="d" style="font-size:15px">RD$ 520</b></section>
+  </div>
+  <div style="position:absolute;left:0;bottom:0">
+    <dc-import name="AdminBar" a="mas" hint-size="390px,96px"></dc-import>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

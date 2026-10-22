@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Favoritos (invitado)</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.rf,.rf *{box-sizing:border-box}
+.rf{font-family:'Figtree',system-ui,sans-serif;color:#1A1A2E;-webkit-font-smoothing:antialiased;position:relative;overflow:hidden}
+.rf p,.rf h1,.rf h2,.rf h3{margin:0}
+.rf .d{font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif;letter-spacing:-.02em}
+.rf button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:inherit}
+.rf .btn{height:54px;border-radius:16px;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:16px;text-decoration:none}
+.rf .bs{background:#fff;color:#1A1A2E;box-shadow:0 0 0 1px #EEE9F2,0 8px 20px -14px rgba(120,80,160,.4)}
+.rf .mut{color:#62627A}
+</style>
+</helmet>
+<div class="rf" style="width:390px;height:844px;background:radial-gradient(110% 40% at 0% 0%,#F9E3F1 0%,rgba(249,227,241,0) 60%),radial-gradient(80% 35% at 100% 15%,#EEE7FB 0%,rgba(238,231,251,0) 60%),#FAFAFC">
+  <div style="padding:58px 20px 0;display:flex;flex-direction:column;gap:20px">
+    <h1 class="d" style="font-size:26px;font-weight:800">Favoritos</h1>
+    <div style="background:#EFE8FD;border-radius:20px;padding:16px;display:flex;gap:14px;align-items:center">
+      <div style="width:44px;height:44px;border-radius:14px;background:#fff;color:#7A4FD8;display:grid;place-items:center;flex:none"><dc-import name="Icon" k="user" s="22" hint-size="22px,22px"></dc-import></div>
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <p style="font-size:14px;line-height:1.4">Guarda tus favoritos en todos tus dispositivos.</p>
+        <button style="font-size:14px;font-weight:700;color:#7A4FD8;height:28px;display:flex;align-items:center;gap:4px">Iniciar sesión <dc-import name="Icon" k="chev-r" s="16" hint-size="16px,16px"></dc-import></button>
+      </div>
+    </div>
+  </div>
+  <div style="position:absolute;left:0;right:0;top:250px;display:flex;flex-direction:column;align-items:center;text-align:center;padding:0 40px;gap:12px">
+    <dc-import name="Illo" k="favvacio" w="190" h="190" hint-size="190px,190px"></dc-import>
+    <h2 class="d" style="font-size:22px;font-weight:800;margin-top:8px">Aún no tienes favoritos</h2>
+    <p class="mut" style="font-size:15px;line-height:1.5;text-wrap:pretty">Toca el corazón en cualquier artículo y lo guardamos aquí para más tarde.</p>
+    <button class="btn bs" style="width:220px;margin-top:12px"><dc-import name="Icon" k="store" s="20" hint-size="20px,20px"></dc-import>Explorar catálogo</button>
+  </div>
+  <div style="position:absolute;left:0;bottom:0">
+    <dc-import name="TabBar" cl="{{true}}" a="favoritos" g="{{true}}" hint-size="390px,96px"></dc-import>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

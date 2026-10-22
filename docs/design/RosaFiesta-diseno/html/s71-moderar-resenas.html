@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=390">
+<title>71 · Moderar reseñas</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#E9E9EF;display:flex;justify-content:center;padding:24px 0}
+#screen{position:relative;overflow:hidden;width:390px;height:844px;box-shadow:0 20px 60px -20px rgba(0,0,0,.35)}
+
+body{margin:0}
+.rf,.rf *{box-sizing:border-box}
+.rf{font-family:'Figtree',system-ui,sans-serif;color:#151729;-webkit-font-smoothing:antialiased;position:relative;overflow:hidden}
+.rf p,.rf h1,.rf h2{margin:0}
+.rf .d{font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif;letter-spacing:-.02em}
+.rf button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:inherit}
+.rf .ib{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:0 0 0 1px #ECECF5,0 8px 20px -14px rgba(70,80,180,.4);flex:none;color:#151729}
+.rf .mut{color:#5F6377}
+.rf .chip{height:38px;padding:0 14px;border-radius:999px;display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:600;background:#fff;box-shadow:0 0 0 1px #E9E9F2;white-space:nowrap;flex:none}
+.rf .on{background:linear-gradient(135deg,#7C5CF0 0%,#5B6CF0 55%,#2FB8C8 100%);color:#fff;box-shadow:0 8px 18px -8px rgba(91,108,240,.7)}
+.rf .n{min-width:22px;height:22px;border-radius:999px;display:grid;place-items:center;font-size:12px;font-weight:700;padding:0 6px}
+.rf .card{border-radius:22px;background:#fff;box-shadow:0 0 0 1px #ECECF5;padding:16px;display:flex;flex-direction:column;gap:10px}
+.rf .stars{display:flex;gap:2px;color:#F7B500}
+
+
+body{margin:0}
+
+</style>
+</head>
+<body>
+<!-- 71 · Moderar reseñas · Exportado del lienzo de Claude Design (HTML estático, sin lógica). -->
+<div id="screen">
+
+
+<div class="rf" style="width:390px;height:844px;background:radial-gradient(110% 40% at 100% 0%,#E6E7FF 0%,rgba(230,231,255,0) 60%),radial-gradient(80% 35% at 0% 12%,#F1E9FB 0%,rgba(241,233,251,0) 60%),#F6F6FB">
+  <div style="padding:56px 20px 0;display:flex;flex-direction:column;gap:14px">
+    <header style="display:flex;align-items:center;gap:12px">
+      <button class="ib" aria-label="Volver">
+
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:block;flex:none"><path d="M19 12H5M11 18l-6-6 6-6"></path></svg>
+</button>
+      <h1 class="d" style="font-size:20px;font-weight:800;flex:1">Reseñas</h1>
+    </header>
+    <div style="display:flex;gap:8px;margin:0 -20px -18px;padding:2px 20px 14px;overflow:hidden">
+      <button class="chip on">Pendientes <span class="n" style="background:linear-gradient(135deg,#7C5CF0 0%,#5B6CF0 100%);color:#fff;box-shadow:0 8px 16px -8px rgba(91,108,240,.7)">3</span></button>
+      <button class="chip">Verificadas <span class="n" style="background:#EDEDF5">10</span></button>
+      <button class="chip">Rechazadas <span class="n" style="background:#EDEDF5">1</span></button>
+      <button class="chip">Todas</button>
+    </div>
+
+    <article class="card">
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="width:40px;height:40px;border-radius:50%;background:#EFE8FD;color:#7A4FD8;display:grid;place-items:center;font-weight:800">R</span>
+        <div style="flex:1;min-width:0"><p style="font-size:15px;font-weight:700">Ricardo Méndez</p><p class="mut" style="font-size:13px">Gala Corporativa Grupo Caribe · 13 oct</p></div>
+        <div class="stars">
+
+<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:block;flex:none"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"></path></svg>
+
+
+<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:block;flex:none"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"></path></svg>
+
+
+<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:block;flex:none"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"></path></svg>
+
+
+<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:block;flex:none"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"></path></svg>
+
+
+<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:block;flex:none"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"></path></svg>
+</div>
+      </div>
+      <p style="font-size:15px;line-height:1.5">¡Superó todas nuestras expectativas! El arco orgánico y las mesas imperiales lucieron espectaculares.</p>
+      <div style="display:flex;gap:8px;padding:10px 12px;border-radius:14px;background:#F6F6FB;font-size:14px;line-height:1.45"><span style="color:#5F6377;flex:none;margin-top:1px">
+
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:block;flex:none"><path d="M9 14L4 9l5-5M4 9h9a7 7 0 0 1 7 7v4"></path></svg>
+</span><span><b>Tu respuesta:</b> ¡Gracias, Ricardo! Fue un honor acompañarles en su gala. <a href="a34-admin-responder-resena.dc.html" style="color:#4B47D6;font-weight:700">Editar</a></span></div>
+      <div style="display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:8px;margin-top:2px">
+        <button style="height:46px;border-radius:14px;box-shadow:inset 0 0 0 1.5px #F3C3CF;color:#B42345;font-weight:700;font-size:15px;display:flex;align-items:center;justify-content:center;gap:6px">
+
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:block;flex:none"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+Rechazar</button>
+        <button style="height:46px;border-radius:999px;background:linear-gradient(135deg,#7C5CF0 0%,#5B6CF0 55%,#2FB8C8 100%);color:#fff;font-weight:700;font-size:15px;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 8px 16px -8px rgba(91,108,240,.7)">
+
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:block;flex:none"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>
+Verificar</button>
+      </div>
+    </article>
+
+    <article class="card">
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="width:40px;height:40px;border-radius:50%;background:#ECEBFF;color:#4B47D6;display:grid;place-items:center;font-weight:800">S</span>
+        <div style="flex:1;min-width:0"><p style="font-size:15px;font-weight:700">Sofía Hernández</p><p class="mut" style="font-size:13px">Quinceañero Primaveral · 19 oct</p></div>
+        <div class="stars">
+
+<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:block;flex:none"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"></path></svg>
+
+
+<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:block;flex:none"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"></path></svg>
+
+
+<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:block;flex:none"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"></path></svg>
+
+
+<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:block;flex:none"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"></path></svg>
+
+
+<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:block;flex:none"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"></path></svg>
+</div>
+      </div>
+      <p style="font-size:15px;line-height:1.5">Puntualidad impecable y mobiliario en perfecto estado. Recomendados al 100%.</p>
+      <span style="align-self:flex-start;height:26px;padding:0 10px;border-radius:999px;background:#EEF6D6;color:#4E6A10;font-size:12px;font-weight:700;display:flex;align-items:center;gap:5px">
+
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:block;flex:none"><path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6zM8.5 12l2.5 2.5 4.5-4.5"></path></svg>
+Verificada · compra confirmada</span>
+    </article>
+  </div>
+</div>
+
+</div>
+</body>
+</html>

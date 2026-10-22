@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Categorías</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.rf,.rf *{box-sizing:border-box}
+.rf{font-family:'Figtree',system-ui,sans-serif;color:#1A1A2E;-webkit-font-smoothing:antialiased;position:relative;overflow:hidden}
+.rf p,.rf h1,.rf h2,.rf h3{margin:0}
+.rf .d{font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif;letter-spacing:-.02em}
+.rf button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:inherit}
+.rf .ib{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:0 0 0 1px #F0EBF4,0 8px 20px -14px rgba(180,80,180,.4);flex:none;color:#1A1A2E}
+.rf .mut{color:#62627A}
+</style>
+</helmet>
+<div class="rf" style="width:390px;height:844px;background:radial-gradient(110% 40% at 0% 0%,#F9E3F1 0%,rgba(249,227,241,0) 60%),radial-gradient(80% 35% at 100% 15%,#EEE7FB 0%,rgba(238,231,251,0) 60%),#FAFAFC">
+  <div style="padding:56px 20px 0;display:flex;flex-direction:column;gap:18px">
+    <header style="display:flex;align-items:center;gap:14px">
+      <button class="ib" aria-label="Volver"><dc-import name="Icon" k="back" s="22" hint-size="22px,22px"></dc-import></button>
+      <div>
+        <h1 class="d" style="font-size:24px;font-weight:800;line-height:1.05">Categorías</h1>
+        <p class="mut" style="font-size:14px">Explora el catálogo por tipo de artículo</p>
+      </div>
+    </header>
+    <div style="display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:12px">
+      <sc-for list="{{cats}}" as="c" hint-placeholder-count="8">
+        <button style="height:142px;border-radius:22px;background:{{c.bg}};position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;padding:14px 16px;color:{{c.fg}}">
+          <span style="position:absolute;right:-6px;top:-4px"><dc-import name="Illo" k="{{c.k}}" w="104" h="104" hint-size="104px,104px"></dc-import></span>
+          <span class="d" style="position:relative;font-size:19px;font-weight:800">{{c.name}}</span>
+        </button>
+      </sc-for>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      cats: [
+        { name: 'Iluminación', k: 'luz', bg: '#DDF4F3', fg: '#1A1A2E' },
+        { name: 'Floral', k: 'floral', bg: '#FDE6F2', fg: '#1A1A2E' },
+        { name: 'Globos', k: 'globos', bg: '#FFF2C9', fg: '#1A1A2E' },
+        { name: 'Mantelería', k: 'manteleria', bg: '#EFE8FD', fg: '#1A1A2E' },
+        { name: 'Mesa dulce', k: 'dulce', bg: '#EEF6D6', fg: '#1A1A2E' },
+        { name: 'Letreros', k: 'neon', bg: '#1E1A2E', fg: '#FFFFFF' },
+        { name: 'Mobiliario', k: 'chiavari', bg: '#FFF2C9', fg: '#1A1A2E' },
+        { name: 'Decoración', k: 'decor', bg: '#FDE6F2', fg: '#1A1A2E' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

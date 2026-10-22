@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Favoritos</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.rf,.rf *{box-sizing:border-box}
+.rf{font-family:'Figtree',system-ui,sans-serif;color:#1A1A2E;-webkit-font-smoothing:antialiased;position:relative;overflow:hidden}
+.rf p,.rf h1,.rf h2,.rf h3{margin:0}
+.rf .d{font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif;letter-spacing:-.02em}
+.rf button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:inherit}
+.rf .card{background:#fff;border-radius:20px;box-shadow:0 0 0 1px #F2EDF5,0 12px 28px -20px rgba(200,80,170,.4)}
+.rf .mut{color:#62627A}
+.rf .one{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+</style>
+</helmet>
+<div class="rf" style="width:390px;height:844px;background:radial-gradient(110% 40% at 0% 0%,#F9E3F1 0%,rgba(249,227,241,0) 60%),radial-gradient(80% 35% at 100% 15%,#EEE7FB 0%,rgba(238,231,251,0) 60%),#FAFAFC">
+  <div style="padding:58px 20px 0;display:flex;flex-direction:column;gap:18px">
+    <div>
+      <h1 class="d" style="font-size:26px;font-weight:800">Favoritos</h1>
+      <p class="mut" style="font-size:15px">2 artículos guardados</p>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:12px">
+      <sc-for list="{{items}}" as="it" hint-placeholder-count="2">
+        <article class="card" style="overflow:hidden">
+          <div style="height:150px;background:{{it.bg}};position:relative;display:grid;place-items:center">
+            <dc-import name="Foto" k="{{it.k}}" w="169" h="150" hint-size="169px,150px"></dc-import>
+            <button aria-label="Quitar de favoritos" style="position:absolute;top:8px;right:8px;width:36px;height:36px;border-radius:50%;background:#fff;display:grid;place-items:center;color:#D63F98"><dc-import name="Icon" k="heart" s="18" f="{{true}}" hint-size="18px,18px"></dc-import></button>
+          </div>
+          <div style="padding:12px 12px 12px 14px;display:flex;flex-direction:column;gap:3px">
+            <p class="one" style="font-size:15px;font-weight:700">{{it.name}}</p>
+            <p class="one mut" style="font-size:13px">{{it.desc}}</p>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px">
+              <p><span class="d" style="font-size:19px;font-weight:800">RD$ {{it.price}}</span> <span class="mut" style="font-size:12px">/día</span></p>
+              <button aria-label="Agregar a mi evento" style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#E04FAF 0%,#945AE1 55%,#6664E9 100%);color:#fff;display:grid;place-items:center;box-shadow:0 8px 16px -8px rgba(134,93,236,.7)"><dc-import name="Icon" k="plus" s="18" w="2.2" hint-size="18px,18px"></dc-import></button>
+            </div>
+          </div>
+        </article>
+      </sc-for>
+    </div>
+    <section style="border-radius:22px;background:#EFE8FD;padding:16px;display:flex;flex-direction:column;gap:14px">
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <dc-import name="Rosa" s="40" glow="{{false}}" hint-size="40px,40px"></dc-import>
+        <p style="font-size:15px;line-height:1.45;flex:1"><b>¿Los agrego a tu boda?</b><br><span class="mut">Los dos artículos quedarían en “Boda Real Rosa &amp; Dorado”.</span></p>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button style="flex:1;height:46px;border-radius:999px;background:linear-gradient(135deg,#E04FAF 0%,#945AE1 55%,#6664E9 100%);color:#fff;font-weight:700;font-size:15px;box-shadow:0 8px 16px -8px rgba(134,93,236,.7)">Agregar ambos</button>
+        <button style="height:46px;padding:0 16px;border-radius:14px;background:#fff;font-weight:700;font-size:15px">Elegir evento</button>
+      </div>
+    </section>
+  </div>
+  <div style="position:absolute;left:0;bottom:0">
+    <dc-import name="TabBar" cl="{{true}}" a="favoritos" hint-size="390px,96px"></dc-import>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      items: [
+        { name: 'Silla Tiffany Cristal', desc: 'Acrílico transparente, elegante', price: '4', k: 'silla-tiffany', bg: '#DDF4F3' },
+        { name: 'Mesa redonda', desc: 'Para 8 a 10 invitados', price: '25', k: 'mesa-redonda', bg: '#FFF2C9' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

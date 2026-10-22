@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Detalle de artículo</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.rf,.rf *{box-sizing:border-box}
+.rf{font-family:'Figtree',system-ui,sans-serif;color:#1A1A2E;-webkit-font-smoothing:antialiased;position:relative;overflow:hidden}
+.rf p,.rf h1,.rf h2,.rf h3{margin:0}
+.rf .d{font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif;letter-spacing:-.02em}
+.rf .gt{background:linear-gradient(90deg,#EA4EA9,#865DEC);-webkit-background-clip:text;background-clip:text;color:transparent}
+.rf button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:inherit}
+.rf .btn{height:56px;border-radius:16px;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:16px}
+.rf .bp{background:linear-gradient(135deg,#E04FAF 0%,#945AE1 55%,#6664E9 100%);color:#fff;box-shadow:0 12px 24px -12px rgba(134,93,236,.8)}
+.rf .ibw{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.92);flex:none;color:#1A1A2E;box-shadow:0 6px 16px -10px rgba(40,40,80,.4)}
+.rf .mut{color:#62627A}
+.rf .th{width:58px;height:58px;border-radius:16px;display:grid;place-items:center;background:#fff}
+.rf .sw{width:40px;height:40px;border-radius:50%;flex:none;display:grid;place-items:center}
+.rf .seg{flex:1;height:40px;border-radius:12px;font-size:14px;font-weight:600;display:grid;place-items:center}
+</style>
+</helmet>
+<div class="rf" style="width:390px;height:844px;background:#fff">
+  <div style="position:absolute;left:0;right:0;top:0;height:430px;background:#EEE9F2;overflow:hidden">
+    <dc-import name="Foto" k="silla-tiffany" w="390" h="430" hint-size="390px,430px"></dc-import>
+    <div style="position:absolute;left:0;right:0;top:0;height:120px;background:linear-gradient(180deg,rgba(26,26,46,.28),rgba(26,26,46,0))"></div>
+    <div style="position:absolute;left:20px;right:20px;top:54px;display:flex;justify-content:space-between">
+      <button class="ibw" aria-label="Volver"><dc-import name="Icon" k="back" s="22" hint-size="22px,22px"></dc-import></button>
+      <div style="display:flex;gap:10px">
+        <button class="ibw" aria-label="Compartir"><dc-import name="Icon" k="share" s="20" hint-size="20px,20px"></dc-import></button>
+        <button class="ibw" aria-label="Guardar en favoritos" style="color:#EA4EA9"><dc-import name="Icon" k="heart" s="20" f="{{true}}" hint-size="20px,20px"></dc-import></button>
+      </div>
+    </div>
+    <div style="position:absolute;left:20px;bottom:54px;display:flex;gap:8px;padding:6px;border-radius:20px;background:rgba(40,40,60,.35)">
+      <button class="th" aria-label="Imagen 1" style="box-shadow:0 0 0 2.5px #EA4EA9"><dc-import name="Foto" k="silla-tiffany" w="50" h="50" r="12" hint-size="50px,50px"></dc-import></button>
+      <button class="th" aria-label="Imagen 2"><dc-import name="Foto" k="mesa-redonda" w="50" h="50" r="12" hint-size="50px,50px"></dc-import></button>
+      <button class="th" aria-label="Imagen 3"><dc-import name="Foto" k="centro-floral" w="50" h="50" r="12" hint-size="50px,50px"></dc-import></button>
+      <button class="th" aria-label="Imagen 4" style="font-size:13px;font-weight:700;color:#62627A">+3</button>
+    </div>
+  </div>
+
+  <section style="position:absolute;left:0;right:0;top:400px;bottom:0;background:#fff;border-radius:28px 28px 0 0;padding:24px 24px 0;display:flex;flex-direction:column;gap:18px">
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+        <h1 class="d" style="font-size:24px;font-weight:800;line-height:1.05">Silla Tiffany Cristal</h1>
+        <p style="text-align:right;flex:none"><span class="d gt" style="font-size:28px;font-weight:800">RD$ 4</span><br><span class="mut" style="font-size:12px">por unidad / día</span></p>
+      </div>
+      <button style="align-self:flex-start;display:flex;align-items:center;gap:6px;font-size:14px;height:30px;padding:0 10px;border-radius:999px;background:#FFF2C9"><dc-import name="Icon" k="star" s="16" f="{{true}}" c="#F0A800" hint-size="16px,16px"></dc-import><b>5.0</b><span style="color:#7A5700;text-decoration:underline;font-weight:600">1 reseña</span></button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <p style="font-size:14px"><span class="mut">Color:</span> <b>Transparente</b></p>
+      <div style="display:flex;gap:12px">
+        <button class="sw" aria-label="Transparente" style="background:linear-gradient(135deg,#E04FAF 0%,#945AE1 55%,#6664E9 100%);color:#fff"><dc-import name="Icon" k="check" s="18" w="2.6" hint-size="18px,18px"></dc-import></button>
+        <button class="sw" aria-label="Rosa" style="box-shadow:inset 0 0 0 2.5px #EA4EA9"></button>
+        <button class="sw" aria-label="Verde" style="box-shadow:inset 0 0 0 2.5px #A9CC3A"></button>
+        <button class="sw" aria-label="Dorado" style="box-shadow:inset 0 0 0 2.5px #F0B92E"></button>
+      </div>
+    </div>
+    <div style="display:flex;gap:4px;padding:4px;background:#F3F2F7;border-radius:16px">
+      <button class="seg" style="background:linear-gradient(135deg,#E04FAF 0%,#945AE1 55%,#6664E9 100%);color:#fff;font-weight:700">Descripción</button>
+      <button class="seg mut">Detalles</button>
+      <button class="seg mut">Reseñas</button>
+    </div>
+    <p class="mut" style="font-size:15px;line-height:1.55">Silla de acrílico transparente, elegante. [Descripción completa del artículo]</p>
+  </section>
+
+  <div style="position:absolute;left:0;right:0;bottom:0;padding:14px 20px 34px;background:#fff;box-shadow:0 -1px 0 #F0EBF4;display:flex;gap:10px;align-items:center">
+    <div style="height:56px;border-radius:16px;background:#F3F2F7;display:flex;align-items:center">
+      <button aria-label="Quitar uno" style="width:44px;height:56px;display:grid;place-items:center;color:#865DEC"><dc-import name="Icon" k="minus" s="18" hint-size="18px,18px"></dc-import></button>
+      <span class="d" style="min-width:34px;text-align:center;font-size:18px;font-weight:800">80</span>
+      <button aria-label="Agregar uno" style="width:44px;height:56px;display:grid;place-items:center;color:#865DEC"><dc-import name="Icon" k="plus" s="18" hint-size="18px,18px"></dc-import></button>
+    </div>
+    <button class="btn bp" style="flex:1"><dc-import name="Icon" k="party" s="20" hint-size="20px,20px"></dc-import>Agregar · RD$ 320</button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

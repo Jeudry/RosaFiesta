@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Modo ejecución</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.rf,.rf *{box-sizing:border-box}
+.rf{font-family:'Figtree',system-ui,sans-serif;color:#1A1A2E;-webkit-font-smoothing:antialiased;position:relative;overflow:hidden}
+.rf p,.rf h1{margin:0}
+.rf .d{font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif;letter-spacing:-.02em}
+.rf button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:inherit}
+.rf .mut{color:#62627A}
+</style>
+</helmet>
+<div class="rf" style="width:390px;height:844px;background:radial-gradient(110% 40% at 0% 0%,#F9E3F1 0%,rgba(249,227,241,0) 60%),radial-gradient(80% 35% at 100% 15%,#EEE7FB 0%,rgba(238,231,251,0) 60%),#FAFAFC">
+  <section style="background:linear-gradient(135deg,#E04FAF 0%,#945AE1 55%,#6664E9 100%);color:#fff;padding:52px 20px 28px;border-radius:0 0 28px 28px;display:flex;flex-direction:column;gap:18px;box-shadow:0 18px 34px -20px rgba(150,80,220,.8)">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <button aria-label="Salir del modo ejecución" style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.18);display:grid;place-items:center"><dc-import name="Icon" k="x" s="22" hint-size="22px,22px"></dc-import></button>
+      <span style="height:28px;padding:0 10px;border-radius:999px;background:#FFD45C;color:#2E1A47;font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px"><span style="width:7px;height:7px;border-radius:50%;background:#2E1A47"></span>En curso</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:18px">
+      <svg role="img" aria-label="37% completado" width="84" height="84" viewBox="0 0 84 84" style="flex:none">
+        <circle cx="42" cy="42" r="34" fill="none" stroke="rgba(255,255,255,.22)" stroke-width="8"></circle>
+        <circle cx="42" cy="42" r="34" fill="none" stroke="#FFD45C" stroke-width="8" stroke-linecap="round" stroke-dasharray="79 214" transform="rotate(-90 42 42)"></circle>
+        <text x="42" y="48" text-anchor="middle" font-family="'Bricolage Grotesque', system-ui, sans-serif" font-weight="800" font-size="18" fill="#fff">37%</text>
+      </svg>
+      <div>
+        <h1 class="d" style="font-size:24px;font-weight:800;line-height:1.05">Modo ejecución</h1>
+        <p style="font-size:14px;color:#F6EAFB;margin-top:4px">Boda Real Rosa &amp; Dorado · 3 de 8 tareas</p>
+      </div>
+    </div>
+  </section>
+
+  <div style="padding:18px 16px 0;display:flex;flex-direction:column;gap:10px">
+    <sc-for list="{{tasks}}" as="t" hint-placeholder-count="4">
+      <div style="display:flex;gap:14px;padding:16px;border-radius:20px;background:{{t.bg}};box-shadow:0 0 0 1px #F2EDF5">
+        <button aria-label="{{t.aria}}" style="width:32px;height:32px;border-radius:10px;flex:none;display:grid;place-items:center;background:{{t.cb}};box-shadow:{{t.cbr}};color:#fff"><sc-if value="{{t.done}}" hint-placeholder-val="{{false}}"><dc-import name="Icon" k="check" s="18" w="2.8" hint-size="18px,18px"></dc-import></sc-if></button>
+        <div style="flex:1;display:flex;flex-direction:column;gap:4px">
+          <p style="font-size:16px;font-weight:700;line-height:1.3;color:{{t.tc}};text-decoration:{{t.td}}">{{t.title}}</p>
+          <p class="mut" style="font-size:14px;line-height:1.4">{{t.sub}}</p>
+          <p class="mut" style="font-size:12px;font-weight:600;display:flex;align-items:center;gap:5px;margin-top:2px"><dc-import name="Icon" k="clock" s="14" hint-size="14px,14px"></dc-import>9:38 p. m.</p>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const mk = (title, sub, done) => ({
+      title, sub, done,
+      bg: done ? '#F6F4F9' : '#FFFFFF',
+      cb: done ? '#8DB52C' : '#FFFFFF',
+      cbr: done ? 'none' : 'inset 0 0 0 2px #CDBFCB',
+      tc: done ? '#62627A' : '#1A1A2E',
+      td: done ? 'line-through' : 'none',
+      aria: done ? 'Marcar como pendiente' : 'Marcar como hecha'
+    });
+    return {
+      tasks: [
+        mk('Confirmar paleta floral blanco y rosa pastel', 'Revisión final con la florista principal', true),
+        mk('Aprobar plano de mesas imperial y sillas Tiffany', 'Distribución para 120 invitados en el jardín central', true),
+        mk('Realizar pago inicial de reserva (30%)', 'Transferencia o tarjeta desde el portal Rosa Fiesta', false),
+        mk('Inspección técnica de iluminación exterior', 'Coordinar generador y guirnaldas cálidas', false)
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

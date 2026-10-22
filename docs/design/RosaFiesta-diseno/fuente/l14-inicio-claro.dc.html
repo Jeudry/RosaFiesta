@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Inicio (variante B)</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.rf,.rf *{box-sizing:border-box}
+.rf{font-family:'Figtree',system-ui,sans-serif;-webkit-font-smoothing:antialiased;position:relative;overflow:hidden}
+.rf p,.rf h1,.rf h2,.rf h3{margin:0}
+.rf .d{font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif;letter-spacing:-.02em}
+.rf button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:inherit}
+.rf input{font:inherit;color:inherit;border:0;outline:0;background:none;padding:0;min-width:0;flex:1}
+.rf .one{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+</style>
+</helmet>
+<div class="rf" style="width:390px;height:844px;background:{{t.bg}};color:{{t.ink}}">
+  <div style="padding:54px 20px 0;display:flex;flex-direction:column;gap:16px">
+    <header style="display:flex;align-items:center;gap:12px">
+      <span style="padding:2px;border-radius:50%;background:linear-gradient(135deg,#EA4EA9,#865DEC);flex:none;display:block">
+        <button aria-label="Mi perfil" class="d" style="width:44px;height:44px;border-radius:50%;background:{{t.surf}};color:#C84FB8;display:grid;place-items:center;font-size:18px;font-weight:800">C</button>
+      </span>
+      <div style="flex:1;min-width:0">
+        <p style="font-size:13px;color:{{t.mut}}">Hola de nuevo</p>
+        <p class="d one" style="font-size:22px;font-weight:800;line-height:1.1">Camila</p>
+      </div>
+      <button aria-label="Notificaciones, 1 nueva" style="width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:{{t.surf}};box-shadow:{{t.sh}};position:relative">
+        <dc-import name="Icon" k="bell" s="22" hint-size="22px,22px"></dc-import>
+        <span style="position:absolute;top:9px;right:10px;width:9px;height:9px;border-radius:50%;background:#FBCA3F;box-shadow:0 0 0 2px {{t.surf}}"></span>
+      </button>
+      <button aria-label="Mi evento, 160 artículos" style="height:44px;border-radius:999px;padding:0 8px 0 12px;display:flex;align-items:center;gap:8px;background:linear-gradient(90deg,#EA4EA9,#865DEC);color:#fff;font-weight:700;font-size:14px;box-shadow:0 10px 22px -10px rgba(200,70,180,.7)">
+        <dc-import name="Icon" k="party" s="20" hint-size="20px,20px"></dc-import>
+        <span style="min-width:30px;height:24px;border-radius:999px;background:#FFD45C;color:#2E1A47;font-size:12px;display:grid;place-items:center;padding:0 7px">160</span>
+      </button>
+    </header>
+
+    <label style="height:52px;border-radius:16px;background:{{t.surf}};box-shadow:{{t.sh}};display:flex;align-items:center;gap:10px;padding:0 6px 0 16px;color:{{t.mut}}">
+      <dc-import name="Icon" k="search" s="20" hint-size="20px,20px"></dc-import>
+      <input placeholder="¿Qué celebramos hoy?" aria-label="Buscar" style="color:{{t.ink}}">
+      <button aria-label="Buscar por voz" style="width:40px;height:40px;border-radius:12px;background:{{t.chip}};color:#B54BD6;display:grid;place-items:center"><dc-import name="Icon" k="mic" s="20" hint-size="20px,20px"></dc-import></button>
+    </label>
+
+    <section style="height:186px;border-radius:24px;background:linear-gradient(135deg,#E04FAF 0%,#945AE1 55%,#6664E9 100%);color:#fff;position:relative;overflow:hidden;padding:22px 20px;display:flex;flex-direction:column;justify-content:flex-end;gap:12px;box-shadow:0 18px 34px -20px rgba(150,80,220,.8)">
+      <svg aria-hidden="true" width="350" height="186" viewBox="0 0 350 186" style="position:absolute;inset:0">
+        <circle cx="300" cy="30" r="70" fill="#fff" opacity=".1"></circle>
+        <circle cx="330" cy="170" r="40" fill="#fff" opacity=".08"></circle>
+        <path d="M0 -10L2.35 -3.24L9.5 -3.1L3.8 1.24L5.9 8.1L0 4L-5.9 8.1L-3.8 1.24L-9.5 -3.1L-2.35 -3.24Z" fill="#FFD45C" transform="translate(196 26) scale(.9)"></path>
+        <circle cx="168" cy="54" r="5" fill="#D6EA8C"></circle>
+        <rect x="222" y="58" width="20" height="6" rx="3" fill="#D6EA8C" transform="rotate(-24 232 61)"></rect>
+      </svg>
+      <div style="position:absolute;right:-30px;bottom:-26px">
+        <dc-import name="Illo" k="arcolg" w="210" h="210" hint-size="210px,210px"></dc-import>
+      </div>
+      <span style="position:relative;align-self:flex-start;height:24px;padding:0 10px;border-radius:999px;background:#FFD45C;color:#2E1A47;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;display:flex;align-items:center">Nueva temporada 2026</span>
+      <h2 class="d" style="position:relative;font-size:28px;font-weight:800;line-height:1.02;max-width:190px">Crea momentos inolvidables</h2>
+      <button style="position:relative;align-self:flex-start;height:44px;padding:0 18px;border-radius:999px;background:#fff;color:#A23FB8;font-weight:700;font-size:14px;display:flex;align-items:center;gap:6px">Explorar paquetes <dc-import name="Icon" k="next" s="16" w="2.2" hint-size="16px,16px"></dc-import></button>
+    </section>
+
+    <section style="display:flex;flex-direction:column;gap:12px;margin-top:4px">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <h2 class="d" style="font-size:20px;font-weight:800">Servicios</h2>
+        <button style="height:32px;padding:0 12px;border-radius:999px;background:{{t.chip}};font-size:13px;font-weight:700;color:#B54BD6">Ver todo</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4, minmax(0, 1fr));gap:10px">
+        <sc-for list="{{services}}" as="s" hint-placeholder-count="4">
+          <button style="display:flex;flex-direction:column;align-items:center;gap:6px">
+            <span style="width:74px;height:74px;border-radius:50%;background:{{s.bg}};display:grid;place-items:center"><dc-import name="Illo" k="{{s.k}}" w="58" h="58" hint-size="58px,58px"></dc-import></span>
+            <span style="font-size:13px;font-weight:600">{{s.label}}</span>
+          </button>
+        </sc-for>
+      </div>
+    </section>
+
+    <section style="display:flex;flex-direction:column;gap:12px;margin-top:4px">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <h2 class="d" style="font-size:20px;font-weight:800">Tendencias</h2>
+        <button style="height:32px;padding:0 12px;border-radius:999px;background:{{t.chip}};font-size:13px;font-weight:700;color:#B54BD6">Ver todo</button>
+      </div>
+      <div style="display:flex;gap:12px;margin-right:-20px">
+        <sc-for list="{{trends}}" as="tr" hint-placeholder-count="2">
+          <article style="width:230px;flex:none;border-radius:20px;background:{{t.surf}};box-shadow:{{t.sh}};overflow:hidden">
+            <div style="height:100px;background:{{tr.bg}};display:grid;place-items:center;position:relative">
+              <dc-import name="Illo" k="{{tr.k}}" w="92" h="92" hint-size="92px,92px"></dc-import>
+              <span style="position:absolute;left:10px;top:10px;height:24px;padding:0 9px;border-radius:999px;background:#FFD45C;color:#2E1A47;font-size:12px;font-weight:700;display:flex;align-items:center;gap:4px"><dc-import name="Icon" k="trend-up" s="14" hint-size="14px,14px"></dc-import>Tendencia</span>
+            </div>
+            <div style="padding:10px 14px 12px;display:flex;justify-content:space-between;align-items:center">
+              <p class="d" style="font-size:17px;font-weight:800">{{tr.name}}</p>
+              <p style="font-size:13px;color:{{t.mut}}">{{tr.count}}</p>
+            </div>
+          </article>
+        </sc-for>
+      </div>
+    </section>
+  </div>
+  <div style="position:absolute;left:0;bottom:0">
+    <dc-import name="TabBar" a="inicio" dark="{{dark}}" cl="{{true}}" hint-size="390px,96px"></dc-import>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const dark = !!(this.props.dark ?? false);
+    const t = dark ? {
+      bg: 'radial-gradient(90% 40% at 0% 0%,rgba(234,78,169,.14) 0%,rgba(234,78,169,0) 60%),#0A0A13',
+      surf: '#1D1D30', ink: '#F2F0F8', mut: '#A6A3BA', chip: 'rgba(181,75,214,.18)',
+      sh: '0 0 0 1px #2A2A40'
+    } : {
+      bg: 'radial-gradient(110% 40% at 0% 0%,#F9E3F1 0%,rgba(249,227,241,0) 60%),radial-gradient(80% 35% at 100% 15%,#EEE7FB 0%,rgba(238,231,251,0) 60%),#FAFAFC',
+      surf: '#FFFFFF', ink: '#1A1A2E', mut: '#62627A', chip: '#F5EAF9',
+      sh: '0 0 0 1px #F0EBF4,0 10px 24px -16px rgba(180,80,180,.35)'
+    };
+    const tint = dark
+      ? { rosa: '#3A1630', violeta: '#26204A', lima: '#2B3216', sol: '#3A2E14' }
+      : { rosa: '#FDE6F2', violeta: '#EFE8FD', lima: '#EEF6D6', sol: '#FFF2C9' };
+    return {
+      dark, t,
+      services: [
+        { label: 'Decoración', k: 'floral', bg: tint.rosa },
+        { label: 'Mobiliario', k: 'chiavari', bg: tint.violeta },
+        { label: 'Mesa dulce', k: 'dulce', bg: tint.lima },
+        { label: 'Iluminación', k: 'luz', bg: tint.sol }
+      ],
+      trends: [
+        { name: 'Graduaciones', count: '2.4K eventos', k: 'grad', bg: tint.violeta },
+        { name: 'Bodas', count: '[N] eventos', k: 'boda', bg: tint.rosa }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Modal · Inicia sesión</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.rf,.rf *{box-sizing:border-box}
+.rf{font-family:'Figtree',system-ui,sans-serif;color:#1A1A2E;-webkit-font-smoothing:antialiased;position:relative;overflow:hidden}
+.rf p,.rf h2{margin:0}
+.rf .d{font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif;letter-spacing:-.02em}
+.rf button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer}
+.rf .btn{height:56px;border-radius:16px;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:16px;width:100%}
+.rf .mut{color:#62627A}
+</style>
+</helmet>
+<div class="rf" style="width:390px;height:844px;background:radial-gradient(110% 40% at 0% 0%,#F9E3F1 0%,rgba(249,227,241,0) 60%),radial-gradient(80% 35% at 100% 15%,#EEE7FB 0%,rgba(238,231,251,0) 60%),#FAFAFC">
+  <dc-import name="s01-catalogo-invitado" hint-size="390px,844px"></dc-import>
+  <div style="position:absolute;inset:0;background:rgba(30,20,50,.45)"></div>
+  <section role="dialog" aria-label="Inicia sesión para continuar" style="position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:28px 28px 0 0;padding:12px 24px 34px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px">
+    <span style="width:40px;height:5px;border-radius:3px;background:#E3DCE8;margin-bottom:6px"></span>
+    <dc-import name="Illo" k="candado" w="110" h="110" hint-size="110px,110px"></dc-import>
+    <h2 class="d" style="font-size:22px;font-weight:800;line-height:1.1">Inicia sesión para continuar</h2>
+    <p class="mut" style="font-size:15px;line-height:1.5;max-width:300px">Entra o crea tu cuenta para guardar favoritos y armar tu evento.</p>
+    <div style="display:flex;flex-direction:column;gap:8px;width:100%;margin-top:10px">
+      <button class="btn" style="background:linear-gradient(90deg,#EA4EA9 0%,#B754CB 50%,#865DEC 100%);color:#fff;box-shadow:0 12px 26px -12px rgba(200,70,180,.7)">Iniciar sesión</button>
+      <button class="btn" style="background:#fff;box-shadow:0 0 0 1px #E8E1EE,0 8px 20px -16px rgba(180,80,180,.35)">Crear cuenta</button>
+      <button class="btn mut" style="height:44px;font-size:15px;font-weight:600">Ahora no</button>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

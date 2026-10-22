@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Panel · Finanzas</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.rf,.rf *{box-sizing:border-box}
+.rf{font-family:'Figtree',system-ui,sans-serif;color:#151729;-webkit-font-smoothing:antialiased;position:relative;overflow:hidden}
+.rf p,.rf h1,.rf h2{margin:0}
+.rf .d{font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif;letter-spacing:-.02em}
+.rf button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:inherit}
+.rf .ib{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:0 0 0 1px #ECECF5,0 8px 20px -14px rgba(70,80,180,.4);flex:none;color:#151729}
+.rf .mut{color:#5F6377}
+.rf .tab{height:44px;display:flex;align-items:center;font-size:15px;font-weight:600;color:#5F6377;white-space:nowrap;flex:none;text-decoration:none}
+.rf .tab.on{color:#151729;font-weight:700;box-shadow:inset 0 -2.5px 0 #5B6CF0}
+.rf .seg{flex:1;height:38px;border-radius:11px;font-size:14px;font-weight:600;display:grid;place-items:center}
+.rf .one{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+</style>
+</helmet>
+<div class="rf" style="width:390px;height:844px;background:radial-gradient(110% 40% at 100% 0%,#E6E7FF 0%,rgba(230,231,255,0) 60%),radial-gradient(80% 35% at 0% 12%,#F1E9FB 0%,rgba(241,233,251,0) 60%),#F6F6FB">
+  <div style="padding:56px 20px 0;display:flex;flex-direction:column;gap:12px">
+    <header style="display:flex;align-items:center;gap:12px">
+      <button class="ib" aria-label="Volver"><dc-import name="Icon" k="back" s="22" hint-size="22px,22px"></dc-import></button>
+      <h1 class="d" style="font-size:20px;font-weight:800;flex:1">Panel</h1>
+      <span class="mut" style="font-size:13px;font-weight:600">Octubre 2026</span>
+    </header>
+    <nav style="display:flex;gap:20px;box-shadow:inset 0 -1px 0 #E9E9F2;margin:0 -20px;padding:0 20px;overflow:hidden">
+      <a class="tab" href="s58-panel-resumen.dc.html">Resumen</a>
+      <a class="tab on" href="s59-panel-finanzas.dc.html">Finanzas</a>
+      <a class="tab" href="s60-panel-seguros.dc.html">Seguros</a>
+      <a class="tab" href="s61-panel-auditoria.dc.html">Auditoría</a>
+      <a class="tab" href="s62-panel-clientes.dc.html">Clientes</a>
+    </nav>
+    <div style="display:flex;gap:4px;padding:4px;background:#EDEDF5;border-radius:14px;margin-top:4px">
+      <button class="seg" style="background:#fff;font-weight:700;box-shadow:0 2px 6px -2px rgba(70,80,180,.2)">Movimientos</button>
+      <button class="seg mut">Facturas</button>
+      <button class="seg mut">Proveedores</button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:10px">
+      <div style="padding:14px;border-radius:18px;background:#EEF6D6"><p style="font-size:13px;font-weight:600;color:#4E6A10">Entradas</p><p class="d" style="font-size:22px;font-weight:800;color:#3F560C">RD$ 10,360</p></div>
+      <div style="padding:14px;border-radius:18px;background:#fff;box-shadow:0 0 0 1px #ECECF5"><p class="mut" style="font-size:13px;font-weight:600">Salidas</p><p class="d" style="font-size:22px;font-weight:800">RD$ 1,450</p></div>
+    </div>
+    <section style="border-radius:22px;background:#fff;box-shadow:0 0 0 1px #ECECF5">
+      <sc-for list="{{tx}}" as="t" hint-placeholder-count="3">
+        <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;box-shadow:{{t.line}}">
+          <span style="width:42px;height:42px;border-radius:13px;background:{{t.bg}};color:{{t.fg}};display:grid;place-items:center;flex:none"><dc-import name="Icon" k="{{t.icon}}" s="20" hint-size="20px,20px"></dc-import></span>
+          <div style="flex:1;min-width:0">
+            <p class="one" style="font-size:15px;font-weight:700">{{t.title}}</p>
+            <p class="mut one" style="font-size:13px">{{t.sub}}</p>
+          </div>
+          <p class="d" style="font-size:16px;font-weight:800;color:{{t.ac}};white-space:nowrap">{{t.amt}}</p>
+        </div>
+      </sc-for>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const inc = { icon: 'trend-up', bg: '#EEF6D6', fg: '#4E6A10', ac: '#4E6A10' };
+    const exp = { icon: 'truck', bg: '#FFF2C9', fg: '#7A5700', ac: '#865DEC' };
+    return {
+      tx: [
+        { ...inc, title: 'Anticipo 30%', sub: 'Quinceañera Valentina Crystal', amt: '+RD$ 1,860', line: 'none' },
+        { ...inc, title: 'Pago total', sub: 'Gala Corporativa Grupo Caribe', amt: '+RD$ 8,500', line: '0 -1px 0 #F0F0F6' },
+        { ...exp, title: 'Follaje y transporte', sub: 'Gasto · camiones', amt: '−RD$ 1,450', line: '0 -1px 0 #F0F0F6' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

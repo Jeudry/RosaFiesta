@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=390">
+<title>39 · Calendario</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#E9E9EF;display:flex;justify-content:center;padding:24px 0}
+#screen{position:relative;overflow:hidden;width:390px;height:844px;box-shadow:0 20px 60px -20px rgba(0,0,0,.35)}
+
+body{margin:0}
+.rf,.rf *{box-sizing:border-box}
+.rf{font-family:'Figtree',system-ui,sans-serif;color:#1A1A2E;-webkit-font-smoothing:antialiased;position:relative;overflow:hidden}
+.rf p,.rf h1,.rf h2,.rf h3{margin:0}
+.rf .d{font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif;letter-spacing:-.02em}
+.rf button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:inherit}
+.rf .ib{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:0 0 0 1px #F0EBF4,0 8px 20px -14px rgba(180,80,180,.4);flex:none;color:#1A1A2E}
+.rf .mut{color:#62627A}
+.rf .card{background:#fff;border-radius:22px;box-shadow:0 0 0 1px #F2EDF5,0 12px 28px -20px rgba(200,80,170,.4)}
+.rf .one{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+
+body{margin:0}
+
+</style>
+</head>
+<body>
+<!-- 39 · Calendario · Exportado del lienzo de Claude Design (HTML estático, sin lógica). -->
+<div id="screen">
+
+
+<div class="rf" style="width:390px;height:844px;background:radial-gradient(110% 40% at 0% 0%,#F9E3F1 0%,rgba(249,227,241,0) 60%),radial-gradient(80% 35% at 100% 15%,#EEE7FB 0%,rgba(238,231,251,0) 60%),#FAFAFC">
+  <div style="padding:56px 20px 0;display:flex;flex-direction:column;gap:16px">
+    <header style="display:flex;align-items:center;gap:12px">
+      <button class="ib" aria-label="Volver">
+
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:block;flex:none"><path d="M19 12H5M11 18l-6-6 6-6"></path></svg>
+</button>
+      <h1 class="d" style="font-size:20px;font-weight:800;flex:1">Calendario</h1>
+      <div style="display:flex;padding:3px;background:#F1EFF5;border-radius:12px;font-size:13px;font-weight:600">
+        <button style="height:34px;padding:0 12px;border-radius:10px;background:#fff;font-weight:700">Mes</button>
+        <button style="height:34px;padding:0 12px;border-radius:10px" class="mut">2 sem.</button>
+      </div>
+    </header>
+    <section class="card" style="padding:16px 12px 12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:0 4px 12px">
+        <button aria-label="Mes anterior" style="width:40px;height:40px;display:grid;place-items:center">
+
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:block;flex:none"><path d="M15 18l-6-6 6-6"></path></svg>
+</button>
+        <p class="d" style="font-size:20px;font-weight:800">Octubre 2026</p>
+        <button aria-label="Mes siguiente" style="width:40px;height:40px;display:grid;place-items:center">
+
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:block;flex:none"><path d="M9 18l6-6-6-6"></path></svg>
+</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(7, minmax(0, 1fr));text-align:center;font-size:12px;font-weight:700;padding-bottom:6px" class="mut">
+        <span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(7, minmax(0, 1fr));row-gap:4px">
+        
+          <button style="height:46px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px">
+            <span style="width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:15px;font-weight:600;background:transparent;color:#B7A8B6">28</span>
+            <span style="width:5px;height:5px;border-radius:50%;background:transparent"></span>
+          </button>
+        
+          <button style="height:46px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px">
+            <span style="width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:15px;font-weight:600;background:transparent;color:#B7A8B6">29</span>
+            <span style="width:5px;height:5px;border-radius:50%;background:transparent"></span>
+          </button>
+        
+          <button style="height:46px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px">
+            <span style="width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:15px;font-weight:600;background:transparent;color:#B7A8B6">30</span>
+            <span style="width:5px;height:5px;border-radius:50%;background:transparent"></span>
+          </button>
+        
+          <button style="height:46px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px">
+            <span style="width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:15px;font-weight:600;background:transparent;color:#1A1A2E">1</span>
+            <span style="width:5px;height:5px;border-radius:50%;background:transparent"></span>
+          </button>
+        
+          <button style="height:46px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px">
+            <span style="width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:15px;font-weight:600;background:transparent;color:#1A1A2E">2</span>
+            <span style="width:5px;height:5px;border-radius:50%;background:transparent"></span>
+          </button>
+        
+          <button style="height:46px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px">
+            <span style="width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:15px;font-weight:600;background:transparent;color:#1A1A2E">3</span>
+            <span style="width:5px;height:5px;border-radius:50%;background:transparent"></span>
+          </button>
+        
+          <button style="height:46px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px">
+            <span style="width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:15px;font-weight:600;background:transparent;color:#1A1A2E">4</span>
+            <span style="width:5px;height:5px;border-radius:50%;background:transparent"></span>
+          </button>
+        
+          <button style="height:46px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px">
+            <span style="width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:15px;font-weight:600;background:transparent;color:#1A1A2E">5</span>
+            <span style="width:5px;height:5px;border-radius:50%;background:transparent"></span>
+          </button>
+        
+          <button style="height:46px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px">
+            <span style="width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:15px;font-weight:600;background:transparent;color:#1A1A2E">6</span>
+            <span style="width:5px;height:5px;border-radius:50%;background:transparent"></span>
+          </button>
+        
+          <button style="height:46px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px">
+            <span style="width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:15px;font-weight:600;background:transparent;color:#1A1A2E">7</span>
+            <span style="width:5px;height:5px;border-radius:50%;background:transparent"></span>
+          </button>
+        
+          <button style="height:46px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px">
+            <span style="width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:15px;font-weight:600;background:transparent;color:#1A1A2E">8</span>
+            <span style="width:5px;height:5px;border-radius:50%;background:transparent"></span>
+          </button>
+        
+          <button style="height:46px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px">
+            <span style="width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:15px;font-weight:600;background:transparent;color:#1A1A2E">9</span>
+            <span style="width:5px;height:5px;border-radius:50%;background:transparent"></span>
+          </button>
+        
+          <button style="height:46px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px">
+            <span style="width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:15px;font-weight:600;background:transparent;color:#1A1A2E">10</span>
+            <span style="width:5px;height:5px;border-radius:50%;background:transparent"></span>
+          </button>
+        
+          <button style="height:46px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px">
+            <span style="width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:15px;font-weight:600;background:transparent;color:#1A1A2E">11</span>
+            <span style="width:5px;height:5px;border-radius:50%;background:transparent"></span>
+          </button>
+        
+          <button style="height:46px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px">
+            <span style="width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:15px;font-weight:600;background:transparent;color:#1A1A2E">12</span>
+            <span style="width:5px;height:5px;border-radius:50%;background:#865DEC"></span>
+          </button>
+        
+          <button style="height:46px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px">
+            <span style="width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:15px;font-weight:600;background:transparent;color:#1A1A2E">13</span>
+            <span style="width:5px;height:5px;border-radius:50%;background:transparent"></span>
+          </button>
+        
+          <button style="height:46px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px">
+            <span style="width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:15px;font-weight:600;background:transparent;color:#1A1A2E">14</span>
+            <span style="width:5px;height:5px;border-radius:50%;background:transparent"></span>
+          </button>
+        
+          <button style="height:46px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px">
+            <span style="width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:15px;font-weight:600;background:transparent;color:#1A1A2E">15</span>
+            <span style="width:5px;height:5px;border-radius:50%;background:transparent"></span>
+          </button>
+        
+          <button style="height:46px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px">
+            <span style="width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:15px;font-weight:600;background:transparent;color:#1A1A2E">16</span>
+            <span style="width:5px;height:5px;border-radius:50%;background:transparent"></span>
+          </button>
+        
+          <button style="height:46px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px">
+            <span style="width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:15px;font-weight:600;background:transparent;color:#1A1A2E">17</span>
+            <span style="width:5px;height:5px;border-radius:50%;background:transparent"></span>
+          </button>
+        
+          <button style="height:46px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px">
+            <span style="width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:15px;font-weight:600;background:transparent;color:#1A1A2E">18</span>
+            <span style="width:5px;height:5px;border-radius:50%;background:transparent"></span>
+          </button>
+        
+          <button style="height:46px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px">
+            <span style="width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:15px;font-weight:600;background:transparent;color:#1A1A2E">19</span>
+            <span style="width:5px;height:5px;border-radius:50%;background:transparent"></span>
+          </button>
+        
+          <button style="height:46px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px">
+            <span style="width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:15px;font-weight:800;background:linear-gradient(135deg,#E04FAF 0%,#945AE1 55%,#6664E9 100%);color:#FFFFFF">20</span>
+            <span style="width:5px;height:5px;border-radius:50%;background:transparent"></span>
+          </button>
+        
+          <button style="height:46px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px">
+            <span style="width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:15px;font-weight:600;background:transparent;color:#1A1A2E">21</span>
+            <span style="width:5px;height:5px;border-radius:50%;background:transparent"></span>
+          </button>
+        
+          <button style="height:46px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px">
+            <span style="width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:15px;font-weight:600;background:transparent;color:#1A1A2E">22</span>
+            <span style="width:5px;height:5px;border-radius:50%;background:transparent"></span>
+          </button>
+        
+          <button style="height:46px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px">
+            <span style="width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:15px;font-weight:600;background:transparent;color:#1A1A2E">23</span>
+            <span style="width:5px;height:5px;border-radius:50%;background:#EA4EA9"></span>
+          </button>
+        
+          <button style="height:46px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px">
+            <span style="width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:15px;font-weight:600;background:transparent;color:#1A1A2E">24</span>
+            <span style="width:5px;height:5px;border-radius:50%;background:transparent"></span>
+          </button>
+        
+          <button style="height:46px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px">
+            <span style="width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:15px;font-weight:600;background:transparent;color:#1A1A2E">25</span>
+            <span style="width:5px;height:5px;border-radius:50%;background:transparent"></span>
+          </button>
+        
+          <button style="height:46px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px">
+            <span style="width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:15px;font-weight:600;background:transparent;color:#1A1A2E">26</span>
+            <span style="width:5px;height:5px;border-radius:50%;background:transparent"></span>
+          </button>
+        
+          <button style="height:46px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px">
+            <span style="width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:15px;font-weight:600;background:transparent;color:#1A1A2E">27</span>
+            <span style="width:5px;height:5px;border-radius:50%;background:transparent"></span>
+          </button>
+        
+          <button style="height:46px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px">
+            <span style="width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:15px;font-weight:600;background:transparent;color:#1A1A2E">28</span>
+            <span style="width:5px;height:5px;border-radius:50%;background:transparent"></span>
+          </button>
+        
+          <button style="height:46px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px">
+            <span style="width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:15px;font-weight:600;background:transparent;color:#1A1A2E">29</span>
+            <span style="width:5px;height:5px;border-radius:50%;background:transparent"></span>
+          </button>
+        
+          <button style="height:46px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px">
+            <span style="width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:15px;font-weight:600;background:transparent;color:#1A1A2E">30</span>
+            <span style="width:5px;height:5px;border-radius:50%;background:transparent"></span>
+          </button>
+        
+          <button style="height:46px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px">
+            <span style="width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:15px;font-weight:600;background:transparent;color:#1A1A2E">31</span>
+            <span style="width:5px;height:5px;border-radius:50%;background:transparent"></span>
+          </button>
+        
+          <button style="height:46px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px">
+            <span style="width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:15px;font-weight:600;background:transparent;color:#B7A8B6">1</span>
+            <span style="width:5px;height:5px;border-radius:50%;background:transparent"></span>
+          </button>
+        
+      </div>
+    </section>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <p style="font-size:15px;font-weight:700">Hoy, martes 20 <span class="mut" style="font-weight:500">· Nada programado</span></p>
+      <p class="mut" style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-top:6px">Próximos</p>
+      <button class="card" style="display:flex;align-items:center;gap:12px;padding:12px 14px;width:100%">
+        <span style="width:10px;height:10px;border-radius:50%;background:#EA4EA9;flex:none"></span>
+        <span style="flex:1;min-width:0"><span class="one" style="display:block;font-size:15px;font-weight:700">Boda Real Rosa &amp; Dorado</span><span class="mut" style="font-size:13px">Vie 23 oct · en 3 días</span></span>
+        <span class="mut">
+
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:block;flex:none"><path d="M9 18l6-6-6-6"></path></svg>
+</span>
+      </button>
+      <button class="card" style="display:flex;align-items:center;gap:12px;padding:12px 14px;width:100%">
+        <span style="width:10px;height:10px;border-radius:50%;background:#865DEC;flex:none"></span>
+        <span style="flex:1;min-width:0"><span class="one" style="display:block;font-size:15px;font-weight:700">Quinceañera Valentina Crystal</span><span class="mut" style="font-size:13px">Lun 2 nov · en 13 días</span></span>
+        <span class="mut">
+
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:block;flex:none"><path d="M9 18l6-6-6-6"></path></svg>
+</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+</div>
+</body>
+</html>

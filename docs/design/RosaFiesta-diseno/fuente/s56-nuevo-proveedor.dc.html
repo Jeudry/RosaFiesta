@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Nuevo proveedor</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.rf,.rf *{box-sizing:border-box}
+.rf{font-family:'Figtree',system-ui,sans-serif;color:#151729;-webkit-font-smoothing:antialiased;position:relative;overflow:hidden}
+.rf p,.rf h1{margin:0}
+.rf .d{font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif;letter-spacing:-.02em}
+.rf button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:inherit}
+.rf input,.rf textarea{font:inherit;color:inherit;border:0;outline:0;background:none;padding:0;min-width:0;flex:1;width:100%}
+.rf input::placeholder,.rf textarea::placeholder{color:#5F6377}
+.rf .ib{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:0 0 0 1px #ECECF5,0 8px 20px -14px rgba(70,80,180,.4);flex:none;color:#151729}
+.rf .f{display:flex;flex-direction:column;gap:6px}
+.rf .l{font-size:14px;font-weight:600}
+.rf .fld{height:50px;border-radius:14px;background:#fff;box-shadow:0 0 0 1px #E3E4EF,0 8px 20px -16px rgba(70,80,180,.35);display:flex;align-items:center;gap:10px;padding:0 14px;color:#5F6377}
+</style>
+</helmet>
+<div class="rf" style="width:390px;height:844px;background:radial-gradient(110% 40% at 100% 0%,#E6E7FF 0%,rgba(230,231,255,0) 60%),radial-gradient(80% 35% at 0% 12%,#F1E9FB 0%,rgba(241,233,251,0) 60%),#F6F6FB">
+  <div style="padding:56px 20px 0;display:flex;flex-direction:column;gap:14px">
+    <header style="display:flex;align-items:center;gap:12px;margin-bottom:4px">
+      <button class="ib" aria-label="Cerrar"><dc-import name="Icon" k="x" s="22" hint-size="22px,22px"></dc-import></button>
+      <h1 class="d" style="font-size:20px;font-weight:800;flex:1">Nuevo proveedor</h1>
+    </header>
+    <label class="f"><span class="l">Nombre de la empresa <span style="color:#4B47D6">*</span></span><span class="fld"><dc-import name="Icon" k="briefcase" s="18" hint-size="18px,18px"></dc-import><input placeholder="Ej. Flores del Valle"></span></label>
+    <label class="f"><span class="l">Persona de contacto</span><span class="fld"><dc-import name="Icon" k="user" s="18" hint-size="18px,18px"></dc-import><input placeholder="Nombre y apellido"></span></label>
+    <div style="display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:10px">
+      <label class="f"><span class="l">Teléfono</span><span class="fld"><input placeholder="809 000 0000" inputmode="tel"></span></label>
+      <label class="f"><span class="l">Correo</span><span class="fld"><input placeholder="correo@…" inputmode="email"></span></label>
+    </div>
+    <label class="f"><span class="l">Sitio web</span><span class="fld"><dc-import name="Icon" k="link" s="18" hint-size="18px,18px"></dc-import><input placeholder="www.ejemplo.com"></span></label>
+    <label class="f"><span class="l">Notas</span><span class="fld" style="height:110px;align-items:flex-start;padding-top:14px"><textarea placeholder="Condiciones, horarios, lo que ofrece…" style="height:80px;resize:none;color:#151729"></textarea></span></label>
+  </div>
+  <div style="position:absolute;left:20px;right:20px;bottom:36px">
+    <button style="width:100%;height:56px;border-radius:16px;background:linear-gradient(135deg,#7C5CF0 0%,#5B6CF0 100%);color:#fff;box-shadow:0 12px 26px -12px rgba(91,108,240,.7);font-weight:700;font-size:16px;display:flex;align-items:center;justify-content:center">Guardar proveedor</button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

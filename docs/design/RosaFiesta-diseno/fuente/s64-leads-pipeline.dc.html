@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Leads · Pipeline</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.rf,.rf *{box-sizing:border-box}
+.rf{font-family:'Figtree',system-ui,sans-serif;color:#151729;-webkit-font-smoothing:antialiased;position:relative;overflow:hidden}
+.rf p,.rf h1,.rf h2{margin:0}
+.rf .d{font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif;letter-spacing:-.02em}
+.rf button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:inherit}
+.rf .ib{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:0 0 0 1px #ECECF5,0 8px 20px -14px rgba(70,80,180,.4);flex:none;color:#151729}
+.rf .mut{color:#5F6377}
+.rf .tab{height:44px;display:flex;align-items:center;font-size:15px;font-weight:600;color:#5F6377;white-space:nowrap;flex:none;text-decoration:none}
+.rf .tab.on{color:#151729;font-weight:700;box-shadow:inset 0 -2.5px 0 #5B6CF0}
+.rf .chip{height:36px;padding:0 14px;border-radius:999px;display:inline-flex;align-items:center;font-size:14px;font-weight:600;background:#fff;box-shadow:0 0 0 1px #E9E9F2;white-space:nowrap;flex:none}
+.rf .on2{background:linear-gradient(135deg,#7C5CF0 0%,#5B6CF0 55%,#2FB8C8 100%);color:#fff;box-shadow:0 8px 18px -8px rgba(91,108,240,.7)}
+.rf .tag{height:24px;padding:0 9px;border-radius:999px;display:inline-flex;align-items:center;font-size:12px;font-weight:700;white-space:nowrap}
+.rf .one{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+</style>
+</helmet>
+<div class="rf" style="width:390px;height:844px;background:radial-gradient(110% 40% at 100% 0%,#E6E7FF 0%,rgba(230,231,255,0) 60%),radial-gradient(80% 35% at 0% 12%,#F1E9FB 0%,rgba(241,233,251,0) 60%),#F6F6FB">
+  <div style="padding:56px 20px 0;display:flex;flex-direction:column;gap:12px">
+    <header style="display:flex;align-items:center;gap:10px">
+      <button class="ib" aria-label="Volver"><dc-import name="Icon" k="back" s="22" hint-size="22px,22px"></dc-import></button>
+      <h1 class="d" style="font-size:20px;font-weight:800;flex:1">Leads</h1>
+      <button class="ib" aria-label="Actualizar"><dc-import name="Icon" k="refresh" s="20" hint-size="20px,20px"></dc-import></button>
+      <button aria-label="Nuevo lead" style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#7C5CF0 0%,#5B6CF0 100%);color:#fff;display:grid;place-items:center;box-shadow:0 8px 16px -8px rgba(91,108,240,.7)"><dc-import name="Icon" k="plus" s="22" w="2.2" hint-size="22px,22px"></dc-import></button>
+    </header>
+    <nav style="display:flex;gap:22px;box-shadow:inset 0 -1px 0 #E9E9F2;margin:0 -20px;padding:0 20px">
+      <a class="tab on" href="s64-leads-pipeline.dc.html">Pipeline</a>
+      <a class="tab" href="s65-leads-seguimientos.dc.html">Seguimientos</a>
+      <a class="tab" href="s66-leads-estadisticas.dc.html">Estadísticas</a>
+    </nav>
+    <div style="display:flex;gap:8px;margin:4px -20px -18px;padding:2px 20px 14px;overflow:hidden">
+      <button class="chip on2">Todos · 3</button>
+      <button class="chip">Nuevos</button>
+      <button class="chip">Contactados</button>
+      <button class="chip">Calificados</button>
+      <button class="chip">Propuesta</button>
+    </div>
+    <sc-for list="{{leads}}" as="l" hint-placeholder-count="3">
+      <button style="width:100%;border-radius:22px;background:#fff;box-shadow:0 0 0 1px #ECECF5;padding:14px 16px;display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;align-items:center;gap:10px;width:100%">
+          <p class="one" style="flex:1;font-size:16px;font-weight:700">{{l.name}}</p>
+          <span class="tag" style="background:{{l.sbg}};color:{{l.sfg}}">{{l.stage}}</span>
+        </div>
+        <p class="mut" style="font-size:14px;display:flex;align-items:center;gap:6px"><dc-import name="Icon" k="party" s="16" hint-size="16px,16px"></dc-import>{{l.event}}</p>
+        <div style="display:flex;align-items:center;gap:10px;width:100%;font-size:13px">
+          <span class="d" style="font-size:15px;font-weight:800">{{l.budget}}</span>
+          <span style="display:flex;align-items:center;gap:5px;font-weight:600;color:{{l.pfg}};margin-left:auto"><span style="width:8px;height:8px;border-radius:50%;background:{{l.pc}}"></span>{{l.prio}}</span>
+        </div>
+      </button>
+    </sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      leads: [
+        { name: 'Mariana Almonte', stage: 'Nuevo', sbg: '#DDF4F3', sfg: '#1F8A84', event: 'Boda civil y recepción', budget: 'RD$ 3,000 – 5,000', prio: 'Prioridad alta', pc: '#5B6CF0', pfg: '#4B47D6' },
+        { name: 'Banco Atlántico RD', stage: 'Propuesta', sbg: '#EFE8FD', sfg: '#7A4FD8', event: 'Aniversario corporativo', budget: 'RD$ 7,000 – 12,000', prio: 'Urgente', pc: '#B42345', pfg: '#B42345' },
+        { name: 'Patricia & Jorge', stage: 'Ganado', sbg: '#EEF6D6', sfg: '#4E6A10', event: 'Boda en playa, Juan Dolio', budget: 'RD$ 4,000 – 6,000', prio: 'Prioridad media', pc: '#F7B500', pfg: '#7A5700' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

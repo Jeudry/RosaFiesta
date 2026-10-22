@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Admin · Responder reseña</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.rf,.rf *{box-sizing:border-box}
+.rf{font-family:'Figtree',system-ui,sans-serif;color:#151729;-webkit-font-smoothing:antialiased;position:relative;overflow:hidden}
+.rf p,.rf h1,.rf h2,.rf h3{margin:0}
+.rf .d{font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif;letter-spacing:-.02em}
+.rf button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:inherit}
+.rf a{color:inherit;text-decoration:none}
+.rf input,.rf textarea{font:inherit;color:inherit;border:0;outline:0;background:none;padding:0;min-width:0;flex:1;resize:none}
+.rf .mut{color:#5F6377}
+.rf .cap{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#5F6377}
+.rf .ib{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:0 0 0 1px #ECECF5,0 8px 20px -14px rgba(70,80,180,.45);flex:none;color:#151729}
+.rf .card{background:#fff;border-radius:20px;box-shadow:0 0 0 1px #ECECF5,0 12px 28px -22px rgba(70,80,180,.45)}
+.rf .btn{height:54px;border-radius:16px;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:16px}
+.rf .bp{background:linear-gradient(135deg,#7C5CF0 0%,#5B6CF0 100%);color:#fff;box-shadow:0 12px 24px -12px rgba(91,108,240,.75)}
+.rf .bs{background:#fff;color:#151729;box-shadow:0 0 0 1px #E3E4EF}
+.rf .chip{height:36px;padding:0 14px;border-radius:999px;display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:600;background:#fff;box-shadow:0 0 0 1px #E9E9F2;white-space:nowrap;flex:none}
+.rf .on{background:linear-gradient(135deg,#7C5CF0 0%,#5B6CF0 100%);color:#fff;box-shadow:0 8px 16px -8px rgba(91,108,240,.7)}
+.rf .tag{height:24px;padding:0 9px;border-radius:999px;display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;white-space:nowrap}
+.rf .one{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf .fld{height:50px;border-radius:14px;background:#fff;box-shadow:0 0 0 1px #E3E4EF;display:flex;align-items:center;gap:10px;padding:0 14px;color:#5F6377;font-size:15px}
+.rf .lbl{font-size:13px;font-weight:700;color:#3A3D52}
+.rf .ti{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;flex:none}
+.rf .stp{display:flex;align-items:center;gap:2px;height:34px;border-radius:999px;background:#F2F2F8;padding:0 3px;flex:none}
+.rf .stp button{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;color:#5B6CF0}
+.rf .seg{height:5px;border-radius:3px;flex:1}
+.rf .sg{flex:1;height:38px;border-radius:12px;font-size:14px;font-weight:600;display:grid;place-items:center;color:#5F6377}
+.rf .sg.sel{background:#fff;color:#151729;font-weight:700;box-shadow:0 2px 8px -3px rgba(70,80,180,.3)}
+</style>
+</helmet>
+<div class="rf" style="width:390px;height:844px;background:radial-gradient(110% 40% at 100% 0%,#E6E7FF 0%,rgba(230,231,255,0) 60%),radial-gradient(80% 35% at 0% 12%,#F1E9FB 0%,rgba(241,233,251,0) 60%),#F6F6FB">
+  <div style="padding:54px 20px 0;display:flex;flex-direction:column;gap:12px">
+    <header style="display:flex;align-items:center;gap:12px">
+      <button class="ib" aria-label="Volver"><dc-import name="Icon" k="back" s="22" hint-size="22px,22px"></dc-import></button>
+      <div style="flex:1;min-width:0"><h1 class="d one" style="font-size:20px;font-weight:800;line-height:1.1">Responder reseña</h1><p class="mut one" style="font-size:13px">Pendiente · llegó hace 1 día</p></div>
+      
+    </header>
+    <section class="card" style="padding:14px;display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;gap:12px;align-items:center"><span class="d" style="width:40px;height:40px;border-radius:50%;background:#FFF2C9;color:#7A5700;display:grid;place-items:center;font-weight:800;font-size:15px;flex:none">P</span><div style="flex:1;min-width:0"><p class="one" style="font-size:15px;font-weight:700">Patricia Lora</p><p class="mut one" style="font-size:13px">Baby shower Ana · 17 oct</p></div><span style="display:flex;gap:1px"><span style="color:#F7B500;display:flex"><dc-import name="Icon" k="star" s="16" f="{{true}}" hint-size="16px,16px"></dc-import></span><span style="color:#F7B500;display:flex"><dc-import name="Icon" k="star" s="16" f="{{true}}" hint-size="16px,16px"></dc-import></span><span style="color:#F7B500;display:flex"><dc-import name="Icon" k="star" s="16" f="{{true}}" hint-size="16px,16px"></dc-import></span><span style="color:#F7B500;display:flex"><dc-import name="Icon" k="star" s="16" f="{{true}}" hint-size="16px,16px"></dc-import></span><span style="color:#DCDDEA;display:flex"><dc-import name="Icon" k="star" s="16" f="{{true}}" hint-size="16px,16px"></dc-import></span></span></div>
+      <p style="font-size:14.5px;line-height:1.5">“Todo muy bonito y llegaron puntuales al montaje. Solo faltaron dos manteles en la mesa principal y tuvimos que improvisar.”</p>
+      <div style="display:flex;gap:8px"><dc-import name="Foto" k="baby-shower" w="72" h="56" r="10" hint-size="72px,56px"></dc-import><dc-import name="Foto" k="mesa-helados" w="72" h="56" r="10" hint-size="72px,56px"></dc-import></div>
+    </section>
+    <div style="display:flex;align-items:center;gap:10px"><dc-import name="Rosa" s="30" glow="{{false}}" bg="linear-gradient(145deg,#7C5CF0 0%,#5B6CF0 55%,#2FB8C8 100%)" hint-size="30px,30px"></dc-import><p style="flex:1;font-size:14px;font-weight:700">Rosa redactó una respuesta</p><button style="font-size:13px;font-weight:700;color:#4B47D6;display:flex;align-items:center;gap:4px"><dc-import name="Icon" k="refresh" s="15" hint-size="15px,15px"></dc-import>Otra</button></div>
+    <div style="display:flex;gap:8px;margin-top:-2px"><button class="chip on" style="height:32px;font-size:13px">Cálida</button><button class="chip" style="height:32px;font-size:13px">Formal</button><button class="chip" style="height:32px;font-size:13px">Breve</button></div>
+    <label class="card" style="display:block;padding:12px 14px;box-shadow:0 0 0 2px #5B6CF0"><textarea rows="6" aria-label="Respuesta" style="width:100%;font-size:14.5px;line-height:1.5">¡Gracias, Patricia! Nos alegra que el baby shower quedara bonito. Tienes razón con los manteles: ya los sumamos a nuestro checklist de montaje para que no vuelva a pasar. Te debemos un detalle en tu próximo evento. — María, Rosa Fiesta</textarea></label>
+    <div style="display:flex;align-items:center;gap:12px;padding:2px 2px"><span style="flex:1;font-size:14px;line-height:1.3">Publicar y verificar la reseña<br><span class="mut" style="font-size:12.5px">La respuesta será visible en la app</span></span><span role="switch" aria-checked="true" style="width:46px;height:28px;border-radius:999px;background:linear-gradient(135deg,#7C5CF0 0%,#5B6CF0 100%);position:relative;flex:none"><span style="position:absolute;right:3px;top:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.15)"></span></span></div>
+  </div>
+  <div style="position:absolute;left:20px;right:20px;bottom:36px"><button class="btn bp" style="width:100%"><dc-import name="Icon" k="send" s="20" hint-size="20px,20px"></dc-import>Publicar respuesta</button></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Iniciar sesión</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.rf,.rf *{box-sizing:border-box}
+.rf{font-family:'Figtree',system-ui,sans-serif;color:#1A1A2E;-webkit-font-smoothing:antialiased;position:relative;overflow:hidden}
+.rf p,.rf h1,.rf h2,.rf h3{margin:0}
+.rf .d{font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif;letter-spacing:-.02em}
+.rf .rb{background:linear-gradient(90deg,#EB4F9E 0%,#F2894A 45%,#E3B23C 72%,#9CC04B 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.rf button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:inherit}
+.rf input{font:inherit;color:inherit;border:0;outline:0;background:none;padding:0;min-width:0;flex:1}
+.rf .btn{height:56px;border-radius:16px;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:16px}
+.rf .bp{background:linear-gradient(90deg,#EA4EA9 0%,#B754CB 50%,#865DEC 100%);color:#fff;box-shadow:0 12px 26px -12px rgba(200,70,180,.7)}
+.rf .bs{background:#fff;color:#1A1A2E;box-shadow:0 0 0 1px #EEE9F2,0 8px 20px -14px rgba(120,80,160,.4)}
+.rf .ib{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:0 0 0 1px #F0EBF4,0 8px 20px -14px rgba(180,80,180,.4);flex:none;color:#1A1A2E}
+.rf .mut{color:#62627A}
+.rf .lbl{font-size:14px;font-weight:600}
+.rf .fld{height:56px;border-radius:16px;background:#fff;box-shadow:0 0 0 1px #E6DEEA,0 8px 20px -14px rgba(180,80,180,.4);display:flex;align-items:center;gap:10px;padding:0 6px 0 16px;color:#62627A}
+.rf .lnk{color:#D63F98;font-weight:700;text-decoration:underline;text-underline-offset:3px}
+</style>
+</helmet>
+<div class="rf" style="width:390px;height:844px;background:radial-gradient(110% 55% at 0% 0%,#F9E3F1 0%,rgba(249,227,241,0) 60%),radial-gradient(80% 45% at 100% 30%,#EEE7FB 0%,rgba(238,231,251,0) 60%),#FAFAFC">
+  <svg aria-hidden="true" width="390" height="844" viewBox="0 0 390 844" style="position:absolute;inset:0">
+    <circle cx="30" cy="660" r="26" fill="none" stroke="#CFE48A" stroke-width="2"></circle>
+    <circle cx="356" cy="740" r="34" fill="none" stroke="#E2CCF4" stroke-width="1.5"></circle>
+    <path d="M60 752l14-4 6 20-14 4z" fill="none" stroke="#C9B6F2" stroke-width="1.5"></path>
+    <path d="M260 772l26-6 10 22-26 6z" fill="none" stroke="#F3C4D8" stroke-width="1.5"></path>
+    <path d="M0 -10L2.35 -3.24L9.5 -3.1L3.8 1.24L5.9 8.1L0 4L-5.9 8.1L-3.8 1.24L-9.5 -3.1L-2.35 -3.24Z" fill="#FBCA3F" transform="translate(190 798)"></path>
+    <path d="M16 470l3 7 7 3-7 3-3 7-3-7-7-3 7-3z" fill="#B9D84A"></path>
+  </svg>
+  <div style="position:absolute;right:-18px;top:46px">
+    <dc-import name="Illo" k="globoslg" w="170" h="170" hint-size="170px,170px"></dc-import>
+  </div>
+  <button class="ib" aria-label="Volver" style="position:absolute;left:20px;top:56px"><dc-import name="Icon" k="back" s="22" hint-size="22px,22px"></dc-import></button>
+
+  <div style="position:absolute;top:150px;left:24px;right:24px;display:flex;flex-direction:column;gap:28px">
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <h1 class="d" style="font-size:30px;font-weight:800;line-height:1.02">Hola de nuevo</h1>
+      <p class="mut" style="font-size:16px">Entra para ver tus eventos y cotizaciones.</p>
+    </div>
+    <form style="display:flex;flex-direction:column;gap:16px;margin:0">
+      <label style="display:flex;flex-direction:column;gap:8px">
+        <span class="lbl">Correo o usuario</span>
+        <span class="fld"><dc-import name="Icon" k="mail" s="20" hint-size="20px,20px"></dc-import><input value="v2_tester@example.com" style="color:#1A1A2E"></span>
+      </label>
+      <label style="display:flex;flex-direction:column;gap:8px">
+        <span style="display:flex;justify-content:space-between;align-items:center"><span class="lbl">Contraseña</span><a href="s09-recuperar.dc.html" class="lnk" style="font-size:14px">¿La olvidaste?</a></span>
+        <span class="fld"><dc-import name="Icon" k="lock" s="20" hint-size="20px,20px"></dc-import><input type="password" value="contrasena12" style="color:#1A1A2E;letter-spacing:.1em"><button type="button" aria-label="Mostrar contraseña" style="width:44px;height:44px;display:grid;place-items:center"><dc-import name="Icon" k="eye" s="20" hint-size="20px,20px"></dc-import></button></span>
+      </label>
+      <button type="button" class="btn bp" style="margin-top:8px">Ingresar</button>
+    </form>
+    <div style="display:flex;align-items:center;gap:12px;font-size:13px" class="mut">
+      <span style="flex:1;height:1px;background:#E6DEEA"></span>o continúa con<span style="flex:1;height:1px;background:#E6DEEA"></span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:12px">
+      <button class="btn bs" style="font-weight:600">Google</button>
+      <button class="btn bs" style="font-weight:600">Apple</button>
+    </div>
+  </div>
+
+  <p style="position:absolute;left:0;right:0;bottom:44px;text-align:center;font-size:15px" class="mut">¿No tienes cuenta? <a href="s08-registro.dc.html" class="lnk">Regístrate</a></p>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

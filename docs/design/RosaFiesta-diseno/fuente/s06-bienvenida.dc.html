@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Bienvenida</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.rf,.rf *{box-sizing:border-box}
+.rf{font-family:'Figtree',system-ui,sans-serif;color:#1A1A2E;-webkit-font-smoothing:antialiased;position:relative;overflow:hidden}
+.rf p,.rf h1,.rf h2,.rf h3{margin:0}
+.rf .d{font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif;letter-spacing:-.02em}
+.rf button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:inherit}
+.rf .btn{height:56px;border-radius:16px;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:16px;text-decoration:none}
+</style>
+</helmet>
+<div class="rf" style="width:390px;height:844px;background:radial-gradient(110% 55% at 0% 0%,#F9E3F1 0%,rgba(249,227,241,0) 60%),radial-gradient(80% 45% at 100% 30%,#EEE7FB 0%,rgba(238,231,251,0) 60%),#FAFAFC">
+  <svg aria-hidden="true" width="390" height="844" viewBox="0 0 390 844" style="position:absolute;inset:0">
+    <path d="M-10 4Q195 64 400 4" stroke="#1A1A2E" stroke-opacity=".18" stroke-width="1.2" fill="none"></path>
+    <polygon points="14,10 34,10 24,34" fill="#EA4EA9"></polygon>
+    <polygon points="58,20 78,20 68,44" fill="#FBCA3F"></polygon>
+    <polygon points="102,27 122,27 112,51" fill="#B9D84A"></polygon>
+    <polygon points="146,32 166,32 156,56" fill="#865DEC"></polygon>
+    <polygon points="190,33 210,33 200,57" fill="#1FBDC0"></polygon>
+    <polygon points="234,31 254,31 244,55" fill="#EA4EA9"></polygon>
+    <polygon points="278,27 298,27 288,51" fill="#FBCA3F"></polygon>
+    <polygon points="322,20 342,20 332,44" fill="#B9D84A"></polygon>
+    <polygon points="366,10 386,10 376,34" fill="#865DEC"></polygon>
+    <path d="M-30 150C30 90 70 210 130 140S210 70 250 120" stroke="#F3B8D8" stroke-width="7" fill="none" stroke-linecap="round"></path>
+    <path d="M420 250C360 220 370 320 310 300S250 220 228 268" stroke="#FFE08A" stroke-width="6" fill="none" stroke-linecap="round"></path>
+    <path d="M-16 500C34 460 56 552 108 510" stroke="#D6EA8C" stroke-width="5" fill="none" stroke-linecap="round"></path>
+    <path d="M408 540C366 500 338 582 296 540" stroke="#D9CCFA" stroke-width="5" fill="none" stroke-linecap="round"></path>
+    <rect x="56" y="244" width="9" height="16" rx="2" fill="#FBCA3F" transform="rotate(28 60.5 252)"></rect>
+    <circle cx="322" cy="150" r="6" fill="#1FBDC0"></circle>
+    <polygon points="70,380 84,388 70,396" fill="#EA4EA9"></polygon>
+    <rect x="320" y="392" width="9" height="16" rx="2" fill="#B9D84A" transform="rotate(-24 324.5 400)"></rect>
+    <circle cx="200" cy="168" r="4" fill="#FBCA3F"></circle>
+    <circle cx="44" cy="610" r="4" fill="#1FBDC0"></circle>
+    <circle cx="350" cy="640" r="3" fill="#EA4EA9"></circle>
+  </svg>
+
+  <div style="position:absolute;top:238px;left:0;right:0;display:flex;flex-direction:column;align-items:center;text-align:center;gap:18px;padding:0 32px">
+    <div style="border-radius:50%;box-shadow:0 0 0 10px rgba(234,78,169,.08),0 0 0 22px rgba(134,93,236,.05),0 20px 40px -18px rgba(180,70,180,.5)">
+      <dc-import name="Logo" s="116" bg="#FFFFFF" hint-size="116px,116px"></dc-import>
+    </div>
+    <h1 class="d" style="font-size:42px;font-weight:800;line-height:1;margin-top:14px">Rosa <span style="background:linear-gradient(90deg,#EA4EA9,#865DEC);-webkit-background-clip:text;background-clip:text;color:transparent">Fiesta</span></h1>
+    <p style="font-size:17px;line-height:1.45;color:#62627A;max-width:260px">Todo para tu evento, guiado por inteligencia artificial.</p>
+  </div>
+
+  <div style="position:absolute;left:24px;right:24px;bottom:40px;display:flex;flex-direction:column;gap:12px">
+    <div aria-label="Paso 4 de 4" style="display:flex;gap:6px;justify-content:center;margin-bottom:12px">
+      <span style="width:6px;height:6px;border-radius:3px;background:#E3DCE8"></span>
+      <span style="width:6px;height:6px;border-radius:3px;background:#E3DCE8"></span>
+      <span style="width:6px;height:6px;border-radius:3px;background:#E3DCE8"></span>
+      <span style="width:28px;height:6px;border-radius:3px;background:linear-gradient(90deg,#EA4EA9,#865DEC)"></span>
+    </div>
+    <button class="btn" style="background:linear-gradient(90deg,#EA4EA9 0%,#B754CB 50%,#865DEC 100%);color:#fff;box-shadow:0 12px 26px -12px rgba(200,70,180,.7)">Comenzar</button>
+    <button class="btn" style="background:#fff;box-shadow:0 0 0 1px #EEE9F2,0 8px 20px -14px rgba(120,80,160,.4);color:#1A1A2E">Ya tengo cuenta</button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

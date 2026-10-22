@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Evento · Detalles</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.rf,.rf *{box-sizing:border-box}
+.rf{font-family:'Figtree',system-ui,sans-serif;color:#1A1A2E;-webkit-font-smoothing:antialiased;position:relative;overflow:hidden}
+.rf p,.rf h1,.rf h2,.rf h3{margin:0}
+.rf .d{font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif;letter-spacing:-.02em}
+.rf button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:inherit}
+.rf .ib{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:0 0 0 1px #EEEAF2;flex:none;color:#1A1A2E}
+.rf .mut{color:#62627A}
+.rf .card{background:#fff;border-radius:22px;box-shadow:0 0 0 1px #F0EDF3,0 12px 28px -20px rgba(80,80,120,.35)}
+.rf .one{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf .r{display:flex;align-items:center;gap:14px;padding:12px 16px;min-height:64px;width:100%}
+.rf .ti{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;flex:none;background:#DDF4F3;color:#2E9C96}
+.rf .ti.sol{background:#FFF2C9;color:#B07D00}
+.rf .ti.lim{background:#EEF6D6;color:#5E7A12}
+.rf .cd{display:flex;flex-direction:column;align-items:flex-start}
+.rf .n{font-size:40px;font-weight:800;line-height:1;-webkit-background-clip:text;background-clip:text;color:transparent}
+</style>
+</helmet>
+<div class="rf" style="width:390px;height:844px;background:#F8F9FB">
+  <div style="padding:56px 20px 0;display:flex;flex-direction:column;gap:14px">
+    <header style="display:flex;align-items:center;gap:10px">
+      <button class="ib" aria-label="Volver"><dc-import name="Icon" k="back" s="22" hint-size="22px,22px"></dc-import></button>
+      <div style="flex:1;min-width:0">
+        <h1 class="d one" style="font-size:19px;font-weight:800">Boda Real Rosa &amp; Dorado</h1>
+        <p class="mut one" style="font-size:13px">Vie 23 oct · Jardín Botánico</p>
+      </div>
+      <button class="ib" aria-label="Descargar PDF"><dc-import name="Icon" k="download" s="20" hint-size="20px,20px"></dc-import></button>
+      <a href="s84-cambiar-fecha.dc.html" class="ib" aria-label="Cambiar o cancelar el evento"><dc-import name="Icon" k="more-v" s="20" hint-size="20px,20px"></dc-import></a>
+    </header>
+    <nav style="display:flex;gap:24px;box-shadow:inset 0 -1px 0 #E9E6EE;margin:0 -20px;padding:0 20px">
+      <a href="s40-evento-detalles.dc.html" style="height:44px;display:flex;align-items:center;font-size:15px;font-weight:700;color:#D63F98;text-decoration:none;box-shadow:inset 0 -2.5px 0 #EA4EA9">Detalles</a>
+      <a href="s41-evento-chat-tab.dc.html" style="height:44px;display:flex;align-items:center;gap:6px;font-size:15px;font-weight:600;color:#62627A;text-decoration:none">Chat <span style="min-width:20px;height:20px;border-radius:999px;background:#FFD45C;color:#2E1A47;font-size:11px;font-weight:800;display:grid;place-items:center;padding:0 5px">2</span></a>
+    </nav>
+
+    <section class="card" style="padding:16px 18px;position:relative;overflow:hidden">
+      <svg aria-hidden="true" width="350" height="110" viewBox="0 0 350 110" style="position:absolute;inset:0"><path d="M0 -10L2.35 -3.24L9.5 -3.1L3.8 1.24L5.9 8.1L0 4L-5.9 8.1L-3.8 1.24L-9.5 -3.1L-2.35 -3.24Z" fill="#FBCA3F" transform="translate(222 26) scale(.8)"></path><circle cx="238" cy="86" r="4" fill="#B9D84A"></circle></svg>
+      <div style="position:absolute;right:-10px;top:-8px;opacity:.9"><dc-import name="Illo" k="boda" w="110" h="110" hint-size="110px,110px"></dc-import></div>
+      <p class="mut" style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;position:relative">Faltan para tu evento</p>
+      <div style="display:flex;gap:18px;margin-top:8px;position:relative">
+        <div class="cd"><span class="d n" style="background-image:linear-gradient(90deg,#EB4F9E,#F2894A)">03</span><span class="mut" style="font-size:12px;font-weight:600">días</span></div>
+        <div class="cd"><span class="d n" style="background-image:linear-gradient(90deg,#F2894A,#E8B53A)">07</span><span class="mut" style="font-size:12px;font-weight:600">horas</span></div>
+        <div class="cd"><span class="d n" style="background-image:linear-gradient(90deg,#E8B53A,#9CC04B)">53</span><span class="mut" style="font-size:12px;font-weight:600">min</span></div>
+      </div>
+    </section>
+
+    <button style="display:flex;align-items:center;gap:14px;padding:16px 18px;border-radius:22px;background:linear-gradient(135deg,#E04FAF 0%,#945AE1 55%,#6664E9 100%);color:#fff;width:100%;box-shadow:0 14px 28px -18px rgba(70,60,140,.8)">
+      <span style="flex:1"><span class="d" style="display:block;font-size:18px;font-weight:800">Modo ejecución</span><span style="font-size:13px;color:#E4E2F2">Checklist para el día del evento</span></span>
+      <span style="width:44px;height:44px;border-radius:50%;background:#FFD45C;color:#2E1A47;display:grid;place-items:center;box-shadow:0 8px 18px -8px rgba(255,212,92,.8)"><dc-import name="Icon" k="play" s="20" f="{{true}}" hint-size="20px,20px"></dc-import></span>
+    </button>
+
+    <section class="card" style="padding:4px 0">
+      <button class="r"><span class="ti"><dc-import name="Icon" k="list-check" s="20" hint-size="20px,20px"></dc-import></span><span style="flex:1"><span style="display:block;font-size:15px;font-weight:700">Tareas</span><span class="mut" style="font-size:13px">2 de 4 completadas</span></span><span class="mut"><dc-import name="Icon" k="chev-r" s="18" hint-size="18px,18px"></dc-import></span></button>
+      <button class="r" style="box-shadow:0 -1px 0 #F2F0F5"><span class="ti sol"><dc-import name="Icon" k="clock" s="20" hint-size="20px,20px"></dc-import></span><span style="flex:1"><span style="display:block;font-size:15px;font-weight:700">Cronograma</span><span class="mut" style="font-size:13px">4 actividades por hora</span></span><span class="mut"><dc-import name="Icon" k="chev-r" s="18" hint-size="18px,18px"></dc-import></span></button>
+      <button class="r" style="box-shadow:0 -1px 0 #F2F0F5"><span class="ti lim"><dc-import name="Icon" k="calendar" s="20" hint-size="20px,20px"></dc-import></span><span style="flex:1"><span style="display:block;font-size:15px;font-weight:700">Sincronizar calendario</span><span class="mut" style="font-size:13px">Google o Apple Calendar</span></span><span class="mut"><dc-import name="Icon" k="chev-r" s="18" hint-size="18px,18px"></dc-import></span></button>
+    </section>
+
+    <section class="card" style="padding:16px 18px;display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline">
+        <p style="font-size:15px;font-weight:700">Pagos</p>
+        <p style="font-size:12px;font-weight:700;height:24px;padding:0 9px;border-radius:999px;background:#EEF6D6;color:#4E5A12;display:flex;align-items:center">30% pagado</p>
+      </div>
+      <div style="height:8px;border-radius:4px;background:#EEEDF2;overflow:hidden"><span style="display:block;width:30%;height:100%;background:linear-gradient(90deg,#CFE48A,#A9CC3A);border-radius:4px"></span></div>
+      <div style="display:flex;justify-content:space-between;font-size:14px"><span><span class="mut">Pagado</span> <b style="color:#5E7A12">RD$ 1,350</b></span><span><span class="mut">Total</span> <b>RD$ 4,500</b></span></div>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

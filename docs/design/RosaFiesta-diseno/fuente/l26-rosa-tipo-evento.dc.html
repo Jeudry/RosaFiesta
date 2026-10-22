@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Rosa · Tipo de evento (variante B)</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.rf,.rf *{box-sizing:border-box}
+.rf{font-family:'Figtree',system-ui,sans-serif;color:#1A1A2E;-webkit-font-smoothing:antialiased;position:relative;overflow:hidden}
+.rf p,.rf h1,.rf h2,.rf h3{margin:0}
+.rf .d{font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif;letter-spacing:-.02em}
+.rf button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:inherit}
+.rf input{font:inherit;color:inherit;border:0;outline:0;background:none;padding:0;min-width:0;flex:1}
+.rf input::placeholder{color:#62627A}
+.rf .ib{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#fff;flex:none;color:#1A1A2E;box-shadow:0 6px 16px -10px rgba(90,60,160,.5)}
+.rf .mut{color:#5A5672}
+.rf .seg{height:5px;border-radius:3px;flex:1}
+.rf .mk{background:linear-gradient(transparent 58%,#FFDF6E 58%,#FFDF6E 92%,transparent 92%);padding:0 2px}
+</style>
+</helmet>
+<div class="rf" style="width:390px;height:844px;background:linear-gradient(180deg,#DED5F7 0%,#F2EAF7 40%,#F5EEF7 60%,#D9D0F2 100%)">
+  <svg aria-hidden="true" width="390" height="844" viewBox="0 0 390 844" style="position:absolute;inset:0">
+    <path d="M0 -10L2.35 -3.24L9.5 -3.1L3.8 1.24L5.9 8.1L0 4L-5.9 8.1L-3.8 1.24L-9.5 -3.1L-2.35 -3.24Z" fill="#FBCA3F" transform="translate(344 142) scale(.9)"></path>
+    <circle cx="318" cy="168" r="4.5" fill="#B9D84A"></circle>
+    <rect x="300" y="128" width="18" height="6" rx="3" fill="#EA4EA9" opacity=".7" transform="rotate(-24 309 131)"></rect>
+    <circle cx="40" cy="700" r="24" fill="none" stroke="#CFE48A" stroke-width="2"></circle>
+    <path d="M0 -10L2.35 -3.24L9.5 -3.1L3.8 1.24L5.9 8.1L0 4L-5.9 8.1L-3.8 1.24L-9.5 -3.1L-2.35 -3.24Z" fill="#FBCA3F" opacity=".85" transform="translate(196 730) scale(.8)"></path>
+    <path d="M330 700l22-5 8 18-22 5z" fill="none" stroke="#F3C4D8" stroke-width="1.5"></path>
+  </svg>
+
+  <header style="position:absolute;top:54px;left:16px;right:16px;display:flex;align-items:center;gap:12px">
+    <button class="ib" aria-label="Cerrar asistente"><dc-import name="Icon" k="chev-d" s="22" hint-size="22px,22px"></dc-import></button>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px">
+      <p style="font-size:13px;font-weight:700">Paso 1 de 6</p>
+      <div style="width:150px;display:flex;gap:4px">
+        <span class="seg" style="background:linear-gradient(90deg,#EA4EA9,#B754CB)"></span><span class="seg" style="background:rgba(255,255,255,.7)"></span><span class="seg" style="background:rgba(255,255,255,.7)"></span><span class="seg" style="background:rgba(255,255,255,.7)"></span><span class="seg" style="background:rgba(255,255,255,.7)"></span><span class="seg" style="background:rgba(255,255,255,.7)"></span>
+      </div>
+    </div>
+    <button class="ib" aria-label="Mi evento, 16 artículos" style="position:relative"><dc-import name="Icon" k="party" s="22" hint-size="22px,22px"></dc-import><span style="position:absolute;top:-4px;right:-4px;min-width:20px;height:20px;border-radius:999px;background:#FFD45C;color:#2E1A47;font-size:11px;font-weight:800;display:grid;place-items:center;padding:0 5px">16</span></button>
+  </header>
+
+  <div style="position:absolute;top:128px;left:20px;right:20px;display:flex;flex-direction:column;gap:22px">
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <dc-import name="Rosa" s="40" hint-size="40px,40px"></dc-import>
+        <p class="mut" style="font-size:15px">¡Hola! Soy <b style="color:#9B45C8">Rosa</b>, tu asistente.</p>
+      </div>
+      <h1 class="d" style="font-size:32px;font-weight:800;line-height:1.05">¿Qué evento quieres <span class="mk">celebrar</span>?</h1>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:10px">
+      <sc-for list="{{types}}" as="t" hint-placeholder-count="6">
+        <button style="height:116px;border-radius:20px;background:{{t.bg}};color:{{t.fg}};position:relative;overflow:hidden;display:flex;align-items:flex-end;padding:12px 14px;box-shadow:0 0 0 1px rgba(255,255,255,.7),0 12px 24px -18px rgba(110,70,180,.7)">
+          <span style="position:absolute;right:-4px;top:-2px"><dc-import name="Illo" k="{{t.k}}" w="88" h="88" hint-size="88px,88px"></dc-import></span>
+          <span class="d" style="position:relative;font-size:17px;font-weight:800">{{t.name}}</span>
+        </button>
+      </sc-for>
+    </div>
+  </div>
+
+  <label style="position:absolute;left:16px;right:16px;bottom:34px;height:58px;border-radius:999px;background:#fff;box-shadow:0 12px 30px -16px rgba(90,60,160,.5);display:flex;align-items:center;gap:10px;padding:0 6px 0 20px">
+    <input placeholder="Escríbele a Rosa o habla…" aria-label="Mensaje para Rosa">
+    <button aria-label="Hablar con Rosa" style="width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,#EA4EA9,#865DEC);color:#fff;display:grid;place-items:center"><dc-import name="Icon" k="mic" s="22" hint-size="22px,22px"></dc-import></button>
+  </label>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const ink = '#1A1A2E';
+    return {
+      types: [
+        { name: 'Boda', k: 'boda', bg: '#FDE6F2', fg: ink },
+        { name: 'Cumpleaños', k: 'cumple', bg: '#FFF2C9', fg: ink },
+        { name: 'Baby shower', k: 'baby', bg: '#DDF4F3', fg: ink },
+        { name: 'Gender reveal', k: 'gender', bg: '#EFE8FD', fg: ink },
+        { name: 'Corporativo', k: 'corp', bg: '#EEF6D6', fg: ink },
+        { name: 'Otro', k: 'otro', bg: 'linear-gradient(135deg,#EA4EA9 0%,#865DEC 100%)', fg: '#FFFFFF' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

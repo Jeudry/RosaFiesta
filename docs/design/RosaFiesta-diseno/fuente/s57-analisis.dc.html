@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Análisis de negocio</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.rf,.rf *{box-sizing:border-box}
+.rf{font-family:'Figtree',system-ui,sans-serif;color:#151729;-webkit-font-smoothing:antialiased;position:relative;overflow:hidden}
+.rf p,.rf h1,.rf h2{margin:0}
+.rf .d{font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif;letter-spacing:-.02em}
+.rf button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:inherit}
+.rf .ib{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:0 0 0 1px #ECECF5,0 8px 20px -14px rgba(70,80,180,.4);flex:none;color:#151729}
+.rf .mut{color:#5F6377}
+.rf .card{background:#fff;border-radius:22px;box-shadow:0 0 0 1px #ECECF5}
+.rf .lg{display:flex;align-items:center;gap:8px;font-size:14px}
+.rf .sq{width:10px;height:10px;border-radius:3px;flex:none}
+</style>
+</helmet>
+<div class="rf" style="width:390px;height:844px;background:radial-gradient(110% 40% at 100% 0%,#E6E7FF 0%,rgba(230,231,255,0) 60%),radial-gradient(80% 35% at 0% 12%,#F1E9FB 0%,rgba(241,233,251,0) 60%),#F6F6FB">
+  <div style="padding:56px 20px 0;display:flex;flex-direction:column;gap:14px">
+    <header style="display:flex;align-items:center;gap:12px">
+      <button class="ib" aria-label="Volver"><dc-import name="Icon" k="back" s="22" hint-size="22px,22px"></dc-import></button>
+      <h1 class="d" style="font-size:20px;font-weight:800;flex:1">Análisis</h1>
+      <button style="height:40px;padding:0 12px;border-radius:12px;background:#fff;box-shadow:0 0 0 1px #E9E9F2;font-size:14px;font-weight:600;display:flex;align-items:center;gap:6px">Este año <dc-import name="Icon" k="chev-d" s="16" hint-size="16px,16px"></dc-import></button>
+    </header>
+    <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:10px">
+      <div style="border-radius:22px;background:linear-gradient(135deg,#7C5CF0 0%,#5B6CF0 55%,#2FB8C8 100%);color:#fff;padding:16px;box-shadow:0 18px 34px -20px rgba(80,110,230,.75)">
+        <p style="font-size:13px;color:#F6EAFB">Ingresos totales</p>
+        <p class="d" style="font-size:28px;font-weight:800;margin-top:6px">RD$ 22,100</p>
+      </div>
+      <div class="card" style="padding:16px">
+        <p class="mut" style="font-size:13px">Eventos</p>
+        <p class="d" style="font-size:28px;font-weight:800;margin-top:6px">4</p>
+      </div>
+    </div>
+    <section class="card" style="padding:16px 16px 12px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline"><p style="font-size:15px;font-weight:700">Tendencia de ingresos</p><p class="mut" style="font-size:12px">Datos de ejemplo</p></div>
+      <svg role="img" aria-label="Ingresos por mes, de mayo a octubre" width="326" height="150" viewBox="0 0 326 150" style="display:block;margin-top:10px">
+        <path d="M0 30H326M0 75H326M0 120H326" stroke="#EDEDF5" stroke-width="1"></path>
+        <path d="M10 40C40 44 60 30 70 34S110 62 130 58 170 72 190 80 230 96 250 98 300 112 316 116V128H10Z" fill="#ECEBFF"></path>
+        <path d="M10 40C40 44 60 30 70 34S110 62 130 58 170 72 190 80 230 96 250 98 300 112 316 116" stroke="#D63F98" stroke-width="2.5" fill="none" stroke-linecap="round"></path>
+        <circle cx="316" cy="116" r="5" fill="#fff" stroke="#D63F98" stroke-width="2.5"></circle>
+        <g font-family="Figtree, system-ui, sans-serif" font-size="11" fill="#5F6377" text-anchor="middle">
+          <text x="12" y="146">May</text><text x="72" y="146">Jun</text><text x="132" y="146">Jul</text><text x="192" y="146">Ago</text><text x="252" y="146">Sep</text><text x="310" y="146">Oct</text>
+        </g>
+      </svg>
+    </section>
+    <section class="card" style="padding:16px;display:flex;flex-direction:column;gap:12px">
+      <p style="font-size:15px;font-weight:700">Eventos por estado</p>
+      <div style="display:flex;height:14px;border-radius:7px;overflow:hidden;gap:2px">
+        <span style="flex:1;background:#8DB52C"></span><span style="flex:1;background:#1FBDC0"></span><span style="flex:1;background:#865DEC"></span><span style="flex:1;background:#CDBFCB"></span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:8px 16px">
+        <p class="lg"><span class="sq" style="background:#8DB52C"></span><span style="flex:1">Confirmado</span><b>1</b></p>
+        <p class="lg"><span class="sq" style="background:#1FBDC0"></span><span style="flex:1">Ajustado</span><b>1</b></p>
+        <p class="lg"><span class="sq" style="background:#865DEC"></span><span style="flex:1">Completado</span><b>1</b></p>
+        <p class="lg"><span class="sq" style="background:#CDBFCB"></span><span style="flex:1">Borrador</span><b>1</b></p>
+      </div>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

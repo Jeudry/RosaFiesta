@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Rosa IA</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div role="img" aria-label="Rosa, asistente IA" style="width:{{s}}px;height:{{s}}px;border-radius:50%;background:{{bgv}};display:grid;place-items:center;flex:none;box-shadow:{{shadow}}">
+  <svg width="{{g}}" height="{{g}}" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:block">
+    <path d="M4.6 13.4V12a7.4 7.4 0 0 1 14.8 0v1.4"></path>
+    <rect x="3.1" y="11.9" width="3" height="5.2" rx="1.5" fill="#fff" stroke="none"></rect>
+    <rect x="17.9" y="11.9" width="3" height="5.2" rx="1.5" fill="#fff" stroke="none"></rect>
+    <path d="M7.6 12.4c0-2.8 1.9-4.9 4.4-4.9s4.4 2.1 4.4 4.9c0 2.7-1.9 4.6-4.4 4.6s-4.4-1.9-4.4-4.6z"></path>
+    <path d="M7.9 10.9c1.9 0 3.4-1 4.3-2.7.8 1.6 2.2 2.6 3.9 2.7"></path>
+    <circle cx="10.3" cy="12.6" r=".8" fill="#fff" stroke="none"></circle>
+    <circle cx="13.7" cy="12.6" r=".8" fill="#fff" stroke="none"></circle>
+    <path d="M19.4 17.1v.5a2.2 2.2 0 0 1-2.2 2.2h-3.4"></path>
+    <rect x="11.4" y="18.8" width="3" height="2" rx="1" fill="#fff" stroke="none"></rect>
+  </svg>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"s":{"editor":"int","default":120},"glow":{"editor":"boolean","default":true},"bg":{"editor":"text","default":"linear-gradient(145deg,#E04FAF 0%,#945AE1 55%,#6664E9 100%)"},"$preview":{"width":120,"height":120}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const s = Number(this.props.s ?? 120);
+    const glow = this.props.glow ?? true;
+    return {
+      s,
+      bgv: this.props.bg ?? 'linear-gradient(145deg,#E04FAF 0%,#945AE1 55%,#6664E9 100%)',
+      g: Math.round(s * 0.6),
+      shadow: glow ? '0 ' + Math.round(s / 8) + 'px ' + Math.round(s / 3) + 'px -' + Math.round(s / 8) + 'px rgba(118,80,232,.55)' : 'none'
+    };
+  }
+}
+</script>
+</body>
+</html>

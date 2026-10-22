@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Cronograma del evento</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.rf,.rf *{box-sizing:border-box}
+.rf{font-family:'Figtree',system-ui,sans-serif;color:#1A1A2E;-webkit-font-smoothing:antialiased;position:relative;overflow:hidden}
+.rf p,.rf h1{margin:0}
+.rf .d{font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif;letter-spacing:-.02em}
+.rf button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:inherit}
+.rf .ib{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:0 0 0 1px #F0EBF4,0 8px 20px -14px rgba(180,80,180,.4);flex:none;color:#1A1A2E}
+.rf .mut{color:#62627A}
+</style>
+</helmet>
+<div class="rf" style="width:390px;height:844px;background:radial-gradient(110% 40% at 0% 0%,#F9E3F1 0%,rgba(249,227,241,0) 60%),radial-gradient(80% 35% at 100% 15%,#EEE7FB 0%,rgba(238,231,251,0) 60%),#FAFAFC">
+  <div style="padding:56px 20px 0;display:flex;flex-direction:column;gap:20px">
+    <header style="display:flex;align-items:center;gap:12px">
+      <button class="ib" aria-label="Volver"><dc-import name="Icon" k="back" s="22" hint-size="22px,22px"></dc-import></button>
+      <div style="flex:1">
+        <h1 class="d" style="font-size:20px;font-weight:800;line-height:1.1">Cronograma</h1>
+        <p class="mut" style="font-size:13px">Viernes 23 de octubre</p>
+      </div>
+      <button aria-label="Añadir actividad" style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#EA4EA9,#865DEC);color:#fff;display:grid;place-items:center;box-shadow:0 8px 16px -8px rgba(160,80,210,.7)"><dc-import name="Icon" k="plus" s="22" w="2.2" hint-size="22px,22px"></dc-import></button>
+    </header>
+    <div style="display:flex;flex-direction:column">
+      <sc-for list="{{items}}" as="it" hint-placeholder-count="4">
+        <div style="display:flex;gap:12px;min-height:150px">
+          <div style="width:48px;flex:none;text-align:right;padding-top:14px">
+            <p class="d" style="font-size:16px;font-weight:800">{{it.start}}</p>
+            <p class="mut" style="font-size:12px">{{it.end}}</p>
+          </div>
+          <div style="width:16px;flex:none;display:flex;flex-direction:column;align-items:center;padding-top:18px">
+            <span style="width:14px;height:14px;border-radius:50%;background:{{it.c}};box-shadow:0 0 0 4px {{it.t}};flex:none"></span>
+            <span style="flex:1;width:2px;background:#EADFE7;margin-top:6px"></span>
+          </div>
+          <div style="flex:1;padding:14px 8px 14px 16px;border-radius:20px;background:#fff;box-shadow:0 0 0 1px #F2EDF5;margin-bottom:12px;display:flex;gap:6px;align-self:flex-start">
+            <div style="flex:1;display:flex;flex-direction:column;gap:4px">
+              <p style="font-size:16px;font-weight:700;line-height:1.3">{{it.title}}</p>
+              <p class="mut" style="font-size:14px;line-height:1.4">{{it.desc}}</p>
+            </div>
+            <button aria-label="Opciones de la actividad" style="width:36px;height:36px;display:grid;place-items:center;color:#62627A;flex:none"><dc-import name="Icon" k="more-v" s="20" w="2.6" hint-size="20px,20px"></dc-import></button>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      items: [
+        { start: '06:38', end: '09:08', title: 'Descarga y montaje de mobiliario', desc: 'Llega el camión con 120 sillas Tiffany y mesas', c: '#F7B500', t: '#FFF2C9' },
+        { start: '09:38', end: '12:38', title: 'Arco orgánico y flores', desc: 'Montaje del backdrop principal y centros de mesa', c: '#EA4EA9', t: '#FDE6F2' },
+        { start: '13:08', end: '14:38', title: 'Pruebas de luz y mesa dulce', desc: 'Encendido de neones y bases de cristal', c: '#1FBDC0', t: '#DDF4F3' },
+        { start: '15:38', end: '20:38', title: 'Recepción e inicio de ceremonia', desc: 'Apertura oficial del salón y el jardín', c: '#865DEC', t: '#EFE8FD' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

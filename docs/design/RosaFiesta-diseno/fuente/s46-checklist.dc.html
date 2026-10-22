@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Checklist del evento</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.rf,.rf *{box-sizing:border-box}
+.rf{font-family:'Figtree',system-ui,sans-serif;color:#1A1A2E;-webkit-font-smoothing:antialiased;position:relative;overflow:hidden}
+.rf p,.rf h1{margin:0}
+.rf .d{font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif;letter-spacing:-.02em}
+.rf button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:inherit}
+.rf .ib{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:0 0 0 1px #F0EBF4,0 8px 20px -14px rgba(180,80,180,.4);flex:none;color:#1A1A2E}
+.rf .mut{color:#62627A}
+.rf .it{display:flex;align-items:center;gap:12px;padding:12px 14px;min-height:68px;border-radius:20px;background:#fff;box-shadow:0 0 0 1px #F2EDF5;width:100%}
+.rf .cb{width:26px;height:26px;border-radius:50%;box-shadow:inset 0 0 0 2px #CDBFCB;flex:none}
+.rf .ti{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;flex:none}
+</style>
+</helmet>
+<div class="rf" style="width:390px;height:844px;background:radial-gradient(110% 40% at 0% 0%,#F9E3F1 0%,rgba(249,227,241,0) 60%),radial-gradient(80% 35% at 100% 15%,#EEE7FB 0%,rgba(238,231,251,0) 60%),#FAFAFC">
+  <div style="padding:56px 20px 0;display:flex;flex-direction:column;gap:16px">
+    <header style="display:flex;align-items:center;gap:12px">
+      <button class="ib" aria-label="Volver"><dc-import name="Icon" k="back" s="22" hint-size="22px,22px"></dc-import></button>
+      <h1 class="d" style="font-size:20px;font-weight:800;flex:1">Antes del gran día</h1>
+    </header>
+    <section style="display:flex;align-items:center;gap:14px;padding:14px;border-radius:22px;background:#FDE6F2">
+      <dc-import name="Foto" k="boda" w="56" h="56" r="16" pos="center 30%" hint-size="56px,56px"></dc-import>
+      <div style="flex:1">
+        <p style="font-size:16px;font-weight:700">Boda Real Rosa &amp; Dorado</p>
+        <p style="font-size:13px;color:#C2338F;font-weight:600">Vie 23 oct · en 3 días</p>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:8px"><span style="flex:1;height:6px;border-radius:3px;background:rgba(255,255,255,.8)"></span><span style="font-size:12px;font-weight:700">0 de 5</span></div>
+      </div>
+    </section>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button class="it"><span class="cb"></span><span class="ti" style="background:#EFE8FD;color:#7A4FD8"><dc-import name="Icon" k="users" s="20" hint-size="20px,20px"></dc-import></span><span style="flex:1;font-size:15px;font-weight:700">Confirmar invitados (RSVP)</span><span class="mut"><dc-import name="Icon" k="chev-r" s="18" hint-size="18px,18px"></dc-import></span></button>
+      <button class="it"><span class="cb"></span><span class="ti" style="background:#FDE6F2;color:#C2338F"><dc-import name="Icon" k="box" s="20" hint-size="20px,20px"></dc-import></span><span style="flex:1;font-size:15px;font-weight:700">Revisar artículos reservados</span><span class="mut"><dc-import name="Icon" k="chev-r" s="18" hint-size="18px,18px"></dc-import></span></button>
+      <button class="it"><span class="cb"></span><span class="ti" style="background:#DDF4F3;color:#1F8A84"><dc-import name="Icon" k="pin" s="20" hint-size="20px,20px"></dc-import></span><span style="flex:1"><span style="display:block;font-size:15px;font-weight:700">Verificar dirección de entrega</span><span class="mut" style="font-size:13px">Jardín Botánico Santo Domingo</span></span><span class="mut"><dc-import name="Icon" k="chev-r" s="18" hint-size="18px,18px"></dc-import></span></button>
+      <button class="it"><span class="cb"></span><span class="ti" style="background:#EEF6D6;color:#4E6A10"><dc-import name="Icon" k="wrench" s="20" hint-size="20px,20px"></dc-import></span><span style="flex:1;font-size:15px;font-weight:700">Preparar espacio para montaje</span><span class="mut"><dc-import name="Icon" k="chev-r" s="18" hint-size="18px,18px"></dc-import></span></button>
+      <div class="it" style="background:#FFF2C9;box-shadow:none">
+        <span class="cb" style="box-shadow:inset 0 0 0 2px #D9B26A"></span>
+        <span class="ti" style="background:#fff;color:#7A5700"><dc-import name="Icon" k="card" s="20" hint-size="20px,20px"></dc-import></span>
+        <span style="flex:1"><span style="display:block;font-size:15px;font-weight:700">Pago restante</span><span class="d" style="font-size:17px;font-weight:800;color:#7A5700">RD$ 3,150</span></span>
+        <button style="height:40px;padding:0 16px;border-radius:999px;background:linear-gradient(135deg,#E04FAF 0%,#945AE1 55%,#6664E9 100%);color:#fff;font-size:14px;font-weight:700;box-shadow:0 8px 16px -8px rgba(134,93,236,.7)">Pagar</button>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

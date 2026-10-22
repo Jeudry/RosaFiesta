@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Acerca de</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.rf,.rf *{box-sizing:border-box}
+.rf{font-family:'Figtree',system-ui,sans-serif;color:#1A1A2E;-webkit-font-smoothing:antialiased;position:relative;overflow:hidden}
+.rf p,.rf h1,.rf h2,.rf h3{margin:0}
+.rf .d{font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif;letter-spacing:-.02em}
+.rf button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:inherit}
+.rf .ib{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:0 0 0 1px #F0EBF4,0 8px 20px -14px rgba(180,80,180,.4);flex:none;color:#1A1A2E}
+.rf .card{background:#fff;border-radius:22px;box-shadow:0 0 0 1px #F2EDF5,0 12px 28px -20px rgba(200,80,170,.4)}
+.rf .mut{color:#62627A}
+.rf .row{display:flex;align-items:center;gap:14px;padding:10px 14px;min-height:60px;width:100%}
+.rf .ti{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;flex:none}
+</style>
+</helmet>
+<div class="rf" style="width:390px;height:844px;background:radial-gradient(110% 40% at 0% 0%,#F9E3F1 0%,rgba(249,227,241,0) 60%),radial-gradient(80% 35% at 100% 15%,#EEE7FB 0%,rgba(238,231,251,0) 60%),#FAFAFC">
+  <div style="padding:56px 20px 0;display:flex;flex-direction:column;gap:18px">
+    <header style="display:flex;align-items:center;gap:14px">
+      <button class="ib" aria-label="Volver"><dc-import name="Icon" k="back" s="22" hint-size="22px,22px"></dc-import></button>
+      <h1 class="d" style="font-size:20px;font-weight:800">Acerca de</h1>
+    </header>
+
+    <div style="display:flex;align-items:center;gap:16px;padding:6px 4px">
+      <dc-import name="Logo" s="84" hint-size="84px,84px"></dc-import>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <p class="d" style="font-size:28px;font-weight:800;line-height:1">Rosa <span style="color:#D63F98">Fiesta</span></p>
+        <p class="mut" style="font-size:15px">Decoración y planificación de eventos</p>
+      </div>
+    </div>
+
+    <div class="card" style="display:grid;grid-template-columns:repeat(3, minmax(0, 1fr));padding:16px 0">
+      <div style="text-align:center"><p class="d" style="font-size:26px;font-weight:800">127</p><p class="mut" style="font-size:13px">eventos</p></div>
+      <div style="text-align:center;box-shadow:-1px 0 0 #F2EDF5,1px 0 0 #F2EDF5"><p class="d" style="font-size:26px;font-weight:800">8</p><p class="mut" style="font-size:13px">años</p></div>
+      <div style="text-align:center"><p class="d" style="font-size:26px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:4px">4.9 <dc-import name="Icon" k="star" s="18" f="{{true}}" c="#F7B500" hint-size="18px,18px"></dc-import></p><p class="mut" style="font-size:13px">calificación</p></div>
+    </div>
+
+    <section class="card" style="padding:6px 0">
+      <p style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:12px 18px 4px" class="mut">Contacto</p>
+      <div class="row">
+        <span class="ti" style="background:#FDE6F2;color:#C2338F"><dc-import name="Icon" k="phone" s="20" hint-size="20px,20px"></dc-import></span>
+        <div style="flex:1"><p style="font-size:15px;font-weight:700">Teléfono</p><p class="mut" style="font-size:14px">+1 (829) 942-4971</p></div>
+        <button style="height:38px;padding:0 14px;border-radius:999px;background:linear-gradient(135deg,#E04FAF 0%,#945AE1 55%,#6664E9 100%);color:#fff;font-size:14px;font-weight:700;box-shadow:0 8px 16px -8px rgba(134,93,236,.7)">Llamar</button>
+      </div>
+      <button class="row" style="box-shadow:0 -1px 0 #F2F0F5">
+        <span class="ti" style="background:#EEF6D6;color:#4E6A10"><dc-import name="Icon" k="wa" s="20" hint-size="20px,20px"></dc-import></span>
+        <div style="flex:1"><p style="font-size:15px;font-weight:700">WhatsApp</p><p class="mut" style="font-size:14px">Escríbele a María</p></div>
+        <span class="mut"><dc-import name="Icon" k="chev-r" s="20" hint-size="20px,20px"></dc-import></span>
+      </button>
+      <button class="row" style="box-shadow:0 -1px 0 #F2F0F5">
+        <span class="ti" style="background:#EFE8FD;color:#7A4FD8"><dc-import name="Icon" k="camera" s="20" hint-size="20px,20px"></dc-import></span>
+        <div style="flex:1"><p style="font-size:15px;font-weight:700">Instagram</p><p class="mut" style="font-size:14px">Mira nuestros montajes</p></div>
+        <span class="mut"><dc-import name="Icon" k="chev-r" s="20" hint-size="20px,20px"></dc-import></span>
+      </button>
+      <button class="row" style="box-shadow:0 -1px 0 #F2F0F5">
+        <span class="ti" style="background:#DDF4F3;color:#1F8A84"><dc-import name="Icon" k="users" s="20" hint-size="20px,20px"></dc-import></span>
+        <div style="flex:1"><p style="font-size:15px;font-weight:700">Facebook</p><p class="mut" style="font-size:14px">Únete a la comunidad</p></div>
+        <span class="mut"><dc-import name="Icon" k="chev-r" s="20" hint-size="20px,20px"></dc-import></span>
+      </button>
+    </section>
+
+    <section class="card" style="overflow:hidden">
+      <dc-import name="Illo" k="mapa" w="350" h="120" cover="{{true}}" hint-size="350px,120px"></dc-import>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px">
+        <div><p style="font-size:15px;font-weight:700">Santo Domingo, R.D.</p><p class="mut" style="font-size:13px">[Dirección del local]</p></div>
+        <button style="height:38px;padding:0 14px;border-radius:999px;box-shadow:0 0 0 1px #E8E1EE,0 8px 20px -16px rgba(180,80,180,.35);font-size:14px;font-weight:700">Cómo llegar</button>
+      </div>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

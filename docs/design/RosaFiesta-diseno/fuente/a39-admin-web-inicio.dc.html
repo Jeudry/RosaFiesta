@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Admin web · Inicio</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.rf,.rf *{box-sizing:border-box}
+.rf{font-family:'Figtree',system-ui,sans-serif;color:#151729;-webkit-font-smoothing:antialiased;position:relative;overflow:hidden}
+.rf p,.rf h1,.rf h2,.rf h3{margin:0}
+.rf .d{font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif;letter-spacing:-.02em}
+.rf button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:inherit}
+.rf a{color:inherit;text-decoration:none}
+.rf input,.rf textarea{font:inherit;color:inherit;border:0;outline:0;background:none;padding:0;min-width:0;flex:1;resize:none}
+.rf .mut{color:#5F6377}
+.rf .cap{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#5F6377}
+.rf .ib{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:0 0 0 1px #ECECF5,0 8px 20px -14px rgba(70,80,180,.45);flex:none;color:#151729}
+.rf .card{background:#fff;border-radius:20px;box-shadow:0 0 0 1px #ECECF5,0 12px 28px -22px rgba(70,80,180,.45)}
+.rf .btn{height:54px;border-radius:16px;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:16px}
+.rf .bp{background:linear-gradient(135deg,#7C5CF0 0%,#5B6CF0 100%);color:#fff;box-shadow:0 12px 24px -12px rgba(91,108,240,.75)}
+.rf .bs{background:#fff;color:#151729;box-shadow:0 0 0 1px #E3E4EF}
+.rf .chip{height:36px;padding:0 14px;border-radius:999px;display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:600;background:#fff;box-shadow:0 0 0 1px #E9E9F2;white-space:nowrap;flex:none}
+.rf .on{background:linear-gradient(135deg,#7C5CF0 0%,#5B6CF0 100%);color:#fff;box-shadow:0 8px 16px -8px rgba(91,108,240,.7)}
+.rf .tag{height:24px;padding:0 9px;border-radius:999px;display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;white-space:nowrap}
+.rf .one{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf .fld{height:50px;border-radius:14px;background:#fff;box-shadow:0 0 0 1px #E3E4EF;display:flex;align-items:center;gap:10px;padding:0 14px;color:#5F6377;font-size:15px}
+.rf .lbl{font-size:13px;font-weight:700;color:#3A3D52}
+.rf .ti{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;flex:none}
+.rf .stp{display:flex;align-items:center;gap:2px;height:34px;border-radius:999px;background:#F2F2F8;padding:0 3px;flex:none}
+.rf .stp button{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;color:#5B6CF0}
+.rf .seg{height:5px;border-radius:3px;flex:1}
+.rf .sg{flex:1;height:38px;border-radius:12px;font-size:14px;font-weight:600;display:grid;place-items:center;color:#5F6377}
+.rf .sg.sel{background:#fff;color:#151729;font-weight:700;box-shadow:0 2px 8px -3px rgba(70,80,180,.3)}
+</style>
+</helmet>
+<div class="rf" style="width:1440px;height:900px;background:radial-gradient(110% 40% at 100% 0%,#E6E7FF 0%,rgba(230,231,255,0) 60%),radial-gradient(80% 35% at 0% 12%,#F1E9FB 0%,rgba(241,233,251,0) 60%),#F6F6FB;display:flex">
+  <aside style="width:256px;flex:none;background:#fff;box-shadow:1px 0 0 #ECECF5;padding:24px 16px;display:flex;flex-direction:column;gap:4px">
+    <div style="display:flex;align-items:center;gap:12px;padding:0 6px 20px"><dc-import name="Logo" s="44" hint-size="44px,44px"></dc-import><div><p class="d" style="font-size:17px;font-weight:800">Rosa Fiesta</p><span class="tag" style="height:20px;padding:0 7px;font-size:11px;background:#ECEBFF;color:#4B47D6">Admin</span></div></div>
+    <a style="display:flex;align-items:center;gap:12px;height:42px;padding:0 12px;border-radius:12px;font-size:14.5px;font-weight:700;background:linear-gradient(135deg,#7C5CF0 0%,#5B6CF0 100%);color:#fff;box-shadow:0 10px 20px -12px rgba(91,108,240,.8)"><dc-import name="Icon" k="home" s="19" hint-size="19px,19px"></dc-import>Inicio</a><a style="display:flex;align-items:center;gap:12px;height:42px;padding:0 12px;border-radius:12px;font-size:14.5px;font-weight:600;color:#3A3D52"><dc-import name="Icon" k="file" s="19" hint-size="19px,19px"></dc-import>Solicitudes<span style="margin-left:auto;min-width:22px;height:22px;border-radius:999px;background:#FFD45C;color:#2E1A47;font-size:12px;font-weight:800;display:grid;place-items:center;padding:0 6px">2</span></a><a style="display:flex;align-items:center;gap:12px;height:42px;padding:0 12px;border-radius:12px;font-size:14.5px;font-weight:600;color:#3A3D52"><dc-import name="Icon" k="calendar" s="19" hint-size="19px,19px"></dc-import>Eventos</a><a style="display:flex;align-items:center;gap:12px;height:42px;padding:0 12px;border-radius:12px;font-size:14.5px;font-weight:600;color:#3A3D52"><dc-import name="Icon" k="box" s="19" hint-size="19px,19px"></dc-import>Inventario</a><a style="display:flex;align-items:center;gap:12px;height:42px;padding:0 12px;border-radius:12px;font-size:14.5px;font-weight:600;color:#3A3D52"><dc-import name="Icon" k="doc-check" s="19" hint-size="19px,19px"></dc-import>Cotizaciones</a><a style="display:flex;align-items:center;gap:12px;height:42px;padding:0 12px;border-radius:12px;font-size:14.5px;font-weight:600;color:#3A3D52"><dc-import name="Icon" k="card" s="19" hint-size="19px,19px"></dc-import>Pagos</a><a style="display:flex;align-items:center;gap:12px;height:42px;padding:0 12px;border-radius:12px;font-size:14.5px;font-weight:600;color:#3A3D52"><dc-import name="Icon" k="user" s="19" hint-size="19px,19px"></dc-import>Clientes</a><a style="display:flex;align-items:center;gap:12px;height:42px;padding:0 12px;border-radius:12px;font-size:14.5px;font-weight:600;color:#3A3D52"><dc-import name="Icon" k="chat" s="19" hint-size="19px,19px"></dc-import>Chats<span style="margin-left:auto;min-width:22px;height:22px;border-radius:999px;background:#FFD45C;color:#2E1A47;font-size:12px;font-weight:800;display:grid;place-items:center;padding:0 6px">2</span></a><a style="display:flex;align-items:center;gap:12px;height:42px;padding:0 12px;border-radius:12px;font-size:14.5px;font-weight:600;color:#3A3D52"><dc-import name="Icon" k="chart" s="19" hint-size="19px,19px"></dc-import>Reportes</a>
+    <div style="margin-top:auto;display:flex;flex-direction:column;gap:4px"><a style="display:flex;align-items:center;gap:12px;height:42px;padding:0 12px;border-radius:12px;font-size:14.5px;font-weight:600;color:#3A3D52"><dc-import name="Icon" k="wrench" s="19" hint-size="19px,19px"></dc-import>Ajustes</a>
+      <div style="display:flex;align-items:center;gap:10px;padding:12px 8px 0;box-shadow:0 -1px 0 #ECECF5;margin-top:8px"><span class="d" style="width:38px;height:38px;border-radius:50%;background:#ECEBFF;color:#4B47D6;display:grid;place-items:center;font-weight:800;font-size:14px;flex:none">M</span><div style="flex:1;min-width:0"><p style="font-size:14px;font-weight:700">María</p><p class="mut one" style="font-size:12.5px">admin@rosafiesta.com</p></div></div>
+    </div>
+  </aside>
+  <main style="flex:1;min-width:0;padding:24px 32px;display:flex;flex-direction:column;gap:20px">
+    <header style="display:flex;align-items:center;gap:14px">
+      <div style="flex:1"><p class="mut" style="font-size:14px">Martes 20 de octubre</p><h1 class="d" style="font-size:28px;font-weight:800;line-height:1.15">Hola, María</h1></div>
+      <label class="fld" style="width:340px;height:46px"><dc-import name="Icon" k="search" s="18" hint-size="18px,18px"></dc-import><input placeholder="Buscar eventos, clientes, artículos" aria-label="Buscar"><span class="mut" style="font-size:12px;font-weight:700;padding:3px 7px;border-radius:6px;background:#F2F2F8">⌘K</span></label>
+      <button class="ib" aria-label="Notificaciones, 3 nuevas" style="position:relative"><dc-import name="Icon" k="bell" s="20" hint-size="20px,20px"></dc-import><span style="position:absolute;top:-3px;right:-3px;min-width:20px;height:20px;border-radius:999px;background:#FFD45C;color:#2E1A47;font-size:11px;font-weight:800;display:grid;place-items:center;padding:0 5px">3</span></button>
+      <button class="btn bs" style="height:46px;padding:0 16px;font-size:14.5px"><dc-import name="Rosa" s="26" glow="{{false}}" bg="linear-gradient(145deg,#7C5CF0 0%,#5B6CF0 55%,#2FB8C8 100%)" hint-size="26px,26px"></dc-import>Crear con Rosa</button>
+      <button class="btn bp" style="height:46px;padding:0 18px;font-size:14.5px"><dc-import name="Icon" k="plus" s="18" w="2.4" hint-size="18px,18px"></dc-import>Nuevo evento</button>
+    </header>
+    <div style="display:grid;grid-template-columns:repeat(4, minmax(0, 1fr));gap:16px">
+      <div class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;align-items:center;justify-content:space-between"><p class="mut" style="font-size:14px;font-weight:600">Ingresos de octubre</p><span class="ti" style="width:36px;height:36px;background:#EEF6D6;color:#4E6A10"><dc-import name="Icon" k="trend-up" s="18" hint-size="18px,18px"></dc-import></span></div>
+          <p class="d" style="font-size:30px;font-weight:800;line-height:1">RD$ 12,450</p>
+          <p style="font-size:13px;font-weight:600;color:#4E6A10">▲ 22% vs. septiembre</p>
+        </div>
+      <div class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;align-items:center;justify-content:space-between"><p class="mut" style="font-size:14px;font-weight:600">Por cobrar</p><span class="ti" style="width:36px;height:36px;background:#FFF2C9;color:#7A5700"><dc-import name="Icon" k="cash" s="18" hint-size="18px,18px"></dc-import></span></div>
+          <p class="d" style="font-size:30px;font-weight:800;line-height:1">RD$ 7,724</p>
+          <p style="font-size:13px;font-weight:600;color:#5F6377">3 pagos · 1 vence el jueves</p>
+        </div>
+      <div class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;align-items:center;justify-content:space-between"><p class="mut" style="font-size:14px;font-weight:600">Eventos activos</p><span class="ti" style="width:36px;height:36px;background:#ECEBFF;color:#4B47D6"><dc-import name="Icon" k="calendar" s="18" hint-size="18px,18px"></dc-import></span></div>
+          <p class="d" style="font-size:30px;font-weight:800;line-height:1">4</p>
+          <p style="font-size:13px;font-weight:600;color:#5F6377">Próximo: vie 23 oct</p>
+        </div>
+      <div class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;align-items:center;justify-content:space-between"><p class="mut" style="font-size:14px;font-weight:600">Solicitudes nuevas</p><span class="ti" style="width:36px;height:36px;background:#FDE6F2;color:#C2338F"><dc-import name="Icon" k="file" s="18" hint-size="18px,18px"></dc-import></span></div>
+          <p class="d" style="font-size:30px;font-weight:800;line-height:1">2</p>
+          <p style="font-size:13px;font-weight:600;color:#5F6377">Est. RD$ 2,545 en total</p>
+        </div>
+    </div>
+    <div style="display:grid;grid-template-columns:minmax(0, 1fr) 360px;gap:16px;flex:1;min-height:0">
+      <div style="display:flex;flex-direction:column;gap:16px;min-width:0">
+        <section class="card" style="overflow:hidden">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px"><p style="font-size:16px;font-weight:800">Próximos eventos</p><a style="font-size:14px;font-weight:700;color:#4B47D6">Ver todos</a></div>
+          <div class="cap" style="display:grid;grid-template-columns:2.8fr .9fr 1fr .9fr 1.2fr 1.15fr;gap:12px;padding:8px 20px;background:#F8F8FC;font-size:11px">
+            <span>Evento</span><span>Fecha</span><span>Cliente</span><span>Total</span><span>Pagado</span><span>Estado</span></div>
+          <div style="display:grid;grid-template-columns:2.8fr .9fr 1fr .9fr 1.2fr 1.15fr;align-items:center;gap:12px;padding:12px 20px;box-shadow:0 -1px 0 #F2F0F5;font-size:14px">
+            <span style="display:flex;align-items:center;gap:12px;min-width:0"><dc-import name="Foto" k="boda" w="44" h="44" r="10" pos="center 30%" hint-size="44px,44px"></dc-import><b class="one">Boda Real Rosa &amp; Dorado</b></span>
+            <span>Vie 23 oct</span><span class="one">Camila R.</span><b class="d" style="font-size:15px">RD$ 4,500</b>
+            <span style="display:flex;align-items:center;gap:8px"><span style="flex:1;height:6px;border-radius:3px;background:#EDEDF5;overflow:hidden"><span style="display:block;width:30%;height:100%;background:linear-gradient(135deg,#7C5CF0 0%,#5B6CF0 100%)"></span></span><span class="mut" style="font-size:12.5px;width:30px">30%</span></span>
+            <span><span class="tag" style="background:#DDF4F3;color:#1F8A84">Ajustado</span></span>
+          </div>
+          <div style="display:grid;grid-template-columns:2.8fr .9fr 1fr .9fr 1.2fr 1.15fr;align-items:center;gap:12px;padding:12px 20px;box-shadow:0 -1px 0 #F2F0F5;font-size:14px">
+            <span style="display:flex;align-items:center;gap:12px;min-width:0"><dc-import name="Foto" k="quinceanera" w="44" h="44" r="10" pos="center" hint-size="44px,44px"></dc-import><b class="one">Quinceañera Valentina Crystal</b></span>
+            <span>Lun 2 nov</span><span class="one">Camila R.</span><b class="d" style="font-size:15px">RD$ 6,200</b>
+            <span style="display:flex;align-items:center;gap:8px"><span style="flex:1;height:6px;border-radius:3px;background:#EDEDF5;overflow:hidden"><span style="display:block;width:30%;height:100%;background:linear-gradient(135deg,#7C5CF0 0%,#5B6CF0 100%)"></span></span><span class="mut" style="font-size:12.5px;width:30px">30%</span></span>
+            <span><span class="tag" style="background:#EEF6D6;color:#4E6A10">Confirmado</span></span>
+          </div>
+          <div style="display:grid;grid-template-columns:2.8fr .9fr 1fr .9fr 1.2fr 1.15fr;align-items:center;gap:12px;padding:12px 20px;box-shadow:0 -1px 0 #F2F0F5;font-size:14px">
+            <span style="display:flex;align-items:center;gap:12px;min-width:0"><dc-import name="Foto" k="cumple-infantil" w="44" h="44" r="10" pos="center" hint-size="44px,44px"></dc-import><b class="one">Cumpleaños de Mateo</b></span>
+            <span>Sáb 7 nov</span><span class="one">Laura Peña</span><b class="d" style="font-size:15px">RD$ 780</b>
+            <span style="display:flex;align-items:center;gap:8px"><span style="flex:1;height:6px;border-radius:3px;background:#EDEDF5;overflow:hidden"><span style="display:block;width:0%;height:100%;background:linear-gradient(135deg,#7C5CF0 0%,#5B6CF0 100%)"></span></span><span class="mut" style="font-size:12.5px;width:30px">0%</span></span>
+            <span><span class="tag" style="background:#FFF2C9;color:#7A5700">Cotización enviada</span></span>
+          </div>
+          <div style="display:grid;grid-template-columns:2.8fr .9fr 1fr .9fr 1.2fr 1.15fr;align-items:center;gap:12px;padding:12px 20px;box-shadow:0 -1px 0 #F2F0F5;font-size:14px">
+            <span style="display:flex;align-items:center;gap:12px;min-width:0"><dc-import name="Foto" k="baby-shower" w="44" h="44" r="10" pos="center 30%" hint-size="44px,44px"></dc-import><b class="one">Baby Shower Sofía en Rosas</b></span>
+            <span>Lun 9 nov</span><span class="one">Camila R.</span><span class="mut" style="font-size:13px">Por cotizar</span>
+            <span style="display:flex;align-items:center;gap:8px"><span style="flex:1;height:6px;border-radius:3px;background:#EDEDF5;overflow:hidden"><span style="display:block;width:0%;height:100%;background:linear-gradient(135deg,#7C5CF0 0%,#5B6CF0 100%)"></span></span><span class="mut" style="font-size:12.5px;width:30px">0%</span></span>
+            <span><span class="tag" style="background:#F2F2F8;color:#5F6377">Borrador</span></span>
+          </div>
+        </section>
+        <section class="card" style="padding:16px 20px;flex:1;display:flex;flex-direction:column">
+          <div style="display:flex;align-items:center;justify-content:space-between"><p style="font-size:16px;font-weight:800">Ingresos por mes</p><div style="display:flex;gap:4px;padding:3px;background:#F2F2F8;border-radius:10px"><button class="sg sel" style="height:30px;padding:0 12px;font-size:13px;white-space:nowrap">6 meses</button><button class="sg" style="height:30px;padding:0 12px;font-size:13px;white-space:nowrap">12 meses</button></div></div>
+          <div style="display:flex;gap:18px;align-items:flex-end;margin-top:auto;padding:0 8px"><div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;justify-content:flex-end;height:190px"><span style="font-size:12px;font-weight:700;color:#5F6377">6.2k</span><span style="width:100%;max-width:44px;height:66px;border-radius:10px 10px 4px 4px;background:#E3E4F5"></span><span class="mut" style="font-size:12.5px">may</span></div><div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;justify-content:flex-end;height:190px"><span style="font-size:12px;font-weight:700;color:#5F6377">9.8k</span><span style="width:100%;max-width:44px;height:105px;border-radius:10px 10px 4px 4px;background:#E3E4F5"></span><span class="mut" style="font-size:12.5px">jun</span></div><div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;justify-content:flex-end;height:190px"><span style="font-size:12px;font-weight:700;color:#5F6377">8.1k</span><span style="width:100%;max-width:44px;height:87px;border-radius:10px 10px 4px 4px;background:#E3E4F5"></span><span class="mut" style="font-size:12.5px">jul</span></div><div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;justify-content:flex-end;height:190px"><span style="font-size:12px;font-weight:700;color:#5F6377">11.3k</span><span style="width:100%;max-width:44px;height:121px;border-radius:10px 10px 4px 4px;background:#E3E4F5"></span><span class="mut" style="font-size:12.5px">ago</span></div><div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;justify-content:flex-end;height:190px"><span style="font-size:12px;font-weight:700;color:#5F6377">10.2k</span><span style="width:100%;max-width:44px;height:109px;border-radius:10px 10px 4px 4px;background:#E3E4F5"></span><span class="mut" style="font-size:12.5px">sep</span></div><div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;justify-content:flex-end;height:190px"><span style="font-size:12px;font-weight:700;color:#151729">12.45k</span><span style="width:100%;max-width:44px;height:133px;border-radius:10px 10px 4px 4px;background:linear-gradient(135deg,#7C5CF0 0%,#5B6CF0 55%,#2FB8C8 100%)"></span><span class="mut" style="font-size:12.5px">oct</span></div></div>
+        </section>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:16px;min-width:0">
+        <section style="border-radius:22px;background:linear-gradient(135deg,#7C5CF0 0%,#5B6CF0 55%,#2FB8C8 100%);color:#fff;padding:18px 20px;display:flex;flex-direction:column;gap:8px;box-shadow:0 18px 34px -20px rgba(80,110,230,.9)">
+          <p style="font-size:13px;opacity:.85">Este viernes · en 3 días</p>
+          <p class="d" style="font-size:20px;font-weight:800">Boda Real Rosa &amp; Dorado</p>
+          <p style="font-size:14px;opacity:.9">Montaje 2:00 p. m. · Jardín Botánico · 120 invitados</p>
+          <div style="display:flex;gap:8px;margin-top:6px"><button style="height:36px;padding:0 14px;border-radius:999px;background:#fff;color:#4B47D6;font-size:13.5px;font-weight:700">Ver evento</button><button style="height:36px;padding:0 14px;border-radius:999px;background:rgba(255,255,255,.2);font-size:13.5px;font-weight:700">Modo ejecución</button></div>
+        </section>
+        <section class="card" style="overflow:hidden">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px"><p style="font-size:16px;font-weight:800">Solicitudes nuevas</p><span class="tag" style="background:#FFD45C;color:#2E1A47">2</span></div>
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 18px;box-shadow:0 -1px 0 #F2F0F5"><dc-import name="Foto" k="cumple-infantil" w="42" h="42" r="10" hint-size="42px,42px"></dc-import><div style="flex:1;min-width:0"><p class="one" style="font-size:14px;font-weight:700">Cumpleaños de Mateo</p><p class="mut one" style="font-size:12.5px">Laura Peña · Sáb 7 nov</p></div><button class="on" style="height:32px;padding:0 12px;border-radius:999px;font-size:13px;font-weight:700">Cotizar</button></div>
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 18px;box-shadow:0 -1px 0 #F2F0F5"><dc-import name="Foto" k="graduacion" w="42" h="42" r="10" hint-size="42px,42px"></dc-import><div style="flex:1;min-width:0"><p class="one" style="font-size:14px;font-weight:700">Graduación Promo 2026</p><p class="mut one" style="font-size:12.5px">Ana Gómez · Vie 13 nov</p></div><button class="on" style="height:32px;padding:0 12px;border-radius:999px;font-size:13px;font-weight:700">Cotizar</button></div>
+        </section>
+        <section class="card" style="overflow:hidden;flex:1">
+          <div style="padding:14px 18px"><p style="font-size:16px;font-weight:800">Atención hoy</p></div>
+          <div style="display:flex;align-items:center;gap:12px;padding:11px 18px;box-shadow:0 -1px 0 #F2F0F5"><span class="ti" style="width:36px;height:36px;background:#FCE3E8;color:#B42345"><dc-import name="Icon" k="card" s="17" hint-size="17px,17px"></dc-import></span><div style="flex:1;min-width:0"><p class="one" style="font-size:14px;font-weight:700">Saldo Boda Real</p><p class="mut" style="font-size:12.5px">Vence el jue 22 oct</p></div><b class="d" style="font-size:15px">RD$ 3,150</b></div>
+          <div style="display:flex;align-items:center;gap:12px;padding:11px 18px;box-shadow:0 -1px 0 #F2F0F5"><span class="ti" style="width:36px;height:36px;background:#FFF2C9;color:#7A5700"><dc-import name="Icon" k="box" s="17" hint-size="17px,17px"></dc-import></span><div style="flex:1;min-width:0"><p class="one" style="font-size:14px;font-weight:700">Mesa dulce temática</p><p class="mut" style="font-size:12.5px">Quedan 2 · stock bajo</p></div><span class="tag" style="background:#FFF2C9;color:#7A5700">Stock bajo</span></div>
+          <div style="display:flex;align-items:center;gap:12px;padding:11px 18px;box-shadow:0 -1px 0 #F2F0F5"><span class="ti" style="width:36px;height:36px;background:#ECEBFF;color:#4B47D6"><dc-import name="Icon" k="history" s="17" hint-size="17px,17px"></dc-import></span><div style="flex:1;min-width:0"><p class="one" style="font-size:14px;font-weight:700">2 cancelaciones por revisar</p><p class="mut" style="font-size:12.5px">Bautizo de Lucas · Cumpleaños de Mateo</p></div><span style="color:#5F6377;display:flex"><dc-import name="Icon" k="chev-r" s="16" hint-size="16px,16px"></dc-import></span></div>
+        </section>
+      </div>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

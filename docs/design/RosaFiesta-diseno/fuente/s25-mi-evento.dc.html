@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Mi evento</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.rf,.rf *{box-sizing:border-box}
+.rf{font-family:'Figtree',system-ui,sans-serif;color:#1A1A2E;-webkit-font-smoothing:antialiased;position:relative;overflow:hidden}
+.rf p,.rf h1,.rf h2,.rf h3{margin:0}
+.rf .d{font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif;letter-spacing:-.02em}
+.rf button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:inherit}
+.rf .btn{height:56px;border-radius:16px;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:16px}
+.rf .bp{background:linear-gradient(90deg,#EA4EA9 0%,#B754CB 50%,#865DEC 100%);color:#fff;box-shadow:0 12px 26px -12px rgba(200,70,180,.7)}
+.rf .ib{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:0 0 0 1px #F0EBF4,0 8px 20px -14px rgba(180,80,180,.4);flex:none;color:#1A1A2E}
+.rf .card{background:#fff;border-radius:22px;box-shadow:0 0 0 1px #F2EDF5,0 12px 28px -20px rgba(200,80,170,.4)}
+.rf .mut{color:#62627A}
+.rf .one{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf .stp{height:36px;border-radius:12px;box-shadow:0 0 0 1px #E8E1EE,0 8px 20px -16px rgba(180,80,180,.35);display:flex;align-items:center;flex:none}
+.rf .stp button{width:32px;height:36px;display:grid;place-items:center}
+</style>
+</helmet>
+<div class="rf" style="width:390px;height:844px;background:radial-gradient(110% 40% at 0% 0%,#F9E3F1 0%,rgba(249,227,241,0) 60%),radial-gradient(80% 35% at 100% 15%,#EEE7FB 0%,rgba(238,231,251,0) 60%),#FAFAFC">
+  <div style="padding:56px 20px 0;display:flex;flex-direction:column;gap:16px">
+    <header style="display:flex;align-items:center;gap:12px">
+      <button class="ib" aria-label="Volver"><dc-import name="Icon" k="back" s="22" hint-size="22px,22px"></dc-import></button>
+      <div style="flex:1">
+        <h1 class="d" style="font-size:22px;font-weight:800;line-height:1.1">Mi evento</h1>
+        <p class="mut" style="font-size:13px">Baby Shower Sofía en Rosas</p>
+      </div>
+      <span style="height:26px;padding:0 10px;border-radius:999px;background:#F1EFF5;color:#62627A;font-size:12px;font-weight:700;display:flex;align-items:center">Borrador</span>
+    </header>
+
+    <section class="card" style="padding:6px 6px 10px">
+      <button style="width:100%;display:flex;align-items:center;gap:12px;padding:10px 10px 12px">
+        <span style="width:40px;height:40px;border-radius:12px;background:#FDE6F2;color:#C2338F;display:grid;place-items:center"><dc-import name="Icon" k="chair" s="20" hint-size="20px,20px"></dc-import></span>
+        <span style="flex:1"><span style="display:block;font-size:16px;font-weight:700">Sillas</span><span class="mut" style="font-size:13px">2 artículos · 120 unidades</span></span>
+        <span class="d" style="font-size:17px;font-weight:800">RD$ 420</span>
+        <span class="mut"><dc-import name="Icon" k="chev-u" s="18" hint-size="18px,18px"></dc-import></span>
+      </button>
+      <sc-for list="{{items}}" as="it" hint-placeholder-count="2">
+        <div style="display:flex;gap:12px;padding:12px 10px;box-shadow:0 -1px 0 #F2F0F5;align-items:center">
+          <span style="width:56px;height:56px;border-radius:14px;background:{{it.bg}};display:grid;place-items:center;flex:none"><dc-import name="Foto" k="{{it.k}}" w="56" h="56" r="14" hint-size="56px,56px"></dc-import></span>
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+            <p class="one" style="font-size:15px;font-weight:700">{{it.name}}</p>
+            <p class="mut" style="font-size:13px">{{it.variant}} · RD$ {{it.unit}} c/u</p>
+            <p class="d" style="font-size:16px;font-weight:800;margin-top:2px">RD$ {{it.total}}</p>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+            <div class="stp">
+              <button aria-label="Quitar uno"><dc-import name="Icon" k="minus" s="16" hint-size="16px,16px"></dc-import></button>
+              <span style="min-width:26px;text-align:center;font-weight:700;font-size:14px">{{it.q}}</span>
+              <button aria-label="Agregar uno"><dc-import name="Icon" k="plus" s="16" hint-size="16px,16px"></dc-import></button>
+            </div>
+            <button style="height:28px;font-size:13px;font-weight:600;color:#62627A;display:flex;align-items:center;gap:4px"><dc-import name="Icon" k="trash" s="14" hint-size="14px,14px"></dc-import>Quitar</button>
+          </div>
+        </div>
+      </sc-for>
+    </section>
+
+    <button style="height:52px;border-radius:16px;box-shadow:inset 0 0 0 1.5px #E3DCE8;border:0;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:15px;background-image:none;outline:2px dashed #E3DCE8;outline-offset:-2px;box-shadow:none"><dc-import name="Icon" k="plus" s="18" hint-size="18px,18px"></dc-import>Agregar más artículos</button>
+  </div>
+
+  <div style="position:absolute;left:0;right:0;bottom:0;padding:16px 20px 34px;background:#fff;box-shadow:0 -1px 0 #F2EDF5;border-radius:24px 24px 0 0;display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;justify-content:space-between;align-items:baseline">
+      <p class="mut" style="font-size:14px">120 artículos · 1 categoría</p>
+      <p class="d" style="font-size:24px;font-weight:800">RD$ 420</p>
+    </div>
+    <button class="btn bp">Ver detalle del evento</button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      items: [
+        { name: 'Silla Tiffany Cristal', variant: 'Transparente', unit: '3.50', q: '80', total: '280', k: 'silla-tiffany', bg: '#DDF4F3' },
+        { name: 'Silla Tiffany Cristal', variant: 'Rosa', unit: '3.50', q: '40', total: '140', k: 'silla-tiffany', bg: '#FDE6F2' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

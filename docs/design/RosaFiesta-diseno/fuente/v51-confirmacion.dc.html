@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Evento confirmado (colores originales)</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.rf,.rf *{box-sizing:border-box}
+.rf{font-family:'Figtree',system-ui,sans-serif;color:#1A1A2E;-webkit-font-smoothing:antialiased;position:relative;overflow:hidden}
+.rf p,.rf h1,.rf h2{margin:0}
+.rf .d{font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif;letter-spacing:-.02em}
+.rf .rb{background:linear-gradient(90deg,#EB4F9E 0%,#F2894A 45%,#E3B23C 72%,#9CC04B 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.rf button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:inherit}
+.rf .mut{color:#62627A}
+.rf .btn{height:56px;border-radius:16px;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:16px}
+.rf .ln{display:flex;justify-content:space-between;align-items:center;font-size:15px;min-height:30px}
+</style>
+</helmet>
+<div class="rf" style="width:390px;height:844px;background:radial-gradient(110% 45% at 0% 0%,#F9E3F1 0%,rgba(249,227,241,0) 60%),radial-gradient(80% 40% at 100% 25%,#EEE7FB 0%,rgba(238,231,251,0) 60%),#FAFAFC">
+  <svg aria-hidden="true" width="390" height="844" viewBox="0 0 390 844" style="position:absolute;inset:0">
+    <path d="M-10 50Q195 110 400 50" stroke="#1A1A2E" stroke-opacity=".18" stroke-width="1.2" fill="none"></path>
+    <polygon points="14,56 34,56 24,80" fill="#EC4F97"></polygon>
+    <polygon points="58,66 78,66 68,90" fill="#F5B53B"></polygon>
+    <polygon points="102,73 122,73 112,97" fill="#5CC9C0"></polygon>
+    <polygon points="146,78 166,78 156,102" fill="#865DEC"></polygon>
+    <polygon points="190,79 210,79 200,103" fill="#9CC04B"></polygon>
+    <polygon points="234,77 254,77 244,101" fill="#EC4F97"></polygon>
+    <polygon points="278,73 298,73 288,97" fill="#F5B53B"></polygon>
+    <polygon points="322,66 342,66 332,90" fill="#5CC9C0"></polygon>
+    <polygon points="366,56 386,56 376,80" fill="#865DEC"></polygon>
+    <circle cx="52" cy="200" r="30" fill="none" stroke="#F2C4DF" stroke-width="1.5"></circle>
+    <circle cx="344" cy="250" r="24" fill="none" stroke="#C9E9EE" stroke-width="1.5"></circle>
+    <path d="M330 150l8 14-8 14-8-14z" fill="none" stroke="#9ED7DC" stroke-width="1.5"></path>
+    <path d="M70 290l3 8 8 3-8 3-3 8-3-8-8-3 8-3z" fill="#F7C9DF"></path>
+  </svg>
+  <div style="position:absolute;top:130px;left:24px;right:24px;text-align:center;display:flex;flex-direction:column;gap:8px;align-items:center">
+    <span style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#5CC9C0,#5AB7E0);display:grid;place-items:center;box-shadow:0 14px 28px -12px rgba(80,190,200,.8)"><dc-import name="Icon" k="check" s="36" w="3" c="#fff" hint-size="36px,36px"></dc-import></span>
+    <h1 class="d rb" style="font-size:34px;font-weight:800;margin-top:6px">¡Evento confirmado!</h1>
+    <p class="mut" style="font-size:15px">Todo listo para el 23 de octubre.</p>
+  </div>
+
+  <section style="position:absolute;top:330px;left:20px;right:20px;background:#fff;border-radius:24px;box-shadow:0 18px 40px -24px rgba(200,80,170,.5)">
+    <div style="padding:18px;display:flex;align-items:center;gap:14px">
+      <span style="width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,#EA4EA9,#865DEC);display:grid;place-items:center;flex:none;color:#fff"><dc-import name="Icon" k="party" s="26" hint-size="26px,26px"></dc-import></span>
+      <div><p class="d" style="font-size:19px;font-weight:800;line-height:1.15">Boda Real Rosa &amp; Dorado</p><span style="display:inline-flex;height:24px;padding:0 9px;border-radius:999px;background:#DDF4F3;color:#1F8A84;font-size:12px;font-weight:700;align-items:center;margin-top:6px">Cotización lista</span></div>
+    </div>
+    <div style="position:relative;height:0;border-top:2px dashed #EEE8F2;margin:0 18px">
+      <span style="position:absolute;left:-32px;top:-13px;width:24px;height:24px;border-radius:50%;background:#F7F2F9"></span>
+      <span style="position:absolute;right:-32px;top:-13px;width:24px;height:24px;border-radius:50%;background:#F7F2F9"></span>
+    </div>
+    <div style="padding:16px 18px 18px;display:flex;flex-direction:column;gap:6px">
+      <div class="ln"><span class="mut">Fecha</span><b>Vie 23 oct 2026</b></div>
+      <div class="ln"><span class="mut">Artículos</span><b>2</b></div>
+      <div class="ln"><span class="mut">Total pagado</span><span class="d" style="font-size:22px;font-weight:800;color:#3FB59A">RD$ 460</span></div>
+    </div>
+  </section>
+
+  <div style="position:absolute;left:20px;right:20px;bottom:36px;display:flex;flex-direction:column;gap:10px">
+    <button class="btn" style="background:linear-gradient(90deg,#EA4EA9 0%,#B754CB 50%,#865DEC 100%);color:#fff;box-shadow:0 12px 26px -12px rgba(200,70,180,.7)">Ver mis eventos</button>
+    <div style="display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:10px">
+      <button class="btn" style="height:50px;background:#fff;box-shadow:0 0 0 1px #ECE6F0;font-size:15px"><dc-import name="Icon" k="share" s="18" hint-size="18px,18px"></dc-import>Compartir</button>
+      <button class="btn" style="height:50px;background:#F1EFF5;font-size:15px">Ir al catálogo</button>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

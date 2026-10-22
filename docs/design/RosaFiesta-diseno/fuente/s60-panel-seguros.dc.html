@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Panel · Seguros</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.rf,.rf *{box-sizing:border-box}
+.rf{font-family:'Figtree',system-ui,sans-serif;color:#151729;-webkit-font-smoothing:antialiased;position:relative;overflow:hidden}
+.rf p,.rf h1,.rf h2{margin:0}
+.rf .d{font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif;letter-spacing:-.02em}
+.rf button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:inherit}
+.rf .ib{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:0 0 0 1px #ECECF5,0 8px 20px -14px rgba(70,80,180,.4);flex:none;color:#151729}
+.rf .mut{color:#5F6377}
+.rf .tab{height:44px;display:flex;align-items:center;font-size:15px;font-weight:600;color:#5F6377;white-space:nowrap;flex:none;text-decoration:none}
+.rf .tab.on{color:#151729;font-weight:700;box-shadow:inset 0 -2.5px 0 #5B6CF0}
+</style>
+</helmet>
+<div class="rf" style="width:390px;height:844px;background:radial-gradient(110% 40% at 100% 0%,#E6E7FF 0%,rgba(230,231,255,0) 60%),radial-gradient(80% 35% at 0% 12%,#F1E9FB 0%,rgba(241,233,251,0) 60%),#F6F6FB">
+  <div style="padding:56px 20px 0;display:flex;flex-direction:column;gap:12px">
+    <header style="display:flex;align-items:center;gap:12px">
+      <button class="ib" aria-label="Volver"><dc-import name="Icon" k="back" s="22" hint-size="22px,22px"></dc-import></button>
+      <h1 class="d" style="font-size:20px;font-weight:800;flex:1">Panel</h1>
+      <span class="mut" style="font-size:13px;font-weight:600">Octubre 2026</span>
+    </header>
+    <nav style="display:flex;gap:20px;box-shadow:inset 0 -1px 0 #E9E9F2;margin:0 -20px;padding:0 20px;overflow:hidden">
+      <a class="tab" href="s58-panel-resumen.dc.html">Resumen</a>
+      <a class="tab" href="s59-panel-finanzas.dc.html">Finanzas</a>
+      <a class="tab on" href="s60-panel-seguros.dc.html">Seguros</a>
+      <a class="tab" href="s61-panel-auditoria.dc.html">Auditoría</a>
+      <a class="tab" href="s62-panel-clientes.dc.html">Clientes</a>
+    </nav>
+    <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:18px;background:#DDF4F3;margin-top:4px">
+      <span style="color:#1F8A84"><dc-import name="Icon" k="shield" s="24" hint-size="24px,24px"></dc-import></span>
+      <p style="font-size:14px;line-height:1.4;flex:1"><b>3 pólizas activas</b><br><span class="mut">Todas con Seguros Universal RD</span></p>
+    </div>
+    <sc-for list="{{pol}}" as="p" hint-placeholder-count="3">
+      <button style="width:100%;display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:20px;background:#fff;box-shadow:0 0 0 1px #ECECF5">
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+          <p style="font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:.02em">{{p.code}}</p>
+          <p class="mut" style="font-size:13px">Cobertura <b style="color:#151729">RD$ 2,500</b></p>
+        </div>
+        <span style="height:24px;padding:0 9px;border-radius:999px;background:#EEF6D6;color:#4E6A10;font-size:12px;font-weight:700;display:flex;align-items:center">Activa</span>
+        <span class="mut"><dc-import name="Icon" k="chev-r" s="18" hint-size="18px,18px"></dc-import></span>
+      </button>
+    </sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { pol: [{ code: 'POL-RF-5931B' }, { code: 'POL-RF-90892' }, { code: 'POL-RF-34B92' }] };
+  }
+}
+</script>
+</body>
+</html>

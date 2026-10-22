@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Nuevo evento</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.rf,.rf *{box-sizing:border-box}
+.rf{font-family:'Figtree',system-ui,sans-serif;color:#1A1A2E;-webkit-font-smoothing:antialiased;position:relative;overflow:hidden}
+.rf p,.rf h1,.rf h2,.rf h3{margin:0}
+.rf .d{font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif;letter-spacing:-.02em}
+.rf button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:inherit}
+.rf .ib{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:0 0 0 1px #F0EBF4,0 8px 20px -14px rgba(180,80,180,.4);flex:none;color:#1A1A2E}
+.rf .mut{color:#62627A}
+.rf .btn{height:56px;border-radius:16px;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:16px}
+</style>
+</helmet>
+<div class="rf" style="width:390px;height:844px;background:radial-gradient(110% 40% at 0% 0%,#F9E3F1 0%,rgba(249,227,241,0) 60%),radial-gradient(80% 35% at 100% 15%,#EEE7FB 0%,rgba(238,231,251,0) 60%),#FAFAFC">
+  <div style="padding:56px 20px 0;display:flex;flex-direction:column;gap:20px">
+    <header style="display:flex;align-items:center;gap:12px">
+      <button class="ib" aria-label="Volver"><dc-import name="Icon" k="back" s="22" hint-size="22px,22px"></dc-import></button>
+      <h1 class="d" style="font-size:20px;font-weight:800;flex:1">Nuevo evento</h1>
+      <span class="mut" style="font-size:14px;font-weight:600">1 de 5</span>
+    </header>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="display:grid;grid-template-columns:repeat(5, minmax(0, 1fr));gap:4px">
+        <span style="height:5px;border-radius:3px;background:#EA4EA9"></span><span style="height:5px;border-radius:3px;background:#E6DEEA"></span><span style="height:5px;border-radius:3px;background:#E6DEEA"></span><span style="height:5px;border-radius:3px;background:#E6DEEA"></span><span style="height:5px;border-radius:3px;background:#E6DEEA"></span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(5, minmax(0, 1fr));gap:4px;font-size:12px;font-weight:600" class="mut">
+        <span style="color:#C2338F;font-weight:700">Tipo</span><span>Fecha</span><span>Lugar</span><span>Invitados</span><span>Listo</span>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <h2 class="d" style="font-size:24px;font-weight:800;line-height:1.05">¿Qué tipo de evento planeas?</h2>
+      <p class="mut" style="font-size:15px">Elige la categoría que mejor lo describa.</p>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:10px">
+      <sc-for list="{{types}}" as="t" hint-placeholder-count="6">
+        <button aria-pressed="{{t.sel}}" style="height:112px;border-radius:20px;background:{{t.bg}};box-shadow:{{t.ring}};position:relative;overflow:hidden;display:flex;align-items:flex-end;padding:12px 14px">
+          <span style="position:absolute;right:-4px;top:-2px"><dc-import name="Illo" k="{{t.k}}" w="84" h="84" hint-size="84px,84px"></dc-import></span>
+          <span class="d" style="position:relative;font-size:17px;font-weight:800">{{t.name}}</span>
+          <sc-if value="{{t.sel}}" hint-placeholder-val="{{false}}"><span style="position:absolute;left:12px;top:12px;width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#E04FAF 0%,#945AE1 55%,#6664E9 100%);color:#fff;display:grid;place-items:center;box-shadow:0 8px 16px -8px rgba(134,93,236,.7)"><dc-import name="Icon" k="check" s="16" w="2.6" hint-size="16px,16px"></dc-import></span></sc-if>
+        </button>
+      </sc-for>
+    </div>
+  </div>
+  <button class="btn" style="position:absolute;left:20px;right:20px;bottom:40px;background:linear-gradient(90deg,#EA4EA9 0%,#B754CB 50%,#865DEC 100%);color:#fff;box-shadow:0 12px 26px -12px rgba(200,70,180,.7)">Siguiente: fecha <dc-import name="Icon" k="next" s="20" hint-size="20px,20px"></dc-import></button>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const mk = (name, k, bg, sel) => ({ name, k, bg, sel, ring: sel ? 'inset 0 0 0 2.5px #B754CB' : 'none' });
+    return {
+      types: [
+        mk('Cumpleaños', 'cumple', '#FFF2C9', false),
+        mk('Boda', 'boda', '#FDE6F2', true),
+        mk('Quinceañera', 'quince', '#EFE8FD', false),
+        mk('Baby shower', 'baby', '#DDF4F3', false),
+        mk('Graduación', 'grad', '#F1EFF5', false),
+        mk('Corporativo', 'corp', '#EEF6D6', false)
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

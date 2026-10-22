@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Modal · Cómo planificar</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.rf,.rf *{box-sizing:border-box}
+.rf{font-family:'Figtree',system-ui,sans-serif;color:#1A1A2E;-webkit-font-smoothing:antialiased;position:relative;overflow:hidden}
+.rf p,.rf h2{margin:0}
+.rf .d{font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif;letter-spacing:-.02em}
+.rf button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:inherit}
+.rf .mut{color:#62627A}
+.rf .op{display:flex;align-items:center;gap:14px;padding:14px;border-radius:20px;background:#fff;box-shadow:0 0 0 1px #EEE9F2;width:100%;min-height:84px}
+.rf .tag{height:22px;padding:0 8px;border-radius:999px;display:inline-flex;align-items:center;font-size:11px;font-weight:700;margin-left:6px;vertical-align:2px}
+</style>
+</helmet>
+<div class="rf" style="width:390px;height:844px;background:radial-gradient(110% 40% at 0% 0%,#F9E3F1 0%,rgba(249,227,241,0) 60%),radial-gradient(80% 35% at 100% 15%,#EEE7FB 0%,rgba(238,231,251,0) 60%),#FAFAFC">
+  <dc-import name="s14-inicio-claro" hint-size="390px,844px"></dc-import>
+  <div style="position:absolute;inset:0;background:rgba(30,20,50,.45)"></div>
+  <section role="dialog" aria-label="Cómo quieres planificar tu evento" style="position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:28px 28px 0 0;padding:12px 20px 34px;display:flex;flex-direction:column;gap:14px">
+    <span style="align-self:center;width:40px;height:5px;border-radius:3px;background:#E3DCE8"></span>
+    <div style="padding:0 4px">
+      <h2 class="d" style="font-size:22px;font-weight:800;line-height:1.1">¿Cómo quieres planificar?</h2>
+      <p class="mut" style="font-size:15px;margin-top:4px">Elige cómo prefieres hablar con nosotros.</p>
+    </div>
+    <button class="op">
+      <span style="width:52px;height:52px;border-radius:16px;background:#EEF6D6;color:#4E6A10;display:grid;place-items:center;flex:none"><dc-import name="Icon" k="wa" s="26" hint-size="26px,26px"></dc-import></span>
+      <span style="flex:1"><span style="display:block;font-size:16px;font-weight:700">WhatsApp con María</span><span class="mut" style="font-size:14px">Habla directo con la dueña</span></span>
+      <span class="mut"><dc-import name="Icon" k="chev-r" s="20" hint-size="20px,20px"></dc-import></span>
+    </button>
+    <button class="op" style="box-shadow:inset 0 0 0 2px #865DEC;background:#FAF8FF">
+      <dc-import name="Rosa" s="52" glow="{{false}}" hint-size="52px,52px"></dc-import>
+      <span style="flex:1"><span style="display:block;font-size:16px;font-weight:700">Chat con Rosa<span class="tag" style="background:#EFE8FD;color:#7A4FD8">Rápido</span></span><span class="mut" style="font-size:14px">Arma tu evento paso a paso</span></span>
+      <span style="color:#7A4FD8"><dc-import name="Icon" k="chev-r" s="20" hint-size="20px,20px"></dc-import></span>
+    </button>
+    <button class="op">
+      <span style="width:52px;height:52px;border-radius:16px;background:#FFF2C9;color:#7A5700;display:grid;place-items:center;flex:none"><dc-import name="Icon" k="wave" s="26" hint-size="26px,26px"></dc-import></span>
+      <span style="flex:1"><span style="display:block;font-size:16px;font-weight:700">Voz con Rosa<span class="tag" style="background:#FFF2C9;color:#7A5700">Manos libres</span></span><span class="mut" style="font-size:14px">Solo habla, nosotros te escuchamos</span></span>
+      <span class="mut"><dc-import name="Icon" k="chev-r" s="20" hint-size="20px,20px"></dc-import></span>
+    </button>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Invitados</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.rf,.rf *{box-sizing:border-box}
+.rf{font-family:'Figtree',system-ui,sans-serif;color:#1A1A2E;-webkit-font-smoothing:antialiased;position:relative;overflow:hidden}
+.rf p,.rf h1{margin:0}
+.rf .d{font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif;letter-spacing:-.02em}
+.rf button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:inherit}
+.rf input{font:inherit;color:inherit;border:0;outline:0;background:none;padding:0;min-width:0;flex:1}
+.rf input::placeholder{color:#62627A}
+.rf .ib{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:0 0 0 1px #F0EBF4,0 8px 20px -14px rgba(180,80,180,.4);flex:none;color:#1A1A2E}
+.rf .mut{color:#62627A}
+.rf .tag{height:24px;padding:0 9px;border-radius:999px;display:inline-flex;align-items:center;font-size:12px;font-weight:700}
+.rf .st{flex:1;padding:12px;border-radius:18px;display:flex;flex-direction:column;gap:2px}
+</style>
+</helmet>
+<div class="rf" style="width:390px;height:844px;background:radial-gradient(110% 40% at 0% 0%,#F9E3F1 0%,rgba(249,227,241,0) 60%),radial-gradient(80% 35% at 100% 15%,#EEE7FB 0%,rgba(238,231,251,0) 60%),#FAFAFC">
+  <div style="padding:56px 20px 0;display:flex;flex-direction:column;gap:16px">
+    <header style="display:flex;align-items:center;gap:12px">
+      <button class="ib" aria-label="Volver"><dc-import name="Icon" k="back" s="22" hint-size="22px,22px"></dc-import></button>
+      <div style="flex:1"><h1 class="d" style="font-size:20px;font-weight:800;line-height:1.1">Invitados</h1><p class="mut" style="font-size:13px">4 en la lista</p></div>
+      <button aria-label="Añadir invitado" style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#EA4EA9,#865DEC);color:#fff;display:grid;place-items:center;box-shadow:0 8px 16px -8px rgba(160,80,210,.7)"><dc-import name="Icon" k="user-plus" s="22" hint-size="22px,22px"></dc-import></button>
+    </header>
+    <div style="display:flex;gap:8px">
+      <div class="st" style="background:#EEF6D6"><span class="d" style="font-size:24px;font-weight:800;color:#4E6A10">2</span><span style="font-size:13px;font-weight:600;color:#4E6A10">Confirmados</span></div>
+      <div class="st" style="background:#FFF2C9"><span class="d" style="font-size:24px;font-weight:800;color:#7A5700">1</span><span style="font-size:13px;font-weight:600;color:#7A5700">Pendiente</span></div>
+      <div class="st" style="background:#FDE3EA"><span class="d" style="font-size:24px;font-weight:800;color:#B42345">1</span><span style="font-size:13px;font-weight:600;color:#B42345">No asiste</span></div>
+    </div>
+    <label style="height:48px;border-radius:14px;background:#fff;box-shadow:0 0 0 1px #E8E1EE,0 8px 20px -16px rgba(180,80,180,.35);display:flex;align-items:center;gap:10px;padding:0 14px;color:#62627A"><dc-import name="Icon" k="search" s="18" hint-size="18px,18px"></dc-import><input placeholder="Buscar invitado"></label>
+    <section style="border-radius:22px;background:#fff;box-shadow:0 0 0 1px #F2EDF5">
+      <sc-for list="{{guests}}" as="g" hint-placeholder-count="4">
+        <div style="display:flex;align-items:center;gap:12px;padding:12px 8px 12px 14px;min-height:64px;box-shadow:{{g.line}}">
+          <span style="width:40px;height:40px;border-radius:50%;background:{{g.abg}};color:{{g.afg}};display:grid;place-items:center;font-weight:800;font-size:14px;flex:none">{{g.ini}}</span>
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+            <p style="font-size:15px;font-weight:700">{{g.name}}</p>
+            <span class="tag" style="background:{{g.sbg}};color:{{g.sfg}};align-self:flex-start">{{g.status}}</span>
+          </div>
+          <button aria-label="Opciones de {{g.name}}" style="width:40px;height:40px;display:grid;place-items:center;color:#62627A"><dc-import name="Icon" k="more-v" s="20" w="2.6" hint-size="20px,20px"></dc-import></button>
+        </div>
+      </sc-for>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const S = {
+      ok: ['Confirmado', '#EEF6D6', '#4E6A10'],
+      pend: ['Pendiente', '#FFF2C9', '#7A5700'],
+      no: ['No asiste', '#FDE3EA', '#B42345']
+    };
+    const mk = (name, ini, s, abg, afg, i) => ({ name, ini, abg, afg, status: S[s][0], sbg: S[s][1], sfg: S[s][2], line: i ? '0 -1px 0 #F2F0F5' : 'none' });
+    return {
+      guests: [
+        mk('Sebastián Henríquez', 'SH', 'ok', '#DDF4F3', '#1F8A84', 0),
+        mk('Valeria Montalvo', 'VM', 'ok', '#EFE8FD', '#7A4FD8', 1),
+        mk('Gabriela Despradel', 'GD', 'pend', '#FDE6F2', '#C2338F', 2),
+        mk('Andrés Pichardo', 'AP', 'no', '#F1EFF5', '#62627A', 3)
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

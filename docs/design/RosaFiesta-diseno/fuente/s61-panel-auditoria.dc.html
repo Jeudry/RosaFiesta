@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Panel · Auditoría</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.rf,.rf *{box-sizing:border-box}
+.rf{font-family:'Figtree',system-ui,sans-serif;color:#151729;-webkit-font-smoothing:antialiased;position:relative;overflow:hidden}
+.rf p,.rf h1,.rf h2{margin:0}
+.rf .d{font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif;letter-spacing:-.02em}
+.rf button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:inherit}
+.rf .ib{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:0 0 0 1px #ECECF5,0 8px 20px -14px rgba(70,80,180,.4);flex:none;color:#151729}
+.rf .mut{color:#5F6377}
+.rf .tab{height:44px;display:flex;align-items:center;font-size:15px;font-weight:600;color:#5F6377;white-space:nowrap;flex:none;text-decoration:none}
+.rf .tab.on{color:#151729;font-weight:700;box-shadow:inset 0 -2.5px 0 #5B6CF0}
+.rf .chip{height:36px;padding:0 14px;border-radius:999px;display:inline-flex;align-items:center;font-size:14px;font-weight:600;background:#fff;box-shadow:0 0 0 1px #E9E9F2}
+.rf .on2{background:linear-gradient(135deg,#7C5CF0 0%,#5B6CF0 55%,#2FB8C8 100%);color:#fff;box-shadow:0 8px 18px -8px rgba(91,108,240,.7)}
+</style>
+</helmet>
+<div class="rf" style="width:390px;height:844px;background:radial-gradient(110% 40% at 100% 0%,#E6E7FF 0%,rgba(230,231,255,0) 60%),radial-gradient(80% 35% at 0% 12%,#F1E9FB 0%,rgba(241,233,251,0) 60%),#F6F6FB">
+  <div style="padding:56px 20px 0;display:flex;flex-direction:column;gap:12px">
+    <header style="display:flex;align-items:center;gap:12px">
+      <button class="ib" aria-label="Volver"><dc-import name="Icon" k="back" s="22" hint-size="22px,22px"></dc-import></button>
+      <h1 class="d" style="font-size:20px;font-weight:800;flex:1">Panel</h1>
+      <span class="mut" style="font-size:13px;font-weight:600">Octubre 2026</span>
+    </header>
+    <nav style="display:flex;gap:20px;box-shadow:inset 0 -1px 0 #E9E9F2;margin:0 -20px;padding:0 20px;overflow:hidden">
+      <a class="tab" href="s58-panel-resumen.dc.html" style="margin-left:-56px">Resumen</a>
+      <a class="tab" href="s59-panel-finanzas.dc.html">Finanzas</a>
+      <a class="tab" href="s60-panel-seguros.dc.html">Seguros</a>
+      <a class="tab on" href="s61-panel-auditoria.dc.html">Auditoría</a>
+      <a class="tab" href="s62-panel-clientes.dc.html">Clientes</a>
+    </nav>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button class="chip on2">Todo</button>
+      <button class="chip">Eventos</button>
+      <button class="chip">Pagos</button>
+    </div>
+    <div style="display:flex;flex-direction:column">
+      <sc-for list="{{log}}" as="l" hint-placeholder-count="3">
+        <div style="display:flex;gap:14px">
+          <div style="width:40px;flex:none;display:flex;flex-direction:column;align-items:center">
+            <span style="width:40px;height:40px;border-radius:12px;background:{{l.bg}};color:{{l.fg}};display:grid;place-items:center;flex:none"><dc-import name="Icon" k="{{l.icon}}" s="20" hint-size="20px,20px"></dc-import></span>
+            <span style="flex:1;width:2px;background:#E3E4EF;margin:6px 0;min-height:30px"></span>
+          </div>
+          <div style="flex:1;padding:2px 0 22px">
+            <p class="mut" style="font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase">{{l.day}} · {{l.time}}</p>
+            <p style="font-size:15px;font-weight:700;line-height:1.35;margin-top:4px">{{l.title}}</p>
+            <p class="mut" style="font-size:13px;margin-top:2px">{{l.type}}</p>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      log: [
+        { day: '19 oct', time: '9:05 p. m.', title: 'Cotización ajustada y enviada', type: 'Evento', icon: 'doc-check', bg: '#ECEBFF', fg: '#4B47D6' },
+        { day: '18 oct', time: '11:05 p. m.', title: 'Abono inicial registrado · RD$ 140', type: 'Pago', icon: 'cash', bg: '#EEF6D6', fg: '#4E6A10' },
+        { day: '14 oct', time: '11:05 p. m.', title: 'Evento finalizado e inventario recibido', type: 'Evento', icon: 'box', bg: '#EFE8FD', fg: '#7A4FD8' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

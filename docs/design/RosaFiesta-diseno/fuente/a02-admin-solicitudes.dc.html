@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Admin · Solicitudes</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.rf,.rf *{box-sizing:border-box}
+.rf{font-family:'Figtree',system-ui,sans-serif;color:#151729;-webkit-font-smoothing:antialiased;position:relative;overflow:hidden}
+.rf p,.rf h1,.rf h2,.rf h3{margin:0}
+.rf .d{font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif;letter-spacing:-.02em}
+.rf button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:inherit}
+.rf a{color:inherit;text-decoration:none}
+.rf input,.rf textarea{font:inherit;color:inherit;border:0;outline:0;background:none;padding:0;min-width:0;flex:1;resize:none}
+.rf .mut{color:#5F6377}
+.rf .cap{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#5F6377}
+.rf .ib{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:0 0 0 1px #ECECF5,0 8px 20px -14px rgba(70,80,180,.45);flex:none;color:#151729}
+.rf .card{background:#fff;border-radius:20px;box-shadow:0 0 0 1px #ECECF5,0 12px 28px -22px rgba(70,80,180,.45)}
+.rf .btn{height:54px;border-radius:16px;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:16px}
+.rf .bp{background:linear-gradient(135deg,#7C5CF0 0%,#5B6CF0 100%);color:#fff;box-shadow:0 12px 24px -12px rgba(91,108,240,.75)}
+.rf .bs{background:#fff;color:#151729;box-shadow:0 0 0 1px #E3E4EF}
+.rf .chip{height:36px;padding:0 14px;border-radius:999px;display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:600;background:#fff;box-shadow:0 0 0 1px #E9E9F2;white-space:nowrap;flex:none}
+.rf .on{background:linear-gradient(135deg,#7C5CF0 0%,#5B6CF0 100%);color:#fff;box-shadow:0 8px 16px -8px rgba(91,108,240,.7)}
+.rf .tag{height:24px;padding:0 9px;border-radius:999px;display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;white-space:nowrap}
+.rf .one{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf .fld{height:50px;border-radius:14px;background:#fff;box-shadow:0 0 0 1px #E3E4EF;display:flex;align-items:center;gap:10px;padding:0 14px;color:#5F6377;font-size:15px}
+.rf .lbl{font-size:13px;font-weight:700;color:#3A3D52}
+.rf .ti{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;flex:none}
+.rf .stp{display:flex;align-items:center;gap:2px;height:34px;border-radius:999px;background:#F2F2F8;padding:0 3px;flex:none}
+.rf .stp button{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;color:#5B6CF0}
+.rf .seg{height:5px;border-radius:3px;flex:1}
+.rf .sg{flex:1;height:38px;border-radius:12px;font-size:14px;font-weight:600;display:grid;place-items:center;color:#5F6377}
+.rf .sg.sel{background:#fff;color:#151729;font-weight:700;box-shadow:0 2px 8px -3px rgba(70,80,180,.3)}
+</style>
+</helmet>
+<div class="rf" style="width:390px;height:844px;background:radial-gradient(110% 40% at 100% 0%,#E6E7FF 0%,rgba(230,231,255,0) 60%),radial-gradient(80% 35% at 0% 12%,#F1E9FB 0%,rgba(241,233,251,0) 60%),#F6F6FB">
+  <div style="padding:54px 20px 0;display:flex;flex-direction:column;gap:14px">
+    <header style="display:flex;align-items:center;gap:12px">
+      <button class="ib" aria-label="Volver"><dc-import name="Icon" k="back" s="22" hint-size="22px,22px"></dc-import></button>
+      <div style="flex:1;min-width:0"><h1 class="d one" style="font-size:20px;font-weight:800;line-height:1.1">Solicitudes</h1><p class="mut one" style="font-size:13px">Cotizaciones que piden tus clientes</p></div>
+      
+    </header>
+    <div style="display:flex;gap:4px;padding:4px;background:#EDEDF5;border-radius:14px">
+      <button class="sg sel">Nuevas · 2</button><button class="sg">En revisión · 1</button><button class="sg">Enviadas</button>
+    </div>
+    <sc-for list="{{reqs}}" as="r" hint-placeholder-count="2">
+      <article class="card" style="overflow:hidden">
+        <div style="display:flex;gap:12px;padding:12px">
+          <dc-import name="Foto" k="{{r.k}}" w="76" h="76" r="14" hint-size="76px,76px"></dc-import>
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px">
+            <p class="one" style="font-size:16px;font-weight:700">{{r.name}}</p>
+            <p class="mut one" style="font-size:13px">{{r.client}} · {{r.date}}</p>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:2px">
+              <span class="tag" style="background:{{r.obg}};color:{{r.ofg}}">{{r.origin}}</span>
+              <span class="tag" style="background:#F2F2F8;color:#5F6377">{{r.guests}}</span>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;padding:12px;box-shadow:0 -1px 0 #F0F0F6">
+          <p style="flex:1;font-size:13px" class="mut">{{r.items}}<br>est. <b class="d" style="font-size:15px;color:#151729">RD$ {{r.est}}</b></p>
+          <button aria-label="Escribir por WhatsApp" style="width:40px;height:40px;border-radius:50%;background:#EEF6D6;color:#4E6A10;display:grid;place-items:center"><dc-import name="Icon" k="wa" s="18" hint-size="18px,18px"></dc-import></button>
+          <a href="a03-admin-cotizar.dc.html" class="on" style="height:40px;padding:0 16px;border-radius:999px;display:flex;align-items:center;gap:6px;font-size:14px;font-weight:700">Cotizar <dc-import name="Icon" k="next" s="16" w="2.2" hint-size="16px,16px"></dc-import></a>
+        </div>
+      </article>
+    </sc-for>
+    <p class="mut" style="font-size:13px;display:flex;gap:8px;align-items:center;padding:0 4px"><dc-import name="Icon" k="info" s="16" hint-size="16px,16px"></dc-import>Las solicitudes llegan desde Rosa IA o desde el chat del evento.</p>
+  </div>
+  <div style="position:absolute;left:0;bottom:0">
+    <dc-import name="AdminBar" a="inicio" hint-size="390px,96px"></dc-import>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      reqs: [
+        { name: 'Cumpleaños de Mateo', client: 'Laura Peña', date: 'Sáb 7 nov', guests: '40 invitados', items: '3 artículos', est: '405', k: 'cumple-infantil', origin: 'Hecha con Rosa IA', obg: '#FDE6F2', ofg: '#C2338F' },
+        { name: 'Graduación Promo 2026', client: 'Ana Gómez', date: 'Vie 13 nov', guests: '200 invitados', items: '5 artículos', est: '2,140', k: 'graduacion', origin: 'Desde el chat', obg: '#ECEBFF', ofg: '#4B47D6' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

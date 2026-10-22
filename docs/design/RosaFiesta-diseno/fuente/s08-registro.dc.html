@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Registro</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.rf,.rf *{box-sizing:border-box}
+.rf{font-family:'Figtree',system-ui,sans-serif;color:#1A1A2E;-webkit-font-smoothing:antialiased;position:relative;overflow:hidden}
+.rf p,.rf h1,.rf h2,.rf h3{margin:0}
+.rf .d{font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif;letter-spacing:-.02em}
+.rf button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:inherit}
+.rf input{font:inherit;color:inherit;border:0;outline:0;background:none;padding:0;min-width:0;flex:1}
+.rf input::placeholder{color:#62627A}
+.rf .btn{height:54px;border-radius:16px;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:16px}
+.rf .bp{background:linear-gradient(90deg,#EA4EA9 0%,#B754CB 50%,#865DEC 100%);color:#fff;box-shadow:0 12px 26px -12px rgba(200,70,180,.7)}
+.rf .bs{background:#fff;color:#1A1A2E;box-shadow:0 0 0 1px #EEE9F2,0 8px 20px -14px rgba(120,80,160,.4)}
+.rf .ib{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:0 0 0 1px #F0EBF4,0 8px 20px -14px rgba(180,80,180,.4);flex:none;color:#1A1A2E}
+.rf .mut{color:#62627A}
+.rf .fld{height:52px;border-radius:16px;background:#fff;box-shadow:0 0 0 1px #E8E1EE,0 8px 20px -16px rgba(180,80,180,.35);display:flex;align-items:center;gap:10px;padding:0 6px 0 16px;color:#62627A;font-size:15px}
+.rf .lnk{color:#C2338F;font-weight:700;text-decoration:none}
+</style>
+</helmet>
+<div class="rf" style="width:390px;height:844px;background:radial-gradient(110% 40% at 0% 0%,#F9E3F1 0%,rgba(249,227,241,0) 60%),radial-gradient(80% 35% at 100% 15%,#EEE7FB 0%,rgba(238,231,251,0) 60%),#FAFAFC">
+  <div style="position:absolute;right:-6px;top:44px">
+    <dc-import name="Illo" k="arco" w="140" h="140" hint-size="140px,140px"></dc-import>
+  </div>
+  <button class="ib" aria-label="Volver" style="position:absolute;left:20px;top:56px"><dc-import name="Icon" k="back" s="22" hint-size="22px,22px"></dc-import></button>
+
+  <div style="position:absolute;top:128px;left:24px;right:24px;display:flex;flex-direction:column;gap:20px">
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <h1 class="d" style="font-size:30px;font-weight:800;line-height:1.02">Crea tu cuenta</h1>
+      <p class="mut" style="font-size:16px">Te toma menos de un minuto.</p>
+    </div>
+    <form style="display:flex;flex-direction:column;gap:10px;margin:0">
+      <div style="display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:10px">
+        <label class="fld" style="padding-left:16px"><input placeholder="Nombre" aria-label="Nombre"></label>
+        <label class="fld" style="padding-left:16px"><input placeholder="Apellido" aria-label="Apellido"></label>
+      </div>
+      <label class="fld"><dc-import name="Icon" k="user" s="20" hint-size="20px,20px"></dc-import><input placeholder="Nombre de usuario" aria-label="Nombre de usuario"></label>
+      <label class="fld"><dc-import name="Icon" k="mail" s="20" hint-size="20px,20px"></dc-import><input placeholder="Correo electrónico" aria-label="Correo electrónico"></label>
+      <label class="fld"><dc-import name="Icon" k="lock" s="20" hint-size="20px,20px"></dc-import><input type="password" placeholder="Contraseña" aria-label="Contraseña"><button type="button" aria-label="Mostrar contraseña" style="width:44px;height:44px;display:grid;place-items:center"><dc-import name="Icon" k="eye" s="20" hint-size="20px,20px"></dc-import></button></label>
+      <label class="fld"><dc-import name="Icon" k="cake" s="20" hint-size="20px,20px"></dc-import><input placeholder="Fecha de nacimiento (DD/MM/AAAA)" aria-label="Fecha de nacimiento"></label>
+      <label style="display:flex;gap:12px;align-items:flex-start;font-size:14px;line-height:1.45;padding:8px 2px 0">
+        <input type="checkbox" style="flex:none;width:22px;height:22px;margin:0;accent-color:#D63F98">
+        <span class="mut">Acepto los <a href="#" class="lnk">Términos y condiciones</a> y la <a href="#" class="lnk">Política de privacidad</a>.</span>
+      </label>
+      <button type="button" class="btn bp" style="margin-top:6px">Crear cuenta</button>
+    </form>
+    <div style="display:flex;align-items:center;gap:12px;font-size:13px" class="mut">
+      <span style="flex:1;height:1px;background:#E6DEEA"></span>o regístrate con<span style="flex:1;height:1px;background:#E6DEEA"></span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:12px">
+      <button class="btn bs" style="height:48px;font-weight:600">Google</button>
+      <button class="btn bs" style="height:48px;font-weight:600">Apple</button>
+    </div>
+  </div>
+
+  <p style="position:absolute;left:0;right:0;bottom:36px;text-align:center;font-size:15px" class="mut">¿Ya tienes cuenta? <a href="s07-iniciar-sesion.dc.html" class="lnk">Inicia sesión</a></p>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

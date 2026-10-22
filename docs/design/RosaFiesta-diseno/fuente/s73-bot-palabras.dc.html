@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Bot de WhatsApp · Palabras clave</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.rf,.rf *{box-sizing:border-box}
+.rf{font-family:'Figtree',system-ui,sans-serif;color:#151729;-webkit-font-smoothing:antialiased;position:relative;overflow:hidden}
+.rf p,.rf h1,.rf h2{margin:0}
+.rf .d{font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif;letter-spacing:-.02em}
+.rf button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:inherit}
+.rf .ib{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:0 0 0 1px #ECECF5,0 8px 20px -14px rgba(70,80,180,.4);flex:none;color:#151729}
+.rf .mut{color:#5F6377}
+.rf .tab{height:44px;display:flex;align-items:center;font-size:15px;font-weight:600;color:#5F6377;white-space:nowrap;flex:none;text-decoration:none}
+.rf .tab.on{color:#151729;font-weight:700;box-shadow:inset 0 -2.5px 0 #5B6CF0}
+.rf .kw{height:30px;padding:0 12px;border-radius:999px;background:#EFE8FD;color:#7A4FD8;font-size:14px;font-weight:700;display:inline-flex;align-items:center;flex:none}
+</style>
+</helmet>
+<div class="rf" style="width:390px;height:844px;background:radial-gradient(110% 40% at 100% 0%,#E6E7FF 0%,rgba(230,231,255,0) 60%),radial-gradient(80% 35% at 0% 12%,#F1E9FB 0%,rgba(241,233,251,0) 60%),#F6F6FB">
+  <div style="padding:56px 20px 0;display:flex;flex-direction:column;gap:12px">
+    <header style="display:flex;align-items:center;gap:10px">
+      <button class="ib" aria-label="Volver"><dc-import name="Icon" k="back" s="22" hint-size="22px,22px"></dc-import></button>
+      <div style="flex:1"><h1 class="d" style="font-size:20px;font-weight:800;line-height:1.1">Bot de WhatsApp</h1><p style="font-size:12px;font-weight:700;color:#4E6A10;display:flex;align-items:center;gap:5px"><span style="width:7px;height:7px;border-radius:50%;background:#8DB52C"></span>Activo</p></div>
+      <button aria-label="Nueva palabra clave" style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#7C5CF0 0%,#5B6CF0 100%);color:#fff;display:grid;place-items:center;box-shadow:0 8px 16px -8px rgba(91,108,240,.7)"><dc-import name="Icon" k="plus" s="22" w="2.2" hint-size="22px,22px"></dc-import></button>
+    </header>
+    <nav style="display:flex;gap:20px;box-shadow:inset 0 -1px 0 #E9E9F2;margin:0 -20px;padding:0 20px">
+      <a class="tab" href="s72-bot-preguntas.dc.html">Preguntas</a>
+      <a class="tab on" href="s73-bot-palabras.dc.html">Palabras clave</a>
+      <a class="tab" href="s74-bot-conversaciones.dc.html">Chats</a>
+    </nav>
+    <p class="mut" style="font-size:14px;line-height:1.45;margin-top:4px">Si un cliente escribe una de estas palabras, el bot responde con la pregunta vinculada.</p>
+    <section style="border-radius:22px;background:#fff;box-shadow:0 0 0 1px #ECECF5">
+      <sc-for list="{{kw}}" as="k" hint-placeholder-count="4">
+        <button style="width:100%;display:flex;align-items:center;gap:12px;padding:14px 16px;min-height:68px;box-shadow:{{k.line}}">
+          <span class="kw">{{k.w}}</span>
+          <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px"><span style="font-size:14px;font-weight:600">{{k.q}}</span><span class="mut" style="font-size:12px">1 respuesta</span></span>
+          <span class="mut"><dc-import name="Icon" k="chev-r" s="18" hint-size="18px,18px"></dc-import></span>
+        </button>
+      </sc-for>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const l = '0 -1px 0 #F0F0F6';
+    return {
+      kw: [
+        { w: 'precio', q: '¿Cuánto cuesta?', line: 'none' },
+        { w: 'disponibilidad', q: '¿Está disponible?', line: l },
+        { w: 'alquiler', q: '¿Cómo funciona el alquiler?', line: l },
+        { w: 'boda', q: '¿Ofrecen servicio para bodas?', line: l }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Admin · Modo ejecución del equipo</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.rf,.rf *{box-sizing:border-box}
+.rf{font-family:'Figtree',system-ui,sans-serif;color:#151729;-webkit-font-smoothing:antialiased;position:relative;overflow:hidden}
+.rf p,.rf h1,.rf h2,.rf h3{margin:0}
+.rf .d{font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif;letter-spacing:-.02em}
+.rf button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:inherit}
+.rf a{color:inherit;text-decoration:none}
+.rf input,.rf textarea{font:inherit;color:inherit;border:0;outline:0;background:none;padding:0;min-width:0;flex:1;resize:none}
+.rf .mut{color:#5F6377}
+.rf .cap{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#5F6377}
+.rf .ib{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:0 0 0 1px #ECECF5,0 8px 20px -14px rgba(70,80,180,.45);flex:none;color:#151729}
+.rf .card{background:#fff;border-radius:20px;box-shadow:0 0 0 1px #ECECF5,0 12px 28px -22px rgba(70,80,180,.45)}
+.rf .btn{height:54px;border-radius:16px;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:16px}
+.rf .bp{background:linear-gradient(135deg,#7C5CF0 0%,#5B6CF0 100%);color:#fff;box-shadow:0 12px 24px -12px rgba(91,108,240,.75)}
+.rf .bs{background:#fff;color:#151729;box-shadow:0 0 0 1px #E3E4EF}
+.rf .chip{height:36px;padding:0 14px;border-radius:999px;display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:600;background:#fff;box-shadow:0 0 0 1px #E9E9F2;white-space:nowrap;flex:none}
+.rf .on{background:linear-gradient(135deg,#7C5CF0 0%,#5B6CF0 100%);color:#fff;box-shadow:0 8px 16px -8px rgba(91,108,240,.7)}
+.rf .tag{height:24px;padding:0 9px;border-radius:999px;display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;white-space:nowrap}
+.rf .one{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf .fld{height:50px;border-radius:14px;background:#fff;box-shadow:0 0 0 1px #E3E4EF;display:flex;align-items:center;gap:10px;padding:0 14px;color:#5F6377;font-size:15px}
+.rf .lbl{font-size:13px;font-weight:700;color:#3A3D52}
+.rf .ti{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;flex:none}
+.rf .stp{display:flex;align-items:center;gap:2px;height:34px;border-radius:999px;background:#F2F2F8;padding:0 3px;flex:none}
+.rf .stp button{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;color:#5B6CF0}
+.rf .seg{height:5px;border-radius:3px;flex:1}
+.rf .sg{flex:1;height:38px;border-radius:12px;font-size:14px;font-weight:600;display:grid;place-items:center;color:#5F6377}
+.rf .sg.sel{background:#fff;color:#151729;font-weight:700;box-shadow:0 2px 8px -3px rgba(70,80,180,.3)}
+</style>
+</helmet>
+<div class="rf" style="width:390px;height:844px;background:radial-gradient(110% 40% at 100% 0%,#E6E7FF 0%,rgba(230,231,255,0) 60%),radial-gradient(80% 35% at 0% 12%,#F1E9FB 0%,rgba(241,233,251,0) 60%),#F6F6FB">
+  <section style="background:linear-gradient(135deg,#7C5CF0 0%,#5B6CF0 55%,#2FB8C8 100%);color:#fff;padding:52px 20px 22px;border-radius:0 0 28px 28px;display:flex;flex-direction:column;gap:14px;box-shadow:0 18px 34px -20px rgba(80,110,230,.75)">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <button aria-label="Salir" style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.18);display:grid;place-items:center"><dc-import name="Icon" k="x" s="22" hint-size="22px,22px"></dc-import></button>
+      <span class="tag" style="background:#FFD45C;color:#2E1A47"><span style="width:7px;height:7px;border-radius:50%;background:#2E1A47"></span>Hoy · Montaje</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:16px">
+      <svg role="img" aria-label="5 de 9 listas" width="78" height="78" viewBox="0 0 84 84" style="flex:none"><circle cx="42" cy="42" r="34" fill="none" stroke="rgba(255,255,255,.22)" stroke-width="8"></circle><circle cx="42" cy="42" r="34" fill="none" stroke="#FFD45C" stroke-width="8" stroke-linecap="round" stroke-dasharray="119 214" transform="rotate(-90 42 42)"></circle><text x="42" y="48" text-anchor="middle" font-family="'Bricolage Grotesque', system-ui, sans-serif" font-weight="800" font-size="18" fill="#fff">5/9</text></svg>
+      <div><h1 class="d" style="font-size:22px;font-weight:800;line-height:1.1">Boda Real Rosa &amp; Dorado</h1><p style="font-size:13px;color:#E9EEFF;margin-top:4px">Montaje 2:00 p. m. · Jardín Botánico</p></div>
+    </div>
+  </section>
+  <div style="padding:14px 16px 0;display:flex;flex-direction:column;gap:10px">
+    <div style="display:flex;gap:4px;padding:4px;background:#EDEDF5;border-radius:14px"><button class="sg">Carga · 3/3</button><button class="sg sel">Montaje · 2/4</button><button class="sg">Desmontaje</button></div>
+    <a href="#" class="card" style="display:flex;align-items:center;gap:12px;padding:12px 14px"><span class="ti" style="background:#DDF4F3;color:#1F8A84"><dc-import name="Icon" k="pin" s="20" hint-size="20px,20px"></dc-import></span><span style="flex:1"><span style="display:block;font-size:14px;font-weight:700">Jardín Botánico Santo Domingo</span><span class="mut" style="font-size:12px">Entrada por la puerta 2 · Contacto: Camila</span></span><span style="font-size:13px;font-weight:700;color:#4B47D6">Mapa</span></a>
+    <sc-for list="{{tasks}}" as="t" hint-placeholder-count="4">
+      <div class="card" style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:{{t.bg}}">
+        <button aria-label="{{t.aria}}" style="width:30px;height:30px;border-radius:10px;flex:none;display:grid;place-items:center;background:{{t.cb}};box-shadow:{{t.cbr}};color:#fff"><sc-if value="{{t.done}}" hint-placeholder-val="{{false}}"><dc-import name="Icon" k="check" s="16" w="2.6" hint-size="16px,16px"></dc-import></sc-if></button>
+        <span style="flex:1;min-width:0"><span style="display:block;font-size:15px;font-weight:700;text-decoration:{{t.td}};color:{{t.tc}}">{{t.title}}</span><span class="mut" style="font-size:12px">{{t.sub}}</span></span>
+        <span class="d" style="width:28px;height:28px;border-radius:50%;background:{{t.abg}};color:{{t.afg}};display:grid;place-items:center;font-weight:800;font-size:12px;flex:none">{{t.who}}</span>
+      </div>
+    </sc-for>
+  </div>
+  <div style="position:absolute;left:16px;right:16px;bottom:36px"><button class="btn bp" style="width:100%"><dc-import name="Icon" k="camera" s="20" hint-size="20px,20px"></dc-import>Subir fotos del montaje</button></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const mk = (title, sub, done, who, abg, afg) => ({ title, sub, done, who, abg, afg,
+      bg: done ? '#F6F6FB' : '#FFFFFF', cb: done ? '#8DB52C' : '#FFFFFF', cbr: done ? 'none' : 'inset 0 0 0 2px #C9CAE6',
+      td: done ? 'line-through' : 'none', tc: done ? '#5F6377' : '#151729', aria: done ? 'Marcar pendiente' : 'Marcar hecha' });
+    return {
+      tasks: [
+        mk('Colocar 12 mesas redondas', 'Según el plano aprobado', true, 'P', '#DDF4F3', '#1F8A84'),
+        mk('Vestir mesas y sillas Tiffany', '120 sillas · mantel blanco', true, 'Y', '#FDE6F2', '#C2338F'),
+        mk('Montar el arco de globos', 'Entrada principal · rosa y dorado', false, 'Y', '#FDE6F2', '#C2338F'),
+        mk('Centros de mesa florales', '12 centros, uno por mesa', false, 'M', '#ECEBFF', '#4B47D6')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

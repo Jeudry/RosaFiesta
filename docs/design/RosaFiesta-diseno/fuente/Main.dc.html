@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Rosa Fiesta · Sistema visual</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.rf,.rf *{box-sizing:border-box}
+.rf{font-family:'Figtree',system-ui,sans-serif;color:#1A1A2E;-webkit-font-smoothing:antialiased}
+.rf .d{font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif;letter-spacing:-.02em}
+.rf p,.rf h1,.rf h2,.rf h3{margin:0}
+.rf .cap{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#62627A}
+.rf .sw{height:56px;border-radius:14px}
+.rf .mk{background:linear-gradient(transparent 58%,#FFDF6E 58%,#FFDF6E 92%,transparent 92%);padding:0 2px}
+</style>
+</helmet>
+<div class="rf" style="width:1400px;height:844px;background:radial-gradient(60% 70% at 0% 0%,#F9E3F1 0%,rgba(249,227,241,0) 60%),radial-gradient(50% 60% at 100% 20%,#EEE7FB 0%,rgba(238,231,251,0) 60%),#FAFAFC;position:relative;overflow:hidden;padding:56px;display:grid;grid-template-columns:420px 1fr 400px;gap:56px">
+
+  <svg aria-hidden="true" width="1400" height="70" viewBox="0 0 1400 70" style="position:absolute;left:0;top:0">
+    <path d="M-10 6 Q 700 70 1410 6" stroke="#1A1A2E" stroke-opacity=".18" stroke-width="1.4" fill="none"></path>
+    <polygon points="40,9 62,9 51,36" fill="#EA4EA9"></polygon>
+    <polygon points="140,14 162,14 151,41" fill="#FBCA3F"></polygon>
+    <polygon points="240,19 262,19 251,46" fill="#B9D84A"></polygon>
+    <polygon points="340,23 362,23 351,50" fill="#865DEC"></polygon>
+    <polygon points="440,27 462,27 451,54" fill="#5CC9C0"></polygon>
+    <polygon points="540,30 562,30 551,57" fill="#EA4EA9"></polygon>
+    <polygon points="640,31 662,31 651,58" fill="#FBCA3F"></polygon>
+    <polygon points="740,31 762,31 751,58" fill="#B9D84A"></polygon>
+    <polygon points="840,30 862,30 851,57" fill="#865DEC"></polygon>
+    <polygon points="940,27 962,27 951,54" fill="#5CC9C0"></polygon>
+    <polygon points="1040,23 1062,23 1051,50" fill="#EA4EA9"></polygon>
+    <polygon points="1140,19 1162,19 1151,46" fill="#FBCA3F"></polygon>
+    <polygon points="1240,14 1262,14 1251,41" fill="#B9D84A"></polygon>
+    <polygon points="1340,9 1362,9 1351,36" fill="#865DEC"></polygon>
+  </svg>
+
+  <div style="display:flex;flex-direction:column;gap:26px;padding-top:40px">
+    <div style="display:flex;align-items:center;gap:16px">
+      <dc-import name="Logo" s="72" hint-size="72px,72px"></dc-import>
+      <div>
+        <p class="d" style="font-size:32px;font-weight:800;line-height:1">Rosa <span style="background:linear-gradient(90deg,#EA4EA9,#865DEC);-webkit-background-clip:text;background-clip:text;color:transparent">Fiesta</span></p>
+        <p style="color:#62627A;font-size:15px;margin-top:6px">Rediseño de la app · 2026</p>
+      </div>
+    </div>
+    <h1 class="d" style="font-size:44px;line-height:1.04;font-weight:800">Rosa y violeta para actuar, <span class="mk">amarillo</span> y verde para celebrar.</h1>
+    <div style="display:flex;flex-direction:column;gap:12px;font-size:16px;line-height:1.45">
+      <p>El degradado rosa→violeta es la marca: botones, barra inferior y portadas.</p>
+      <p>El amarillo y el verde claro del logo dan los acentos: contadores, etiquetas, confeti y fondos suaves.</p>
+      <p>Fotos reales para los productos; ilustraciones propias para categorías y momentos.</p>
+    </div>
+    <div style="display:flex;gap:28px;margin-top:auto">
+      <div>
+        <p class="d" style="font-size:60px;font-weight:800;line-height:1">Aa</p>
+        <p class="cap" style="margin-top:8px">Bricolage Grotesque</p>
+        <p style="font-size:13px;color:#62627A">Títulos y cifras</p>
+      </div>
+      <div>
+        <p style="font-size:60px;font-weight:600;line-height:1">Aa</p>
+        <p class="cap" style="margin-top:8px">Figtree</p>
+        <p style="font-size:13px;color:#62627A">Texto e interfaz</p>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:26px;padding-top:40px">
+    <div>
+      <p class="cap" style="margin-bottom:12px">Paleta</p>
+      <div style="display:grid;grid-template-columns:repeat(5, minmax(0, 1fr));gap:12px">
+        <sc-for list="{{colors}}" as="c" hint-placeholder-count="5">
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div class="sw" style="background:{{c.hex}}"></div>
+            <div class="sw" style="height:26px;background:{{c.tint}}"></div>
+            <p style="font-size:14px;font-weight:700;margin-top:4px">{{c.name}}</p>
+            <p style="font-size:12px;color:#62627A">{{c.use}}</p>
+          </div>
+        </sc-for>
+      </div>
+      <div style="display:flex;gap:12px;margin-top:16px">
+        <div style="flex:1.4;height:48px;border-radius:14px;background:linear-gradient(90deg,#EA4EA9 0%,#B754CB 50%,#865DEC 100%);color:#fff;display:flex;align-items:center;padding:0 16px;font-size:13px;font-weight:700">Degradado de marca</div>
+        <div style="flex:1;height:48px;border-radius:14px;background:#1A1A2E;color:#fff;display:flex;align-items:center;padding:0 16px;font-size:13px;font-weight:600">Tinta #1A1A2E</div>
+        <div style="flex:1;height:48px;border-radius:14px;background:#FAFAFC;box-shadow:0 0 0 1px #EEE9F2;display:flex;align-items:center;padding:0 16px;font-size:13px;font-weight:600">Fondo #FAFAFC</div>
+      </div>
+    </div>
+    <div>
+      <p class="cap" style="margin-bottom:12px">Iconos propios · trazo 1.8</p>
+      <div style="display:flex;flex-wrap:wrap;gap:10px">
+        <sc-for list="{{icons}}" as="ic" hint-placeholder-count="18">
+          <div style="width:44px;height:44px;border-radius:50%;background:#fff;box-shadow:0 0 0 1px #F0EBF4,0 8px 20px -14px rgba(180,80,180,.4);display:grid;place-items:center">
+            <dc-import name="Icon" k="{{ic}}" s="22" hint-size="22px,22px"></dc-import>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+    <div>
+      <p class="cap" style="margin-bottom:12px">Fotos de producto · Ilustraciones de categoría</p>
+      <div style="display:grid;grid-template-columns:repeat(6, minmax(0, 1fr));gap:10px">
+        <sc-for list="{{photos}}" as="ph" hint-placeholder-count="3">
+          <dc-import name="Foto" k="{{ph}}" w="78" h="78" r="16" hint-size="78px,78px"></dc-import>
+        </sc-for>
+        <sc-for list="{{illos}}" as="il" hint-placeholder-count="3">
+          <div style="aspect-ratio:1;border-radius:16px;background:{{il.bg}};display:grid;place-items:center;overflow:hidden">
+            <dc-import k="{{il.k}}" name="Illo" w="70" h="70" hint-size="70px,70px"></dc-import>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:22px;padding-top:40px">
+    <div style="background:linear-gradient(135deg,#E04FAF 0%,#945AE1 55%,#6664E9 100%);border-radius:28px;padding:26px;color:#fff;position:relative;overflow:hidden;min-height:240px;box-shadow:0 18px 34px -20px rgba(150,80,220,.8)">
+      <div style="position:absolute;right:-34px;bottom:-30px"><dc-import name="Illo" k="arcolg" w="210" h="210" hint-size="210px,210px"></dc-import></div>
+      <svg aria-hidden="true" width="400" height="240" viewBox="0 0 400 240" style="position:absolute;inset:0">
+        <path d="M0 -10L2.35 -3.24L9.5 -3.1L3.8 1.24L5.9 8.1L0 4L-5.9 8.1L-3.8 1.24L-9.5 -3.1L-2.35 -3.24Z" fill="#FFD45C" transform="translate(220 34)"></path>
+        <circle cx="190" cy="60" r="5" fill="#D6EA8C"></circle>
+      </svg>
+      <div style="position:relative;display:flex;flex-direction:column;gap:12px;max-width:200px">
+        <dc-import name="Rosa" s="60" hint-size="60px,60px"></dc-import>
+        <p class="d" style="font-size:26px;font-weight:800;line-height:1.05">Rosa, tu asistente</p>
+        <p style="font-size:14px;color:#F6EAFB">La asistente con audífonos y micrófono, ahora en el degradado de la marca.</p>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <p class="cap">Estados</p>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        <span style="height:28px;padding:0 12px;border-radius:999px;display:inline-flex;align-items:center;font-size:13px;font-weight:700;background:#EEF6D6;color:#4E6A10">Confirmado</span>
+        <span style="height:28px;padding:0 12px;border-radius:999px;display:inline-flex;align-items:center;font-size:13px;font-weight:700;background:#FFF2C9;color:#7A5700">Por pagar</span>
+        <span style="height:28px;padding:0 12px;border-radius:999px;display:inline-flex;align-items:center;font-size:13px;font-weight:700;background:#DDF4F3;color:#1F8A84">Ajustado</span>
+        <span style="height:28px;padding:0 12px;border-radius:999px;display:inline-flex;align-items:center;font-size:13px;font-weight:700;background:#EFE8FD;color:#7A4FD8">Completado</span>
+        <span style="height:28px;padding:0 12px;border-radius:999px;display:inline-flex;align-items:center;font-size:13px;font-weight:700;background:#F1EFF5;color:#62627A">Borrador</span>
+        <span style="height:28px;padding:0 12px;border-radius:999px;display:inline-flex;align-items:center;font-size:13px;font-weight:700;background:#FDE3EA;color:#B42345">Rechazado</span>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <p class="cap">Botones y contadores</p>
+      <div style="display:flex;gap:10px;align-items:center">
+        <button style="flex:1;height:52px;border-radius:16px;border:0;background:linear-gradient(90deg,#EA4EA9 0%,#B754CB 50%,#865DEC 100%);box-shadow:0 12px 26px -12px rgba(200,70,180,.7);color:#fff;font:inherit;font-weight:700;font-size:16px">Principal</button>
+        <button style="flex:1;height:52px;border-radius:16px;border:0;background:#fff;box-shadow:0 0 0 1px #EEE9F2,0 8px 20px -14px rgba(120,80,160,.4);color:#1A1A2E;font:inherit;font-weight:700;font-size:16px">Secundario</button>
+        <span style="min-width:34px;height:26px;border-radius:999px;background:#FFD45C;color:#2E1A47;font-size:13px;font-weight:800;display:grid;place-items:center;padding:0 8px">16</span>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1400,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      colors: [
+        { name: 'Rosa', hex: '#EA4EA9', tint: '#FDE6F2', use: 'Marca y acción' },
+        { name: 'Violeta', hex: '#865DEC', tint: '#EFE8FD', use: 'Rosa IA' },
+        { name: 'Sol', hex: '#FBCA3F', tint: '#FFF2C9', use: 'Contadores y acentos' },
+        { name: 'Lima', hex: '#B9D84A', tint: '#EEF6D6', use: 'Éxito y confeti' },
+        { name: 'Turquesa', hex: '#1FBDC0', tint: '#DDF4F3', use: 'Información' }
+      ],
+      icons: ['home','store','party','calendar','heart','search','mic','bell','user','chat','send','pin','users','star','box','card','gift','sparkle','check-c','list-check','clock','chart','wa','sun'],
+      photos: ['silla-tiffany', 'arco-rosa', 'centro-floral'],
+      illos: [
+        { k: 'globoslg', bg: '#FDE6F2' },
+        { k: 'dulce', bg: '#EEF6D6' },
+        { k: 'luz', bg: '#FFF2C9' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

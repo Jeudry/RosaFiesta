@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Rosa · Sugerencias</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.rf,.rf *{box-sizing:border-box}
+.rf{font-family:'Figtree',system-ui,sans-serif;color:#1A1A2E;-webkit-font-smoothing:antialiased;position:relative;overflow:hidden}
+.rf p,.rf h1,.rf h2,.rf h3{margin:0}
+.rf .d{font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif;letter-spacing:-.02em}
+.rf button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:inherit}
+.rf input{font:inherit;color:inherit;border:0;outline:0;background:none;padding:0;min-width:0;flex:1}
+.rf input::placeholder{color:#62627A}
+.rf .ib{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:0 0 0 1px #F0EBF4,0 8px 20px -14px rgba(180,80,180,.4);flex:none;color:#1A1A2E}
+.rf .mut{color:#62627A}
+.rf .seg{height:5px;border-radius:3px;flex:1}
+.rf .one{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf .btn{height:54px;border-radius:16px;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:16px}
+</style>
+</helmet>
+<div class="rf" style="width:390px;height:844px;background:linear-gradient(180deg,#DED5F7 0%,#F2EAF7 40%,#F5EEF7 60%,#D9D0F2 100%)">
+  <header style="position:absolute;top:54px;left:16px;right:16px;display:flex;align-items:center;gap:12px">
+    <button class="ib" aria-label="Volver al paso anterior"><dc-import name="Icon" k="back" s="22" hint-size="22px,22px"></dc-import></button>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px">
+      <p style="font-size:13px;font-weight:700">Paso 3 de 6</p>
+      <div style="width:150px;display:flex;gap:4px">
+        <span class="seg" style="background:linear-gradient(90deg,#EA4EA9,#B754CB)"></span><span class="seg" style="background:linear-gradient(90deg,#EA4EA9,#B754CB)"></span><span class="seg" style="background:linear-gradient(90deg,#EA4EA9,#B754CB)"></span><span class="seg" style="background:#DDD3F3"></span><span class="seg" style="background:#DDD3F3"></span><span class="seg" style="background:#DDD3F3"></span>
+      </div>
+    </div>
+    <button class="ib" aria-label="Mi evento, 17 artículos" style="position:relative"><dc-import name="Icon" k="bag" s="22" hint-size="22px,22px"></dc-import><span style="position:absolute;top:-4px;right:-4px;min-width:20px;height:20px;border-radius:999px;background:#FFD45C;color:#2E1A47;font-size:11px;font-weight:800;display:grid;place-items:center;padding:0 5px">17</span></button>
+  </header>
+
+  <div style="position:absolute;top:128px;left:20px;right:0;display:flex;flex-direction:column;gap:20px">
+    <div style="display:flex;flex-direction:column;gap:12px;padding-right:20px">
+      <dc-import name="Rosa" s="40" glow="{{false}}" hint-size="40px,40px"></dc-import>
+      <h1 class="d" style="font-size:26px;font-weight:800;line-height:1.05">Para tu boda te recomiendo estos artículos</h1>
+    </div>
+    <div style="display:flex;gap:12px">
+      <sc-for list="{{items}}" as="it" hint-placeholder-count="3">
+        <article style="width:208px;flex:none;background:#fff;border-radius:22px;overflow:hidden;box-shadow:0 14px 30px -22px rgba(170,70,160,.45)">
+          <div style="height:150px;background:{{it.bg}}"><dc-import name="Foto" k="{{it.k}}" w="208" h="150" hint-size="208px,150px"></dc-import></div>
+          <div style="padding:14px;display:flex;flex-direction:column;gap:4px">
+            <p class="one" style="font-size:16px;font-weight:700">{{it.name}}</p>
+            <p class="one mut" style="font-size:13px">{{it.desc}}</p>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px">
+              <p class="d" style="font-size:19px;font-weight:800">RD$ {{it.price}}</p>
+              <sc-if value="{{it.added}}" hint-placeholder-val="{{false}}">
+                <span style="height:36px;padding:0 12px;border-radius:999px;background:#EEF6D6;color:#4E6A10;font-size:13px;font-weight:700;display:flex;align-items:center;gap:4px"><dc-import name="Icon" k="check" s="16" w="2.4" hint-size="16px,16px"></dc-import>Agregado</span>
+              </sc-if>
+              <sc-if value="{{it.notAdded}}" hint-placeholder-val="{{true}}">
+                <button style="height:36px;padding:0 14px;border-radius:999px;background:linear-gradient(135deg,#E04FAF 0%,#945AE1 55%,#6664E9 100%);color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;gap:4px;box-shadow:0 8px 16px -8px rgba(134,93,236,.7)"><dc-import name="Icon" k="plus" s="16" w="2.4" hint-size="16px,16px"></dc-import>Agregar</button>
+              </sc-if>
+            </div>
+          </div>
+        </article>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="position:absolute;left:20px;right:20px;bottom:110px;display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:10px">
+    <button class="btn" style="background:#fff">Otras sugerencias</button>
+    <button class="btn" style="background:linear-gradient(90deg,#EA4EA9 0%,#B754CB 50%,#865DEC 100%);color:#fff;box-shadow:0 12px 26px -12px rgba(200,70,180,.7)">Continuar</button>
+  </div>
+
+  <label style="position:absolute;left:16px;right:16px;bottom:34px;height:58px;border-radius:999px;background:#fff;box-shadow:0 0 0 1px #E7DEF5,0 12px 30px -20px rgba(170,70,160,.4);display:flex;align-items:center;gap:10px;padding:0 6px 0 20px">
+    <input placeholder="Pide algo distinto…" aria-label="Mensaje para Rosa">
+    <button aria-label="Hablar con Rosa" style="width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,#E04FAF 0%,#945AE1 55%,#6664E9 100%);color:#fff;display:grid;place-items:center;box-shadow:0 8px 16px -8px rgba(134,93,236,.7)"><dc-import name="Icon" k="mic" s="22" hint-size="22px,22px"></dc-import></button>
+  </label>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const mk = (o) => ({ ...o, notAdded: !o.added });
+    return {
+      items: [
+        mk({ name: 'Centro de mesa floral', desc: 'Flores naturales, base de madera', price: '35', k: 'centro-floral', bg: '#FFF2C9', added: true }),
+        mk({ name: 'Mesa dulce temática', desc: 'Decoración completa para dulces', price: '150', k: 'mesa-helados', bg: '#EEF6D6', added: false }),
+        mk({ name: 'Arco de globos', desc: 'Rosa y nude, para la entrada', price: '95', k: 'arco-rosa', bg: '#FDE6F2', added: false })
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

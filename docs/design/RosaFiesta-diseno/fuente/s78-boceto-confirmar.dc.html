@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Boceto · Confirmar</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.rf,.rf *{box-sizing:border-box}
+.rf{font-family:'Figtree',system-ui,sans-serif;color:#1A1A2E;-webkit-font-smoothing:antialiased;position:relative;overflow:hidden}
+.rf p,.rf h1{margin:0}
+.rf .d{font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif;letter-spacing:-.02em}
+.rf button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer}
+.rf .ib{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:0 0 0 1px #F0EBF4,0 8px 20px -14px rgba(180,80,180,.4);flex:none;color:#1A1A2E}
+.rf .mut{color:#62627A}
+.rf .sw{width:32px;height:32px;border-radius:50%;flex:none}
+.rf .tl{flex:1;height:44px;border-radius:14px;display:grid;place-items:center;color:#62627A}
+.rf .ch{height:34px;padding:0 12px;border-radius:999px;background:#fff;box-shadow:0 0 0 1px #EEE9F2;display:inline-flex;align-items:center;gap:7px;font-size:14px;font-weight:600}
+.rf .dot{width:9px;height:9px;border-radius:50%;flex:none}
+.rf .tl.on{background:linear-gradient(135deg,#E04FAF 0%,#945AE1 55%,#6664E9 100%);color:#fff;box-shadow:0 8px 16px -8px rgba(134,93,236,.7)}
+</style>
+</helmet>
+<div class="rf" style="width:390px;height:844px;background:radial-gradient(110% 40% at 0% 0%,#F9E3F1 0%,rgba(249,227,241,0) 60%),radial-gradient(80% 35% at 100% 15%,#EEE7FB 0%,rgba(238,231,251,0) 60%),#FAFAFC">
+  <header style="position:absolute;top:54px;left:16px;right:16px;display:flex;align-items:center;gap:10px">
+    <a href="s36-boceto.dc.html" class="ib" aria-label="Volver a editar"><dc-import name="Icon" k="back" s="22" hint-size="22px,22px"></dc-import></a>
+    <div style="flex:1;min-width:0">
+      <h1 class="d" style="font-size:19px;font-weight:800;line-height:1.1">Revisa tu boceto</h1>
+      <p class="mut" style="font-size:13px">Boda Real Rosa &amp; Dorado</p>
+    </div>
+  </header>
+
+  <div style="position:absolute;top:114px;left:16px;right:16px;display:flex;flex-direction:column;gap:14px">
+    <section style="height:236px;border-radius:24px;background:#fff;box-shadow:0 0 0 1px #F2EDF5,0 14px 30px -22px rgba(170,70,160,.45);padding:5px 0;position:relative">
+      <svg role="img" aria-label="Vista previa del boceto: tarima, seis mesas redondas, pista de baile y entrada" width="184" height="226" viewBox="0 0 358 440" style="display:block;margin:0 auto">
+      <defs>
+        <pattern id="gr2" width="22" height="22" patternUnits="userSpaceOnUse"><path d="M22 0H0V22" fill="none" stroke="#F3ECF4" stroke-width="1"></path></pattern>
+      </defs>
+      <rect width="358" height="440" fill="url(#gr2)"></rect>
+      <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M70 36C120 33 220 34 289 37L287 86C220 88 130 87 72 85Z" stroke="#865DEC" stroke-width="3"></path>
+        <path d="M108 190C108 176 120 166 134 166S160 176 160 190 148 214 134 214 108 204 108 190Z" stroke="#EA4EA9" stroke-width="3"></path>
+        <path d="M198 190C198 176 210 166 224 166S250 176 250 190 238 214 224 214 198 204 198 190Z" stroke="#EA4EA9" stroke-width="3"></path>
+        <path d="M44 268C44 254 56 244 70 244S96 254 96 268 84 292 70 292 44 282 44 268Z" stroke="#EA4EA9" stroke-width="3"></path>
+        <path d="M262 268C262 254 274 244 288 244S314 254 314 268 302 292 288 292 262 282 262 268Z" stroke="#EA4EA9" stroke-width="3"></path>
+        <path d="M44 360C44 346 56 336 70 336S96 346 96 360 84 384 70 384 44 374 44 360Z" stroke="#EA4EA9" stroke-width="3"></path>
+        <path d="M262 360C262 346 274 336 288 336S314 346 314 360 302 384 288 384 262 374 262 360Z" stroke="#EA4EA9" stroke-width="3"></path>
+        <path d="M128 250L230 252L229 340L127 338Z" stroke="#8DB52C" stroke-width="2.6" stroke-dasharray="7 7"></path>
+        <path d="M150 428L179 404L208 428M179 404V436" stroke="#1A1A2E" stroke-width="2.6"></path>
+      </g>
+      <g font-family="Figtree, system-ui, sans-serif" font-size="13" font-weight="700" fill="#62627A" text-anchor="middle">
+        <text x="180" y="66">Tarima</text>
+        <text x="179" y="300">Pista</text>
+        <text x="179" y="398">Entrada</text>
+      </g>
+    </svg>
+      <a href="s36-boceto.dc.html" style="position:absolute;right:10px;top:10px;height:34px;padding:0 12px;border-radius:999px;background:#F5EAF9;color:#B54BD6;font-size:13px;font-weight:700;display:flex;align-items:center;gap:5px;text-decoration:none"><dc-import name="Icon" k="edit" s="15" hint-size="15px,15px"></dc-import>Editar</a>
+    </section>
+
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <p style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase" class="mut">Lo que dibujaste</p>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        <span class="ch"><span class="dot" style="background:#865DEC"></span>Tarima</span>
+        <span class="ch"><span class="dot" style="background:#EA4EA9"></span>6 mesas redondas</span>
+        <span class="ch"><span class="dot" style="background:#8DB52C"></span>Pista de baile</span>
+        <span class="ch"><span class="dot" style="background:#1A1A2E"></span>Entrada</span>
+      </div>
+    </div>
+
+    <section style="border-radius:22px;background:linear-gradient(135deg,#E04FAF 0%,#945AE1 55%,#6664E9 100%);color:#fff;padding:16px;display:flex;flex-direction:column;gap:12px;position:relative;overflow:hidden;box-shadow:0 18px 34px -20px rgba(150,80,220,.8)">
+      <svg aria-hidden="true" width="358" height="150" viewBox="0 0 358 150" style="position:absolute;inset:0">
+        <path d="M0 -10L2.35 -3.24L9.5 -3.1L3.8 1.24L5.9 8.1L0 4L-5.9 8.1L-3.8 1.24L-9.5 -3.1L-2.35 -3.24Z" fill="#FFD45C" transform="translate(326 24) scale(.8)"></path>
+        <circle cx="304" cy="44" r="4" fill="#D6EA8C"></circle>
+      </svg>
+      <div style="display:flex;gap:12px;align-items:flex-start;position:relative">
+        <dc-import name="Rosa" s="40" glow="{false}" bg="rgba(255,255,255,.22)" hint-size="40px,40px"></dc-import>
+        <p style="font-size:14px;line-height:1.45;flex:1"><b style="font-size:15px">¿Te ayudo a completarlo?</b><br><span style="color:#F6EAFB">Ordeno tu boceto, calculo cuántas sillas caben y te propongo ejemplos en 3D.</span></p>
+      </div>
+      <button style="position:relative;height:46px;border-radius:999px;background:#fff;color:#A23FB8;font-weight:700;font-size:15px;display:flex;align-items:center;justify-content:center;gap:8px"><dc-import name="Icon" k="sparkle" s="18" hint-size="18px,18px"></dc-import>Ayúdame con IA</button>
+    </section>
+  </div>
+
+  <div style="position:absolute;left:16px;right:16px;bottom:34px;display:flex;flex-direction:column;gap:4px">
+    <button style="height:56px;border-radius:16px;background:linear-gradient(90deg,#EA4EA9 0%,#B754CB 50%,#865DEC 100%);color:#fff;box-shadow:0 12px 26px -12px rgba(200,70,180,.7);display:flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:16px"><dc-import name="Icon" k="check" s="20" w="2.4" hint-size="20px,20px"></dc-import>Guardar en mi evento</button>
+    <a href="s36-boceto.dc.html" style="height:44px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;color:#62627A;text-decoration:none">Seguir editando</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

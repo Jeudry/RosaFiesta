@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Reportes · Ingresos</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.rf,.rf *{box-sizing:border-box}
+.rf{font-family:'Figtree',system-ui,sans-serif;color:#151729;-webkit-font-smoothing:antialiased;position:relative;overflow:hidden}
+.rf p,.rf h1,.rf h2{margin:0}
+.rf .d{font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif;letter-spacing:-.02em}
+.rf button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:inherit}
+.rf .ib{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:0 0 0 1px #ECECF5,0 8px 20px -14px rgba(70,80,180,.4);flex:none;color:#151729}
+.rf .mut{color:#5F6377}
+.rf .tab{height:44px;display:flex;align-items:center;font-size:15px;font-weight:600;color:#5F6377;white-space:nowrap;flex:none;text-decoration:none}
+.rf .tab.on{color:#151729;font-weight:700;box-shadow:inset 0 -2.5px 0 #5B6CF0}
+.rf .card{border-radius:22px;background:#fff;box-shadow:0 0 0 1px #ECECF5}
+</style>
+</helmet>
+<div class="rf" style="width:390px;height:844px;background:radial-gradient(110% 40% at 100% 0%,#E6E7FF 0%,rgba(230,231,255,0) 60%),radial-gradient(80% 35% at 0% 12%,#F1E9FB 0%,rgba(241,233,251,0) 60%),#F6F6FB">
+  <div style="padding:56px 20px 0;display:flex;flex-direction:column;gap:12px">
+    <header style="display:flex;align-items:center;gap:10px">
+      <button class="ib" aria-label="Volver"><dc-import name="Icon" k="back" s="22" hint-size="22px,22px"></dc-import></button>
+      <h1 class="d" style="font-size:20px;font-weight:800;flex:1">Reportes</h1>
+      <button style="height:44px;padding:0 12px;border-radius:14px;background:#fff;box-shadow:0 0 0 1px #E9E9F2;font-size:14px;font-weight:600;display:flex;align-items:center;gap:6px">Ene–Jun <dc-import name="Icon" k="chev-d" s="16" hint-size="16px,16px"></dc-import></button>
+      <button class="ib" aria-label="Descargar reporte"><dc-import name="Icon" k="download" s="20" hint-size="20px,20px"></dc-import></button>
+    </header>
+    <nav style="display:flex;gap:20px;box-shadow:inset 0 -1px 0 #E9E9F2;margin:0 -20px;padding:0 20px">
+      <a class="tab on" href="s67-reportes-ingresos.dc.html">Ingresos</a>
+      <a class="tab" href="s68-reportes-eventos.dc.html">Eventos</a>
+      <a class="tab" href="s69-reportes-clientes.dc.html">Clientes</a>
+      <a class="tab" href="s70-reportes-inventario.dc.html">Inventario</a>
+    </nav>
+    <section style="margin-top:4px;border-radius:24px;background:linear-gradient(135deg,#7C5CF0 0%,#5B6CF0 55%,#2FB8C8 100%);color:#fff;padding:18px 20px;display:flex;flex-direction:column;gap:14px;box-shadow:0 18px 34px -20px rgba(80,110,230,.75)">
+      <div><p style="font-size:13px;color:#F6EAFB">Ganancia neta</p><p class="d" style="font-size:36px;font-weight:800;line-height:1.1">RD$ 32,780</p></div>
+      <div style="display:flex;gap:24px;font-size:13px;color:#F6EAFB">
+        <p>Ingresos<br><b class="d" style="font-size:17px;color:#fff">RD$ 45,230</b></p>
+        <p>Gastos<br><b class="d" style="font-size:17px;color:#fff">RD$ 12,450</b></p>
+      </div>
+    </section>
+    <section class="card" style="padding:16px 16px 12px">
+      <p style="font-size:15px;font-weight:700">Ingresos por mes</p>
+      <div style="height:150px;display:flex;align-items:flex-end;gap:12px;margin-top:14px;padding:0 4px;background:linear-gradient(#F3F1F6,#F3F1F6) 0 0/100% 1px no-repeat,linear-gradient(#F3F1F6,#F3F1F6) 0 50%/100% 1px no-repeat">
+        <sc-for list="{{bars}}" as="b" hint-placeholder-count="6">
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end">
+            <span style="font-size:11px;font-weight:700;color:{{b.lc}}">{{b.v}}</span>
+            <span style="width:100%;border-radius:8px 8px 4px 4px;height:{{b.h}};background:{{b.c}}"></span>
+          </div>
+        </sc-for>
+      </div>
+      <div style="display:flex;gap:12px;padding:6px 4px 0;font-size:12px" class="mut">
+        <sc-for list="{{bars}}" as="b" hint-placeholder-count="6"><span style="flex:1;text-align:center">{{b.m}}</span></sc-for>
+      </div>
+    </section>
+    <section class="card" style="padding:16px;display:flex;flex-direction:column;gap:12px">
+      <p style="font-size:15px;font-weight:700">De dónde vienen</p>
+      <sc-for list="{{split}}" as="s" hint-placeholder-count="3">
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div style="display:flex;justify-content:space-between;font-size:14px"><span>{{s.name}}</span><b>RD$ {{s.v}}</b></div>
+          <div style="height:8px;border-radius:4px;background:#F3F1F6"><span style="display:block;height:100%;border-radius:4px;width:{{s.w}};background:{{s.c}}"></span></div>
+        </div>
+      </sc-for>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const data = [['Ene', 12], ['Feb', 15], ['Mar', 8], ['Abr', 18], ['May', 14], ['Jun', 16]];
+    return {
+      bars: data.map(([m, v], i) => ({
+        m, v: v + 'k',
+        h: Math.round((v / 20) * 120) + 'px',
+        c: i === 5 ? '#D63F98' : '#F9C7DD',
+        lc: i === 5 ? '#C2338F' : '#5F6377'
+      })),
+      split: [
+        { name: 'Alquiler de equipos', v: '28,500', w: '63%', c: '#D63F98' },
+        { name: 'Decoración', v: '12,200', w: '27%', c: '#865DEC' },
+        { name: 'Servicios adicionales', v: '4,530', w: '10%', c: '#8DB52C' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Admin · Ficha de cliente</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.rf,.rf *{box-sizing:border-box}
+.rf{font-family:'Figtree',system-ui,sans-serif;color:#151729;-webkit-font-smoothing:antialiased;position:relative;overflow:hidden}
+.rf p,.rf h1,.rf h2,.rf h3{margin:0}
+.rf .d{font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif;letter-spacing:-.02em}
+.rf button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:inherit}
+.rf a{color:inherit;text-decoration:none}
+.rf input,.rf textarea{font:inherit;color:inherit;border:0;outline:0;background:none;padding:0;min-width:0;flex:1;resize:none}
+.rf .mut{color:#5F6377}
+.rf .cap{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#5F6377}
+.rf .ib{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:0 0 0 1px #ECECF5,0 8px 20px -14px rgba(70,80,180,.45);flex:none;color:#151729}
+.rf .card{background:#fff;border-radius:20px;box-shadow:0 0 0 1px #ECECF5,0 12px 28px -22px rgba(70,80,180,.45)}
+.rf .btn{height:54px;border-radius:16px;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:16px}
+.rf .bp{background:linear-gradient(135deg,#7C5CF0 0%,#5B6CF0 100%);color:#fff;box-shadow:0 12px 24px -12px rgba(91,108,240,.75)}
+.rf .bs{background:#fff;color:#151729;box-shadow:0 0 0 1px #E3E4EF}
+.rf .chip{height:36px;padding:0 14px;border-radius:999px;display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:600;background:#fff;box-shadow:0 0 0 1px #E9E9F2;white-space:nowrap;flex:none}
+.rf .on{background:linear-gradient(135deg,#7C5CF0 0%,#5B6CF0 100%);color:#fff;box-shadow:0 8px 16px -8px rgba(91,108,240,.7)}
+.rf .tag{height:24px;padding:0 9px;border-radius:999px;display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;white-space:nowrap}
+.rf .one{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf .fld{height:50px;border-radius:14px;background:#fff;box-shadow:0 0 0 1px #E3E4EF;display:flex;align-items:center;gap:10px;padding:0 14px;color:#5F6377;font-size:15px}
+.rf .lbl{font-size:13px;font-weight:700;color:#3A3D52}
+.rf .ti{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;flex:none}
+.rf .stp{display:flex;align-items:center;gap:2px;height:34px;border-radius:999px;background:#F2F2F8;padding:0 3px;flex:none}
+.rf .stp button{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;color:#5B6CF0}
+.rf .seg{height:5px;border-radius:3px;flex:1}
+.rf .sg{flex:1;height:38px;border-radius:12px;font-size:14px;font-weight:600;display:grid;place-items:center;color:#5F6377}
+.rf .sg.sel{background:#fff;color:#151729;font-weight:700;box-shadow:0 2px 8px -3px rgba(70,80,180,.3)}
+</style>
+</helmet>
+<div class="rf" style="width:390px;height:844px;background:radial-gradient(110% 40% at 100% 0%,#E6E7FF 0%,rgba(230,231,255,0) 60%),radial-gradient(80% 35% at 0% 12%,#F1E9FB 0%,rgba(241,233,251,0) 60%),#F6F6FB">
+  <div style="padding:54px 20px 0;display:flex;flex-direction:column;gap:12px">
+    <header style="display:flex;align-items:center;gap:12px">
+      <button class="ib" aria-label="Volver"><dc-import name="Icon" k="back" s="22" hint-size="22px,22px"></dc-import></button>
+      <div style="flex:1;min-width:0"><h1 class="d one" style="font-size:20px;font-weight:800;line-height:1.1">Cliente</h1></div>
+      <button class="ib" aria-label="Editar"><dc-import name="Icon" k="edit" s="20" hint-size="20px,20px"></dc-import></button>
+    </header>
+    <div style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px">
+      <span class="d" style="width:76px;height:76px;border-radius:50%;background:#FDE6F2;color:#C2338F;display:grid;place-items:center;font-weight:800;font-size:28px;flex:none">C</span>
+      <h2 class="d" style="font-size:22px;font-weight:800">Camila Rodríguez</h2>
+      <p class="mut" style="font-size:13px">camila.rodriguez@correo.com · (809) 555-0198</p>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3, minmax(0, 1fr));gap:8px">
+      <button class="card" style="height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:12px;font-weight:700"><dc-import name="Icon" k="phone" s="18" hint-size="18px,18px"></dc-import>Llamar</button>
+      <button class="card" style="height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:12px;font-weight:700;color:#4E6A10"><dc-import name="Icon" k="wa" s="18" hint-size="18px,18px"></dc-import>WhatsApp</button>
+      <a href="a15-admin-chat.dc.html" class="card" style="height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:12px;font-weight:700;color:#4B47D6"><dc-import name="Icon" k="chat" s="18" hint-size="18px,18px"></dc-import>Chat</a>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:8px">
+      <div style="padding:12px 14px;border-radius:18px;background:#ECEBFF"><p class="d" style="font-size:20px;font-weight:800;color:#4B47D6">3</p><p style="font-size:12px;font-weight:600;color:#4B47D6">Eventos</p></div>
+      <div style="padding:12px 14px;border-radius:18px;background:#EEF6D6"><p class="d" style="font-size:20px;font-weight:800;color:#3F560C">RD$ 3,210</p><p style="font-size:12px;font-weight:600;color:#4E6A10">Pagado</p></div>
+    </div>
+    <p class="cap">Eventos</p>
+    <section class="card" style="margin-top:-4px">
+      <a href="a13-admin-evento-detalle.dc.html" style="display:flex;align-items:center;gap:12px;padding:10px 12px"><dc-import name="Foto" k="boda" w="44" h="44" r="12" pos="center 30%" hint-size="44px,44px"></dc-import><span style="flex:1;min-width:0"><span class="one" style="display:block;font-size:14px;font-weight:700">Boda Real Rosa &amp; Dorado</span><span class="mut" style="font-size:12px">Vie 23 oct · Ajustado</span></span><span class="mut"><dc-import name="Icon" k="chev-r" s="18" hint-size="18px,18px"></dc-import></span></a>
+      <a href="#" style="display:flex;align-items:center;gap:12px;padding:10px 12px;box-shadow:0 -1px 0 #F0F0F6"><dc-import name="Foto" k="quinceanera" w="44" h="44" r="12" hint-size="44px,44px"></dc-import><span style="flex:1;min-width:0"><span class="one" style="display:block;font-size:14px;font-weight:700">Quinceañera Valentina Crystal</span><span class="mut" style="font-size:12px">Lun 2 nov · Confirmado</span></span><span class="mut"><dc-import name="Icon" k="chev-r" s="18" hint-size="18px,18px"></dc-import></span></a>
+      <a href="#" style="display:flex;align-items:center;gap:12px;padding:10px 12px;box-shadow:0 -1px 0 #F0F0F6"><dc-import name="Foto" k="baby-shower" w="44" h="44" r="12" pos="center 30%" hint-size="44px,44px"></dc-import><span style="flex:1;min-width:0"><span class="one" style="display:block;font-size:14px;font-weight:700">Baby Shower Sofía en Rosas</span><span class="mut" style="font-size:12px">Lun 9 nov · Borrador</span></span><span class="mut"><dc-import name="Icon" k="chev-r" s="18" hint-size="18px,18px"></dc-import></span></a>
+    </section>
+    <section style="padding:12px 14px;border-radius:18px;background:#FFF8E5;display:flex;gap:10px"><span style="color:#7A5700"><dc-import name="Icon" k="edit" s="18" hint-size="18px,18px"></dc-import></span><p style="font-size:13px;line-height:1.45"><b>Nota interna:</b> prefiere tonos rosa y dorado. Escribirle por WhatsApp después de las 6 p. m.</p></section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
