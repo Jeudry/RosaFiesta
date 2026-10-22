@@ -605,7 +605,7 @@ internal fun RenderAdminRequestsA02(
                     .background(Color.White),
                 contentAlignment = Alignment.Center,
             ) {
-                BasicText("Nuevas · 2", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color(0xFF2E324A)))
+                BasicText("Nuevas · 2", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.Normal, color = Color(0xFF2E324A)))
             }
             Box(
                 modifier = Modifier
@@ -1481,7 +1481,7 @@ internal fun RenderAdminEventsA11(
                     .background(Color.White),
                 contentAlignment = Alignment.Center,
             ) {
-                BasicText("Próximos · 4", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color(0xFF2E324A)))
+                BasicText("Próximos · 4", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.Normal, color = Color(0xFF2E324A)))
             }
             Box(
                 modifier = Modifier
@@ -1862,7 +1862,7 @@ internal fun RenderAdminPaymentsA20(
                             .background(Color.White),
                         contentAlignment = Alignment.Center,
                     ) {
-                        BasicText("Por cobrar · 3", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color(0xFF2E324A)))
+                        BasicText("Por cobrar · 3", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.Normal, color = Color(0xFF2E324A)))
                     }
                     Box(
                         modifier = Modifier
@@ -2717,7 +2717,7 @@ internal fun RenderAdminExecutionA16(
                                 .background(Color.White),
                             contentAlignment = Alignment.Center,
                         ) {
-                            BasicText("Montaje · 2/4", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color(0xFF2E324A)))
+                            BasicText("Montaje · 2/4", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.Normal, color = Color(0xFF2E324A)))
                         }
                         Box(modifier = Modifier.weight(1f).height(38.dp), contentAlignment = Alignment.Center) {
                             BasicText("Desmontaje", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.Normal, color = Color(0xFF5F6377)))
@@ -3290,7 +3290,7 @@ internal fun RenderAdminSketchA18(
                         .background(Color.White),
                     contentAlignment = Alignment.Center,
                 ) {
-                    BasicText("Plano", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color(0xFF2E324A)))
+                    BasicText("Plano", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.Normal, color = Color(0xFF2E324A)))
                 }
             }
 
