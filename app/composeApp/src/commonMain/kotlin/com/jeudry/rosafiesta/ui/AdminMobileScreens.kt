@@ -518,7 +518,7 @@ internal fun RenderAdminHomeA01(
                         modifier = Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(Color(0xFFFDE3EA)),
                         contentAlignment = Alignment.Center,
                     ) {
-                        RfIcon(kind = RfIconKind.WARNING, tint = Color(0xFFB42345), size = 20.dp)
+                        RfIcon(kind = RfIconKind.WARNING, tint = Color(0xFFDC2B48), size = 20.dp)
                     }
                     Column(modifier = Modifier.weight(1f)) {
                         BasicText("Mesa dulce temática", maxLines = 1, overflow = TextOverflow.Ellipsis, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2E324A)))
@@ -532,7 +532,7 @@ internal fun RenderAdminHomeA01(
                             .padding(horizontal = 9.dp),
                         contentAlignment = Alignment.Center,
                     ) {
-                        BasicText("Stock bajo", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFFB42345)))
+                        BasicText("Stock bajo", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.Normal, color = Color(0xFFDC2B48)))
                     }
                 }
             }
