@@ -166,7 +166,7 @@ public fun PersonalTabBar(
                                 text = tab.label,
                                 style = typo.caption.copy(
                                     fontSize = 11.5.sp,
-                                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
                                     color = if (selected) activeLabelColor else inactiveColor,
                                 ),
                                 maxLines = 1,
@@ -205,7 +205,7 @@ public fun PersonalTabBar(
                 text = "Rosa",
                 style = typo.caption.copy(
                     fontSize = 11.5.sp,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.SemiBold,
                     color = rosaLabelColor,
                 ),
                 maxLines = 1,
@@ -250,6 +250,7 @@ public enum class AdminTab(
 public fun AdminTabBar(
     activeTab: AdminTab,
     onSelectTab: (AdminTab) -> Unit,
+    showBadges: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val typo = LocalRfTypography.current
@@ -306,7 +307,7 @@ public fun AdminTabBar(
                                     ),
                             ) {
                                 RfIcon(kind = tab.icon, tint = if (selected) Color.White else inactiveColor, size = 22.dp)
-                                if (tab.badgeCount > 0) {
+                                if (showBadges && tab.badgeCount > 0) {
                                     Box(
                                         contentAlignment = Alignment.Center,
                                         modifier = Modifier
@@ -327,7 +328,7 @@ public fun AdminTabBar(
                                 text = tab.label,
                                 style = typo.caption.copy(
                                     fontSize = 11.5.sp,
-                                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
                                     color = if (selected) activeLabelColor else inactiveColor,
                                 ),
                                 maxLines = 1,
@@ -366,7 +367,7 @@ public fun AdminTabBar(
                 text = "Rosa",
                 style = typo.caption.copy(
                     fontSize = 11.5.sp,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.SemiBold,
                     color = rosaLabelColor,
                 ),
                 maxLines = 1,
