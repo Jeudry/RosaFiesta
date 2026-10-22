@@ -103,12 +103,14 @@ fun RenderScreenSpec(
         "s18", "s19", "s20", "s21", "s22", "s23", "s24",
         "s25", "s26", "s27", "s28", "s29", "s30", "s31", "s32", "s33", "s34", "s35", "s36", "s78", "A08",
         "s37", "s38", "s39", "s40", "s43", "s44", "s45", "s46", "s47", "s48",
+        "s49", "s50", "s51", "s52", "s53", "s54", "s55", "s56", "s57", "s58", "s83",
     )
     val showBottomBar = when {
         spec.code in setOf(
             "p00", "A00", "s03", "s04", "s05", "s06", "s07", "s08", "s09", "s10", "s11", "s12", "s13", "s19", "s22", "A30",
             "s25", "s26", "s27", "s28", "s29", "s30", "s31", "s32", "s33", "s34", "s35", "s36", "s78", "A08",
             "s38", "s39", "s40", "s43", "s44", "s45", "s46", "s47", "s48",
+            "s49", "s50", "s51", "s52", "s53", "s55", "s56", "s57", "s58", "s83",
         ) -> false
 
         else -> true
@@ -220,6 +222,17 @@ fun RenderScreenSpec(
                 "s46" -> RenderChecklistScreenS46(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
                 "s47" -> RenderGuestsScreenS47(onSelectScreenCode = onSelectScreenCode)
                 "s48" -> RenderQuoteScreenS48(onSelectScreenCode = onSelectScreenCode)
+                "s49" -> RenderQuoteHistoryScreenS49(onSelectScreenCode = onSelectScreenCode)
+                "s50" -> RenderPaymentCheckoutScreenS50(onSelectScreenCode = onSelectScreenCode)
+                "s51" -> RenderPaymentSuccessScreenS51(onSelectScreenCode = onSelectScreenCode)
+                "s52" -> RenderPostEventReviewScreenS52(onSelectScreenCode = onSelectScreenCode)
+                "s53" -> RenderMyReservationsScreenS53(onSelectScreenCode = onSelectScreenCode)
+                "s54" -> RenderUserProfileScreenS54(onSelectScreenCode = onSelectScreenCode)
+                "s55" -> RenderSuppliersScreenS55(onSelectScreenCode = onSelectScreenCode)
+                "s56" -> RenderNewSupplierScreenS56(onSelectScreenCode = onSelectScreenCode)
+                "s57" -> RenderSpendingAnalyticsScreenS57(onSelectScreenCode = onSelectScreenCode)
+                "s58" -> RenderFinancialDashboardScreenS58(onSelectScreenCode = onSelectScreenCode)
+                "s83" -> RenderOfficialReceiptScreenS83(onSelectScreenCode = onSelectScreenCode)
             }
             return@RfPhoneFrame
         }
