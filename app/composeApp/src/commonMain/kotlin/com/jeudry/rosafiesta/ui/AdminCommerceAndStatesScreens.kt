@@ -2014,10 +2014,23 @@ internal fun RenderAdminEntryChoiceA30(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            RfLogo(size = RfLogoSize.LARGE)
+            RfLogo(
+                customSize = 88.dp,
+                insetPadding = false,
+                modifier = Modifier.shadow(elevation = 6.dp, shape = CircleShape, spotColor = Color(0x59B450B4)),
+            )
 
-            BasicText("Hola, María", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729)))
-            BasicText("Tu cuenta tiene acceso de administración. ¿Cómo quieres entrar?", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF5F6377), textAlign = androidx.compose.ui.text.style.TextAlign.Center))
+            BasicText("Hola, María", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 26.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E324A)))
+            BasicText(
+                text = "Tu cuenta tiene acceso de administración.\n¿Cómo quieres entrar?",
+                style = TextStyle(
+                    fontFamily = typo.bodyFamily,
+                    fontSize = 15.sp,
+                    color = Color(0xFF5F6377),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    lineHeight = 21.sp,
+                ),
+            )
         }
 
         // 2 Tarjetas de modo
@@ -2068,11 +2081,11 @@ internal fun RenderAdminEntryChoiceA30(
                             .background(Color(0x33FFFFFF)),
                         contentAlignment = Alignment.Center,
                     ) {
-                        RfIcon(kind = RfIconKind.STORE, tint = Color.White, size = 24.dp)
+                        RfIcon(kind = RfIconKind.BAR_CHART, tint = Color.White, size = 24.dp)
                     }
 
                     Column {
-                        BasicText("Administración", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = Color.White))
+                        BasicText("Administración", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.White))
                         Spacer(modifier = Modifier.height(2.dp))
                         BasicText("Eventos, inventario, pagos y clientes", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFFE9EEFF)))
                     }
@@ -2101,15 +2114,15 @@ internal fun RenderAdminEntryChoiceA30(
                             .background(Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))),
                         contentAlignment = Alignment.Center,
                     ) {
-                        RfIcon(kind = RfIconKind.STAR, tint = Color.White, size = 24.dp)
+                        RfIcon(kind = RfIconKind.PARTY, tint = Color.White, size = 24.dp)
                     }
 
                     Column(modifier = Modifier.weight(1f)) {
-                        BasicText("Vista de cliente", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729)))
+                        BasicText("Vista de cliente", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E324A)))
                         BasicText("Mira la app como la ven tus clientes", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF5F6377)))
                     }
 
-                    RfIcon(kind = RfIconKind.ARROW_RIGHT, tint = Color(0xFF5F6377), size = 20.dp)
+                    RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = Color(0xFF5F6377), size = 20.dp)
                 }
             }
         }
@@ -3300,7 +3313,7 @@ internal fun RenderAdminErrorStateA37(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                RfIcon(kind = RfIconKind.WARNING, tint = Color.White, size = 18.dp)
+                RfIcon(kind = RfIconKind.WIFI_OFF, tint = Color.White, size = 18.dp)
                 BasicText(
                     text = "Sin conexión · 3 cambios por sincronizar",
                     modifier = Modifier.weight(1f),
@@ -3339,7 +3352,7 @@ internal fun RenderAdminErrorStateA37(
                 }
 
                 Column(modifier = Modifier.weight(1f)) {
-                    BasicText("Inventario", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729)))
+                    BasicText("Inventario", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E324A)))
                     BasicText("86 artículos", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF5F6377)))
                 }
             }
@@ -3354,19 +3367,32 @@ internal fun RenderAdminErrorStateA37(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(120.dp)
+                        .size(144.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFFFCE3E8)),
+                        .background(Color(0x80FCE3E8)),
                     contentAlignment = Alignment.Center,
                 ) {
-                    RfIcon(kind = RfIconKind.WARNING, tint = Color(0xFFB42345), size = 50.dp)
+                    Box(
+                        modifier = Modifier
+                            .size(120.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFFCE3E8)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        RfIcon(
+                            kind = RfIconKind.WARNING,
+                            tint = Color(0xFFB42345),
+                            size = 50.dp,
+                            strokeWidthFactor = 0.075f,
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(4.dp))
 
                 BasicText(
                     text = "No pudimos cargar el inventario",
-                    style = TextStyle(fontFamily = typo.displayFamily, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729), textAlign = androidx.compose.ui.text.style.TextAlign.Center),
+                    style = TextStyle(fontFamily = typo.displayFamily, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E324A), textAlign = androidx.compose.ui.text.style.TextAlign.Center),
                 )
 
                 BasicText(
@@ -3404,7 +3430,7 @@ internal fun RenderAdminErrorStateA37(
                             .clickable { onSelectScreenCode("A09") },
                         contentAlignment = Alignment.Center,
                     ) {
-                        BasicText("Ver la última copia guardada", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF151729)))
+                        BasicText("Ver la última copia guardada", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, fontWeight = FontWeight.Normal, color = Color(0xFF2E324A)))
                     }
                 }
 

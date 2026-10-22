@@ -645,7 +645,7 @@ internal fun RenderPersonalHomeScreen(
                     text = "Camila",
                     style = typo.rootTabTitle.copy(
                         fontSize = 22.sp,
-                        fontWeight = FontWeight.ExtraBold,
+                        fontWeight = FontWeight.Bold,
                         color = textColor,
                     ),
                     maxLines = 1,
@@ -817,7 +817,7 @@ internal fun RenderPersonalHomeScreen(
                     text = "Crea momentos inolvidables",
                     style = typo.rootTabTitle.copy(
                         fontSize = 24.sp,
-                        fontWeight = FontWeight.ExtraBold,
+                        fontWeight = FontWeight.Bold,
                         color = Color.White,
                         lineHeight = 26.sp,
                     ),
@@ -861,7 +861,7 @@ internal fun RenderPersonalHomeScreen(
                     text = "Servicios",
                     style = typo.rootTabTitle.copy(
                         fontSize = 20.sp,
-                        fontWeight = FontWeight.ExtraBold,
+                        fontWeight = FontWeight.Bold,
                         color = textColor,
                     ),
                 )
@@ -906,7 +906,7 @@ internal fun RenderPersonalHomeScreen(
                     }
                     BasicText(
                         text = "Decoración",
-                        style = typo.caption.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = textColor),
+                        style = typo.caption.copy(fontSize = 13.sp, fontWeight = FontWeight.Medium, color = textColor),
                         maxLines = 1,
                     )
                 }
@@ -928,7 +928,7 @@ internal fun RenderPersonalHomeScreen(
                     }
                     BasicText(
                         text = "Mobiliario",
-                        style = typo.caption.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = textColor),
+                        style = typo.caption.copy(fontSize = 13.sp, fontWeight = FontWeight.Medium, color = textColor),
                         maxLines = 1,
                     )
                 }
@@ -950,7 +950,7 @@ internal fun RenderPersonalHomeScreen(
                     }
                     BasicText(
                         text = "Mesa dulce",
-                        style = typo.caption.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = textColor),
+                        style = typo.caption.copy(fontSize = 13.sp, fontWeight = FontWeight.Medium, color = textColor),
                         maxLines = 1,
                     )
                 }
@@ -972,7 +972,7 @@ internal fun RenderPersonalHomeScreen(
                     }
                     BasicText(
                         text = "Iluminación",
-                        style = typo.caption.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = textColor),
+                        style = typo.caption.copy(fontSize = 13.sp, fontWeight = FontWeight.Medium, color = textColor),
                         maxLines = 1,
                     )
                 }
@@ -993,7 +993,7 @@ internal fun RenderPersonalHomeScreen(
                     text = "Tendencias",
                     style = typo.rootTabTitle.copy(
                         fontSize = 20.sp,
-                        fontWeight = FontWeight.ExtraBold,
+                        fontWeight = FontWeight.Bold,
                         color = textColor,
                     ),
                 )
@@ -1079,7 +1079,7 @@ internal fun RenderPersonalHomeScreen(
                             text = "Graduaciones",
                             style = typo.rootTabTitle.copy(
                                 fontSize = 17.sp,
-                                fontWeight = FontWeight.ExtraBold,
+                                fontWeight = FontWeight.Bold,
                                 color = textColor,
                             ),
                         )
@@ -1146,7 +1146,7 @@ internal fun RenderPersonalHomeScreen(
                             text = "Bodas",
                             style = typo.rootTabTitle.copy(
                                 fontSize = 17.sp,
-                                fontWeight = FontWeight.ExtraBold,
+                                fontWeight = FontWeight.Bold,
                                 color = textColor,
                             ),
                         )

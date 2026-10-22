@@ -35,10 +35,12 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jeudry.rosafiesta.designsystem.LocalRfTypography
+import com.jeudry.rosafiesta.designsystem.RfGradientPriceText
 import com.jeudry.rosafiesta.designsystem.RfIcon
 import com.jeudry.rosafiesta.designsystem.RfIconKind
 import com.jeudry.rosafiesta.designsystem.RfPhoto
@@ -70,7 +72,7 @@ internal fun RenderPersonalCatalogS18(
         ) {
             BasicText(
                 text = "Catálogo",
-                style = typo.heroTitle.copy(fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729)),
+                style = typo.heroTitle.copy(fontSize = 26.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E324A)),
             )
 
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -83,7 +85,7 @@ internal fun RenderPersonalCatalogS18(
                         .border(1.dp, Color(0xFFECECF5), CircleShape)
                         .clickable { onSelectScreenCode("s20") },
                 ) {
-                    RfIcon(kind = RfIconKind.CATALOG, tint = Color(0xFF151729), size = 20.dp)
+                    RfIcon(kind = RfIconKind.GRID, tint = Color(0xFF151729), size = 20.dp)
                 }
 
                 Box(
@@ -99,7 +101,7 @@ internal fun RenderPersonalCatalogS18(
                             .background(Color.White)
                             .border(1.dp, Color(0xFFECECF5), CircleShape),
                     ) {
-                        RfIcon(kind = RfIconKind.ORDERS, tint = Color(0xFF151729), size = 20.dp)
+                        RfIcon(kind = RfIconKind.PARTY, tint = Color(0xFF151729), size = 20.dp)
                     }
                     // Badge 16
                     Box(
@@ -171,9 +173,9 @@ internal fun RenderPersonalCatalogS18(
                         .clip(RoundedCornerShape(999.dp))
                         .background(
                             if (isSelected) {
-                                Brush.horizontalGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0)))
+                                Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)))
                             } else {
-                                SolidColor(Color.White)
+                                SolidColor(Color(0xFFF1EFF5))
                             },
                         )
                         .border(1.dp, if (isSelected) Color.Transparent else Color(0xFFE9E9F2), RoundedCornerShape(999.dp))
@@ -184,8 +186,8 @@ internal fun RenderPersonalCatalogS18(
                         text = cat,
                         style = typo.body.copy(
                             fontSize = 14.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = if (isSelected) Color.White else Color(0xFF151729),
+                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                            color = if (isSelected) Color.White else Color(0xFF5F6377),
                         ),
                     )
                 }
@@ -206,7 +208,7 @@ internal fun RenderPersonalCatalogS18(
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 RosaAvatar(size = RosaAvatarSize.MEDIUM)
                 Column(modifier = Modifier.weight(1f)) {
-                    BasicText("¿No sabes por dónde empezar?", style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF151729)))
+                    BasicText("¿No sabes por dónde empezar?", style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E324A)))
                     BasicText("Rosa arma tu lista en 2 minutos.", style = typo.secondary.copy(fontSize = 13.sp, color = Color(0xFF5F6377)))
                 }
                 RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF865DEC), size = 18.dp, modifier = Modifier.rotate(180f))
@@ -321,13 +323,13 @@ private fun PersonalProductCard(
                         .align(Alignment.TopEnd)
                         .padding(8.dp)
                         .size(36.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Color.White.copy(alpha = 0.95f))
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.92f))
                         .clickable { isFavorite = !isFavorite },
                 ) {
                     RfIcon(
                         kind = RfIconKind.HEART,
-                        tint = if (isFavorite) Color(0xFFEA4EA9) else Color(0xFF5F6377),
+                        tint = Color(0xFFEA4EA9),
                         filled = isFavorite,
                         size = 18.dp,
                     )
@@ -335,7 +337,7 @@ private fun PersonalProductCard(
             }
 
             Column(modifier = Modifier.padding(12.dp)) {
-                BasicText(title, maxLines = 1, style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF151729)))
+                BasicText(title, maxLines = 1, style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2E324A)))
                 Spacer(Modifier.height(2.dp))
                 BasicText(desc, maxLines = 1, style = typo.secondary.copy(fontSize = 13.sp, color = Color(0xFF5F6377)))
                 Spacer(Modifier.height(8.dp))
@@ -346,8 +348,8 @@ private fun PersonalProductCard(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Row(verticalAlignment = Alignment.Bottom) {
-                        BasicText(price, style = typo.heroTitle.copy(fontSize = 21.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFFB54BD6)))
-                        BasicText(" RD$/día", style = typo.secondary.copy(fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFB54BD6)))
+                        RfGradientPriceText(price, style = TextStyle(fontFamily = typo.displayFamily, fontSize = 24.sp, fontWeight = FontWeight.Bold))
+                        BasicText(" RD$/día", style = typo.secondary.copy(fontSize = 12.sp, color = Color(0xFF5F6377)))
                     }
 
                     Box(

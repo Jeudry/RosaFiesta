@@ -115,24 +115,22 @@ public fun RosaAvatar(
     val palette = LocalRfPalette.current
     val useAdmin = forceAdminPalette ?: palette.isAdmin
     val avatarDiameter = customSize ?: size.dp
-    val density = androidx.compose.ui.platform.LocalDensity.current
-    val px = with(density) { avatarDiameter.toPx() }
-    val gradient = remember(useAdmin, px) {
+    val gradient = remember(useAdmin) {
         if (useAdmin) {
             Brush.linearGradient(
-                0.0f to Color(0xFF7C5CF0),
-                0.55f to Color(0xFF5B6CF0),
-                1.0f to Color(0xFF2FB8C8),
-                start = Offset.Zero,
-                end = Offset(px * 0.7f, px),
+                listOf(
+                    Color(0xFF7C5CF0),
+                    Color(0xFF5B6CF0),
+                    Color(0xFF2FB8C8),
+                ),
             )
         } else {
             Brush.linearGradient(
-                0.0f to Color(0xFFE04FAF),
-                0.55f to Color(0xFF945AE1),
-                1.0f to Color(0xFF6664E9),
-                start = Offset.Zero,
-                end = Offset(px * 0.8f, px),
+                listOf(
+                    Color(0xFFE04FAF),
+                    Color(0xFF945AE1),
+                    Color(0xFF6664E9),
+                ),
             )
         }
     }
@@ -335,9 +333,13 @@ public enum class RfIconKind {
     CHECKLIST,
     LIGHTBULB,
     PHONE,
+    BAR_CHART,
+    GRID,
 }
 
 private val iconPaths: Map<RfIconKind, String> = mapOf(
+    RfIconKind.GRID to "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z",
+    RfIconKind.BAR_CHART to "M4 4v16h16M8 16v-4M12 16V9M16 16v-6",
     RfIconKind.HOME to "M3 10.5L12 3l9 7.5M5 9v11h5v-6h4v6h5V9",
     RfIconKind.CATALOG to "M4 9l1.5-5h13L20 9M4 9h16M4 9a2.7 2.7 0 0 0 5.3 0a2.7 2.7 0 0 0 5.4 0a2.7 2.7 0 0 0 5.3 0M5 11.5V20h14v-8.5M10 20v-5h4v5",
     RfIconKind.STORE to "M4 9l1.5-5h13L20 9M4 9h16M4 9a2.7 2.7 0 0 0 5.3 0a2.7 2.7 0 0 0 5.4 0a2.7 2.7 0 0 0 5.3 0M5 11.5V20h14v-8.5M10 20v-5h4v5",

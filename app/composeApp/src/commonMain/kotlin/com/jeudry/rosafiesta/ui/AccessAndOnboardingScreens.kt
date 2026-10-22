@@ -1542,8 +1542,9 @@ internal fun RenderGuestCatalogS01(
                 "Catálogo",
                 style = typo.heroTitle.copy(
                     fontSize = 26.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = Color(0xFF1A1A2E),
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = (-0.5).sp,
+                    color = Color(0xFF2E324A),
                 ),
             )
             Box(
@@ -1619,7 +1620,7 @@ internal fun RenderGuestCatalogS01(
                         .clip(CircleShape)
                         .background(
                             if (isSelected) {
-                                Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)))
+                                Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1)))
                             } else {
                                 SolidColor(Color.White)
                             },
@@ -1632,8 +1633,8 @@ internal fun RenderGuestCatalogS01(
                         text = cat,
                         style = typo.body.copy(
                             fontSize = 14.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = if (isSelected) Color.White else Color(0xFF1A1A2E),
+                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                            color = if (isSelected) Color.White else Color(0xFF5F6377),
                         ),
                     )
                 }
@@ -1648,13 +1649,13 @@ internal fun RenderGuestCatalogS01(
             horizontalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier.fillMaxWidth().height(32.dp),
         ) {
-            BasicText("15 artículos de alquiler", style = typo.secondary.copy(fontSize = 14.sp, color = Color(0xFF62627A)))
+            BasicText("15 artículos de alquiler", style = typo.secondary.copy(fontSize = 14.sp, color = Color(0xFF5F6377)))
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                BasicText("Populares", style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A2E)))
-                RfIcon(kind = RfIconKind.CHEVRON_DOWN, tint = Color(0xFF1A1A2E), size = 16.dp)
+                BasicText("Populares", style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2E324A)))
+                RfIcon(kind = RfIconKind.CHEVRON_DOWN, tint = Color(0xFF2E324A), size = 16.dp)
             }
         }
 
@@ -1747,9 +1748,9 @@ private fun GuestProductCard(
             }
 
             Column(modifier = Modifier.padding(start = 14.dp, end = 12.dp, top = 12.dp, bottom = 12.dp)) {
-                BasicText(title, maxLines = 1, style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A2E)))
+                BasicText(title, maxLines = 1, style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2E324A)))
                 Spacer(Modifier.height(3.dp))
-                BasicText(desc, maxLines = 1, style = typo.secondary.copy(fontSize = 13.sp, color = Color(0xFF62627A)))
+                BasicText(desc, maxLines = 1, style = typo.secondary.copy(fontSize = 13.sp, color = Color(0xFF5F6377)))
                 Spacer(Modifier.height(8.dp))
 
                 Row(
@@ -1758,8 +1759,8 @@ private fun GuestProductCard(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Row(verticalAlignment = Alignment.Bottom) {
-                        BasicText(price, style = typo.heroTitle.copy(fontSize = 19.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF1A1A2E)))
-                        BasicText(" /día", style = typo.secondary.copy(fontSize = 12.sp, color = Color(0xFF62627A)))
+                        BasicText(price, style = typo.heroTitle.copy(fontSize = 19.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E324A)))
+                        BasicText(" /día", style = typo.secondary.copy(fontSize = 12.sp, color = Color(0xFF5F6377)))
                     }
 
                     Box(
