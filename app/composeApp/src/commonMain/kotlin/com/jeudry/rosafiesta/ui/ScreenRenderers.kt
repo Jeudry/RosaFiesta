@@ -98,6 +98,9 @@ fun RenderScreenSpec(
 
     val offlineQueue = viewModel?.offlineQueue?.collectAsState()?.value ?: CanonicalSampleData.offlineQueue
     val isAdmin = spec.variant == RfThemeVariant.ADMIN
+    val isCustomSelfContainedScreen = spec.code in setOf(
+        "p00", "A00", "s01", "s02", "s03", "s04", "s05", "s06", "s07", "s08", "s09", "s10", "s11", "s12", "s13", "s14", "s15",
+    )
     val showBottomBar = when {
         spec.code in setOf("p00", "A00", "s03", "s04", "s05", "s06", "s07", "s08", "s09", "s10", "s11", "s12", "s13", "A30") -> false
         else -> true
@@ -107,7 +110,7 @@ fun RenderScreenSpec(
         variant = spec.variant,
         screenCode = spec.code,
         screenTitle = spec.title,
-        showMockStatusBar = isFrameHarness,
+        showMockStatusBar = isFrameHarness && spec.code !in setOf("p00", "A00"),
         wrapInPhoneBorder = isFrameHarness,
         bottomBar = {
             if (showBottomBar) {
@@ -162,6 +165,22 @@ fun RenderScreenSpec(
                 ) {
                     RenderSheetSpecificContent(spec, viewModel, onPrimaryAction, onSelectScreenCode)
                 }
+            }
+            return@RfPhoneFrame
+        }
+
+        if (isCustomSelfContainedScreen) {
+            when (spec.code) {
+                "p00" -> RenderPersonalSplashP00(onPrimaryAction = onPrimaryAction)
+                "A00" -> RenderAdminSplashA00(onPrimaryAction = onPrimaryAction)
+                "s01" -> RenderGuestCatalogS01(onSelectScreenCode = onSelectScreenCode)
+                "s02" -> RenderGuestFavoritesS02(onSelectScreenCode = onSelectScreenCode)
+                "s03", "s04", "s05" -> RenderOnboardingScreen(spec = spec, onSelectScreenCode = onSelectScreenCode)
+                "s06" -> RenderBienvenidaScreen(spec = spec, onSelectScreenCode = onSelectScreenCode)
+                "s07" -> RenderLoginScreenS07(viewModel = viewModel, onPrimaryAction = onPrimaryAction, onSelectScreenCode = onSelectScreenCode)
+                "s08" -> RenderRegisterScreenS08(onPrimaryAction = onPrimaryAction, onSelectScreenCode = onSelectScreenCode)
+                "s09", "s10", "s11", "s12", "s13" -> RenderRecoveryAndConfirmationScreens(spec = spec, onPrimaryAction = onPrimaryAction, onSelectScreenCode = onSelectScreenCode)
+                "s14", "s15" -> RenderPersonalHomeScreen(spec = spec, onSelectScreenCode = onSelectScreenCode)
             }
             return@RfPhoneFrame
         }

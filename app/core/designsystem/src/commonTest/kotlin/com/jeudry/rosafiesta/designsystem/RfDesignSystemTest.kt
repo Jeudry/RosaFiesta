@@ -34,7 +34,7 @@ class RfDesignSystemTest {
             PersonalTab.standardTabs.map { it.label },
         )
         assertEquals(
-            listOf("Inicio", "Catálogo", "Rosa", "Paquetes", "Entrar"),
+            listOf("Catálogo", "Favoritos", "Rosa", "Paquetes", "Entrar"),
             PersonalTab.guestTabs.map { it.label },
         )
         assertEquals(

@@ -61,9 +61,11 @@ public enum class RfLogoSize(public val dp: Dp) {
 public fun RfLogo(
     size: RfLogoSize = RfLogoSize.MEDIUM,
     customSize: Dp? = null,
+    insetPadding: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     val resolvedSize = customSize ?: size.dp
+    val padding = if (insetPadding) resolvedSize * 0.14f else 0.dp
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
@@ -71,12 +73,12 @@ public fun RfLogo(
             .clip(CircleShape)
             .background(Color.White)
             .border(1.5.dp, RfColors.LogoRing, CircleShape)
-            .padding(resolvedSize * 0.14f),
+            .padding(padding),
     ) {
         Image(
             painter = painterResource(Res.drawable.logo_rosafiesta),
             contentDescription = "Logo oficial de RosaFiesta",
-            contentScale = ContentScale.Fit,
+            contentScale = if (insetPadding) ContentScale.Fit else ContentScale.Crop,
             modifier = Modifier.fillMaxSize(),
         )
     }

@@ -82,7 +82,7 @@ public enum class PersonalTab(
         public val PROFILE: PersonalTab = FAVORITOS
 
         public val standardTabs: List<PersonalTab> = listOf(INICIO, CATALOGO, ROSA, EVENTOS, FAVORITOS)
-        public val guestTabs: List<PersonalTab> = listOf(INICIO, CATALOGO, ROSA, PAQUETES, ENTRAR)
+        public val guestTabs: List<PersonalTab> = listOf(CATALOGO, FAVORITOS, ROSA, PAQUETES, ENTRAR)
     }
 }
 
