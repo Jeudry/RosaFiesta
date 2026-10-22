@@ -105,6 +105,7 @@ fun RenderScreenSpec(
         "s37", "s38", "s39", "s40", "s43", "s44", "s45", "s46", "s47", "s48",
         "s49", "s50", "s51", "s52", "s53", "s54", "s55", "s56", "s57", "s58", "s83",
         "A01", "A02", "A03", "A09", "A11", "A12", "A20", "A21",
+        "A10", "A13", "A16", "A17", "A18", "A19", "A23", "A24", "A25", "A26", "A27", "A28",
     )
     val showBottomBar = when {
         spec.code in setOf(
@@ -112,7 +113,7 @@ fun RenderScreenSpec(
             "s25", "s26", "s27", "s28", "s29", "s30", "s31", "s32", "s33", "s34", "s35", "s36", "s78", "A08",
             "s38", "s39", "s40", "s43", "s44", "s45", "s46", "s47", "s48",
             "s49", "s50", "s51", "s52", "s53", "s55", "s56", "s57", "s58", "s83",
-            "A02", "A03", "A20", "A21",
+            "A02", "A03", "A20", "A21", "A10", "A13", "A16", "A17", "A18", "A19", "A23", "A25", "A27",
         ) -> false
 
         else -> true
@@ -243,6 +244,18 @@ fun RenderScreenSpec(
                 "A12" -> RenderAdminMoreA12(onSelectScreenCode = onSelectScreenCode)
                 "A20" -> RenderAdminPaymentsA20(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
                 "A21" -> RenderAdminRecordPaymentA21(onSelectScreenCode = onSelectScreenCode)
+                "A10" -> RenderAdminNewArticleA10(onSelectScreenCode = onSelectScreenCode)
+                "A13" -> RenderAdminEventDetailA13(onSelectScreenCode = onSelectScreenCode)
+                "A16" -> RenderAdminExecutionA16(onSelectScreenCode = onSelectScreenCode)
+                "A17" -> RenderAdminTasksA17(onSelectScreenCode = onSelectScreenCode)
+                "A18" -> RenderAdminSketchA18(onSelectScreenCode = onSelectScreenCode)
+                "A19" -> RenderAdminCloseoutA19(onSelectScreenCode = onSelectScreenCode)
+                "A23" -> RenderAdminArticleDetailA23(onSelectScreenCode = onSelectScreenCode)
+                "A24" -> RenderAdminPackagesA24(onSelectScreenCode = onSelectScreenCode)
+                "A25" -> RenderAdminPackageEditA25(onSelectScreenCode = onSelectScreenCode)
+                "A26" -> RenderAdminClientsA26(onSelectScreenCode = onSelectScreenCode)
+                "A27" -> RenderAdminClientProfileA27(onSelectScreenCode = onSelectScreenCode)
+                "A28" -> RenderAdminTeamA28(onSelectScreenCode = onSelectScreenCode)
             }
             return@RfPhoneFrame
         }
