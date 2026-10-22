@@ -500,7 +500,7 @@ internal fun RenderAdminHomeA01(
                         BasicText("Pago restante · Boda Real", maxLines = 1, overflow = TextOverflow.Ellipsis, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2E324A)))
                         BasicText("Vence el jueves 22 oct", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.Normal, color = Color(0xFF5F6377)))
                     }
-                    BasicText("RD$ 3,150", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E3048)))
+                    BasicText("RD$ 3,150", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729)))
                 }
 
                 Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFF0F0F6)))
@@ -518,7 +518,7 @@ internal fun RenderAdminHomeA01(
                         modifier = Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(Color(0xFFFDE3EA)),
                         contentAlignment = Alignment.Center,
                     ) {
-                        RfIcon(kind = RfIconKind.WARNING, tint = Color(0xFF8B122B), size = 20.dp)
+                        RfIcon(kind = RfIconKind.WARNING, tint = Color(0xFFB42345), size = 20.dp)
                     }
                     Column(modifier = Modifier.weight(1f)) {
                         BasicText("Mesa dulce temática", maxLines = 1, overflow = TextOverflow.Ellipsis, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2E324A)))
@@ -532,7 +532,7 @@ internal fun RenderAdminHomeA01(
                             .padding(horizontal = 9.dp),
                         contentAlignment = Alignment.Center,
                     ) {
-                        BasicText("Stock bajo", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF8B122B)))
+                        BasicText("Stock bajo", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFFB42345)))
                     }
                 }
             }
