@@ -106,6 +106,7 @@ fun RenderScreenSpec(
         "s49", "s50", "s51", "s52", "s53", "s54", "s55", "s56", "s57", "s58", "s83",
         "A01", "A02", "A03", "A09", "A11", "A12", "A20", "A21",
         "A10", "A13", "A16", "A17", "A18", "A19", "A23", "A24", "A25", "A26", "A27", "A28",
+        "A04", "A05", "A06", "A07", "A14", "A15", "A22", "A29", "A30", "A31", "A32", "A33", "A34", "A35", "A36", "A37", "A38",
     )
     val showBottomBar = when {
         spec.code in setOf(
@@ -114,6 +115,7 @@ fun RenderScreenSpec(
             "s38", "s39", "s40", "s43", "s44", "s45", "s46", "s47", "s48",
             "s49", "s50", "s51", "s52", "s53", "s55", "s56", "s57", "s58", "s83",
             "A02", "A03", "A20", "A21", "A10", "A13", "A16", "A17", "A18", "A19", "A23", "A25", "A27",
+            "A05", "A06", "A07", "A15", "A30", "A32", "A33", "A34", "A35", "A36", "A37", "A38",
         ) -> false
 
         else -> true
@@ -256,6 +258,23 @@ fun RenderScreenSpec(
                 "A26" -> RenderAdminClientsA26(onSelectScreenCode = onSelectScreenCode)
                 "A27" -> RenderAdminClientProfileA27(onSelectScreenCode = onSelectScreenCode)
                 "A28" -> RenderAdminTeamA28(onSelectScreenCode = onSelectScreenCode)
+                "A04" -> RenderAdminCreateEventA04(onSelectScreenCode = onSelectScreenCode)
+                "A05" -> RenderAdminManualEventA05(onSelectScreenCode = onSelectScreenCode)
+                "A06" -> RenderAdminEventArticlesA06(onSelectScreenCode = onSelectScreenCode)
+                "A07" -> RenderAdminEventSummaryA07(onSelectScreenCode = onSelectScreenCode)
+                "A14" -> RenderAdminChatsA14(onSelectScreenCode = onSelectScreenCode)
+                "A15" -> RenderAdminChatConversationA15(onSelectScreenCode = onSelectScreenCode)
+                "A22" -> RenderAdminQuotesA22(onSelectScreenCode = onSelectScreenCode)
+                "A29" -> RenderAdminNotificationsA29(onSelectScreenCode = onSelectScreenCode)
+                "A30" -> RenderAdminEntryChoiceA30(onSelectScreenCode = onSelectScreenCode)
+                "A31" -> RenderAdminSettingsA31(onSelectScreenCode = onSelectScreenCode)
+                "A32" -> RenderAdminCancellationsA32(onSelectScreenCode = onSelectScreenCode)
+                "A33" -> RenderAdminRefundA33(onSelectScreenCode = onSelectScreenCode)
+                "A34" -> RenderAdminReplyReviewA34(onSelectScreenCode = onSelectScreenCode)
+                "A35" -> RenderAdminEmptyStateA35(onSelectScreenCode = onSelectScreenCode)
+                "A36" -> RenderAdminLoadingStateA36(onSelectScreenCode = onSelectScreenCode)
+                "A37" -> RenderAdminErrorStateA37(onSelectScreenCode = onSelectScreenCode)
+                "A38" -> RenderAdminSuccessStateA38(onSelectScreenCode = onSelectScreenCode)
             }
             return@RfPhoneFrame
         }
