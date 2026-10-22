@@ -21,6 +21,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -335,6 +336,9 @@ public enum class RfIconKind {
     PHONE,
     BAR_CHART,
     GRID,
+    MAIL,
+    LOCK,
+    EYE,
 }
 
 private val iconPaths: Map<RfIconKind, String> = mapOf(
@@ -397,6 +401,9 @@ private val iconPaths: Map<RfIconKind, String> = mapOf(
     RfIconKind.CHECKLIST to "M4 6l1.5 1.5L8 5M4 12l1.5 1.5L8 11M4 18l1.5 1.5L8 17M11 6.5h9M11 12.5h9M11 18.5h9",
     RfIconKind.LIGHTBULB to "M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z",
     RfIconKind.PHONE to "M5 4h3.5l1.5 4.5-2.2 1.3a11 11 0 0 0 6.4 6.4l1.3-2.2L20 15.5V19a1.5 1.5 0 0 1-1.6 1.5C10.6 20 4 13.4 3.5 5.6A1.5 1.5 0 0 1 5 4z",
+    RfIconKind.MAIL to "M3 6.5A1.5 1.5 0 0 1 4.5 5h15A1.5 1.5 0 0 1 21 6.5v11a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5zM3.5 6l8.5 7 8.5-7",
+    RfIconKind.LOCK to "M5 11.5A1.5 1.5 0 0 1 6.5 10h11a1.5 1.5 0 0 1 1.5 1.5v7a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 5 18.5zM8 10V7a4 4 0 0 1 8 0v3",
+    RfIconKind.EYE to "M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12zM9 12a3 3 0 1 0 6 0a3 3 0 1 0 -6 0",
 )
 
 /**
@@ -598,3 +605,181 @@ public fun RfIllo(
         }
     }
 }
+
+/**
+ * Ilustración orbital de favoritos vacíos (s02 y s24 vacío).
+ * Representa la órbita punteada (#B9A6F7), el corazón central (#EC4F97) sobre fondo rosa suave (#FCE4EF),
+ * y los 4 cuerpos celestes: sol dorado (#F5B53B), estrella (#7650E8), satélite esmeralda (#2FB58F) y cielo (#4AA8E0).
+ */
+@Composable
+public fun HeartOrbitIllustration(
+    modifier: Modifier = Modifier,
+) {
+    Canvas(modifier = modifier) {
+        val scale = size.minDimension / 120f
+
+        // 1. Órbita punteada
+        drawCircle(
+            color = Color(0xFFB9A6F7),
+            radius = 44f * scale,
+            center = Offset(60f * scale, 60f * scale),
+            style = Stroke(
+                width = 1.6f * scale,
+                pathEffect = PathEffect.dashPathEffect(floatArrayOf(3f * scale, 6f * scale), 0f),
+            ),
+        )
+
+        // 2. Fondo circular rosa suave
+        drawCircle(
+            color = Color(0xFFFCE4EF),
+            radius = 30f * scale,
+            center = Offset(60f * scale, 60f * scale),
+        )
+
+        // 3. Corazón rosa vibrante
+        val heartPath = Path().apply {
+            moveTo(60f * scale, 76f * scale)
+            cubicTo(47f * scale, 68f * scale, 41f * scale, 61.5f * scale, 41f * scale, 54f * scale)
+            cubicTo(41f * scale, 48f * scale, 45.5f * scale, 44f * scale, 51f * scale, 44f * scale)
+            cubicTo(55f * scale, 44f * scale, 58f * scale, 46.5f * scale, 60f * scale, 49.5f * scale)
+            cubicTo(62f * scale, 46.5f * scale, 65f * scale, 44f * scale, 69f * scale, 44f * scale)
+            cubicTo(74.5f * scale, 44f * scale, 79f * scale, 48f * scale, 79f * scale, 54f * scale)
+            cubicTo(79f * scale, 61.5f * scale, 73f * scale, 68f * scale, 60f * scale, 76f * scale)
+            close()
+        }
+        drawPath(heartPath, color = Color(0xFFEC4F97))
+
+        // 4. Brillo / destello en el corazón
+        drawOval(
+            color = Color.White.copy(alpha = 0.5f),
+            topLeft = Offset((50f - 3f) * scale, (52f - 4.5f) * scale),
+            size = Size(6f * scale, 9f * scale),
+        )
+
+        // 5. Planeta 1 (12:00, dorado)
+        drawCircle(
+            color = Color(0xFFF5B53B),
+            radius = 5f * scale,
+            center = Offset(60f * scale, 16f * scale),
+        )
+
+        // 6. Estrella 4 puntas (~1:30, violeta)
+        val starPath = Path().apply {
+            moveTo(100f * scale, 30f * scale)
+            lineTo((100f + 1.6f) * scale, (30f + 4f) * scale)
+            lineTo((101.6f + 4f) * scale, (34f + 1.6f) * scale)
+            lineTo((105.6f - 4f) * scale, (35.6f + 1.6f) * scale)
+            lineTo((101.6f - 1.6f) * scale, (37.2f + 4f) * scale)
+            lineTo((100f - 1.6f) * scale, (41.2f - 4f) * scale)
+            lineTo((98.4f - 4f) * scale, (37.2f - 1.6f) * scale)
+            lineTo((94.4f + 4f) * scale, (35.6f - 1.6f) * scale)
+            close()
+        }
+        drawPath(starPath, color = Color(0xFF7650E8))
+
+        // 7. Planeta 3 (~4:30, esmeralda)
+        drawCircle(
+            color = Color(0xFF2FB58F),
+            radius = 4f * scale,
+            center = Offset(98f * scale, 82f * scale),
+        )
+
+        // 8. Planeta 4 (~8:30, celeste)
+        drawCircle(
+            color = Color(0xFF4AA8E0),
+            radius = 4.5f * scale,
+            center = Offset(20f * scale, 74f * scale),
+        )
+    }
+}
+
+/**
+ * Trío festivo de globos flotantes (s07 Login).
+ * Globos rosa (#EA4EA9), lima (#B9D84A) y amarillo (#FBCA3F) con destellos y cuerdas.
+ */
+@Composable
+public fun BalloonClusterIllustration(
+    modifier: Modifier = Modifier,
+) {
+    Canvas(modifier = modifier) {
+        val scale = size.minDimension / 120f
+
+        // Cuerdas
+        val strings = Path().apply {
+            moveTo(46f * scale, 62f * scale)
+            cubicTo(48f * scale, 80f * scale, 58f * scale, 90f * scale, 60f * scale, 110f * scale)
+            moveTo(76f * scale, 58f * scale)
+            cubicTo(74f * scale, 78f * scale, 62f * scale, 90f * scale, 60f * scale, 110f * scale)
+            moveTo(60f * scale, 78f * scale)
+            lineTo(60f * scale, 110f * scale)
+        }
+        drawPath(
+            strings,
+            color = Color(0x806E5A72),
+            style = Stroke(width = 1.4f * scale, cap = StrokeCap.Round),
+        )
+
+        // Globo rosa
+        drawOval(
+            color = Color(0xFFEA4EA9),
+            topLeft = Offset((46f - 17f) * scale, (42f - 20f) * scale),
+            size = Size(34f * scale, 40f * scale),
+        )
+        // Globo lima
+        drawOval(
+            color = Color(0xFFB9D84A),
+            topLeft = Offset((76f - 17f) * scale, (38f - 20f) * scale),
+            size = Size(34f * scale, 40f * scale),
+        )
+        // Globo amarillo
+        drawOval(
+            color = Color(0xFFFBCA3F),
+            topLeft = Offset((60f - 16f) * scale, (60f - 19f) * scale),
+            size = Size(32f * scale, 38f * scale),
+        )
+
+        // Destellos
+        drawOval(
+            color = Color.White.copy(alpha = 0.55f),
+            topLeft = Offset((40f - 3.5f) * scale, (34f - 6f) * scale),
+            size = Size(7f * scale, 12f * scale),
+        )
+        drawOval(
+            color = Color.White.copy(alpha = 0.55f),
+            topLeft = Offset((70f - 3.5f) * scale, (30f - 6f) * scale),
+            size = Size(7f * scale, 12f * scale),
+        )
+        drawOval(
+            color = Color.White.copy(alpha = 0.55f),
+            topLeft = Offset((54f - 3.5f) * scale, (52f - 6f) * scale),
+            size = Size(7f * scale, 12f * scale),
+        )
+
+        // Nudos de los globos
+        val knot1 = Path().apply {
+            moveTo(44f * scale, 61.5f * scale)
+            lineTo(48f * scale, 61.5f * scale)
+            lineTo(46f * scale, 65f * scale)
+            close()
+        }
+        drawPath(knot1, color = Color(0xFFEA4EA9))
+
+        val knot2 = Path().apply {
+            moveTo(74f * scale, 57.5f * scale)
+            lineTo(78f * scale, 57.5f * scale)
+            lineTo(76f * scale, 61f * scale)
+            close()
+        }
+        drawPath(knot2, color = Color(0xFFB9D84A))
+
+        val knot3 = Path().apply {
+            moveTo(58f * scale, 78.5f * scale)
+            lineTo(62f * scale, 78.5f * scale)
+            lineTo(60f * scale, 82f * scale)
+            close()
+        }
+        drawPath(knot3, color = Color(0xFFFBCA3F))
+    }
+}
+
+

@@ -276,25 +276,27 @@ private fun PersonalProductCard(
     photoKey: RfPhotoKey,
     bg: Color,
     badge: String? = null,
+    initialFavorite: Boolean = false,
+    useGradientPrice: Boolean = false,
     onOpenDetail: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val typo = LocalRfTypography.current
-    var isFavorite by remember { mutableStateOf(false) }
+    var isFavorite by remember { mutableStateOf(initialFavorite) }
 
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(20.dp))
             .background(Color.White)
-            .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(20.dp))
-            .shadow(elevation = 6.dp, shape = RoundedCornerShape(20.dp), spotColor = Color(0x1F4650B4))
+            .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(20.dp))
+            .shadow(elevation = 6.dp, shape = RoundedCornerShape(20.dp), spotColor = Color(0x33C850AA))
             .clickable(onClick = onOpenDetail),
     ) {
         Column {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(128.dp)
+                    .height(140.dp)
                     .background(bg),
             ) {
                 RfPhoto(
@@ -324,12 +326,12 @@ private fun PersonalProductCard(
                         .padding(8.dp)
                         .size(36.dp)
                         .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.92f))
+                        .background(Color.White)
                         .clickable { isFavorite = !isFavorite },
                 ) {
                     RfIcon(
                         kind = RfIconKind.HEART,
-                        tint = Color(0xFFEA4EA9),
+                        tint = Color(0xFFD63F98),
                         filled = isFavorite,
                         size = 18.dp,
                     )
@@ -337,9 +339,9 @@ private fun PersonalProductCard(
             }
 
             Column(modifier = Modifier.padding(12.dp)) {
-                BasicText(title, maxLines = 1, style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2E324A)))
+                BasicText(title, maxLines = 1, style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A2E)))
                 Spacer(Modifier.height(2.dp))
-                BasicText(desc, maxLines = 1, style = typo.secondary.copy(fontSize = 13.sp, color = Color(0xFF5F6377)))
+                BasicText(desc, maxLines = 1, style = typo.secondary.copy(fontSize = 13.sp, color = Color(0xFF62627A)))
                 Spacer(Modifier.height(8.dp))
 
                 Row(
@@ -348,8 +350,20 @@ private fun PersonalProductCard(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Row(verticalAlignment = Alignment.Bottom) {
-                        RfGradientPriceText(price, style = TextStyle(fontFamily = typo.displayFamily, fontSize = 24.sp, fontWeight = FontWeight.Bold))
-                        BasicText(" RD$/día", style = typo.secondary.copy(fontSize = 12.sp, color = Color(0xFF5F6377)))
+                        if (useGradientPrice) {
+                            RfGradientPriceText(price, style = TextStyle(fontFamily = typo.displayFamily, fontSize = 24.sp, fontWeight = FontWeight.Bold))
+                            BasicText(" RD$/día", style = typo.secondary.copy(fontSize = 12.sp, color = Color(0xFF62627A)))
+                        } else {
+                            BasicText(
+                                "RD$ $price",
+                                style = typo.heroTitle.copy(
+                                    fontSize = 19.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = Color(0xFF1A1A2E),
+                                ),
+                            )
+                            BasicText(" /día", style = typo.secondary.copy(fontSize = 12.sp, color = Color(0xFF62627A)))
+                        }
                     }
 
                     Box(
@@ -358,7 +372,7 @@ private fun PersonalProductCard(
                             .size(40.dp)
                             .clip(CircleShape)
                             .background(
-                                Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))),
+                                Brush.horizontalGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))),
                             )
                             .shadow(elevation = 8.dp, shape = CircleShape, spotColor = Color(0x99865DEC)),
                     ) {
@@ -761,19 +775,20 @@ internal fun RenderPackagesScreenS21(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(top = 54.dp, start = 20.dp, end = 20.dp),
+            .padding(top = 58.dp, start = 20.dp, end = 20.dp),
     ) {
-        BasicText("Paquetes", style = typo.heroTitle.copy(fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729)))
-        Spacer(Modifier.height(4.dp))
-        BasicText("Colecciones temáticas, listas para tu evento", style = typo.secondary.copy(fontSize = 14.sp, color = Color(0xFF5F6377)))
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            BasicText("Paquetes", style = typo.heroTitle.copy(fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF1A1A2E)))
+            BasicText("Colecciones temáticas, listas para tu evento", style = typo.secondary.copy(fontSize = 14.sp, color = Color(0xFF62627A)))
+        }
 
         Spacer(Modifier.height(18.dp))
 
         Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.verticalScroll(rememberScrollState())) {
             PackageSummaryCard("Bodas Rosa", "Paquete romántico completo para bodas, con arco floral y centros de mesa.", "RD$ 850", "Ahorra 15%", RfPhotoKey.BODA, Color(0xFFFDE6F2)) { onSelectScreenCode("s22") }
-            PackageSummaryCard("Quinceañera Premium", "Paquete de lujo para quinceañeras con arco floral y mesas dulces.", "RD$ 1,200", "Ahorra 12%", RfPhotoKey.QUINCEANERA, Color(0xFFEFE8FD)) { onSelectScreenCode("s22") }
-            PackageSummaryCard("Cumpleaños Infantil", "Kit completo para fiestas infantiles: globos, banner y mobiliario.", "RD$ 450", "Ahorra 10%", RfPhotoKey.CUMPLE_INFANTIL, Color(0xFFEEF6D6)) { onSelectScreenCode("s22") }
-            PackageSummaryCard("Evento Corporativo", "Solución profesional para eventos empresariales y conferencias.", "RD$ 600", "Ahorra 8%", RfPhotoKey.CORPORATIVO, Color(0xFFFFF2C9)) { onSelectScreenCode("s22") }
+            PackageSummaryCard("Quinceañera Premium", "Paquete de lujo para quinceañeras con arco floral.", "RD$ 1,200", "Ahorra 12%", RfPhotoKey.QUINCEANERA, Color(0xFFEFE8FD)) { onSelectScreenCode("s22") }
+            PackageSummaryCard("Cumpleaños Infantil", "Kit completo para fiestas infantiles: globos, banner y más.", "RD$ 450", "Ahorra 10%", RfPhotoKey.CUMPLE_INFANTIL, Color(0xFFEEF6D6)) { onSelectScreenCode("s22") }
+            PackageSummaryCard("Evento Corporativo", "Solución profesional para eventos empresariales.", "RD$ 600", "Ahorra 8%", RfPhotoKey.CORPORATIVO, Color(0xFFFFF2C9)) { onSelectScreenCode("s22") }
             Spacer(Modifier.height(84.dp))
         }
     }
@@ -795,7 +810,8 @@ private fun PackageSummaryCard(
             .fillMaxWidth()
             .clip(RoundedCornerShape(20.dp))
             .background(Color.White)
-            .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(20.dp))
+            .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(20.dp))
+            .shadow(elevation = 4.dp, shape = RoundedCornerShape(20.dp), spotColor = Color(0x22C850AA))
             .clickable(onClick = onClick)
             .padding(10.dp),
     ) {
@@ -809,7 +825,7 @@ private fun PackageSummaryCard(
                 RfPhoto(photoKey = photoKey, contentDescription = title, cornerRadius = 16.dp, modifier = Modifier.fillMaxSize())
             }
 
-            Column(modifier = Modifier.weight(1f)) {
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(999.dp))
@@ -818,13 +834,10 @@ private fun PackageSummaryCard(
                 ) {
                     BasicText(discountBadge, style = typo.sectionCap.copy(fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF4E6A10)))
                 }
-                Spacer(Modifier.height(4.dp))
-                BasicText(title, style = typo.heroTitle.copy(fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729)))
-                Spacer(Modifier.height(2.dp))
-                BasicText(desc, maxLines = 2, style = typo.secondary.copy(fontSize = 13.sp, color = Color(0xFF5F6377)))
-                Spacer(Modifier.height(6.dp))
-                Row(verticalAlignment = Alignment.Bottom) {
-                    BasicText("desde ", style = typo.secondary.copy(fontSize = 13.sp, color = Color(0xFF5F6377)))
+                BasicText(title, style = typo.heroTitle.copy(fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF1A1A2E)))
+                BasicText(desc, maxLines = 2, style = typo.secondary.copy(fontSize = 13.sp, lineHeight = 18.2.sp, color = Color(0xFF62627A)))
+                Row(verticalAlignment = Alignment.Bottom, modifier = Modifier.padding(top = 2.dp)) {
+                    BasicText("desde ", style = typo.secondary.copy(fontSize = 13.sp, color = Color(0xFF62627A)))
                     BasicText(price, style = typo.heroTitle.copy(fontSize = 17.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFFC2338F)))
                 }
             }
@@ -1077,18 +1090,37 @@ internal fun RenderClientFavoritesScreenS24(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(top = 54.dp, start = 20.dp, end = 20.dp),
+            .padding(top = 58.dp, start = 20.dp, end = 20.dp),
     ) {
-        BasicText("Favoritos", style = typo.heroTitle.copy(fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729)))
-        Spacer(Modifier.height(4.dp))
-        BasicText("2 artículos guardados", style = typo.secondary.copy(fontSize = 15.sp, color = Color(0xFF5F6377)))
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            BasicText("Favoritos", style = typo.heroTitle.copy(fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF1A1A2E)))
+            BasicText("2 artículos guardados", style = typo.secondary.copy(fontSize = 15.sp, color = Color(0xFF62627A)))
+        }
 
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(18.dp))
 
         // Grid 2 columnas de favoritos
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-            PersonalProductCard("Silla Tiffany Cristal", "Acrílico transparente", "4", RfPhotoKey.SILLA_TIFFANY, Color(0xFFDDF4F3), onOpenDetail = { onSelectScreenCode("s19") }, modifier = Modifier.weight(1f))
-            PersonalProductCard("Mesa redonda", "Para 8 a 10 invitados", "25", RfPhotoKey.MESA_REDONDA, Color(0xFFFFF2C9), onOpenDetail = { onSelectScreenCode("s19") }, modifier = Modifier.weight(1f))
+            PersonalProductCard(
+                title = "Silla Tiffany Cristal",
+                desc = "Acrílico transparente, elegante",
+                price = "4",
+                photoKey = RfPhotoKey.SILLA_TIFFANY,
+                bg = Color(0xFFDDF4F3),
+                initialFavorite = true,
+                onOpenDetail = { onSelectScreenCode("s19") },
+                modifier = Modifier.weight(1f),
+            )
+            PersonalProductCard(
+                title = "Mesa redonda",
+                desc = "Para 8 a 10 invitados",
+                price = "25",
+                photoKey = RfPhotoKey.MESA_REDONDA,
+                bg = Color(0xFFFFF2C9),
+                initialFavorite = true,
+                onOpenDetail = { onSelectScreenCode("s19") },
+                modifier = Modifier.weight(1f),
+            )
         }
 
         Spacer(Modifier.height(20.dp))
@@ -1102,11 +1134,11 @@ internal fun RenderClientFavoritesScreenS24(
                 .padding(16.dp),
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     RosaAvatar(size = RosaAvatarSize.MEDIUM)
-                    Column(modifier = Modifier.weight(1f)) {
-                        BasicText("¿Los agrego a tu boda?", style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF151729)))
-                        BasicText("Los dos artículos quedarían en “Boda Real Rosa & Dorado”.", style = typo.secondary.copy(fontSize = 13.sp, color = Color(0xFF5F6377)))
+                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        BasicText("¿Los agrego a tu boda?", style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A2E)))
+                        BasicText("Los dos artículos quedarían en “Boda Real Rosa & Dorado”.", style = typo.secondary.copy(fontSize = 14.sp, lineHeight = 20.sp, color = Color(0xFF62627A)))
                     }
                 }
 
@@ -1116,8 +1148,9 @@ internal fun RenderClientFavoritesScreenS24(
                         modifier = Modifier
                             .weight(1f)
                             .height(46.dp)
+                            .shadow(elevation = 6.dp, shape = RoundedCornerShape(999.dp), spotColor = Color(0x99865DEC))
                             .clip(RoundedCornerShape(999.dp))
-                            .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF865DEC))))
+                            .background(Brush.horizontalGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))))
                             .clickable { onSelectScreenCode("s37") },
                     ) {
                         BasicText("Agregar ambos", style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.White))
@@ -1132,7 +1165,7 @@ internal fun RenderClientFavoritesScreenS24(
                             .clickable { onSelectScreenCode("s37") }
                             .padding(horizontal = 16.dp),
                     ) {
-                        BasicText("Elegir evento", style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF151729)))
+                        BasicText("Elegir evento", style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A2E)))
                     }
                 }
             }
