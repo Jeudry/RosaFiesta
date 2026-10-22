@@ -107,6 +107,8 @@ fun RenderScreenSpec(
         "A01", "A02", "A03", "A09", "A11", "A12", "A20", "A21",
         "A10", "A13", "A16", "A17", "A18", "A19", "A23", "A24", "A25", "A26", "A27", "A28",
         "A04", "A05", "A06", "A07", "A14", "A15", "A22", "A29", "A30", "A31", "A32", "A33", "A34", "A35", "A36", "A37", "A38",
+        "s16", "s17", "s41", "s42", "s59", "s60", "s61", "s62", "s63", "s64", "s65", "s66", "s67", "s68", "s69", "s70", "s71", "s72", "s73", "s74",
+        "s79", "s80", "s82", "s86", "s87", "s88", "s89", "s90", "s91", "s92",
     )
     val showBottomBar = when {
         spec.code in setOf(
@@ -116,6 +118,8 @@ fun RenderScreenSpec(
             "s49", "s50", "s51", "s52", "s53", "s55", "s56", "s57", "s58", "s83",
             "A02", "A03", "A20", "A21", "A10", "A13", "A16", "A17", "A18", "A19", "A23", "A25", "A27",
             "A05", "A06", "A07", "A15", "A30", "A32", "A33", "A34", "A35", "A36", "A37", "A38",
+            "s16", "s17", "s41", "s42", "s59", "s60", "s61", "s62", "s63", "s64", "s65", "s66", "s67", "s68", "s69", "s70", "s71", "s72", "s73", "s74",
+            "s79", "s80", "s82", "s86", "s87", "s88", "s89", "s90", "s91", "s92",
         ) -> false
 
         else -> true
@@ -275,6 +279,36 @@ fun RenderScreenSpec(
                 "A36" -> RenderAdminLoadingStateA36(onSelectScreenCode = onSelectScreenCode)
                 "A37" -> RenderAdminErrorStateA37(onSelectScreenCode = onSelectScreenCode)
                 "A38" -> RenderAdminSuccessStateA38(onSelectScreenCode = onSelectScreenCode)
+                "s16" -> RenderAboutScreenS16(onSelectScreenCode = onSelectScreenCode)
+                "s17" -> RenderCompanyReviewsS17(onSelectScreenCode = onSelectScreenCode)
+                "s41" -> RenderEventChatTabS41(onSelectScreenCode = onSelectScreenCode)
+                "s42" -> RenderEventChatS42(onSelectScreenCode = onSelectScreenCode)
+                "s59" -> RenderFinanceDashboardS59(onSelectScreenCode = onSelectScreenCode)
+                "s60" -> RenderInsurancePanelS60(onSelectScreenCode = onSelectScreenCode)
+                "s61" -> RenderAuditPanelS61(onSelectScreenCode = onSelectScreenCode)
+                "s62" -> RenderClientsAnalyticsS62(onSelectScreenCode = onSelectScreenCode)
+                "s63" -> RenderInventoryCalendarS63(onSelectScreenCode = onSelectScreenCode)
+                "s64" -> RenderLeadsPipelineS64(onSelectScreenCode = onSelectScreenCode)
+                "s65" -> RenderLeadsFollowupS65(onSelectScreenCode = onSelectScreenCode)
+                "s66" -> RenderLeadsStatsS66(onSelectScreenCode = onSelectScreenCode)
+                "s67" -> RenderReportsIncomeS67(onSelectScreenCode = onSelectScreenCode)
+                "s68" -> RenderReportsEventsS68(onSelectScreenCode = onSelectScreenCode)
+                "s69" -> RenderReportsClientsS69(onSelectScreenCode = onSelectScreenCode)
+                "s70" -> RenderReportsInventoryS70(onSelectScreenCode = onSelectScreenCode)
+                "s71" -> RenderReviewModerationS71(onSelectScreenCode = onSelectScreenCode)
+                "s72" -> RenderBotQuestionsS72(onSelectScreenCode = onSelectScreenCode)
+                "s73" -> RenderBotKeywordsS73(onSelectScreenCode = onSelectScreenCode)
+                "s74" -> RenderBotConversationsS74(onSelectScreenCode = onSelectScreenCode)
+                "s79" -> RenderPersonalNotificationsS79(onSelectScreenCode = onSelectScreenCode)
+                "s80" -> RenderPersonalSearchS80(onSelectScreenCode = onSelectScreenCode)
+                "s82" -> RenderPersonalPaymentsS82(onSelectScreenCode = onSelectScreenCode)
+                "s86" -> RenderAccountSettingsS86(onSelectScreenCode = onSelectScreenCode)
+                "s87" -> RenderTermsS87(onSelectScreenCode = onSelectScreenCode)
+                "s88" -> RenderDeleteAccountS88(onSelectScreenCode = onSelectScreenCode)
+                "s89" -> RenderPersonalEmptyStateS89(onSelectScreenCode = onSelectScreenCode)
+                "s90" -> RenderPersonalLoadingStateS90(onSelectScreenCode = onSelectScreenCode)
+                "s91" -> RenderPersonalOfflineStateS91(onSelectScreenCode = onSelectScreenCode)
+                "s92" -> RenderPersonalSuccessStateS92(onSelectScreenCode = onSelectScreenCode)
             }
             return@RfPhoneFrame
         }
