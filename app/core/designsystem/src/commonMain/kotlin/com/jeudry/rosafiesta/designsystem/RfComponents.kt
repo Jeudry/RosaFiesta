@@ -127,33 +127,43 @@ public fun PersonalTabBar(
             tabs.forEach { tab ->
                 val selected = tab == activeTab
                 if (tab == PersonalTab.ROSA) {
-                    Spacer(Modifier.width(64.dp))
+                    Spacer(Modifier.weight(1f))
                 } else {
-                    val pillShape = RoundedCornerShape(999.dp)
-                    val fgColor = if (selected) Color.White else inactiveColor
+                    val pillBg = if (selected) {
+                        Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))
+                    } else {
+                        SolidColor(Color.Transparent)
+                    }
+                    val iconColor = if (selected) Color.White else inactiveColor
+                    val labelColor = if (selected) {
+                        if (dark) Color(0xFFC84FB8) else Color(0xFFA956D3)
+                    } else {
+                        inactiveColor
+                    }
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center,
                         modifier = Modifier
-                            .clip(pillShape)
-                            .then(
-                                if (selected) {
-                                    Modifier.background(RfColors.PersonalHeroGradient, pillShape)
-                                } else {
-                                    Modifier
-                                },
-                            )
+                            .weight(1f)
                             .clickable { onSelectTab(tab) }
-                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                            .padding(vertical = 4.dp),
                     ) {
-                        RfIcon(kind = tab.icon, tint = fgColor, size = 18.dp)
-                        Spacer(Modifier.height(2.dp))
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .size(width = 52.dp, height = 30.dp)
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(pillBg),
+                        ) {
+                            RfIcon(kind = tab.icon, tint = iconColor, size = 22.dp)
+                        }
+                        Spacer(Modifier.height(4.dp))
                         BasicText(
                             text = tab.label,
                             style = typo.caption.copy(
-                                fontSize = 11.sp,
-                                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                                color = fgColor,
+                                fontSize = 11.5.sp,
+                                fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
+                                color = labelColor,
                             ),
                             maxLines = 1,
                         )
@@ -170,18 +180,27 @@ public fun PersonalTabBar(
                 .align(Alignment.TopCenter)
                 .clickable { onSelectTab(PersonalTab.ROSA) },
         ) {
-            RosaAvatar(
-                size = RosaAvatarSize.TAB_CENTER,
-                glow = rosaSelected,
-                forceAdminPalette = false,
-            )
-            Spacer(Modifier.height(2.dp))
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(64.dp)
+                    .clip(CircleShape)
+                    .background(if (dark) Color(0xFF12121E) else Color.White)
+                    .padding(4.dp),
+            ) {
+                RosaAvatar(
+                    size = RosaAvatarSize.TAB_CENTER,
+                    glow = rosaSelected,
+                    forceAdminPalette = false,
+                )
+            }
+            Spacer(Modifier.height(4.dp))
             BasicText(
                 text = "Rosa",
                 style = typo.caption.copy(
-                    fontSize = 11.sp,
+                    fontSize = 11.5.sp,
                     fontWeight = FontWeight.Bold,
-                    color = if (rosaSelected) RfColors.RosaBrand else inactiveColor,
+                    color = if (dark) Color(0xFFF2F0F8) else Color(0xFF1A1A2E),
                 ),
             )
         }
@@ -248,33 +267,37 @@ public fun AdminTabBar(
             AdminTab.entries.forEach { tab ->
                 val selected = tab == activeTab
                 if (tab == AdminTab.ROSA) {
-                    Spacer(Modifier.width(64.dp))
+                    Spacer(Modifier.weight(1f))
                 } else {
-                    val pillShape = RoundedCornerShape(999.dp)
-                    val fgColor = if (selected) Color.White else RfColors.AdminMuted
+                    val pillBg = if (selected) {
+                        Brush.linearGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0)))
+                    } else {
+                        SolidColor(Color.Transparent)
+                    }
+                    val iconColor = if (selected) Color.White else Color(0xFF5F6377)
+                    val labelColor = if (selected) Color(0xFF4B47D6) else Color(0xFF5F6377)
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center,
                         modifier = Modifier
-                            .clip(pillShape)
-                            .then(
-                                if (selected) {
-                                    Modifier.background(RfColors.AdminPrimaryGradient, pillShape)
-                                } else {
-                                    Modifier
-                                },
-                            )
+                            .weight(1f)
                             .clickable { onSelectTab(tab) }
-                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                            .padding(vertical = 4.dp),
                     ) {
-                        Box {
-                            RfIcon(kind = tab.icon, tint = fgColor, size = 18.dp)
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .size(width = 52.dp, height = 30.dp)
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(pillBg),
+                        ) {
+                            RfIcon(kind = tab.icon, tint = iconColor, size = 22.dp)
                             if (tab.badgeCount > 0) {
                                 Box(
                                     contentAlignment = Alignment.Center,
                                     modifier = Modifier
                                         .align(Alignment.TopEnd)
-                                        .offset(x = 8.dp, y = (-4).dp)
+                                        .offset(x = 6.dp, y = (-2).dp)
                                         .size(15.dp)
                                         .clip(CircleShape)
                                         .background(RfColors.Sol),
@@ -286,13 +309,13 @@ public fun AdminTabBar(
                                 }
                             }
                         }
-                        Spacer(Modifier.height(2.dp))
+                        Spacer(Modifier.height(4.dp))
                         BasicText(
                             text = tab.label,
                             style = typo.caption.copy(
-                                fontSize = 11.sp,
-                                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                                color = fgColor,
+                                fontSize = 11.5.sp,
+                                fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
+                                color = labelColor,
                             ),
                             maxLines = 1,
                         )
@@ -309,18 +332,27 @@ public fun AdminTabBar(
                 .align(Alignment.TopCenter)
                 .clickable { onSelectTab(AdminTab.ROSA) },
         ) {
-            RosaAvatar(
-                size = RosaAvatarSize.TAB_CENTER,
-                glow = rosaSelected,
-                forceAdminPalette = true,
-            )
-            Spacer(Modifier.height(2.dp))
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(64.dp)
+                    .clip(CircleShape)
+                    .background(Color.White)
+                    .padding(4.dp),
+            ) {
+                RosaAvatar(
+                    size = RosaAvatarSize.TAB_CENTER,
+                    glow = rosaSelected,
+                    forceAdminPalette = true,
+                )
+            }
+            Spacer(Modifier.height(4.dp))
             BasicText(
                 text = "Rosa",
                 style = typo.caption.copy(
-                    fontSize = 11.sp,
+                    fontSize = 11.5.sp,
                     fontWeight = FontWeight.Bold,
-                    color = if (rosaSelected) RfColors.IndigoBrand else RfColors.AdminMuted,
+                    color = Color(0xFF151729),
                 ),
             )
         }

@@ -152,7 +152,9 @@ fun RenderScreenSpec(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
                 modifier = Modifier.fillMaxSize(),
             ) {
-                ScreenHeaderBlock(spec, onSelectScreenCode)
+                if (spec.code !in setOf("s14", "s15")) {
+                    ScreenHeaderBlock(spec, onSelectScreenCode)
+                }
                 RfBottomSheet(
                     title = spec.title,
                     onDismiss = onPrimaryAction,
@@ -190,7 +192,9 @@ fun RenderScreenSpec(
                 )
             }
 
-            ScreenHeaderBlock(spec, onSelectScreenCode)
+            if (spec.code !in setOf("s14", "s15")) {
+                ScreenHeaderBlock(spec, onSelectScreenCode)
+            }
 
             RenderScreenBodyByCode(
                 spec = spec,

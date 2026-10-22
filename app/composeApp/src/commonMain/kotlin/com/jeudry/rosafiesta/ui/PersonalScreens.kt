@@ -1,16 +1,24 @@
 package com.jeudry.rosafiesta.ui
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
@@ -18,7 +26,16 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jeudry.rosafiesta.core.engine.RosaFiestaEngine
@@ -33,6 +50,7 @@ import com.jeudry.rosafiesta.designsystem.RfDimens
 import com.jeudry.rosafiesta.designsystem.RfField
 import com.jeudry.rosafiesta.designsystem.RfGradientPriceText
 import com.jeudry.rosafiesta.designsystem.RfHeroCard
+import com.jeudry.rosafiesta.designsystem.RfIcon
 import com.jeudry.rosafiesta.designsystem.RfIconKind
 import com.jeudry.rosafiesta.designsystem.RfIconTile
 import com.jeudry.rosafiesta.designsystem.RfIllo
@@ -307,6 +325,11 @@ internal fun RenderPersonalHomeContent(
         }
     }
 
+    if (spec.code in setOf("s14", "s15")) {
+        RenderPersonalHomeScreen(spec = spec, onSelectScreenCode = onSelectScreenCode)
+        return
+    }
+
     RfHeroCard {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -376,6 +399,746 @@ internal fun RenderPersonalHomeContent(
     }
 
     RfButton(label = spec.primaryCta, onClick = onPrimaryAction)
+}
+
+@Composable
+private fun HeroBalloonArchIllustration(modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val s = size.width / 120f
+        drawOval(
+            color = Color(0x142B1730),
+            topLeft = Offset(10f * s, 106.5f * s),
+            size = Size(100f * s, 7f * s),
+        )
+        drawCircle(Color(0xFFE2EFA6), radius = 6.5f * s, center = Offset(9f * s, 91f * s))
+        drawCircle(Color(0xFFFFDF8A), radius = 6.5f * s, center = Offset(26.6f * s, 60f * s))
+        drawCircle(Color(0xFFF9B6D3), radius = 6.5f * s, center = Offset(60f * s, 47f * s))
+        drawCircle(Color(0xFFE2EFA6), radius = 6.5f * s, center = Offset(93.4f * s, 60f * s))
+        drawCircle(Color(0xFFC9B6F7), radius = 6.5f * s, center = Offset(111f * s, 91f * s))
+        val balloons = listOf(
+            Offset(18f, 104f) to Color(0xFFEA4EA9),
+            Offset(20.5f, 86f) to Color(0xFFB9D84A),
+            Offset(28f, 72f) to Color(0xFF865DEC),
+            Offset(39f, 62.5f) to Color(0xFFFBCA3F),
+            Offset(52.7f, 58f) to Color(0xFFEA4EA9),
+            Offset(67.3f, 58f) to Color(0xFFB9D84A),
+            Offset(81f, 62.5f) to Color(0xFF865DEC),
+            Offset(92f, 72f) to Color(0xFFFBCA3F),
+            Offset(99.5f, 86f) to Color(0xFFEA4EA9),
+            Offset(102f, 104f) to Color(0xFFB9D84A),
+        )
+        balloons.forEach { (pos, color) ->
+            drawCircle(color, radius = 10.5f * s, center = Offset(pos.x * s, pos.y * s))
+        }
+        val highlights = listOf(
+            Offset(15f, 100f),
+            Offset(36f, 58.5f),
+            Offset(64f, 54f),
+            Offset(89f, 68f),
+            Offset(99f, 100f),
+        )
+        highlights.forEach { pos ->
+            drawOval(
+                color = Color(0x8CFFFFFF),
+                topLeft = Offset((pos.x - 2.4f) * s, (pos.y - 3.4f) * s),
+                size = Size(4.8f * s, 6.8f * s),
+            )
+        }
+        drawCircle(Color(0xFFFFD45C), radius = 3.5f * s, center = Offset(60f * s, 26f * s))
+    }
+}
+
+@Composable
+private fun ServiceIllustrationFloral(modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val s = size.width / 120f
+        drawOval(Color(0x142B1730), topLeft = Offset(38f * s, 105f * s), size = Size(44f * s, 6f * s))
+        val leaf1 = Path().apply {
+            moveTo(60f * s, 74f * s)
+            cubicTo(40f * s, 72f * s, 28f * s, 58f * s, 32f * s, 46f * s)
+            cubicTo(46f * s, 50f * s, 56f * s, 60f * s, 60f * s, 74f * s)
+            close()
+        }
+        drawPath(leaf1, Color(0xFF2FB58F))
+        val leaf2 = Path().apply {
+            moveTo(60f * s, 74f * s)
+            cubicTo(80f * s, 72f * s, 93f * s, 60f * s, 89f * s, 48f * s)
+            cubicTo(76f * s, 52f * s, 64f * s, 61f * s, 60f * s, 74f * s)
+            close()
+        }
+        drawPath(leaf2, Color(0xFF26A07D))
+        drawLine(Color(0xFF1F8C6B), Offset(60f * s, 74f * s), Offset(48f * s, 44f * s), 2.4f * s, StrokeCap.Round)
+        drawLine(Color(0xFF1F8C6B), Offset(60f * s, 74f * s), Offset(60f * s, 36f * s), 2.4f * s, StrokeCap.Round)
+        drawLine(Color(0xFF1F8C6B), Offset(60f * s, 74f * s), Offset(75f * s, 46f * s), 2.4f * s, StrokeCap.Round)
+        drawCircle(Color(0xFFF9B6D3), radius = 10f * s, center = Offset(47f * s, 42f * s))
+        drawCircle(Color(0xFFFFD98A), radius = 10f * s, center = Offset(76f * s, 44f * s))
+        drawCircle(Color(0xFFEC4F97), radius = 12.5f * s, center = Offset(61f * s, 31f * s))
+        val vase = Path().apply {
+            moveTo(46f * s, 72f * s)
+            lineTo(74f * s, 72f * s)
+            lineTo(70f * s, 104f * s)
+            quadraticTo(60f * s, 108f * s, 50f * s, 104f * s)
+            close()
+        }
+        drawPath(vase, Color(0xFFB9A6F7))
+    }
+}
+
+@Composable
+private fun ServiceIllustrationMobiliario(modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val s = size.width / 120f
+        drawOval(Color(0x142B1730), topLeft = Offset(30f * s, 104.5f * s), size = Size(60f * s, 7f * s))
+        val gold = Color(0xFFD9A441)
+        drawLine(gold, Offset(45f * s, 66f * s), Offset(41f * s, 106f * s), 3.4f * s, StrokeCap.Round)
+        drawLine(gold, Offset(75f * s, 66f * s), Offset(79f * s, 106f * s), 3.4f * s, StrokeCap.Round)
+        drawLine(gold, Offset(49f * s, 70f * s), Offset(47f * s, 104f * s), 2.4f * s, StrokeCap.Round)
+        drawLine(gold, Offset(71f * s, 70f * s), Offset(73f * s, 104f * s), 2.4f * s, StrokeCap.Round)
+        drawLine(gold, Offset(43f * s, 92f * s), Offset(77f * s, 92f * s), 2.4f * s, StrokeCap.Round)
+        drawLine(gold, Offset(46f * s, 64f * s), Offset(46f * s, 18f * s), 3.4f * s, StrokeCap.Round)
+        drawLine(gold, Offset(74f * s, 64f * s), Offset(74f * s, 18f * s), 3.4f * s, StrokeCap.Round)
+        drawLine(gold, Offset(46f * s, 18f * s), Offset(74f * s, 18f * s), 3.4f * s, StrokeCap.Round)
+        drawLine(gold, Offset(46f * s, 30f * s), Offset(74f * s, 30f * s), 3.4f * s, StrokeCap.Round)
+        drawLine(gold, Offset(46f * s, 50f * s), Offset(74f * s, 50f * s), 3.4f * s, StrokeCap.Round)
+        drawLine(gold, Offset(54f * s, 30f * s), Offset(54f * s, 50f * s), 2f * s, StrokeCap.Round)
+        drawLine(gold, Offset(60f * s, 30f * s), Offset(60f * s, 50f * s), 2f * s, StrokeCap.Round)
+        drawLine(gold, Offset(66f * s, 30f * s), Offset(66f * s, 50f * s), 2f * s, StrokeCap.Round)
+        drawRoundRect(Color(0xFFF9B6D3), topLeft = Offset(38f * s, 59f * s), size = Size(44f * s, 10f * s), cornerRadius = CornerRadius(5f * s))
+        drawRoundRect(Color(0x99FFFFFF), topLeft = Offset(42f * s, 60f * s), size = Size(36f * s, 3f * s), cornerRadius = CornerRadius(1.5f * s))
+    }
+}
+
+@Composable
+private fun ServiceIllustrationDulce(modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val s = size.width / 120f
+        drawOval(Color(0x142B1730), topLeft = Offset(14f * s, 106.5f * s), size = Size(92f * s, 7f * s))
+        drawRect(Color(0xFFF9B6D3), topLeft = Offset(16f * s, 74f * s), size = Size(88f * s, 34f * s))
+        val skirtLine = Color(0x4DEC4F97)
+        for (x in listOf(30f, 44f, 58f, 72f, 86f)) {
+            drawLine(skirtLine, Offset(x * s, 80f * s), Offset(x * s, 108f * s), 2f * s)
+        }
+        drawRect(Color(0xFFEC4F97), topLeft = Offset(14f * s, 72f * s), size = Size(92f * s, 8f * s))
+        drawRoundRect(Color(0xFFFFF6EE), topLeft = Offset(42f * s, 45f * s), size = Size(36f * s, 21f * s), cornerRadius = CornerRadius(4f * s))
+        drawRoundRect(Color(0xFFFFF6EE), topLeft = Offset(48f * s, 29f * s), size = Size(24f * s, 17f * s), cornerRadius = CornerRadius(4f * s))
+        drawRoundRect(Color(0xFFF9B6D3), topLeft = Offset(48f * s, 29f * s), size = Size(24f * s, 5f * s), cornerRadius = CornerRadius(2.5f * s))
+        drawRoundRect(Color(0xFF4AA8E0), topLeft = Offset(58.5f * s, 19f * s), size = Size(3f * s, 10f * s), cornerRadius = CornerRadius(1.5f * s))
+        drawCircle(Color(0xFFF5B53B), radius = 3.5f * s, center = Offset(60f * s, 15f * s))
+        drawCircle(Color(0xFFFFF6EE), radius = 6.5f * s, center = Offset(31f * s, 60f * s))
+        drawCircle(Color(0xFFEC4F97), radius = 2.2f * s, center = Offset(31f * s, 54f * s))
+        drawCircle(Color(0xFFFFF6EE), radius = 6.5f * s, center = Offset(89f * s, 60f * s))
+        drawCircle(Color(0xFFEC4F97), radius = 2.2f * s, center = Offset(89f * s, 54f * s))
+    }
+}
+
+@Composable
+private fun ServiceIllustrationLuz(modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val s = size.width / 120f
+        val wire1 = Path().apply {
+            moveTo(2f * s, 30f * s)
+            cubicTo(20f * s, 52f * s, 40f * s, 52f * s, 60f * s, 36f * s)
+            cubicTo(80f * s, 20f * s, 98f * s, 24f * s, 118f * s, 40f * s)
+        }
+        drawPath(wire1, Color(0x732B1730), style = Stroke(width = 1.5f * s))
+        val wire2 = Path().apply {
+            moveTo(2f * s, 72f * s)
+            cubicTo(22f * s, 94f * s, 44f * s, 94f * s, 64f * s, 78f * s)
+            cubicTo(84f * s, 62f * s, 100f * s, 66f * s, 118f * s, 82f * s)
+        }
+        drawPath(wire2, Color(0x732B1730), style = Stroke(width = 1.5f * s))
+        val bulbs = listOf(
+            Offset(14f, 52f) to Color(0xFFF5B53B),
+            Offset(32f, 57f) to Color(0xFFEC4F97),
+            Offset(50f, 51f) to Color(0xFF2FB58F),
+            Offset(70f, 42f) to Color(0xFF7650E8),
+            Offset(90f, 41f) to Color(0xFF4AA8E0),
+            Offset(108f, 48f) to Color(0xFFF5B53B),
+            Offset(22f, 97f) to Color(0xFF7650E8),
+            Offset(42f, 100f) to Color(0xFFF5B53B),
+            Offset(62f, 92f) to Color(0xFFEC4F97),
+            Offset(84f, 84f) to Color(0xFF2FB58F),
+            Offset(104f, 89f) to Color(0xFF4AA8E0),
+        )
+        bulbs.forEach { (pos, col) ->
+            drawCircle(col.copy(alpha = 0.22f), radius = 10f * s, center = Offset(pos.x * s, pos.y * s))
+            drawOval(col, topLeft = Offset((pos.x - 5f) * s, (pos.y - 7f) * s), size = Size(10f * s, 14f * s))
+        }
+    }
+}
+
+@Composable
+internal fun RenderPersonalHomeScreen(
+    spec: ScreenSpec,
+    onSelectScreenCode: (String) -> Unit,
+) {
+    val isDark = spec.variant == RfThemeVariant.PERSONAL_DARK
+    val typo = LocalRfTypography.current
+    val textColor = if (isDark) Color(0xFFF2F0F8) else Color(0xFF1A1A2E)
+    val mutedColor = if (isDark) Color(0xFFA6A3BA) else Color(0xFF62627A)
+    val cardBg = if (isDark) Color(0xFF1D1D30) else Color(0xFFFFFFFF)
+    val cardBorder = if (isDark) Color(0xFF2A2A40) else Color(0xFFF0EBF4)
+    val chipBg = if (isDark) Color(0x2EB54BD6) else Color(0xFFF5EAF9)
+    val chipText = Color(0xFFB54BD6)
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        // Header
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            // Profile Button
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC))))
+                    .padding(2.dp)
+                    .clickable { onSelectScreenCode("s46") },
+            ) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(CircleShape)
+                        .background(cardBg),
+                ) {
+                    BasicText(
+                        text = "C",
+                        style = typo.rootTabTitle.copy(
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color(0xFFC84FB8),
+                        ),
+                    )
+                }
+            }
+
+            // User Greeting
+            Column(modifier = Modifier.weight(1f)) {
+                BasicText(
+                    text = "Hola de nuevo",
+                    style = typo.caption.copy(fontSize = 13.sp, color = mutedColor),
+                )
+                BasicText(
+                    text = "Camila",
+                    style = typo.rootTabTitle.copy(
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = textColor,
+                    ),
+                    maxLines = 1,
+                )
+            }
+
+            // Notifications Bell
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(cardBg)
+                    .border(1.dp, cardBorder, CircleShape)
+                    .clickable { onSelectScreenCode("s79") },
+            ) {
+                RfIcon(kind = RfIconKind.BELL, tint = textColor, size = 22.dp)
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(top = 9.dp, end = 10.dp)
+                        .size(9.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFFBCA3F))
+                        .border(2.dp, cardBg, CircleShape),
+                )
+            }
+
+            // Points Pill
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier
+                    .height(44.dp)
+                    .clip(CircleShape)
+                    .background(Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC))))
+                    .clickable { onSelectScreenCode("s37") }
+                    .padding(start = 12.dp, end = 8.dp),
+            ) {
+                RfIcon(kind = RfIconKind.SPARK, tint = Color.White, size = 20.dp)
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .height(24.dp)
+                        .widthIn(min = 30.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFFFD45C))
+                        .padding(horizontal = 7.dp),
+                ) {
+                    BasicText(
+                        text = "160",
+                        style = typo.caption.copy(
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF2E1A47),
+                        ),
+                    )
+                }
+            }
+        }
+
+        // Search Bar
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(cardBg)
+                .border(1.dp, cardBorder, RoundedCornerShape(16.dp))
+                .clickable { onSelectScreenCode("s17") }
+                .padding(start = 16.dp, end = 6.dp),
+        ) {
+            RfIcon(kind = RfIconKind.SEARCH, tint = mutedColor, size = 20.dp)
+            BasicText(
+                text = "¿Qué celebramos hoy?",
+                style = typo.body.copy(fontSize = 15.sp, color = mutedColor),
+                modifier = Modifier.weight(1f),
+            )
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(chipBg),
+            ) {
+                RfIcon(kind = RfIconKind.MIC, tint = chipText, size = 20.dp)
+            }
+        }
+
+        // Hero Card
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(186.dp)
+                .clip(RoundedCornerShape(24.dp))
+                .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)))),
+        ) {
+            // Balloon arch decoration
+            HeroBalloonArchIllustration(
+                modifier = Modifier
+                    .size(190.dp)
+                    .align(Alignment.BottomEnd)
+                    .padding(end = 6.dp, bottom = 4.dp),
+            )
+
+            Column(
+                verticalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 20.dp, vertical = 20.dp),
+            ) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .height(24.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFFFD45C))
+                        .padding(horizontal = 10.dp),
+                ) {
+                    BasicText(
+                        text = "NUEVA TEMPORADA 2026",
+                        style = typo.tagLabel.copy(
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color(0xFF2E1A47),
+                            letterSpacing = 0.5.sp,
+                        ),
+                    )
+                }
+
+                BasicText(
+                    text = "Crea momentos inolvidables",
+                    style = typo.rootTabTitle.copy(
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color.White,
+                        lineHeight = 26.sp,
+                    ),
+                    modifier = Modifier.widthIn(max = 190.dp),
+                )
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier
+                        .height(44.dp)
+                        .clip(CircleShape)
+                        .background(Color.White)
+                        .clickable { onSelectScreenCode("s21") }
+                        .padding(horizontal = 18.dp),
+                ) {
+                    BasicText(
+                        text = "Explorar paquetes",
+                        style = typo.buttonLabel.copy(
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFA23FB8),
+                        ),
+                    )
+                    Canvas(modifier = Modifier.size(16.dp)) {
+                        val stroke = Stroke(width = size.width * 0.14f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+                        drawLine(Color(0xFFA23FB8), Offset(size.width * 0.2f, size.height * 0.5f), Offset(size.width * 0.8f, size.height * 0.5f), stroke.width, StrokeCap.Round)
+                        val arrow = Path().apply {
+                            moveTo(size.width * 0.55f, size.height * 0.25f)
+                            lineTo(size.width * 0.8f, size.height * 0.5f)
+                            lineTo(size.width * 0.55f, size.height * 0.75f)
+                        }
+                        drawPath(arrow, Color(0xFFA23FB8), style = stroke)
+                    }
+                }
+            }
+        }
+
+        // Servicios Section
+        Column(
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                BasicText(
+                    text = "Servicios",
+                    style = typo.rootTabTitle.copy(
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = textColor,
+                    ),
+                )
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .height(32.dp)
+                        .clip(CircleShape)
+                        .background(chipBg)
+                        .clickable { onSelectScreenCode("s18") }
+                        .padding(horizontal = 12.dp),
+                ) {
+                    BasicText(
+                        text = "Ver todo",
+                        style = typo.caption.copy(
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = chipText,
+                        ),
+                    )
+                }
+            }
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                // Decoración
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.weight(1f).clickable { onSelectScreenCode("s18") },
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(74.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFFDE6F2)),
+                    ) {
+                        ServiceIllustrationFloral(modifier = Modifier.size(56.dp))
+                    }
+                    BasicText(
+                        text = "Decoración",
+                        style = typo.caption.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = textColor),
+                        maxLines = 1,
+                    )
+                }
+
+                // Mobiliario
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.weight(1f).clickable { onSelectScreenCode("s18") },
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(74.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFEFE8FD)),
+                    ) {
+                        ServiceIllustrationMobiliario(modifier = Modifier.size(56.dp))
+                    }
+                    BasicText(
+                        text = "Mobiliario",
+                        style = typo.caption.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = textColor),
+                        maxLines = 1,
+                    )
+                }
+
+                // Mesa dulce
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.weight(1f).clickable { onSelectScreenCode("s18") },
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(74.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFEEF6D6)),
+                    ) {
+                        ServiceIllustrationDulce(modifier = Modifier.size(56.dp))
+                    }
+                    BasicText(
+                        text = "Mesa dulce",
+                        style = typo.caption.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = textColor),
+                        maxLines = 1,
+                    )
+                }
+
+                // Iluminación
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.weight(1f).clickable { onSelectScreenCode("s18") },
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(74.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFFFF2C9)),
+                    ) {
+                        ServiceIllustrationLuz(modifier = Modifier.size(56.dp))
+                    }
+                    BasicText(
+                        text = "Iluminación",
+                        style = typo.caption.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = textColor),
+                        maxLines = 1,
+                    )
+                }
+            }
+        }
+
+        // Tendencias Section
+        Column(
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                BasicText(
+                    text = "Tendencias",
+                    style = typo.rootTabTitle.copy(
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = textColor,
+                    ),
+                )
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .height(32.dp)
+                        .clip(CircleShape)
+                        .background(chipBg)
+                        .clickable { onSelectScreenCode("s21") }
+                        .padding(horizontal = 12.dp),
+                ) {
+                    BasicText(
+                        text = "Ver todo",
+                        style = typo.caption.copy(
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = chipText,
+                        ),
+                    )
+                }
+            }
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+            ) {
+                // Card 1: Graduaciones
+                Column(
+                    modifier = Modifier
+                        .width(230.dp)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(cardBg)
+                        .border(1.dp, cardBorder, RoundedCornerShape(20.dp))
+                        .clickable { onSelectScreenCode("s21") },
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(100.dp),
+                    ) {
+                        RfPhoto(
+                            photoKey = RfPhotoKey.GRADUACION,
+                            contentDescription = "Graduaciones",
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .padding(10.dp)
+                                .height(24.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFFFFD45C))
+                                .padding(horizontal = 9.dp),
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            ) {
+                                Canvas(modifier = Modifier.size(14.dp)) {
+                                    val stroke = Stroke(width = size.width * 0.13f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+                                    val path = Path().apply {
+                                        moveTo(size.width * 0.15f, size.height * 0.75f)
+                                        lineTo(size.width * 0.42f, size.height * 0.48f)
+                                        lineTo(size.width * 0.60f, size.height * 0.66f)
+                                        lineTo(size.width * 0.90f, size.height * 0.30f)
+                                    }
+                                    drawPath(path, Color(0xFF2E1A47), style = stroke)
+                                    drawLine(Color(0xFF2E1A47), Offset(size.width * 0.65f, size.height * 0.30f), Offset(size.width * 0.90f, size.height * 0.30f), stroke.width, StrokeCap.Round)
+                                    drawLine(Color(0xFF2E1A47), Offset(size.width * 0.90f, size.height * 0.30f), Offset(size.width * 0.90f, size.height * 0.55f), stroke.width, StrokeCap.Round)
+                                }
+                                BasicText(
+                                    text = "Tendencia",
+                                    style = typo.caption.copy(
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF2E1A47),
+                                    ),
+                                )
+                            }
+                        }
+                    }
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 14.dp, vertical = 11.dp),
+                    ) {
+                        BasicText(
+                            text = "Graduaciones",
+                            style = typo.rootTabTitle.copy(
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = textColor,
+                            ),
+                        )
+                        BasicText(
+                            text = "2.4K eventos",
+                            style = typo.caption.copy(fontSize = 13.sp, color = mutedColor),
+                        )
+                    }
+                }
+
+                // Card 2: Bodas
+                Column(
+                    modifier = Modifier
+                        .width(230.dp)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(cardBg)
+                        .border(1.dp, cardBorder, RoundedCornerShape(20.dp))
+                        .clickable { onSelectScreenCode("s21") },
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(100.dp),
+                    ) {
+                        RfPhoto(
+                            photoKey = RfPhotoKey.BODA,
+                            contentDescription = "Bodas",
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .padding(10.dp)
+                                .height(24.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFFFFD45C))
+                                .padding(horizontal = 9.dp),
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            ) {
+                                Canvas(modifier = Modifier.size(14.dp)) {
+                                    val stroke = Stroke(width = size.width * 0.13f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+                                    val path = Path().apply {
+                                        moveTo(size.width * 0.15f, size.height * 0.75f)
+                                        lineTo(size.width * 0.42f, size.height * 0.48f)
+                                        lineTo(size.width * 0.60f, size.height * 0.66f)
+                                        lineTo(size.width * 0.90f, size.height * 0.30f)
+                                    }
+                                    drawPath(path, Color(0xFF2E1A47), style = stroke)
+                                    drawLine(Color(0xFF2E1A47), Offset(size.width * 0.65f, size.height * 0.30f), Offset(size.width * 0.90f, size.height * 0.30f), stroke.width, StrokeCap.Round)
+                                    drawLine(Color(0xFF2E1A47), Offset(size.width * 0.90f, size.height * 0.30f), Offset(size.width * 0.90f, size.height * 0.55f), stroke.width, StrokeCap.Round)
+                                }
+                                BasicText(
+                                    text = "Tendencia",
+                                    style = typo.caption.copy(
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF2E1A47),
+                                    ),
+                                )
+                            }
+                        }
+                    }
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 14.dp, vertical = 11.dp),
+                    ) {
+                        BasicText(
+                            text = "Bodas",
+                            style = typo.rootTabTitle.copy(
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = textColor,
+                            ),
+                        )
+                        BasicText(
+                            text = "1.8K eventos",
+                            style = typo.caption.copy(fontSize = 13.sp, color = mutedColor),
+                        )
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable
