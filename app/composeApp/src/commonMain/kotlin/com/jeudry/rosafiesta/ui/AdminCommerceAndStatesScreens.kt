@@ -36,10 +36,13 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
@@ -578,7 +581,7 @@ internal fun RenderAdminEventArticlesA06(
                 Column(modifier = Modifier.weight(1f)) {
                     BasicText(
                         text = "Agregar artículos",
-                        style = TextStyle(fontFamily = typo.displayFamily, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729)),
+                        style = TextStyle(fontFamily = typo.displayFamily, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E324A)),
                     )
                     BasicText(
                         text = "Paso 2 de 3 · Cumpleaños de Mateo",
@@ -669,9 +672,22 @@ internal fun RenderAdminEventArticlesA06(
                             }
 
                             Column(modifier = Modifier.weight(1f)) {
-                                BasicText(name, maxLines = 1, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2E324A)))
-                                val descColor = if (desc.startsWith("Última")) Color(0xFF7A5700) else Color(0xFF4E6A10)
-                                BasicText(desc, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = descColor))
+                                BasicText(name, maxLines = 1, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.Normal, color = Color(0xFF2E324A)))
+                                val parts = desc.split(" · ")
+                                val stockPart = parts[0]
+                                val pricePart = if (parts.size > 1) " · " + parts[1] else ""
+                                val descColor = if (stockPart.startsWith("Última")) Color(0xFF7A5700) else Color(0xFF4E6A10)
+                                val annotatedDesc = buildAnnotatedString {
+                                    withStyle(SpanStyle(color = descColor, fontWeight = FontWeight.Normal)) {
+                                        append(stockPart)
+                                    }
+                                    if (pricePart.isNotEmpty()) {
+                                        withStyle(SpanStyle(color = Color(0xFF5F6377), fontWeight = FontWeight.Normal)) {
+                                            append(pricePart)
+                                        }
+                                    }
+                                }
+                                BasicText(annotatedDesc, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp))
                             }
 
                             Box(
@@ -684,15 +700,15 @@ internal fun RenderAdminEventArticlesA06(
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                                     Box(modifier = Modifier.size(28.dp), contentAlignment = Alignment.Center) {
-                                        BasicText("−", style = TextStyle(fontSize = 16.sp, color = Color(0xFF5B6CF0), fontWeight = FontWeight.Bold))
+                                        BasicText("−", style = TextStyle(fontSize = 16.sp, color = Color(0xFF5B6CF0), fontWeight = FontWeight.Normal))
                                     }
                                     BasicText(
                                         count,
                                         modifier = Modifier.widthIn(min = 22.dp),
-                                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF151729), textAlign = androidx.compose.ui.text.style.TextAlign.Center),
+                                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.Normal, color = Color(0xFF2E324A), textAlign = androidx.compose.ui.text.style.TextAlign.Center),
                                     )
                                     Box(modifier = Modifier.size(28.dp), contentAlignment = Alignment.Center) {
-                                        BasicText("+", style = TextStyle(fontSize = 16.sp, color = Color(0xFF5B6CF0), fontWeight = FontWeight.Bold))
+                                        BasicText("+", style = TextStyle(fontSize = 16.sp, color = Color(0xFF5B6CF0), fontWeight = FontWeight.Normal))
                                     }
                                 }
                             }
@@ -733,7 +749,7 @@ internal fun RenderAdminEventArticlesA06(
                     contentAlignment = Alignment.Center,
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        BasicText("Ver resumen", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White))
+                        BasicText("Ver resumen", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Color.White))
                         RfIcon(kind = RfIconKind.ARROW_RIGHT, tint = Color.White, size = 18.dp)
                     }
                 }
@@ -793,7 +809,7 @@ internal fun RenderAdminEventSummaryA07(
                 Column(modifier = Modifier.weight(1f)) {
                     BasicText(
                         text = "Resumen",
-                        style = TextStyle(fontFamily = typo.displayFamily, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729)),
+                        style = TextStyle(fontFamily = typo.displayFamily, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E324A)),
                     )
                     BasicText(
                         text = "Paso 3 de 3",
@@ -810,9 +826,9 @@ internal fun RenderAdminEventSummaryA07(
                     Box(modifier = Modifier.weight(1f).height(5.dp).clip(RoundedCornerShape(3.dp)).background(AdminButtonGradient))
                 }
                 Row(modifier = Modifier.fillMaxWidth()) {
-                    BasicText("Datos", modifier = Modifier.weight(1f), style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF5F6377)))
-                    BasicText("Artículos", modifier = Modifier.weight(1f), style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF5F6377)))
-                    BasicText("Resumen", modifier = Modifier.weight(1f), style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF4B47D6)))
+                    BasicText("Datos", modifier = Modifier.weight(1f), style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.Normal, color = Color(0xFF5F6377)))
+                    BasicText("Artículos", modifier = Modifier.weight(1f), style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.Normal, color = Color(0xFF5F6377)))
+                    BasicText("Resumen", modifier = Modifier.weight(1f), style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF4B47D6)))
                 }
             }
 
@@ -821,21 +837,14 @@ internal fun RenderAdminEventSummaryA07(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(22.dp))
-                    .background(Brush.linearGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0), Color(0xFF2FB8C8))))
-                    .padding(16.dp),
+                    .background(Brush.linearGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0), Color(0xFF2FB8C8)))),
             ) {
-                // Cake canvas in top-right with zero measurement contribution
+                // Cake canvas in top-right
                 Canvas(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .offset(x = 12.dp, y = (-10).dp)
-                        .size(110.dp)
-                        .layout { measurable, constraints ->
-                            val placeable = measurable.measure(constraints)
-                            layout(0, 0) {
-                                placeable.placeRelative(0, 0)
-                            }
-                        },
+                        .size(110.dp),
                 ) {
                     val w = size.width
                     val h = size.height
@@ -887,7 +896,7 @@ internal fun RenderAdminEventSummaryA07(
                     drawOval(Color(0xFFF5B53B), Offset(73.5f * sx, 33f * sy), androidx.compose.ui.geometry.Size(4f * sx, 8f * sy))
                 }
 
-                Column(modifier = Modifier.widthIn(max = 220.dp)) {
+                Column(modifier = Modifier.padding(16.dp).widthIn(max = 220.dp)) {
                     BasicText("Cumpleaños de Mateo", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = Color.White))
                     Spacer(modifier = Modifier.height(4.dp))
                     BasicText("Sáb 7 nov · 4:00 p. m. · 40 invitados", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFFE9EEFF)))
@@ -939,7 +948,7 @@ internal fun RenderAdminEventSummaryA07(
                                 BasicText(
                                     text = item.name,
                                     maxLines = 1,
-                                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2E324A)),
+                                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.Normal, color = Color(0xFF2E324A)),
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 BasicText(
@@ -948,7 +957,7 @@ internal fun RenderAdminEventSummaryA07(
                                 )
                             }
 
-                            BasicText(item.price, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF151729)))
+                            BasicText(item.price, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.Normal, color = Color(0xFF2E324A)))
                         }
                     }
 
@@ -1003,7 +1012,7 @@ internal fun RenderAdminEventSummaryA07(
                     }
 
                     Column(modifier = Modifier.weight(1f)) {
-                        BasicText("Enviar cotización a Laura", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2E324A)))
+                        BasicText("Enviar cotización a Laura", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color(0xFF2E324A)))
                         BasicText("Por WhatsApp, al crear el evento", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = Color(0xFF5F6377)))
                     }
 
@@ -1105,7 +1114,7 @@ internal fun RenderAdminChatsA14(
                 Column(modifier = Modifier.weight(1f)) {
                     BasicText(
                         text = "Chats",
-                        style = TextStyle(fontFamily = typo.displayFamily, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729)),
+                        style = TextStyle(fontFamily = typo.displayFamily, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E324A)),
                     )
                     BasicText(
                         text = "2 sin leer",
@@ -1169,7 +1178,7 @@ internal fun RenderAdminChatsA14(
                     ) {
                         BasicText(
                             text = chip,
-                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF151729)),
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.Normal, color = Color(0xFF2E324A)),
                         )
                     }
                 }
@@ -1218,7 +1227,7 @@ internal fun RenderAdminChatsA14(
                                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                                     BasicText(
                                         text = chat.name,
-                                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, fontWeight = if (chat.unreadCount > 0) FontWeight.ExtraBold else FontWeight.Bold, color = Color(0xFF151729)),
+                                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, fontWeight = if (chat.unreadCount > 0) FontWeight.Bold else FontWeight.Medium, color = Color(0xFF2E324A)),
                                     )
                                     BasicText(chat.time, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = Color(0xFF5F6377)))
                                 }
@@ -1607,7 +1616,7 @@ internal fun RenderAdminQuotesA22(
                 Column(modifier = Modifier.weight(1f)) {
                     BasicText(
                         text = "Cotizaciones",
-                        style = TextStyle(fontFamily = typo.displayFamily, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729)),
+                        style = TextStyle(fontFamily = typo.displayFamily, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E324A)),
                     )
                     BasicText(
                         text = "6 este mes",
@@ -1648,7 +1657,7 @@ internal fun RenderAdminQuotesA22(
                     ) {
                         BasicText(
                             text = chip,
-                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF151729)),
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.Normal, color = Color(0xFF2E324A)),
                         )
                     }
                 }
@@ -1676,7 +1685,7 @@ internal fun RenderAdminQuotesA22(
                             horizontalArrangement = Arrangement.SpaceBetween,
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
-                                BasicText(quote.title, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF151729)))
+                                BasicText(quote.title, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = Color(0xFF2E324A)))
                                 BasicText(quote.subtitle, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = Color(0xFF5F6377)))
                             }
                             Box(
@@ -1699,7 +1708,7 @@ internal fun RenderAdminQuotesA22(
                             BasicText(
                                 text = quote.amount,
                                 modifier = Modifier.weight(1f),
-                                style = TextStyle(fontFamily = typo.displayFamily, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729)),
+                                style = TextStyle(fontFamily = typo.displayFamily, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF151729)),
                             )
 
                             Box(
@@ -1776,7 +1785,7 @@ internal fun RenderAdminNotificationsA29(
 
             BasicText(
                 text = "Notificaciones",
-                style = TextStyle(fontFamily = typo.displayFamily, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729)),
+                style = TextStyle(fontFamily = typo.displayFamily, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E324A)),
                 modifier = Modifier.weight(1f),
             )
 
@@ -2166,7 +2175,7 @@ internal fun RenderAdminSettingsA31(
 
                 BasicText(
                     text = "Ajustes del negocio",
-                    style = TextStyle(fontFamily = typo.displayFamily, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729)),
+                    style = TextStyle(fontFamily = typo.displayFamily, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E324A)),
                 )
             }
 
@@ -2387,7 +2396,7 @@ internal fun RenderAdminCancellationsA32(
                 Column(modifier = Modifier.weight(1f)) {
                     BasicText(
                         text = "Cancelaciones",
-                        style = TextStyle(fontFamily = typo.displayFamily, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729)),
+                        style = TextStyle(fontFamily = typo.displayFamily, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E324A)),
                     )
                     BasicText(
                         text = "2 solicitudes por revisar",
@@ -2428,7 +2437,7 @@ internal fun RenderAdminCancellationsA32(
                     ) {
                         BasicText(
                             text = chip,
-                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF151729)),
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.Normal, color = Color(0xFF2E324A)),
                         )
                     }
                 }
@@ -2739,7 +2748,7 @@ internal fun RenderAdminRefundA33(
                 }
 
                 Column(modifier = Modifier.weight(1f)) {
-                    BasicText("Reembolso", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729)))
+                    BasicText("Reembolso", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E324A)))
                     BasicText("Rafael Soto · Bautizo de Lucas", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF5F6377)))
                 }
             }
@@ -2978,7 +2987,7 @@ internal fun RenderAdminReplyReviewA34(
                 }
 
                 Column(modifier = Modifier.weight(1f)) {
-                    BasicText("Responder reseña", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729)))
+                    BasicText("Responder reseña", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E324A)))
                     BasicText("Pendiente · llegó hace 1 día", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF5F6377)))
                 }
             }
