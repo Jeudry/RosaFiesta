@@ -40,11 +40,13 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -92,12 +94,12 @@ internal fun RenderPersonalSplashP00(onPrimaryAction: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
                 .fillMaxWidth()
-                .offset(y = 290.dp),
+                .offset(y = 264.dp),
         ) {
             // Doble halo oficial
             Box(
                 contentAlignment = Alignment.Center,
-                modifier = Modifier.size(136.dp),
+                modifier = Modifier.size(188.dp),
             ) {
                 Box(
                     modifier = Modifier
@@ -151,62 +153,65 @@ internal fun RenderPersonalSplashP00(onPrimaryAction: () -> Unit) {
 }
 
 private fun DrawScope.drawGarlandAndConfettiPersonal() {
-    val garlandPath = Path().apply {
-        moveTo(-10f, 6f)
-        quadraticTo(195f, 66f, 400f, 6f)
-    }
-    drawPath(
-        path = garlandPath,
-        color = Color.White.copy(alpha = 0.35f),
-        style = Stroke(width = 1.2f, cap = StrokeCap.Round),
-    )
-
-    // Banderines
-    val pennants = listOf(
-        Triple(14f to 12f, 34f to 12f, 24f to 36f) to Color(0xFFFFD45C),
-        Triple(58f to 22f, 78f to 22f, 68f to 46f) to Color.White.copy(alpha = 0.9f),
-        Triple(102f to 29f, 122f to 29f, 112f to 53f) to Color(0xFFD6EA8C),
-        Triple(146f to 34f, 166f to 34f, 156f to 58f) to Color(0xFFFFD45C),
-        Triple(190f to 35f, 210f to 35f, 200f to 59f) to Color.White.copy(alpha = 0.9f),
-        Triple(234f to 33f, 254f to 33f, 244f to 57f) to Color(0xFFD6EA8C),
-        Triple(278f to 29f, 298f to 29f, 288f to 53f) to Color(0xFFFFD45C),
-        Triple(322f to 22f, 342f to 22f, 332f to 46f) to Color.White.copy(alpha = 0.9f),
-        Triple(366f to 12f, 386f to 12f, 376f to 36f) to Color(0xFFD6EA8C),
-    )
-    pennants.forEach { (points, color) ->
-        val p = Path().apply {
-            moveTo(points.first.first, points.first.second)
-            lineTo(points.second.first, points.second.second)
-            lineTo(points.third.first, points.third.second)
-            close()
+    val s = this.size.width / 390f
+    scale(s, s, Offset.Zero) {
+        val garlandPath = Path().apply {
+            moveTo(-10f, 6f)
+            quadraticTo(195f, 66f, 400f, 6f)
         }
-        drawPath(p, color = color, style = Fill)
+        drawPath(
+            path = garlandPath,
+            color = Color.White.copy(alpha = 0.35f),
+            style = Stroke(width = 1.2f, cap = StrokeCap.Round),
+        )
+
+        // Banderines
+        val pennants = listOf(
+            Triple(14f to 12f, 34f to 12f, 24f to 36f) to Color(0xFFFFD45C),
+            Triple(58f to 22f, 78f to 22f, 68f to 46f) to Color.White.copy(alpha = 0.9f),
+            Triple(102f to 29f, 122f to 29f, 112f to 53f) to Color(0xFFD6EA8C),
+            Triple(146f to 34f, 166f to 34f, 156f to 58f) to Color(0xFFFFD45C),
+            Triple(190f to 35f, 210f to 35f, 200f to 59f) to Color.White.copy(alpha = 0.9f),
+            Triple(234f to 33f, 254f to 33f, 244f to 57f) to Color(0xFFD6EA8C),
+            Triple(278f to 29f, 298f to 29f, 288f to 53f) to Color(0xFFFFD45C),
+            Triple(322f to 22f, 342f to 22f, 332f to 46f) to Color.White.copy(alpha = 0.9f),
+            Triple(366f to 12f, 386f to 12f, 376f to 36f) to Color(0xFFD6EA8C),
+        )
+        pennants.forEach { (points, color) ->
+            val p = Path().apply {
+                moveTo(points.first.first, points.first.second)
+                lineTo(points.second.first, points.second.second)
+                lineTo(points.third.first, points.third.second)
+                close()
+            }
+            drawPath(p, color = color, style = Fill)
+        }
+
+        // Círculos tenues
+        drawCircle(Color.White.copy(alpha = 0.07f), radius = 90f, center = Offset(300f, 160f))
+        drawCircle(Color.White.copy(alpha = 0.06f), radius = 110f, center = Offset(70f, 700f))
+
+        // Estrellas
+        drawSvgStar(center = Offset(76f, 220f), scale = 1.1f, color = Color(0xFFFFD45C))
+        drawSvgStar(center = Offset(320f, 600f), scale = 0.8f, color = Color.White.copy(alpha = 0.85f))
+
+        // Confetti y puntos
+        drawCircle(Color(0xFFD6EA8C), radius = 5f, center = Offset(300f, 300f))
+        drawCircle(Color.White.copy(alpha = 0.8f), radius = 4f, center = Offset(96f, 560f))
+
+        drawRoundRect(
+            color = Color(0xFFFFD45C),
+            topLeft = Offset(320f, 420f),
+            size = Size(16f, 6f),
+            cornerRadius = CornerRadius(3f, 3f),
+        )
+        drawRoundRect(
+            color = Color(0xFFD6EA8C),
+            topLeft = Offset(40f, 380f),
+            size = Size(16f, 6f),
+            cornerRadius = CornerRadius(3f, 3f),
+        )
     }
-
-    // Círculos tenues
-    drawCircle(Color.White.copy(alpha = 0.07f), radius = 90f, center = Offset(300f, 160f))
-    drawCircle(Color.White.copy(alpha = 0.06f), radius = 110f, center = Offset(70f, 700f))
-
-    // Estrellas
-    drawSvgStar(center = Offset(76f, 220f), scale = 1.1f, color = Color(0xFFFFD45C))
-    drawSvgStar(center = Offset(320f, 600f), scale = 0.8f, color = Color.White.copy(alpha = 0.85f))
-
-    // Confetti y puntos
-    drawCircle(Color(0xFFD6EA8C), radius = 5f, center = Offset(300f, 300f))
-    drawCircle(Color.White.copy(alpha = 0.8f), radius = 4f, center = Offset(96f, 560f))
-
-    drawRoundRect(
-        color = Color(0xFFFFD45C),
-        topLeft = Offset(320f, 420f),
-        size = Size(16f, 6f),
-        cornerRadius = CornerRadius(3f, 3f),
-    )
-    drawRoundRect(
-        color = Color(0xFFD6EA8C),
-        topLeft = Offset(40f, 380f),
-        size = Size(16f, 6f),
-        cornerRadius = CornerRadius(3f, 3f),
-    )
 }
 
 private fun DrawScope.drawSvgStar(center: Offset, scale: Float, color: Color) {
@@ -246,12 +251,15 @@ internal fun RenderAdminSplashA00(onPrimaryAction: () -> Unit) {
             .clickable(onClick = onPrimaryAction),
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
-            drawCircle(Color.White.copy(alpha = 0.07f), radius = 110f, center = Offset(320f, 140f))
-            drawCircle(Color.White.copy(alpha = 0.06f), radius = 120f, center = Offset(60f, 720f))
-            drawLine(Color.White.copy(alpha = 0.08f), start = Offset(0f, 640f), end = Offset(390f, 640f))
-            drawLine(Color.White.copy(alpha = 0.06f), start = Offset(0f, 680f), end = Offset(390f, 680f))
-            drawSvgStar(center = Offset(300f, 250f), scale = 0.9f, color = Color(0xFFFFD45C))
-            drawCircle(Color(0xFFD6EA8C), radius = 4f, center = Offset(84f, 250f))
+            val s = this.size.width / 390f
+            scale(s, s, Offset.Zero) {
+                drawCircle(Color.White.copy(alpha = 0.07f), radius = 110f, center = Offset(320f, 140f))
+                drawCircle(Color.White.copy(alpha = 0.06f), radius = 120f, center = Offset(60f, 720f))
+                drawLine(Color.White.copy(alpha = 0.08f), start = Offset(0f, 640f), end = Offset(390f, 640f))
+                drawLine(Color.White.copy(alpha = 0.06f), start = Offset(0f, 680f), end = Offset(390f, 680f))
+                drawSvgStar(center = Offset(300f, 250f), scale = 0.9f, color = Color(0xFFFFD45C))
+                drawCircle(Color(0xFFD6EA8C), radius = 4f, center = Offset(84f, 250f))
+            }
         }
 
         // Centro: Logo con halo doble + Título + Tag ADMINISTRACIÓN
@@ -259,11 +267,11 @@ internal fun RenderAdminSplashA00(onPrimaryAction: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
                 .fillMaxWidth()
-                .offset(y = 290.dp),
+                .offset(y = 264.dp),
         ) {
             Box(
                 contentAlignment = Alignment.Center,
-                modifier = Modifier.size(136.dp),
+                modifier = Modifier.size(188.dp),
             ) {
                 Box(
                     modifier = Modifier
@@ -1528,43 +1536,56 @@ internal fun RenderGuestCatalogS01(
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().height(44.dp),
         ) {
-            BasicText("Catálogo", style = typo.heroTitle.copy(fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729)))
+            BasicText(
+                "Catálogo",
+                style = typo.heroTitle.copy(
+                    fontSize = 26.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color(0xFF1A1A2E),
+                ),
+            )
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .size(44.dp)
                     .clip(CircleShape)
                     .background(Color.White)
-                    .border(1.dp, Color(0xFFECECF5), CircleShape)
-                    .shadow(elevation = 8.dp, shape = CircleShape, spotColor = Color(0x334650B4)),
+                    .border(1.dp, Color(0xFFF0EBF4), CircleShape),
             ) {
-                RfIcon(kind = RfIconKind.FILTER, tint = Color(0xFF151729), size = 20.dp)
+                RfIcon(kind = RfIconKind.FILTER, tint = Color(0xFF1A1A2E), size = 22.dp)
             }
         }
 
         Spacer(Modifier.height(16.dp))
 
-        // Barra de búsqueda con micrófono
+        // Barra de búsqueda con micrófono (height 54dp, radius 16dp)
         Box(
             contentAlignment = Alignment.CenterStart,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(50.dp)
-                .clip(RoundedCornerShape(14.dp))
+                .height(54.dp)
+                .clip(RoundedCornerShape(16.dp))
                 .background(Color.White)
-                .border(1.dp, Color(0xFFE3E4EF), RoundedCornerShape(14.dp))
-                .padding(start = 14.dp, end = 6.dp),
+                .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(16.dp))
+                .padding(start = 16.dp, end = 6.dp),
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    RfIcon(kind = RfIconKind.SEARCH, tint = Color(0xFF5F6377), size = 20.dp)
-                    BasicText("Buscar sillas, mesas, flores…", style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF5F6377)))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.weight(1f),
+                ) {
+                    RfIcon(kind = RfIconKind.SEARCH, tint = Color(0xFF62627A), size = 20.dp)
+                    BasicText(
+                        "Buscar sillas, mesas, flores…",
+                        style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF62627A)),
+                    )
                 }
                 Box(
                     contentAlignment = Alignment.Center,
@@ -1578,13 +1599,14 @@ internal fun RenderGuestCatalogS01(
             }
         }
 
-        Spacer(Modifier.height(14.dp))
+        Spacer(Modifier.height(16.dp))
 
-        // Chips horizontales
+        // Chips horizontales (height 38dp)
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier
                 .fillMaxWidth()
+                .height(38.dp)
                 .horizontalScroll(rememberScrollState()),
         ) {
             val categories = listOf("Todas", "Iluminación", "Floral", "Globos", "Mobiliario")
@@ -1593,44 +1615,50 @@ internal fun RenderGuestCatalogS01(
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
-                        .height(36.dp)
-                        .clip(RoundedCornerShape(999.dp))
+                        .height(38.dp)
+                        .clip(CircleShape)
                         .background(
                             if (isSelected) {
-                                Brush.horizontalGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0)))
+                                Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)))
                             } else {
-                                Brush.horizontalGradient(listOf(Color.White, Color.White))
+                                SolidColor(Color.White)
                             },
                         )
-                        .border(1.dp, if (isSelected) Color.Transparent else Color(0xFFE9E9F2), RoundedCornerShape(999.dp))
+                        .border(1.dp, if (isSelected) Color.Transparent else Color(0xFFEEE9F2), CircleShape)
                         .clickable { selectedCategory = cat }
-                        .padding(horizontal = 14.dp),
+                        .padding(horizontal = 15.dp),
                 ) {
                     BasicText(
                         text = cat,
                         style = typo.body.copy(
                             fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = if (isSelected) Color.White else Color(0xFF151729),
+                            color = if (isSelected) Color.White else Color(0xFF1A1A2E),
                         ),
                     )
                 }
             }
         }
 
-        Spacer(Modifier.height(14.dp))
+        Spacer(Modifier.height(16.dp))
 
-        // Conteo y orden
+        // Conteo y orden (height 32dp)
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().height(32.dp),
         ) {
-            BasicText("15 artículos de alquiler", style = typo.secondary.copy(fontSize = 14.sp, color = Color(0xFF5F6377)))
-            BasicText("Populares ▾", style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF151729)))
+            BasicText("15 artículos de alquiler", style = typo.secondary.copy(fontSize = 14.sp, color = Color(0xFF62627A)))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                BasicText("Populares", style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A2E)))
+                RfIcon(kind = RfIconKind.CHEVRON_DOWN, tint = Color(0xFF1A1A2E), size = 16.dp)
+            }
         }
 
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(16.dp))
 
         // Grid 2x2 de productos canónicos
         Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.verticalScroll(rememberScrollState())) {
@@ -1645,7 +1673,7 @@ internal fun RenderGuestCatalogS01(
                 )
                 GuestProductCard(
                     title = "Mesa dulce temática",
-                    desc = "Decoración completa",
+                    desc = "Decoración completa para dulces",
                     price = "RD$ 150",
                     photoKey = RfPhotoKey.MESA_HELADOS,
                     bg = Color(0xFFEEF6D6),
@@ -1655,22 +1683,22 @@ internal fun RenderGuestCatalogS01(
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
                 GuestProductCard(
                     title = "Arco de globos",
-                    desc = "Rosa y nude",
+                    desc = "Rosa y nude, para la entrada",
                     price = "RD$ 95",
                     photoKey = RfPhotoKey.ARCO_ROSA,
                     bg = Color(0xFFFDE6F2),
                     modifier = Modifier.weight(1f),
                 )
                 GuestProductCard(
-                    title = "Centro floral",
-                    desc = "Rosas frescas",
-                    price = "RD$ 45",
+                    title = "Centro de mesa floral",
+                    desc = "Flores naturales, base de madera",
+                    price = "RD$ 35",
                     photoKey = RfPhotoKey.CENTRO_FLORAL,
-                    bg = Color(0xFFFFF6EE),
+                    bg = Color(0xFFFFF2C9),
                     modifier = Modifier.weight(1f),
                 )
             }
-            Spacer(Modifier.height(80.dp))
+            Spacer(Modifier.height(96.dp))
         }
     }
 }
@@ -1689,8 +1717,7 @@ private fun GuestProductCard(
         modifier = modifier
             .clip(RoundedCornerShape(20.dp))
             .background(Color.White)
-            .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(20.dp))
-            .shadow(elevation = 8.dp, shape = RoundedCornerShape(20.dp), spotColor = Color(0x1F4650B4)),
+            .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(20.dp)),
     ) {
         Column {
             Box(
@@ -1719,10 +1746,10 @@ private fun GuestProductCard(
                 }
             }
 
-            Column(modifier = Modifier.padding(12.dp)) {
-                BasicText(title, maxLines = 1, style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF151729)))
-                Spacer(Modifier.height(2.dp))
-                BasicText(desc, maxLines = 1, style = typo.secondary.copy(fontSize = 12.sp, color = Color(0xFF5F6377)))
+            Column(modifier = Modifier.padding(start = 14.dp, end = 12.dp, top = 12.dp, bottom = 12.dp)) {
+                BasicText(title, maxLines = 1, style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A2E)))
+                Spacer(Modifier.height(3.dp))
+                BasicText(desc, maxLines = 1, style = typo.secondary.copy(fontSize = 13.sp, color = Color(0xFF62627A)))
                 Spacer(Modifier.height(8.dp))
 
                 Row(
@@ -1731,19 +1758,18 @@ private fun GuestProductCard(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Row(verticalAlignment = Alignment.Bottom) {
-                        BasicText(price, style = typo.sheetOrEmptyTitle.copy(fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729)))
-                        BasicText(" /día", style = typo.secondary.copy(fontSize = 11.sp, color = Color(0xFF5F6377)))
+                        BasicText(price, style = typo.heroTitle.copy(fontSize = 19.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF1A1A2E)))
+                        BasicText(" /día", style = typo.secondary.copy(fontSize = 12.sp, color = Color(0xFF62627A)))
                     }
 
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
-                            .size(38.dp)
+                            .size(40.dp)
                             .clip(CircleShape)
                             .background(
-                                Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF865DEC))),
-                            )
-                            .shadow(elevation = 6.dp, shape = CircleShape, spotColor = Color(0x66865DEC)),
+                                Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))),
+                            ),
                     ) {
                         RfIcon(kind = RfIconKind.PLUS, tint = Color.White, size = 18.dp)
                     }

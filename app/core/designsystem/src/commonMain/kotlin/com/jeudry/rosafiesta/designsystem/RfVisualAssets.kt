@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -23,6 +24,8 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -132,100 +135,48 @@ public fun RosaAvatar(
                     ),
             )
         }
+        val headband = remember { PathParser().parsePathString("M4.6 13.4V12a7.4 7.4 0 0 1 14.8 0v1.4").toPath() }
+        val face = remember { PathParser().parsePathString("M7.6 12.4c0-2.8 1.9-4.9 4.4-4.9s4.4 2.1 4.4 4.9c0 2.7-1.9 4.6-4.4 4.6s-4.4-1.9-4.4-4.6z").toPath() }
+        val hairBang = remember { PathParser().parsePathString("M7.9 10.9c1.9 0 3.4-1 4.3-2.7.8 1.6 2.2 2.6 3.9 2.7").toPath() }
+        val micBoom = remember { PathParser().parsePathString("M19.4 17.1v.5a2.2 2.2 0 0 1-2.2 2.2h-3.4").toPath() }
+
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
                 .size(avatarDiameter)
                 .clip(CircleShape)
-                .background(gradient)
-                .border(2.dp, Color.White.copy(alpha = 0.75f), CircleShape),
+                .background(gradient),
         ) {
-            Canvas(modifier = Modifier.size(avatarDiameter * 0.72f)) {
-                val w = this.size.width
-                val h = this.size.height
-                val stroke = Stroke(width = w * 0.068f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+            Canvas(modifier = Modifier.size(avatarDiameter * 0.60f)) {
+                val s = this.size.width / 24f
+                val stroke = Stroke(width = 1.8f, cap = StrokeCap.Round, join = StrokeJoin.Round)
 
-                // Cabello / silueta superior de la mujer
-                val hairPath = Path().apply {
-                    moveTo(w * 0.22f, h * 0.56f)
-                    cubicTo(w * 0.20f, h * 0.20f, w * 0.80f, h * 0.20f, w * 0.78f, h * 0.56f)
-                    cubicTo(w * 0.82f, h * 0.72f, w * 0.74f, h * 0.86f, w * 0.66f, h * 0.88f)
-                    lineTo(w * 0.34f, h * 0.88f)
-                    cubicTo(w * 0.26f, h * 0.86f, w * 0.18f, h * 0.72f, w * 0.22f, h * 0.56f)
-                    close()
+                scale(s, s, Offset.Zero) {
+                    drawPath(headband, color = Color.White, style = stroke)
+                    drawRoundRect(
+                        color = Color.White,
+                        topLeft = Offset(3.1f, 11.9f),
+                        size = Size(3f, 5.2f),
+                        cornerRadius = CornerRadius(1.5f, 1.5f),
+                    )
+                    drawRoundRect(
+                        color = Color.White,
+                        topLeft = Offset(17.9f, 11.9f),
+                        size = Size(3f, 5.2f),
+                        cornerRadius = CornerRadius(1.5f, 1.5f),
+                    )
+                    drawPath(face, color = Color.White, style = stroke)
+                    drawPath(hairBang, color = Color.White, style = stroke)
+                    drawCircle(color = Color.White, radius = 0.8f, center = Offset(10.3f, 12.6f))
+                    drawCircle(color = Color.White, radius = 0.8f, center = Offset(13.7f, 12.6f))
+                    drawPath(micBoom, color = Color.White, style = stroke)
+                    drawRoundRect(
+                        color = Color.White,
+                        topLeft = Offset(11.4f, 18.8f),
+                        size = Size(3f, 2f),
+                        cornerRadius = CornerRadius(1f, 1f),
+                    )
                 }
-                drawPath(hairPath, color = Color.White.copy(alpha = 0.22f))
-
-                // Diadema de los audífonos (arco superior)
-                drawArc(
-                    color = Color.White,
-                    startAngle = 190f,
-                    sweepAngle = 160f,
-                    useCenter = false,
-                    topLeft = Offset(w * 0.14f, h * 0.12f),
-                    size = Size(w * 0.72f, h * 0.62f),
-                    style = Stroke(width = w * 0.075f, cap = StrokeCap.Round),
-                )
-
-                // Rostro de la mujer
-                drawCircle(
-                    color = Color.White,
-                    radius = w * 0.23f,
-                    center = Offset(w * 0.50f, h * 0.52f),
-                )
-
-                // Flequillo / onda del cabello sobre la frente
-                val bangsPath = Path().apply {
-                    moveTo(w * 0.29f, h * 0.45f)
-                    quadraticTo(w * 0.44f, h * 0.31f, w * 0.58f, h * 0.40f)
-                    quadraticTo(w * 0.66f, h * 0.44f, w * 0.71f, h * 0.47f)
-                }
-                drawPath(
-                    path = bangsPath,
-                    color = if (useAdmin) RfColors.IndigoBrand else RfColors.RosaBrand,
-                    style = Stroke(width = w * 0.055f, cap = StrokeCap.Round),
-                )
-
-                // Ojos y sonrisa amigable
-                val featureColor = if (useAdmin) RfColors.AdminInk else RfColors.PersonalInk
-                drawCircle(featureColor, radius = w * 0.028f, center = Offset(w * 0.42f, h * 0.51f))
-                drawCircle(featureColor, radius = w * 0.028f, center = Offset(w * 0.58f, h * 0.51f))
-                drawArc(
-                    color = featureColor,
-                    startAngle = 20f,
-                    sweepAngle = 140f,
-                    useCenter = false,
-                    topLeft = Offset(w * 0.42f, h * 0.54f),
-                    size = Size(w * 0.16f, h * 0.11f),
-                    style = Stroke(width = w * 0.038f, cap = StrokeCap.Round),
-                )
-
-                // Auricular izquierdo y derecho (copas de los audífonos)
-                drawRoundRect(
-                    color = RfColors.Sol,
-                    topLeft = Offset(w * 0.09f, h * 0.40f),
-                    size = Size(w * 0.14f, h * 0.24f),
-                    cornerRadius = CornerRadius(w * 0.07f, w * 0.07f),
-                )
-                drawRoundRect(
-                    color = RfColors.Sol,
-                    topLeft = Offset(w * 0.77f, h * 0.40f),
-                    size = Size(w * 0.14f, h * 0.24f),
-                    cornerRadius = CornerRadius(w * 0.07f, w * 0.07f),
-                )
-
-                // Brazo del micrófono saliendo del audífono izquierdo hacia la boca
-                val micBoom = Path().apply {
-                    moveTo(w * 0.16f, h * 0.60f)
-                    quadraticTo(w * 0.24f, h * 0.74f, w * 0.46f, h * 0.67f)
-                }
-                drawPath(micBoom, color = Color.White, style = stroke)
-                // Cápsula del micrófono
-                drawCircle(
-                    color = RfColors.Sol,
-                    radius = w * 0.055f,
-                    center = Offset(w * 0.48f, h * 0.67f),
-                )
             }
         }
     }
@@ -309,6 +260,7 @@ public fun RfPhoto(
 public enum class RfIconKind {
     HOME,
     CATALOG,
+    STORE,
     SPARK,
     CALENDAR,
     USER,
@@ -328,6 +280,7 @@ public enum class RfIconKind {
     SHIELD,
     HEART,
     BACK,
+    MORE,
     MORE_VERT,
     MIC,
     CHAT,
@@ -342,7 +295,67 @@ public enum class RfIconKind {
     SPARKLE,
     MORE_VERTICAL,
     RECEIPT,
+    GIFT,
+    BOX,
+    LOGIN,
+    LOGOUT,
+    PARTY,
+    TREND_UP,
+    TREND_DOWN,
+    ARROW_RIGHT,
+    CHEVRON_DOWN,
+    CHEVRON_RIGHT,
 }
+
+private val iconPaths: Map<RfIconKind, String> = mapOf(
+    RfIconKind.HOME to "M3 10.5L12 3l9 7.5M5 9v11h5v-6h4v6h5V9",
+    RfIconKind.CATALOG to "M4 9l1.5-5h13L20 9M4 9h16M4 9a2.7 2.7 0 0 0 5.3 0a2.7 2.7 0 0 0 5.4 0a2.7 2.7 0 0 0 5.3 0M5 11.5V20h14v-8.5M10 20v-5h4v5",
+    RfIconKind.STORE to "M4 9l1.5-5h13L20 9M4 9h16M4 9a2.7 2.7 0 0 0 5.3 0a2.7 2.7 0 0 0 5.4 0a2.7 2.7 0 0 0 5.3 0M5 11.5V20h14v-8.5M10 20v-5h4v5",
+    RfIconKind.CALENDAR to "M4 6.5A1.5 1.5 0 0 1 5.5 5h13A1.5 1.5 0 0 1 20 6.5v12a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5zM4 10h16M8 3v4M16 3v4",
+    RfIconKind.HEART to "M12 20s-7.5-4.6-9.2-9.1C1.7 7.8 3.6 4.5 7 4.5c2 0 3.3 1.1 5 3 1.7-1.9 3-3 5-3 3.4 0 5.3 3.3 4.2 6.4C19.5 15.4 12 20 12 20z",
+    RfIconKind.SEARCH to "M4 11a7 7 0 1 0 14 0a7 7 0 1 0 -14 0M20 20l-3.6-3.6",
+    RfIconKind.MIC to "M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM19 11a7 7 0 0 1-14 0M12 18v3",
+    RfIconKind.BELL to "M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15zM10 21h4",
+    RfIconKind.USER to "M8 8a4 4 0 1 0 8 0a4 4 0 1 0 -8 0M4 20c.8-3.6 4-6 8-6s7.2 2.4 8 6",
+    RfIconKind.PLUS to "M12 5v14M5 12h14",
+    RfIconKind.CHECK to "M5 12.5l4.5 4.5L19 7.5",
+    RfIconKind.FILTER to "M4 7h9M17 7h3M15 5v4M4 17h3M11 17h9M9 15v4",
+    RfIconKind.BACK to "M19 12H5M11 18l-6-6 6-6",
+    RfIconKind.CLOSE to "M18 6L6 18M6 6l12 12",
+    RfIconKind.MORE to "M5 12h.01M12 12h.01M19 12h.01",
+    RfIconKind.MORE_VERT to "M12 5h.01M12 12h.01M12 19h.01",
+    RfIconKind.MORE_VERTICAL to "M12 5h.01M12 12h.01M12 19h.01",
+    RfIconKind.SETTINGS to "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z",
+    RfIconKind.ORDERS to "M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5M9 13h6M9 17h4",
+    RfIconKind.RECEIPT to "M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5M9 13h6M9 17h4",
+    RfIconKind.CHAT to "M5 4h14a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-8l-5 4v-4H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z",
+    RfIconKind.SEND to "M21 3L10 14M21 3l-6.5 18-4.5-7-7-4.5z",
+    RfIconKind.STAR to "M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z",
+    RfIconKind.SPARK to "M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7z",
+    RfIconKind.SPARKLE to "M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7z",
+    RfIconKind.CLOCK to "M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0M12 7v5l3.5 2",
+    RfIconKind.LOCATION to "M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21zM9.5 9.5a2.5 2.5 0 1 0 5 0a2.5 2.5 0 1 0 -5 0",
+    RfIconKind.TRASH to "M4 7h16M9 7V4.5h6V7M6 7l1 13h10l1-13M10 11v6M14 11v6",
+    RfIconKind.EDIT to "M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4",
+    RfIconKind.SHIELD to "M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6zM8.5 12l2.5 2.5 4.5-4.5",
+    RfIconKind.TRUCK to "M2 6h11v10H2zM13 9h4.5l3.5 3.5V16h-8M4.5 18.5a1.8 1.8 0 1 0 3.6 0a1.8 1.8 0 1 0 -3.6 0M15.5 18.5a1.8 1.8 0 1 0 3.6 0a1.8 1.8 0 1 0 -3.6 0",
+    RfIconKind.WALLET to "M3 6.5A1.5 1.5 0 0 1 4.5 5h15A1.5 1.5 0 0 1 21 6.5v11a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5zM3 10h18M7 15h3",
+    RfIconKind.WIFI_OFF to "M1 1l22 22M16.7 8a10.8 10.8 0 0 1 4.3 2.5M5 12.5a7 7 0 0 1 4-1.8M10.7 10.7A7 7 0 0 1 12 10.5c1.4 0 2.7.4 3.8 1.2M8.5 16.5a3.5 3.5 0 0 1 4.8 0M12 20h.01",
+    RfIconKind.GIFT to "M3 8h18v4H3zM5 12v9h14v-9M12 8v13M12 8S10.5 3 7.8 3.5C5.5 4 6.5 8 12 8zM12 8s1.5-5 4.2-4.5C18.5 4 17.5 8 12 8z",
+    RfIconKind.BOX to "M3 7.5l9-4.5 9 4.5v9L12 21l-9-4.5zM3 7.5l9 4.5 9-4.5M12 12v9",
+    RfIconKind.LOGIN to "M15 4h3.5A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5H15M10 16l4-4-4-4M14 12H3",
+    RfIconKind.LOGOUT to "M9 4H5.5A1.5 1.5 0 0 0 4 5.5v13A1.5 1.5 0 0 0 5.5 20H9M16 16l4-4-4-4M20 12H9",
+    RfIconKind.PARTY to "M4 20l4.5-12 7.5 7.5zM14 4c0 1.5-1 2-1 3.5M17 7.5c1-.8 2.5-1 3.5 0M20 12c-1.4-.3-2.5.2-3.2 1M10 4.5h.01M20 4h.01M21 16h.01",
+    RfIconKind.TREND_UP to "M3 17l6-6 4 4 8-8M15 7h6v6",
+    RfIconKind.TREND_DOWN to "M3 7l6 6 4-4 8 8M15 17h6v-6",
+    RfIconKind.ARROW_RIGHT to "M5 12h14M13 6l6 6-6 6",
+    RfIconKind.CHEVRON_DOWN to "M6 9l6 6 6-6",
+    RfIconKind.CHEVRON_RIGHT to "M9 18l6-6-6-6",
+    RfIconKind.WARNING to "M12 4L2.5 20h19zM12 10v4.5M12 17.5h.01",
+    RfIconKind.CAMERA to "M4 7h4l2-3h4l2 3h4a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2zM8 13a4 4 0 1 0 8 0a4 4 0 1 0 -8 0",
+    RfIconKind.QR to "M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 14h2v2h-2zM14 18h2v2h-2zM18 18h2v2h-2z",
+    RfIconKind.SHARE to "M15 6a3 3 0 1 0 6 0a3 3 0 1 0 -6 0M3 12a3 3 0 1 0 6 0a3 3 0 1 0 -6 0M15 18a3 3 0 1 0 6 0a3 3 0 1 0 -6 0M8.6 10.6l6.8-3.6M8.6 13.4l6.8 3.6",
+)
 
 /**
  * Componente `Icon` (Sección 3): trazo de 2 px y esquinas redondeadas.
@@ -356,281 +369,23 @@ public fun RfIcon(
     filled: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
-    Canvas(modifier = modifier.size(size)) {
-        val w = this.size.width
-        val h = this.size.height
-        val stroke = Stroke(width = w * strokeWidthFactor, cap = StrokeCap.Round, join = StrokeJoin.Round)
-        when (kind) {
-            RfIconKind.HOME -> {
-                val p = Path().apply {
-                    moveTo(w * 0.15f, h * 0.46f)
-                    lineTo(w * 0.5f, h * 0.16f)
-                    lineTo(w * 0.85f, h * 0.46f)
-                    lineTo(w * 0.85f, h * 0.84f)
-                    lineTo(w * 0.15f, h * 0.84f)
-                    close()
+    val pathString = iconPaths[kind]
+    if (pathString != null) {
+        val path = remember(pathString) { PathParser().parsePathString(pathString).toPath() }
+        Canvas(modifier = modifier.size(size)) {
+            val s = this.size.width / 24f
+            val stroke = Stroke(width = (24f * strokeWidthFactor).coerceAtLeast(1.8f), cap = StrokeCap.Round, join = StrokeJoin.Round)
+            scale(s, s, Offset.Zero) {
+                if (filled) {
+                    drawPath(path, color = tint)
+                } else {
+                    drawPath(path, color = tint, style = stroke)
                 }
-                if (filled) drawPath(p, color = tint) else drawPath(p, color = tint, style = stroke)
             }
-
-            RfIconKind.CATALOG -> {
-                drawRoundRect(tint, Offset(w * 0.15f, h * 0.15f), Size(w * 0.3f, h * 0.3f), CornerRadius(3f, 3f), stroke)
-                drawRoundRect(tint, Offset(w * 0.55f, h * 0.15f), Size(w * 0.3f, h * 0.3f), CornerRadius(3f, 3f), stroke)
-                drawRoundRect(tint, Offset(w * 0.15f, h * 0.55f), Size(w * 0.3f, h * 0.3f), CornerRadius(3f, 3f), stroke)
-                drawRoundRect(tint, Offset(w * 0.55f, h * 0.55f), Size(w * 0.3f, h * 0.3f), CornerRadius(3f, 3f), stroke)
-            }
-
-            RfIconKind.SPARK, RfIconKind.SPARKLE -> {
-                val p = Path().apply {
-                    moveTo(w * 0.5f, h * 0.1f)
-                    lineTo(w * 0.62f, h * 0.38f)
-                    lineTo(w * 0.9f, h * 0.5f)
-                    lineTo(w * 0.62f, h * 0.62f)
-                    lineTo(w * 0.5f, h * 0.9f)
-                    lineTo(w * 0.38f, h * 0.62f)
-                    lineTo(w * 0.1f, h * 0.5f)
-                    lineTo(w * 0.38f, h * 0.38f)
-                    close()
-                }
-                if (filled) drawPath(p, color = tint) else drawPath(p, color = tint, style = stroke)
-            }
-
-            RfIconKind.CALENDAR -> {
-                drawRoundRect(tint, Offset(w * 0.14f, h * 0.22f), Size(w * 0.72f, h * 0.64f), CornerRadius(4f, 4f), stroke)
-                drawLine(tint, Offset(w * 0.14f, h * 0.38f), Offset(w * 0.86f, h * 0.38f), stroke.width)
-                drawLine(tint, Offset(w * 0.32f, h * 0.12f), Offset(w * 0.32f, h * 0.26f), stroke.width)
-                drawLine(tint, Offset(w * 0.68f, h * 0.12f), Offset(w * 0.68f, h * 0.26f), stroke.width)
-            }
-
-            RfIconKind.USER -> {
-                drawCircle(tint, radius = w * 0.18f, center = Offset(w * 0.5f, h * 0.34f), style = stroke)
-                drawArc(
-                    color = tint,
-                    startAngle = 200f,
-                    sweepAngle = 140f,
-                    useCenter = false,
-                    topLeft = Offset(w * 0.18f, h * 0.56f),
-                    size = Size(w * 0.64f, h * 0.42f),
-                    style = stroke,
-                )
-            }
-
-            RfIconKind.ORDERS, RfIconKind.RECEIPT -> {
-                drawRoundRect(tint, Offset(w * 0.2f, h * 0.14f), Size(w * 0.6f, h * 0.72f), CornerRadius(4f, 4f), stroke)
-                drawLine(tint, Offset(w * 0.32f, h * 0.36f), Offset(w * 0.68f, h * 0.36f), stroke.width)
-                drawLine(tint, Offset(w * 0.32f, h * 0.52f), Offset(w * 0.68f, h * 0.52f), stroke.width)
-                drawLine(tint, Offset(w * 0.32f, h * 0.68f), Offset(w * 0.54f, h * 0.68f), stroke.width)
-            }
-
-            RfIconKind.SETTINGS -> {
-                drawCircle(tint, radius = w * 0.28f, center = Offset(w * 0.5f, h * 0.5f), style = stroke)
-                drawCircle(tint, radius = w * 0.1f, center = Offset(w * 0.5f, h * 0.5f), style = stroke)
-            }
-
-            RfIconKind.SEARCH -> {
-                drawCircle(tint, radius = w * 0.26f, center = Offset(w * 0.44f, h * 0.44f), style = stroke)
-                drawLine(tint, Offset(w * 0.64f, h * 0.64f), Offset(w * 0.86f, h * 0.86f), stroke.width)
-            }
-
-            RfIconKind.BELL -> {
-                drawArc(tint, 180f, 180f, false, Offset(w * 0.22f, h * 0.18f), Size(w * 0.56f, h * 0.54f), style = stroke)
-                drawLine(tint, Offset(w * 0.16f, h * 0.72f), Offset(w * 0.84f, h * 0.72f), stroke.width)
-                drawCircle(tint, radius = w * 0.06f, center = Offset(w * 0.5f, h * 0.82f))
-            }
-
-            RfIconKind.CHECK -> {
-                val p = Path().apply {
-                    moveTo(w * 0.2f, h * 0.52f)
-                    lineTo(w * 0.42f, h * 0.74f)
-                    lineTo(w * 0.82f, h * 0.28f)
-                }
-                drawPath(p, color = tint, style = stroke)
-            }
-
-            RfIconKind.WARNING -> {
-                val p = Path().apply {
-                    moveTo(w * 0.5f, h * 0.16f)
-                    lineTo(w * 0.86f, h * 0.82f)
-                    lineTo(w * 0.14f, h * 0.82f)
-                    close()
-                }
-                drawPath(p, color = tint, style = stroke)
-                drawLine(tint, Offset(w * 0.5f, h * 0.42f), Offset(w * 0.5f, h * 0.62f), stroke.width)
-            }
-
-            RfIconKind.TRUCK -> {
-                drawRoundRect(tint, Offset(w * 0.1f, h * 0.28f), Size(w * 0.5f, h * 0.38f), CornerRadius(3f, 3f), stroke)
-                drawRoundRect(tint, Offset(w * 0.6f, h * 0.4f), Size(w * 0.26f, h * 0.26f), CornerRadius(3f, 3f), stroke)
-                drawCircle(tint, radius = w * 0.09f, center = Offset(w * 0.28f, h * 0.74f), style = stroke)
-                drawCircle(tint, radius = w * 0.09f, center = Offset(w * 0.72f, h * 0.74f), style = stroke)
-            }
-
-            RfIconKind.WALLET -> {
-                drawRoundRect(tint, Offset(w * 0.14f, h * 0.24f), Size(w * 0.72f, h * 0.54f), CornerRadius(4f, 4f), stroke)
-                drawCircle(tint, radius = w * 0.06f, center = Offset(w * 0.68f, h * 0.51f))
-            }
-
-            RfIconKind.CAMERA -> {
-                drawRoundRect(tint, Offset(w * 0.14f, h * 0.28f), Size(w * 0.72f, h * 0.52f), CornerRadius(4f, 4f), stroke)
-                drawCircle(tint, radius = w * 0.15f, center = Offset(w * 0.5f, h * 0.54f), style = stroke)
-            }
-
-            RfIconKind.QR -> {
-                drawRoundRect(tint, Offset(w * 0.16f, h * 0.16f), Size(w * 0.26f, h * 0.26f), CornerRadius(2f, 2f), stroke)
-                drawRoundRect(tint, Offset(w * 0.58f, h * 0.16f), Size(w * 0.26f, h * 0.26f), CornerRadius(2f, 2f), stroke)
-                drawRoundRect(tint, Offset(w * 0.16f, h * 0.58f), Size(w * 0.26f, h * 0.26f), CornerRadius(2f, 2f), stroke)
-                drawCircle(tint, radius = w * 0.08f, center = Offset(w * 0.7f, h * 0.7f))
-            }
-
-            RfIconKind.WIFI_OFF -> {
-                drawArc(tint, 210f, 120f, false, Offset(w * 0.16f, h * 0.28f), Size(w * 0.68f, h * 0.5f), style = stroke)
-                drawLine(tint, Offset(w * 0.18f, h * 0.18f), Offset(w * 0.82f, h * 0.82f), stroke.width)
-            }
-
-            RfIconKind.PLUS -> {
-                drawLine(tint, Offset(w * 0.5f, h * 0.2f), Offset(w * 0.5f, h * 0.8f), stroke.width)
-                drawLine(tint, Offset(w * 0.2f, h * 0.5f), Offset(w * 0.8f, h * 0.5f), stroke.width)
-            }
-
-            RfIconKind.FILTER -> {
-                drawLine(tint, Offset(w * 0.18f, h * 0.28f), Offset(w * 0.82f, h * 0.28f), stroke.width)
-                drawLine(tint, Offset(w * 0.28f, h * 0.5f), Offset(w * 0.72f, h * 0.5f), stroke.width)
-                drawLine(tint, Offset(w * 0.38f, h * 0.72f), Offset(w * 0.62f, h * 0.72f), stroke.width)
-            }
-
-            RfIconKind.SHIELD -> {
-                val p = Path().apply {
-                    moveTo(w * 0.5f, h * 0.14f)
-                    lineTo(w * 0.82f, h * 0.28f)
-                    lineTo(w * 0.76f, h * 0.66f)
-                    lineTo(w * 0.5f, h * 0.88f)
-                    lineTo(w * 0.24f, h * 0.66f)
-                    lineTo(w * 0.18f, h * 0.28f)
-                    close()
-                }
-                drawPath(p, color = tint, style = stroke)
-            }
-
-            RfIconKind.HEART -> {
-                val p = Path().apply {
-                    moveTo(w * 0.5f, h * 0.82f)
-                    cubicTo(w * 0.15f, h * 0.58f, w * 0.12f, h * 0.26f, w * 0.32f, h * 0.22f)
-                    cubicTo(w * 0.42f, h * 0.20f, w * 0.48f, h * 0.28f, w * 0.5f, h * 0.34f)
-                    cubicTo(w * 0.52f, h * 0.28f, w * 0.58f, h * 0.20f, w * 0.68f, h * 0.22f)
-                    cubicTo(w * 0.88f, h * 0.26f, w * 0.85f, h * 0.58f, w * 0.5f, h * 0.82f)
-                    close()
-                }
-                if (filled) drawPath(p, color = tint) else drawPath(p, color = tint, style = stroke)
-            }
-
-            RfIconKind.BACK -> {
-                val p = Path().apply {
-                    moveTo(w * 0.62f, h * 0.22f)
-                    lineTo(w * 0.32f, h * 0.50f)
-                    lineTo(w * 0.62f, h * 0.78f)
-                }
-                drawPath(p, color = tint, style = stroke)
-            }
-
-            RfIconKind.MORE_VERT, RfIconKind.MORE_VERTICAL -> {
-                drawCircle(tint, radius = w * 0.065f, center = Offset(w * 0.5f, h * 0.24f))
-                drawCircle(tint, radius = w * 0.065f, center = Offset(w * 0.5f, h * 0.50f))
-                drawCircle(tint, radius = w * 0.065f, center = Offset(w * 0.5f, h * 0.76f))
-            }
-
-            RfIconKind.MIC -> {
-                drawRoundRect(tint, Offset(w * 0.36f, h * 0.16f), Size(w * 0.28f, h * 0.44f), CornerRadius(w * 0.14f, w * 0.14f), stroke)
-                drawArc(tint, 0f, 180f, false, Offset(w * 0.24f, h * 0.34f), Size(w * 0.52f, h * 0.38f), style = stroke)
-                drawLine(tint, Offset(w * 0.5f, h * 0.72f), Offset(w * 0.5f, h * 0.86f), stroke.width)
-            }
-
-            RfIconKind.CHAT -> {
-                val p = Path().apply {
-                    moveTo(w * 0.18f, h * 0.22f)
-                    lineTo(w * 0.82f, h * 0.22f)
-                    lineTo(w * 0.82f, h * 0.66f)
-                    lineTo(w * 0.42f, h * 0.66f)
-                    lineTo(w * 0.22f, h * 0.82f)
-                    lineTo(w * 0.22f, h * 0.66f)
-                    lineTo(w * 0.18f, h * 0.66f)
-                    close()
-                }
-                drawPath(p, color = tint, style = stroke)
-            }
-
-            RfIconKind.SHARE -> {
-                drawCircle(tint, radius = w * 0.10f, center = Offset(w * 0.72f, h * 0.24f), style = stroke)
-                drawCircle(tint, radius = w * 0.10f, center = Offset(w * 0.26f, h * 0.50f), style = stroke)
-                drawCircle(tint, radius = w * 0.10f, center = Offset(w * 0.72f, h * 0.76f), style = stroke)
-                drawLine(tint, Offset(w * 0.35f, h * 0.45f), Offset(w * 0.63f, h * 0.29f), stroke.width)
-                drawLine(tint, Offset(w * 0.35f, h * 0.55f), Offset(w * 0.63f, h * 0.71f), stroke.width)
-            }
-
-            RfIconKind.STAR -> {
-                val p = Path().apply {
-                    moveTo(w * 0.5f, h * 0.14f)
-                    lineTo(w * 0.61f, h * 0.38f)
-                    lineTo(w * 0.88f, h * 0.41f)
-                    lineTo(w * 0.68f, h * 0.59f)
-                    lineTo(w * 0.73f, h * 0.85f)
-                    lineTo(w * 0.5f, h * 0.72f)
-                    lineTo(w * 0.27f, h * 0.85f)
-                    lineTo(w * 0.32f, h * 0.59f)
-                    lineTo(w * 0.12f, h * 0.41f)
-                    lineTo(w * 0.39f, h * 0.38f)
-                    close()
-                }
-                if (filled) drawPath(p, color = tint) else drawPath(p, color = tint, style = stroke)
-            }
-
-            RfIconKind.SEND -> {
-                val p = Path().apply {
-                    moveTo(w * 0.16f, h * 0.46f)
-                    lineTo(w * 0.84f, h * 0.18f)
-                    lineTo(w * 0.58f, h * 0.84f)
-                    lineTo(w * 0.46f, h * 0.56f)
-                    close()
-                }
-                drawPath(p, color = tint, style = stroke)
-            }
-
-            RfIconKind.CLOCK -> {
-                drawCircle(tint, radius = w * 0.36f, center = Offset(w * 0.5f, h * 0.5f), style = stroke)
-                drawLine(tint, Offset(w * 0.5f, h * 0.30f), Offset(w * 0.5f, h * 0.50f), stroke.width)
-                drawLine(tint, Offset(w * 0.5f, h * 0.50f), Offset(w * 0.66f, h * 0.58f), stroke.width)
-            }
-
-            RfIconKind.LOCATION -> {
-                drawCircle(tint, radius = w * 0.12f, center = Offset(w * 0.5f, h * 0.40f), style = stroke)
-                val p = Path().apply {
-                    moveTo(w * 0.5f, h * 0.86f)
-                    cubicTo(w * 0.22f, h * 0.60f, w * 0.22f, h * 0.18f, w * 0.5f, h * 0.18f)
-                    cubicTo(w * 0.78f, h * 0.18f, w * 0.78f, h * 0.60f, w * 0.5f, h * 0.86f)
-                }
-                drawPath(p, color = tint, style = stroke)
-            }
-
-            RfIconKind.TRASH -> {
-                drawLine(tint, Offset(w * 0.22f, h * 0.26f), Offset(w * 0.78f, h * 0.26f), stroke.width)
-                drawRoundRect(tint, Offset(w * 0.28f, h * 0.26f), Size(w * 0.44f, h * 0.58f), CornerRadius(3f, 3f), stroke)
-            }
-
-            RfIconKind.EDIT -> {
-                val p = Path().apply {
-                    moveTo(w * 0.22f, h * 0.78f)
-                    lineTo(w * 0.34f, h * 0.74f)
-                    lineTo(w * 0.76f, h * 0.32f)
-                    lineTo(w * 0.68f, h * 0.24f)
-                    lineTo(w * 0.26f, h * 0.66f)
-                    close()
-                }
-                drawPath(p, color = tint, style = stroke)
-            }
-
-            RfIconKind.CLOSE -> {
-                drawLine(tint, Offset(w * 0.24f, h * 0.24f), Offset(w * 0.76f, h * 0.76f), stroke.width)
-                drawLine(tint, Offset(w * 0.76f, h * 0.24f), Offset(w * 0.24f, h * 0.76f), stroke.width)
-            }
+        }
+    } else {
+        Canvas(modifier = modifier.size(size)) {
+            drawCircle(color = tint, radius = this.size.width * 0.4f)
         }
     }
 }

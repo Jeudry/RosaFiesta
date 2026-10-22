@@ -129,8 +129,8 @@ fun RenderScreenSpec(
         variant = spec.variant,
         screenCode = spec.code,
         screenTitle = spec.title,
-        showMockStatusBar = isFrameHarness && spec.code !in setOf("p00", "A00"),
-        wrapInPhoneBorder = isFrameHarness,
+        showMockStatusBar = false,
+        wrapInPhoneBorder = false,
         bottomBar = {
             if (showBottomBar) {
                 if (isAdmin) {

@@ -40,6 +40,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -65,12 +66,12 @@ public enum class PersonalTab(
     public val icon: RfIconKind,
 ) {
     INICIO("inicio", "Inicio", RfIconKind.HOME),
-    CATALOGO("catalogo", "Catálogo", RfIconKind.CATALOG),
+    CATALOGO("catalogo", "Catálogo", RfIconKind.STORE),
     ROSA("rosa", "Rosa", RfIconKind.SPARK),
     EVENTOS("eventos", "Eventos", RfIconKind.CALENDAR),
     FAVORITOS("favoritos", "Favoritos", RfIconKind.HEART),
-    PAQUETES("paquetes", "Paquetes", RfIconKind.ORDERS),
-    ENTRAR("entrar", "Entrar", RfIconKind.USER),
+    PAQUETES("paquetes", "Paquetes", RfIconKind.GIFT),
+    ENTRAR("entrar", "Entrar", RfIconKind.LOGIN),
     ;
 
     public companion object {
@@ -100,84 +101,90 @@ public fun PersonalTabBar(
     dark: Boolean = LocalRfPalette.current.isDark,
     modifier: Modifier = Modifier,
 ) {
-    val palette = LocalRfPalette.current
     val typo = LocalRfTypography.current
     val tabs = if (guestMode) PersonalTab.guestTabs else PersonalTab.standardTabs
-    val barBg = if (dark) RfColors.PersonalDarkSurface else palette.surface.copy(alpha = 0.98f)
-    val barLine = if (dark) RfColors.PersonalDarkLine else palette.line
-    val inactiveColor = if (dark) RfColors.PersonalDarkMuted else palette.muted
+    val barBg = if (dark) Color(0xFF161624) else Color(0xFFFFFFFF)
+    val barLine = if (dark) Color(0xFF2A2A40) else Color(0xFFF0EBF4)
+    val inactiveColor = if (dark) Color(0xFFA6A3BA) else Color(0xFF62627A)
+    val activePillBg = Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))
+    val activeLabelColor = Color(0xFFA956D3)
+    val rosaLabelColor = if (dark) Color(0xFFF2F0F8) else Color(0xFF1A1A2E)
 
     Box(
-        contentAlignment = Alignment.BottomCenter,
         modifier = modifier
             .fillMaxWidth()
             .height(RfDimens.BottomBarHeight),
     ) {
-        // Superficie principal de la barra inferior (70 dp base + 26 dp de espacio superior para Rosa sobresaliendo)
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceAround,
+        // Superficie principal de 96 dp con borde superior fino
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(RfDimens.BottomBarHeight - RfDimens.RosaCenterProtrusion)
+                .fillMaxSize()
                 .background(barBg)
-                .border(1.dp, barLine)
-                .padding(horizontal = 8.dp),
+                .drawBehind {
+                    drawLine(
+                        color = barLine,
+                        start = Offset(0f, 0f),
+                        end = Offset(drawContext.size.width, 0f),
+                        strokeWidth = 1f,
+                    )
+                }
+                .padding(top = 10.dp, start = 8.dp, end = 8.dp),
         ) {
-            tabs.forEach { tab ->
-                val selected = tab == activeTab
-                if (tab == PersonalTab.ROSA) {
-                    Spacer(Modifier.weight(1f))
-                } else {
-                    val pillBg = if (selected) {
-                        Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))
+            Row(
+                verticalAlignment = Alignment.Top,
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+            ) {
+                tabs.forEach { tab ->
+                    if (tab == PersonalTab.ROSA) {
+                        Spacer(Modifier.weight(1f))
                     } else {
-                        SolidColor(Color.Transparent)
-                    }
-                    val iconColor = if (selected) Color.White else inactiveColor
-                    val labelColor = if (selected) {
-                        if (dark) Color(0xFFC84FB8) else Color(0xFFA956D3)
-                    } else {
-                        inactiveColor
-                    }
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center,
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickable { onSelectTab(tab) }
-                            .padding(vertical = 4.dp),
-                    ) {
-                        Box(
-                            contentAlignment = Alignment.Center,
+                        val selected = tab == activeTab
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
                             modifier = Modifier
-                                .size(width = 52.dp, height = 30.dp)
-                                .clip(RoundedCornerShape(999.dp))
-                                .background(pillBg),
+                                .weight(1f)
+                                .height(56.dp)
+                                .clickable { onSelectTab(tab) },
                         ) {
-                            RfIcon(kind = tab.icon, tint = iconColor, size = 22.dp)
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier
+                                    .size(width = 52.dp, height = 30.dp)
+                                    .clip(RoundedCornerShape(999.dp))
+                                    .background(
+                                        if (selected) activePillBg else SolidColor(Color.Transparent),
+                                    ),
+                            ) {
+                                RfIcon(
+                                    kind = tab.icon,
+                                    tint = if (selected) Color.White else inactiveColor,
+                                    size = 22.dp,
+                                )
+                            }
+                            BasicText(
+                                text = tab.label,
+                                style = typo.caption.copy(
+                                    fontSize = 11.5.sp,
+                                    fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
+                                    color = if (selected) activeLabelColor else inactiveColor,
+                                ),
+                                maxLines = 1,
+                            )
                         }
-                        Spacer(Modifier.height(4.dp))
-                        BasicText(
-                            text = tab.label,
-                            style = typo.caption.copy(
-                                fontSize = 11.5.sp,
-                                fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
-                                color = labelColor,
-                            ),
-                            maxLines = 1,
-                        )
                     }
                 }
             }
         }
 
-        // Botón central Rosa de 56 dp sobresaliendo 26 dp
+        // Botón central Rosa sobresaliendo 26 dp respecto al contenedor de ítems (-16 dp del borde superior)
         val rosaSelected = activeTab == PersonalTab.ROSA
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(4.dp),
             modifier = Modifier
                 .align(Alignment.TopCenter)
+                .offset(y = (-16).dp)
                 .clickable { onSelectTab(PersonalTab.ROSA) },
         ) {
             Box(
@@ -185,7 +192,7 @@ public fun PersonalTabBar(
                 modifier = Modifier
                     .size(64.dp)
                     .clip(CircleShape)
-                    .background(if (dark) Color(0xFF12121E) else Color.White)
+                    .background(barBg)
                     .padding(4.dp),
             ) {
                 RosaAvatar(
@@ -194,14 +201,14 @@ public fun PersonalTabBar(
                     forceAdminPalette = false,
                 )
             }
-            Spacer(Modifier.height(4.dp))
             BasicText(
                 text = "Rosa",
                 style = typo.caption.copy(
                     fontSize = 11.5.sp,
                     fontWeight = FontWeight.Bold,
-                    color = if (dark) Color(0xFFF2F0F8) else Color(0xFF1A1A2E),
+                    color = rosaLabelColor,
                 ),
+                maxLines = 1,
             )
         }
     }
@@ -220,8 +227,8 @@ public enum class AdminTab(
     INICIO("inicio", "Inicio", RfIconKind.HOME),
     EVENTOS("eventos", "Eventos", RfIconKind.CALENDAR, badgeCount = 2),
     ROSA("rosa", "Rosa", RfIconKind.SPARK),
-    INVENTARIO("inventario", "Inventario", RfIconKind.CATALOG),
-    MAS("mas", "Más", RfIconKind.SETTINGS),
+    INVENTARIO("inventario", "Inventario", RfIconKind.BOX),
+    MAS("mas", "Más", RfIconKind.MORE),
     ;
 
     public companion object {
@@ -245,91 +252,100 @@ public fun AdminTabBar(
     onSelectTab: (AdminTab) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val palette = LocalRfPalette.current
     val typo = LocalRfTypography.current
+    val barBg = Color(0xFFFFFFFF)
+    val barLine = Color(0xFFECECF5)
+    val inactiveColor = Color(0xFF5F6377)
+    val activePillBg = Brush.linearGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0)))
+    val activeLabelColor = Color(0xFF4B47D6)
+    val rosaLabelColor = Color(0xFF151729)
 
     Box(
-        contentAlignment = Alignment.BottomCenter,
         modifier = modifier
             .fillMaxWidth()
             .height(RfDimens.BottomBarHeight),
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceAround,
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(RfDimens.BottomBarHeight - RfDimens.RosaCenterProtrusion)
-                .background(palette.surface)
-                .border(1.dp, RfColors.AdminLine)
-                .padding(horizontal = 8.dp),
+                .fillMaxSize()
+                .background(barBg)
+                .drawBehind {
+                    drawLine(
+                        color = barLine,
+                        start = Offset(0f, 0f),
+                        end = Offset(drawContext.size.width, 0f),
+                        strokeWidth = 1f,
+                    )
+                }
+                .padding(top = 10.dp, start = 8.dp, end = 8.dp),
         ) {
-            AdminTab.entries.forEach { tab ->
-                val selected = tab == activeTab
-                if (tab == AdminTab.ROSA) {
-                    Spacer(Modifier.weight(1f))
-                } else {
-                    val pillBg = if (selected) {
-                        Brush.linearGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0)))
+            Row(
+                verticalAlignment = Alignment.Top,
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+            ) {
+                AdminTab.entries.forEach { tab ->
+                    if (tab == AdminTab.ROSA) {
+                        Spacer(Modifier.weight(1f))
                     } else {
-                        SolidColor(Color.Transparent)
-                    }
-                    val iconColor = if (selected) Color.White else Color(0xFF5F6377)
-                    val labelColor = if (selected) Color(0xFF4B47D6) else Color(0xFF5F6377)
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center,
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickable { onSelectTab(tab) }
-                            .padding(vertical = 4.dp),
-                    ) {
-                        Box(
-                            contentAlignment = Alignment.Center,
+                        val selected = tab == activeTab
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
                             modifier = Modifier
-                                .size(width = 52.dp, height = 30.dp)
-                                .clip(RoundedCornerShape(999.dp))
-                                .background(pillBg),
+                                .weight(1f)
+                                .height(56.dp)
+                                .clickable { onSelectTab(tab) },
                         ) {
-                            RfIcon(kind = tab.icon, tint = iconColor, size = 22.dp)
-                            if (tab.badgeCount > 0) {
-                                Box(
-                                    contentAlignment = Alignment.Center,
-                                    modifier = Modifier
-                                        .align(Alignment.TopEnd)
-                                        .offset(x = 6.dp, y = (-2).dp)
-                                        .size(15.dp)
-                                        .clip(CircleShape)
-                                        .background(RfColors.Sol),
-                                ) {
-                                    BasicText(
-                                        text = tab.badgeCount.toString(),
-                                        style = typo.tagLabel.copy(color = RfColors.SolInk, fontSize = 9.sp),
-                                    )
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier
+                                    .size(width = 52.dp, height = 30.dp)
+                                    .clip(RoundedCornerShape(999.dp))
+                                    .background(
+                                        if (selected) activePillBg else SolidColor(Color.Transparent),
+                                    ),
+                            ) {
+                                RfIcon(kind = tab.icon, tint = if (selected) Color.White else inactiveColor, size = 22.dp)
+                                if (tab.badgeCount > 0) {
+                                    Box(
+                                        contentAlignment = Alignment.Center,
+                                        modifier = Modifier
+                                            .align(Alignment.TopEnd)
+                                            .offset(x = 6.dp, y = (-2).dp)
+                                            .size(15.dp)
+                                            .clip(CircleShape)
+                                            .background(RfColors.Sol),
+                                    ) {
+                                        BasicText(
+                                            text = tab.badgeCount.toString(),
+                                            style = typo.tagLabel.copy(color = RfColors.SolInk, fontSize = 9.sp),
+                                        )
+                                    }
                                 }
                             }
+                            BasicText(
+                                text = tab.label,
+                                style = typo.caption.copy(
+                                    fontSize = 11.5.sp,
+                                    fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
+                                    color = if (selected) activeLabelColor else inactiveColor,
+                                ),
+                                maxLines = 1,
+                            )
                         }
-                        Spacer(Modifier.height(4.dp))
-                        BasicText(
-                            text = tab.label,
-                            style = typo.caption.copy(
-                                fontSize = 11.5.sp,
-                                fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
-                                color = labelColor,
-                            ),
-                            maxLines = 1,
-                        )
                     }
                 }
             }
         }
 
-        // Botón central Rosa de 56 dp con rosa-admin-bg sobresaliendo 26 dp
+        // Botón central Rosa de 56 dp con rosa-admin-bg sobresaliendo 26 dp respecto al contenedor de ítems (-16 dp del borde superior)
         val rosaSelected = activeTab == AdminTab.ROSA
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(4.dp),
             modifier = Modifier
                 .align(Alignment.TopCenter)
+                .offset(y = (-16).dp)
                 .clickable { onSelectTab(AdminTab.ROSA) },
         ) {
             Box(
@@ -337,7 +353,7 @@ public fun AdminTabBar(
                 modifier = Modifier
                     .size(64.dp)
                     .clip(CircleShape)
-                    .background(Color.White)
+                    .background(barBg)
                     .padding(4.dp),
             ) {
                 RosaAvatar(
@@ -346,14 +362,14 @@ public fun AdminTabBar(
                     forceAdminPalette = true,
                 )
             }
-            Spacer(Modifier.height(4.dp))
             BasicText(
                 text = "Rosa",
                 style = typo.caption.copy(
                     fontSize = 11.5.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF151729),
+                    color = rosaLabelColor,
                 ),
+                maxLines = 1,
             )
         }
     }
@@ -1217,69 +1233,36 @@ public fun RfPhoneFrame(
     screenCode: String = "",
     screenTitle: String = "",
     bottomBar: (@Composable () -> Unit)? = null,
-    showMockStatusBar: Boolean = true,
-    wrapInPhoneBorder: Boolean = true,
+    showMockStatusBar: Boolean = false,
+    wrapInPhoneBorder: Boolean = false,
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     RfTheme(variant = variant) {
-        val palette = LocalRfPalette.current
-        val typo = LocalRfTypography.current
-
         val frameModifier = if (wrapInPhoneBorder) {
             modifier
                 .width(RfDimens.PhoneFrameWidth)
                 .height(RfDimens.PhoneFrameHeight)
                 .clip(RoundedCornerShape(RfDimens.PhoneInnerRadius))
-                .border(1.5.dp, palette.line, RoundedCornerShape(RfDimens.PhoneInnerRadius))
+                .border(1.5.dp, LocalRfPalette.current.line, RoundedCornerShape(RfDimens.PhoneInnerRadius))
         } else {
-            modifier.fillMaxSize()
+            modifier
+                .width(RfDimens.PhoneFrameWidth)
+                .height(RfDimens.PhoneFrameHeight)
         }
 
         RfRadialBackgroundBox(
             modifier = frameModifier,
         ) {
-            Column(modifier = Modifier.fillMaxSize()) {
-                if (showMockStatusBar) {
-                    // Barra de estado de 54 dp de alto (contenido empieza en y = 54 dp, Sección 2.5)
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(RfDimens.StatusBarHeight)
-                            .padding(horizontal = RfDimens.ScreenHorizontalPadding),
-                    ) {
-                        BasicText(
-                            text = "9:41",
-                            style = typo.fieldLabel.copy(color = palette.ink),
-                        )
-                        if (screenCode.isNotEmpty()) {
-                            RfTag(
-                                text = "$screenCode · $screenTitle".trimEnd(' ', '·'),
-                                tone = if (palette.isAdmin) RfTagTone.INDIGO else RfTagTone.ROSA,
-                            )
-                        }
-                        BasicText(
-                            text = "5G · 100%",
-                            style = typo.secondary.copy(color = palette.ink, fontWeight = FontWeight.SemiBold),
-                        )
-                    }
-                } else {
-                    Spacer(Modifier.height(18.dp))
-                }
-
-                // Cuerpo con márgenes laterales de 20 dp (Sección 2.5)
+            Box(modifier = Modifier.fillMaxSize()) {
                 Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth()
-                        .padding(horizontal = RfDimens.ScreenHorizontalPadding),
+                    modifier = Modifier.fillMaxSize(),
                     content = content,
                 )
-
                 if (bottomBar != null) {
-                    bottomBar()
+                    Box(modifier = Modifier.align(Alignment.BottomCenter)) {
+                        bottomBar()
+                    }
                 }
             }
         }

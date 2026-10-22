@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -21,6 +22,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
@@ -444,7 +446,18 @@ private fun HeroBalloonArchIllustration(modifier: Modifier = Modifier) {
                 size = Size(4.8f * s, 6.8f * s),
             )
         }
-        drawCircle(Color(0xFFFFD45C), radius = 3.5f * s, center = Offset(60f * s, 26f * s))
+        val star = Path().apply {
+            moveTo(60f * s, 22f * s)
+            lineTo(61.6f * s, 26.4f * s)
+            lineTo(66f * s, 28f * s)
+            lineTo(61.6f * s, 29.6f * s)
+            lineTo(60f * s, 34f * s)
+            lineTo(58.4f * s, 29.6f * s)
+            lineTo(54f * s, 28f * s)
+            lineTo(58.4f * s, 26.4f * s)
+            close()
+        }
+        drawPath(star, Color(0xFFFBCA3F))
     }
 }
 
@@ -583,7 +596,10 @@ internal fun RenderPersonalHomeScreen(
 
     Column(
         verticalArrangement = Arrangement.spacedBy(16.dp),
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(top = 54.dp, start = 20.dp, end = 20.dp, bottom = 96.dp)
+            .verticalScroll(rememberScrollState()),
     ) {
         // Header
         Row(
@@ -669,7 +685,7 @@ internal fun RenderPersonalHomeScreen(
                     .clickable { onSelectScreenCode("s37") }
                     .padding(start = 12.dp, end = 8.dp),
             ) {
-                RfIcon(kind = RfIconKind.SPARK, tint = Color.White, size = 20.dp)
+                RfIcon(kind = RfIconKind.PARTY, tint = Color.White, size = 20.dp)
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
@@ -729,19 +745,54 @@ internal fun RenderPersonalHomeScreen(
                 .clip(RoundedCornerShape(24.dp))
                 .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)))),
         ) {
-            // Balloon arch decoration
+            // Background decorations: circles, 5-point star, and confetti
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val s = this.size.width / 350f
+                drawCircle(Color.White.copy(alpha = 0.10f), radius = 70f * s, center = Offset(300f * s, 30f * s))
+                drawCircle(Color.White.copy(alpha = 0.08f), radius = 40f * s, center = Offset(330f * s, 170f * s))
+                drawCircle(Color(0xFFD6EA8C), radius = 5f * s, center = Offset(168f * s, 54f * s))
+                val star5 = Path().apply {
+                    val points = listOf(
+                        Offset(0f, -10f),
+                        Offset(2.35f, -3.24f),
+                        Offset(9.5f, -3.1f),
+                        Offset(3.8f, 1.24f),
+                        Offset(5.9f, 8.1f),
+                        Offset(0f, 4f),
+                        Offset(-5.9f, 8.1f),
+                        Offset(-3.8f, 1.24f),
+                        Offset(-9.5f, -3.1f),
+                        Offset(-2.35f, -3.24f),
+                    )
+                    points.forEachIndexed { i, pt ->
+                        val px = (196f + pt.x * 0.9f) * s
+                        val py = (26f + pt.y * 0.9f) * s
+                        if (i == 0) moveTo(px, py) else lineTo(px, py)
+                    }
+                    close()
+                }
+                drawPath(star5, Color(0xFFFFD45C))
+                drawRoundRect(
+                    color = Color(0xFFD6EA8C),
+                    topLeft = Offset(222f * s, 58f * s),
+                    size = Size(20f * s, 6f * s),
+                    cornerRadius = CornerRadius(3f * s, 3f * s),
+                )
+            }
+
+            // Balloon arch decoration (210 x 210, right: -30px, bottom: -26px)
             HeroBalloonArchIllustration(
                 modifier = Modifier
-                    .size(190.dp)
+                    .size(210.dp)
                     .align(Alignment.BottomEnd)
-                    .padding(end = 6.dp, bottom = 4.dp),
+                    .offset(x = 30.dp, y = 26.dp),
             )
 
             Column(
-                verticalArrangement = Arrangement.SpaceBetween,
+                verticalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 20.dp, vertical = 20.dp),
+                    .padding(horizontal = 20.dp, vertical = 22.dp),
             ) {
                 Box(
                     contentAlignment = Alignment.Center,
@@ -791,16 +842,7 @@ internal fun RenderPersonalHomeScreen(
                             color = Color(0xFFA23FB8),
                         ),
                     )
-                    Canvas(modifier = Modifier.size(16.dp)) {
-                        val stroke = Stroke(width = size.width * 0.14f, cap = StrokeCap.Round, join = StrokeJoin.Round)
-                        drawLine(Color(0xFFA23FB8), Offset(size.width * 0.2f, size.height * 0.5f), Offset(size.width * 0.8f, size.height * 0.5f), stroke.width, StrokeCap.Round)
-                        val arrow = Path().apply {
-                            moveTo(size.width * 0.55f, size.height * 0.25f)
-                            lineTo(size.width * 0.8f, size.height * 0.5f)
-                            lineTo(size.width * 0.55f, size.height * 0.75f)
-                        }
-                        drawPath(arrow, Color(0xFFA23FB8), style = stroke)
-                    }
+                    RfIcon(kind = RfIconKind.ARROW_RIGHT, tint = Color(0xFFA23FB8), size = 16.dp)
                 }
             }
         }
@@ -1013,18 +1055,7 @@ internal fun RenderPersonalHomeScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                             ) {
-                                Canvas(modifier = Modifier.size(14.dp)) {
-                                    val stroke = Stroke(width = size.width * 0.13f, cap = StrokeCap.Round, join = StrokeJoin.Round)
-                                    val path = Path().apply {
-                                        moveTo(size.width * 0.15f, size.height * 0.75f)
-                                        lineTo(size.width * 0.42f, size.height * 0.48f)
-                                        lineTo(size.width * 0.60f, size.height * 0.66f)
-                                        lineTo(size.width * 0.90f, size.height * 0.30f)
-                                    }
-                                    drawPath(path, Color(0xFF2E1A47), style = stroke)
-                                    drawLine(Color(0xFF2E1A47), Offset(size.width * 0.65f, size.height * 0.30f), Offset(size.width * 0.90f, size.height * 0.30f), stroke.width, StrokeCap.Round)
-                                    drawLine(Color(0xFF2E1A47), Offset(size.width * 0.90f, size.height * 0.30f), Offset(size.width * 0.90f, size.height * 0.55f), stroke.width, StrokeCap.Round)
-                                }
+                                RfIcon(kind = RfIconKind.TREND_UP, tint = Color(0xFF2E1A47), size = 14.dp)
                                 BasicText(
                                     text = "Tendencia",
                                     style = typo.caption.copy(
@@ -1091,18 +1122,7 @@ internal fun RenderPersonalHomeScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                             ) {
-                                Canvas(modifier = Modifier.size(14.dp)) {
-                                    val stroke = Stroke(width = size.width * 0.13f, cap = StrokeCap.Round, join = StrokeJoin.Round)
-                                    val path = Path().apply {
-                                        moveTo(size.width * 0.15f, size.height * 0.75f)
-                                        lineTo(size.width * 0.42f, size.height * 0.48f)
-                                        lineTo(size.width * 0.60f, size.height * 0.66f)
-                                        lineTo(size.width * 0.90f, size.height * 0.30f)
-                                    }
-                                    drawPath(path, Color(0xFF2E1A47), style = stroke)
-                                    drawLine(Color(0xFF2E1A47), Offset(size.width * 0.65f, size.height * 0.30f), Offset(size.width * 0.90f, size.height * 0.30f), stroke.width, StrokeCap.Round)
-                                    drawLine(Color(0xFF2E1A47), Offset(size.width * 0.90f, size.height * 0.30f), Offset(size.width * 0.90f, size.height * 0.55f), stroke.width, StrokeCap.Round)
-                                }
+                                RfIcon(kind = RfIconKind.TREND_UP, tint = Color(0xFF2E1A47), size = 14.dp)
                                 BasicText(
                                     text = "Tendencia",
                                     style = typo.caption.copy(
