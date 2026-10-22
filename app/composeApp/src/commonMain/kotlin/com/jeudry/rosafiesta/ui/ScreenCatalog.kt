@@ -265,10 +265,10 @@ object ScreenCatalog {
      * Pestaña activa de `AdminTabBar` para un código de pantalla de la App Administrativa.
      */
     fun activeAdminTab(code: String): AdminTab = when (code) {
-        "A01", "A02", "A03", "A22", "A29", "A35", "A36" -> AdminTab.INICIO
+        "A01", "A02", "A03", "A04", "A22", "A29", "A35", "A36" -> AdminTab.INICIO
 
-        "A04", "A05", "A06", "A07", "A11", "A13", "A14", "A15", "A16", "A17", "A18", "A19",
-        "A20", "A21", "A32", "A33", "A38",
+        "A05", "A06", "A07", "A11", "A13", "A14", "A15", "A16", "A17", "A18", "A19",
+        "A20", "A21", "A33", "A38",
         -> AdminTab.EVENTOS
 
         "A08", "A34", "s66", "s72", "s73", "s74" -> AdminTab.ROSA

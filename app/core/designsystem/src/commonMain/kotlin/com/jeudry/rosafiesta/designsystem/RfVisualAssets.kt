@@ -308,6 +308,12 @@ public enum class RfIconKind {
     INFO,
     WHATSAPP,
     REFRESH,
+    MINUS,
+    COPY,
+    PLAY,
+    RING,
+    CHECKLIST,
+    LIGHTBULB,
 }
 
 private val iconPaths: Map<RfIconKind, String> = mapOf(
@@ -361,6 +367,12 @@ private val iconPaths: Map<RfIconKind, String> = mapOf(
     RfIconKind.INFO to "M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0M12 11v5.5M12 7.8h.01",
     RfIconKind.WHATSAPP to "M4 20l1.3-4A8.5 8.5 0 1 1 8 18.8zM9 8.5c0 3.2 3.2 6.5 6.5 6.5l1-1.6-2-1.1-1 .8c-1-.4-2.1-1.5-2.5-2.5l.8-1-1.1-2z",
     RfIconKind.REFRESH to "M20 11a8 8 0 0 0-14.6-4.5M4 4v4h4M4 13a8 8 0 0 0 14.6 4.5M20 20v-4h-4",
+    RfIconKind.MINUS to "M5 12h14",
+    RfIconKind.COPY to "M12 3l9 5-9 5-9-5zM3 13l9 5 9-5",
+    RfIconKind.PLAY to "M8 5.5v13l10.5-6.5z",
+    RfIconKind.RING to "M6.5 14a5.5 5.5 0 1 0 11 0a5.5 5.5 0 1 0 -11 0M9.5 6.5L12 9l2.5-2.5L13 4h-2z",
+    RfIconKind.CHECKLIST to "M4 6l1.5 1.5L8 5M4 12l1.5 1.5L8 11M4 18l1.5 1.5L8 17M11 6.5h9M11 12.5h9M11 18.5h9",
+    RfIconKind.LIGHTBULB to "M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z",
 )
 
 /**
