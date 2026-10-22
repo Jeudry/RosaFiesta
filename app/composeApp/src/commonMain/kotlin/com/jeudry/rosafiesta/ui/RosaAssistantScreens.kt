@@ -2252,7 +2252,7 @@ internal fun RenderAdminRosaA08(
                             .padding(horizontal = 7.dp),
                         contentAlignment = Alignment.Center,
                     ) {
-                        BasicText("Admin", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF4B47D6)))
+                        BasicText("Admin", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 11.sp, fontWeight = FontWeight.Medium, color = Color(0xFF4B47D6)))
                     }
                 }
             }
@@ -2329,8 +2329,8 @@ internal fun RenderAdminRosaA08(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                             ) {
-                                RfIcon(kind = RfIconKind.RING, tint = Color(0xFF151729), size = 16.dp)
-                                BasicText("Boda · Sáb 14 nov", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF151729)))
+                                RfIcon(kind = RfIconKind.RING, tint = Color(0xFF2E324A), size = 16.dp)
+                                BasicText("Boda · Sáb 14 nov", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2E324A)))
                             }
                             Box(
                                 modifier = Modifier
@@ -2339,7 +2339,7 @@ internal fun RenderAdminRosaA08(
                                     .padding(horizontal = 9.dp),
                                 contentAlignment = Alignment.Center,
                             ) {
-                                BasicText("120 invitados", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF4B47D6)))
+                                BasicText("120 invitados", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = Color(0xFF4B47D6)))
                             }
                         }
 
@@ -2379,7 +2379,7 @@ internal fun RenderAdminRosaA08(
                                     modifier = Modifier.weight(1f),
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
-                                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF151729)),
+                                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2E324A)),
                                 )
                                 Box(
                                     modifier = Modifier
@@ -2388,7 +2388,7 @@ internal fun RenderAdminRosaA08(
                                         .padding(horizontal = 8.dp),
                                     contentAlignment = Alignment.Center,
                                 ) {
-                                    BasicText(tagInfo.first, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = tagInfo.second.second))
+                                    BasicText(tagInfo.first, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 11.sp, fontWeight = FontWeight.Medium, color = tagInfo.second.second))
                                 }
                             }
                         }

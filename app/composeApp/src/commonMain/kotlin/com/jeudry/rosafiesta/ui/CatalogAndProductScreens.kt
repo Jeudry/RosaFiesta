@@ -574,7 +574,7 @@ internal fun RenderProductDetailS19(
                                     text = t,
                                     style = typo.body.copy(
                                         fontSize = 14.sp,
-                                        fontWeight = if (isSel) FontWeight.Bold else FontWeight.SemiBold,
+                                        fontWeight = if (isSel) FontWeight.Medium else FontWeight.Normal,
                                         color = if (isSel) Color.White else Color(0xFF5F6377),
                                     ),
                                 )

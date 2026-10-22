@@ -121,9 +121,9 @@ internal fun RenderAdminCreateEventA04(
                         RosaAvatar(size = RosaAvatarSize.LARGE, customSize = 48.dp, forceAdminPalette = true)
                         Column(modifier = Modifier.weight(1f)) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                BasicText("Con Rosa IA", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF151729)))
+                                BasicText("Con Rosa IA", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2E324A)))
                                 Box(modifier = Modifier.height(20.dp).background(Color(0xFFFFD45C), CircleShape).padding(horizontal = 7.dp), contentAlignment = Alignment.Center) {
-                                    BasicText("Más rápido", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E1A47)))
+                                    BasicText("Más rápido", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 11.sp, fontWeight = FontWeight.Medium, color = Color(0xFF2E1A47)))
                                 }
                             }
                             Spacer(Modifier.height(2.dp))
@@ -151,7 +151,7 @@ internal fun RenderAdminCreateEventA04(
                             RfIcon(kind = RfIconKind.EDIT, tint = Color(0xFF4B47D6), size = 22.dp)
                         }
                         Column(modifier = Modifier.weight(1f)) {
-                            BasicText("Manual, paso a paso", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF151729)))
+                            BasicText("Manual, paso a paso", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2E324A)))
                             Spacer(Modifier.height(2.dp))
                             BasicText("Cliente, fecha, lugar y artículos", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF5F6377)))
                         }
@@ -177,7 +177,7 @@ internal fun RenderAdminCreateEventA04(
                             RfIcon(kind = RfIconKind.BOX, tint = Color(0xFF1F8A84), size = 22.dp)
                         }
                         Column(modifier = Modifier.weight(1f)) {
-                            BasicText("Duplicar un evento", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF151729)))
+                            BasicText("Duplicar un evento", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2E324A)))
                             Spacer(Modifier.height(2.dp))
                             BasicText("Parte de uno que ya hiciste", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF5F6377)))
                         }
@@ -257,15 +257,15 @@ internal fun RenderAdminManualEventA05(
                     Box(modifier = Modifier.weight(1f).height(5.dp).clip(RoundedCornerShape(3.dp)).background(Color(0xFFE3E4EF)))
                 }
                 Row(modifier = Modifier.fillMaxWidth()) {
-                    BasicText("Datos", modifier = Modifier.weight(1f), style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF4B47D6)))
-                    BasicText("Artículos", modifier = Modifier.weight(1f), style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF5F6377)))
-                    BasicText("Resumen", modifier = Modifier.weight(1f), style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF5F6377)))
+                    BasicText("Datos", modifier = Modifier.weight(1f), style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF4B47D6)))
+                    BasicText("Artículos", modifier = Modifier.weight(1f), style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.Normal, color = Color(0xFF5F6377)))
+                    BasicText("Resumen", modifier = Modifier.weight(1f), style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.Normal, color = Color(0xFF5F6377)))
                 }
             }
 
             // Cliente
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                BasicText("Cliente", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF3A3D52)))
+                BasicText("Cliente", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF3A3D52)))
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -291,7 +291,7 @@ internal fun RenderAdminManualEventA05(
                         }
 
                         Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
-                            BasicText("Laura Peña ", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF151729)))
+                            BasicText("Laura Peña ", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2E324A)))
                             BasicText("· (809) 555-0142", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF5F6377)))
                         }
 
@@ -302,7 +302,7 @@ internal fun RenderAdminManualEventA05(
 
             // Tipo de evento
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                BasicText("Tipo de evento", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF3A3D52)))
+                BasicText("Tipo de evento", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF3A3D52)))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Box(
                         modifier = Modifier
@@ -314,8 +314,8 @@ internal fun RenderAdminManualEventA05(
                         contentAlignment = Alignment.Center,
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            RfIcon(kind = RfIconKind.STAR, tint = Color(0xFF151729), size = 16.dp)
-                            BasicText("Boda", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF151729)))
+                            RfIcon(kind = RfIconKind.STAR, tint = Color(0xFF2E324A), size = 16.dp)
+                            BasicText("Boda", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color(0xFF2E324A)))
                         }
                     }
 
@@ -329,7 +329,7 @@ internal fun RenderAdminManualEventA05(
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             RfIcon(kind = RfIconKind.SPARK, tint = Color.White, size = 16.dp)
-                            BasicText("Cumpleaños", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White))
+                            BasicText("Cumpleaños", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color.White))
                         }
                     }
 
@@ -342,7 +342,7 @@ internal fun RenderAdminManualEventA05(
                             .padding(horizontal = 14.dp),
                         contentAlignment = Alignment.Center,
                     ) {
-                        BasicText("Baby shower", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF151729)))
+                        BasicText("Baby shower", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color(0xFF2E324A)))
                     }
                 }
 
@@ -356,7 +356,7 @@ internal fun RenderAdminManualEventA05(
                             .padding(horizontal = 14.dp),
                         contentAlignment = Alignment.Center,
                     ) {
-                        BasicText("Corporativo", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF151729)))
+                        BasicText("Corporativo", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color(0xFF2E324A)))
                     }
 
                     Box(
@@ -368,7 +368,7 @@ internal fun RenderAdminManualEventA05(
                             .padding(horizontal = 14.dp),
                         contentAlignment = Alignment.Center,
                     ) {
-                        BasicText("Otro", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF151729)))
+                        BasicText("Otro", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color(0xFF2E324A)))
                     }
                 }
             }
@@ -376,7 +376,7 @@ internal fun RenderAdminManualEventA05(
             // Fecha y Hora
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Column(modifier = Modifier.weight(1.3f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    BasicText("Fecha", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF3A3D52)))
+                    BasicText("Fecha", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF3A3D52)))
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -389,13 +389,13 @@ internal fun RenderAdminManualEventA05(
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             RfIcon(kind = RfIconKind.CALENDAR, tint = Color(0xFF5F6377), size = 18.dp)
-                            BasicText("Sáb 7 nov", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF151729)))
+                            BasicText("Sáb 7 nov", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = Color(0xFF2E324A)))
                         }
                     }
                 }
 
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    BasicText("Hora", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF3A3D52)))
+                    BasicText("Hora", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF3A3D52)))
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -408,7 +408,7 @@ internal fun RenderAdminManualEventA05(
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             RfIcon(kind = RfIconKind.CLOCK, tint = Color(0xFF5F6377), size = 18.dp)
-                            BasicText("4:00 p. m.", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF151729)))
+                            BasicText("4:00 p. m.", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = Color(0xFF2E324A)))
                         }
                     }
                 }
@@ -416,7 +416,7 @@ internal fun RenderAdminManualEventA05(
 
             // Lugar
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                BasicText("Lugar", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF3A3D52)))
+                BasicText("Lugar", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF3A3D52)))
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -451,7 +451,7 @@ internal fun RenderAdminManualEventA05(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         RfIcon(kind = RfIconKind.USER, tint = Color(0xFF5F6377), size = 18.dp)
-                        BasicText("Invitados", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF151729)))
+                        BasicText("Invitados", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2E324A)))
                     }
 
                     Box(
@@ -481,7 +481,7 @@ internal fun RenderAdminManualEventA05(
 
             // Notas internas
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                BasicText("Notas internas", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF3A3D52)))
+                BasicText("Notas internas", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF3A3D52)))
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -492,7 +492,7 @@ internal fun RenderAdminManualEventA05(
                         .padding(14.dp),
                     contentAlignment = Alignment.TopStart,
                 ) {
-                    BasicText("Tema de safari, colores verde y beige.", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF151729)))
+                    BasicText("Tema de safari, colores verde y beige.", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF2E324A)))
                 }
             }
 
@@ -581,9 +581,9 @@ internal fun RenderAdminEventArticlesA06(
                     Box(modifier = Modifier.weight(1f).height(5.dp).clip(RoundedCornerShape(3.dp)).background(Color(0xFFE3E4EF)))
                 }
                 Row(modifier = Modifier.fillMaxWidth()) {
-                    BasicText("Datos", modifier = Modifier.weight(1f), style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF5F6377)))
-                    BasicText("Artículos", modifier = Modifier.weight(1f), style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF4B47D6)))
-                    BasicText("Resumen", modifier = Modifier.weight(1f), style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF5F6377)))
+                    BasicText("Datos", modifier = Modifier.weight(1f), style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.Normal, color = Color(0xFF5F6377)))
+                    BasicText("Artículos", modifier = Modifier.weight(1f), style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF4B47D6)))
+                    BasicText("Resumen", modifier = Modifier.weight(1f), style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.Normal, color = Color(0xFF5F6377)))
                 }
             }
 
@@ -614,7 +614,7 @@ internal fun RenderAdminEventArticlesA06(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     RfIcon(kind = RfIconKind.CALENDAR, tint = Color(0xFF4E6A10), size = 16.dp)
-                    BasicText("Disponibilidad para el sábado 7 de noviembre", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF4E6A10)))
+                    BasicText("Disponibilidad para el sábado 7 de noviembre", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = Color(0xFF4E6A10)))
                 }
             }
 
@@ -655,9 +655,9 @@ internal fun RenderAdminEventArticlesA06(
                             }
 
                             Column(modifier = Modifier.weight(1f)) {
-                                BasicText(name, maxLines = 1, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF151729)))
+                                BasicText(name, maxLines = 1, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2E324A)))
                                 val descColor = if (desc.startsWith("Última")) Color(0xFF7A5700) else Color(0xFF4E6A10)
-                                BasicText(desc, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = descColor))
+                                BasicText(desc, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = descColor))
                             }
 
                             Box(
@@ -1277,7 +1277,7 @@ internal fun RenderAdminChatConversationA15(
                     .background(Color(0xFFEDEDF5))
                     .padding(horizontal = 10.dp, vertical = 4.dp),
             ) {
-                BasicText("Ayer", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF5F6377)))
+                BasicText("Ayer", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = Color(0xFF5F6377)))
             }
 
             // Bubble 1 (client)
@@ -1293,7 +1293,7 @@ internal fun RenderAdminChatConversationA15(
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     BasicText(
                         text = "¡Hola equipo Rosa Fiesta! ¿Podemos incluir 20 sillas Chiavari doradas adicionales para el área del brindis?",
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF151729), lineHeight = 21.sp),
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF2E324A), lineHeight = 21.sp),
                     )
                     BasicText("7:38 p. m.", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 11.sp, color = Color(0xFF5F6377)))
                 }
@@ -1312,7 +1312,7 @@ internal fun RenderAdminChatConversationA15(
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     BasicText(
                         text = "Ya revisé el presupuesto ajustado y el montaje en el Jardín Botánico nos encanta.",
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF151729), lineHeight = 21.sp),
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF2E324A), lineHeight = 21.sp),
                     )
                     BasicText("9:08 p. m.", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 11.sp, color = Color(0xFF5F6377)))
                 }
@@ -1326,7 +1326,7 @@ internal fun RenderAdminChatConversationA15(
                     .background(Color(0xFFEDEDF5))
                     .padding(horizontal = 10.dp, vertical = 4.dp),
             ) {
-                BasicText("Hoy", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF5F6377)))
+                BasicText("Hoy", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = Color(0xFF5F6377)))
             }
 
             // Admin response stack
@@ -1373,7 +1373,7 @@ internal fun RenderAdminChatConversationA15(
                         }
 
                         Column(modifier = Modifier.weight(1f)) {
-                            BasicText("+20 Sillas Chiavari doradas", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF151729)))
+                            BasicText("+20 Sillas Chiavari doradas", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2E324A)))
                             BasicText("RD$ 4.50 c/u · RD$ 90", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF5F6377)))
                             Spacer(modifier = Modifier.height(2.dp))
                             Box(
@@ -1384,7 +1384,7 @@ internal fun RenderAdminChatConversationA15(
                                     .padding(horizontal = 8.dp),
                                 contentAlignment = Alignment.Center,
                             ) {
-                                BasicText("Por aprobar", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF7A5700)))
+                                BasicText("Por aprobar", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 11.sp, fontWeight = FontWeight.Medium, color = Color(0xFF7A5700)))
                             }
                         }
                     }
@@ -1429,7 +1429,7 @@ internal fun RenderAdminChatConversationA15(
                 }
 
                 Column(modifier = Modifier.weight(1f)) {
-                    BasicText("Camila Rodríguez", maxLines = 1, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF151729)))
+                    BasicText("Camila Rodríguez", maxLines = 1, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2E324A)))
                     BasicText(
                         text = "Boda Real Rosa & Dorado · Vie 23 oct",
                         maxLines = 1,
@@ -1474,8 +1474,8 @@ internal fun RenderAdminChatConversationA15(
                         contentAlignment = Alignment.Center,
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            RfIcon(kind = RfIconKind.BOX, tint = Color(0xFF151729), size = 16.dp)
-                            BasicText("Enviar cotización", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF151729)))
+                            RfIcon(kind = RfIconKind.BOX, tint = Color(0xFF2E324A), size = 16.dp)
+                            BasicText("Enviar cotización", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color(0xFF2E324A)))
                         }
                     }
 
@@ -1489,8 +1489,8 @@ internal fun RenderAdminChatConversationA15(
                         contentAlignment = Alignment.Center,
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            RfIcon(kind = RfIconKind.CALENDAR, tint = Color(0xFF151729), size = 16.dp)
-                            BasicText("Confirmar hora", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF151729)))
+                            RfIcon(kind = RfIconKind.CALENDAR, tint = Color(0xFF2E324A), size = 16.dp)
+                            BasicText("Confirmar hora", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color(0xFF2E324A)))
                         }
                     }
 
@@ -1503,7 +1503,7 @@ internal fun RenderAdminChatConversationA15(
                             .padding(horizontal = 14.dp),
                         contentAlignment = Alignment.Center,
                     ) {
-                        BasicText("Gracias", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF151729)))
+                        BasicText("Gracias", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color(0xFF2E324A)))
                     }
                 }
 
