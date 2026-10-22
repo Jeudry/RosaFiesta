@@ -104,6 +104,7 @@ fun RenderScreenSpec(
         "s25", "s26", "s27", "s28", "s29", "s30", "s31", "s32", "s33", "s34", "s35", "s36", "s78", "A08",
         "s37", "s38", "s39", "s40", "s43", "s44", "s45", "s46", "s47", "s48",
         "s49", "s50", "s51", "s52", "s53", "s54", "s55", "s56", "s57", "s58", "s83",
+        "A01", "A02", "A03", "A09", "A11", "A12", "A20", "A21",
     )
     val showBottomBar = when {
         spec.code in setOf(
@@ -111,6 +112,7 @@ fun RenderScreenSpec(
             "s25", "s26", "s27", "s28", "s29", "s30", "s31", "s32", "s33", "s34", "s35", "s36", "s78", "A08",
             "s38", "s39", "s40", "s43", "s44", "s45", "s46", "s47", "s48",
             "s49", "s50", "s51", "s52", "s53", "s55", "s56", "s57", "s58", "s83",
+            "A02", "A03", "A20", "A21",
         ) -> false
 
         else -> true
@@ -233,6 +235,14 @@ fun RenderScreenSpec(
                 "s57" -> RenderSpendingAnalyticsScreenS57(onSelectScreenCode = onSelectScreenCode)
                 "s58" -> RenderFinancialDashboardScreenS58(onSelectScreenCode = onSelectScreenCode)
                 "s83" -> RenderOfficialReceiptScreenS83(onSelectScreenCode = onSelectScreenCode)
+                "A01" -> RenderAdminHomeA01(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                "A02" -> RenderAdminRequestsA02(onSelectScreenCode = onSelectScreenCode)
+                "A03" -> RenderAdminQuoteBuilderA03(onSelectScreenCode = onSelectScreenCode)
+                "A09" -> RenderAdminInventoryA09(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                "A11" -> RenderAdminEventsA11(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                "A12" -> RenderAdminMoreA12(onSelectScreenCode = onSelectScreenCode)
+                "A20" -> RenderAdminPaymentsA20(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                "A21" -> RenderAdminRecordPaymentA21(onSelectScreenCode = onSelectScreenCode)
             }
             return@RfPhoneFrame
         }
