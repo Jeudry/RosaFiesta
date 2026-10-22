@@ -67,9 +67,9 @@ public object RfColors {
 
     // hero: linear-gradient(135deg,#E04FAF 0%,#945AE1 55%,#6664E9 100%)
     public val PersonalHeroGradient: Brush = Brush.linearGradient(
-        colors = listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)),
-        start = Offset.Zero,
-        end = Offset(600f, 600f),
+        0.0f to Color(0xFFE04FAF),
+        0.55f to Color(0xFF945AE1),
+        1.0f to Color(0xFF6664E9),
     )
 
     // texto-gradiente (precios): linear-gradient(90deg,#EA4EA9,#865DEC)
@@ -105,16 +105,15 @@ public object RfColors {
 
     // primary: linear-gradient(135deg,#7C5CF0 0%,#5B6CF0 100%)
     public val AdminPrimaryGradient: Brush = Brush.linearGradient(
-        colors = listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0)),
-        start = Offset.Zero,
-        end = Offset(500f, 500f),
+        0.0f to Color(0xFF7C5CF0),
+        1.0f to Color(0xFF5B6CF0),
     )
 
     // hero / rosa-admin-bg: linear-gradient(145deg,#7C5CF0 0%,#5B6CF0 55%,#2FB8C8 100%)
     public val AdminHeroAndRosaGradient: Brush = Brush.linearGradient(
-        colors = listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0), Color(0xFF2FB8C8)),
-        start = Offset.Zero,
-        end = Offset(520f, 640f),
+        0.0f to Color(0xFF7C5CF0),
+        0.55f to Color(0xFF5B6CF0),
+        1.0f to Color(0xFF2FB8C8),
     )
 
     // rosa-asistente-bg (admin): linear-gradient(180deg,#E3E1FB 0%,#F1EEFA 40%,#F4F1FA 60%,#DCDDF8 100%)

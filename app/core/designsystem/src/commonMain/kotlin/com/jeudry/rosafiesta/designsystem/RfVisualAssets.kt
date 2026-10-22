@@ -114,8 +114,28 @@ public fun RosaAvatar(
 ) {
     val palette = LocalRfPalette.current
     val useAdmin = forceAdminPalette ?: palette.isAdmin
-    val gradient = if (useAdmin) RfColors.AdminHeroAndRosaGradient else RfColors.PersonalHeroGradient
     val avatarDiameter = customSize ?: size.dp
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val px = with(density) { avatarDiameter.toPx() }
+    val gradient = remember(useAdmin, px) {
+        if (useAdmin) {
+            Brush.linearGradient(
+                0.0f to Color(0xFF7C5CF0),
+                0.55f to Color(0xFF5B6CF0),
+                1.0f to Color(0xFF2FB8C8),
+                start = Offset.Zero,
+                end = Offset(px * 0.7f, px),
+            )
+        } else {
+            Brush.linearGradient(
+                0.0f to Color(0xFFE04FAF),
+                0.55f to Color(0xFF945AE1),
+                1.0f to Color(0xFF6664E9),
+                start = Offset.Zero,
+                end = Offset(px * 0.8f, px),
+            )
+        }
+    }
     val outerDiameter = if (glow) avatarDiameter + 10.dp else avatarDiameter
     val glowColor = if (useAdmin) RfColors.IndigoBrand.copy(alpha = 0.28f) else RfColors.RosaBrand.copy(alpha = 0.28f)
 

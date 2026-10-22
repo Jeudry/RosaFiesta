@@ -166,7 +166,7 @@ public fun PersonalTabBar(
                                 text = tab.label,
                                 style = typo.caption.copy(
                                     fontSize = 11.5.sp,
-                                    fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
+                                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
                                     color = if (selected) activeLabelColor else inactiveColor,
                                 ),
                                 maxLines = 1,
@@ -327,7 +327,7 @@ public fun AdminTabBar(
                                 text = tab.label,
                                 style = typo.caption.copy(
                                     fontSize = 11.5.sp,
-                                    fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
+                                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
                                     color = if (selected) activeLabelColor else inactiveColor,
                                 ),
                                 maxLines = 1,
