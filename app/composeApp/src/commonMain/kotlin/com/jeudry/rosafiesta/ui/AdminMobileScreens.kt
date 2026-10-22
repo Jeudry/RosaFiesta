@@ -993,7 +993,7 @@ internal fun RenderAdminQuoteBuilderA03(
                                             .padding(horizontal = 8.dp),
                                         contentAlignment = Alignment.Center,
                                     ) {
-                                        BasicText(price, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF151729)))
+                                        BasicText(price, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, fontWeight = FontWeight.Normal, color = Color(0xFF2E324A)))
                                     }
 
                                     Box(
@@ -1027,7 +1027,7 @@ internal fun RenderAdminQuoteBuilderA03(
                                 BasicText(
                                     text = "$qty",
                                     modifier = Modifier.defaultMinSize(minWidth = 22.dp),
-                                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF151729)),
+                                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2E324A)),
                                 )
                                 Box(
                                     modifier = Modifier.size(28.dp).clip(CircleShape),
@@ -1071,8 +1071,8 @@ internal fun RenderAdminQuoteBuilderA03(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    BasicText("Transporte e instalación", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF151729)))
-                    BasicText("RD$ 250", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF151729)))
+                    BasicText("Transporte e instalación", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2E324A)))
+                    BasicText("RD$ 250", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, fontWeight = FontWeight.Normal, color = Color(0xFF2E324A)))
                 }
             }
 
