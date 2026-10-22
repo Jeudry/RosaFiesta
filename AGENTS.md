@@ -7,6 +7,17 @@ Directivas y memoria para agentes de Inteligencia Artificial en este proyecto.
 - Ningún avance debe quedar sin commitear.
 - Mensajes semánticos con Conventional Commits (`feat(engine): ...`, `feat(app): ...`, `feat(server): ...`, `fix(...): ...`).
 
+## Prohibición Estricta de Trabajar a Ciegas (Anti-Blind Work & Visual Source of Truth)
+**NUNCA trabajes a ciegas ni asumas el diseño basándote únicamente en documentos markdown (.md) o texto.**
+- **Fuentes de Verdad Visuales Obligatorias:**
+  1. `docs/design/RosaFiesta-diseno/pantallas/*.png`: Captura exacta 2x de cómo DEBE verse la pantalla terminada.
+  2. `docs/design/RosaFiesta-diseno/html/*.html`: HTML + CSS estático aplanado con valores exactos de colores, gradientes, tamaños, radios, sombras, márgenes y SVGs.
+  3. `docs/design/RosaFiesta-diseno/fuente/*.dc.html`: Código fuente con SVGs oficiales de iconos, ilustraciones y avatar.
+- **Protocolo de Trabajo Obligatorio:**
+  - Abrir y contrastar SIEMPRE el PNG y el HTML correspondiente antes de tocar una línea de UI.
+  - Generar capturas reales de la app en ejecución (Desktop, Web o Test visual) y compararlas lado a lado con el diseño oficial.
+  - Lo que no aparece en el PNG de referencia NO va en la UI (prohibido inventar barras de estado falsas, marcos falsos, tags de debug o texto de especificaciones técnicas).
+
 ## Principios Técnicos Clave
 1. **Dos Aplicaciones Multiplataforma (Personal + Admin):**
    - **App Personal (`PersonalApp`):** Tema `RfTheme.personal` (rosa → violeta, fondo rubor cálido). Modo claro (`s14`) y modo oscuro (`s15`).

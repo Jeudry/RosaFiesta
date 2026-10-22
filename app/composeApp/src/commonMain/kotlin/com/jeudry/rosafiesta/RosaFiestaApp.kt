@@ -202,31 +202,6 @@ public fun RosaFiestaApp(
                         )
                     }
                 }
-            } else if (navigator.activeView == AppView.PERSONAL && spec.code != "A39") {
-                // Barra de cambio limpia para alternar entre vista personal y vista administrativa
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.End,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 6.dp),
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(999.dp))
-                            .background(RfColors.IndigoBrand)
-                            .clickable {
-                                viewModel.soundPlayer.playTap()
-                                navigator.switchToAdmin("A39")
-                            }
-                            .padding(horizontal = 12.dp, vertical = 5.dp),
-                    ) {
-                        BasicText(
-                            text = "🏢 Ir a Panel Administrativo (A39)",
-                            style = typo.tagLabel.copy(color = Color.White),
-                        )
-                    }
-                }
             }
 
             Box(

@@ -66,6 +66,8 @@ app/build/
 app/**/build/
 .kotlin/
 app/.kotlin/
+app/kotlin-js-store/
+
 
 # --------------------
 # General / Misc
