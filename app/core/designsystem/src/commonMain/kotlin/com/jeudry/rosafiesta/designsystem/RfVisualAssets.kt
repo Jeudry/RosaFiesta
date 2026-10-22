@@ -305,6 +305,9 @@ public enum class RfIconKind {
     ARROW_RIGHT,
     CHEVRON_DOWN,
     CHEVRON_RIGHT,
+    INFO,
+    WHATSAPP,
+    REFRESH,
 }
 
 private val iconPaths: Map<RfIconKind, String> = mapOf(
@@ -355,6 +358,9 @@ private val iconPaths: Map<RfIconKind, String> = mapOf(
     RfIconKind.CAMERA to "M4 7h4l2-3h4l2 3h4a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2zM8 13a4 4 0 1 0 8 0a4 4 0 1 0 -8 0",
     RfIconKind.QR to "M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 14h2v2h-2zM14 18h2v2h-2zM18 18h2v2h-2z",
     RfIconKind.SHARE to "M15 6a3 3 0 1 0 6 0a3 3 0 1 0 -6 0M3 12a3 3 0 1 0 6 0a3 3 0 1 0 -6 0M15 18a3 3 0 1 0 6 0a3 3 0 1 0 -6 0M8.6 10.6l6.8-3.6M8.6 13.4l6.8 3.6",
+    RfIconKind.INFO to "M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0M12 11v5.5M12 7.8h.01",
+    RfIconKind.WHATSAPP to "M4 20l1.3-4A8.5 8.5 0 1 1 8 18.8zM9 8.5c0 3.2 3.2 6.5 6.5 6.5l1-1.6-2-1.1-1 .8c-1-.4-2.1-1.5-2.5-2.5l.8-1-1.1-2z",
+    RfIconKind.REFRESH to "M20 11a8 8 0 0 0-14.6-4.5M4 4v4h4M4 13a8 8 0 0 0 14.6 4.5M20 20v-4h-4",
 )
 
 /**

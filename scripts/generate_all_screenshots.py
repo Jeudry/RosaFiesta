@@ -20,6 +20,8 @@ files = sorted(glob.glob(pattern))
 screens = []
 ignore_files = {"AdminBar.png", "Foto.png", "Icon.png", "Illo.png", "Logo.png", "Main.png", "Rosa.png", "TabBar.png"}
 
+filter_codes = set(sys.argv[1:]) if len(sys.argv) > 1 else None
+
 for f in files:
     base = os.path.basename(f)
     if base in ignore_files:
@@ -31,6 +33,8 @@ for f in files:
             code = "A" + raw_code[1:]
         else:
             code = raw_code
+        if filter_codes and code not in filter_codes:
+            continue
         screens.append((code, base, f))
 
 print(f"Total screens to process: {len(screens)}")
@@ -84,8 +88,12 @@ async def process_all():
                     comp_path = os.path.join(COMP_DIR, f"{code}-comparacion.png")
                     comp.save(comp_path)
 
-                    if count % 10 == 0 or count == len(screens):
-                        print(f"[{count}/{len(screens)}] Processed {code} -> {comp_path}")
+                    import numpy as np
+                    arr_ref = np.array(ref_resized.convert("RGB")).astype(float)
+                    arr_web = np.array(web_resized.convert("RGB")).astype(float)
+                    diff = np.mean(np.abs(arr_ref - arr_web))
+
+                    print(f"[{count}/{len(screens)}] Screen {code} -> diff: {diff:.2f}/255 ({comp_path})")
                 except Exception as e:
                     print(f"Error on screen {code}: {e}")
 
