@@ -598,10 +598,11 @@ public fun RenderAdminWebDesktopA39(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Column {
+                        Column(modifier = Modifier.weight(1f)) {
                             BasicText("Panel Administrativo Web · Octubre 2026", style = typo.rootTabTitle)
                             BasicText(spec.subtitle, style = typo.secondary)
                         }
+                        Spacer(Modifier.width(12.dp))
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
                             verticalAlignment = Alignment.CenterVertically,
