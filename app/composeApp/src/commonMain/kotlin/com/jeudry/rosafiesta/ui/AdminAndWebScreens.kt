@@ -559,25 +559,66 @@ public fun RenderAdminWebDesktopA39(
                             Spacer(Modifier.width(10.dp))
                             Column {
                                 BasicText("RosaFiesta", style = typo.backScreenTitle)
-                                RfTag(text = "Versión Web · A39", tone = RfTagTone.INDIGO)
+                                BasicText("Panel Administrativo", style = typo.secondary)
                             }
                         }
                         Spacer(Modifier.height(8.dp))
                         AdminTab.entries.forEachIndexed { idx, tab ->
-                            RfChip(
-                                label = if (tab.badgeCount > 0) "${tab.label} (${tab.badgeCount})" else tab.label,
-                                selected = idx == 0,
-                                onClick = {
-                                    when (tab) {
-                                        AdminTab.INICIO -> onSelectScreenCode("A01")
-                                        AdminTab.EVENTOS -> onSelectScreenCode("A11")
-                                        AdminTab.ROSA -> onSelectScreenCode("A08")
-                                        AdminTab.INVENTARIO -> onSelectScreenCode("A09")
-                                        AdminTab.MAS -> onSelectScreenCode("A12")
+                            val iconKind = when (tab) {
+                                AdminTab.INICIO -> RfIconKind.HOME
+                                AdminTab.EVENTOS -> RfIconKind.CALENDAR
+                                AdminTab.ROSA -> RfIconKind.SPARKLE
+                                AdminTab.INVENTARIO -> RfIconKind.ORDERS
+                                AdminTab.MAS -> RfIconKind.MORE_VERTICAL
+                            }
+                            val isSelected = idx == 0
+                            val bgModifier = if (isSelected) {
+                                Modifier.background(palette.primaryGradient, RoundedCornerShape(14.dp))
+                            } else {
+                                Modifier.background(palette.surface, RoundedCornerShape(14.dp))
+                            }
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .then(bgModifier)
+                                    .clickable {
+                                        when (tab) {
+                                            AdminTab.INICIO -> onSelectScreenCode("A01")
+                                            AdminTab.EVENTOS -> onSelectScreenCode("A11")
+                                            AdminTab.ROSA -> onSelectScreenCode("A08")
+                                            AdminTab.INVENTARIO -> onSelectScreenCode("A09")
+                                            AdminTab.MAS -> onSelectScreenCode("A12")
+                                        }
                                     }
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                            )
+                                    .padding(horizontal = 14.dp, vertical = 11.dp),
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                ) {
+                                    RfIcon(
+                                        kind = iconKind,
+                                        tint = if (isSelected) Color.White else palette.ink,
+                                        size = 18.dp,
+                                    )
+                                    BasicText(
+                                        text = tab.label,
+                                        style = typo.buttonLabel.copy(
+                                            color = if (isSelected) Color.White else palette.ink,
+                                            fontSize = 14.sp,
+                                        ),
+                                    )
+                                }
+                                if (tab.badgeCount > 0) {
+                                    RfTag(
+                                        text = "${tab.badgeCount}",
+                                        tone = if (isSelected) RfTagTone.SOL else RfTagTone.INDIGO,
+                                    )
+                                }
+                            }
                         }
                     }
                     RfCard {
@@ -599,8 +640,8 @@ public fun RenderAdminWebDesktopA39(
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            BasicText("Panel Administrativo Web · Octubre 2026", style = typo.rootTabTitle)
-                            BasicText(spec.subtitle, style = typo.secondary)
+                            BasicText("Panel Administrativo", style = typo.rootTabTitle)
+                            BasicText("Resumen operativo, eventos activos y disponibilidad · Octubre 2026", style = typo.secondary)
                         }
                         Spacer(Modifier.width(12.dp))
                         Row(
@@ -716,8 +757,8 @@ public fun RenderAdminWebDesktopA39(
                                 RosaAvatar(size = RosaAvatarSize.MEDIUM, forceAdminPalette = true, glow = true)
                                 Spacer(Modifier.width(10.dp))
                                 Column {
-                                    BasicText("Rosa IA · Admin", style = typo.cardTitle)
-                                    RfTag(text = "Índigo → Turquesa", tone = RfTagTone.TEAL)
+                                    BasicText("Rosa IA · Copiloto", style = typo.cardTitle)
+                                    RfTag(text = "En línea", tone = RfTagTone.LIMA)
                                 }
                             }
                             Spacer(Modifier.height(8.dp))
@@ -725,6 +766,14 @@ public fun RenderAdminWebDesktopA39(
                                 "«María, el saldo de Boda Real Rosa & Dorado (RD$ 3,150) vence el jue 22 oct y el de Quinceañera Valentina Crystal (RD$ 4,340) el vie 30 oct.»",
                                 style = typo.body.copy(fontSize = 13.sp),
                             )
+                            Spacer(Modifier.height(10.dp))
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                RfTag(text = "Revisar cobros", tone = RfTagTone.INDIGO)
+                                RfTag(text = "Stock 23 oct", tone = RfTagTone.TEAL)
+                            }
                         }
                     }
 

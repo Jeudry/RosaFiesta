@@ -217,7 +217,7 @@ object ScreenCatalog {
         add(ScreenSpec("s73", 14, "Más", "Bot de WhatsApp · Plantillas", "Mensajes automáticos de bienvenida, catálogo de precios y recordatorio de saldo", RfThemeVariant.ADMIN, ScreenArchetype.ADMIN_ROSA_COPILOT, RfPhotoKey.BODA, "Guardar plantilla", "6 plantillas"))
         add(ScreenSpec("s74", 14, "Más", "Bot de WhatsApp · Conversaciones", "Consultas atendidas por el bot y traspaso a María cuando piden cotización formal", RfThemeVariant.ADMIN, ScreenArchetype.ADMIN_ROSA_COPILOT, RfPhotoKey.CUMPLE_INFANTIL, "Tomar conversación", "12 hoy"))
         add(ScreenSpec("A31", 14, "Más", "Ajustes del negocio", "Datos fiscales, cuentas Banreservas/Popular, anticipo 30 % y política 90/50/0 %", RfThemeVariant.ADMIN, ScreenArchetype.ADMIN_INVENTORY_STAFF, RfPhotoKey.CORPORATIVO, "Guardar ajustes", "Anticipo 30 %"))
-        add(ScreenSpec("A39", 14, "Más", "Versión web (1440×900)", "Aplicación web de escritorio con barra lateral fija, KPIs de 30 px y tabla operativa", RfThemeVariant.ADMIN, ScreenArchetype.ADMIN_WEB_DESKTOP, RfPhotoKey.CORPORATIVO, "Exportar reporte ejecutivo", "1440×900 Web", isDesktopWeb = true))
+        add(ScreenSpec("A39", 14, "Más", "Panel Administrativo Web", "Resumen operativo, eventos activos y disponibilidad de inventario", RfThemeVariant.ADMIN, ScreenArchetype.ADMIN_WEB_DESKTOP, RfPhotoKey.CORPORATIVO, "Exportar reporte ejecutivo", "1440×900 Web", isDesktopWeb = true))
 
         // 5 Estados (Admin `A35`–`A38`)
         add(ScreenSpec("A35", 15, "Estados", "Estado vacío · Solicitudes", "No tienes solicitudes nuevas por cotizar · Icono grande, título 22/800 y acción", RfThemeVariant.ADMIN, ScreenArchetype.ADMIN_QUOTES, RfPhotoKey.SILLA_TIFFANY, "Crear cotización manual", "Estado vacío"))
