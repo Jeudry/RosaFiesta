@@ -82,6 +82,7 @@ fun RenderScreenSpec(
     onPrimaryAction: () -> Unit = {},
     onSelectScreenCode: (String) -> Unit = {},
     onSwitchAppMode: () -> Unit = {},
+    isFrameHarness: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     if (spec.isDesktopWeb) {
@@ -89,6 +90,7 @@ fun RenderScreenSpec(
             spec = spec,
             onPrimaryAction = onPrimaryAction,
             onSelectScreenCode = onSelectScreenCode,
+            fillAvailable = !isFrameHarness,
             modifier = modifier,
         )
         return
@@ -105,6 +107,8 @@ fun RenderScreenSpec(
         variant = spec.variant,
         screenCode = spec.code,
         screenTitle = spec.title,
+        showMockStatusBar = isFrameHarness,
+        wrapInPhoneBorder = isFrameHarness,
         bottomBar = {
             if (showBottomBar) {
                 if (isAdmin) {

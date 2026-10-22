@@ -85,6 +85,7 @@ public fun AdminApp(
 public fun RosaFiestaApp(
     initialAppView: AppView = AppView.PERSONAL,
     initialScreenCode: String = if (initialAppView == AppView.ADMIN) "A01" else "s14",
+    showDevHeader: Boolean = true,
     viewModel: RosaFiestaViewModel = remember {
         koinApplication { modules(appModule) }.koin.get()
     },
@@ -134,70 +135,97 @@ public fun RosaFiestaApp(
                 .background(palette.bg)
                 .testTag("rosafiesta-root"),
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(palette.surface)
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-            ) {
+            if (showDevHeader) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(palette.surface)
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
                 ) {
-                    RfChip(
-                        label = "App Personal",
-                        selected = navigator.activeView == AppView.PERSONAL,
-                        onClick = {
-                            viewModel.soundPlayer.playTap()
-                            navigator.switchToPersonal("s14", fromAdminPreview = false)
-                        },
-                        modifier = Modifier.testTag("switch-personal"),
-                    )
-                    RfChip(
-                        label = "App Admin",
-                        selected = navigator.activeView == AppView.ADMIN,
-                        onClick = {
-                            viewModel.soundPlayer.playTap()
-                            navigator.switchToAdmin("A01")
-                        },
-                        modifier = Modifier.testTag("switch-admin"),
-                    )
-                }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        RfChip(
+                            label = "App Personal",
+                            selected = navigator.activeView == AppView.PERSONAL,
+                            onClick = {
+                                viewModel.soundPlayer.playTap()
+                                navigator.switchToPersonal("s14", fromAdminPreview = false)
+                            },
+                            modifier = Modifier.testTag("switch-personal"),
+                        )
+                        RfChip(
+                            label = "App Admin",
+                            selected = navigator.activeView == AppView.ADMIN,
+                            onClick = {
+                                viewModel.soundPlayer.playTap()
+                                navigator.switchToAdmin("A01")
+                            },
+                            modifier = Modifier.testTag("switch-admin"),
+                        )
+                    }
 
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    if (navigator.adminPreviewingPersonal) {
-                        Box(
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        if (navigator.adminPreviewingPersonal) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(999.dp))
+                                    .background(RfColors.IndigoBrand)
+                                    .clickable {
+                                        viewModel.soundPlayer.playTap()
+                                        navigator.switchToAdmin("A30")
+                                    }
+                                    .padding(horizontal = 10.dp, vertical = 4.dp)
+                                    .testTag("banner-return-admin"),
+                            ) {
+                                BasicText(
+                                    text = "Volver a Negocio (A30)",
+                                    style = typo.tagLabel.copy(color = Color.White),
+                                )
+                            }
+                        }
+                        RfTag(
+                            text = "Dev · 133 pantallas",
+                            tone = RfTagTone.SOL,
                             modifier = Modifier
-                                .clip(RoundedCornerShape(999.dp))
-                                .background(RfColors.IndigoBrand)
                                 .clickable {
                                     viewModel.soundPlayer.playTap()
-                                    navigator.switchToAdmin("A30")
+                                    navigator.devOpen = true
                                 }
-                                .padding(horizontal = 10.dp, vertical = 4.dp)
-                                .testTag("banner-return-admin"),
-                        ) {
-                            BasicText(
-                                text = "Volver a Negocio (A30)",
-                                style = typo.tagLabel.copy(color = Color.White),
-                            )
-                        }
+                                .testTag("open-dev-panel"),
+                        )
                     }
-                    RfTag(
-                        text = "Dev · 133 pantallas",
-                        tone = RfTagTone.SOL,
+                }
+            } else if (navigator.activeView == AppView.PERSONAL && spec.code != "A39") {
+                // Barra de cambio limpia para alternar entre vista personal y vista administrativa
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.End,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 6.dp),
+                ) {
+                    Box(
                         modifier = Modifier
+                            .clip(RoundedCornerShape(999.dp))
+                            .background(RfColors.IndigoBrand)
                             .clickable {
                                 viewModel.soundPlayer.playTap()
-                                navigator.devOpen = true
+                                navigator.switchToAdmin("A39")
                             }
-                            .testTag("open-dev-panel"),
-                    )
+                            .padding(horizontal = 12.dp, vertical = 5.dp),
+                    ) {
+                        BasicText(
+                            text = "🏢 Ir a Panel Administrativo (A39)",
+                            style = typo.tagLabel.copy(color = Color.White),
+                        )
+                    }
                 }
             }
 
@@ -205,8 +233,7 @@ public fun RosaFiestaApp(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .weight(1f)
-                    .fillMaxWidth()
-                    .padding(8.dp),
+                    .fillMaxWidth(),
             ) {
                 val transitionKind = navigator.lastTransition
                 AnimatedContent(
@@ -218,6 +245,7 @@ public fun RosaFiestaApp(
                     RenderScreenSpec(
                         spec = targetSpec,
                         viewModel = viewModel,
+                        isFrameHarness = false,
                         onSelectScreenCode = { nextCode ->
                             viewModel.soundPlayer.playTap()
                             navigator.navigateTo(nextCode)
@@ -227,7 +255,7 @@ public fun RosaFiestaApp(
                             if (navigator.activeView == AppView.ADMIN) {
                                 navigator.switchToPersonal("s14", fromAdminPreview = true)
                             } else {
-                                navigator.switchToAdmin("A01")
+                                navigator.switchToAdmin("A39")
                             }
                         },
                         onPrimaryAction = {

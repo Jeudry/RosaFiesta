@@ -521,6 +521,7 @@ public fun RenderAdminWebDesktopA39(
     spec: ScreenSpec,
     onPrimaryAction: () -> Unit = {},
     onSelectScreenCode: (String) -> Unit = {},
+    fillAvailable: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     RfTheme(variant = RfThemeVariant.ADMIN) {
@@ -528,13 +529,19 @@ public fun RenderAdminWebDesktopA39(
         val typo = LocalRfTypography.current
         val metrics = CanonicalSampleData.businessMetrics
 
-        RfRadialBackgroundBox(
-            modifier = modifier
+        val frameModifier = if (fillAvailable) {
+            modifier.fillMaxSize().testTag("screen-${spec.code}")
+        } else {
+            modifier
                 .width(RfDimens.WebFrameWidth)
                 .height(RfDimens.WebFrameHeight)
                 .clip(RoundedCornerShape(24.dp))
                 .border(1.5.dp, palette.line, RoundedCornerShape(24.dp))
-                .testTag("screen-${spec.code}"),
+                .testTag("screen-${spec.code}")
+        }
+
+        RfRadialBackgroundBox(
+            modifier = frameModifier,
         ) {
             Row(modifier = Modifier.fillMaxSize()) {
                 Column(
@@ -595,11 +602,30 @@ public fun RenderAdminWebDesktopA39(
                             BasicText("Panel Administrativo Web · Octubre 2026", style = typo.rootTabTitle)
                             BasicText(spec.subtitle, style = typo.secondary)
                         }
-                        RfButton(
-                            label = spec.primaryCta,
-                            onClick = onPrimaryAction,
-                            fullWidth = false,
-                        )
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            if (fillAvailable) {
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(16.dp))
+                                        .background(RfColors.RosaBrand)
+                                        .clickable { onSelectScreenCode("s14") }
+                                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                                ) {
+                                    BasicText(
+                                        text = "🌸 Probar App Personal",
+                                        style = typo.buttonLabel.copy(color = Color.White),
+                                    )
+                                }
+                            }
+                            RfButton(
+                                label = spec.primaryCta,
+                                onClick = onPrimaryAction,
+                                fullWidth = false,
+                            )
+                        }
                     }
 
                     Row(

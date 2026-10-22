@@ -1185,6 +1185,8 @@ public fun RfPhoneFrame(
     screenCode: String = "",
     screenTitle: String = "",
     bottomBar: (@Composable () -> Unit)? = null,
+    showMockStatusBar: Boolean = true,
+    wrapInPhoneBorder: Boolean = true,
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
@@ -1192,37 +1194,47 @@ public fun RfPhoneFrame(
         val palette = LocalRfPalette.current
         val typo = LocalRfTypography.current
 
-        RfRadialBackgroundBox(
-            modifier = modifier
+        val frameModifier = if (wrapInPhoneBorder) {
+            modifier
                 .width(RfDimens.PhoneFrameWidth)
                 .height(RfDimens.PhoneFrameHeight)
                 .clip(RoundedCornerShape(RfDimens.PhoneInnerRadius))
-                .border(1.5.dp, palette.line, RoundedCornerShape(RfDimens.PhoneInnerRadius)),
+                .border(1.5.dp, palette.line, RoundedCornerShape(RfDimens.PhoneInnerRadius))
+        } else {
+            modifier.fillMaxSize()
+        }
+
+        RfRadialBackgroundBox(
+            modifier = frameModifier,
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
-                // Barra de estado de 54 dp de alto (contenido empieza en y = 54 dp, Sección 2.5)
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(RfDimens.StatusBarHeight)
-                        .padding(horizontal = RfDimens.ScreenHorizontalPadding),
-                ) {
-                    BasicText(
-                        text = "9:41",
-                        style = typo.fieldLabel.copy(color = palette.ink),
-                    )
-                    if (screenCode.isNotEmpty()) {
-                        RfTag(
-                            text = "$screenCode · $screenTitle".trimEnd(' ', '·'),
-                            tone = if (palette.isAdmin) RfTagTone.INDIGO else RfTagTone.ROSA,
+                if (showMockStatusBar) {
+                    // Barra de estado de 54 dp de alto (contenido empieza en y = 54 dp, Sección 2.5)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(RfDimens.StatusBarHeight)
+                            .padding(horizontal = RfDimens.ScreenHorizontalPadding),
+                    ) {
+                        BasicText(
+                            text = "9:41",
+                            style = typo.fieldLabel.copy(color = palette.ink),
+                        )
+                        if (screenCode.isNotEmpty()) {
+                            RfTag(
+                                text = "$screenCode · $screenTitle".trimEnd(' ', '·'),
+                                tone = if (palette.isAdmin) RfTagTone.INDIGO else RfTagTone.ROSA,
+                            )
+                        }
+                        BasicText(
+                            text = "5G · 100%",
+                            style = typo.secondary.copy(color = palette.ink, fontWeight = FontWeight.SemiBold),
                         )
                     }
-                    BasicText(
-                        text = "5G · 100%",
-                        style = typo.secondary.copy(color = palette.ink, fontWeight = FontWeight.SemiBold),
-                    )
+                } else {
+                    Spacer(Modifier.height(18.dp))
                 }
 
                 // Cuerpo con márgenes laterales de 20 dp (Sección 2.5)
