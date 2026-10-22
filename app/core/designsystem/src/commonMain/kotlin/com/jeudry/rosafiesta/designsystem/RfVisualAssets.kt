@@ -334,6 +334,7 @@ public enum class RfIconKind {
     RING,
     CHECKLIST,
     LIGHTBULB,
+    PHONE,
 }
 
 private val iconPaths: Map<RfIconKind, String> = mapOf(
@@ -393,6 +394,7 @@ private val iconPaths: Map<RfIconKind, String> = mapOf(
     RfIconKind.RING to "M6.5 14a5.5 5.5 0 1 0 11 0a5.5 5.5 0 1 0 -11 0M9.5 6.5L12 9l2.5-2.5L13 4h-2z",
     RfIconKind.CHECKLIST to "M4 6l1.5 1.5L8 5M4 12l1.5 1.5L8 11M4 18l1.5 1.5L8 17M11 6.5h9M11 12.5h9M11 18.5h9",
     RfIconKind.LIGHTBULB to "M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z",
+    RfIconKind.PHONE to "M5 4h3.5l1.5 4.5-2.2 1.3a11 11 0 0 0 6.4 6.4l1.3-2.2L20 15.5V19a1.5 1.5 0 0 1-1.6 1.5C10.6 20 4 13.4 3.5 5.6A1.5 1.5 0 0 1 5 4z",
 )
 
 /**
