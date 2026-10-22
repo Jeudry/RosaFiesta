@@ -100,9 +100,10 @@ fun RenderScreenSpec(
     val isAdmin = spec.variant == RfThemeVariant.ADMIN
     val isCustomSelfContainedScreen = spec.code in setOf(
         "p00", "A00", "s01", "s02", "s03", "s04", "s05", "s06", "s07", "s08", "s09", "s10", "s11", "s12", "s13", "s14", "s15",
+        "s18", "s19", "s20", "s21", "s22", "s23", "s24",
     )
     val showBottomBar = when {
-        spec.code in setOf("p00", "A00", "s03", "s04", "s05", "s06", "s07", "s08", "s09", "s10", "s11", "s12", "s13", "A30") -> false
+        spec.code in setOf("p00", "A00", "s03", "s04", "s05", "s06", "s07", "s08", "s09", "s10", "s11", "s12", "s13", "s19", "s22", "A30") -> false
         else -> true
     }
 
@@ -181,6 +182,13 @@ fun RenderScreenSpec(
                 "s08" -> RenderRegisterScreenS08(onPrimaryAction = onPrimaryAction, onSelectScreenCode = onSelectScreenCode)
                 "s09", "s10", "s11", "s12", "s13" -> RenderRecoveryAndConfirmationScreens(spec = spec, onPrimaryAction = onPrimaryAction, onSelectScreenCode = onSelectScreenCode)
                 "s14", "s15" -> RenderPersonalHomeScreen(spec = spec, onSelectScreenCode = onSelectScreenCode)
+                "s18" -> RenderPersonalCatalogS18(onSelectScreenCode = onSelectScreenCode)
+                "s19" -> RenderProductDetailS19(onSelectScreenCode = onSelectScreenCode)
+                "s20" -> RenderCategoriesScreenS20(onSelectScreenCode = onSelectScreenCode)
+                "s21" -> RenderPackagesScreenS21(onSelectScreenCode = onSelectScreenCode)
+                "s22" -> RenderPackageDetailScreenS22(onSelectScreenCode = onSelectScreenCode)
+                "s23" -> RenderShopScreenS23(onSelectScreenCode = onSelectScreenCode)
+                "s24" -> RenderClientFavoritesScreenS24(onSelectScreenCode = onSelectScreenCode)
             }
             return@RfPhoneFrame
         }
