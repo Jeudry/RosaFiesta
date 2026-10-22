@@ -101,9 +101,14 @@ fun RenderScreenSpec(
     val isCustomSelfContainedScreen = spec.code in setOf(
         "p00", "A00", "s01", "s02", "s03", "s04", "s05", "s06", "s07", "s08", "s09", "s10", "s11", "s12", "s13", "s14", "s15",
         "s18", "s19", "s20", "s21", "s22", "s23", "s24",
+        "s25", "s26", "s27", "s28", "s29", "s30", "s31", "s32", "s33", "s34", "s35", "s36", "s78", "A08",
     )
     val showBottomBar = when {
-        spec.code in setOf("p00", "A00", "s03", "s04", "s05", "s06", "s07", "s08", "s09", "s10", "s11", "s12", "s13", "s19", "s22", "A30") -> false
+        spec.code in setOf(
+            "p00", "A00", "s03", "s04", "s05", "s06", "s07", "s08", "s09", "s10", "s11", "s12", "s13", "s19", "s22", "A30",
+            "s25", "s26", "s27", "s28", "s29", "s30", "s31", "s32", "s33", "s34", "s35", "s36", "s78", "A08",
+        ) -> false
+
         else -> true
     }
 
@@ -189,6 +194,20 @@ fun RenderScreenSpec(
                 "s22" -> RenderPackageDetailScreenS22(onSelectScreenCode = onSelectScreenCode)
                 "s23" -> RenderShopScreenS23(onSelectScreenCode = onSelectScreenCode)
                 "s24" -> RenderClientFavoritesScreenS24(onSelectScreenCode = onSelectScreenCode)
+                "s25" -> RenderMyEventDraftS25(onSelectScreenCode = onSelectScreenCode)
+                "s26" -> RenderRosaEventTypeS26(onSelectScreenCode = onSelectScreenCode)
+                "s27" -> RenderRosaTutorialS27(onSelectScreenCode = onSelectScreenCode)
+                "s28" -> RenderRosaHelpS28(onSelectScreenCode = onSelectScreenCode)
+                "s29" -> RenderRosaSuggestionsS29(onSelectScreenCode = onSelectScreenCode)
+                "s30" -> RenderRosaCategoriesS30(onSelectScreenCode = onSelectScreenCode)
+                "s31" -> RenderRosaDetailsS31(onSelectScreenCode = onSelectScreenCode)
+                "s32" -> RenderRosaSummaryS32(onSelectScreenCode = onSelectScreenCode)
+                "s33" -> RenderRosaSubmittedS33(onSelectScreenCode = onSelectScreenCode)
+                "s34" -> RenderRosaChatS34(onSelectScreenCode = onSelectScreenCode)
+                "s35" -> RenderRosaVoiceS35(onSelectScreenCode = onSelectScreenCode)
+                "s36" -> RenderRosaSketchS36(onSelectScreenCode = onSelectScreenCode)
+                "s78" -> RenderRosaSketchConfirmS78(onSelectScreenCode = onSelectScreenCode)
+                "A08" -> RenderAdminRosaA08(onSelectScreenCode = onSelectScreenCode)
             }
             return@RfPhoneFrame
         }
