@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -39,6 +40,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -1111,7 +1113,7 @@ internal fun RenderPackageDetailScreenS22(
                     modifier = Modifier
                         .offset(x = 20.dp, y = 54.dp)
                         .size(44.dp)
-                        .clip(CircleShape)
+                        .clip(RoundedCornerShape(14.dp))
                         .background(Color.White)
                         .clickable { onSelectScreenCode("s21") },
                 ) {
@@ -1148,16 +1150,23 @@ internal fun RenderPackageDetailScreenS22(
 
                 Spacer(Modifier.height(20.dp))
 
-                BasicText("Incluye", style = typo.heroTitle.copy(fontSize = 19.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729)))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    BasicText("Incluye", style = typo.heroTitle.copy(fontSize = 19.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729)))
+                    BasicText("Desmarca lo que no quieras", style = typo.secondary.copy(fontSize = 13.sp, color = Color(0xFF62627A)))
+                }
                 Spacer(Modifier.height(10.dp))
 
                 PackageItemRow("Arco de globos rosa", "RD$ 95 / día", "1", RfPhotoKey.ARCO_ROSA, Color(0xFFFDE6F2))
                 Spacer(Modifier.height(8.dp))
                 PackageItemRow("Centro de mesa floral", "RD$ 35 / día", "10", RfPhotoKey.CENTRO_FLORAL, Color(0xFFFFF2C9))
                 Spacer(Modifier.height(8.dp))
-                PackageItemRow("Silla Tiffany Cristal", "RD$ 4 / día", "80", RfPhotoKey.SILLA_TIFFANY, Color(0xFFEFE8FD))
+                PackageItemRow("Silla Tiffany Cristal", "RD$ 4 / día", "120", RfPhotoKey.SILLA_TIFFANY, Color(0xFFEFE8FD))
                 Spacer(Modifier.height(8.dp))
-                PackageItemRow("Mesa redonda", "RD$ 25 / día", "8", RfPhotoKey.MESA_REDONDA, Color(0xFFEEF6D6))
+                PackageItemRow("Mesa redonda", "RD$ 25 / día", "3", RfPhotoKey.MESA_REDONDA, Color(0xFFEEF6D6))
 
                 Spacer(Modifier.height(90.dp))
             }
@@ -1174,16 +1183,25 @@ internal fun RenderPackageDetailScreenS22(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 14.dp)
-                    .padding(bottom = 20.dp),
+                    .padding(start = 20.dp, end = 20.dp, top = 14.dp, bottom = 34.dp),
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(modifier = Modifier.wrapContentWidth()) {
-                    BasicText(
-                        text = "134 artículos · RD$ 1,000",
-                        style = typo.secondary.copy(fontSize = 12.sp, color = Color(0xFF62627A)),
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        BasicText(
+                            text = "134 artículos · ",
+                            style = typo.secondary.copy(fontSize = 12.sp, color = Color(0xFF62627A)),
+                        )
+                        BasicText(
+                            text = "RD$ 1,000",
+                            style = typo.secondary.copy(
+                                fontSize = 12.sp,
+                                color = Color(0xFF62627A),
+                                textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough,
+                            ),
+                        )
+                    }
                     BasicText(
                         text = "RD$ 850",
                         style = TextStyle(
@@ -1198,7 +1216,7 @@ internal fun RenderPackageDetailScreenS22(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
                         .weight(1f)
-                        .height(54.dp)
+                        .height(56.dp)
                         .shadow(12.dp, RoundedCornerShape(16.dp), spotColor = Color(0xB3C846B4))
                         .clip(RoundedCornerShape(16.dp))
                         .background(Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC))))
@@ -1399,11 +1417,12 @@ internal fun RenderShopScreenS23(
                     .height(164.dp)
                     .padding(horizontal = 20.dp)
                     .clip(RoundedCornerShape(24.dp))
-                    .background(Color(0xFFEFE8FD)),
+                    .background(Color(0xFFEFE8FD))
+                    .padding(20.dp),
             ) {
                 // Globos SVG
                 Box(
-                    modifier = Modifier.size(170.dp).align(Alignment.TopEnd).offset(x = 6.dp, y = 4.dp),
+                    modifier = Modifier.size(170.dp).align(Alignment.TopEnd).offset(x = 10.dp, y = (-16).dp),
                 ) {
                     Canvas(modifier = Modifier.fillMaxSize()) {
                         val cx = size.width * 0.5f
@@ -1438,28 +1457,29 @@ internal fun RenderShopScreenS23(
                 }
                 Column(
                     modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .padding(start = 20.dp, bottom = 16.dp)
+                        .fillMaxHeight()
                         .fillMaxWidth(0.55f),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.height(24.dp).clip(RoundedCornerShape(999.dp)).background(Color.White).padding(horizontal = 9.dp),
-                    ) {
-                        BasicText("Nuevo", style = typo.sectionCap.copy(fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF7A4FD8)))
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.height(24.dp).clip(RoundedCornerShape(999.dp)).background(Color.White).padding(horizontal = 9.dp),
+                        ) {
+                            BasicText("Nuevo", style = typo.sectionCap.copy(fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF7A4FD8)))
+                        }
+                        BasicText(
+                            "Colección Pastel Dream",
+                            style = TextStyle(
+                                fontFamily = typo.displayFamily,
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 21.sp,
+                                letterSpacing = (-0.42).sp,
+                                lineHeight = 22.sp,
+                                color = Color(0xFF1A1A2E),
+                            ),
+                        )
                     }
-                    BasicText(
-                        "Colección Pastel Dream",
-                        style = TextStyle(
-                            fontFamily = typo.displayFamily,
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 21.sp,
-                            letterSpacing = (-0.42).sp,
-                            lineHeight = 24.sp,
-                            color = Color(0xFF1A1A2E),
-                        ),
-                    )
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
@@ -1493,15 +1513,258 @@ internal fun RenderShopScreenS23(
                 BasicText("Ver todo", style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFFC2338F)))
             }
 
+            // Grid de 4 artículos (2x2)
             Row(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
             ) {
-                PersonalProductCard("Arco de globos", "Rosa y nude", "95", RfPhotoKey.ARCO_ROSA, Color(0xFFFDE6F2), onOpenDetail = { onSelectScreenCode("s19") }, modifier = Modifier.weight(1f))
-                PersonalProductCard("Bouquet temático", "Metalizado helio", "45", RfPhotoKey.ARCO_ROSA, Color(0xFFEEF6D6), onOpenDetail = { onSelectScreenCode("s19") }, modifier = Modifier.weight(1f))
+                TiendaBalloonProductCard(
+                    title = "Estrella dorada",
+                    price = "RD$ 5.99",
+                    bg = Color(0xFFFFF2C9),
+                    isFavorite = true,
+                    illustration = { BalloonStarIllustration(modifier = Modifier.size(108.dp)) },
+                    modifier = Modifier.weight(1f),
+                )
+                TiendaBalloonProductCard(
+                    title = "Set rosa pastel",
+                    price = "RD$ 3.50",
+                    bg = Color(0xFFFDE6F2),
+                    hasOfferBadge = true,
+                    illustration = { BalloonPastelSetIllustration(modifier = Modifier.size(108.dp)) },
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+            ) {
+                TiendaBalloonProductCard(
+                    title = "Bouquet tricolor",
+                    price = "RD$ [precio]",
+                    bg = Color(0xFFDDF4F3),
+                    illustration = { BalloonTricolorIllustration(modifier = Modifier.size(108.dp)) },
+                    modifier = Modifier.weight(1f),
+                )
+                TiendaBalloonProductCard(
+                    title = "Arco de globos",
+                    price = "RD$ 95.00",
+                    bg = Color(0xFFEEF6D6),
+                    illustration = { BalloonArchShopIllustration(modifier = Modifier.size(108.dp)) },
+                    modifier = Modifier.weight(1f),
+                )
             }
 
             Spacer(Modifier.height(96.dp))
+        }
+    }
+}
+
+@Composable
+private fun BalloonStarIllustration(modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val s = size.width / 120f
+        val stringPath = Path().apply {
+            moveTo(60f * s, 66f * s)
+            cubicTo(60f * s, 80f * s, 54f * s, 92f * s, 58f * s, 112f * s)
+        }
+        drawPath(stringPath, color = Color(0x806E5A72), style = Stroke(width = 1.4f * s))
+        val starPath = Path().apply {
+            val pts = listOf(
+                Offset(60f, 16f), Offset(68.8f, 37.9f), Offset(92.3f, 39.5f), Offset(74.3f, 54.6f),
+                Offset(80f, 77.5f), Offset(60f, 65f), Offset(40f, 77.5f), Offset(45.7f, 54.6f),
+                Offset(27.7f, 39.5f), Offset(51.2f, 37.9f),
+            )
+            pts.forEachIndexed { i, p ->
+                if (i == 0) moveTo(p.x * s, p.y * s) else lineTo(p.x * s, p.y * s)
+            }
+            close()
+        }
+        drawPath(starPath, color = Color(0xFFF0CC7A))
+        drawPath(starPath, color = Color(0xFFD9A441), style = Stroke(width = 2f * s))
+        val glintPath = Path().apply {
+            moveTo(55f * s, 32f * s)
+            lineTo(50f * s, 40f * s)
+            lineTo(40f * s, 41f * s)
+        }
+        drawPath(glintPath, color = Color.White.copy(alpha = 0.7f), style = Stroke(width = 2.4f * s, cap = StrokeCap.Round))
+    }
+}
+
+@Composable
+private fun BalloonPastelSetIllustration(modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val s = size.width / 120f
+        val strings = listOf(
+            Offset(40f, 54f) to Offset(60f, 104f),
+            Offset(70f, 48f) to Offset(60f, 104f),
+            Offset(58f, 72f) to Offset(60f, 104f),
+            Offset(84f, 70f) to Offset(60f, 104f),
+            Offset(34f, 78f) to Offset(60f, 104f),
+        )
+        strings.forEach { (from, to) ->
+            drawLine(Color(0x736E5A72), Offset(from.x * s, from.y * s), Offset(to.x * s, to.y * s), strokeWidth = 1.2f * s)
+        }
+        drawOval(Color(0xFFF9B6D3), topLeft = Offset(25f * s, 21f * s), size = androidx.compose.ui.geometry.Size(30f * s, 34f * s))
+        drawOval(Color(0xFFA8D8F5), topLeft = Offset(55f * s, 15f * s), size = androidx.compose.ui.geometry.Size(30f * s, 34f * s))
+        drawOval(Color(0xFFB9A6F7), topLeft = Offset(73f * s, 41f * s), size = androidx.compose.ui.geometry.Size(26f * s, 30f * s))
+        drawOval(Color(0xFFFFD98A), topLeft = Offset(21f * s, 49f * s), size = androidx.compose.ui.geometry.Size(26f * s, 30f * s))
+        drawOval(Color(0xFF9BE3C9), topLeft = Offset(44f * s, 41f * s), size = androidx.compose.ui.geometry.Size(30f * s, 34f * s))
+        val knot = Path().apply {
+            moveTo(53f * s, 104f * s)
+            cubicTo(50f * s, 100f * s, 44f * s, 101f * s, 44f * s, 105f * s)
+            cubicTo(44f * s, 109f * s, 53f * s, 107f * s, 60f * s, 103f * s)
+            cubicTo(67f * s, 107f * s, 76f * s, 109f * s, 76f * s, 105f * s)
+            cubicTo(76f * s, 101f * s, 70f * s, 100f * s, 67f * s, 104f * s)
+        }
+        drawPath(knot, color = Color(0xFFEC4F97))
+    }
+}
+
+@Composable
+private fun BalloonTricolorIllustration(modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val s = size.width / 120f
+        val strings = listOf(
+            Path().apply { moveTo(46f * s, 62f * s); cubicTo(48f * s, 80f * s, 58f * s, 90f * s, 60f * s, 110f * s) },
+            Path().apply { moveTo(76f * s, 58f * s); cubicTo(74f * s, 78f * s, 62f * s, 90f * s, 60f * s, 110f * s) },
+            Path().apply { moveTo(60f * s, 78f * s); cubicTo(60f * s, 92f * s, 60f * s, 100f * s, 60f * s, 110f * s) },
+        )
+        strings.forEach { drawPath(it, Color(0x806E5A72), style = Stroke(width = 1.4f * s)) }
+        drawOval(Color(0xFFEC4F97), topLeft = Offset(29f * s, 22f * s), size = androidx.compose.ui.geometry.Size(34f * s, 40f * s))
+        drawOval(Color(0xFF7650E8), topLeft = Offset(59f * s, 18f * s), size = androidx.compose.ui.geometry.Size(34f * s, 40f * s))
+        drawOval(Color(0xFFF5B53B), topLeft = Offset(44f * s, 41f * s), size = androidx.compose.ui.geometry.Size(32f * s, 38f * s))
+        drawOval(Color.White.copy(alpha = 0.55f), topLeft = Offset(36.5f * s, 28f * s), size = androidx.compose.ui.geometry.Size(7f * s, 12f * s))
+        drawOval(Color.White.copy(alpha = 0.55f), topLeft = Offset(66.5f * s, 24f * s), size = androidx.compose.ui.geometry.Size(7f * s, 12f * s))
+        drawOval(Color.White.copy(alpha = 0.55f), topLeft = Offset(50.5f * s, 46f * s), size = androidx.compose.ui.geometry.Size(7f * s, 12f * s))
+    }
+}
+
+@Composable
+private fun BalloonArchShopIllustration(modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val s = size.width / 120f
+        drawOval(Color(0x142B1730), topLeft = Offset(10f * s, 106.5f * s), size = androidx.compose.ui.geometry.Size(100f * s, 7f * s))
+        val small = listOf(
+            Offset(9f, 91f) to Color(0xFFF9B6D3),
+            Offset(26.6f, 60f) to Color(0xFFFFD98A),
+            Offset(60f, 47f) to Color(0xFFB9A6F7),
+            Offset(93.4f, 60f) to Color(0xFFA8D8F5),
+            Offset(111f, 91f) to Color(0xFF9BE3C9),
+        )
+        small.forEach { (pt, col) ->
+            drawCircle(col, radius = 6.5f * s, center = Offset(pt.x * s, pt.y * s))
+        }
+        val large = listOf(
+            Offset(18f, 104f) to Color(0xFFEC4F97),
+            Offset(20.5f, 86f) to Color(0xFFF5B53B),
+            Offset(28f, 72f) to Color(0xFF7650E8),
+            Offset(39f, 62.5f) to Color(0xFF4AA8E0),
+            Offset(52.7f, 58f) to Color(0xFF2FB58F),
+            Offset(67.3f, 58f) to Color(0xFFEC4F97),
+            Offset(81f, 62.5f) to Color(0xFFF5B53B),
+            Offset(92f, 72f) to Color(0xFF7650E8),
+            Offset(99.5f, 86f) to Color(0xFF4AA8E0),
+            Offset(102f, 104f) to Color(0xFF2FB58F),
+        )
+        large.forEach { (pt, col) ->
+            drawCircle(col, radius = 10.5f * s, center = Offset(pt.x * s, pt.y * s))
+        }
+    }
+}
+
+@Composable
+private fun TiendaBalloonProductCard(
+    title: String,
+    price: String,
+    bg: Color,
+    isFavorite: Boolean = false,
+    hasOfferBadge: Boolean = false,
+    illustration: @Composable () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val typo = LocalRfTypography.current
+    val gradDiag = Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)))
+
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(20.dp))
+            .background(Color.White)
+            .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(20.dp)),
+    ) {
+        Column {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(128.dp)
+                    .background(bg),
+                contentAlignment = Alignment.Center,
+            ) {
+                illustration()
+                if (hasOfferBadge) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(start = 10.dp, top = 10.dp)
+                            .height(24.dp)
+                            .clip(CircleShape)
+                            .background(Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC))))
+                            .padding(horizontal = 9.dp),
+                    ) {
+                        BasicText("Oferta", style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White))
+                    }
+                }
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(top = 8.dp, end = 8.dp)
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.92f)),
+                ) {
+                    RfIcon(kind = RfIconKind.HEART, tint = if (isFavorite) Color(0xFFD63F98) else Color(0xFF1A1A2E), size = 18.dp)
+                }
+            }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 14.dp, end = 12.dp, top = 12.dp, bottom = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    BasicText(
+                        text = title,
+                        style = TextStyle(
+                            fontFamily = typo.bodyFamily,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF1A1A2E),
+                        ),
+                        maxLines = 1,
+                    )
+                    BasicText(
+                        text = price,
+                        style = TextStyle(
+                            fontFamily = typo.displayFamily,
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color(0xFF1A1A2E),
+                        ),
+                    )
+                }
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(gradDiag),
+                ) {
+                    RfIcon(kind = RfIconKind.PLUS, tint = Color.White, size = 18.dp)
+                }
+            }
         }
     }
 }
