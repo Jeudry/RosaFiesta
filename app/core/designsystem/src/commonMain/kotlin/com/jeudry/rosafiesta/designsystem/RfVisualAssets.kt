@@ -281,7 +281,7 @@ public fun RfPhoto(
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(cornerRadius))
-            .background(Color(0xFFEDEAF4)),
+            .background(Color.Transparent),
     ) {
         Image(
             painter = painterResource(drawableForPhotoKey(photoKey)),

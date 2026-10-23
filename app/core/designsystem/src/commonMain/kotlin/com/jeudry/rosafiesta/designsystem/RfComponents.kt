@@ -41,9 +41,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -406,6 +408,52 @@ private fun Modifier.rfTactileClickable(
 }
 
 /**
+ * Sombra oficial de tarjetas de RosaFiesta (`.rf .card`):
+ * Personal: `box-shadow: 0 0 0 1px #F2EDF5, 0 12px 28px -20px rgba(200,80,170,.4);`
+ * Admin: `box-shadow: 0 0 0 1px #ECECF5, 0 12px 28px -22px rgba(70,80,180,.45);`
+ */
+public fun Modifier.rfCardShadow(
+    shape: Shape = RoundedCornerShape(RfDimens.CardRadius),
+    isAdmin: Boolean = false,
+): Modifier = this.shadow(
+    elevation = 8.dp,
+    shape = shape,
+    spotColor = if (isAdmin) Color(0x384650B4) else Color(0x38C850AA),
+    ambientColor = if (isAdmin) Color(0x154650B4) else Color(0x18C850AA),
+)
+
+/**
+ * Sombra oficial de campos de entrada (`.rf .fld`):
+ * Personal: `box-shadow: 0 0 0 1px #E8E1EE, 0 8px 20px -16px rgba(180,80,180,.35);`
+ * Admin: `box-shadow: 0 0 0 1px #E3E4EF, 0 8px 20px -16px rgba(70,80,180,.3);`
+ */
+public fun Modifier.rfInputShadow(
+    shape: Shape = RoundedCornerShape(RfDimens.InputRadius),
+    isAdmin: Boolean = false,
+    isActive: Boolean = false,
+): Modifier = this.shadow(
+    elevation = if (isActive) 8.dp else 6.dp,
+    shape = shape,
+    spotColor = if (isAdmin) Color(0x224650B4) else if (isActive) Color(0x38B450B4) else Color(0x28B450B4),
+    ambientColor = if (isAdmin) Color(0x0E4650B4) else Color(0x12B450B4),
+)
+
+/**
+ * Sombra oficial de botones circulares de acción (`.rf .ib`):
+ * Personal: `box-shadow: 0 0 0 1px #F0EBF4, 0 8px 20px -14px rgba(180,80,180,.4);`
+ * Admin: `box-shadow: 0 0 0 1px #ECECF5, 0 8px 20px -14px rgba(70,80,180,.45);`
+ */
+public fun Modifier.rfIconButtonShadow(
+    shape: Shape = CircleShape,
+    isAdmin: Boolean = false,
+): Modifier = this.shadow(
+    elevation = 6.dp,
+    shape = shape,
+    spotColor = if (isAdmin) Color(0x284650B4) else Color(0x28B450B4),
+    ambientColor = if (isAdmin) Color(0x104650B4) else Color(0x12B450B4),
+)
+
+/**
  * Componente `Tarjeta` estándar (Sección 2.5): radio 20 dp, borde `#F2EDF5` (personal) o `#ECECF5` (admin).
  */
 @Composable
@@ -422,6 +470,7 @@ public fun RfCard(
     Column(
         modifier = modifier
             .fillMaxWidth()
+            .rfCardShadow(shape, isAdmin = palette.isAdmin)
             .clip(shape)
             .background(palette.surface)
             .border(1.dp, palette.line, shape)
@@ -445,6 +494,12 @@ public fun RfHeroCard(
     Column(
         modifier = modifier
             .fillMaxWidth()
+            .shadow(
+                elevation = 14.dp,
+                shape = shape,
+                spotColor = if (useAdminGradient) Color(0x665B6CF0) else Color(0x73865DEC),
+                ambientColor = Color.Transparent,
+            )
             .clip(shape)
             .background(gradient)
             .padding(16.dp),
@@ -494,6 +549,12 @@ public fun RfButton(
                 .then(widthModifier)
                 .then(alphaModifier)
                 .height(RfDimens.ButtonHeight)
+                .shadow(
+                    elevation = 12.dp,
+                    shape = shape,
+                    spotColor = if (palette.isAdmin) Color(0x665B6CF0) else Color(0xB3C846B4),
+                    ambientColor = Color.Transparent,
+                )
                 .clip(shape)
                 .background(palette.primaryGradient)
 
@@ -502,6 +563,7 @@ public fun RfButton(
                 .then(widthModifier)
                 .then(alphaModifier)
                 .height(RfDimens.ButtonHeight)
+                .rfInputShadow(shape, isAdmin = palette.isAdmin)
                 .clip(shape)
                 .background(palette.chipBg)
                 .border(1.dp, palette.line, shape)
@@ -557,6 +619,7 @@ public fun RfIconButton(
         contentAlignment = Alignment.Center,
         modifier = modifier
             .size(RfDimens.IconButtonSize)
+            .rfIconButtonShadow(CircleShape, isAdmin = palette.isAdmin)
             .clip(CircleShape)
             .background(bg)
             .border(1.dp, palette.line, CircleShape)
@@ -772,6 +835,7 @@ public fun RfField(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(RfDimens.FieldHeight)
+                .rfInputShadow(shape, isAdmin = palette.isAdmin)
                 .clip(shape)
                 .background(palette.surface)
                 .border(1.2.dp, borderColor, shape)

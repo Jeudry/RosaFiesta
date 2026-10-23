@@ -62,6 +62,9 @@ import com.jeudry.rosafiesta.designsystem.RfPhoto
 import com.jeudry.rosafiesta.designsystem.RfPhotoKey
 import com.jeudry.rosafiesta.designsystem.RosaAvatar
 import com.jeudry.rosafiesta.designsystem.RosaAvatarSize
+import com.jeudry.rosafiesta.designsystem.rfCardShadow
+import com.jeudry.rosafiesta.designsystem.rfIconButtonShadow
+import com.jeudry.rosafiesta.designsystem.rfInputShadow
 import com.jeudry.rosafiesta.domain.CanonicalSampleData
 
 private val AdminBackgroundGradient = Brush.radialGradient(
@@ -187,6 +190,7 @@ internal fun RenderAdminHomeA01(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
+                        .rfIconButtonShadow(CircleShape, isAdmin = true)
                         .clip(CircleShape)
                         .background(Color.White)
                         .border(1.dp, Color(0xFFECECF5), CircleShape),
@@ -296,6 +300,7 @@ internal fun RenderAdminHomeA01(
             Box(
                 modifier = Modifier
                     .weight(1f)
+                    .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = true)
                     .clip(RoundedCornerShape(20.dp))
                     .background(Color.White)
                     .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(20.dp))
@@ -310,6 +315,7 @@ internal fun RenderAdminHomeA01(
             Box(
                 modifier = Modifier
                     .weight(1f)
+                    .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = true)
                     .clip(RoundedCornerShape(20.dp))
                     .background(Color.White)
                     .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(20.dp))
@@ -324,6 +330,7 @@ internal fun RenderAdminHomeA01(
             Box(
                 modifier = Modifier
                     .weight(1f)
+                    .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = true)
                     .clip(RoundedCornerShape(20.dp))
                     .background(Color(0xFFFFF2C9))
                     .clickable { onSelectScreenCode("A02") }
@@ -355,6 +362,7 @@ internal fun RenderAdminHomeA01(
                 Box(
                     modifier = Modifier
                         .weight(1f)
+                        .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = true)
                         .clip(RoundedCornerShape(20.dp))
                         .background(Brush.linearGradient(listOf(Color(0xFFE9E8FF), Color(0xFFDDF2F6))))
                         .clickable { onSelectScreenCode("A08") }
@@ -376,6 +384,7 @@ internal fun RenderAdminHomeA01(
                 Box(
                     modifier = Modifier
                         .weight(1f)
+                        .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = true)
                         .clip(RoundedCornerShape(20.dp))
                         .background(Color.White)
                         .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(20.dp))
@@ -408,6 +417,7 @@ internal fun RenderAdminHomeA01(
                 Box(
                     modifier = Modifier
                         .weight(1f)
+                        .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = true)
                         .clip(RoundedCornerShape(20.dp))
                         .background(Color.White)
                         .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(20.dp))
@@ -432,6 +442,7 @@ internal fun RenderAdminHomeA01(
                 Box(
                     modifier = Modifier
                         .weight(1f)
+                        .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = true)
                         .clip(RoundedCornerShape(20.dp))
                         .background(Color.White)
                         .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(20.dp))
@@ -476,6 +487,7 @@ internal fun RenderAdminHomeA01(
             modifier = Modifier
                 .fillMaxWidth()
                 .offset(y = (-6).dp)
+                .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = true)
                 .clip(RoundedCornerShape(20.dp))
                 .background(Color.White)
                 .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(20.dp)),

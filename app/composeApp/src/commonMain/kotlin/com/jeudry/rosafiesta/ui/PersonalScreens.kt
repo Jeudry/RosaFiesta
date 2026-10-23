@@ -28,6 +28,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import com.jeudry.rosafiesta.designsystem.rfCardShadow
+import com.jeudry.rosafiesta.designsystem.rfIconButtonShadow
+import com.jeudry.rosafiesta.designsystem.rfInputShadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -661,6 +665,7 @@ internal fun RenderPersonalHomeScreen(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .size(44.dp)
+                    .rfIconButtonShadow(CircleShape)
                     .clip(CircleShape)
                     .background(cardBg)
                     .border(1.dp, cardBorder, CircleShape)
@@ -718,6 +723,7 @@ internal fun RenderPersonalHomeScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(52.dp)
+                .rfInputShadow(RoundedCornerShape(16.dp))
                 .clip(RoundedCornerShape(16.dp))
                 .background(cardBg)
                 .border(1.dp, cardBorder, RoundedCornerShape(16.dp))
@@ -746,6 +752,7 @@ internal fun RenderPersonalHomeScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(186.dp)
+                .shadow(14.dp, RoundedCornerShape(24.dp), spotColor = Color(0x73865DEC), ambientColor = Color.Transparent)
                 .clip(RoundedCornerShape(24.dp))
                 .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)))),
         ) {
@@ -1031,6 +1038,7 @@ internal fun RenderPersonalHomeScreen(
                 Column(
                     modifier = Modifier
                         .width(230.dp)
+                        .rfCardShadow(RoundedCornerShape(20.dp))
                         .clip(RoundedCornerShape(20.dp))
                         .background(cardBg)
                         .border(1.dp, cardBorder, RoundedCornerShape(20.dp))
@@ -1099,6 +1107,7 @@ internal fun RenderPersonalHomeScreen(
                 Column(
                     modifier = Modifier
                         .width(230.dp)
+                        .rfCardShadow(RoundedCornerShape(20.dp))
                         .clip(RoundedCornerShape(20.dp))
                         .background(cardBg)
                         .border(1.dp, cardBorder, RoundedCornerShape(20.dp))

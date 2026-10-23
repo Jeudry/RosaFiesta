@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -31,6 +32,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -115,7 +117,7 @@ private fun RosaWizardHeader(
             contentAlignment = Alignment.Center,
         ) {
             RfIcon(
-                kind = if (step == 1) RfIconKind.CLOSE else RfIconKind.BACK,
+                kind = if (step == 1) RfIconKind.CHEVRON_DOWN else RfIconKind.BACK,
                 tint = Color(0xFF1A1A2E),
                 size = 22.dp,
             )
@@ -157,28 +159,34 @@ private fun RosaWizardHeader(
             }
         }
 
-        // Botón carrito / mi evento circular blanco con badge
+        // Botón carrito / mi evento circular blanco con badge (sin recorte de badge)
         Box(
-            modifier = Modifier
-                .size(44.dp)
-                .shadow(6.dp, CircleShape, spotColor = Color(0x335A3CA0))
-                .clip(CircleShape)
-                .background(Color.White)
-                .clickable(onClick = onCart),
-            contentAlignment = Alignment.Center,
+            modifier = Modifier.size(44.dp),
         ) {
-            RfIcon(
-                kind = RfIconKind.ORDERS,
-                tint = Color(0xFF1A1A2E),
-                size = 22.dp,
-            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .shadow(6.dp, CircleShape, spotColor = Color(0x335A3CA0))
+                    .clip(CircleShape)
+                    .background(Color.White)
+                    .clickable(onClick = onCart),
+                contentAlignment = Alignment.Center,
+            ) {
+                RfIcon(
+                    kind = RfIconKind.PARTY,
+                    tint = Color(0xFF1A1A2E),
+                    size = 22.dp,
+                )
+            }
             if (cartCount > 0) {
                 Box(
                     modifier = Modifier
-                        .offset(x = 14.dp, y = (-14).dp)
+                        .align(Alignment.TopEnd)
+                        .offset(x = 4.dp, y = (-4).dp)
+                        .defaultMinSize(minWidth = 20.dp, minHeight = 20.dp)
                         .clip(CircleShape)
                         .background(Color(0xFFFFD45C))
-                        .padding(horizontal = 5.dp, vertical = 2.dp),
+                        .padding(horizontal = 5.dp),
                     contentAlignment = Alignment.Center,
                 ) {
                     BasicText(
@@ -533,16 +541,53 @@ internal fun RenderRosaEventTypeS26(
                 }
 
                 // Título con subrayado 'celebrar'
-                BasicText(
-                    text = "¿Qué evento quieres celebrar?",
-                    style = TextStyle(
-                        fontFamily = typo.displayFamily,
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 26.sp,
-                        lineHeight = 28.sp,
-                        color = Color(0xFF1A1A2E),
-                    ),
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    BasicText(
+                        text = "¿Qué evento quieres",
+                        style = TextStyle(
+                            fontFamily = typo.displayFamily,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 26.sp,
+                            lineHeight = 28.sp,
+                            letterSpacing = (-0.52).sp,
+                            color = Color(0xFF1A1A2E),
+                        ),
+                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier.drawBehind {
+                                drawRect(
+                                    color = Color(0xFFFFDF6E),
+                                    topLeft = Offset(0f, size.height * 0.60f),
+                                    size = Size(size.width, size.height * 0.35f),
+                                )
+                            },
+                        ) {
+                            BasicText(
+                                text = "celebrar",
+                                style = TextStyle(
+                                    fontFamily = typo.displayFamily,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 26.sp,
+                                    lineHeight = 28.sp,
+                                    letterSpacing = (-0.52).sp,
+                                    color = Color(0xFF1A1A2E),
+                                ),
+                            )
+                        }
+                        BasicText(
+                            text = "?",
+                            style = TextStyle(
+                                fontFamily = typo.displayFamily,
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 26.sp,
+                                lineHeight = 28.sp,
+                                letterSpacing = (-0.52).sp,
+                                color = Color(0xFF1A1A2E),
+                            ),
+                        )
+                    }
+                }
             }
 
             // 6 event types in 2 columns
@@ -573,7 +618,7 @@ internal fun RenderRosaEventTypeS26(
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(116.dp)
-                                    .shadow(12.dp, RoundedCornerShape(20.dp), spotColor = Color(0x336E46B4))
+                                    .shadow(12.dp, RoundedCornerShape(20.dp), spotColor = Color(0x666E46B4), ambientColor = Color(0x186E46B4))
                                     .clip(RoundedCornerShape(20.dp))
                                     .then(
                                         if (item.isGradient) {

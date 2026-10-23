@@ -54,6 +54,8 @@ import com.jeudry.rosafiesta.designsystem.RfLogo
 import com.jeudry.rosafiesta.designsystem.RfLogoSize
 import com.jeudry.rosafiesta.designsystem.RfPhoto
 import com.jeudry.rosafiesta.designsystem.RfPhotoKey
+import com.jeudry.rosafiesta.designsystem.rfCardShadow
+import com.jeudry.rosafiesta.designsystem.rfIconButtonShadow
 
 private val PersonalButtonGradient = Brush.horizontalGradient(
     listOf(Color(0xFFFF3366), Color(0xFFE6007A)),
@@ -107,6 +109,7 @@ internal fun RenderAboutScreenS16(
                 Box(
                     modifier = Modifier
                         .size(44.dp)
+                        .rfIconButtonShadow(CircleShape)
                         .clip(CircleShape)
                         .background(Color.White)
                         .border(1.dp, Color(0xFFF0EBF4), CircleShape)
@@ -174,6 +177,7 @@ internal fun RenderAboutScreenS16(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .rfCardShadow(RoundedCornerShape(22.dp))
                     .clip(RoundedCornerShape(22.dp))
                     .background(Color.White)
                     .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(22.dp))
@@ -251,6 +255,7 @@ internal fun RenderAboutScreenS16(
                                 pathData = "M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z",
                                 size = 18.dp,
                                 tint = Color(0xFFF7B500),
+                                filled = true,
                             )
                         }
                         BasicText("calificación", style = typo.body.copy(fontSize = 13.sp, color = Color(0xFF62627A)))
@@ -262,6 +267,7 @@ internal fun RenderAboutScreenS16(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .rfCardShadow(RoundedCornerShape(22.dp))
                     .clip(RoundedCornerShape(22.dp))
                     .background(Color.White)
                     .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(22.dp))
@@ -432,6 +438,7 @@ internal fun RenderAboutScreenS16(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .rfCardShadow(RoundedCornerShape(22.dp))
                     .clip(RoundedCornerShape(22.dp))
                     .background(Color.White)
                     .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(22.dp)),
@@ -559,6 +566,7 @@ internal fun RenderCompanyReviewsS17(
                 Box(
                     modifier = Modifier
                         .size(44.dp)
+                        .rfIconButtonShadow(CircleShape)
                         .clip(CircleShape)
                         .background(Color.White)
                         .border(1.dp, Color(0xFFF0EBF4), CircleShape)
@@ -584,6 +592,7 @@ internal fun RenderCompanyReviewsS17(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .rfCardShadow(RoundedCornerShape(22.dp))
                     .clip(RoundedCornerShape(22.dp))
                     .background(Color.White)
                     .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(22.dp))
@@ -616,11 +625,12 @@ internal fun RenderCompanyReviewsS17(
                                     pathData = "M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z",
                                     size = 16.dp,
                                     tint = Color(0xFFF7B500),
+                                    filled = true,
                                 )
                             }
                         }
                         BasicText(
-                            text = "48 reseñas",
+                            text = "2 reseñas",
                             style = typo.body.copy(fontSize = 13.sp, color = Color(0xFF62627A)),
                         )
                     }
@@ -628,13 +638,13 @@ internal fun RenderCompanyReviewsS17(
                     // Right column: Breakdown bars 5..1
                     Column(
                         modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
-                        RatingBarRow(star = "5", progress = 1.0f, count = "48", isTop = true)
-                        RatingBarRow(star = "4", progress = 0.0f, count = "0", isTop = false)
-                        RatingBarRow(star = "3", progress = 0.0f, count = "0", isTop = false)
-                        RatingBarRow(star = "2", progress = 0.0f, count = "0", isTop = false)
-                        RatingBarRow(star = "1", progress = 0.0f, count = "0", isTop = false)
+                        RatingBarRow(star = "5", progress = 1.0f)
+                        RatingBarRow(star = "4", progress = 0.0f)
+                        RatingBarRow(star = "3", progress = 0.0f)
+                        RatingBarRow(star = "2", progress = 0.0f)
+                        RatingBarRow(star = "1", progress = 0.0f)
                     }
                 }
             }
@@ -644,6 +654,10 @@ internal fun RenderCompanyReviewsS17(
                 Box(
                     modifier = Modifier
                         .height(38.dp)
+                        .then(
+                            if (selectedFilter == 0) Modifier.shadow(8.dp, RoundedCornerShape(999.dp), spotColor = Color(0x73865DEC), ambientColor = Color.Transparent)
+                            else Modifier
+                        )
                         .clip(RoundedCornerShape(999.dp))
                         .background(
                             if (selectedFilter == 0) Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)))
@@ -669,6 +683,10 @@ internal fun RenderCompanyReviewsS17(
                 Box(
                     modifier = Modifier
                         .height(38.dp)
+                        .then(
+                            if (selectedFilter == 1) Modifier.shadow(8.dp, RoundedCornerShape(999.dp), spotColor = Color(0x73865DEC), ambientColor = Color.Transparent)
+                            else Modifier
+                        )
                         .clip(RoundedCornerShape(999.dp))
                         .background(
                             if (selectedFilter == 1) Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)))
@@ -692,12 +710,12 @@ internal fun RenderCompanyReviewsS17(
                 }
             }
 
-            // Review Card 1 (Patricia Lora / Boda)
+            // Review Card 1 (Cliente / Boda)
             ReviewCardItem(
                 avatarBg = Color(0xFFFDE6F2),
                 avatarTextColor = Color(0xFFC2338F),
-                initial = "P",
-                author = "Patricia Lora",
+                initial = "C",
+                author = "Cliente",
                 date = "Hoy",
                 comment = "El montaje de nuestra boda superó todas las expectativas. Las sillas Tiffany y el arco floral quedaron de revista.",
             )
@@ -757,14 +775,14 @@ internal fun RenderCompanyReviewsS17(
 }
 
 @Composable
-private fun RatingBarRow(star: String, progress: Float, count: String, isTop: Boolean) {
+private fun RatingBarRow(star: String, progress: Float) {
     val typo = LocalRfTypography.current
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
         modifier = Modifier.fillMaxWidth(),
     ) {
-        BasicText(star, style = typo.body.copy(fontSize = 12.sp, color = Color(0xFF62627A)), modifier = Modifier.width(10.dp))
+        BasicText(star, style = typo.body.copy(fontSize = 12.sp, color = Color(0xFF62627A)), modifier = Modifier.width(8.dp))
         Box(
             modifier = Modifier
                 .weight(1f)
@@ -778,13 +796,10 @@ private fun RatingBarRow(star: String, progress: Float, count: String, isTop: Bo
                         .fillMaxWidth(progress)
                         .height(6.dp)
                         .clip(RoundedCornerShape(3.dp))
-                        .background(
-                            Brush.horizontalGradient(listOf(Color(0xFFE04FAF), Color(0xFF865DEC))),
-                        ),
+                        .background(Color(0xFFF7B500)),
                 )
             }
         }
-        BasicText(count, style = typo.body.copy(fontSize = 12.sp, color = Color(0xFF62627A)), modifier = Modifier.width(18.dp))
     }
 }
 
@@ -801,6 +816,7 @@ private fun ReviewCardItem(
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            .rfCardShadow(RoundedCornerShape(22.dp))
             .clip(RoundedCornerShape(22.dp))
             .background(Color.White)
             .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(22.dp))
@@ -838,6 +854,7 @@ private fun ReviewCardItem(
                                 pathData = "M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z",
                                 size = 13.dp,
                                 tint = Color(0xFFF7B500),
+                                filled = true,
                             )
                         }
                     }
@@ -865,16 +882,24 @@ private fun CustomSvgIcon(
     size: Dp = 22.dp,
     tint: Color = Color(0xFF1A1A2E),
     strokeWidth: Float = 1.8f,
+    filled: Boolean = false,
 ) {
     val path = remember(pathData) { PathParser().parsePathString(pathData).toPath() }
     Canvas(modifier = modifier.size(size)) {
         val s = this.size.width / 24f
         scale(s, s, Offset.Zero) {
-            drawPath(
-                path = path,
-                color = tint,
-                style = Stroke(width = strokeWidth, cap = StrokeCap.Round, join = StrokeJoin.Round),
-            )
+            if (filled) {
+                drawPath(
+                    path = path,
+                    color = tint,
+                )
+            } else {
+                drawPath(
+                    path = path,
+                    color = tint,
+                    style = Stroke(width = strokeWidth, cap = StrokeCap.Round, join = StrokeJoin.Round),
+                )
+            }
         }
     }
 }

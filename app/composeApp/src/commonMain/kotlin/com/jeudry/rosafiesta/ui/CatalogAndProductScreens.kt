@@ -56,6 +56,7 @@ import com.jeudry.rosafiesta.designsystem.RfPhoto
 import com.jeudry.rosafiesta.designsystem.RfPhotoKey
 import com.jeudry.rosafiesta.designsystem.RosaAvatar
 import com.jeudry.rosafiesta.designsystem.RosaAvatarSize
+import com.jeudry.rosafiesta.designsystem.rfCardShadow
 
 // ==============================================================================
 // s18 · CATÁLOGO (APP PERSONAL)
@@ -299,6 +300,7 @@ private fun PersonalProductCard(
 
     Box(
         modifier = modifier
+            .rfCardShadow(RoundedCornerShape(20.dp))
             .clip(RoundedCornerShape(20.dp))
             .background(Color.White)
             .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(20.dp))
@@ -1051,6 +1053,7 @@ private fun PackageSummaryCard(
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            .rfCardShadow(RoundedCornerShape(20.dp))
             .clip(RoundedCornerShape(20.dp))
             .background(Color.White)
             .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(20.dp))
@@ -1719,6 +1722,7 @@ private fun TiendaBalloonProductCard(
 
     Box(
         modifier = modifier
+            .rfCardShadow(RoundedCornerShape(20.dp))
             .clip(RoundedCornerShape(20.dp))
             .background(Color.White)
             .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(20.dp)),

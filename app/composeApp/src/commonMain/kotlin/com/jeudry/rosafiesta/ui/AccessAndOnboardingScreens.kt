@@ -74,6 +74,8 @@ import com.jeudry.rosafiesta.designsystem.RfPhoto
 import com.jeudry.rosafiesta.designsystem.RfPhotoKey
 import com.jeudry.rosafiesta.designsystem.RosaAvatar
 import com.jeudry.rosafiesta.designsystem.RosaAvatarSize
+import com.jeudry.rosafiesta.designsystem.rfCardShadow
+import com.jeudry.rosafiesta.designsystem.rfInputShadow
 
 // ==============================================================================
 // p00 · SPLASH (APP PERSONAL)
@@ -1673,9 +1675,10 @@ internal fun RenderLoginScreenS07(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp)
+                    .rfInputShadow(RoundedCornerShape(16.dp))
                     .clip(RoundedCornerShape(16.dp))
                     .background(Color.White)
-                    .border(1.dp, Color(0xFFE6DEEA), RoundedCornerShape(16.dp))
+                    .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(16.dp))
                     .padding(horizontal = 16.dp),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -1705,9 +1708,10 @@ internal fun RenderLoginScreenS07(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp)
+                    .rfInputShadow(RoundedCornerShape(16.dp))
                     .clip(RoundedCornerShape(16.dp))
                     .background(Color.White)
-                    .border(1.dp, Color(0xFFE6DEEA), RoundedCornerShape(16.dp))
+                    .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(16.dp))
                     .padding(start = 16.dp, end = 6.dp),
             ) {
                 Row(
@@ -1738,7 +1742,7 @@ internal fun RenderLoginScreenS07(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp)
-                    .shadow(elevation = 12.dp, shape = RoundedCornerShape(16.dp), spotColor = Color(0xB3C846B4))
+                    .shadow(elevation = 12.dp, shape = RoundedCornerShape(16.dp), spotColor = Color(0xB3C846B4), ambientColor = Color.Transparent)
                     .clip(RoundedCornerShape(16.dp))
                     .background(
                         Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC))),
@@ -1772,6 +1776,7 @@ internal fun RenderLoginScreenS07(
                     modifier = Modifier
                         .weight(1f)
                         .height(56.dp)
+                        .rfInputShadow(RoundedCornerShape(16.dp))
                         .clip(RoundedCornerShape(16.dp))
                         .background(Color.White)
                         .border(1.dp, Color(0xFFEEE9F2), RoundedCornerShape(16.dp)),
@@ -1783,6 +1788,7 @@ internal fun RenderLoginScreenS07(
                     modifier = Modifier
                         .weight(1f)
                         .height(56.dp)
+                        .rfInputShadow(RoundedCornerShape(16.dp))
                         .clip(RoundedCornerShape(16.dp))
                         .background(Color.White)
                         .border(1.dp, Color(0xFFEEE9F2), RoundedCornerShape(16.dp)),
@@ -2144,6 +2150,7 @@ internal fun RenderRegisterScreenS08(
                     modifier = Modifier
                         .weight(1f)
                         .height(52.dp)
+                        .rfInputShadow(RoundedCornerShape(16.dp))
                         .clip(RoundedCornerShape(16.dp))
                         .background(Color.White)
                         .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(16.dp))
@@ -2156,6 +2163,7 @@ internal fun RenderRegisterScreenS08(
                     modifier = Modifier
                         .weight(1f)
                         .height(52.dp)
+                        .rfInputShadow(RoundedCornerShape(16.dp))
                         .clip(RoundedCornerShape(16.dp))
                         .background(Color.White)
                         .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(16.dp))
@@ -2173,6 +2181,7 @@ internal fun RenderRegisterScreenS08(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp)
+                    .rfInputShadow(RoundedCornerShape(16.dp))
                     .clip(RoundedCornerShape(16.dp))
                     .background(Color.White)
                     .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(16.dp))
@@ -2192,6 +2201,7 @@ internal fun RenderRegisterScreenS08(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp)
+                    .rfInputShadow(RoundedCornerShape(16.dp))
                     .clip(RoundedCornerShape(16.dp))
                     .background(Color.White)
                     .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(16.dp))
@@ -2211,6 +2221,7 @@ internal fun RenderRegisterScreenS08(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp)
+                    .rfInputShadow(RoundedCornerShape(16.dp))
                     .clip(RoundedCornerShape(16.dp))
                     .background(Color.White)
                     .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(16.dp))
@@ -2239,6 +2250,7 @@ internal fun RenderRegisterScreenS08(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp)
+                    .rfInputShadow(RoundedCornerShape(16.dp))
                     .clip(RoundedCornerShape(16.dp))
                     .background(Color.White)
                     .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(16.dp))
@@ -2283,7 +2295,7 @@ internal fun RenderRegisterScreenS08(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(54.dp)
-                    .shadow(elevation = 12.dp, shape = RoundedCornerShape(16.dp), spotColor = Color(0xB3C846B4))
+                    .shadow(elevation = 12.dp, shape = RoundedCornerShape(16.dp), spotColor = Color(0xB3C846B4), ambientColor = Color.Transparent)
                     .clip(RoundedCornerShape(16.dp))
                     .background(Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC))))
                     .clickable { onPrimaryAction() },
@@ -2313,6 +2325,7 @@ internal fun RenderRegisterScreenS08(
                     modifier = Modifier
                         .weight(1f)
                         .height(48.dp)
+                        .rfInputShadow(RoundedCornerShape(16.dp))
                         .clip(RoundedCornerShape(16.dp))
                         .background(Color.White)
                         .border(1.dp, Color(0xFFEEE9F2), RoundedCornerShape(16.dp))
@@ -2325,6 +2338,7 @@ internal fun RenderRegisterScreenS08(
                     modifier = Modifier
                         .weight(1f)
                         .height(48.dp)
+                        .rfInputShadow(RoundedCornerShape(16.dp))
                         .clip(RoundedCornerShape(16.dp))
                         .background(Color.White)
                         .border(1.dp, Color(0xFFEEE9F2), RoundedCornerShape(16.dp))
@@ -2440,6 +2454,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp)
+                            .rfInputShadow(RoundedCornerShape(16.dp))
                             .clip(RoundedCornerShape(16.dp))
                             .background(Color.White)
                             .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(16.dp))
@@ -2458,7 +2473,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp)
-                            .shadow(elevation = 12.dp, shape = RoundedCornerShape(16.dp), spotColor = Color(0xB3C846B4))
+                            .shadow(elevation = 12.dp, shape = RoundedCornerShape(16.dp), spotColor = Color(0xB3C846B4), ambientColor = Color.Transparent)
                             .clip(RoundedCornerShape(16.dp))
                             .background(Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC))))
                             .clickable { onSelectScreenCode("s10") },
@@ -2556,6 +2571,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp)
+                            .rfInputShadow(RoundedCornerShape(16.dp), isActive = true)
                             .clip(RoundedCornerShape(16.dp))
                             .background(Color.White)
                             .border(2.dp, Color(0xFFB754CB), RoundedCornerShape(16.dp))
@@ -2568,7 +2584,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                                 RfIcon(kind = RfIconKind.LOCK, tint = Color(0xFF62627A), size = 20.dp)
-                                BasicText("fiesta2026", style = typo.body.copy(fontSize = 15.sp, letterSpacing = 1.sp, color = Color(0xFF1A1A2E)))
+                                BasicText("••••••••••", style = typo.body.copy(fontSize = 18.sp, letterSpacing = 2.sp, color = Color(0xFF1A1A2E)))
                             }
                             Box(contentAlignment = Alignment.Center, modifier = Modifier.size(44.dp)) {
                                 RfIcon(kind = RfIconKind.EYE, tint = Color(0xFF62627A), size = 20.dp)
@@ -2591,18 +2607,36 @@ internal fun RenderRecoveryAndConfirmationScreens(
 
                     Spacer(Modifier.height(10.dp))
 
+                    val checkCirclePath = remember { androidx.compose.ui.graphics.vector.PathParser().parsePathString("M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0M8 12.5l2.8 2.8L16 10").toPath() }
+                    val emptyCirclePath = remember { androidx.compose.ui.graphics.vector.PathParser().parsePathString("M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0").toPath() }
+
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        RfIcon(kind = RfIconKind.CHECK, tint = Color(0xFF4E6A10), size = 16.dp)
+                        Canvas(modifier = Modifier.size(18.dp)) {
+                            val s = size.width / 24f
+                            scale(s, s, Offset.Zero) {
+                                drawPath(checkCirclePath, Color(0xFF4E6A10), style = Stroke(width = 1.8f, cap = StrokeCap.Round, join = StrokeJoin.Round))
+                            }
+                        }
                         BasicText("Al menos 8 caracteres", style = typo.body.copy(fontSize = 14.sp, color = Color(0xFF4E6A10)))
                     }
                     Spacer(Modifier.height(6.dp))
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        RfIcon(kind = RfIconKind.CHECK, tint = Color(0xFF4E6A10), size = 16.dp)
+                        Canvas(modifier = Modifier.size(18.dp)) {
+                            val s = size.width / 24f
+                            scale(s, s, Offset.Zero) {
+                                drawPath(checkCirclePath, Color(0xFF4E6A10), style = Stroke(width = 1.8f, cap = StrokeCap.Round, join = StrokeJoin.Round))
+                            }
+                        }
                         BasicText("Incluye un número", style = typo.body.copy(fontSize = 14.sp, color = Color(0xFF4E6A10)))
                     }
                     Spacer(Modifier.height(6.dp))
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Box(Modifier.size(14.dp).border(1.5.dp, Color(0xFF62627A), CircleShape))
+                        Canvas(modifier = Modifier.size(18.dp)) {
+                            val s = size.width / 24f
+                            scale(s, s, Offset.Zero) {
+                                drawPath(emptyCirclePath, Color(0xFF62627A), style = Stroke(width = 1.8f, cap = StrokeCap.Round, join = StrokeJoin.Round))
+                            }
+                        }
                         BasicText("Incluye un símbolo (opcional)", style = typo.body.copy(fontSize = 14.sp, color = Color(0xFF62627A)))
                     }
 
@@ -2615,6 +2649,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp)
+                            .rfInputShadow(RoundedCornerShape(16.dp))
                             .clip(RoundedCornerShape(16.dp))
                             .background(Color.White)
                             .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(16.dp))
@@ -2643,7 +2678,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                         .align(Alignment.BottomCenter)
                         .padding(horizontal = 24.dp, vertical = 40.dp)
                         .height(56.dp)
-                        .shadow(elevation = 12.dp, shape = RoundedCornerShape(16.dp), spotColor = Color(0xB3C846B4))
+                        .shadow(elevation = 12.dp, shape = RoundedCornerShape(16.dp), spotColor = Color(0xB3C846B4), ambientColor = Color.Transparent)
                         .clip(RoundedCornerShape(16.dp))
                         .background(Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC))))
                         .clickable { onSelectScreenCode("s11") },
