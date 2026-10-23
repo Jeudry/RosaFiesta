@@ -593,6 +593,10 @@ internal fun RenderPersonalHomeScreen(
     val cardBorder = if (isDark) Color(0xFF2A2A40) else Color(0xFFF0EBF4)
     val chipBg = if (isDark) Color(0x2EB54BD6) else Color(0xFFF5EAF9)
     val chipText = Color(0xFFB54BD6)
+    val decoracionBg = if (isDark) Color(0xFF3A1630) else Color(0xFFFDE6F2)
+    val mobiliarioBg = if (isDark) Color(0xFF26204A) else Color(0xFFEFE8FD)
+    val mesaDulceBg = if (isDark) Color(0xFF2B3216) else Color(0xFFEEF6D6)
+    val iluminacionBg = if (isDark) Color(0xFF3A2E14) else Color(0xFFFFF2C9)
 
     Column(
         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -900,7 +904,7 @@ internal fun RenderPersonalHomeScreen(
                         modifier = Modifier
                             .size(74.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFFFDE6F2)),
+                            .background(decoracionBg),
                     ) {
                         ServiceIllustrationFloral(modifier = Modifier.size(56.dp))
                     }
@@ -922,7 +926,7 @@ internal fun RenderPersonalHomeScreen(
                         modifier = Modifier
                             .size(74.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFFEFE8FD)),
+                            .background(mobiliarioBg),
                     ) {
                         ServiceIllustrationMobiliario(modifier = Modifier.size(56.dp))
                     }
@@ -944,7 +948,7 @@ internal fun RenderPersonalHomeScreen(
                         modifier = Modifier
                             .size(74.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFFEEF6D6)),
+                            .background(mesaDulceBg),
                     ) {
                         ServiceIllustrationDulce(modifier = Modifier.size(56.dp))
                     }
@@ -966,7 +970,7 @@ internal fun RenderPersonalHomeScreen(
                         modifier = Modifier
                             .size(74.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFFFFF2C9)),
+                            .background(iluminacionBg),
                     ) {
                         ServiceIllustrationLuz(modifier = Modifier.size(56.dp))
                     }
@@ -1035,7 +1039,8 @@ internal fun RenderPersonalHomeScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(100.dp),
+                            .height(100.dp)
+                            .background(if (isDark) Color(0xFF26204A) else Color(0xFFF3EEF6)),
                     ) {
                         RfPhoto(
                             photoKey = RfPhotoKey.GRADUACION,
@@ -1102,7 +1107,8 @@ internal fun RenderPersonalHomeScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(100.dp),
+                            .height(100.dp)
+                            .background(if (isDark) Color(0xFF3A1630) else Color(0xFFFDE6F2)),
                     ) {
                         RfPhoto(
                             photoKey = RfPhotoKey.BODA,
@@ -1151,7 +1157,7 @@ internal fun RenderPersonalHomeScreen(
                             ),
                         )
                         BasicText(
-                            text = "1.8K eventos",
+                            text = "[N] eventos",
                             style = typo.caption.copy(fontSize = 13.sp, color = mutedColor),
                         )
                     }
