@@ -4107,11 +4107,11 @@ internal fun RenderAdminArticleDetailA23(
         // Ficha contenido
         Box(
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxSize()
                 .padding(top = 226.dp)
                 .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
                 .background(Color(0xFFF6F6FB))
-                .padding(top = 20.dp, start = 20.dp, end = 20.dp),
+                .padding(top = 20.dp, start = 20.dp, end = 20.dp, bottom = 32.dp),
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 // Título y precio
