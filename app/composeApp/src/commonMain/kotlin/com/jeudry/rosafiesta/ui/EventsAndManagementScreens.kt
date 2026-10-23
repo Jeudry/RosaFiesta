@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -26,6 +27,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -35,17 +37,24 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
 import com.jeudry.rosafiesta.designsystem.LocalRfTypography
 import com.jeudry.rosafiesta.designsystem.RfIcon
 import com.jeudry.rosafiesta.designsystem.RfIconKind
 import com.jeudry.rosafiesta.designsystem.RfPhoto
 import com.jeudry.rosafiesta.designsystem.RfPhotoKey
+import com.jeudry.rosafiesta.designsystem.RfRadialBackgroundBox
 import com.jeudry.rosafiesta.designsystem.rfCardShadow
 import com.jeudry.rosafiesta.designsystem.rfHeroBannerShadow
 import com.jeudry.rosafiesta.designsystem.rfIconButtonShadow
@@ -71,17 +80,9 @@ internal fun RenderMyEventsScreenS37(
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
-    var selectedTab by remember { mutableStateOf(0) } // 0: Próximos, 1: Pasados
+    var selectedTab by remember { mutableStateOf(0) } // 0: Próximos, 1: Pasados, 2: Todos
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFFAFAFC)),
-    ) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            drawRect(EventBackgroundGradient)
-        }
-
+    RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -93,11 +94,12 @@ internal fun RenderMyEventsScreenS37(
             // Header: Título + Calendario + Botón Nuevo (+)
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 BasicText(
                     text = "Mis eventos",
+                    modifier = Modifier.weight(1f),
                     style = TextStyle(
                         fontFamily = typo.displayFamily,
                         fontWeight = FontWeight.ExtraBold,
@@ -106,39 +108,34 @@ internal fun RenderMyEventsScreenS37(
                     ),
                 )
 
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .rfIconButtonShadow(CircleShape, isAdmin = false)
+                        .clip(CircleShape)
+                        .background(Color.White)
+                        .clickable { onSelectScreenCode("s39") },
+                    contentAlignment = Alignment.Center,
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(44.dp)
-                            .rfIconButtonShadow(CircleShape, isAdmin = false)
-                            .clip(CircleShape)
-                            .background(Color.White)
-                            .clickable { onSelectScreenCode("s39") },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        RfIcon(kind = RfIconKind.CALENDAR, tint = Color(0xFF1A1A2E), size = 20.dp)
-                    }
+                    RfIcon(kind = RfIconKind.CALENDAR, tint = Color(0xFF1A1A2E), size = 20.dp)
+                }
 
-                    Box(
-                        modifier = Modifier
-                            .size(44.dp)
-                            .rfPrimaryButtonShadow(CircleShape, isAdmin = false)
-                            .clip(CircleShape)
-                            .background(RosaButtonGradient)
-                            .clickable { onSelectScreenCode("s38") },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        RfIcon(kind = RfIconKind.PLUS, tint = Color.White, size = 22.dp)
-                    }
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .rfPrimaryButtonShadow(CircleShape, isAdmin = false)
+                        .clip(CircleShape)
+                        .background(RosaButtonGradient)
+                        .clickable { onSelectScreenCode("s38") },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    RfIcon(kind = RfIconKind.PLUS, tint = Color.White, size = 22.dp)
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Segmented control: Próximos (3) vs Pasados (1)
+            // Segmented control: Próximos · 3 / Pasados · 1 / Todos
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -148,135 +145,204 @@ internal fun RenderMyEventsScreenS37(
                     .padding(4.dp),
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxSize()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(if (selectedTab == 0) Color.White else Color.Transparent)
-                        .clickable { selectedTab = 0 },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    BasicText(
-                        text = "Próximos · 3",
-                        style = TextStyle(
-                            fontFamily = typo.bodyFamily,
-                            fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Normal,
-                            fontSize = 14.sp,
-                            color = if (selectedTab == 0) Color(0xFF1A1A2E) else Color(0xFF62627A),
-                        ),
-                    )
-                }
-
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxSize()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(if (selectedTab == 1) Color.White else Color.Transparent)
-                        .clickable { selectedTab = 1 },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    BasicText(
-                        text = "Pasados · 1",
-                        style = TextStyle(
-                            fontFamily = typo.bodyFamily,
-                            fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Normal,
-                            fontSize = 14.sp,
-                            color = if (selectedTab == 1) Color(0xFF1A1A2E) else Color(0xFF62627A),
-                        ),
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(18.dp))
-
-            // Tarjetas de eventos
-            val events = listOf(
-                Triple("Boda Real Rosa & Dorado", "Vie 23 oct · en 3 días", RfPhotoKey.BODA),
-                Triple("Baby Shower Sofía", "Sáb 2 nov · en 13 días", RfPhotoKey.BABY_SHOWER),
-                Triple("Quinceañera Isabella", "Dom 9 nov · en 20 días", RfPhotoKey.QUINCEANERA),
-            )
-
-            events.forEach { (name, date, photo) ->
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 6.dp)
-                        .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = false)
-                        .clip(RoundedCornerShape(22.dp))
-                        .background(Color.White)
-                        .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(22.dp))
-                        .clickable { onSelectScreenCode("s40") }
-                        .padding(14.dp),
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
+                listOf("Próximos · 3", "Pasados · 1", "Todos").forEachIndexed { index, label ->
+                    val isSelected = selectedTab == index
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(12.dp))
+                            .then(
+                                if (isSelected) Modifier.shadow(
+                                    6.dp,
+                                    RoundedCornerShape(12.dp),
+                                    spotColor = Color(0x33AA46A0),
+                                    ambientColor = Color.Transparent,
+                                ) else Modifier
+                            )
+                            .background(if (isSelected) Color.White else Color.Transparent)
+                            .clickable { selectedTab = index },
+                        contentAlignment = Alignment.Center,
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(72.dp)
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(Color(0xFFFDE6F2)),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            RfPhoto(photoKey = photo, contentDescription = name)
-                        }
-
-                        Column(modifier = Modifier.weight(1f)) {
-                            BasicText(
-                                text = name,
-                                style = TextStyle(
-                                    fontFamily = typo.displayFamily,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 16.sp,
-                                    color = Color(0xFF1A1A2E),
-                                ),
-                            )
-                            BasicText(
-                                text = date,
-                                style = TextStyle(
-                                    fontFamily = typo.bodyFamily,
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontSize = 13.sp,
-                                    color = Color(0xFFC2338F),
-                                ),
-                            )
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(6.dp)
-                                        .clip(RoundedCornerShape(3.dp))
-                                        .background(Color(0xFFEFE8FD)),
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth(0.6f)
-                                            .height(6.dp)
-                                            .clip(RoundedCornerShape(3.dp))
-                                            .background(RosaButtonGradient),
-                                    )
-                                }
-                                BasicText(
-                                    text = "3 de 5",
-                                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 11.sp, color = Color(0xFF62627A)),
-                                )
-                            }
-                        }
-
-                        RfIcon(kind = RfIconKind.MORE_VERTICAL, tint = Color(0xFF865DEC), size = 18.dp)
+                        BasicText(
+                            text = label,
+                            style = TextStyle(
+                                fontFamily = typo.bodyFamily,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
+                                fontSize = 14.sp,
+                                color = if (isSelected) Color(0xFF1A1A2E) else Color(0xFF62627A),
+                            ),
+                        )
                     }
                 }
             }
 
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Próximos eventos
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                MyEventRow37(
+                    title = "Boda Real Rosa & Dorado",
+                    date = "Vie 23 oct",
+                    status = "Ajustado",
+                    statusBg = Color(0xFFDDF4F3),
+                    statusColor = Color(0xFF1F8A84),
+                    photoKey = RfPhotoKey.BODA,
+                    onClick = { onSelectScreenCode("s40") },
+                )
+                MyEventRow37(
+                    title = "Quinceañera Valentina Crystal",
+                    date = "Lun 2 nov",
+                    status = "Confirmado",
+                    statusBg = Color(0xFFEEF6D6),
+                    statusColor = Color(0xFF4E6A10),
+                    photoKey = RfPhotoKey.QUINCEANERA,
+                    onClick = { onSelectScreenCode("s40") },
+                )
+                MyEventRow37(
+                    title = "Baby Shower Sofía en Rosas",
+                    date = "Lun 9 nov",
+                    status = "Borrador",
+                    statusBg = Color(0xFFF1EFF5),
+                    statusColor = Color(0xFF62627A),
+                    photoKey = RfPhotoKey.BABY_SHOWER,
+                    onClick = { onSelectScreenCode("s40") },
+                )
+            }
+
+            Spacer(modifier = Modifier.height(22.dp))
+
+            BasicText(
+                text = "PASADOS",
+                style = TextStyle(
+                    fontFamily = typo.bodyFamily,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 12.sp,
+                    letterSpacing = 0.96.sp,
+                    color = Color(0xFF62627A),
+                ),
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            MyEventRow37(
+                title = "Gala Corporativa Grupo Caribe",
+                date = "Lun 12 oct",
+                status = "Completado",
+                statusBg = Color(0xFFEFE8FD),
+                statusColor = Color(0xFF7A4FD8),
+                photoKey = RfPhotoKey.CORPORATIVO,
+                showReview = true,
+                onClick = { onSelectScreenCode("s40") },
+            )
+
             Spacer(modifier = Modifier.height(110.dp))
+        }
+    }
+}
+
+@Composable
+private fun MyEventRow37(
+    title: String,
+    date: String,
+    status: String,
+    statusBg: Color,
+    statusColor: Color,
+    photoKey: RfPhotoKey,
+    showReview: Boolean = false,
+    onClick: () -> Unit,
+) {
+    val typo = LocalRfTypography.current
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(Color.White)
+            .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(20.dp))
+            .clickable(onClick = onClick)
+            .padding(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(64.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(Color(0xFFF3EEF6)),
+        ) {
+            RfPhoto(photoKey = photoKey, contentDescription = title)
+        }
+
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(5.dp),
+        ) {
+            BasicText(
+                text = title,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                style = TextStyle(
+                    fontFamily = typo.bodyFamily,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    color = Color(0xFF1A1A2E),
+                ),
+            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                BasicText(
+                    text = date,
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF62627A)),
+                )
+                Box(
+                    modifier = Modifier
+                        .height(24.dp)
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(statusBg)
+                        .padding(horizontal = 9.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    BasicText(
+                        text = status,
+                        style = TextStyle(
+                            fontFamily = typo.bodyFamily,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp,
+                            color = statusColor,
+                        ),
+                    )
+                }
+            }
+        }
+
+        if (showReview) {
+            Row(
+                modifier = Modifier
+                    .height(36.dp)
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(Color.White)
+                    .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(999.dp))
+                    .clickable { }
+                    .padding(horizontal = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                RfIcon(kind = RfIconKind.STAR, tint = Color(0xFF1A1A2E), size = 14.dp)
+                BasicText(
+                    text = "Reseñar",
+                    style = TextStyle(
+                        fontFamily = typo.bodyFamily,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp,
+                        color = Color(0xFF1A1A2E),
+                    ),
+                )
+            }
+        } else {
+            RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = Color(0xFF62627A), size = 20.dp)
         }
     }
 }
@@ -706,15 +772,11 @@ internal fun RenderEventDetailScreenS40(
 ) {
     val typo = LocalRfTypography.current
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFF8F9FB)),
-    ) {
+    RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 56.dp, start = 20.dp, end = 20.dp, bottom = 30.dp)
+                .padding(top = 54.dp, start = 20.dp, end = 20.dp, bottom = 30.dp)
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
@@ -769,7 +831,7 @@ internal fun RenderEventDetailScreenS40(
                         .border(1.dp, Color(0xFFEEEAF2), CircleShape),
                     contentAlignment = Alignment.Center,
                 ) {
-                    RfIcon(kind = RfIconKind.RECEIPT, tint = Color(0xFF1A1A2E), size = 20.dp)
+                    RfIcon(kind = RfIconKind.DOWNLOAD, tint = Color(0xFF1A1A2E), size = 20.dp)
                 }
 
                 // More Options (3 dots)
@@ -794,7 +856,9 @@ internal fun RenderEventDetailScreenS40(
                     horizontalArrangement = Arrangement.spacedBy(24.dp),
                 ) {
                     Column(
-                        modifier = Modifier.height(44.dp),
+                        modifier = Modifier
+                            .height(44.dp)
+                            .width(IntrinsicSize.Max),
                         verticalArrangement = Arrangement.SpaceBetween,
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
@@ -867,37 +931,55 @@ internal fun RenderEventDetailScreenS40(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .height(110.dp)
                     .clip(RoundedCornerShape(22.dp))
                     .background(Color.White)
-                    .border(1.dp, Color(0xFFF0EDF3), RoundedCornerShape(22.dp))
-                    .padding(horizontal = 18.dp, vertical = 16.dp),
+                    .border(1.dp, Color(0xFFF0EDF3), RoundedCornerShape(22.dp)),
             ) {
-                // Background rings illustration at top right
-                Box(
-                    modifier = Modifier
-                        .size(110.dp)
-                        .align(Alignment.TopEnd)
-                        .offset(x = 10.dp, y = (-8).dp),
-                ) {
-                    Canvas(modifier = Modifier.fillMaxSize()) {
-                        val s = size.width / 120f
-                        drawCircle(
-                            color = Color(0xFFD9A441),
-                            radius = 21f * s,
-                            center = Offset(49f * s, 70f * s),
-                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 6.5f * s),
-                        )
-                        drawCircle(
-                            color = Color(0xFFF0CC7A),
-                            radius = 21f * s,
-                            center = Offset(72f * s, 72f * s),
-                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 6.5f * s),
-                        )
-                        drawCircle(Color(0xFFB9D84A), radius = 4f * s, center = Offset(28f * s, 26f * s))
-                    }
+                // Confetti + rings illustration
+                Canvas(modifier = Modifier.matchParentSize()) {
+                    val s = size.width / 350f
+                    fun at(x: Float, y: Float) = Offset(x * s, y * s)
+
+                    // Rings
+                    drawCircle(
+                        color = Color(0xFFD9A441),
+                        radius = 21f * s,
+                        center = at(295f, 57f),
+                        style = Stroke(width = 5f * s),
+                    )
+                    drawCircle(
+                        color = Color(0xFFF0CC7A),
+                        radius = 21f * s,
+                        center = at(312f, 59f),
+                        style = Stroke(width = 5f * s),
+                    )
+
+                    // Gold star
+                    drawPath(
+                        path = fivePointStar(at(222f, 25f), 11f * s, 4.4f * s),
+                        color = Color(0xFFFFCE47),
+                    )
+                    // Pink sparkle
+                    drawPath(
+                        path = fourPointSparkle(at(274f, 28f), 7f * s),
+                        color = Color(0xFFE86FC0),
+                    )
+                    // Blue diamond
+                    drawPath(
+                        path = fourPointSparkle(at(294f, 27f), 5f * s),
+                        color = Color(0xFF8FD3F0),
+                    )
+                    // Pink heart
+                    drawPath(
+                        path = heartPath(at(335f, 81f), 6f * s),
+                        color = Color(0xFFF6C3DE),
+                    )
+                    // Green dot
+                    drawCircle(Color(0xFFB9D84A), radius = 3.5f * s, center = at(238f, 87f))
                 }
 
-                Column {
+                Column(modifier = Modifier.padding(start = 18.dp, top = 14.dp, end = 18.dp)) {
                     BasicText(
                         text = "FALTAN PARA TU EVENTO",
                         style = TextStyle(
@@ -908,7 +990,7 @@ internal fun RenderEventDetailScreenS40(
                             color = Color(0xFF62627A),
                         ),
                     )
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(2.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
                         CountdownUnit(value = "03", label = "días", color = Color(0xFFEB4F9E))
                         CountdownUnit(value = "07", label = "horas", color = Color(0xFFF2894A))
@@ -1080,6 +1162,52 @@ internal fun RenderEventDetailScreenS40(
     }
 }
 
+private fun fivePointStar(center: Offset, outer: Float, inner: Float): Path {
+    val path = Path()
+    for (i in 0 until 10) {
+        val radius = if (i % 2 == 0) outer else inner
+        val angle = (-90.0 + i * 36.0) * PI / 180.0
+        val x = center.x + (radius * cos(angle)).toFloat()
+        val y = center.y + (radius * sin(angle)).toFloat()
+        if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
+    }
+    path.close()
+    return path
+}
+
+private fun fourPointSparkle(center: Offset, radius: Float): Path {
+    val path = Path()
+    val thin = radius * 0.28f
+    path.moveTo(center.x, center.y - radius)
+    path.lineTo(center.x + thin, center.y - thin)
+    path.lineTo(center.x + radius, center.y)
+    path.lineTo(center.x + thin, center.y + thin)
+    path.lineTo(center.x, center.y + radius)
+    path.lineTo(center.x - thin, center.y + thin)
+    path.lineTo(center.x - radius, center.y)
+    path.lineTo(center.x - thin, center.y - thin)
+    path.close()
+    return path
+}
+
+private fun heartPath(center: Offset, size: Float): Path {
+    val path = Path()
+    val s = size * 0.1f
+    path.moveTo(center.x, center.y + 9f * s)
+    path.cubicTo(
+        center.x - 12f * s, center.y + 1f * s,
+        center.x - 9f * s, center.y - 10f * s,
+        center.x, center.y - 3f * s,
+    )
+    path.cubicTo(
+        center.x + 9f * s, center.y - 10f * s,
+        center.x + 12f * s, center.y + 1f * s,
+        center.x, center.y + 9f * s,
+    )
+    path.close()
+    return path
+}
+
 @Composable
 private fun CountdownUnit(
     value: String,
@@ -1177,15 +1305,14 @@ internal fun RenderExecutionModeScreenS43(
             .background(Color(0xFFFAFAFC)),
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // Header llamativo con degradado morado-rosa
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp))
                     .background(RosaButtonGradient)
-                    .padding(top = 54.dp, start = 20.dp, end = 20.dp, bottom = 24.dp),
+                    .padding(top = 52.dp, start = 20.dp, end = 20.dp, bottom = 28.dp),
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -1194,109 +1321,192 @@ internal fun RenderExecutionModeScreenS43(
                         Box(
                             modifier = Modifier
                                 .size(44.dp)
-                                .rfIconButtonShadow(CircleShape, isAdmin = false)
                                 .clip(CircleShape)
-                                .background(Color.White.copy(alpha = 0.2f))
+                                .background(Color.White.copy(alpha = 0.18f))
                                 .clickable { onSelectScreenCode("s40") },
                             contentAlignment = Alignment.Center,
                         ) {
                             RfIcon(kind = RfIconKind.CLOSE, tint = Color.White, size = 22.dp)
                         }
 
-                        Box(
+                        Row(
                             modifier = Modifier
                                 .height(28.dp)
                                 .clip(CircleShape)
                                 .background(Color(0xFFFFD45C))
-                                .padding(horizontal = 12.dp),
-                            contentAlignment = Alignment.Center,
+                                .padding(horizontal = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
                         ) {
-                            BasicText("En curso", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, color = Color(0xFF2E1A47), fontSize = 12.sp))
+                            Box(
+                                modifier = Modifier
+                                    .size(7.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFF2E1A47)),
+                            )
+                            BasicText(
+                                text = "En curso",
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, color = Color(0xFF2E1A47), fontSize = 12.sp),
+                            )
                         }
                     }
 
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(18.dp),
                     ) {
-                        // Círculo de progreso
                         Box(
-                            modifier = Modifier
-                                .size(76.dp)
-                                .clip(CircleShape)
-                                .background(Color.White.copy(alpha = 0.2f)),
+                            modifier = Modifier.size(84.dp),
                             contentAlignment = Alignment.Center,
                         ) {
-                            BasicText("37%", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, color = Color.White, fontSize = 20.sp))
+                            Canvas(modifier = Modifier.fillMaxSize()) {
+                                val stroke = 8.dp.toPx()
+                                val radius = 34.dp.toPx()
+                                drawCircle(
+                                    color = Color.White.copy(alpha = 0.22f),
+                                    radius = radius,
+                                    style = androidx.compose.ui.graphics.drawscope.Stroke(width = stroke),
+                                )
+                                drawArc(
+                                    color = Color(0xFFFFD45C),
+                                    startAngle = -90f,
+                                    sweepAngle = 360f * 0.37f,
+                                    useCenter = false,
+                                    style = androidx.compose.ui.graphics.drawscope.Stroke(
+                                        width = stroke,
+                                        cap = androidx.compose.ui.graphics.StrokeCap.Round,
+                                    ),
+                                    topLeft = androidx.compose.ui.geometry.Offset(
+                                        center.x - radius,
+                                        center.y - radius,
+                                    ),
+                                    size = androidx.compose.ui.geometry.Size(radius * 2, radius * 2),
+                                )
+                            }
+                            BasicText(
+                                text = "37%",
+                                style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, color = Color.White, fontSize = 18.sp),
+                            )
                         }
 
                         Column {
-                            BasicText("Modo ejecución", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, color = Color.White, fontSize = 22.sp))
-                            BasicText("Boda Real · 3 de 8 tareas listas", style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFFF6EAFB), fontSize = 13.sp))
+                            BasicText(
+                                text = "Modo ejecución",
+                                style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, color = Color.White, fontSize = 24.sp, lineHeight = 25.sp, letterSpacing = (-0.5).sp),
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            BasicText(
+                                text = "Boda Real Rosa & Dorado · 3 de 8 tareas",
+                                style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFFF6EAFB), fontSize = 14.sp),
+                            )
                         }
                     }
                 }
             }
 
-            // Lista de tareas en ejecución
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 20.dp)
+                    .padding(start = 16.dp, end = 16.dp, top = 18.dp)
                     .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                Spacer(modifier = Modifier.height(18.dp))
-
-                val liveTasks = listOf(
-                    Triple("Confirmar paleta floral blanco y rosa", "Completada a las 09:15", true),
-                    Triple("Camión de transporte en ruta al Botánico", "Llegada estimada 10:30", true),
-                    Triple("Montaje de 10 mesas redondas", "En progreso · 60%", false),
-                    Triple("Instalación del arco de flores nupcial", "Pendiente para las 12:00", false),
-                    Triple("Prueba de sonido e iluminación", "Pendiente para las 14:00", false),
+                ExecutionTaskRow43(
+                    title = "Confirmar paleta floral blanco y rosa pastel",
+                    subtitle = "Revisión final con la florista principal",
+                    completed = true,
+                )
+                ExecutionTaskRow43(
+                    title = "Aprobar plano de mesas imperial y sillas Tiffany",
+                    subtitle = "Distribución para 120 invitados en el jardín central",
+                    completed = true,
+                )
+                ExecutionTaskRow43(
+                    title = "Realizar pago inicial de reserva (30%)",
+                    subtitle = "Transferencia o tarjeta desde el portal Rosa Fiesta",
+                    completed = false,
+                )
+                ExecutionTaskRow43(
+                    title = "Inspección técnica de iluminación exterior",
+                    subtitle = "Coordinar generador y guirnaldas cálidas",
+                    completed = false,
                 )
 
-                liveTasks.forEach { (title, subtitle, completed) ->
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 5.dp)
-                            .clip(RoundedCornerShape(18.dp))
-                            .background(if (completed) Color(0xFFF6F4F9) else Color.White)
-                            .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(18.dp))
-                            .padding(14.dp),
-                    ) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(32.dp)
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(if (completed) Color(0xFF8DB52C) else Color(0xFFF1EFF5)),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                if (completed) {
-                                    RfIcon(kind = RfIconKind.CHECK, tint = Color.White, size = 18.dp)
-                                }
-                            }
-                            Column {
-                                BasicText(
-                                    text = title,
-                                    style = TextStyle(
-                                        fontFamily = typo.bodyFamily,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (completed) Color(0xFF62627A) else Color(0xFF1A1A2E),
-                                        fontSize = 14.sp,
-                                    ),
-                                )
-                                BasicText(subtitle, style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFF8E8B9E), fontSize = 12.sp))
-                            }
-                        }
-                    }
-                }
+                Spacer(modifier = Modifier.height(20.dp))
+            }
+        }
+    }
+}
 
-                Spacer(modifier = Modifier.height(30.dp))
+@Composable
+private fun ExecutionTaskRow43(
+    title: String,
+    subtitle: String,
+    completed: Boolean,
+) {
+    val typo = LocalRfTypography.current
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(if (completed) Color(0xFFF6F4F9) else Color.White)
+            .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(20.dp))
+            .padding(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(32.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(if (completed) Color(0xFF8DB52C) else Color.White)
+                .then(
+                    if (completed) {
+                        Modifier
+                    } else {
+                        Modifier.border(2.dp, Color(0xFFCDBFCB), RoundedCornerShape(10.dp))
+                    },
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (completed) {
+                RfIcon(kind = RfIconKind.CHECK, tint = Color.White, size = 18.dp)
+            }
+        }
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            BasicText(
+                text = title,
+                style = TextStyle(
+                    fontFamily = typo.bodyFamily,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    lineHeight = 21.sp,
+                    color = if (completed) Color(0xFF62627A) else Color(0xFF1A1A2E),
+                    textDecoration = if (completed) TextDecoration.LineThrough else TextDecoration.None,
+                ),
+            )
+            BasicText(
+                text = subtitle,
+                style = TextStyle(
+                    fontFamily = typo.bodyFamily,
+                    fontSize = 14.sp,
+                    lineHeight = 20.sp,
+                    color = Color(0xFF62627A),
+                ),
+            )
+            Row(
+                modifier = Modifier.padding(top = 2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(5.dp),
+            ) {
+                RfIcon(kind = RfIconKind.CLOCK, tint = Color(0xFF62627A), size = 14.dp)
+                BasicText(
+                    text = "9:38 p. m.",
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = Color(0xFF62627A)),
+                )
             }
         }
     }
@@ -1496,23 +1706,21 @@ internal fun RenderChecklistScreenS46(
 ) {
     val typo = LocalRfTypography.current
     val checklist = viewModel?.checklist?.collectAsState()?.value ?: CanonicalSampleData.bodaChecklist
+    val checked = remember { mutableStateMapOf<String, Boolean>() }
+    val totalSteps = 5
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFFAFAFC)),
-    ) {
+    RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 20.dp)
+                .padding(start = 20.dp, end = 20.dp, top = 56.dp)
                 .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Spacer(modifier = Modifier.height(56.dp))
-
+            // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(
@@ -1528,52 +1736,211 @@ internal fun RenderChecklistScreenS46(
                 }
 
                 BasicText(
-                    text = "Checklist de artículos",
+                    text = "Antes del gran día",
+                    modifier = Modifier.weight(1f),
                     style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color(0xFF1A1A2E)),
                 )
-
-                Spacer(modifier = Modifier.size(44.dp))
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
-
-            checklist.forEach { step ->
+            // Event summary card
+            val completedCount = checked.values.count { it }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(22.dp))
+                    .background(Color(0xFFFDE6F2))
+                    .clickable { onSelectScreenCode("s40") }
+                    .padding(14.dp),
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 5.dp)
+                        .size(56.dp)
                         .clip(RoundedCornerShape(16.dp))
-                        .background(Color.White)
-                        .border(1.dp, Color(0xFFF0EDF3), RoundedCornerShape(16.dp))
-                        .clickable { viewModel?.toggleChecklistStep(step.id) }
-                        .testTag("checklist-step-${step.id}")
-                        .padding(14.dp),
+                        .background(Color(0xFFF3EEF6)),
                 ) {
+                    RfPhoto(photoKey = RfPhotoKey.BODA, contentDescription = "Boda Real Rosa & Dorado")
+                }
+
+                Column(modifier = Modifier.weight(1f)) {
+                    BasicText(
+                        text = "Boda Real Rosa & Dorado",
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF1A1A2E)),
+                    )
+                    BasicText(
+                        text = "Vie 23 oct · en 3 días",
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Color(0xFFC2338F)),
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Column {
-                            BasicText(step.title, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A2E), fontSize = 14.sp))
-                            BasicText("${step.stageLabel} · ${step.timeLabel}", style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFF865DEC), fontSize = 12.sp))
-                        }
                         Box(
                             modifier = Modifier
-                                .size(24.dp)
-                                .clip(CircleShape)
-                                .background(if (step.completed) Color(0xFF8DB52C) else Color(0xFFF1EFF5)),
-                            contentAlignment = Alignment.Center,
+                                .weight(1f)
+                                .height(6.dp)
+                                .clip(RoundedCornerShape(3.dp))
+                                .background(Color(0xCCFFFFFF)),
                         ) {
-                            if (step.completed) {
-                                RfIcon(kind = RfIconKind.CHECK, tint = Color.White, size = 16.dp)
+                            if (completedCount > 0) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth(completedCount.toFloat() / totalSteps)
+                                        .height(6.dp)
+                                        .clip(RoundedCornerShape(3.dp))
+                                        .background(RosaButtonGradient),
+                                )
                             }
                         }
+                        BasicText(
+                            text = "$completedCount de $totalSteps",
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF1A1A2E)),
+                        )
+                    }
+                }
+            }
+
+            // Checklist rows
+            val items = listOf(
+                ChecklistItem46("chk-1", "Confirmar invitados (RSVP)", null, RfIconKind.GUESTS, Color(0xFFEFE8FD), Color(0xFF7A4FD8)),
+                ChecklistItem46("chk-2", "Revisar artículos reservados", null, RfIconKind.BOX, Color(0xFFFDE6F2), Color(0xFFC2338F)),
+                ChecklistItem46("chk-3", "Verificar dirección de entrega", "Jardín Botánico Santo Domingo", RfIconKind.LOCATION, Color(0xFFDDF4F3), Color(0xFF1F8A84)),
+                ChecklistItem46("chk-4", "Preparar espacio para montaje", null, RfIconKind.CHECKLIST, Color(0xFFEEF6D6), Color(0xFF4E6A10)),
+            )
+
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                items.forEach { item ->
+                    val isChecked = checked[item.id] == true
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(Color.White)
+                            .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(20.dp))
+                            .clickable {
+                                checked[item.id] = !isChecked
+                                viewModel?.toggleChecklistStep(item.id)
+                            }
+                            .testTag("checklist-step-${item.id}")
+                            .padding(horizontal = 14.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        ChecklistBox46(checked = isChecked, ringColor = Color(0xFFCDBFCB))
+
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(item.iconBg),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            RfIcon(kind = item.icon, tint = item.iconTint, size = 20.dp)
+                        }
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            BasicText(
+                                text = item.title,
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF1A1A2E)),
+                            )
+                            item.subtitle?.let {
+                                BasicText(
+                                    text = it,
+                                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF62627A)),
+                                )
+                            }
+                        }
+
+                        RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = Color(0xFF62627A), size = 18.dp)
+                    }
+                }
+
+                // Pending payment row (5th checklist item)
+                val paid = checked["chk-5"] == true
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(Color(0xFFFFF2C9))
+                        .clickable {
+                            checked["chk-5"] = !paid
+                            viewModel?.toggleChecklistStep("chk-5")
+                        }
+                        .testTag("checklist-step-chk-5")
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    ChecklistBox46(checked = paid, ringColor = Color(0xFFD9B26A))
+
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color.White),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        RfIcon(kind = RfIconKind.WALLET, tint = Color(0xFF7A5700), size = 20.dp)
+                    }
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        BasicText(
+                            text = "Pago restante",
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF1A1A2E)),
+                        )
+                        BasicText(
+                            text = "RD$ 3,150",
+                            style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, color = Color(0xFF7A5700)),
+                        )
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .height(40.dp)
+                            .clip(RoundedCornerShape(999.dp))
+                            .background(RosaButtonGradient)
+                            .clickable { onSelectScreenCode("s48") }
+                            .padding(horizontal = 16.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        BasicText(
+                            text = "Pagar",
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White),
+                        )
                     }
                 }
             }
 
             Spacer(modifier = Modifier.height(30.dp))
+        }
+    }
+}
+
+private data class ChecklistItem46(
+    val id: String,
+    val title: String,
+    val subtitle: String?,
+    val icon: RfIconKind,
+    val iconBg: Color,
+    val iconTint: Color,
+)
+
+@Composable
+private fun ChecklistBox46(checked: Boolean, ringColor: Color) {
+    Box(
+        modifier = Modifier
+            .size(26.dp)
+            .clip(CircleShape)
+            .background(if (checked) Color(0xFF8DB52C) else Color.Transparent)
+            .border(2.dp, if (checked) Color(0xFF8DB52C) else ringColor, CircleShape),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (checked) {
+            RfIcon(kind = RfIconKind.CHECK, tint = Color.White, size = 16.dp)
         }
     }
 }

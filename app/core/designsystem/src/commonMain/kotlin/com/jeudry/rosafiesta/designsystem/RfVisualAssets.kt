@@ -358,6 +358,7 @@ public enum class RfIconKind {
     ARROW_RIGHT,
     CHEVRON_DOWN,
     CHEVRON_RIGHT,
+    CHEVRON_LEFT,
     INFO,
     WHATSAPP,
     REFRESH,
@@ -383,6 +384,7 @@ public enum class RfIconKind {
     TABLE,
     CHAIR,
     REDO,
+    DOWNLOAD,
 }
 
 private val iconPaths: Map<RfIconKind, String> = mapOf(
@@ -431,6 +433,7 @@ private val iconPaths: Map<RfIconKind, String> = mapOf(
     RfIconKind.ARROW_RIGHT to "M5 12h14M13 6l6 6-6 6",
     RfIconKind.CHEVRON_DOWN to "M6 9l6 6 6-6",
     RfIconKind.CHEVRON_RIGHT to "M9 18l6-6-6-6",
+    RfIconKind.CHEVRON_LEFT to "M15 18l-6-6 6-6",
     RfIconKind.WARNING to "M12 4L2.5 20h19zM12 10v4.5M12 17.5h.01",
     RfIconKind.CAMERA to "M4 7h4l2-3h4l2 3h4a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2zM8 13a4 4 0 1 0 8 0a4 4 0 1 0 -8 0",
     RfIconKind.QR to "M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 14h2v2h-2zM14 18h2v2h-2zM18 18h2v2h-2z",
@@ -458,6 +461,7 @@ private val iconPaths: Map<RfIconKind, String> = mapOf(
     RfIconKind.TABLE to "M2 9h20M4 9v11M20 9v11M2 9l3-4h14l3 4M4 14h16",
     RfIconKind.CHAIR to "M7 3h10v8H7zM6 11h12v3H6zM7 14v7M17 14v7M7 18h10",
     RfIconKind.REDO to "M15 14l5-5-5-5M20 9H10a6 6 0 0 0 0 12h3",
+    RfIconKind.DOWNLOAD to "M12 4v11M7 10.5l5 5 5-5M5 20h14",
 )
 
 /**

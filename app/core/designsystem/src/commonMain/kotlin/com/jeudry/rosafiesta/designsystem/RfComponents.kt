@@ -18,6 +18,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -48,6 +49,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.contentDescription
@@ -1268,7 +1270,7 @@ public fun RfSkeletonScreen(
 @Composable
 public fun RfRadialBackgroundBox(
     modifier: Modifier = Modifier,
-    content: @Composable () -> Unit,
+    content: @Composable BoxScope.() -> Unit,
 ) {
     val palette = LocalRfPalette.current
     Box(modifier = modifier.background(palette.bg)) {
@@ -1276,46 +1278,32 @@ public fun RfRadialBackgroundBox(
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val w = size.width
                 val h = size.height
+                // CSS `radial-gradient(<rx> <ry> at <x> <y>)` is elliptical; emulate it by
+                // scaling the canvas on Y before drawing a circular gradient.
+                fun ellipse(centerX: Float, centerY: Float, rx: Float, ry: Float, color: Color) {
+                    if (rx <= 0f || ry <= 0f) return
+                    withTransform({
+                        scale(scaleX = 1f, scaleY = ry / rx, pivot = Offset(centerX, centerY))
+                    }) {
+                        drawCircle(
+                            brush = Brush.radialGradient(
+                                colorStops = arrayOf(0f to color, 0.6f to color.copy(alpha = 0f)),
+                                center = Offset(centerX, centerY),
+                                radius = rx,
+                            ),
+                            radius = rx,
+                            center = Offset(centerX, centerY),
+                        )
+                    }
+                }
                 if (palette.isAdmin) {
                     // Admin (2.3): radial-gradient(110% 40% at 100% 0%,#E6E7FF 0%,transparent 60%), radial-gradient(80% 35% at 0% 12%,#F1E9FB 0%,transparent 60%)
-                    drawCircle(
-                        brush = Brush.radialGradient(
-                            colors = listOf(palette.radialPrimary, Color.Transparent),
-                            center = Offset(w, 0f),
-                            radius = w * 0.78f,
-                        ),
-                        radius = w * 0.78f,
-                        center = Offset(w, 0f),
-                    )
-                    drawCircle(
-                        brush = Brush.radialGradient(
-                            colors = listOf(palette.radialSecondary, Color.Transparent),
-                            center = Offset(0f, h * 0.12f),
-                            radius = w * 0.65f,
-                        ),
-                        radius = w * 0.65f,
-                        center = Offset(0f, h * 0.12f),
-                    )
+                    ellipse(centerX = w, centerY = 0f, rx = w * 1.1f, ry = h * 0.4f, color = palette.radialPrimary)
+                    ellipse(centerX = 0f, centerY = h * 0.12f, rx = w * 0.8f, ry = h * 0.35f, color = palette.radialSecondary)
                 } else {
                     // Personal (2.2): radial-gradient(110% 40% at 0% 0%,#F9E3F1 0%,transparent 60%), radial-gradient(80% 35% at 100% 15%,#EEE7FB 0%,transparent 60%)
-                    drawCircle(
-                        brush = Brush.radialGradient(
-                            colors = listOf(palette.radialPrimary, Color.Transparent),
-                            center = Offset.Zero,
-                            radius = w * 0.78f,
-                        ),
-                        radius = w * 0.78f,
-                        center = Offset.Zero,
-                    )
-                    drawCircle(
-                        brush = Brush.radialGradient(
-                            colors = listOf(palette.radialSecondary, Color.Transparent),
-                            center = Offset(w, h * 0.15f),
-                            radius = w * 0.65f,
-                        ),
-                        radius = w * 0.65f,
-                        center = Offset(w, h * 0.15f),
-                    )
+                    ellipse(centerX = 0f, centerY = 0f, rx = w * 1.1f, ry = h * 0.4f, color = palette.radialPrimary)
+                    ellipse(centerX = w, centerY = h * 0.15f, rx = w * 0.8f, ry = h * 0.35f, color = palette.radialSecondary)
                 }
             }
         }

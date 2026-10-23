@@ -61,7 +61,7 @@ async def process_all():
                 try:
                     await page.goto(url, timeout=10000)
                     # Allow Compose Wasm to render fonts, images and vector shaders
-                    await page.wait_for_timeout(2200)
+                    await page.wait_for_timeout(4000)
                     
                     web_path = os.path.join(WEB_DIR, f"{code}.png")
                     await page.screenshot(path=web_path)

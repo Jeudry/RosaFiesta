@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -48,16 +49,21 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.graphics.PathEffect
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jeudry.rosafiesta.designsystem.LocalRfTypography
 import com.jeudry.rosafiesta.designsystem.RfIcon
 import com.jeudry.rosafiesta.designsystem.RfIconKind
+import com.jeudry.rosafiesta.designsystem.RfRadialBackgroundBox
 import com.jeudry.rosafiesta.designsystem.RfPhoto
 import com.jeudry.rosafiesta.designsystem.RfPhotoKey
 import com.jeudry.rosafiesta.designsystem.RosaAvatar
@@ -3125,39 +3131,8 @@ internal fun RenderRosaSketchS36(
 ) {
     val typo = LocalRfTypography.current
 
-    // Fondo: radial-gradient (pink top-left + lavender top-right + blanco base)
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.radialGradient(
-                    colors = listOf(Color(0xFFF9E3F1), Color(0x00F9E3F1)),
-                    center = Offset(0f, 0f),
-                    radius = 900f,
-                ),
-            ),
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.radialGradient(
-                        colors = listOf(Color(0xFFEEE7FB), Color(0x00EEE7FB)),
-                        center = Offset(Float.MAX_VALUE, 0f),
-                        radius = 700f,
-                    ),
-                ),
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color(0xFFFAFAFC)),
-            )
-        }
-    }
-
-    // Contenido sobre el fondo
-    Box(modifier = Modifier.fillMaxSize()) {
+    RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
+        Box(modifier = Modifier.fillMaxSize()) {
 
         // Header: X | "Boceto del espacio" + "Vista desde arriba" | undo | trash
         Row(
@@ -3440,9 +3415,62 @@ internal fun RenderRosaSketchS36(
             Spacer(modifier = Modifier.width(8.dp))
             RfIcon(kind = RfIconKind.ARROW_RIGHT, tint = Color.White, size = 20.dp)
         }
+        }
     }
 }
 
+
+
+@Composable
+private fun SketchChip78(dotColor: Color, label: String) {
+    val typo = LocalRfTypography.current
+    Row(
+        modifier = Modifier
+            .height(34.dp)
+            .clip(RoundedCornerShape(999.dp))
+            .background(Color.White)
+            .border(1.dp, Color(0xFFEEE9F2), RoundedCornerShape(999.dp))
+            .padding(horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(7.dp),
+    ) {
+        Box(modifier = Modifier.size(9.dp).clip(CircleShape).background(dotColor))
+        BasicText(
+            text = label,
+            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Color(0xFF1A1A2E)),
+        )
+    }
+}
+
+@Composable
+private fun BoxScope.SketchLabel78(label: String, yOffset: Dp) {
+    val typo = LocalRfTypography.current
+    Box(
+        modifier = Modifier
+            .align(Alignment.Center)
+            .offset(y = yOffset)
+            .width(184.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        BasicText(
+            text = label,
+            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF62627A)),
+        )
+    }
+}
+
+private fun starPath(cx: Float, cy: Float, outer: Float, inner: Float): Path {
+    val path = Path()
+    for (i in 0 until 10) {
+        val radius = if (i % 2 == 0) outer else inner
+        val angle = (-90.0 + i * 36.0) * PI / 180.0
+        val x = cx + (radius * cos(angle)).toFloat()
+        val y = cy + (radius * sin(angle)).toFloat()
+        if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
+    }
+    path.close()
+    return path
+}
 
 // ==============================================================================
 // s78 · BOCETO · CONFIRMAR
@@ -3453,16 +3481,7 @@ internal fun RenderRosaSketchConfirmS78(
 ) {
     val typo = LocalRfTypography.current
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFFAFAFC)),
-    ) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            drawRect(Brush.radialGradient(colors = listOf(Color(0xFFF9E3F1), Color(0x00F9E3F1)), center = Offset(0f, 0f), radius = size.width * 1.1f))
-            drawRect(Brush.radialGradient(colors = listOf(Color(0xFFEEE7FB), Color(0x00EEE7FB)), center = Offset(size.width, size.height * 0.15f), radius = size.width * 0.8f))
-        }
-
+    RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         // Header
         Row(
             modifier = Modifier
@@ -3545,7 +3564,7 @@ internal fun RenderRosaSketchConfirmS78(
                     )
 
                     // 6 tables (circles)
-                    val tableRadius = 24f * scaleX
+                    val tableRadius = 26f * scaleX
                     val tables = listOf(
                         Offset(134f * scaleX, 190f * scaleY),
                         Offset(224f * scaleX, 190f * scaleY),
@@ -3599,6 +3618,11 @@ internal fun RenderRosaSketchConfirmS78(
                     )
                 }
 
+                // Sketch labels
+                SketchLabel78(label = "Tarima", yOffset = (-91).dp)
+                SketchLabel78(label = "Pista", yOffset = 29.dp)
+                SketchLabel78(label = "Entrada", yOffset = 79.dp)
+
                 // Edit button top-right
                 Box(
                     contentAlignment = Alignment.Center,
@@ -3624,28 +3648,14 @@ internal fun RenderRosaSketchConfirmS78(
                     text = "LO QUE DIBUJASTE",
                     style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF62627A), letterSpacing = 1.sp),
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                    val chips = listOf(
-                        Color(0xFF865DEC) to "Tarima",
-                        Color(0xFFEA4EA9) to "6 mesas redondas",
-                        Color(0xFF8DB52C) to "Pista de baile",
-                        Color(0xFF1A1A2E) to "Entrada",
-                    )
-                    chips.forEach { (dotColor, label) ->
-                        Box(
-                            modifier = Modifier
-                                .height(34.dp)
-                                .clip(RoundedCornerShape(999.dp))
-                                .background(Color.White)
-                                .border(1.dp, Color(0xFFEEE9F2), RoundedCornerShape(999.dp))
-                                .padding(horizontal = 12.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                                Box(modifier = Modifier.size(9.dp).clip(CircleShape).background(dotColor))
-                                BasicText(label, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Color(0xFF1A1A2E)))
-                            }
-                        }
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        SketchChip78(dotColor = Color(0xFF865DEC), label = "Tarima")
+                        SketchChip78(dotColor = Color(0xFFEA4EA9), label = "6 mesas redondas")
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        SketchChip78(dotColor = Color(0xFF8DB52C), label = "Pista de baile")
+                        SketchChip78(dotColor = Color(0xFF1A1A2E), label = "Entrada")
                     }
                 }
             }
@@ -3659,6 +3669,22 @@ internal fun RenderRosaSketchConfirmS78(
                     .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))))
                     .padding(16.dp),
             ) {
+                Canvas(modifier = Modifier.matchParentSize()) {
+                    drawCircle(
+                        color = Color(0xFFD6EA8C),
+                        radius = 4.dp.toPx(),
+                        center = Offset(size.width - 38.dp.toPx(), 44.dp.toPx()),
+                    )
+                    drawPath(
+                        path = starPath(
+                            cx = size.width - 16.dp.toPx(),
+                            cy = 24.dp.toPx(),
+                            outer = 10.dp.toPx(),
+                            inner = 4.dp.toPx(),
+                        ),
+                        color = Color(0xFFFFD45C),
+                    )
+                }
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Row(
                         verticalAlignment = Alignment.Top,

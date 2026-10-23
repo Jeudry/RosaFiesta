@@ -4,14 +4,21 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -22,14 +29,19 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -43,6 +55,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -54,7 +68,9 @@ import com.jeudry.rosafiesta.designsystem.RfLogo
 import com.jeudry.rosafiesta.designsystem.RfLogoSize
 import com.jeudry.rosafiesta.designsystem.RfPhoto
 import com.jeudry.rosafiesta.designsystem.RfPhotoKey
+import com.jeudry.rosafiesta.designsystem.RfRadialBackgroundBox
 import com.jeudry.rosafiesta.designsystem.rfCardShadow
+import com.jeudry.rosafiesta.designsystem.rfIconButtonShadow
 import com.jeudry.rosafiesta.designsystem.rfIconButtonShadow
 
 private val PersonalButtonGradient = Brush.horizontalGradient(
@@ -1516,7 +1532,7 @@ internal fun RenderEventChatS42(
 }
 
 // ==============================================================================
-// s59 · PANEL FINANZAS CLIENTE / SOCIO
+// s59 · PANEL · FINANZAS
 // ==============================================================================
 @Composable
 internal fun RenderFinanceDashboardS59(
@@ -1524,62 +1540,141 @@ internal fun RenderFinanceDashboardS59(
 ) {
     val typo = LocalRfTypography.current
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFFFF6F8)),
-    ) {
+    AdminPanelScaffold(activeCode = "s59", onSelectScreenCode = onSelectScreenCode) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(14.dp))
+                .background(Color(0xFFEDEDF5))
+                .padding(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            PanelSegTab59("Movimientos", selected = true, modifier = Modifier.weight(1f))
+            PanelSegTab59("Facturas", selected = false, modifier = Modifier.weight(1f))
+            PanelSegTab59("Proveedores", selected = false, modifier = Modifier.weight(1f))
+        }
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(Color(0xFFEEF6D6))
+                    .padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(1.dp),
+            ) {
+                BasicText("Entradas", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Color(0xFF4E6A10)))
+                BasicText("RD$ 10,360", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp, letterSpacing = (-0.44).sp, color = Color(0xFF3F560C)))
+            }
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(Color.White)
+                    .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(18.dp))
+                    .padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(1.dp),
+            ) {
+                BasicText("Salidas", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Color(0xFF5F6377)))
+                BasicText("RD$ 1,450", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp, letterSpacing = (-0.44).sp, color = Color(0xFF151729)))
+            }
+        }
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 20.dp)
-                .verticalScroll(rememberScrollState()),
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(22.dp))
+                .background(Color.White)
+                .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(22.dp)),
         ) {
-            Spacer(modifier = Modifier.height(56.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column {
-                    BasicText("Finanzas del Evento", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp, color = Color(0xFF1E1E24)))
-                    BasicText("Octubre 2026 · Desglose presupuestario", style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFF7A7177), fontSize = 13.sp))
-                }
-
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .shadow(6.dp, CircleShape, spotColor = Color(0x33FF3366))
-                        .clip(CircleShape)
-                        .background(Color.White)
-                        .clickable { onSelectScreenCode("s58") },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1E1E24), size = 20.dp)
-                }
-            }
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(Color.White)
-                    .border(1.dp, Color(0xFFFFE3EC), RoundedCornerShape(20.dp))
-                    .padding(18.dp),
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    BasicText("Presupuesto Invertido", style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFF7A7177), fontSize = 13.sp))
-                    BasicText("RD$ 10,360", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, color = Color(0xFFFF3366), fontSize = 24.sp))
-                    BasicText("Abonado: RD$ 3,210 · Pendiente: RD$ 7,150", style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFF1E1E24), fontSize = 12.sp))
-                }
-            }
-
-            Spacer(modifier = Modifier.height(30.dp))
+            PanelMovementRow59("Anticipo 30%", "Quinceañera Valentina Crystal", "+RD$ 1,860", RfIconKind.TREND_UP, Color(0xFFEEF6D6), Color(0xFF4E6A10), Color(0xFF4E6A10), divider = false)
+            PanelMovementRow59("Pago total", "Gala Corporativa Grupo Caribe", "+RD$ 8,500", RfIconKind.TREND_UP, Color(0xFFEEF6D6), Color(0xFF4E6A10), Color(0xFF4E6A10), divider = true)
+            PanelMovementRow59("Follaje y transporte", "Gasto · camiones", "−RD$ 1,450", RfIconKind.TRUCK, Color(0xFFFFF2C9), Color(0xFF7A5700), Color(0xFF865DEC), divider = true)
         }
+    }
+}
+
+@Composable
+private fun PanelSegTab59(label: String, selected: Boolean, modifier: Modifier = Modifier) {
+    val typo = LocalRfTypography.current
+
+    Box(
+        modifier = modifier
+            .height(38.dp)
+            .then(
+                if (selected) {
+                    Modifier.shadow(6.dp, RoundedCornerShape(11.dp), spotColor = Color(0x334650B4))
+                } else {
+                    Modifier
+                },
+            )
+            .clip(RoundedCornerShape(11.dp))
+            .background(if (selected) Color.White else Color.Transparent)
+            .clickable { },
+        contentAlignment = Alignment.Center,
+    ) {
+        BasicText(
+            label,
+            maxLines = 1,
+            style = TextStyle(
+                fontFamily = typo.bodyFamily,
+                fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
+                fontSize = 14.sp,
+                color = if (selected) Color(0xFF151729) else Color(0xFF5F6377),
+            ),
+        )
+    }
+}
+
+@Composable
+private fun PanelMovementRow59(
+    title: String,
+    subtitle: String,
+    amount: String,
+    icon: RfIconKind,
+    iconBackground: Color,
+    iconTint: Color,
+    amountColor: Color,
+    divider: Boolean,
+) {
+    val typo = LocalRfTypography.current
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .drawBehind {
+                if (divider) {
+                    val stroke = 1.dp.toPx()
+                    drawLine(Color(0xFFF0F0F6), Offset(0f, stroke / 2f), Offset(size.width, stroke / 2f), stroke)
+                }
+            }
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Box(
+            modifier = Modifier.size(42.dp).clip(RoundedCornerShape(13.dp)).background(iconBackground),
+            contentAlignment = Alignment.Center,
+        ) {
+            RfIcon(kind = icon, tint = iconTint, size = 20.dp)
+        }
+        Column(modifier = Modifier.weight(1f)) {
+            BasicText(
+                title,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF151729)),
+            )
+            BasicText(
+                subtitle,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF5F6377)),
+            )
+        }
+        BasicText(
+            amount,
+            maxLines = 1,
+            style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = amountColor),
+        )
     }
 }
 
@@ -1587,49 +1682,2034 @@ internal fun RenderFinanceDashboardS59(
 // s60 a s74 · PANELES DE ANALÍTICA, LEADS, REPORTES Y BOT WHATSAPP
 // ==============================================================================
 @Composable
-internal fun RenderInsurancePanelS60(onSelectScreenCode: (String) -> Unit = {}) = RenderGenericPersonalSubPanel("Pólizas y Seguros", "Cobertura activa con Seguros Universal RD", onSelectScreenCode)
+internal fun RenderInventoryCalendarS63(onSelectScreenCode: (String) -> Unit = {}) {
+    val typo = LocalRfTypography.current
+    val days = remember {
+        listOf(
+            1 to Alta63, 2 to Media63, 3 to Media63, 4 to Alta63, 5 to Alta63, 6 to Alta63, 7 to Alta63,
+            8 to Alta63, 9 to Media63, 10 to Baja63, 11 to Alta63, 12 to Alta63, 13 to Alta63, 14 to Alta63,
+            15 to Alta63, 16 to Media63, 17 to Media63, 18 to Alta63, 19 to Alta63, 20 to Alta63, 21 to Alta63,
+            22 to Media63, 23 to Agotado63, 24 to Baja63, 25 to Alta63, 26 to Alta63, 27 to Alta63, 28 to Alta63,
+            29 to Alta63, 30 to Media63, 31 to Baja63,
+        )
+    }
+
+    RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+            Spacer(Modifier.height(56.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                ReportIconButton(RfIconKind.BACK) { onSelectScreenCode("s14") }
+                BasicText(
+                    "Disponibilidad",
+                    modifier = Modifier.weight(1f),
+                    style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color(0xFF151729)),
+                )
+            }
+            Spacer(Modifier.height(14.dp))
+
+            Box(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp)
+                        .clip(RoundedCornerShape(22.dp))
+                        .background(Color.White)
+                        .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(22.dp))
+                        .padding(start = 10.dp, end = 10.dp, top = 14.dp, bottom = 12.dp),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp).padding(bottom = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Box(
+                            modifier = Modifier.size(40.dp).clip(CircleShape).clickable { },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            RfIcon(kind = RfIconKind.CHEVRON_LEFT, tint = Color(0xFF151729), size = 20.dp)
+                        }
+                        BasicText(
+                            "Octubre 2026",
+                            modifier = Modifier.weight(1f),
+                            style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 19.sp, textAlign = TextAlign.Center, color = Color(0xFF151729)),
+                        )
+                        Box(
+                            modifier = Modifier.size(40.dp).clip(CircleShape).clickable { },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = Color(0xFF151729), size = 20.dp)
+                        }
+                    }
+
+                    Row(modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)) {
+                        listOf("L", "M", "X", "J", "V", "S", "D").forEach { label ->
+                            BasicText(
+                                label,
+                                modifier = Modifier.weight(1f),
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, textAlign = TextAlign.Center, color = Color(0xFF5F6377)),
+                            )
+                        }
+                    }
+
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        val cells = listOf<Pair<Int, Color>?>(null, null, null) + days
+                        cells.chunked(7).forEach { week ->
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                week.forEach { day ->
+                                    if (day == null) {
+                                        Spacer(Modifier.weight(1f))
+                                    } else {
+                                        CalendarDay63(day.first, day.second, Modifier.weight(1f), selected = day.first == 20)
+                                    }
+                                }
+                                repeat(7 - week.size) { Spacer(Modifier.weight(1f)) }
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(14.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                CalendarLegend63("Alta", Alta63)
+                CalendarLegend63("Media", Media63)
+                CalendarLegend63("Baja", Baja63)
+                CalendarLegend63("Agotado", Agotado63)
+            }
+            Spacer(Modifier.height(14.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp)
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(Color(0xFFEEF6D6))
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                RfIcon(kind = RfIconKind.BOX, tint = Color(0xFF4E6A10), size = 24.dp)
+                BasicText(
+                    buildAnnotatedString {
+                        withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append("Martes 20 · Disponibilidad alta\n") }
+                        withStyle(SpanStyle(color = Color(0xFF4E6A10))) { append("Sin reservas para este día") }
+                    },
+                    modifier = Modifier.weight(1f),
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, lineHeight = 20.sp, color = Color(0xFF151729)),
+                )
+            }
+            Spacer(Modifier.height(30.dp))
+        }
+    }
+}
+
+private val Alta63 = Color(0xFF8DB52C)
+private val Media63 = Color(0xFFF7B500)
+private val Baja63 = Color(0xFFEA4EA9)
+private val Agotado63 = Color(0xFF3B3550)
 
 @Composable
-internal fun RenderAuditPanelS61(onSelectScreenCode: (String) -> Unit = {}) = RenderGenericPersonalSubPanel("Auditoría de Eventos", "Registro y trazabilidad de cambios en tiempo real", onSelectScreenCode)
+private fun CalendarDay63(day: Int, status: Color, modifier: Modifier = Modifier, selected: Boolean = false) {
+    val typo = LocalRfTypography.current
+
+    Column(
+        modifier = modifier
+            .height(50.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(if (selected) Color(0xFFECEBFF) else Color(0xFFFAFAFC))
+            .then(if (selected) Modifier.border(2.dp, Color(0xFFD63F98), RoundedCornerShape(12.dp)) else Modifier)
+            .clickable { },
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        BasicText(
+            day.toString(),
+            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = Color(0xFF151729)),
+        )
+        Spacer(Modifier.height(5.dp))
+        Box(modifier = Modifier.width(18.dp).height(4.dp).clip(RoundedCornerShape(2.dp)).background(status))
+    }
+}
 
 @Composable
-internal fun RenderClientsAnalyticsS62(onSelectScreenCode: (String) -> Unit = {}) = RenderGenericPersonalSubPanel("Cartera de Clientes", "Métricas de recurrencia y satisfacción", onSelectScreenCode)
+private fun CalendarLegend63(label: String, color: Color) {
+    val typo = LocalRfTypography.current
+
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Box(modifier = Modifier.width(12.dp).height(6.dp).clip(RoundedCornerShape(3.dp)).background(color))
+        BasicText(label, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Color(0xFF151729)))
+    }
+}
 
 @Composable
-internal fun RenderInventoryCalendarS63(onSelectScreenCode: (String) -> Unit = {}) = RenderGenericPersonalSubPanel("Disponibilidad de Mobiliario", "Calendario de ocupación por fecha", onSelectScreenCode)
+internal fun RenderLeadsPipelineS64(onSelectScreenCode: (String) -> Unit = {}) {
+    val typo = LocalRfTypography.current
+
+    LeadsScaffold(activeCode = "s64", onSelectScreenCode = onSelectScreenCode) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .padding(top = 2.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            LeadChip64("Todos · 3", selected = true)
+            LeadChip64("Nuevos")
+            LeadChip64("Contactados")
+            LeadChip64("Calificados")
+            LeadChip64("Propuesta")
+        }
+        Spacer(Modifier.height(2.dp))
+        LeadPipelineCard64(
+            name = "Mariana Almonte",
+            status = "Nuevo",
+            statusBackground = Color(0xFFDDF4F3),
+            statusColor = Color(0xFF1F8A84),
+            event = "Boda civil y recepción",
+            budget = "RD$ 3,000 – 5,000",
+            priority = "Prioridad alta",
+            priorityColor = Color(0xFF4B47D6),
+            priorityDot = Color(0xFF5B6CF0),
+        )
+        LeadPipelineCard64(
+            name = "Banco Atlántico RD",
+            status = "Propuesta",
+            statusBackground = Color(0xFFEFE8FD),
+            statusColor = Color(0xFF7A4FD8),
+            event = "Aniversario corporativo",
+            budget = "RD$ 7,000 – 12,000",
+            priority = "Urgente",
+            priorityColor = Color(0xFFB42345),
+            priorityDot = Color(0xFFB42345),
+        )
+        LeadPipelineCard64(
+            name = "Patricia & Jorge",
+            status = "Ganado",
+            statusBackground = Color(0xFFEEF6D6),
+            statusColor = Color(0xFF4E6A10),
+            event = "Boda en playa, Juan Dolio",
+            budget = "RD$ 4,000 – 6,000",
+            priority = "Prioridad media",
+            priorityColor = Color(0xFF7A5700),
+            priorityDot = Color(0xFFF7B500),
+        )
+    }
+}
 
 @Composable
-internal fun RenderLeadsPipelineS64(onSelectScreenCode: (String) -> Unit = {}) = RenderGenericPersonalSubPanel("Pipeline de Solicitudes", "3 prospectos calificados para cotización", onSelectScreenCode)
+private fun LeadsScaffold(
+    activeCode: String,
+    onSelectScreenCode: (String) -> Unit,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    val typo = LocalRfTypography.current
+
+    RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+            Spacer(Modifier.height(56.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                ReportIconButton(RfIconKind.BACK) { onSelectScreenCode("s14") }
+                BasicText(
+                    "Leads",
+                    modifier = Modifier.weight(1f),
+                    style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color(0xFF151729)),
+                )
+                ReportIconButton(RfIconKind.REFRESH) { }
+                BotAddButton72 { }
+            }
+            Spacer(Modifier.height(12.dp))
+            AdminTabRow(
+                tabs = listOf("Pipeline" to "s64", "Seguimientos" to "s65", "Estadísticas" to "s66"),
+                activeCode = activeCode,
+                onSelectScreenCode = onSelectScreenCode,
+            )
+            Spacer(Modifier.height(12.dp))
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                content = content,
+            )
+            Spacer(Modifier.height(30.dp))
+        }
+    }
+}
 
 @Composable
-internal fun RenderLeadsFollowupS65(onSelectScreenCode: (String) -> Unit = {}) = RenderGenericPersonalSubPanel("Seguimientos Pendientes", "2 clientes esperando llamada de confirmación", onSelectScreenCode)
+private fun LeadChip64(label: String, selected: Boolean = false) {
+    val typo = LocalRfTypography.current
+
+    Box(
+        modifier = Modifier
+            .height(38.dp)
+            .shadow(if (selected) 8.dp else 0.dp, RoundedCornerShape(999.dp), spotColor = Color(0x995B6CF0))
+            .clip(RoundedCornerShape(999.dp))
+            .background(if (selected) ReportGradient else Brush.linearGradient(listOf(Color.White, Color.White)))
+            .border(1.dp, if (selected) Color.Transparent else Color(0xFFE9E9F2), RoundedCornerShape(999.dp))
+            .padding(horizontal = 14.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        BasicText(
+            label,
+            maxLines = 1,
+            style = TextStyle(
+                fontFamily = typo.bodyFamily,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 14.sp,
+                color = if (selected) Color.White else Color(0xFF151729),
+            ),
+        )
+    }
+}
 
 @Composable
-internal fun RenderLeadsStatsS66(onSelectScreenCode: (String) -> Unit = {}) = RenderGenericPersonalSubPanel("Estadísticas de Conversión", "33.3% tasa de confirmación de eventos", onSelectScreenCode)
+private fun LeadPipelineCard64(
+    name: String,
+    status: String,
+    statusBackground: Color,
+    statusColor: Color,
+    event: String,
+    budget: String,
+    priority: String,
+    priorityColor: Color,
+    priorityDot: Color,
+) {
+    val typo = LocalRfTypography.current
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(22.dp))
+            .background(Color.White)
+            .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(22.dp))
+            .clickable { }
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            BasicText(
+                name,
+                modifier = Modifier.weight(1f),
+                maxLines = 1,
+                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF151729)),
+            )
+            Box(
+                modifier = Modifier
+                    .height(24.dp)
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(statusBackground)
+                    .padding(horizontal = 9.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                BasicText(status, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = statusColor))
+            }
+        }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            RfIcon(kind = RfIconKind.LOCATION, tint = Color(0xFF5F6377), size = 14.dp)
+            BasicText(event, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF5F6377)))
+        }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            BasicText(
+                budget,
+                modifier = Modifier.weight(1f),
+                style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp, color = Color(0xFF151729)),
+            )
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                Box(Modifier.size(8.dp).clip(CircleShape).background(priorityDot))
+                BasicText(priority, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = priorityColor))
+            }
+        }
+    }
+}
 
 @Composable
-internal fun RenderReportsIncomeS67(onSelectScreenCode: (String) -> Unit = {}) = RenderGenericPersonalSubPanel("Reporte de Ingresos", "RD$ 32,780 generados este período", onSelectScreenCode)
+internal fun RenderLeadsFollowupS65(onSelectScreenCode: (String) -> Unit = {}) {
+    val typo = LocalRfTypography.current
+
+    LeadsScaffold(activeCode = "s65", onSelectScreenCode = onSelectScreenCode) {
+        BasicText(
+            buildAnnotatedString {
+                append("Pendientes ")
+                withStyle(SpanStyle(color = Color(0xFF5F6377), fontWeight = FontWeight.Medium)) { append("· 2") }
+            },
+            modifier = Modifier.padding(top = 6.dp),
+            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF151729)),
+        )
+        LeadFollowupCard65("Enviar catálogo actualizado de mobiliario cristal y flores.", "Vencido · 18 oct")
+        LeadFollowupCard65("Llamada de cierre con el departamento de compras.", "Vencido · 18 oct")
+    }
+}
 
 @Composable
-internal fun RenderReportsEventsS68(onSelectScreenCode: (String) -> Unit = {}) = RenderGenericPersonalSubPanel("Reporte de Eventos", "156 eventos realizados históricamente", onSelectScreenCode)
+private fun LeadFollowupCard65(task: String, due: String) {
+    val typo = LocalRfTypography.current
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(22.dp))
+            .background(Color.White)
+            .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(22.dp))
+            .padding(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(28.dp)
+                .clip(CircleShape)
+                .border(2.dp, Color(0xFFCDBFCB), CircleShape)
+                .clickable { },
+        )
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            BasicText(
+                task,
+                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, lineHeight = 21.sp, color = Color(0xFF151729)),
+            )
+            Row(
+                modifier = Modifier
+                    .height(24.dp)
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(Color(0xFFFDE3EA))
+                    .padding(horizontal = 9.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(5.dp),
+            ) {
+                RfIcon(kind = RfIconKind.WARNING, tint = Color(0xFFB42345), size = 13.dp)
+                BasicText(due, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFFB42345)))
+            }
+        }
+    }
+}
 
 @Composable
-internal fun RenderReportsClientsS69(onSelectScreenCode: (String) -> Unit = {}) = RenderGenericPersonalSubPanel("Reporte de Clientes", "248 clientes atendidos · +18 este mes", onSelectScreenCode)
+internal fun RenderLeadsStatsS66(onSelectScreenCode: (String) -> Unit = {}) {
+    val typo = LocalRfTypography.current
+
+    AdminSubScaffold(
+        title = "Leads",
+        tabs = listOf("Pipeline" to "s64", "Seguimientos" to "s65", "Estadísticas" to "s66"),
+        activeCode = "s66",
+        onSelectScreenCode = onSelectScreenCode,
+        trailing = {
+            ReportIconButton(RfIconKind.REFRESH) { onSelectScreenCode("s66") }
+        },
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .shadow(18.dp, RoundedCornerShape(24.dp), spotColor = Color(0x996E82E6))
+                .clip(RoundedCornerShape(24.dp))
+                .background(ReportGradient)
+                .padding(20.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Bottom,
+            ) {
+                Column {
+                    BasicText("Tasa de conversión", style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFFF6EAFB), fontSize = 13.sp))
+                    Spacer(Modifier.height(8.dp))
+                    BasicText("33.3%", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 46.sp, lineHeight = 46.sp, color = Color.White))
+                }
+                BasicText(
+                    "1 de 3 leads\nganados",
+                    style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFFF6EAFB), fontSize = 14.sp, textAlign = TextAlign.End),
+                )
+            }
+        }
+
+        ReportCard(contentPadding = PaddingValues(18.dp)) {
+            BasicText("Embudo", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF151729)))
+            Spacer(Modifier.height(14.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                FunnelRow66("Total", "3", 1f, Color(0xFF865DEC))
+                FunnelRow66("Nuevos", "1", 0.33f, Color(0xFF1FBDC0))
+                FunnelRow66("Calificados", "0", 0f, Color(0xFF865DEC))
+                FunnelRow66("Ganados", "1", 0.33f, Color(0xFF8DB52C))
+                FunnelRow66("Perdidos", "0", 0f, Color(0xFFB42345))
+            }
+        }
+    }
+}
+
+private val ReportTabs = listOf("Ingresos" to "s67", "Eventos" to "s68", "Clientes" to "s69", "Inventario" to "s70")
+private val ReportGradient = Brush.linearGradient(
+    listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0), Color(0xFF2FB8C8)),
+)
 
 @Composable
-internal fun RenderReportsInventoryS70(onSelectScreenCode: (String) -> Unit = {}) = RenderGenericPersonalSubPanel("Rotación de Mobiliario", "1,245 artículos en inventario activo", onSelectScreenCode)
+internal fun RenderReportsIncomeS67(onSelectScreenCode: (String) -> Unit = {}) {
+    val typo = LocalRfTypography.current
+
+    AdminSubScaffold(
+        title = "Reportes",
+        tabs = ReportTabs,
+        activeCode = "s67",
+        onSelectScreenCode = onSelectScreenCode,
+        trailing = {
+            PeriodSelector67()
+            ReportIconButton(RfIconKind.DOWNLOAD) {}
+        },
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .shadow(18.dp, RoundedCornerShape(24.dp), spotColor = Color(0x996E82E6))
+                .clip(RoundedCornerShape(24.dp))
+                .background(ReportGradient)
+                .padding(horizontal = 20.dp, vertical = 18.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Column {
+                BasicText("Ganancia neta", style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFFF6EAFB), fontSize = 13.sp))
+                BasicText("RD$ 32,780", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 36.sp, lineHeight = 40.sp, color = Color.White))
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+                ReportMetric("Ingresos", "RD$ 45,230")
+                ReportMetric("Gastos", "RD$ 12,450")
+            }
+        }
+
+        ReportCard(contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 12.dp)) {
+            BasicText("Ingresos por mes", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF151729)))
+            Spacer(Modifier.height(14.dp))
+            IncomeChart67()
+            Spacer(Modifier.height(6.dp))
+            Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                listOf("Ene", "Feb", "Mar", "Abr", "May", "Jun").forEach { month ->
+                    BasicText(
+                        month,
+                        modifier = Modifier.weight(1f),
+                        style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFF5F6377), fontSize = 12.sp, textAlign = TextAlign.Center),
+                    )
+                }
+            }
+        }
+
+        ReportCard(contentPadding = PaddingValues(16.dp)) {
+            BasicText("De dónde vienen", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF151729)))
+            Spacer(Modifier.height(12.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                BreakdownBar("Alquiler de equipos", "RD$ 28,500", 0.63f, Color(0xFFD63F98))
+                BreakdownBar("Decoración", "RD$ 12,200", 0.27f, Color(0xFF865DEC))
+                BreakdownBar("Servicios adicionales", "RD$ 4,530", 0.10f, Color(0xFF8DB52C))
+            }
+        }
+    }
+}
 
 @Composable
-internal fun RenderReviewModerationS71(onSelectScreenCode: (String) -> Unit = {}) = RenderGenericPersonalSubPanel("Moderación de Opiniones", "10 reseñas aprobadas con 5 estrellas", onSelectScreenCode)
+private fun PeriodSelector67() {
+    val typo = LocalRfTypography.current
+
+    Row(
+        modifier = Modifier
+            .height(44.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(Color.White)
+            .border(1.dp, Color(0xFFE9E9F2), RoundedCornerShape(14.dp))
+            .padding(horizontal = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        BasicText("Ene–Jun", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Color(0xFF151729)))
+        RfIcon(kind = RfIconKind.CHEVRON_DOWN, tint = Color(0xFF151729), size = 16.dp)
+    }
+}
 
 @Composable
-internal fun RenderBotQuestionsS72(onSelectScreenCode: (String) -> Unit = {}) = RenderGenericPersonalSubPanel("Respuestas Automáticas WhatsApp", "Preguntas frecuentes de precio y stock", onSelectScreenCode)
+private fun ReportMetric(label: String, value: String) {
+    val typo = LocalRfTypography.current
+
+    Column {
+        BasicText(label, style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFFF6EAFB), fontSize = 13.sp))
+        BasicText(value, style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, color = Color.White))
+    }
+}
 
 @Composable
-internal fun RenderBotKeywordsS73(onSelectScreenCode: (String) -> Unit = {}) = RenderGenericPersonalSubPanel("Palabras Clave WhatsApp", "Filtros de reconocimiento para cotización rápida", onSelectScreenCode)
+private fun IncomeChart67() {
+    val typo = LocalRfTypography.current
+    val bars = listOf(
+        Triple(72, "12k", Color(0xFFF9C7DD)),
+        Triple(90, "15k", Color(0xFFF9C7DD)),
+        Triple(48, "8k", Color(0xFFF9C7DD)),
+        Triple(108, "18k", Color(0xFFF9C7DD)),
+        Triple(84, "14k", Color(0xFFF9C7DD)),
+        Triple(96, "16k", Color(0xFFD63F98)),
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(150.dp)
+            .drawBehind {
+                val stroke = 1.dp.toPx()
+                drawLine(Color(0xFFF3F1F6), Offset(0f, stroke / 2f), Offset(size.width, stroke / 2f), stroke)
+                val midY = size.height * 0.5f
+                drawLine(Color(0xFFF3F1F6), Offset(0f, midY), Offset(size.width, midY), stroke)
+            }
+            .padding(horizontal = 4.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxSize(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.Bottom,
+        ) {
+            bars.forEachIndexed { index, bar ->
+                Column(
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Bottom,
+                ) {
+                    BasicText(
+                        bar.second,
+                        style = TextStyle(
+                            fontFamily = typo.bodyFamily,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp,
+                            color = if (index == bars.lastIndex) Color(0xFFC2338F) else Color(0xFF5F6377),
+                        ),
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(bar.first.dp)
+                            .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp, bottomStart = 4.dp, bottomEnd = 4.dp))
+                            .background(bar.third),
+                    )
+                }
+            }
+        }
+    }
+}
 
 @Composable
-internal fun RenderBotConversationsS74(onSelectScreenCode: (String) -> Unit = {}) = RenderGenericPersonalSubPanel("Chats del Bot WhatsApp", "Conversaciones automáticas con clientes", onSelectScreenCode)
+private fun BreakdownBar(label: String, value: String, fraction: Float, color: Color) {
+    val typo = LocalRfTypography.current
+
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            BasicText(label, style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFF151729), fontSize = 14.sp))
+            BasicText(value, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, color = Color(0xFF151729), fontSize = 14.sp))
+        }
+        Box(modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)).background(Color(0xFFF3F1F6))) {
+            if (fraction > 0f) {
+                Box(Modifier.fillMaxWidth(fraction).height(8.dp).clip(RoundedCornerShape(4.dp)).background(color))
+            }
+        }
+    }
+}
+
+@Composable
+internal fun RenderReportsEventsS68(onSelectScreenCode: (String) -> Unit = {}) {
+    val typo = LocalRfTypography.current
+
+    AdminSubScaffold(
+        title = "Reportes",
+        tabs = ReportTabs,
+        activeCode = "s68",
+        onSelectScreenCode = onSelectScreenCode,
+        trailing = {
+            PeriodSelector67()
+            ReportIconButton(RfIconKind.DOWNLOAD) {}
+        },
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(22.dp))
+                .background(Color.White)
+                .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(22.dp))
+                .padding(horizontal = 20.dp, vertical = 18.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column {
+                BasicText("Eventos en total", style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFF5F6377), fontSize = 13.sp))
+                BasicText("156", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 44.sp, lineHeight = 44.sp, color = Color(0xFF151729)))
+            }
+            EventRingIllustration68(size = 96.dp)
+        }
+
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            StatTile68("134", "Completados", Color(0xFFEEF6D6), Color(0xFF3F560C), Color(0xFF4E6A10), Modifier.weight(1f))
+            StatTile68("18", "En proceso", Color(0xFFFFF2C9), Color(0xFF6E4300), Color(0xFF7A5700), Modifier.weight(1f))
+            StatTile68("4", "Cancelados", Color(0xFFFDE3EA), Color(0xFF8E1A35), Color(0xFFB42345), Modifier.weight(1f))
+        }
+
+        ReportCard(contentPadding = PaddingValues(16.dp)) {
+            BasicText("Por tipo de evento", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF151729)))
+            Spacer(Modifier.height(14.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                EventTypeRow68("Bodas", "70", "45%", 0.45f, Color(0xFFD63F98), RfIconKind.RING, Color(0xFFECEBFF), Color(0xFF4B47D6))
+                EventTypeRow68("Cumpleaños", "39", "25%", 0.25f, Color(0xFFF7B500), RfIconKind.PARTY, Color(0xFFFFF2C9), Color(0xFF7A5700))
+                EventTypeRow68("Otros", "24", "15%", 0.15f, Color(0xFF865DEC), RfIconKind.SPARKLE, Color(0xFFEFE8FD), Color(0xFF7A4FD8))
+                EventTypeRow68("Corporativos", "23", "15%", 0.15f, Color(0xFF1FBDC0), RfIconKind.BOX, Color(0xFFDDF4F3), Color(0xFF1F8A84))
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatTile68(
+    value: String,
+    label: String,
+    background: Color,
+    valueColor: Color,
+    labelColor: Color,
+    modifier: Modifier = Modifier,
+) {
+    val typo = LocalRfTypography.current
+
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(18.dp))
+            .background(background)
+            .padding(12.dp),
+    ) {
+        BasicText(value, style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 24.sp, lineHeight = 28.sp, color = valueColor))
+        BasicText(label, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = labelColor))
+    }
+}
+
+@Composable
+private fun EventTypeRow68(
+    label: String,
+    count: String,
+    percent: String,
+    fraction: Float,
+    barColor: Color,
+    icon: RfIconKind,
+    iconBackground: Color,
+    iconTint: Color,
+) {
+    val typo = LocalRfTypography.current
+
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Box(
+            modifier = Modifier.size(36.dp).clip(RoundedCornerShape(11.dp)).background(iconBackground),
+            contentAlignment = Alignment.Center,
+        ) {
+            RfIcon(kind = icon, tint = iconTint, size = 18.dp)
+        }
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                BasicText(label, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Color(0xFF151729)))
+                Row {
+                    BasicText(count, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF151729)))
+                    BasicText(" · $percent", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF5F6377)))
+                }
+            }
+            Box(modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)).background(Color(0xFFF3F1F6))) {
+                Box(Modifier.fillMaxWidth(fraction).height(8.dp).clip(RoundedCornerShape(4.dp)).background(barColor))
+            }
+        }
+    }
+}
+
+@Composable
+internal fun RenderReportsClientsS69(onSelectScreenCode: (String) -> Unit = {}) {
+    val typo = LocalRfTypography.current
+
+    AdminSubScaffold(
+        title = "Reportes",
+        tabs = ReportTabs,
+        activeCode = "s69",
+        onSelectScreenCode = onSelectScreenCode,
+        trailing = {
+            PeriodSelector67()
+            ReportIconButton(RfIconKind.DOWNLOAD) {}
+        },
+    ) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(
+                modifier = Modifier
+                    .weight(1.4f)
+                    .clip(RoundedCornerShape(22.dp))
+                    .background(ReportGradient)
+                    .padding(16.dp),
+            ) {
+                BasicText("Clientes", style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFFF6EAFB), fontSize = 13.sp))
+                BasicText("248", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 34.sp, lineHeight = 40.sp, color = Color.White))
+            }
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(22.dp))
+                    .background(Color.White)
+                    .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(22.dp))
+                    .padding(16.dp),
+            ) {
+                BasicText("Nuevos este mes", style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFF5F6377), fontSize = 13.sp))
+                BasicText("+18", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 34.sp, lineHeight = 40.sp, color = Color(0xFF4E6A10)))
+            }
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(22.dp))
+                .background(Color.White)
+                .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(22.dp)),
+        ) {
+            BasicText(
+                "Mejores clientes",
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 6.dp),
+                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF151729)),
+            )
+            TopClientRow69("1", "María González", "5 eventos", "RD$ 42,500", Color(0xFFFFF2C9), Color(0xFF7A5700))
+            TopClientRow69("2", "Carlos Rodríguez", "4 eventos", "RD$ 38,200", Color(0xFFEDEDF5), Color(0xFF5F6377))
+            TopClientRow69("3", "Ana Martínez", "3 eventos", "RD$ 28,900", Color(0xFFECEBFF), Color(0xFF4B47D6))
+            Spacer(Modifier.height(6.dp))
+        }
+
+        ReportCard(contentPadding = PaddingValues(16.dp)) {
+            BasicText("Retención", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF151729)))
+            Spacer(Modifier.height(12.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth().height(14.dp).clip(RoundedCornerShape(7.dp)),
+                horizontalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                Box(Modifier.weight(0.45f).fillMaxSize().background(Color(0xFFEA4EA9)))
+                Box(Modifier.weight(0.38f).fillMaxSize().background(Color(0xFF8DB52C)))
+                Box(Modifier.weight(0.17f).fillMaxSize().background(Color(0xFFF7B500)))
+            }
+            Spacer(Modifier.height(12.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                RetentionLegend("Primera vez", "45%", Color(0xFFEA4EA9))
+                RetentionLegend("Recurrentes", "38%", Color(0xFF8DB52C))
+                RetentionLegend("VIP", "17%", Color(0xFFF7B500))
+            }
+        }
+    }
+}
+
+@Composable
+private fun TopClientRow69(
+    rank: String,
+    name: String,
+    events: String,
+    amount: String,
+    rankBackground: Color,
+    rankColor: Color,
+) {
+    val typo = LocalRfTypography.current
+
+    Row(
+        modifier = Modifier.fillMaxWidth().heightIn(min = 58.dp).padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Box(
+            modifier = Modifier.size(30.dp).clip(CircleShape).background(rankBackground),
+            contentAlignment = Alignment.Center,
+        ) {
+            BasicText(rank, style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, color = rankColor))
+        }
+        Column(modifier = Modifier.weight(1f)) {
+            BasicText(name, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF151729)))
+            BasicText(events, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF5F6377)))
+        }
+        BasicText(amount, style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = Color(0xFF151729)))
+    }
+}
+
+@Composable
+private fun RetentionLegend(label: String, value: String, color: Color) {
+    val typo = LocalRfTypography.current
+
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Box(Modifier.size(10.dp).clip(RoundedCornerShape(3.dp)).background(color))
+        BasicText(label, modifier = Modifier.weight(1f), style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF151729)))
+        BasicText(value, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF151729)))
+    }
+}
+
+@Composable
+internal fun RenderReportsInventoryS70(onSelectScreenCode: (String) -> Unit = {}) {
+    val typo = LocalRfTypography.current
+
+    AdminSubScaffold(
+        title = "Reportes",
+        tabs = ReportTabs,
+        activeCode = "s70",
+        onSelectScreenCode = onSelectScreenCode,
+        trailing = {
+            ReportIconButton(RfIconKind.DOWNLOAD) {}
+        },
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(22.dp))
+                .background(Color.White)
+                .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(22.dp))
+                .padding(horizontal = 18.dp, vertical = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Box(modifier = Modifier.size(76.dp), contentAlignment = Alignment.Center) {
+                Canvas(modifier = Modifier.size(76.dp)) {
+                    val stroke = 9.dp.toPx()
+                    val radius = (size.minDimension - stroke) / 2f
+                    drawCircle(Color(0xFFF3F1F6), radius = radius, style = Stroke(stroke))
+                    drawArc(
+                        color = Color(0xFFD63F98),
+                        startAngle = -90f,
+                        sweepAngle = 259f,
+                        useCenter = false,
+                        style = Stroke(stroke, cap = StrokeCap.Round),
+                    )
+                }
+                BasicText("72%", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = Color(0xFF151729)))
+            }
+            Column {
+                Row(verticalAlignment = Alignment.Bottom) {
+                    BasicText("892 ", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 28.sp, lineHeight = 30.sp, color = Color(0xFF151729)))
+                    BasicText("de 1,245", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = Color(0xFF5F6377)))
+                }
+                Spacer(Modifier.height(4.dp))
+                BasicText("artículos en uso ahora", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF5F6377)))
+            }
+        }
+
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            InventoryAlertTile70("23", "Stock bajo", Color(0xFFFFF2C9), Color(0xFF7A5700), RfIconKind.WARNING, Modifier.weight(1f))
+            InventoryAlertTile70("8", "En mantenimiento", Color(0xFFEFE8FD), Color(0xFF7A4FD8), RfIconKind.SETTINGS, Modifier.weight(1f))
+        }
+
+        ReportCard(contentPadding = PaddingValues(16.dp)) {
+            BasicText("Uso por categoría", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF151729)))
+            Spacer(Modifier.height(12.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                CategoryUsageRow70("Sillas", 0.92f, "92%", 1f)
+                CategoryUsageRow70("Decoración", 0.88f, "88%", 0.85f)
+                CategoryUsageRow70("Mesas", 0.80f, "80%", 0.7f)
+                CategoryUsageRow70("Mantelería", 0.76f, "76%", 0.55f)
+                CategoryUsageRow70("Iluminación", 0.64f, "64%", 0.4f)
+            }
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(18.dp))
+                .background(Color.White)
+                .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(18.dp))
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Box(
+                modifier = Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(Color(0xFFEEF6D6)),
+                contentAlignment = Alignment.Center,
+            ) {
+                RfIcon(kind = RfIconKind.CHAIR, tint = Color(0xFF4E6A10), size = 20.dp)
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                BasicText("Sillas plegables", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF151729)))
+                BasicText("Próximo mantenimiento · limpieza profunda", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF5F6377)))
+            }
+            Box(
+                modifier = Modifier
+                    .height(26.dp)
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(ReportGradient)
+                    .padding(horizontal = 10.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                BasicText("20 abr", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.White))
+            }
+        }
+    }
+}
+
+@Composable
+private fun InventoryAlertTile70(
+    value: String,
+    label: String,
+    background: Color,
+    tint: Color,
+    icon: RfIconKind,
+    modifier: Modifier = Modifier,
+) {
+    val typo = LocalRfTypography.current
+
+    Row(
+        modifier = modifier.clip(RoundedCornerShape(18.dp)).background(background).padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        RfIcon(kind = icon, tint = tint, size = 20.dp)
+        Column {
+            BasicText(value, style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, lineHeight = 24.sp, color = tint))
+            BasicText(label, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = tint))
+        }
+    }
+}
+
+@Composable
+private fun CategoryUsageRow70(label: String, fraction: Float, value: String, opacity: Float) {
+    val typo = LocalRfTypography.current
+
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        BasicText(label, modifier = Modifier.width(92.dp), style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Color(0xFF151729)))
+        Box(modifier = Modifier.weight(1f).height(10.dp).clip(RoundedCornerShape(5.dp)).background(Color(0xFFF3F1F6))) {
+            Box(Modifier.fillMaxWidth(fraction).height(10.dp).clip(RoundedCornerShape(5.dp)).background(Color(0xFF5B6CF0).copy(alpha = opacity)))
+        }
+        BasicText(value, modifier = Modifier.width(38.dp), style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF151729), textAlign = TextAlign.End))
+    }
+}
+
+@Composable
+private fun FunnelRow66(label: String, value: String, fraction: Float, color: Color) {
+    val typo = LocalRfTypography.current
+
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            BasicText(label, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Color(0xFF151729)))
+            BasicText(value, style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, color = Color(0xFF151729)))
+        }
+        Box(modifier = Modifier.fillMaxWidth().height(12.dp).clip(RoundedCornerShape(6.dp)).background(Color(0xFFF3F1F6))) {
+            if (fraction > 0f) {
+                Box(Modifier.fillMaxWidth(fraction).height(12.dp).clip(RoundedCornerShape(6.dp)).background(color))
+            }
+        }
+    }
+}
+
+@Composable
+private fun EventRingIllustration68(size: Dp) {
+    Canvas(modifier = Modifier.size(size)) {
+        val scale = this.size.minDimension / 120f
+        fun circle(x: Float, y: Float, r: Float, color: Color) =
+            drawCircle(color = color, radius = r * scale, center = Offset(x * scale, y * scale))
+
+        drawOval(
+            color = Color(0x142B1730),
+            topLeft = Offset(10f * scale, 106.5f * scale),
+            size = Size(100f * scale, 7f * scale),
+        )
+        circle(9f, 91f, 6.5f, Color(0xFFF9B6D3))
+        circle(26.6f, 60f, 6.5f, Color(0xFFFFD98A))
+        circle(60f, 47f, 6.5f, Color(0xFFB9A6F7))
+        circle(93.4f, 60f, 6.5f, Color(0xFFA8D8F5))
+        circle(111f, 91f, 6.5f, Color(0xFF9BE3C9))
+
+        val ring = listOf(
+            Triple(18f, 104f, Color(0xFFEC4F97)),
+            Triple(20.5f, 86f, Color(0xFFF5B53B)),
+            Triple(28f, 72f, Color(0xFF7650E8)),
+            Triple(39f, 62.5f, Color(0xFF4AA8E0)),
+            Triple(52.7f, 58f, Color(0xFF2FB58F)),
+            Triple(67.3f, 58f, Color(0xFFEC4F97)),
+            Triple(81f, 62.5f, Color(0xFFF5B53B)),
+            Triple(92f, 72f, Color(0xFF7650E8)),
+            Triple(99.5f, 86f, Color(0xFF4AA8E0)),
+            Triple(102f, 104f, Color(0xFF2FB58F)),
+        )
+        ring.forEach { circle(it.first, it.second, 10.5f, it.third) }
+
+        listOf(15f to 100f, 36f to 58.5f, 64f to 54f, 89f to 68f, 99f to 100f).forEach { (x, y) ->
+            drawOval(
+                color = Color(0x8CFFFFFF),
+                topLeft = Offset((x - 2.4f) * scale, (y - 3.4f) * scale),
+                size = Size(4.8f * scale, 6.8f * scale),
+            )
+        }
+
+        val star = Path().apply {
+            moveTo(60f * scale, 22f * scale)
+            lineTo(61.6f * scale, 26.4f * scale)
+            lineTo(66f * scale, 28f * scale)
+            lineTo(61.6f * scale, 29.6f * scale)
+            lineTo(60f * scale, 34f * scale)
+            lineTo(58.4f * scale, 29.6f * scale)
+            lineTo(54f * scale, 28f * scale)
+            lineTo(58.4f * scale, 26.4f * scale)
+            close()
+        }
+        drawPath(star, Color(0xFFF5B53B))
+    }
+}
+
+@Composable
+private fun ReportIconButton(icon: RfIconKind, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .size(44.dp)
+            .rfIconButtonShadow(CircleShape, isAdmin = true)
+            .clip(CircleShape)
+            .background(Color.White)
+            .border(1.dp, Color(0xFFECECF5), CircleShape)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        RfIcon(kind = icon, tint = Color(0xFF151729), size = 21.dp)
+    }
+}
+
+@Composable
+private fun ReportCard(
+    modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = PaddingValues(0.dp),
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(22.dp))
+            .background(Color.White)
+            .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(22.dp))
+            .padding(contentPadding),
+        content = content,
+    )
+}
+
+@Composable
+private fun AdminSubScaffold(
+    title: String,
+    tabs: List<Pair<String, String>>,
+    activeCode: String,
+    onSelectScreenCode: (String) -> Unit,
+    trailing: @Composable RowScope.() -> Unit = {},
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    val typo = LocalRfTypography.current
+
+    RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+            Spacer(Modifier.height(56.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                ReportIconButton(RfIconKind.BACK) { onSelectScreenCode("s14") }
+                BasicText(
+                    title,
+                    modifier = Modifier.weight(1f),
+                    style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color(0xFF151729)),
+                )
+                trailing()
+            }
+            Spacer(Modifier.height(12.dp))
+            AdminTabRow(tabs = tabs, activeCode = activeCode, onSelectScreenCode = onSelectScreenCode)
+            Spacer(Modifier.height(16.dp))
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                content = content,
+            )
+            Spacer(Modifier.height(30.dp))
+        }
+    }
+}
+
+@Composable
+private fun AdminTabRow(
+    tabs: List<Pair<String, String>>,
+    activeCode: String,
+    onSelectScreenCode: (String) -> Unit,
+    initialScroll: Dp = 0.dp,
+) {
+    val typo = LocalRfTypography.current
+    val scrollState = rememberScrollState()
+    val density = androidx.compose.ui.platform.LocalDensity.current
+
+    // Designs for the last tabs shift the row left so the active tab stays fully visible.
+    LaunchedEffect(initialScroll) {
+        scrollState.scrollTo(with(density) { initialScroll.roundToPx() })
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .drawBehind {
+                val stroke = 1.dp.toPx()
+                drawLine(Color(0xFFE9E9F2), Offset(0f, size.height - stroke / 2f), Offset(size.width, size.height - stroke / 2f), stroke)
+            },
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().horizontalScroll(scrollState).padding(horizontal = 20.dp),
+            horizontalArrangement = Arrangement.spacedBy(20.dp),
+        ) {
+            tabs.forEach { (label, code) ->
+                val active = code == activeCode
+                Box(
+                    modifier = Modifier
+                        .height(44.dp)
+                        .clickable { if (!active) onSelectScreenCode(code) }
+                        .drawBehind {
+                            if (active) {
+                                val stroke = 2.5.dp.toPx()
+                                drawLine(Color(0xFF5B6CF0), Offset(0f, size.height - stroke / 2f), Offset(size.width, size.height - stroke / 2f), stroke)
+                            }
+                        },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    BasicText(
+                        label,
+                        style = TextStyle(
+                            fontFamily = typo.bodyFamily,
+                            fontWeight = if (active) FontWeight.Bold else FontWeight.SemiBold,
+                            fontSize = 15.sp,
+                            color = if (active) Color(0xFF151729) else Color(0xFF5F6377),
+                        ),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+internal fun RenderReviewModerationS71(onSelectScreenCode: (String) -> Unit = {}) {
+    val typo = LocalRfTypography.current
+
+    RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+            Spacer(Modifier.height(56.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                ReportIconButton(RfIconKind.BACK) { onSelectScreenCode("s14") }
+                BasicText(
+                    "Reseñas",
+                    modifier = Modifier.weight(1f),
+                    style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color(0xFF151729)),
+                )
+            }
+            Spacer(Modifier.height(14.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                ReviewChip71("Pendientes", "3", selected = true)
+                ReviewChip71("Verificadas", "10")
+                ReviewChip71("Rechazadas", "1")
+                ReviewChip71("Todas", null)
+            }
+            Spacer(Modifier.height(10.dp))
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                ReviewCard71(
+                    initial = "R",
+                    avatarBackground = Color(0xFFEFE8FD),
+                    avatarTint = Color(0xFF7A4FD8),
+                    name = "Ricardo Méndez",
+                    event = "Gala Corporativa Grupo Caribe · 13 oct",
+                    body = "¡Superó todas nuestras expectativas! El arco orgánico y las mesas imperiales lucieron espectaculares.",
+                    response = "¡Gracias, Ricardo! Fue un honor acompañarles en su gala.",
+                )
+                ReviewCard71(
+                    initial = "S",
+                    avatarBackground = Color(0xFFECEBFF),
+                    avatarTint = Color(0xFF4B47D6),
+                    name = "Sofía Hernández",
+                    event = "Quinceañero Primaveral · 19 oct",
+                    body = "Puntualidad impecable y mobiliario en perfecto estado. Recomendados al 100%.",
+                    verified = true,
+                )
+            }
+            Spacer(Modifier.height(30.dp))
+        }
+    }
+}
+
+@Composable
+private fun ReviewChip71(label: String, count: String?, selected: Boolean = false) {
+    val typo = LocalRfTypography.current
+
+    Row(
+        modifier = Modifier
+            .height(38.dp)
+            .shadow(if (selected) 8.dp else 0.dp, RoundedCornerShape(999.dp), spotColor = Color(0x995B6CF0))
+            .clip(RoundedCornerShape(999.dp))
+            .background(if (selected) ReportGradient else Brush.linearGradient(listOf(Color.White, Color.White)))
+            .border(1.dp, if (selected) Color.Transparent else Color(0xFFE9E9F2), RoundedCornerShape(999.dp))
+            .padding(horizontal = 14.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        BasicText(
+            label,
+            maxLines = 1,
+            style = TextStyle(
+                fontFamily = typo.bodyFamily,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 14.sp,
+                color = if (selected) Color.White else Color(0xFF151729),
+            ),
+        )
+        if (count != null) {
+            Box(
+                modifier = Modifier
+                    .height(22.dp)
+                    .widthIn(min = 22.dp)
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(
+                        if (selected) Brush.linearGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0)))
+                        else Brush.linearGradient(listOf(Color(0xFFEDEDF5), Color(0xFFEDEDF5))),
+                    )
+                    .padding(horizontal = 6.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                BasicText(
+                    count,
+                    maxLines = 1,
+                    style = TextStyle(
+                        fontFamily = typo.bodyFamily,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp,
+                        color = if (selected) Color.White else Color(0xFF5F6377),
+                    ),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ReviewCard71(
+    initial: String,
+    avatarBackground: Color,
+    avatarTint: Color,
+    name: String,
+    event: String,
+    body: String,
+    response: String? = null,
+    verified: Boolean = false,
+) {
+    val typo = LocalRfTypography.current
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(22.dp))
+            .background(Color.White)
+            .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(22.dp))
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Box(
+                modifier = Modifier.size(40.dp).clip(CircleShape).background(avatarBackground),
+                contentAlignment = Alignment.Center,
+            ) {
+                BasicText(initial, style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp, color = avatarTint))
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                BasicText(name, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF151729)))
+                BasicText(event, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, lineHeight = 18.sp, color = Color(0xFF5F6377)))
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                repeat(5) {
+                    RfIcon(kind = RfIconKind.STAR, tint = Color(0xFFF7B500), size = 15.dp, filled = true)
+                }
+            }
+        }
+        BasicText(
+            body,
+            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, lineHeight = 22.sp, color = Color(0xFF151729)),
+        )
+        if (response != null) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(Color(0xFFF6F6FB))
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                RfIcon(kind = RfIconKind.UNDO, tint = Color(0xFF5F6377), size = 14.dp, modifier = Modifier.padding(top = 2.dp))
+                BasicText(
+                    buildAnnotatedString {
+                        withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append("Tu respuesta: ") }
+                        append(response)
+                        append(" ")
+                        withStyle(SpanStyle(color = Color(0xFF4B47D6), fontWeight = FontWeight.Bold)) { append("Editar") }
+                    },
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, lineHeight = 20.sp, color = Color(0xFF151729)),
+                )
+            }
+            Row(Modifier.fillMaxWidth().padding(top = 2.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(46.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .border(1.5.dp, Color(0xFFF3C3CF), RoundedCornerShape(14.dp))
+                        .clickable { },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        RfIcon(kind = RfIconKind.CLOSE, tint = Color(0xFFB42345), size = 16.dp)
+                        BasicText("Rechazar", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFFB42345)))
+                    }
+                }
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(46.dp)
+                        .shadow(8.dp, RoundedCornerShape(999.dp), spotColor = Color(0x995B6CF0))
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(ReportGradient)
+                        .clickable { },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        RfIcon(kind = RfIconKind.CHECK, tint = Color.White, size = 16.dp)
+                        BasicText("Verificar", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.White))
+                    }
+                }
+            }
+        }
+        if (verified) {
+            Row(
+                modifier = Modifier
+                    .height(26.dp)
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(Color(0xFFEEF6D6))
+                    .padding(horizontal = 10.dp),
+                horizontalArrangement = Arrangement.spacedBy(5.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                RfIcon(kind = RfIconKind.CHECK, tint = Color(0xFF4E6A10), size = 13.dp)
+                BasicText("Verificada · compra confirmada", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF4E6A10)))
+            }
+        }
+    }
+}
+
+@Composable
+internal fun RenderBotQuestionsS72(onSelectScreenCode: (String) -> Unit = {}) {
+    BotScaffold(
+        activeCode = "s72",
+        onSelectScreenCode = onSelectScreenCode,
+        action = { BotAddButton72 { } },
+    ) {
+        BotQuestionCard72("# precio", "¿Cuánto cuesta?", "Nuestros precios varían según el tipo de evento. Contáctanos para una cotización personalizada.")
+        BotQuestionCard72("# disponibilidad", "¿Está disponible?", "Para verificar disponibilidad necesitamos la fecha de tu evento. ¿Cuándo es?")
+        BotQuestionCard72("# alquiler", "¿Cómo funciona el alquiler?", "Incluye entrega, montaje y recogida. El período típico es de 1 a 3 días.")
+        BotQuestionCard72("# boda", "¿Ofrecen servicio para bodas?", "Sí, tenemos paquetes especiales para bodas: decoración completa, mesas, sillas, iluminación y más.")
+    }
+}
+
+@Composable
+private fun BotScaffold(
+    activeCode: String,
+    onSelectScreenCode: (String) -> Unit,
+    action: @Composable () -> Unit,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    val typo = LocalRfTypography.current
+
+    RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+            Spacer(Modifier.height(56.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                ReportIconButton(RfIconKind.BACK) { onSelectScreenCode("s14") }
+                Column(modifier = Modifier.weight(1f)) {
+                    BasicText(
+                        "Bot de WhatsApp",
+                        style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, lineHeight = 22.sp, color = Color(0xFF151729)),
+                    )
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                        Box(Modifier.size(7.dp).clip(CircleShape).background(Color(0xFF8DB52C)))
+                        BasicText("Activo", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF4E6A10)))
+                    }
+                }
+                action()
+            }
+            Spacer(Modifier.height(12.dp))
+            AdminTabRow(
+                tabs = listOf("Preguntas" to "s72", "Palabras clave" to "s73", "Chats" to "s74"),
+                activeCode = activeCode,
+                onSelectScreenCode = onSelectScreenCode,
+            )
+            Spacer(Modifier.height(12.dp))
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                content = content,
+            )
+            Spacer(Modifier.height(30.dp))
+        }
+    }
+}
+
+@Composable
+private fun BotAddButton72(onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .size(44.dp)
+            .shadow(8.dp, CircleShape, spotColor = Color(0x995B6CF0))
+            .clip(CircleShape)
+            .background(ReportGradient)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        RfIcon(kind = RfIconKind.PLUS, tint = Color.White, size = 20.dp)
+    }
+}
+
+@Composable
+private fun BotKeywordChip72(text: String) {
+    val typo = LocalRfTypography.current
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(26.dp)
+            .clip(RoundedCornerShape(999.dp))
+            .background(Color(0xFFEFE8FD))
+            .padding(horizontal = 10.dp),
+        contentAlignment = Alignment.CenterStart,
+    ) {
+        BasicText(text, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF7A4FD8)))
+    }
+}
+
+@Composable
+private fun BotQuestionCard72(tag: String, question: String, answer: String) {
+    val typo = LocalRfTypography.current
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(Color.White)
+            .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(20.dp))
+            .padding(start = 16.dp, end = 8.dp, top = 14.dp, bottom = 14.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            BotKeywordChip72(tag)
+            BasicText(question, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF151729)))
+            BasicText(answer, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, lineHeight = 20.sp, color = Color(0xFF5F6377)))
+        }
+        Box(modifier = Modifier.size(36.dp), contentAlignment = Alignment.Center) {
+            RfIcon(kind = RfIconKind.MORE_VERT, tint = Color(0xFF5F6377), size = 18.dp)
+        }
+    }
+}
+
+@Composable
+internal fun RenderBotKeywordsS73(onSelectScreenCode: (String) -> Unit = {}) {
+    val typo = LocalRfTypography.current
+    val rows = listOf(
+        Triple("precio", "¿Cuánto cuesta?", "1 respuesta"),
+        Triple("disponibilidad", "¿Está disponible?", "1 respuesta"),
+        Triple("alquiler", "¿Cómo funciona el alquiler?", "1 respuesta"),
+        Triple("boda", "¿Ofrecen servicio para bodas?", "1 respuesta"),
+    )
+
+    BotScaffold(
+        activeCode = "s73",
+        onSelectScreenCode = onSelectScreenCode,
+        action = { BotAddButton72 { } },
+    ) {
+        BasicText(
+            "Si un cliente escribe una de estas palabras, el bot responde con la pregunta vinculada.",
+            modifier = Modifier.padding(top = 4.dp),
+            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, lineHeight = 20.sp, color = Color(0xFF5F6377)),
+        )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(22.dp))
+                .background(Color.White)
+                .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(22.dp)),
+        ) {
+            rows.forEachIndexed { index, row ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .drawBehind {
+                            if (index > 0) {
+                                val stroke = 1.dp.toPx()
+                                drawLine(Color(0xFFF0F0F6), Offset(0f, stroke / 2f), Offset(size.width, stroke / 2f), stroke)
+                            }
+                        }
+                        .padding(horizontal = 16.dp, vertical = 14.dp)
+                        .clickable { },
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .height(26.dp)
+                            .clip(RoundedCornerShape(999.dp))
+                            .background(Color(0xFFEFE8FD))
+                            .padding(horizontal = 10.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        BasicText(row.first, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF7A4FD8)))
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        BasicText(row.second, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Color(0xFF151729)))
+                        BasicText(row.third, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = Color(0xFF5F6377)))
+                    }
+                    RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = Color(0xFF5F6377), size = 16.dp)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+internal fun RenderBotConversationsS74(onSelectScreenCode: (String) -> Unit = {}) {
+    BotScaffold(
+        activeCode = "s74",
+        onSelectScreenCode = onSelectScreenCode,
+        action = { ReportIconButton(RfIconKind.SEARCH) { } },
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(22.dp))
+                .background(Color.White)
+                .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(22.dp)),
+        ) {
+            BotConversationRow74("VS", "Valeria Santos", "8:46 a. m.", "Hola, ¿tienen disponibilidad de sillas Tiffany doradas para el 24 de octubre?", "Pendiente", Color(0xFFFFF2C9), Color(0xFF7A5700), "+1 829 555 0198", Color(0xFFECEBFF), Color(0xFF4B47D6), false)
+            BotConversationRow74("CR", "Camila Rodríguez", "11:46 a. m.", "¡Perfecto! Quisiera agendar la visita para ver el arco orgánico doble.", "Resuelta", Color(0xFFEEF6D6), Color(0xFF4E6A10), "+1 809 555 0142", Color(0xFFEFE8FD), Color(0xFF7A4FD8), true)
+            BotConversationRow74("AM", "Andrés Mejía", "Ayer", "Muchas gracias por enviarme la cotización actualizada del paquete VIP.", "Resuelta", Color(0xFFEEF6D6), Color(0xFF4E6A10), "+1 849 555 0271", Color(0xFFDDF4F3), Color(0xFF1F8A84), true)
+        }
+    }
+}
+
+@Composable
+private fun BotConversationRow74(
+    initials: String,
+    name: String,
+    time: String,
+    preview: String,
+    status: String,
+    statusBackground: Color,
+    statusColor: Color,
+    phone: String,
+    avatarBackground: Color,
+    avatarTint: Color,
+    divider: Boolean,
+) {
+    val typo = LocalRfTypography.current
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .drawBehind {
+                if (divider) {
+                    val stroke = 1.dp.toPx()
+                    drawLine(Color(0xFFF0F0F6), Offset(0f, stroke / 2f), Offset(size.width, stroke / 2f), stroke)
+                }
+            }
+            .padding(horizontal = 16.dp, vertical = 14.dp)
+            .clickable { },
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Box(
+            modifier = Modifier.size(44.dp).clip(CircleShape).background(avatarBackground),
+            contentAlignment = Alignment.Center,
+        ) {
+            BasicText(initials, style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp, color = avatarTint))
+        }
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Row(verticalAlignment = Alignment.Bottom) {
+                BasicText(
+                    name,
+                    modifier = Modifier.weight(1f),
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF151729)),
+                )
+                BasicText(time, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = Color(0xFF5F6377)))
+            }
+            BasicText(preview, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, lineHeight = 20.sp, color = Color(0xFF5F6377)))
+            Row(
+                modifier = Modifier.padding(top = 3.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .height(26.dp)
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(statusBackground)
+                        .padding(horizontal = 10.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    BasicText(status, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = statusColor))
+                }
+                BasicText(phone, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = Color(0xFF5F6377)))
+            }
+        }
+    }
+}
+
+@Composable
+private fun AdminPanelScaffold(
+    activeCode: String,
+    onSelectScreenCode: (String) -> Unit,
+    tabScroll: Dp = 0.dp,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    val typo = LocalRfTypography.current
+
+    RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+            Spacer(Modifier.height(56.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                ReportIconButton(RfIconKind.BACK) { onSelectScreenCode("s14") }
+                BasicText(
+                    "Panel",
+                    modifier = Modifier.weight(1f),
+                    style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color(0xFF151729)),
+                )
+                BasicText("Octubre 2026", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Color(0xFF5F6377)))
+            }
+            Spacer(Modifier.height(12.dp))
+            AdminTabRow(
+                tabs = listOf(
+                    "Resumen" to "s58",
+                    "Finanzas" to "s59",
+                    "Seguros" to "s60",
+                    "Auditoría" to "s61",
+                    "Clientes" to "s62",
+                ),
+                activeCode = activeCode,
+                onSelectScreenCode = onSelectScreenCode,
+                initialScroll = tabScroll,
+            )
+            Spacer(Modifier.height(16.dp))
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                content = content,
+            )
+            Spacer(Modifier.height(30.dp))
+        }
+    }
+}
+
+@Composable
+internal fun RenderInsurancePanelS60(onSelectScreenCode: (String) -> Unit = {}) {
+    val typo = LocalRfTypography.current
+
+    AdminPanelScaffold(activeCode = "s60", onSelectScreenCode = onSelectScreenCode) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(18.dp))
+                .background(Color(0xFFDDF4F3))
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            RfIcon(kind = RfIconKind.SHIELD, tint = Color(0xFF1F8A84), size = 22.dp)
+            BasicText(
+                buildAnnotatedString {
+                    withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append("3 pólizas activas\n") }
+                    withStyle(SpanStyle(color = Color(0xFF5F6377))) { append("Todas con Seguros Universal RD") }
+                },
+                modifier = Modifier.weight(1f),
+                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, lineHeight = 19.sp, color = Color(0xFF151729)),
+            )
+        }
+        PolicyRow60("POL-RF-5931B")
+        PolicyRow60("POL-RF-90892")
+        PolicyRow60("POL-RF-34B92")
+    }
+}
+
+@Composable
+private fun PolicyRow60(code: String) {
+    val typo = LocalRfTypography.current
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(Color.White)
+            .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(20.dp))
+            .clickable { }
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            BasicText(
+                code,
+                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF151729)),
+            )
+            BasicText(
+                buildAnnotatedString {
+                    withStyle(SpanStyle(color = Color(0xFF5F6377))) { append("Cobertura ") }
+                    withStyle(SpanStyle(color = Color(0xFF151729), fontWeight = FontWeight.Bold)) { append("RD$ 2,500") }
+                },
+                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp),
+            )
+        }
+        Box(
+            modifier = Modifier
+                .height(24.dp)
+                .clip(RoundedCornerShape(999.dp))
+                .background(Color(0xFFEEF6D6))
+                .padding(horizontal = 9.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            BasicText("Activa", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF4E6A10)))
+        }
+        RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = Color(0xFF5F6377), size = 16.dp)
+    }
+}
+
+@Composable
+internal fun RenderAuditPanelS61(onSelectScreenCode: (String) -> Unit = {}) {
+    AdminPanelScaffold(activeCode = "s61", onSelectScreenCode = onSelectScreenCode, tabScroll = 56.dp) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            AuditChip61("Todo", selected = true)
+            AuditChip61("Eventos")
+            AuditChip61("Pagos")
+        }
+        Spacer(Modifier.height(2.dp))
+        Column(modifier = Modifier.fillMaxWidth()) {
+            AuditTimelineRow61("19 oct · 9:05 p. m.", "Cotización ajustada y enviada", "Evento", RfIconKind.NOTE, Color(0xFFECEBFF), Color(0xFF4B47D6), isLast = false)
+            AuditTimelineRow61("18 oct · 11:05 p. m.", "Abono inicial registrado · RD$ 140", "Pago", RfIconKind.WALLET, Color(0xFFEEF6D6), Color(0xFF4E6A10), isLast = false)
+            AuditTimelineRow61("14 oct · 11:05 p. m.", "Evento finalizado e inventario recibido", "Evento", RfIconKind.CHECK, Color(0xFFEFE8FD), Color(0xFF7A4FD8), isLast = true)
+        }
+    }
+}
+
+@Composable
+private fun AuditChip61(label: String, selected: Boolean = false) {
+    val typo = LocalRfTypography.current
+
+    Box(
+        modifier = Modifier
+            .height(36.dp)
+            .shadow(if (selected) 8.dp else 0.dp, RoundedCornerShape(999.dp), spotColor = Color(0x995B6CF0))
+            .clip(RoundedCornerShape(999.dp))
+            .background(if (selected) ReportGradient else Brush.linearGradient(listOf(Color.White, Color.White)))
+            .border(1.dp, if (selected) Color.Transparent else Color(0xFFE9E9F2), RoundedCornerShape(999.dp))
+            .padding(horizontal = 14.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        BasicText(
+            label,
+            maxLines = 1,
+            style = TextStyle(
+                fontFamily = typo.bodyFamily,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 14.sp,
+                color = if (selected) Color.White else Color(0xFF151729),
+            ),
+        )
+    }
+}
+
+@Composable
+private fun AuditTimelineRow61(
+    date: String,
+    title: String,
+    category: String,
+    icon: RfIconKind,
+    iconBackground: Color,
+    iconTint: Color,
+    isLast: Boolean,
+) {
+    val typo = LocalRfTypography.current
+
+    Row(
+        modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        Column(
+            modifier = Modifier.width(40.dp).fillMaxHeight(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Box(
+                modifier = Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(iconBackground),
+                contentAlignment = Alignment.Center,
+            ) {
+                RfIcon(kind = icon, tint = iconTint, size = 18.dp)
+            }
+            if (!isLast) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .width(2.dp)
+                        .padding(vertical = 6.dp)
+                        .background(Color(0xFFE3E4EF)),
+                )
+            }
+        }
+        Column(modifier = Modifier.weight(1f).padding(top = 2.dp, bottom = 22.dp)) {
+            BasicText(
+                date.uppercase(),
+                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, letterSpacing = 0.7.sp, color = Color(0xFF5F6377)),
+            )
+            Spacer(Modifier.height(4.dp))
+            BasicText(
+                title,
+                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, lineHeight = 20.sp, color = Color(0xFF151729)),
+            )
+            Spacer(Modifier.height(2.dp))
+            BasicText(category, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF5F6377)))
+        }
+    }
+}
+
+@Composable
+internal fun RenderClientsAnalyticsS62(onSelectScreenCode: (String) -> Unit = {}) {
+    val typo = LocalRfTypography.current
+
+    AdminPanelScaffold(activeCode = "s62", onSelectScreenCode = onSelectScreenCode, tabScroll = 56.dp) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(22.dp))
+                .background(Color.White)
+                .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(22.dp))
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Box(
+                modifier = Modifier.size(56.dp).clip(CircleShape).background(Color(0xFFECEBFF)),
+                contentAlignment = Alignment.Center,
+            ) {
+                BasicText("C", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp, color = Color(0xFF4B47D6)))
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                BasicText("Camila Rodríguez", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 17.sp, color = Color(0xFF151729)))
+                BasicText("camila.rodriguez@correo.com", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF5F6377)))
+            }
+            Box(
+                modifier = Modifier.size(44.dp).clip(CircleShape).background(Color.White).border(1.dp, Color(0xFFECECF5), CircleShape).clickable { },
+                contentAlignment = Alignment.Center,
+            ) {
+                RfIcon(kind = RfIconKind.WHATSAPP, tint = Color(0xFF4E6A10), size = 20.dp)
+            }
+        }
+
+        BasicText(
+            "PRÓXIMO EVENTO",
+            modifier = Modifier.padding(top = 6.dp),
+            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, letterSpacing = 1.sp, color = Color(0xFF5F6377)),
+        )
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(22.dp))
+                .background(Color(0xFFFFF2C9))
+                .clickable { }
+                .padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Column(
+                modifier = Modifier.width(52.dp).height(56.dp).clip(RoundedCornerShape(14.dp)).background(Color.White),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+            ) {
+                BasicText("23", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 21.sp, lineHeight = 21.sp, color = Color(0xFF151729)))
+                BasicText("OCT", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 11.sp, letterSpacing = 0.7.sp, color = Color(0xFF151729)))
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                BasicText("Boda Real Rosa & Dorado", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF151729)))
+                BasicText("Viernes · 5:38 p. m.", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Color(0xFF7A5700)))
+            }
+            RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = Color(0xFF7A5700), size = 18.dp)
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 6.dp)
+                .clip(RoundedCornerShape(22.dp))
+                .background(Color.White)
+                .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(22.dp)),
+        ) {
+            ClientActionRow62("Eventos del cliente", RfIconKind.CALENDAR, Color(0xFFEFE8FD), Color(0xFF7A4FD8), badge = "3", divider = false)
+            ClientActionRow62("Pagos", RfIconKind.WALLET, Color(0xFFEEF6D6), Color(0xFF4E6A10), divider = true)
+            ClientActionRow62("Notificaciones", RfIconKind.BELL, Color(0xFFDDF4F3), Color(0xFF1F8A84), divider = true)
+        }
+    }
+}
+
+@Composable
+private fun ClientActionRow62(
+    label: String,
+    icon: RfIconKind,
+    iconBackground: Color,
+    iconTint: Color,
+    badge: String? = null,
+    divider: Boolean,
+) {
+    val typo = LocalRfTypography.current
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .drawBehind {
+                if (divider) {
+                    val stroke = 1.dp.toPx()
+                    drawLine(Color(0xFFF0F0F6), Offset(0f, stroke / 2f), Offset(size.width, stroke / 2f), stroke)
+                }
+            }
+            .heightIn(min = 60.dp)
+            .clickable { }
+            .padding(horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        Box(
+            modifier = Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(iconBackground),
+            contentAlignment = Alignment.Center,
+        ) {
+            RfIcon(kind = icon, tint = iconTint, size = 18.dp)
+        }
+        BasicText(
+            label,
+            modifier = Modifier.weight(1f),
+            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = Color(0xFF151729)),
+        )
+        if (badge != null) {
+            BasicText(badge, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Medium, fontSize = 15.sp, color = Color(0xFF5F6377)))
+        }
+        RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = Color(0xFF5F6377), size = 16.dp)
+    }
+}
 
 @Composable
 private fun RenderGenericPersonalSubPanel(
