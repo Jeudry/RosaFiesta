@@ -11,6 +11,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -992,23 +993,13 @@ internal fun RenderAccountSettingsS86(
 ) {
     val typo = LocalRfTypography.current
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFFFF6F8)),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 20.dp)
-                .verticalScroll(rememberScrollState()),
-        ) {
-            Spacer(modifier = Modifier.height(56.dp))
-
+    RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+            Spacer(modifier = Modifier.height(54.dp))
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
                 verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Box(
                     modifier = Modifier
@@ -1019,42 +1010,169 @@ internal fun RenderAccountSettingsS86(
                         .clickable { onSelectScreenCode("s54") },
                     contentAlignment = Alignment.Center,
                 ) {
-                    RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1E1E24), size = 22.dp)
+                    RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1A1A2E), size = 22.dp)
                 }
-
-                BasicText("Ajustes", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color(0xFF1E1E24)))
-
-                Spacer(modifier = Modifier.size(44.dp))
+                BasicText(
+                    "Ajustes",
+                    modifier = Modifier.weight(1f),
+                    style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, lineHeight = 22.sp, color = Color(0xFF1A1A2E)),
+                )
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(12.dp))
+            SettingsCaption86("CUENTA")
+            Spacer(modifier = Modifier.height(8.dp))
+            SettingsGroup86 {
+                SettingsRow86("Datos personales", RfIconKind.USER) { onSelectScreenCode("s54") }
+                SettingsDivider86()
+                SettingsRow86("Cambiar contraseña", RfIconKind.LOCK) { onSelectScreenCode("s54") }
+                SettingsDivider86()
+                SettingsRow86("Métodos de pago", RfIconKind.RECEIPT, onClick = { onSelectScreenCode("s82") }) {
+                    BasicText("Visa •••• 4821", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF62627A)))
+                }
+                SettingsDivider86()
+                SettingsRow86("Direcciones de mis eventos", RfIconKind.LOCATION) {
+                    BasicText("2", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF62627A)))
+                }
+            }
 
-            val options = listOf(
-                Pair("Términos y Privacidad", "s87"),
-                Pair("Modo Oscuro / Claro", "s15"),
-                Pair("Eliminar Cuenta", "s88"),
-            )
+            Spacer(modifier = Modifier.height(14.dp))
+            SettingsCaption86("AVISOS")
+            Spacer(modifier = Modifier.height(8.dp))
+            SettingsGroup86 {
+                SettingsRow86("Notificaciones push", RfIconKind.BELL) { SettingsSwitch86(checked = true) }
+                SettingsDivider86()
+                SettingsRow86("Mensajes por WhatsApp", RfIconKind.WHATSAPP) { SettingsSwitch86(checked = true) }
+                SettingsDivider86()
+                SettingsRow86("Correos de ofertas", RfIconKind.MAIL) { SettingsSwitch86(checked = false) }
+            }
 
-            options.forEach { (lbl, screen) ->
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 5.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Color.White)
-                        .border(1.dp, Color(0xFFFFE3EC), RoundedCornerShape(16.dp))
-                        .clickable { onSelectScreenCode(screen) }
-                        .padding(16.dp),
+            Spacer(modifier = Modifier.height(14.dp))
+            SettingsCaption86("PRIVACIDAD Y LEGAL")
+            Spacer(modifier = Modifier.height(8.dp))
+            SettingsGroup86 {
+                SettingsRow86("Términos y condiciones", RfIconKind.NOTE) { onSelectScreenCode("s87") }
+                SettingsDivider86()
+                SettingsRow86("Política de privacidad", RfIconKind.SHIELD) { onSelectScreenCode("s87") }
+                SettingsDivider86()
+                Row(
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 54.dp).clickable { }.padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        BasicText(lbl, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24), fontSize = 15.sp))
-                        RfIcon(kind = RfIconKind.MORE_VERT, tint = Color(0xFFFF3366), size = 18.dp)
+                    RfIcon(kind = RfIconKind.CAMERA, tint = Color(0xFF3B3550), size = 20.dp)
+                    Column(modifier = Modifier.weight(1f)) {
+                        BasicText("Permisos de la app", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF1A1A2E)))
+                        BasicText("Cámara y micrófono", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF62627A)))
                     }
+                    RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = Color(0xFF62627A), size = 16.dp)
                 }
             }
 
+            Spacer(modifier = Modifier.height(14.dp))
+            SettingsGroup86 {
+                Row(
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 54.dp).clickable { onSelectScreenCode("s88") }.padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    RfIcon(kind = RfIconKind.TRASH, tint = Color(0xFFB42345), size = 20.dp)
+                    BasicText(
+                        "Eliminar cuenta",
+                        modifier = Modifier.weight(1f),
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = Color(0xFFB42345)),
+                    )
+                    RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = Color(0xFFB42345), size = 16.dp)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+            BasicText(
+                "Rosa Fiesta · versión 2.4.0",
+                modifier = Modifier.fillMaxWidth(),
+                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, textAlign = TextAlign.Center, color = Color(0xFF62627A)),
+            )
             Spacer(modifier = Modifier.height(30.dp))
         }
+    }
+}
+
+@Composable
+private fun SettingsCaption86(label: String) {
+    val typo = LocalRfTypography.current
+
+    BasicText(
+        label,
+        modifier = Modifier.padding(horizontal = 20.dp),
+        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, letterSpacing = 1.sp, color = Color(0xFF62627A)),
+    )
+}
+
+@Composable
+private fun SettingsGroup86(content: @Composable ColumnScope.() -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .background(Color.White)
+            .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(20.dp)),
+        content = content,
+    )
+}
+
+@Composable
+private fun SettingsDivider86() {
+    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFF2F0F5)))
+}
+
+@Composable
+private fun SettingsRow86(
+    label: String,
+    icon: RfIconKind,
+    onClick: (() -> Unit)? = null,
+    trailing: @Composable () -> Unit = {},
+) {
+    val typo = LocalRfTypography.current
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 54.dp)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .padding(horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        RfIcon(kind = icon, tint = Color(0xFF3B3550), size = 20.dp)
+        BasicText(
+            label,
+            modifier = Modifier.weight(1f),
+            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF1A1A2E)),
+        )
+        trailing()
+        RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = Color(0xFF62627A), size = 16.dp)
+    }
+}
+
+@Composable
+private fun SettingsSwitch86(checked: Boolean) {
+    Box(
+        modifier = Modifier
+            .width(46.dp)
+            .height(28.dp)
+            .clip(RoundedCornerShape(999.dp))
+            .background(
+                if (checked) {
+                    Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))
+                } else {
+                    Brush.linearGradient(listOf(Color(0xFFE3DCE8), Color(0xFFE3DCE8)))
+                },
+            )
+            .clickable { },
+        contentAlignment = if (checked) Alignment.CenterEnd else Alignment.CenterStart,
+    ) {
+        Box(modifier = Modifier.padding(horizontal = 3.dp).size(22.dp).clip(CircleShape).background(Color.White).shadow(1.dp, CircleShape))
     }
 }
 
