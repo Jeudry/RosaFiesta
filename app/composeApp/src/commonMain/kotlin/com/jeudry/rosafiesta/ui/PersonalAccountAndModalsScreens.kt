@@ -471,6 +471,7 @@ internal fun RenderTermsS87(
 }
 
 // ==============================================================================
+// ==============================================================================
 // s88 · ELIMINAR CUENTA
 // ==============================================================================
 @Composable
@@ -482,54 +483,162 @@ internal fun RenderDeleteAccountS88(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFFFF6F8)),
-        contentAlignment = Alignment.Center,
+            .background(Color(0xFFFAFAFC)),
     ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            drawRect(Brush.radialGradient(colors = listOf(Color(0xFFF9E3F1), Color(0x00F9E3F1)), center = Offset(0f, 0f), radius = size.width * 0.9f))
+            drawRect(Brush.radialGradient(colors = listOf(Color(0xFFEEE7FB), Color(0x00EEE7FB)), center = Offset(size.width, 0f), radius = size.width * 0.8f))
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+                .padding(top = 54.dp, start = 20.dp, end = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            // Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .shadow(6.dp, CircleShape, spotColor = Color(0x33B450B4))
+                        .clip(CircleShape)
+                        .background(Color.White)
+                        .clickable { onSelectScreenCode("s54") },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1A1A2E), size = 22.dp)
+                }
+
+                BasicText(
+                    text = "Eliminar cuenta",
+                    style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color(0xFF1A1A2E)),
+                    modifier = Modifier.weight(1f),
+                )
+            }
+
+            // Warning Icon + Title section
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(84.dp)
+                        .border(10.dp, Color(0xFFFDF1F3), CircleShape)
+                        .clip(CircleShape)
+                        .background(Color(0xFFFCE3E8)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    RfIcon(kind = RfIconKind.TRASH, tint = Color(0xFFB42345), size = 36.dp)
+                }
+
+                BasicText(
+                    text = "¿Eliminar tu cuenta?",
+                    style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp, color = Color(0xFF1A1A2E)),
+                )
+
+                BasicText(
+                    text = "Esta acción es permanente. Si eliminas tu cuenta:",
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.5.sp, color = Color(0xFF62627A)),
+                )
+            }
+
+            // Consequences Card
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .shadow(10.dp, RoundedCornerShape(20.dp), spotColor = Color(0x22C850AA))
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(Color.White)
+                    .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(20.dp))
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top) {
+                        RfIcon(kind = RfIconKind.CLOSE, tint = Color(0xFFB42345), size = 16.dp)
+                        BasicText("Perderás tus eventos, cotizaciones y bocetos.", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.5.sp, lineHeight = 20.sp, color = Color(0xFF1A1A2E)))
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top) {
+                        RfIcon(kind = RfIconKind.CLOSE, tint = Color(0xFFB42345), size = 16.dp)
+                        BasicText("Se borrarán tus favoritos y conversaciones con Rosa.", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.5.sp, lineHeight = 20.sp, color = Color(0xFF1A1A2E)))
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top) {
+                        RfIcon(kind = RfIconKind.CLOSE, tint = Color(0xFFB42345), size = 16.dp)
+                        BasicText("Tus recibos se conservan 5 años por ley y te los enviamos por correo.", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.5.sp, lineHeight = 20.sp, color = Color(0xFF1A1A2E)))
+                    }
+                }
+            }
+
+            // Active events warning note
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Color(0xFFFFF2C9))
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+            ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top) {
+                    RfIcon(kind = RfIconKind.WARNING, tint = Color(0xFF5E4300), size = 18.dp)
+                    BasicText(
+                        text = "Tienes 2 eventos activos. Cancélalos o espera a que terminen para poder eliminar tu cuenta.",
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.5.sp, lineHeight = 19.sp, color = Color(0xFF5E4300)),
+                    )
+                }
+            }
+
+            // Confirmation field
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                BasicText("Escribe ELIMINAR para confirmar", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF3B3550)))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color.White)
+                        .border(1.dp, Color(0xFFF0EBF4), RoundedCornerShape(16.dp))
+                        .padding(horizontal = 16.dp),
+                    contentAlignment = Alignment.CenterStart,
+                ) {
+                    BasicText("ELIMINAR", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF62627A)))
+                }
+            }
+        }
+
+        // Bottom action buttons
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(start = 20.dp, end = 20.dp, bottom = 30.dp)
+                .fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Box(
                 modifier = Modifier
-                    .size(64.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFFFEE2E2)),
-                contentAlignment = Alignment.Center,
-            ) {
-                RfIcon(kind = RfIconKind.WARNING, tint = Color(0xFFDC2626), size = 32.dp)
-            }
-
-            BasicText("¿Eliminar tu cuenta?", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp, color = Color(0xFF1E1E24)))
-            BasicText("Esta acción es permanente y eliminará tu historial de eventos y favoritos.", style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFF7A7177), fontSize = 14.sp))
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            Box(
-                modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp)
+                    .height(54.dp)
                     .clip(RoundedCornerShape(16.dp))
-                    .background(Color(0xFFDC2626))
-                    .clickable { onSelectScreenCode("s07") },
+                    .background(Color(0xFFF1D5DB)),
                 contentAlignment = Alignment.Center,
             ) {
-                BasicText("Eliminar Cuenta", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, color = Color.White, fontSize = 15.sp))
+                BasicText("Eliminar cuenta", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White))
             }
 
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color.White)
-                    .border(1.dp, Color(0xFFFFE3EC), RoundedCornerShape(16.dp))
-                    .clickable { onSelectScreenCode("s86") },
+                    .height(44.dp)
+                    .clickable { onSelectScreenCode("s54") },
                 contentAlignment = Alignment.Center,
             ) {
-                BasicText("Mantener mi cuenta", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24), fontSize = 15.sp))
+                BasicText("Mantener mi cuenta", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF62627A)))
             }
         }
     }
