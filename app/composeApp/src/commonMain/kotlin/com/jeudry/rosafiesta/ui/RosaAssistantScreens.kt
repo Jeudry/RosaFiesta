@@ -2082,7 +2082,7 @@ internal fun RenderRosaDetailsS31(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    RfIcon(kind = RfIconKind.GUESTS, tint = Color(0xFF62627A), size = 20.dp)
+                    RfIcon(kind = RfIconKind.USER, tint = Color(0xFF62627A), size = 20.dp)
                     BasicText(
                         text = "¿Cuántas personas?",
                         style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF62627A)),
@@ -2116,7 +2116,7 @@ internal fun RenderRosaDetailsS31(
                     verticalAlignment = Alignment.Top,
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    RfIcon(kind = RfIconKind.NOTE, tint = Color(0xFF62627A), size = 20.dp)
+                    RfIcon(kind = RfIconKind.EDIT, tint = Color(0xFF62627A), size = 20.dp)
                     BasicText(
                         text = "Cuéntame tu idea (opcional)",
                         style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF62627A)),
@@ -2835,122 +2835,198 @@ internal fun RenderRosaVoiceS35(
             .fillMaxSize()
             .background(RosaBackgroundGradient),
     ) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
+        // Header
+        Row(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .fillMaxWidth()
+                .padding(top = 54.dp, start = 16.dp, end = 16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            // Header
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 54.dp, start = 16.dp, end = 16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .shadow(6.dp, CircleShape, spotColor = Color(0x335A3CA0))
-                        .clip(CircleShape)
-                        .background(Color.White)
-                        .clickable { onSelectScreenCode("s34") },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    RfIcon(kind = RfIconKind.CLOSE, tint = Color(0xFF1A1A2E), size = 22.dp)
-                }
-
-                BasicText(
-                    text = "Modo voz con Rosa",
-                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, color = Color(0xFF5A5672), fontSize = 15.sp),
-                )
-
-                Spacer(modifier = Modifier.size(44.dp))
-            }
-
-            Spacer(modifier = Modifier.height(40.dp))
-
-            // Avatar gigante 124dp con halos concéntricos
             Box(
                 modifier = Modifier
-                    .size(240.dp)
-                    .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.45f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(180.dp)
-                        .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.7f)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(124.dp)
-                            .shadow(16.dp, CircleShape, spotColor = Color(0x667650E8))
-                            .clip(CircleShape)
-                            .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)))),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        RfIcon(kind = RfIconKind.SPARK, tint = Color.White, size = 64.dp)
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(30.dp))
-
-            BasicText(
-                text = "Escuchando...",
-                style = TextStyle(
-                    fontFamily = typo.displayFamily,
-                    fontWeight = FontWeight.ExtraBold,
-                    fontSize = 24.sp,
-                    color = Color(0xFF1A1A2E),
-                ),
-            )
-            BasicText(
-                text = "«Necesito 80 sillas tiffany blancas y 8 mesas redondas...»",
-                style = TextStyle(
-                    fontFamily = typo.bodyFamily,
-                    fontSize = 15.sp,
-                    color = Color(0xFF62627A),
-                ),
-            )
-
-            Spacer(modifier = Modifier.height(36.dp))
-
-            // Barras de visualización de audio
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.height(40.dp),
-            ) {
-                val heights = listOf(14.dp, 28.dp, 36.dp, 22.dp, 40.dp, 30.dp, 18.dp)
-                heights.forEach { h ->
-                    Box(
-                        modifier = Modifier
-                            .width(6.dp)
-                            .height(h)
-                            .clip(RoundedCornerShape(3.dp))
-                            .background(RosaButtonGradient),
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.weight(1f))
-
-            // Botón terminar voz
-            Box(
-                modifier = Modifier
-                    .padding(bottom = 40.dp)
-                    .size(64.dp)
-                    .shadow(12.dp, CircleShape, spotColor = Color(0x66C846B4))
+                    .size(44.dp)
+                    .rfIconButtonShadow(CircleShape, isAdmin = false)
                     .clip(CircleShape)
                     .background(Color.White)
                     .clickable { onSelectScreenCode("s34") },
                 contentAlignment = Alignment.Center,
             ) {
-                RfIcon(kind = RfIconKind.MIC, tint = Color(0xFFEA4EA9), size = 28.dp)
+                RfIcon(kind = RfIconKind.CLOSE, tint = Color(0xFF1A1A2E), size = 22.dp)
+            }
+            BasicText(
+                text = "Paso 1 de 6 · Tipo de evento",
+                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, color = Color(0xFF5A5672), fontSize = 13.sp),
+            )
+            Spacer(modifier = Modifier.size(44.dp))
+        }
+
+        // Rosa Avatar with concentric halos (top=150dp, centered)
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 150.dp)
+                .size(240.dp)
+                .clip(CircleShape)
+                .background(Color.White.copy(alpha = 0.45f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(180.dp)
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.7f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                // 124dp Rosa Avatar (headset icon)
+                RosaAvatar(
+                    size = RosaAvatarSize.LARGE,
+                    customSize = 124.dp,
+                    forceAdminPalette = false,
+                )
+            }
+        }
+
+        // Text block (top=430dp)
+        Column(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 430.dp, start = 28.dp, end = 28.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            // "Te escucho..." indicator
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFEA4EA9)),
+                )
+                BasicText(
+                    text = "Te escucho…",
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFFC2338F)),
+                )
+            }
+            // Transcription text
+            BasicText(
+                text = "Una boda en un jardín para unas ",
+                style = TextStyle(
+                    fontFamily = typo.displayFamily,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 24.sp,
+                    lineHeight = 30.sp,
+                    color = Color(0xFF1A1A2E),
+                ),
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+
+        // Multicolor audio bars (top=620dp)
+        Row(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 620.dp),
+            horizontalArrangement = Arrangement.spacedBy(5.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            val bars = listOf(
+                Pair(10.dp, Color(0xFF865DEC)),
+                Pair(22.dp, Color(0xFFB9D84A)),
+                Pair(36.dp, Color(0xFFB54BD6)),
+                Pair(52.dp, Color(0xFFEA4EA9)),
+                Pair(30.dp, Color(0xFFEA4EA9)),
+                Pair(44.dp, Color(0xFFEA4EA9)),
+                Pair(58.dp, Color(0xFFFBCA3F)),
+                Pair(40.dp, Color(0xFFEA4EA9)),
+                Pair(24.dp, Color(0xFFEA4EA9)),
+                Pair(46.dp, Color(0xFFB54BD6)),
+                Pair(28.dp, Color(0xFF865DEC)),
+                Pair(16.dp, Color(0xFFB9D84A)),
+                Pair(8.dp, Color(0xFF865DEC)),
+            )
+            bars.forEach { (h, color) ->
+                Box(
+                    modifier = Modifier
+                        .width(6.dp)
+                        .height(h)
+                        .clip(RoundedCornerShape(3.dp))
+                        .background(color),
+                )
+            }
+        }
+
+        // Bottom 3 control buttons (bottom=44dp)
+        Row(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 44.dp),
+            horizontalArrangement = Arrangement.spacedBy(28.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            // Keyboard button (52dp)
+            Box(
+                modifier = Modifier
+                    .size(52.dp)
+                    .rfIconButtonShadow(CircleShape, isAdmin = false)
+                    .clip(CircleShape)
+                    .background(Color.White)
+                    .clickable { onSelectScreenCode("s27") },
+                contentAlignment = Alignment.Center,
+            ) {
+                RfIcon(kind = RfIconKind.GRID, tint = Color(0xFF1A1A2E), size = 22.dp)
+            }
+
+            // Stop button (76dp, gradient with white square)
+            Box(
+                modifier = Modifier
+                    .size(76.dp)
+                    .shadow(16.dp, CircleShape, spotColor = Color(0xFF9646C8), ambientColor = Color(0x4D9646C8))
+                    .clip(CircleShape)
+                    .background(Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC))))
+                    .clickable { onSelectScreenCode("s28") },
+                contentAlignment = Alignment.Center,
+            ) {
+                // White halo ring
+                Box(
+                    modifier = Modifier
+                        .size(68.dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.6f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(52.dp)
+                            .clip(CircleShape)
+                            .background(Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(24.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(Color.White),
+                        )
+                    }
+                }
+            }
+
+            // Replay button (52dp)
+            Box(
+                modifier = Modifier
+                    .size(52.dp)
+                    .rfIconButtonShadow(CircleShape, isAdmin = false)
+                    .clip(CircleShape)
+                    .background(Color.White)
+                    .clickable { /* restart */ },
+                contentAlignment = Alignment.Center,
+            ) {
+                RfIcon(kind = RfIconKind.REFRESH, tint = Color(0xFF1A1A2E), size = 22.dp)
             }
         }
     }

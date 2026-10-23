@@ -373,6 +373,10 @@ public enum class RfIconKind {
     MAIL,
     LOCK,
     EYE,
+    GUESTS,
+    NOTE,
+    KEYBOARD,
+    UNDO,
 }
 
 private val iconPaths: Map<RfIconKind, String> = mapOf(
@@ -438,6 +442,10 @@ private val iconPaths: Map<RfIconKind, String> = mapOf(
     RfIconKind.MAIL to "M3 6.5A1.5 1.5 0 0 1 4.5 5h15A1.5 1.5 0 0 1 21 6.5v11a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5zM3.5 6l8.5 7 8.5-7",
     RfIconKind.LOCK to "M5 11.5A1.5 1.5 0 0 1 6.5 10h11a1.5 1.5 0 0 1 1.5 1.5v7a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 5 18.5zM8 10V7a4 4 0 0 1 8 0v3",
     RfIconKind.EYE to "M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12zM9 12a3 3 0 1 0 6 0a3 3 0 1 0 -6 0",
+    RfIconKind.GUESTS to "M5 8a3.5 3.5 0 1 0 7 0a3.5 3.5 0 1 0 -7 0M2 20c.6-3.2 3.3-5.5 6.5-5.5S14.4 16.8 15 20M15.5 4.6a3.5 3.5 0 0 1 0 6.8M18 14.8c2 .7 3.5 2.6 4 5.2",
+    RfIconKind.NOTE to "M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5M9 13h6M9 17h4",
+    RfIconKind.KEYBOARD to "M3 6.5A1.5 1.5 0 0 1 4.5 5h15A1.5 1.5 0 0 1 21 6.5v11a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5zM7 9h.01M11 9h.01M15 9h.01M7 13h.01M17 13h.01M8 16h8",
+    RfIconKind.UNDO to "M9 14L4 9l5-5M4 9h10a6 6 0 0 1 0 12h-3",
 )
 
 /**
