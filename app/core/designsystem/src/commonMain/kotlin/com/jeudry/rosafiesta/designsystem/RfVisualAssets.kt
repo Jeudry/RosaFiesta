@@ -28,8 +28,12 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.jeudry.rosafiesta.designsystem.resources.Res
 import com.jeudry.rosafiesta.designsystem.resources.foto_arco_rosa
 import com.jeudry.rosafiesta.designsystem.resources.foto_baby_shower
@@ -88,6 +92,33 @@ public fun RfLogo(
     }
 }
 
+public val RfBrandGradient: Brush = Brush.horizontalGradient(
+    colors = listOf(
+        Color(0xFFEB4F9E),
+        Color(0xFFF2894A),
+        Color(0xFFE3B23C),
+    ),
+)
+
+@Composable
+public fun RfBrandWordmark(
+    text: String = "Rosa Fiesta",
+    fontSize: TextUnit = 18.sp,
+    modifier: Modifier = Modifier,
+) {
+    val typo = LocalRfTypography.current
+    androidx.compose.foundation.text.BasicText(
+        text = text,
+        style = TextStyle(
+            fontFamily = typo.displayFamily,
+            fontWeight = FontWeight.ExtraBold,
+            fontSize = fontSize,
+            brush = RfBrandGradient,
+        ),
+        modifier = modifier,
+    )
+}
+
 /**
  * Tamaños normalizados del avatar `Rosa` (Sección 3: 28, 38, 52, 56, 76 dp).
  */
@@ -98,6 +129,7 @@ public enum class RosaAvatarSize(public val dp: Dp) {
     TAB_CENTER(56.dp),
     HERO(76.dp),
     XLARGE(76.dp),
+    GIANT(96.dp),
 }
 
 /**

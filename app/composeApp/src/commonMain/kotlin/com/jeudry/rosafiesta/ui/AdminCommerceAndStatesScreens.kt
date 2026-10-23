@@ -35,6 +35,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -1997,15 +1998,26 @@ internal fun RenderAdminEntryChoiceA30(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.radialGradient(
-                    0.0f to Color(0xFFF9E3F1),
-                    0.6f to Color(0xFFF8F7FC),
-                    radius = 900f,
-                    center = Offset(0f, 0f),
-                ),
-            ),
+            .background(Color(0xFFF8F7FC)),
     ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            drawRect(Color(0xFFF8F7FC))
+            drawRect(
+                Brush.radialGradient(
+                    listOf(Color(0xFFF9E3F1), Color(0x00F9E3F1)),
+                    center = Offset(0f, 0f),
+                    radius = size.width * 1.1f,
+                ),
+            )
+            drawRect(
+                Brush.radialGradient(
+                    listOf(Color(0xFFE6E7FF), Color(0x00E6E7FF)),
+                    center = Offset(size.width, size.height * 0.40f),
+                    radius = size.width * 0.9f,
+                ),
+            )
+        }
+
         // Logo y saludo
         Column(
             modifier = Modifier
@@ -2044,33 +2056,36 @@ internal fun RenderAdminEntryChoiceA30(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .shadow(elevation = 18.dp, shape = RoundedCornerShape(24.dp), spotColor = Color(0xCC506EE6))
                     .clip(RoundedCornerShape(24.dp))
                     .background(Brush.linearGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0), Color(0xFF2FB8C8))))
                     .clickable { onSelectScreenCode("A01") }
                     .padding(18.dp),
             ) {
-                // Sparkle decoration top right
+                // Decoración oficial: círculo tenue + estrella dorada
                 Canvas(
                     modifier = Modifier
-                        .size(60.dp)
+                        .size(70.dp)
                         .align(Alignment.TopEnd),
                 ) {
-                    drawCircle(color = Color(0x1AFFFFFF), radius = size.minDimension / 1.5f, center = Offset(size.width, 0f))
-                    // Sparkle
-                    val cx = size.width - 20f
-                    val cy = 25f
-                    val path = androidx.compose.ui.graphics.Path().apply {
-                        moveTo(cx, cy - 8f)
-                        lineTo(cx + 3f, cy - 3f)
-                        lineTo(cx + 8f, cy)
-                        lineTo(cx + 3f, cy + 3f)
-                        lineTo(cx, cy + 8f)
-                        lineTo(cx - 3f, cy + 3f)
-                        lineTo(cx - 8f, cy)
-                        lineTo(cx - 3f, cy - 3f)
+                    drawCircle(Color.White.copy(alpha = 0.10f), radius = 35.dp.toPx(), center = Offset(35.dp.toPx(), 15.dp.toPx()))
+                    val cx = 35.dp.toPx()
+                    val cy = 20.dp.toPx()
+                    val sc = 0.9f
+                    val star = Path().apply {
+                        moveTo(cx + 0f * sc, cy - 10f * sc)
+                        lineTo(cx + 2.35f * sc, cy - 3.24f * sc)
+                        lineTo(cx + 9.5f * sc, cy - 3.1f * sc)
+                        lineTo(cx + 3.8f * sc, cy + 1.24f * sc)
+                        lineTo(cx + 5.9f * sc, cy + 8.1f * sc)
+                        lineTo(cx + 0f * sc, cy + 4f * sc)
+                        lineTo(cx - 5.9f * sc, cy + 8.1f * sc)
+                        lineTo(cx - 3.8f * sc, cy + 1.24f * sc)
+                        lineTo(cx - 9.5f * sc, cy - 3.1f * sc)
+                        lineTo(cx - 2.35f * sc, cy - 3.24f * sc)
                         close()
                     }
-                    drawPath(path, Color(0xFFFFD45C))
+                    drawPath(star, Color(0xFFFFD45C))
                 }
 
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -2092,10 +2107,11 @@ internal fun RenderAdminEntryChoiceA30(
                 }
             }
 
-            // Vista de cliente Card
+            // Vista de cliente Card con sombra rosa oficial
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .shadow(elevation = 14.dp, shape = RoundedCornerShape(24.dp), spotColor = Color(0x66C850AA))
                     .clip(RoundedCornerShape(24.dp))
                     .background(Color.White)
                     .border(1.dp, Color(0xFFECE7F1), RoundedCornerShape(24.dp))
@@ -3202,40 +3218,190 @@ internal fun RenderAdminEmptyStateA35(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFFF6F6FB)),
-        contentAlignment = Alignment.Center,
     ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            drawRect(Color(0xFFF6F6FB))
+            drawRect(
+                Brush.radialGradient(
+                    listOf(Color(0xFFE6E7FF), Color(0x00E6E7FF)),
+                    center = Offset(size.width, 0f),
+                    radius = size.width * 1.1f,
+                ),
+            )
+            drawRect(
+                Brush.radialGradient(
+                    listOf(Color(0xFFF1E9FB), Color(0x00F1E9FB)),
+                    center = Offset(0f, size.height * 0.12f),
+                    radius = size.width * 0.8f,
+                ),
+            )
+        }
+
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+                .fillMaxSize()
+                .padding(top = 54.dp, start = 20.dp, end = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Box(
-                modifier = Modifier
-                    .size(64.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFFEFE9FE)),
-                contentAlignment = Alignment.Center,
+            // Header: Botón volver + Título + Subtítulo
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth(),
             ) {
-                RfIcon(kind = RfIconKind.SPARK, tint = Color(0xFF7C5CF0), size = 32.dp)
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(Color.White)
+                        .border(1.dp, Color(0xFFECECF5), CircleShape)
+                        .shadow(elevation = 6.dp, shape = CircleShape, spotColor = Color(0x334650B4))
+                        .clickable { onSelectScreenCode("A01") },
+                ) {
+                    RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF151729), size = 22.dp)
+                }
+
+                Column(modifier = Modifier.weight(1f)) {
+                    BasicText(
+                        text = "Solicitudes",
+                        style = TextStyle(fontFamily = typo.displayFamily, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729)),
+                    )
+                    BasicText(
+                        text = "Cotizaciones que piden tus clientes",
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF5F6377)),
+                    )
+                }
             }
 
-            BasicText("Todo al día", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp, color = Color(0xFF151729)))
-            BasicText("No hay solicitudes pendientes en este momento. Te avisaremos cuando un cliente pida una cotización.", style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFF5F6377), fontSize = 14.sp))
+            // Chips de filtro
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .height(36.dp)
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(Brush.linearGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0))))
+                        .shadow(elevation = 8.dp, shape = RoundedCornerShape(999.dp), spotColor = Color(0xB35B6CF0))
+                        .padding(horizontal = 14.dp),
+                ) {
+                    BasicText("Nuevas · 0", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color.White))
+                }
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .height(36.dp)
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(Color.White)
+                        .border(1.dp, Color(0xFFE9E9F2), RoundedCornerShape(999.dp))
+                        .padding(horizontal = 14.dp),
+                ) {
+                    BasicText("En revisión", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF5F6377)))
+                }
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .height(36.dp)
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(Color.White)
+                        .border(1.dp, Color(0xFFE9E9F2), RoundedCornerShape(999.dp))
+                        .padding(horizontal = 14.dp),
+                ) {
+                    BasicText("Enviadas", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF5F6377)))
+                }
+            }
 
-            Spacer(modifier = Modifier.height(10.dp))
-
-            Box(
+            // Ilustración central y textos
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(AdminButtonGradient)
-                    .clickable { onSelectScreenCode("A01") },
-                contentAlignment = Alignment.Center,
+                    .padding(top = 70.dp),
             ) {
-                BasicText("Volver al Inicio", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, color = Color.White, fontSize = 15.sp))
+                // Círculo de 120dp con anillo exterior de 12px (144dp total)
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(144.dp)
+                        .background(Color(0x8CECEBFF), CircleShape),
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(120.dp)
+                            .clip(CircleShape)
+                            .background(Brush.linearGradient(listOf(Color(0xFFECEBFF), Color(0xFFDDF4F3)))),
+                    ) {
+                        RfIcon(kind = RfIconKind.CHECK, tint = Color(0xFF4B47D6), size = 52.dp)
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                BasicText(
+                    text = "Todo al día",
+                    style = TextStyle(fontFamily = typo.displayFamily, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729)),
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                BasicText(
+                    text = "No hay solicitudes nuevas. Te avisaremos cuando un cliente pida una cotización.",
+                    style = TextStyle(
+                        fontFamily = typo.bodyFamily,
+                        fontSize = 15.sp,
+                        color = Color(0xFF5F6377),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        lineHeight = 22.sp,
+                    ),
+                    modifier = Modifier.width(290.dp),
+                )
+
+                Spacer(modifier = Modifier.height(26.dp))
+
+                // Botones de acción
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(54.dp)
+                            .shadow(elevation = 12.dp, shape = RoundedCornerShape(16.dp), spotColor = Color(0xBF5B6CF0))
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Brush.linearGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0))))
+                            .clickable { onSelectScreenCode("A05") },
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            RfIcon(kind = RfIconKind.PLUS, tint = Color.White, size = 18.dp)
+                            BasicText(
+                                text = "Crear evento manual",
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White),
+                            )
+                        }
+                    }
+
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(54.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color.White)
+                            .border(1.dp, Color(0xFFE3E4EF), RoundedCornerShape(16.dp))
+                            .clickable { onSelectScreenCode("A08") },
+                    ) {
+                        BasicText(
+                            text = "Crear con Rosa IA",
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF151729)),
+                        )
+                    }
+                }
             }
         }
     }
@@ -3248,38 +3414,118 @@ internal fun RenderAdminEmptyStateA35(
 internal fun RenderAdminLoadingStateA36(
     onSelectScreenCode: (String) -> Unit = {},
 ) {
-    val typo = LocalRfTypography.current
+    val skGradient = Brush.horizontalGradient(
+        listOf(Color(0xFFE4E5F0), Color(0xFFF1F1F8), Color(0xFFE4E5F0)),
+    )
 
     Box(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF6F6FB)),
     ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            drawRect(Color(0xFFF6F6FB))
+            drawRect(
+                Brush.radialGradient(
+                    listOf(Color(0xFFE6E7FF), Color(0x00E6E7FF)),
+                    center = Offset(size.width, 0f),
+                    radius = size.width * 1.1f,
+                ),
+            )
+            drawRect(
+                Brush.radialGradient(
+                    listOf(Color(0xFFF1E9FB), Color(0x00F1E9FB)),
+                    center = Offset(0f, size.height * 0.12f),
+                    radius = size.width * 0.8f,
+                ),
+            )
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 20.dp),
+                .padding(top = 54.dp, start = 20.dp, end = 20.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Spacer(modifier = Modifier.height(56.dp))
+            // Header skeleton: Logo + 2 lines + circular avatar
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                RfLogo(customSize = 44.dp)
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Box(modifier = Modifier.fillMaxWidth(0.40f).height(12.dp).clip(RoundedCornerShape(10.dp)).background(skGradient))
+                    Box(modifier = Modifier.fillMaxWidth(0.60f).height(18.dp).clip(RoundedCornerShape(10.dp)).background(skGradient))
+                }
+                Box(modifier = Modifier.size(44.dp).clip(CircleShape).background(skGradient))
+            }
 
-            // Skeleton Header
-            Box(modifier = Modifier.fillMaxWidth().height(40.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFFE5E7EB)))
+            // Big hero card skeleton (132dp)
+            Box(modifier = Modifier.fillMaxWidth().height(132.dp).clip(RoundedCornerShape(24.dp)).background(skGradient))
 
-            Spacer(modifier = Modifier.height(10.dp))
+            // 3 small metric cards (74dp)
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                Box(modifier = Modifier.weight(1f).height(74.dp).clip(RoundedCornerShape(18.dp)).background(skGradient))
+                Box(modifier = Modifier.weight(1f).height(74.dp).clip(RoundedCornerShape(18.dp)).background(skGradient))
+                Box(modifier = Modifier.weight(1f).height(74.dp).clip(RoundedCornerShape(18.dp)).background(skGradient))
+            }
 
-            // Skeleton Cards
-            repeat(4) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(90.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Color.White)
-                        .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(16.dp))
-                        .padding(14.dp),
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Box(modifier = Modifier.fillMaxWidth(0.6f).height(16.dp).clip(RoundedCornerShape(4.dp)).background(Color(0xFFECECF5)))
-                        Box(modifier = Modifier.fillMaxWidth(0.4f).height(12.dp).clip(RoundedCornerShape(4.dp)).background(Color(0xFFF3F4F6)))
+            // Section label skeleton
+            Box(modifier = Modifier.fillMaxWidth(0.30f).height(14.dp).clip(RoundedCornerShape(10.dp)).background(skGradient))
+
+            // 2 medium cards (64dp)
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                Box(modifier = Modifier.weight(1f).height(64.dp).clip(RoundedCornerShape(18.dp)).background(skGradient))
+                Box(modifier = Modifier.weight(1f).height(64.dp).clip(RoundedCornerShape(18.dp)).background(skGradient))
+            }
+
+            // Section label skeleton
+            Box(modifier = Modifier.fillMaxWidth(0.36f).height(14.dp).clip(RoundedCornerShape(10.dp)).background(skGradient))
+
+            // White Card with 2 rows
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(Color.White)
+                    .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(20.dp))
+                    .padding(vertical = 4.dp),
+            ) {
+                Column {
+                    // Row 1
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 14.dp, vertical = 12.dp),
+                    ) {
+                        Box(modifier = Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(skGradient))
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Box(modifier = Modifier.fillMaxWidth(0.70f).height(13.dp).clip(RoundedCornerShape(10.dp)).background(skGradient))
+                            Box(modifier = Modifier.fillMaxWidth(0.45f).height(11.dp).clip(RoundedCornerShape(10.dp)).background(skGradient))
+                        }
+                        Box(modifier = Modifier.size(width = 56.dp, height = 16.dp).clip(RoundedCornerShape(10.dp)).background(skGradient))
+                    }
+
+                    // Divider
+                    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFF2F0F5)))
+
+                    // Row 2
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 14.dp, vertical = 12.dp),
+                    ) {
+                        Box(modifier = Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(skGradient))
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Box(modifier = Modifier.fillMaxWidth(0.70f).height(13.dp).clip(RoundedCornerShape(10.dp)).background(skGradient))
+                            Box(modifier = Modifier.fillMaxWidth(0.45f).height(11.dp).clip(RoundedCornerShape(10.dp)).background(skGradient))
+                        }
+                        Box(modifier = Modifier.size(width = 56.dp, height = 16.dp).clip(RoundedCornerShape(10.dp)).background(skGradient))
                     }
                 }
             }

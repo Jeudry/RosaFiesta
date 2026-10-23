@@ -50,12 +50,14 @@ import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jeudry.rosafiesta.designsystem.BalloonClusterIllustration
 import com.jeudry.rosafiesta.designsystem.HeartOrbitIllustration
 import com.jeudry.rosafiesta.designsystem.LocalRfTypography
+import com.jeudry.rosafiesta.designsystem.RfBrandWordmark
 import com.jeudry.rosafiesta.designsystem.RfColors
 import com.jeudry.rosafiesta.designsystem.RfDimens
 import com.jeudry.rosafiesta.designsystem.RfIcon
@@ -394,6 +396,46 @@ internal fun RenderOnboardingScreen(
             .fillMaxSize()
             .background(Color(0xFFFAFAFC)),
     ) {
+        // Fondo decorativo
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            if (step == 1) {
+                // s03: fondo degradado vertical suave
+                drawRect(
+                    Brush.verticalGradient(
+                        0.0f to Color(0xFFF8EBF4),
+                        0.5f to Color(0xFFF6EFF8),
+                        1.0f to Color(0xFFF3F1FA),
+                    ),
+                )
+                // Figuras decorativas s03
+                val s = size.width / 390f
+                scale(s, s, Offset.Zero) {
+                    drawCircle(color = Color(0xFFCFE48A), radius = 22f, center = Offset(34f, 770f), style = Stroke(width = 2f))
+                    drawCircle(color = Color(0xFFE2CCF4), radius = 32f, center = Offset(352f, 720f), style = Stroke(width = 1.5f))
+                    val dPath = Path().apply {
+                        moveTo(330f, 470f)
+                        lineTo(338f, 484f)
+                        lineTo(330f, 498f)
+                        lineTo(322f, 484f)
+                        close()
+                    }
+                    drawPath(dPath, color = Color(0xFF9ED7DC), style = Stroke(width = 1.5f))
+                    val sqPath = Path().apply {
+                        moveTo(60f, 760f)
+                        lineTo(80f, 754f)
+                        lineTo(86f, 774f)
+                        lineTo(66f, 780f)
+                        close()
+                    }
+                    drawPath(sqPath, color = Color(0xFFC9B6F2), style = Stroke(width = 1.5f))
+                    drawSvgStar(center = Offset(300f, 805f), scale = 1.1f, color = Color(0xFFFBCA3F))
+                }
+            } else {
+                // s04 y s05: atmósfera radial cálida
+                drawPersonalAtmosphereBackground()
+            }
+        }
+
         // Barra superior: Logo + Rosa Fiesta + Botón Omitir
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -406,26 +448,8 @@ internal fun RenderOnboardingScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                RfLogo(customSize = 36.dp)
-
-                Row {
-                    BasicText(
-                        text = "Rosa ",
-                        style = typo.sheetOrEmptyTitle.copy(
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = Color(0xFF151729),
-                        ),
-                    )
-                    BasicText(
-                        text = "Fiesta",
-                        style = typo.sheetOrEmptyTitle.copy(
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = Color(0xFFD63F98),
-                        ),
-                    )
-                }
+                RfLogo(customSize = if (step == 1) 38.dp else 36.dp)
+                RfBrandWordmark(text = "Rosa Fiesta", fontSize = 18.sp)
             }
 
             Box(
@@ -483,15 +507,57 @@ internal fun RenderOnboardingScreen(
 
             Spacer(Modifier.height(8.dp))
 
-            BasicText(
-                text = stepTitle,
-                style = typo.heroTitle.copy(
-                    fontSize = 30.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = Color(0xFF151729),
-                    lineHeight = 34.sp,
-                ),
-            )
+            if (step == 1) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    BasicText(
+                        text = "Mira ",
+                        style = typo.heroTitle.copy(
+                            fontSize = 30.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color(0xFF151729),
+                            lineHeight = 34.sp,
+                        ),
+                    )
+                    Box(contentAlignment = Alignment.Center) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .fillMaxWidth()
+                                .height(12.dp)
+                                .padding(bottom = 2.dp)
+                                .background(Color(0xFFFFDF6E)),
+                        )
+                        BasicText(
+                            text = "todo",
+                            style = typo.heroTitle.copy(
+                                fontSize = 30.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = Color(0xFF151729),
+                                lineHeight = 34.sp,
+                            ),
+                        )
+                    }
+                    BasicText(
+                        text = " lo que tenemos",
+                        style = typo.heroTitle.copy(
+                            fontSize = 30.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color(0xFF151729),
+                            lineHeight = 34.sp,
+                        ),
+                    )
+                }
+            } else {
+                BasicText(
+                    text = stepTitle,
+                    style = typo.heroTitle.copy(
+                        fontSize = 30.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color(0xFF151729),
+                        lineHeight = 34.sp,
+                    ),
+                )
+            }
 
             Spacer(Modifier.height(12.dp))
 
@@ -499,7 +565,7 @@ internal fun RenderOnboardingScreen(
                 text = stepSubtitle,
                 style = typo.body.copy(
                     fontSize = 16.sp,
-                    color = Color(0xFF5F6377),
+                    color = Color(0xFF62627A),
                     lineHeight = 24.sp,
                 ),
             )
@@ -530,8 +596,8 @@ internal fun RenderOnboardingScreen(
                                 .background(
                                     when (step) {
                                         1 -> Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))
-                                        2 -> Brush.horizontalGradient(listOf(Color(0xFF865DEC), Color(0xFF6664E9)))
-                                        else -> Brush.horizontalGradient(listOf(Color(0xFF8DB52C), Color(0xFF2FB58F)))
+                                        2 -> SolidColor(Color(0xFF865DEC))
+                                        else -> SolidColor(Color(0xFF8DB52C))
                                     },
                                 ),
                         )
@@ -540,7 +606,7 @@ internal fun RenderOnboardingScreen(
                             modifier = Modifier
                                 .size(6.dp)
                                 .clip(CircleShape)
-                                .background(Color(0xFFDCD3E4)),
+                                .background(if (step == 1) Color(0xFFDCD3E4) else Color(0xFFE3DCE8)),
                         )
                     }
                 }
@@ -554,7 +620,10 @@ internal fun RenderOnboardingScreen(
                     .clip(CircleShape)
                     .background(
                         Brush.linearGradient(
-                            listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC)),
+                            when (step) {
+                                1 -> listOf(Color(0xFFEA4EA9), Color(0xFFB754CB))
+                                else -> listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))
+                            },
                         ),
                     )
                     .shadow(elevation = 12.dp, shape = CircleShape, spotColor = Color(0x99D646A0))
@@ -571,53 +640,405 @@ internal fun RenderOnboardingScreen(
     }
 }
 
+private fun DrawScope.drawPersonalAtmosphereBackground() {
+    drawRect(Color(0xFFFAFAFC))
+    drawRect(
+        Brush.radialGradient(
+            listOf(Color(0xFFF9E3F1), Color(0x00F9E3F1)),
+            center = Offset(0f, 0f),
+            radius = size.width * 1.1f,
+        ),
+    )
+    drawRect(
+        Brush.radialGradient(
+            listOf(Color(0xFFEEE7FB), Color(0x00EEE7FB)),
+            center = Offset(size.width, size.height * 0.30f),
+            radius = size.width * 0.8f,
+        ),
+    )
+}
+
 @Composable
 private fun OnboardingIllustrationStep1() {
     Box(
         modifier = Modifier
-            .fillMaxSize()
-            .clip(RoundedCornerShape(36.dp))
-            .background(
-                Brush.linearGradient(listOf(Color(0xFFF9D3EA), Color(0xFFE4D6FB))),
-            ),
+            .fillMaxSize(),
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
-            val w = size.width
-            val h = size.height
-            // Banderines superiores
-            val arch = Path().apply {
-                moveTo(0f, 6f)
-                quadraticTo(w / 2f, 50f, w, 6f)
+            val sX = size.width / 350f
+            val sY = size.height / 340f
+            scale(sX, sY, Offset.Zero) {
+                // Fondo orgánico (arch blob)
+                val blobPath = Path().apply {
+                    moveTo(175f, 18f)
+                    cubicTo(262f, 12f, 340f, 66f, 342f, 158f)
+                    cubicTo(344f, 250f, 292f, 330f, 180f, 332f)
+                    cubicTo(68f, 334f, 8f, 290f, 10f, 178f)
+                    cubicTo(12f, 66f, 88f, 22f, 175f, 18f)
+                    close()
+                }
+                drawPath(
+                    blobPath,
+                    brush = Brush.linearGradient(
+                        listOf(Color(0xFFF9D3EA), Color(0xFFE4D6FB)),
+                        start = Offset(0f, 0f),
+                        end = Offset(350f, 340f),
+                    ),
+                    style = Fill,
+                )
+
+                // Cuerda de banderines
+                val garlandPath = Path().apply {
+                    moveTo(0f, 6f)
+                    quadraticTo(175f, 50f, 350f, 6f)
+                }
+                drawPath(garlandPath, color = Color(0xFF1A1A2E).copy(alpha = 0.2f), style = Stroke(width = 1.3f))
+
+                // 9 banderines
+                val pennants = listOf(
+                    Triple(20f to 12.9f, 40f to 12.9f, 30f to 36.9f) to Color(0xFFEA4EA9),
+                    Triple(56f to 19.5f, 76f to 19.5f, 66f to 43.5f) to Color(0xFFFBCA3F),
+                    Triple(92f to 24.2f, 112f to 24.2f, 102f to 48.2f) to Color(0xFFB9D84A),
+                    Triple(128f to 27f, 148f to 27f, 138f to 51f) to Color(0xFF865DEC),
+                    Triple(164f to 28f, 184f to 28f, 174f to 52f) to Color(0xFF5CC9C0),
+                    Triple(200f to 27.1f, 220f to 27.1f, 210f to 51.1f) to Color(0xFFEA4EA9),
+                    Triple(236f to 24.4f, 256f to 24.4f, 246f to 48.4f) to Color(0xFFFBCA3F),
+                    Triple(272f to 19.8f, 292f to 19.8f, 282f to 43.8f) to Color(0xFFB9D84A),
+                    Triple(308f to 13.4f, 328f to 13.4f, 318f to 37.4f) to Color(0xFF865DEC),
+                )
+                pennants.forEach { (pts, color) ->
+                    val p = Path().apply {
+                        moveTo(pts.first.first, pts.first.second)
+                        lineTo(pts.second.first, pts.second.second)
+                        lineTo(pts.third.first, pts.third.second)
+                        close()
+                    }
+                    drawPath(p, color = color, style = Fill)
+                }
             }
-            drawPath(arch, color = Color(0x331A1A2E), style = Stroke(width = 1.3f))
         }
 
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-            modifier = Modifier.fillMaxSize(),
-        ) {
-            // Miniatura de mobiliario real
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                RfPhoto(
-                    photoKey = RfPhotoKey.SILLA_TIFFANY,
-                    contentDescription = "Silla Tiffany",
-                    cornerRadius = 16.dp,
-                    modifier = Modifier.size(100.dp).border(1.dp, Color.White, RoundedCornerShape(16.dp)),
-                )
-                RfPhoto(
-                    photoKey = RfPhotoKey.CENTRO_FLORAL,
-                    contentDescription = "Centro Floral",
-                    cornerRadius = 16.dp,
-                    modifier = Modifier.size(100.dp).border(1.dp, Color.White, RoundedCornerShape(16.dp)),
-                )
-                RfPhoto(
-                    photoKey = RfPhotoKey.ARCO_ROSA,
-                    contentDescription = "Arco Rosa",
-                    cornerRadius = 16.dp,
-                    modifier = Modifier.size(100.dp).border(1.dp, Color.White, RoundedCornerShape(16.dp)),
-                )
+        // Arco de globos (left: 35dp, top: 44dp, size: 280dp)
+        BalloonArchIllustration(
+            modifier = Modifier
+                .offset(x = 35.dp, y = 44.dp)
+                .size(280.dp),
+        )
+
+        // Mesa de pastel (left: 95dp, top: 168dp, size: 160dp)
+        CakeTableIllustration(
+            modifier = Modifier
+                .offset(x = 95.dp, y = 168.dp)
+                .size(160.dp),
+        )
+
+        // Silla Tiffany (left: 4dp, top: 214dp, size: 110dp)
+        TiffanyChairIllustration(
+            modifier = Modifier
+                .offset(x = 4.dp, y = 214.dp)
+                .size(110.dp),
+        )
+
+        // Florero (left: 246dp, top: 220dp, size: 104dp)
+        FlowerVaseIllustration(
+            modifier = Modifier
+                .offset(x = 246.dp, y = 220.dp)
+                .size(104.dp),
+        )
+    }
+}
+
+@Composable
+private fun BalloonArchIllustration(modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val s = size.width / 120f
+        scale(s, s, Offset.Zero) {
+            // Sombra
+            drawOval(
+                color = Color(0xFF2B1730).copy(alpha = 0.08f),
+                topLeft = Offset(60f - 50f, 110f - 3.5f),
+                size = Size(100f, 7f),
+            )
+            // Globos pequeños
+            drawCircle(Color(0xFFE2EFA6), radius = 6.5f, center = Offset(9f, 91f))
+            drawCircle(Color(0xFFFFDF8A), radius = 6.5f, center = Offset(26.6f, 60f))
+            drawCircle(Color(0xFFF9B6D3), radius = 6.5f, center = Offset(60f, 47f))
+            drawCircle(Color(0xFFE2EFA6), radius = 6.5f, center = Offset(93.4f, 60f))
+            drawCircle(Color(0xFFC9B6F7), radius = 6.5f, center = Offset(111f, 91f))
+
+            // Globos grandes del arco
+            drawCircle(Color(0xFFEA4EA9), radius = 10.5f, center = Offset(18f, 104f))
+            drawCircle(Color(0xFFB9D84A), radius = 10.5f, center = Offset(20.5f, 86f))
+            drawCircle(Color(0xFF865DEC), radius = 10.5f, center = Offset(28f, 72f))
+            drawCircle(Color(0xFFFBCA3F), radius = 10.5f, center = Offset(39f, 62.5f))
+            drawCircle(Color(0xFFEA4EA9), radius = 10.5f, center = Offset(52.7f, 58f))
+            drawCircle(Color(0xFFB9D84A), radius = 10.5f, center = Offset(67.3f, 58f))
+            drawCircle(Color(0xFF865DEC), radius = 10.5f, center = Offset(81f, 62.5f))
+            drawCircle(Color(0xFFFBCA3F), radius = 10.5f, center = Offset(92f, 72f))
+            drawCircle(Color(0xFFEA4EA9), radius = 10.5f, center = Offset(99.5f, 86f))
+            drawCircle(Color(0xFFB9D84A), radius = 10.5f, center = Offset(102f, 104f))
+
+            // Reflejos
+            val hlColor = Color.White.copy(alpha = 0.55f)
+            drawOval(hlColor, topLeft = Offset(15f - 2.4f, 100f - 3.4f), size = Size(4.8f, 6.8f))
+            drawOval(hlColor, topLeft = Offset(36f - 2.4f, 58.5f - 3.4f), size = Size(4.8f, 6.8f))
+            drawOval(hlColor, topLeft = Offset(64f - 2.4f, 54f - 3.4f), size = Size(4.8f, 6.8f))
+            drawOval(hlColor, topLeft = Offset(89f - 2.4f, 68f - 3.4f), size = Size(4.8f, 6.8f))
+            drawOval(hlColor, topLeft = Offset(99f - 2.4f, 100f - 3.4f), size = Size(4.8f, 6.8f))
+
+            // Estrella
+            val star = Path().apply {
+                moveTo(60f, 22f)
+                lineTo(61.6f, 26.4f)
+                lineTo(66f, 28f)
+                lineTo(61.6f, 29.6f)
+                lineTo(60f, 34f)
+                lineTo(58.4f, 29.6f)
+                lineTo(54f, 28f)
+                lineTo(58.4f, 26.4f)
+                close()
             }
+            drawPath(star, color = Color(0xFFFBCA3F), style = Fill)
+        }
+    }
+}
+
+@Composable
+private fun CakeTableIllustration(modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val s = size.width / 120f
+        scale(s, s, Offset.Zero) {
+            // Sombra
+            drawOval(
+                color = Color(0xFF2B1730).copy(alpha = 0.08f),
+                topLeft = Offset(60f - 46f, 110f - 3.5f),
+                size = Size(92f, 7f),
+            )
+            // Falda de mesa
+            drawRect(Color(0xFFF9B6D3), topLeft = Offset(16f, 74f), size = Size(88f, 34f))
+            val pleatColor = Color(0xFFEC4F97).copy(alpha = 0.3f)
+            listOf(30f, 44f, 58f, 72f, 86f).forEach { x ->
+                drawLine(pleatColor, start = Offset(x, 80f), end = Offset(x, 108f), strokeWidth = 2f)
+            }
+            // Borde superior
+            drawRect(Color(0xFFEC4F97), topLeft = Offset(14f, 72f), size = Size(92f, 8f))
+            // Base del pastel
+            val standPath = Path().apply {
+                moveTo(46f, 72f)
+                lineTo(52f, 65f)
+                lineTo(68f, 65f)
+                lineTo(74f, 72f)
+                close()
+            }
+            drawPath(standPath, color = Color.White, style = Fill)
+
+            // Piso inferior pastel
+            drawRoundRect(Color(0xFFFFF6EE), topLeft = Offset(42f, 45f), size = Size(36f, 21f), cornerRadius = CornerRadius(4f, 4f))
+            // Drip violeta
+            val drip = Path().apply {
+                moveTo(42f, 49f)
+                quadraticTo(46f, 56f, 50f, 49f)
+                quadraticTo(54f, 56f, 58f, 49f)
+                quadraticTo(62f, 56f, 66f, 49f)
+                quadraticTo(70f, 56f, 74f, 49f)
+                quadraticTo(76f, 53f, 78f, 49f)
+                lineTo(78f, 47f)
+                quadraticTo(78f, 45f, 76f, 45f)
+                lineTo(44f, 45f)
+                quadraticTo(42f, 45f, 42f, 47f)
+                close()
+            }
+            drawPath(drip, color = Color(0xFF7650E8), style = Fill)
+
+            // Piso superior pastel
+            drawRoundRect(Color(0xFFFFF6EE), topLeft = Offset(48f, 29f), size = Size(24f, 17f), cornerRadius = CornerRadius(4f, 4f))
+            drawRoundRect(Color(0xFFF9B6D3), topLeft = Offset(48f, 29f), size = Size(24f, 5f), cornerRadius = CornerRadius(2.5f, 2.5f))
+
+            // Vela
+            drawRoundRect(Color(0xFF4AA8E0), topLeft = Offset(58.5f, 19f), size = Size(3f, 10f), cornerRadius = CornerRadius(1.5f, 1.5f))
+            // Llama
+            val flame = Path().apply {
+                moveTo(60f, 11.5f)
+                cubicTo(62.4f, 15f, 62.4f, 17.5f, 60f, 18.8f)
+                cubicTo(57.6f, 17.5f, 57.6f, 15f, 60f, 11.5f)
+                close()
+            }
+            drawPath(flame, color = Color(0xFFF5B53B), style = Fill)
+
+            // Cupcake izquierdo
+            val cupL = Path().apply {
+                moveTo(24f, 72f)
+                lineTo(26f, 63f)
+                lineTo(36f, 63f)
+                lineTo(38f, 72f)
+                close()
+            }
+            drawPath(cupL, color = Color(0xFF2FB58F), style = Fill)
+            drawCircle(Color(0xFFFFF6EE), radius = 6.5f, center = Offset(31f, 60f))
+            drawCircle(Color(0xFFEC4F97), radius = 2.2f, center = Offset(31f, 54f))
+
+            // Cupcake derecho
+            val cupR = Path().apply {
+                moveTo(82f, 72f)
+                lineTo(84f, 63f)
+                lineTo(94f, 63f)
+                lineTo(96f, 72f)
+                close()
+            }
+            drawPath(cupR, color = Color(0xFFF5B53B), style = Fill)
+            drawCircle(Color(0xFFFFF6EE), radius = 6.5f, center = Offset(89f, 60f))
+            drawCircle(Color(0xFFEC4F97), radius = 2.2f, center = Offset(89f, 54f))
+        }
+    }
+}
+
+@Composable
+private fun TiffanyChairIllustration(modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val s = size.width / 120f
+        scale(s, s, Offset.Zero) {
+            // Sombra
+            drawOval(
+                color = Color(0xFF2B1730).copy(alpha = 0.08f),
+                topLeft = Offset(60f - 30f, 108f - 3.5f),
+                size = Size(60f, 7f),
+            )
+            val gold = Color(0xFFD9A441)
+            // Patas exteriores
+            drawLine(gold, Offset(45f, 66f), Offset(41f, 106f), strokeWidth = 3.4f, cap = StrokeCap.Round)
+            drawLine(gold, Offset(75f, 66f), Offset(79f, 106f), strokeWidth = 3.4f, cap = StrokeCap.Round)
+            // Patas interiores y travesaño
+            drawLine(gold, Offset(49f, 70f), Offset(47f, 104f), strokeWidth = 2.4f, cap = StrokeCap.Round)
+            drawLine(gold, Offset(71f, 70f), Offset(73f, 104f), strokeWidth = 2.4f, cap = StrokeCap.Round)
+            drawLine(gold, Offset(43f, 92f), Offset(77f, 92f), strokeWidth = 2.4f, cap = StrokeCap.Round)
+            // Respaldo montantes
+            drawLine(gold, Offset(46f, 64f), Offset(46f, 18f), strokeWidth = 3.4f, cap = StrokeCap.Round)
+            drawLine(gold, Offset(74f, 64f), Offset(74f, 18f), strokeWidth = 3.4f, cap = StrokeCap.Round)
+            // Travesaños horizontales
+            drawLine(gold, Offset(46f, 18f), Offset(74f, 18f), strokeWidth = 3.4f, cap = StrokeCap.Round)
+            drawLine(gold, Offset(46f, 30f), Offset(74f, 30f), strokeWidth = 3.4f, cap = StrokeCap.Round)
+            drawLine(gold, Offset(46f, 50f), Offset(74f, 50f), strokeWidth = 3.4f, cap = StrokeCap.Round)
+            // Husillos verticales
+            drawLine(gold, Offset(54f, 30f), Offset(54f, 50f), strokeWidth = 2f, cap = StrokeCap.Round)
+            drawLine(gold, Offset(60f, 30f), Offset(60f, 50f), strokeWidth = 2f, cap = StrokeCap.Round)
+            drawLine(gold, Offset(66f, 30f), Offset(66f, 50f), strokeWidth = 2f, cap = StrokeCap.Round)
+            // Cojín
+            drawRoundRect(Color(0xFFF9B6D3), topLeft = Offset(38f, 59f), size = Size(44f, 10f), cornerRadius = CornerRadius(5f, 5f))
+            drawRoundRect(Color.White.copy(alpha = 0.6f), topLeft = Offset(42f, 60f), size = Size(36f, 3f), cornerRadius = CornerRadius(1.5f, 1.5f))
+        }
+    }
+}
+
+@Composable
+private fun FlowerVaseIllustration(modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val s = size.width / 120f
+        scale(s, s, Offset.Zero) {
+            // Sombra
+            drawOval(
+                color = Color(0xFF2B1730).copy(alpha = 0.08f),
+                topLeft = Offset(60f - 22f, 108f - 3f),
+                size = Size(44f, 6f),
+            )
+            // Hoja izquierda
+            val leafL = Path().apply {
+                moveTo(60f, 74f)
+                cubicTo(40f, 72f, 28f, 58f, 32f, 46f)
+                cubicTo(46f, 50f, 56f, 60f, 60f, 74f)
+                close()
+            }
+            drawPath(leafL, color = Color(0xFF2FB58F), style = Fill)
+            // Hoja derecha
+            val leafR = Path().apply {
+                moveTo(60f, 74f)
+                cubicTo(80f, 72f, 93f, 60f, 89f, 48f)
+                cubicTo(76f, 52f, 64f, 61f, 60f, 74f)
+                close()
+            }
+            drawPath(leafR, color = Color(0xFF26A07D), style = Fill)
+            // Tallos
+            val stemColor = Color(0xFF1F8C6B)
+            drawLine(stemColor, Offset(60f, 74f), Offset(48f, 44f), strokeWidth = 2.4f, cap = StrokeCap.Round)
+            drawLine(stemColor, Offset(60f, 74f), Offset(60f, 36f), strokeWidth = 2.4f, cap = StrokeCap.Round)
+            drawLine(stemColor, Offset(60f, 74f), Offset(75f, 46f), strokeWidth = 2.4f, cap = StrokeCap.Round)
+
+            // Flor rosa izquierda
+            drawCircle(Color(0xFFF9B6D3), radius = 10f, center = Offset(47f, 42f))
+            drawArc(
+                color = Color(0xFFEC4F97),
+                startAngle = 0f,
+                sweepAngle = 270f,
+                useCenter = false,
+                topLeft = Offset(47f - 3.5f, 42f - 3.5f),
+                size = Size(7f, 7f),
+                style = Stroke(width = 1.8f, cap = StrokeCap.Round),
+            )
+            drawArc(
+                color = Color(0xFFEC4F97),
+                startAngle = 180f,
+                sweepAngle = 270f,
+                useCenter = false,
+                topLeft = Offset(47f - 5.5f, 42f - 5.5f),
+                size = Size(11f, 11f),
+                style = Stroke(width = 1.8f, cap = StrokeCap.Round),
+            )
+
+            // Flor amarilla derecha
+            drawCircle(Color(0xFFFFD98A), radius = 10f, center = Offset(76f, 44f))
+            drawArc(
+                color = Color(0xFFD9952A),
+                startAngle = 0f,
+                sweepAngle = 270f,
+                useCenter = false,
+                topLeft = Offset(76f - 3.5f, 44f - 3.5f),
+                size = Size(7f, 7f),
+                style = Stroke(width = 1.8f, cap = StrokeCap.Round),
+            )
+            drawArc(
+                color = Color(0xFFD9952A),
+                startAngle = 180f,
+                sweepAngle = 270f,
+                useCenter = false,
+                topLeft = Offset(76f - 5.5f, 44f - 5.5f),
+                size = Size(11f, 11f),
+                style = Stroke(width = 1.8f, cap = StrokeCap.Round),
+            )
+
+            // Flor magenta centro
+            drawCircle(Color(0xFFEC4F97), radius = 12.5f, center = Offset(61f, 31f))
+            drawArc(
+                color = Color(0xFFC02A72),
+                startAngle = 0f,
+                sweepAngle = 270f,
+                useCenter = false,
+                topLeft = Offset(61f - 4.5f, 31f - 4.5f),
+                size = Size(9f, 9f),
+                style = Stroke(width = 2f, cap = StrokeCap.Round),
+            )
+            drawArc(
+                color = Color(0xFFC02A72),
+                startAngle = 180f,
+                sweepAngle = 270f,
+                useCenter = false,
+                topLeft = Offset(61f - 7f, 31f - 7f),
+                size = Size(14f, 14f),
+                style = Stroke(width = 2f, cap = StrokeCap.Round),
+            )
+
+            // Puntos blancos
+            drawCircle(Color.White, radius = 3f, center = Offset(35f, 58f))
+            drawCircle(Color.White, radius = 3f, center = Offset(88f, 60f))
+
+            // Macetero
+            val pot = Path().apply {
+                moveTo(46f, 72f)
+                lineTo(74f, 72f)
+                lineTo(70f, 104f)
+                quadraticTo(60f, 108f, 50f, 104f)
+                close()
+            }
+            drawPath(pot, color = Color(0xFFB9A6F7), style = Fill)
+            drawLine(Color.White.copy(alpha = 0.55f), Offset(52f, 77f), Offset(50f, 100f), strokeWidth = 2.2f, cap = StrokeCap.Round)
         }
     }
 }
@@ -626,89 +1047,128 @@ private fun OnboardingIllustrationStep1() {
 private fun OnboardingIllustrationStep2() {
     Box(
         modifier = Modifier
-            .fillMaxSize()
-            .clip(RoundedCornerShape(36.dp))
-            .background(Color(0xFFEFE8FD)),
+            .fillMaxSize(),
     ) {
-        // Rosa Avatar en la parte superior
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .offset(y = 18.dp),
-        ) {
-            RosaAvatar(size = RosaAvatarSize.HERO, glow = true)
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val sX = size.width / 350f
+            val sY = size.height / 340f
+            scale(sX, sY, Offset.Zero) {
+                // Fondo orgánico (blob morado tenue)
+                val blobPath = Path().apply {
+                    moveTo(180f, 14f)
+                    cubicTo(276f, 10f, 344f, 78f, 340f, 170f)
+                    cubicTo(336f, 262f, 276f, 334f, 170f, 330f)
+                    cubicTo(64f, 326f, 6f, 268f, 12f, 160f)
+                    cubicTo(18f, 52f, 84f, 18f, 180f, 14f)
+                    close()
+                }
+                drawPath(blobPath, color = Color(0xFFEFE8FD), style = Fill)
+
+                // Estrellas y círculos
+                val star1 = Path().apply {
+                    moveTo(250f, 40f)
+                    lineTo(252.4f, 46.4f)
+                    lineTo(258.8f, 48.8f)
+                    lineTo(252.4f, 51.2f)
+                    lineTo(250f, 57.6f)
+                    lineTo(247.6f, 51.2f)
+                    lineTo(241.2f, 48.8f)
+                    lineTo(247.6f, 46.4f)
+                    close()
+                }
+                drawPath(star1, color = Color(0xFFEA4EA9), style = Fill)
+
+                val star2 = Path().apply {
+                    moveTo(96f, 64f)
+                    lineTo(97.6f, 68.2f)
+                    lineTo(101.8f, 69.8f)
+                    lineTo(97.6f, 71.4f)
+                    lineTo(96f, 75.6f)
+                    lineTo(94.4f, 71.4f)
+                    lineTo(90.2f, 69.8f)
+                    lineTo(94.4f, 68.2f)
+                    close()
+                }
+                drawPath(star2, color = Color(0xFFF7B500), style = Fill)
+
+                drawCircle(Color(0xFF8DB52C), radius = 4f, center = Offset(286f, 96f))
+            }
         }
 
-        // Burbujas de diálogo
-        Column(
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+        // Avatar gigante de Rosa (left: 127dp, top: 22dp, size: 96dp)
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .offset(y = 130.dp),
+                .offset(x = 127.dp, y = 22.dp)
+                .size(96.dp),
         ) {
-            // Mensaje de Rosa
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomEnd = 18.dp, bottomStart = 4.dp))
-                    .background(Color.White)
-                    .padding(horizontal = 14.dp, vertical = 10.dp)
-                    .shadow(elevation = 4.dp, shape = RoundedCornerShape(18.dp), spotColor = Color(0x1F000000)),
-            ) {
-                BasicText(
-                    text = "¿Qué evento quieres celebrar?",
-                    style = LocalRfTypography.current.body.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF151729)),
-                )
-            }
+            RosaAvatar(size = RosaAvatarSize.GIANT, glow = true)
+        }
 
-            // Respuesta del usuario
-            Box(
-                modifier = Modifier
-                    .align(Alignment.End)
-                    .clip(RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomEnd = 4.dp, bottomStart = 18.dp))
-                    .background(
-                        Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF865DEC))),
-                    )
-                    .padding(horizontal = 14.dp, vertical = 10.dp),
-            ) {
-                BasicText(
-                    text = "Una boda en un jardín",
-                    style = LocalRfTypography.current.body.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color.White),
-                )
-            }
+        // Burbuja 1: ¿Qué evento quieres celebrar? (left: 14dp, top: 136dp)
+        Box(
+            modifier = Modifier
+                .offset(x = 14.dp, y = 136.dp)
+                .shadow(elevation = 10.dp, shape = RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomEnd = 18.dp, bottomStart = 6.dp), spotColor = Color(0x40AA46A0))
+                .clip(RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomEnd = 18.dp, bottomStart = 6.dp))
+                .background(Color.White)
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+        ) {
+            BasicText(
+                text = "¿Qué evento quieres celebrar?",
+                style = LocalRfTypography.current.body.copy(fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A2E)),
+            )
+        }
 
-            // Recomendación con fotos
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomEnd = 18.dp, bottomStart = 4.dp))
-                    .background(Color.White)
-                    .padding(10.dp),
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    BasicText(
-                        text = "¡Me encanta! Te sugiero:",
-                        style = LocalRfTypography.current.body.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF151729)),
+        // Burbuja 2: Una boda en un jardín (right: 14dp, top: 192dp)
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .offset(x = (-14).dp, y = 192.dp)
+                .shadow(elevation = 10.dp, shape = RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomEnd = 6.dp, bottomStart = 18.dp), spotColor = Color(0x66865DEC))
+                .clip(RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomEnd = 6.dp, bottomStart = 18.dp))
+                .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))))
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+        ) {
+            BasicText(
+                text = "Una boda en un jardín",
+                style = LocalRfTypography.current.body.copy(fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Color.White),
+            )
+        }
+
+        // Burbuja 3: ¡Me encanta! Te sugiero: (left: 14dp, top: 246dp)
+        Box(
+            modifier = Modifier
+                .offset(x = 14.dp, y = 246.dp)
+                .width(250.dp)
+                .shadow(elevation = 10.dp, shape = RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomEnd = 18.dp, bottomStart = 6.dp), spotColor = Color(0x40AA46A0))
+                .clip(RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomEnd = 18.dp, bottomStart = 6.dp))
+                .background(Color.White)
+                .padding(12.dp),
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                BasicText(
+                    text = "¡Me encanta! Te sugiero:",
+                    style = LocalRfTypography.current.body.copy(fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A2E)),
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    RfPhoto(
+                        photoKey = RfPhotoKey.SILLA_TIFFANY,
+                        contentDescription = "Silla Tiffany",
+                        cornerRadius = 12.dp,
+                        modifier = Modifier.size(58.dp),
                     )
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        RfPhoto(
-                            photoKey = RfPhotoKey.SILLA_TIFFANY,
-                            contentDescription = "Silla",
-                            cornerRadius = 8.dp,
-                            modifier = Modifier.size(54.dp),
-                        )
-                        RfPhoto(
-                            photoKey = RfPhotoKey.CENTRO_FLORAL,
-                            contentDescription = "Flores",
-                            cornerRadius = 8.dp,
-                            modifier = Modifier.size(54.dp),
-                        )
-                        RfPhoto(
-                            photoKey = RfPhotoKey.ARCO_ROSA,
-                            contentDescription = "Arco",
-                            cornerRadius = 8.dp,
-                            modifier = Modifier.size(54.dp),
-                        )
-                    }
+                    RfPhoto(
+                        photoKey = RfPhotoKey.CENTRO_FLORAL,
+                        contentDescription = "Centro Floral",
+                        cornerRadius = 12.dp,
+                        modifier = Modifier.size(58.dp),
+                    )
+                    RfPhoto(
+                        photoKey = RfPhotoKey.ARCO_ROSA,
+                        contentDescription = "Arco Rosa",
+                        cornerRadius = 12.dp,
+                        modifier = Modifier.size(58.dp),
+                    )
                 }
             }
         }
@@ -719,69 +1179,164 @@ private fun OnboardingIllustrationStep2() {
 private fun OnboardingIllustrationStep3() {
     Box(
         modifier = Modifier
-            .fillMaxSize()
-            .clip(RoundedCornerShape(36.dp))
-            .background(Color(0xFFEEF6D6)),
+            .fillMaxSize(),
     ) {
-        // Tarjeta inclinada de WhatsApp
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val sX = size.width / 350f
+            val sY = size.height / 340f
+            scale(sX, sY, Offset.Zero) {
+                // Fondo orgánico (blob verde lima suave)
+                val blobPath = Path().apply {
+                    moveTo(168f, 12f)
+                    cubicTo(262f, 6f, 346f, 70f, 338f, 172f)
+                    cubicTo(330f, 274f, 262f, 336f, 158f, 328f)
+                    cubicTo(54f, 320f, 4f, 262f, 14f, 154f)
+                    cubicTo(24f, 46f, 74f, 18f, 168f, 12f)
+                    close()
+                }
+                drawPath(blobPath, color = Color(0xFFEEF6D6), style = Fill)
+
+                // Círculo amarillo
+                drawCircle(Color(0xFFF7B500), radius = 5f, center = Offset(306f, 60f))
+
+                // Estrella rosa
+                val star = Path().apply {
+                    moveTo(30f, 252f)
+                    lineTo(32f, 257.4f)
+                    lineTo(37.4f, 259.4f)
+                    lineTo(32f, 261.4f)
+                    lineTo(30f, 266.8f)
+                    lineTo(28f, 261.4f)
+                    lineTo(22.6f, 259.4f)
+                    lineTo(28f, 257.4f)
+                    close()
+                }
+                drawPath(star, color = Color(0xFFEA4EA9), style = Fill)
+            }
+        }
+
+        // Tarjeta inclinada de WhatsApp (-3deg)
         Box(
             modifier = Modifier
-                .padding(20.dp)
-                .rotate(-2f)
-                .shadow(elevation = 16.dp, shape = RoundedCornerShape(20.dp), spotColor = Color(0x33AA46A0))
-                .clip(RoundedCornerShape(20.dp))
+                .offset(x = 34.dp, y = 30.dp)
+                .width(236.dp)
+                .rotate(-3f)
+                .shadow(elevation = 16.dp, shape = RoundedCornerShape(24.dp), spotColor = Color(0x40AA46A0))
+                .clip(RoundedCornerShape(24.dp))
                 .background(Color.White)
                 .padding(16.dp),
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                BasicText(
-                    text = "Tu lista",
-                    style = LocalRfTypography.current.sheetOrEmptyTitle.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold),
-                )
-                BasicText(
-                    text = "Boda Real Rosa & Dorado",
-                    style = LocalRfTypography.current.secondary.copy(fontSize = 12.sp),
-                )
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column {
+                    BasicText(
+                        text = "Tu lista",
+                        style = LocalRfTypography.current.sheetOrEmptyTitle.copy(fontSize = 17.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF1A1A2E)),
+                    )
+                    BasicText(
+                        text = "Boda Real Rosa & Dorado",
+                        style = LocalRfTypography.current.secondary.copy(fontSize = 12.sp, color = Color(0xFF62627A)),
+                    )
+                }
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    RfPhoto(
+                        photoKey = RfPhotoKey.SILLA_TIFFANY,
+                        contentDescription = "Sillas Tiffany",
+                        cornerRadius = 10.dp,
+                        modifier = Modifier.size(40.dp),
+                    )
+                    BasicText("Sillas Tiffany", style = LocalRfTypography.current.body.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A2E)), modifier = Modifier.weight(1f))
+                    BasicText("×40", style = LocalRfTypography.current.secondary.copy(fontSize = 13.sp, color = Color(0xFF62627A)))
+                }
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    BasicText("Sillas Tiffany", style = LocalRfTypography.current.body.copy(fontSize = 13.sp))
-                    BasicText("×40", style = LocalRfTypography.current.secondary.copy(fontSize = 13.sp))
-                }
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    BasicText("Arco de globos", style = LocalRfTypography.current.body.copy(fontSize = 13.sp))
-                    BasicText("×1", style = LocalRfTypography.current.secondary.copy(fontSize = 13.sp))
-                }
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    BasicText("Centros de mesa", style = LocalRfTypography.current.body.copy(fontSize = 13.sp))
-                    BasicText("×8", style = LocalRfTypography.current.secondary.copy(fontSize = 13.sp))
+                    RfPhoto(
+                        photoKey = RfPhotoKey.ARCO_ROSA,
+                        contentDescription = "Arco de globos",
+                        cornerRadius = 10.dp,
+                        modifier = Modifier.size(40.dp),
+                    )
+                    BasicText("Arco de globos", style = LocalRfTypography.current.body.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A2E)), modifier = Modifier.weight(1f))
+                    BasicText("×1", style = LocalRfTypography.current.secondary.copy(fontSize = 13.sp, color = Color(0xFF62627A)))
                 }
 
-                Spacer(Modifier.height(4.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    RfPhoto(
+                        photoKey = RfPhotoKey.CENTRO_FLORAL,
+                        contentDescription = "Centros de mesa",
+                        cornerRadius = 10.dp,
+                        modifier = Modifier.size(40.dp),
+                    )
+                    BasicText("Centros de mesa", style = LocalRfTypography.current.body.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A2E)), modifier = Modifier.weight(1f))
+                    BasicText("×8", style = LocalRfTypography.current.secondary.copy(fontSize = 13.sp, color = Color(0xFF62627A)))
+                }
 
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(38.dp)
-                        .clip(RoundedCornerShape(10.dp))
+                        .height(42.dp)
+                        .clip(RoundedCornerShape(12.dp))
                         .background(Color(0xFF2E9E5B)),
                 ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        RfIcon(kind = RfIconKind.WHATSAPP, tint = Color.White, size = 18.dp)
+                        BasicText(
+                            text = "Enviar por WhatsApp",
+                            style = LocalRfTypography.current.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White),
+                        )
+                    }
+                }
+            }
+        }
+
+        // Burbuja de confirmación solapada (right: 8dp, top: 288dp)
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .offset(x = (-8).dp, y = 288.dp)
+                .shadow(elevation = 14.dp, shape = RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomEnd = 6.dp, bottomStart = 18.dp), spotColor = Color(0x40AA46A0))
+                .clip(RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomEnd = 6.dp, bottomStart = 18.dp))
+                .background(Color.White)
+                .padding(start = 10.dp, end = 14.dp, top = 10.dp, bottom = 10.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFEEF6D6)),
+                ) {
                     BasicText(
-                        text = "Enviar por WhatsApp",
-                        style = LocalRfTypography.current.body.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White),
+                        text = "M",
+                        style = LocalRfTypography.current.body.copy(fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF4E6A10)),
                     )
+                }
+                Column {
+                    BasicText(
+                        text = "María · Rosa Fiesta",
+                        style = LocalRfTypography.current.secondary.copy(fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF4E6A10)),
+                    )
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        BasicText(
+                            text = "¡Todo confirmado!",
+                            style = LocalRfTypography.current.body.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A2E)),
+                        )
+                        RfIcon(kind = RfIconKind.CHECK, tint = Color(0xFF8DB52C), size = 16.dp)
+                    }
                 }
             }
         }
@@ -804,7 +1359,8 @@ internal fun RenderBienvenidaScreen(
             .background(Color(0xFFFAFAFC)),
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
-            drawGarlandAndConfettiPersonal()
+            drawPersonalAtmosphereBackground()
+            drawBienvenidaDecorations()
         }
 
         // Centro: Logo con halo doble + Título + Subtítulo
@@ -822,12 +1378,12 @@ internal fun RenderBienvenidaScreen(
                 Box(
                     modifier = Modifier
                         .size(160.dp)
-                        .background(Color(0x14EA4EA9), CircleShape),
+                        .background(Color(0x0D865DEC), CircleShape),
                 )
                 Box(
                     modifier = Modifier
                         .size(136.dp)
-                        .background(Color(0x0D865DEC), CircleShape),
+                        .background(Color(0x14EA4EA9), CircleShape),
                 )
                 RfLogo(customSize = 116.dp, insetPadding = false)
             }
@@ -863,6 +1419,7 @@ internal fun RenderBienvenidaScreen(
                     textAlign = TextAlign.Center,
                     lineHeight = 25.sp,
                 ),
+                modifier = Modifier.width(260.dp),
             )
         }
 
@@ -898,7 +1455,7 @@ internal fun RenderBienvenidaScreen(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(54.dp)
+                    .height(56.dp)
                     .clip(RoundedCornerShape(16.dp))
                     .background(
                         Brush.horizontalGradient(
@@ -925,10 +1482,11 @@ internal fun RenderBienvenidaScreen(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(54.dp)
+                    .height(56.dp)
                     .clip(RoundedCornerShape(16.dp))
                     .background(Color.White)
                     .border(1.dp, Color(0xFFEEE9F2), RoundedCornerShape(16.dp))
+                    .shadow(elevation = 6.dp, shape = RoundedCornerShape(16.dp), spotColor = Color(0x207850A0))
                     .clickable { onSelectScreenCode("s07") },
             ) {
                 BasicText(
@@ -941,6 +1499,82 @@ internal fun RenderBienvenidaScreen(
                 )
             }
         }
+    }
+}
+
+private fun DrawScope.drawBienvenidaDecorations() {
+    val s = this.size.width / 390f
+    scale(s, s, Offset.Zero) {
+        val garlandPath = Path().apply {
+            moveTo(-10f, 4f)
+            quadraticTo(195f, 64f, 400f, 4f)
+        }
+        drawPath(
+            path = garlandPath,
+            color = Color(0xFF1A1A2E).copy(alpha = 0.18f),
+            style = Stroke(width = 1.2f, cap = StrokeCap.Round),
+        )
+
+        val pennants = listOf(
+            Triple(14f to 10f, 34f to 10f, 24f to 34f) to Color(0xFFEA4EA9),
+            Triple(58f to 20f, 78f to 20f, 68f to 44f) to Color(0xFFFBCA3F),
+            Triple(102f to 27f, 122f to 27f, 112f to 51f) to Color(0xFFB9D84A),
+            Triple(146f to 32f, 166f to 32f, 156f to 56f) to Color(0xFF865DEC),
+            Triple(190f to 33f, 210f to 33f, 200f to 57f) to Color(0xFF1FBDC0),
+            Triple(234f to 31f, 254f to 31f, 244f to 55f) to Color(0xFFEA4EA9),
+            Triple(278f to 27f, 298f to 27f, 288f to 51f) to Color(0xFFFBCA3F),
+            Triple(322f to 20f, 342f to 20f, 332f to 44f) to Color(0xFFB9D84A),
+            Triple(366f to 10f, 386f to 10f, 376f to 34f) to Color(0xFF865DEC),
+        )
+        pennants.forEach { (points, color) ->
+            val p = Path().apply {
+                moveTo(points.first.first, points.first.second)
+                lineTo(points.second.first, points.second.second)
+                lineTo(points.third.first, points.third.second)
+                close()
+            }
+            drawPath(p, color = color, style = Fill)
+        }
+
+        // Serpentinas oficiales
+        val pinkStreamer = Path().apply {
+            moveTo(-30f, 150f)
+            cubicTo(30f, 90f, 70f, 210f, 130f, 140f)
+            cubicTo(190f, 70f, 210f, 70f, 250f, 120f)
+        }
+        drawPath(pinkStreamer, color = Color(0xFFF3B8D8), style = Stroke(width = 7f, cap = StrokeCap.Round))
+
+        val yellowStreamer = Path().apply {
+            moveTo(420f, 250f)
+            cubicTo(360f, 220f, 370f, 320f, 310f, 300f)
+            cubicTo(250f, 280f, 250f, 220f, 228f, 268f)
+        }
+        drawPath(yellowStreamer, color = Color(0xFFFFE08A), style = Stroke(width = 6f, cap = StrokeCap.Round))
+
+        val greenStreamer = Path().apply {
+            moveTo(-16f, 500f)
+            cubicTo(34f, 460f, 56f, 552f, 108f, 510f)
+        }
+        drawPath(greenStreamer, color = Color(0xFFD6EA8C), style = Stroke(width = 5f, cap = StrokeCap.Round))
+
+        val lavenderStreamer = Path().apply {
+            moveTo(408f, 540f)
+            cubicTo(366f, 500f, 338f, 582f, 296f, 540f)
+        }
+        drawPath(lavenderStreamer, color = Color(0xFFD9CCFA), style = Stroke(width = 5f, cap = StrokeCap.Round))
+
+        // Confetti y figuras
+        drawCircle(Color(0xFF1FBDC0), radius = 6f, center = Offset(322f, 150f))
+        val pinkTri = Path().apply {
+            moveTo(70f, 380f)
+            lineTo(84f, 388f)
+            lineTo(70f, 396f)
+            close()
+        }
+        drawPath(pinkTri, color = Color(0xFFEA4EA9), style = Fill)
+        drawCircle(Color(0xFFFBCA3F), radius = 4f, center = Offset(200f, 168f))
+        drawCircle(Color(0xFF1FBDC0), radius = 4f, center = Offset(44f, 610f))
+        drawCircle(Color(0xFFEA4EA9), radius = 3f, center = Offset(350f, 640f))
     }
 }
 
@@ -964,6 +1598,45 @@ internal fun RenderLoginScreenS07(
             .fillMaxSize()
             .background(Color(0xFFFAFAFC)),
     ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            drawPersonalAtmosphereBackground()
+            val s = size.width / 390f
+            scale(s, s, Offset.Zero) {
+                drawCircle(color = Color(0xFFCFE48A), radius = 26f, center = Offset(30f, 660f), style = Stroke(width = 2f))
+                drawCircle(color = Color(0xFFE2CCF4), radius = 34f, center = Offset(356f, 740f), style = Stroke(width = 1.5f))
+                val sq1 = Path().apply {
+                    moveTo(60f, 752f)
+                    lineTo(74f, 748f)
+                    lineTo(80f, 768f)
+                    lineTo(66f, 772f)
+                    close()
+                }
+                drawPath(sq1, color = Color(0xFFC9B6F2), style = Stroke(width = 1.5f))
+                val sq2 = Path().apply {
+                    moveTo(260f, 772f)
+                    lineTo(286f, 766f)
+                    lineTo(296f, 788f)
+                    lineTo(270f, 794f)
+                    close()
+                }
+                drawPath(sq2, color = Color(0xFFF3C4D8), style = Stroke(width = 1.5f))
+                drawSvgStar(center = Offset(190f, 798f), scale = 1f, color = Color(0xFFFBCA3F))
+
+                val starGreen = Path().apply {
+                    moveTo(16f, 470f)
+                    lineTo(19f, 477f)
+                    lineTo(26f, 480f)
+                    lineTo(19f, 483f)
+                    lineTo(16f, 490f)
+                    lineTo(13f, 483f)
+                    lineTo(6f, 480f)
+                    lineTo(13f, 477f)
+                    close()
+                }
+                drawPath(starGreen, color = Color(0xFFB9D84A), style = Fill)
+            }
+        }
+
         // Globos festivos en la esquina superior derecha
         BalloonClusterIllustration(
             modifier = Modifier
@@ -980,8 +1653,8 @@ internal fun RenderLoginScreenS07(
                 .size(44.dp)
                 .clip(CircleShape)
                 .background(Color.White)
-                .border(1.dp, Color(0xFFECECF5), CircleShape)
-                .shadow(elevation = 8.dp, shape = CircleShape, spotColor = Color(0x334650B4))
+                .border(1.dp, Color(0xFFF0EBF4), CircleShape)
+                .shadow(elevation = 6.dp, shape = CircleShape, spotColor = Color(0x334650B4))
                 .clickable { onSelectScreenCode("s06") },
         ) {
             RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF151729), size = 20.dp)
@@ -1004,27 +1677,28 @@ internal fun RenderLoginScreenS07(
             Spacer(Modifier.height(8.dp))
             BasicText(
                 text = "Entra para ver tus eventos y cotizaciones.",
-                style = typo.body.copy(fontSize = 16.sp, color = Color(0xFF5F6377)),
+                style = typo.body.copy(fontSize = 16.sp, color = Color(0xFF62627A)),
             )
 
             Spacer(Modifier.height(28.dp))
 
             // Campo Correo
-            BasicText("Correo o usuario", style = typo.fieldLabel.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF3A3D52)))
+            BasicText("Correo o usuario", style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A2E)))
             Spacer(Modifier.height(8.dp))
             Box(
                 contentAlignment = Alignment.CenterStart,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(50.dp)
-                    .clip(RoundedCornerShape(14.dp))
+                    .height(56.dp)
+                    .clip(RoundedCornerShape(16.dp))
                     .background(Color.White)
-                    .border(1.dp, Color(0xFFE3E4EF), RoundedCornerShape(14.dp))
-                    .padding(horizontal = 14.dp),
+                    .border(1.dp, Color(0xFFE6DEEA), RoundedCornerShape(16.dp))
+                    .shadow(elevation = 8.dp, shape = RoundedCornerShape(16.dp), spotColor = Color(0x33B450B4))
+                    .padding(horizontal = 16.dp),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    RfIcon(kind = RfIconKind.MAIL, tint = Color(0xFF5F6377), size = 20.dp)
-                    BasicText(email, style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF151729)))
+                    RfIcon(kind = RfIconKind.MAIL, tint = Color(0xFF62627A), size = 20.dp)
+                    BasicText(email, style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF1A1A2E)))
                 }
             }
 
@@ -1036,10 +1710,10 @@ internal fun RenderLoginScreenS07(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                BasicText("Contraseña", style = typo.fieldLabel.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF3A3D52)))
+                BasicText("Contraseña", style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A2E)))
                 BasicText(
                     text = "¿La olvidaste?",
-                    style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFFD63F98)),
+                    style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD63F98), textDecoration = TextDecoration.Underline),
                     modifier = Modifier.clickable { onSelectScreenCode("s09") },
                 )
             }
@@ -1048,23 +1722,29 @@ internal fun RenderLoginScreenS07(
                 contentAlignment = Alignment.CenterStart,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(50.dp)
-                    .clip(RoundedCornerShape(14.dp))
+                    .height(56.dp)
+                    .clip(RoundedCornerShape(16.dp))
                     .background(Color.White)
-                    .border(1.dp, Color(0xFFE3E4EF), RoundedCornerShape(14.dp))
-                    .padding(horizontal = 14.dp),
+                    .border(1.dp, Color(0xFFE6DEEA), RoundedCornerShape(16.dp))
+                    .shadow(elevation = 8.dp, shape = RoundedCornerShape(16.dp), spotColor = Color(0x33B450B4))
+                    .padding(start = 16.dp, end = 6.dp),
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        RfIcon(kind = RfIconKind.LOCK, tint = Color(0xFF5F6377), size = 20.dp)
-                        BasicText(if (showPassword) password else "••••••••••••", style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF151729)))
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.weight(1f)) {
+                        RfIcon(kind = RfIconKind.LOCK, tint = Color(0xFF62627A), size = 20.dp)
+                        BasicText(if (showPassword) password else "••••••••••••", style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF1A1A2E), letterSpacing = if (showPassword) 0.sp else 2.sp))
                     }
-                    Box(modifier = Modifier.clickable { showPassword = !showPassword }) {
-                        RfIcon(kind = RfIconKind.EYE, tint = Color(0xFF5F6377), size = 20.dp)
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clickable { showPassword = !showPassword },
+                    ) {
+                        RfIcon(kind = RfIconKind.EYE, tint = Color(0xFF62627A), size = 20.dp)
                     }
                 }
             }
@@ -1076,7 +1756,7 @@ internal fun RenderLoginScreenS07(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(54.dp)
+                    .height(56.dp)
                     .shadow(elevation = 12.dp, shape = RoundedCornerShape(16.dp), spotColor = Color(0xB3C846B4))
                     .clip(RoundedCornerShape(16.dp))
                     .background(
@@ -1099,7 +1779,7 @@ internal fun RenderLoginScreenS07(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Box(Modifier.weight(1f).height(1.dp).background(Color(0xFFE6DEEA)))
-                BasicText("o continúa con", style = typo.secondary.copy(fontSize = 13.sp, color = Color(0xFF5F6377)))
+                BasicText("o continúa con", style = typo.secondary.copy(fontSize = 13.sp, color = Color(0xFF62627A)))
                 Box(Modifier.weight(1f).height(1.dp).background(Color(0xFFE6DEEA)))
             }
 
@@ -1110,23 +1790,25 @@ internal fun RenderLoginScreenS07(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
                         .weight(1f)
-                        .height(54.dp)
+                        .height(56.dp)
                         .clip(RoundedCornerShape(16.dp))
                         .background(Color.White)
-                        .border(1.dp, Color(0xFFE3E4EF), RoundedCornerShape(16.dp)),
+                        .border(1.dp, Color(0xFFEEE9F2), RoundedCornerShape(16.dp))
+                        .shadow(elevation = 6.dp, shape = RoundedCornerShape(16.dp), spotColor = Color(0x207850A0)),
                 ) {
-                    BasicText("Google", style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF151729)))
+                    BasicText("Google", style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A2E)))
                 }
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
                         .weight(1f)
-                        .height(54.dp)
+                        .height(56.dp)
                         .clip(RoundedCornerShape(16.dp))
                         .background(Color.White)
-                        .border(1.dp, Color(0xFFE3E4EF), RoundedCornerShape(16.dp)),
+                        .border(1.dp, Color(0xFFEEE9F2), RoundedCornerShape(16.dp))
+                        .shadow(elevation = 6.dp, shape = RoundedCornerShape(16.dp), spotColor = Color(0x207850A0)),
                 ) {
-                    BasicText("Apple", style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF151729)))
+                    BasicText("Apple", style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A2E)))
                 }
             }
         }
@@ -1139,10 +1821,10 @@ internal fun RenderLoginScreenS07(
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 44.dp),
         ) {
-            BasicText("¿No tienes cuenta? ", style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF5F6377)))
+            BasicText("¿No tienes cuenta? ", style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF62627A)))
             BasicText(
                 text = "Regístrate",
-                style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD63F98)),
+                style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD63F98), textDecoration = TextDecoration.Underline),
                 modifier = Modifier.clickable { onSelectScreenCode("s08") },
             )
         }
