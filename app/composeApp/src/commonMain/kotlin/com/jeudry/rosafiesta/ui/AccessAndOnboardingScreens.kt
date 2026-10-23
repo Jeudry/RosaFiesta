@@ -75,7 +75,10 @@ import com.jeudry.rosafiesta.designsystem.RfPhotoKey
 import com.jeudry.rosafiesta.designsystem.RosaAvatar
 import com.jeudry.rosafiesta.designsystem.RosaAvatarSize
 import com.jeudry.rosafiesta.designsystem.rfCardShadow
+import com.jeudry.rosafiesta.designsystem.rfHeroBannerShadow
+import com.jeudry.rosafiesta.designsystem.rfIconButtonShadow
 import com.jeudry.rosafiesta.designsystem.rfInputShadow
+import com.jeudry.rosafiesta.designsystem.rfPrimaryButtonShadow
 
 // ==============================================================================
 // p00 · SPLASH (APP PERSONAL)
@@ -2592,7 +2595,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                         }
                     }
 
-                    Spacer(Modifier.height(10.dp))
+                    Spacer(Modifier.height(14.dp))
 
                     // Barras de fuerza
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -2619,7 +2622,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                         }
                         BasicText("Al menos 8 caracteres", style = typo.body.copy(fontSize = 14.sp, color = Color(0xFF4E6A10)))
                     }
-                    Spacer(Modifier.height(6.dp))
+                    Spacer(Modifier.height(10.dp))
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Canvas(modifier = Modifier.size(18.dp)) {
                             val s = size.width / 24f
@@ -2629,7 +2632,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                         }
                         BasicText("Incluye un número", style = typo.body.copy(fontSize = 14.sp, color = Color(0xFF4E6A10)))
                     }
-                    Spacer(Modifier.height(6.dp))
+                    Spacer(Modifier.height(10.dp))
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Canvas(modifier = Modifier.size(18.dp)) {
                             val s = size.width / 24f
@@ -2640,7 +2643,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                         BasicText("Incluye un símbolo (opcional)", style = typo.body.copy(fontSize = 14.sp, color = Color(0xFF62627A)))
                     }
 
-                    Spacer(Modifier.height(18.dp))
+                    Spacer(Modifier.height(22.dp))
 
                     BasicText("Confirmar contraseña", style = typo.fieldLabel.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A2E)))
                     Spacer(Modifier.height(8.dp))
@@ -2676,9 +2679,9 @@ internal fun RenderRecoveryAndConfirmationScreens(
                     modifier = Modifier
                         .fillMaxWidth()
                         .align(Alignment.BottomCenter)
-                        .padding(horizontal = 24.dp, vertical = 40.dp)
+                        .padding(start = 24.dp, end = 24.dp, bottom = 40.dp)
                         .height(56.dp)
-                        .shadow(elevation = 12.dp, shape = RoundedCornerShape(16.dp), spotColor = Color(0xB3C846B4), ambientColor = Color.Transparent)
+                        .rfPrimaryButtonShadow(RoundedCornerShape(16.dp))
                         .clip(RoundedCornerShape(16.dp))
                         .background(Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC))))
                         .clickable { onSelectScreenCode("s11") },

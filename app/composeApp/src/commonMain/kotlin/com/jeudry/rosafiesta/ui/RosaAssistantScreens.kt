@@ -59,6 +59,7 @@ import com.jeudry.rosafiesta.designsystem.RfPhotoKey
 import com.jeudry.rosafiesta.designsystem.RosaAvatar
 import com.jeudry.rosafiesta.designsystem.RosaAvatarSize
 import com.jeudry.rosafiesta.designsystem.rfCardShadow
+import com.jeudry.rosafiesta.designsystem.rfHeroBannerShadow
 import com.jeudry.rosafiesta.designsystem.rfIconButtonShadow
 import com.jeudry.rosafiesta.designsystem.rfInputShadow
 import com.jeudry.rosafiesta.designsystem.rfPrimaryButtonShadow
@@ -114,7 +115,7 @@ private fun RosaWizardHeader(
         Box(
             modifier = Modifier
                 .size(44.dp)
-                .shadow(6.dp, CircleShape, spotColor = Color(0x335A3CA0))
+                .rfIconButtonShadow(CircleShape, isAdmin = false)
                 .clip(CircleShape)
                 .background(Color.White)
                 .clickable(onClick = onBack),
@@ -170,7 +171,7 @@ private fun RosaWizardHeader(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .shadow(6.dp, CircleShape, spotColor = Color(0x335A3CA0))
+                    .rfIconButtonShadow(CircleShape, isAdmin = false)
                     .clip(CircleShape)
                     .background(Color.White)
                     .clickable(onClick = onCart),
@@ -305,7 +306,7 @@ internal fun RenderMyEventDraftS25(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .shadow(6.dp, RoundedCornerShape(22.dp), spotColor = Color(0x26C850AA))
+                    .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = false)
                     .clip(RoundedCornerShape(22.dp))
                     .background(Color.White)
                     .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(22.dp)),
@@ -467,7 +468,7 @@ internal fun RenderMyEventDraftS25(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp)
-                        .shadow(12.dp, RoundedCornerShape(16.dp), spotColor = Color(0xB3C846B4))
+                        .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
                         .clip(RoundedCornerShape(16.dp))
                         .background(RosaButtonGradient)
                         .clickable { onSelectScreenCode("s26") },
@@ -622,7 +623,7 @@ internal fun RenderRosaEventTypeS26(
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(116.dp)
-                                    .shadow(12.dp, RoundedCornerShape(20.dp), spotColor = Color(0x666E46B4), ambientColor = Color(0x186E46B4))
+                                    .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
                                     .clip(RoundedCornerShape(20.dp))
                                     .then(
                                         if (item.isGradient) {
@@ -748,7 +749,7 @@ internal fun RenderRosaEventTypeS26(
                 .padding(start = 16.dp, end = 16.dp, bottom = 34.dp)
                 .fillMaxWidth()
                 .height(58.dp)
-                .shadow(14.dp, CircleShape, spotColor = Color(0x405A3CA0))
+                .rfInputShadow(CircleShape, isAdmin = false)
                 .clip(CircleShape)
                 .background(Color.White)
                 .padding(start = 20.dp, end = 6.dp),
@@ -847,7 +848,7 @@ internal fun RenderRosaTutorialS27(
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                            .shadow(6.dp, RoundedCornerShape(topStart = 6.dp, topEnd = 20.dp, bottomStart = 20.dp, bottomEnd = 20.dp), spotColor = Color(0x22865DEC))
+                            .rfCardShadow(RoundedCornerShape(topStart = 6.dp, topEnd = 20.dp, bottomStart = 20.dp, bottomEnd = 20.dp), isAdmin = false)
                             .clip(RoundedCornerShape(topStart = 6.dp, topEnd = 20.dp, bottomStart = 20.dp, bottomEnd = 20.dp))
                             .background(Color.White)
                             .padding(16.dp),
@@ -1142,7 +1143,7 @@ internal fun RenderRosaHelpS28(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(64.dp)
-                    .shadow(12.dp, RoundedCornerShape(20.dp), spotColor = Color(0xB3EA4899), ambientColor = Color.Transparent)
+                    .rfPrimaryButtonShadow(RoundedCornerShape(20.dp), isAdmin = false)
                     .clip(RoundedCornerShape(20.dp))
                     .background(Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC))))
                     .clickable { onSelectScreenCode("s29") }
@@ -1299,7 +1300,7 @@ internal fun RenderRosaSuggestionsS29(
                 Box(
                     modifier = Modifier
                         .width(208.dp)
-                        .shadow(14.dp, RoundedCornerShape(22.dp), spotColor = Color(0x33AA46A0))
+                        .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = false)
                         .clip(RoundedCornerShape(22.dp))
                         .background(Color.White),
                 ) {
@@ -1346,7 +1347,7 @@ internal fun RenderRosaSuggestionsS29(
                 Box(
                     modifier = Modifier
                         .width(208.dp)
-                        .shadow(14.dp, RoundedCornerShape(22.dp), spotColor = Color(0x33AA46A0))
+                        .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = false)
                         .clip(RoundedCornerShape(22.dp))
                         .background(Color.White),
                 ) {
@@ -1394,7 +1395,7 @@ internal fun RenderRosaSuggestionsS29(
                 Box(
                     modifier = Modifier
                         .width(208.dp)
-                        .shadow(14.dp, RoundedCornerShape(22.dp), spotColor = Color(0x33AA46A0))
+                        .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = false)
                         .clip(RoundedCornerShape(22.dp))
                         .background(Color.White),
                 ) {
@@ -1467,7 +1468,7 @@ internal fun RenderRosaSuggestionsS29(
                 modifier = Modifier
                     .weight(1f)
                     .height(54.dp)
-                    .shadow(12.dp, RoundedCornerShape(16.dp), spotColor = Color(0xB3C846B4))
+                    .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
                     .clip(RoundedCornerShape(16.dp))
                     .background(RosaButtonGradient)
                     .clickable { onSelectScreenCode("s30") },
@@ -2041,7 +2042,7 @@ internal fun RenderRosaDetailsS31(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(54.dp)
-                        .shadow(12.dp, RoundedCornerShape(16.dp), spotColor = Color(0x66C846B4))
+                        .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
                         .clip(RoundedCornerShape(16.dp))
                         .background(RosaButtonGradient)
                         .clickable { onSelectScreenCode("s32") },
@@ -2113,7 +2114,7 @@ internal fun RenderRosaSummaryS32(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .shadow(14.dp, RoundedCornerShape(24.dp), spotColor = Color(0x40AA46A0))
+                    .rfCardShadow(RoundedCornerShape(24.dp), isAdmin = false)
                     .clip(RoundedCornerShape(24.dp))
                     .background(Color.White)
                     .padding(vertical = 4.dp),
@@ -2291,7 +2292,7 @@ internal fun RenderRosaSummaryS32(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp)
-                    .shadow(12.dp, RoundedCornerShape(16.dp), spotColor = Color(0xB3C846B4))
+                    .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
                     .clip(RoundedCornerShape(16.dp))
                     .background(RosaButtonGradient)
                     .clickable { onSelectScreenCode("s33") },
@@ -2348,7 +2349,7 @@ internal fun RenderRosaSubmittedS33(
             modifier = Modifier
                 .padding(top = 54.dp, start = 16.dp)
                 .size(44.dp)
-                .shadow(6.dp, CircleShape, spotColor = Color(0x335A3CA0))
+                .rfIconButtonShadow(CircleShape, isAdmin = false)
                 .clip(CircleShape)
                 .background(Color.White)
                 .clickable { onSelectScreenCode("s14") },
@@ -2412,7 +2413,7 @@ internal fun RenderRosaSubmittedS33(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .shadow(10.dp, RoundedCornerShape(24.dp), spotColor = Color(0x22AA46A0))
+                    .rfCardShadow(RoundedCornerShape(24.dp), isAdmin = false)
                     .clip(RoundedCornerShape(24.dp))
                     .background(Color.White)
                     .padding(20.dp),
@@ -2473,7 +2474,7 @@ internal fun RenderRosaSubmittedS33(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp)
-                    .shadow(12.dp, RoundedCornerShape(16.dp), spotColor = Color(0x66C846B4))
+                    .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
                     .clip(RoundedCornerShape(16.dp))
                     .background(RosaButtonGradient)
                     .clickable { onSelectScreenCode("s25") },
@@ -2907,7 +2908,7 @@ internal fun RenderRosaSketchS36(
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp, vertical = 12.dp)
                     .height(54.dp)
-                    .shadow(12.dp, RoundedCornerShape(16.dp), spotColor = Color(0x66C846B4))
+                    .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
                     .clip(RoundedCornerShape(16.dp))
                     .background(RosaButtonGradient)
                     .clickable { onSelectScreenCode("s78") },
@@ -2991,7 +2992,7 @@ internal fun RenderRosaSketchConfirmS78(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(236.dp)
-                    .shadow(14.dp, RoundedCornerShape(24.dp), spotColor = Color(0x73AA46A0), ambientColor = Color.Transparent)
+                    .rfCardShadow(RoundedCornerShape(24.dp), isAdmin = false)
                     .clip(RoundedCornerShape(24.dp))
                     .background(Color.White)
                     .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(24.dp)),
@@ -3137,7 +3138,7 @@ internal fun RenderRosaSketchConfirmS78(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .shadow(18.dp, RoundedCornerShape(22.dp), spotColor = Color(0xCC9650DC), ambientColor = Color.Transparent)
+                    .rfHeroBannerShadow(RoundedCornerShape(22.dp), isAdmin = false)
                     .clip(RoundedCornerShape(22.dp))
                     .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))))
                     .padding(16.dp),
@@ -3204,7 +3205,7 @@ internal fun RenderRosaSketchConfirmS78(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp)
-                    .shadow(12.dp, RoundedCornerShape(16.dp), spotColor = Color(0xB2C846B4), ambientColor = Color.Transparent)
+                    .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
                     .clip(RoundedCornerShape(16.dp))
                     .background(RosaButtonGradient)
                     .clickable { onSelectScreenCode("s25") },

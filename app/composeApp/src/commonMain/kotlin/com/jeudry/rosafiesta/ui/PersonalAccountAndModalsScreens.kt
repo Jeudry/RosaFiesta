@@ -50,6 +50,7 @@ import com.jeudry.rosafiesta.designsystem.LocalRfTypography
 import com.jeudry.rosafiesta.designsystem.RfIcon
 import com.jeudry.rosafiesta.designsystem.RfIconKind
 import com.jeudry.rosafiesta.designsystem.rfCardShadow
+import com.jeudry.rosafiesta.designsystem.rfHeroBannerShadow
 import com.jeudry.rosafiesta.designsystem.rfIconButtonShadow
 import com.jeudry.rosafiesta.designsystem.rfInputShadow
 import com.jeudry.rosafiesta.designsystem.rfPrimaryButtonShadow
@@ -97,7 +98,7 @@ internal fun RenderPersonalNotificationsS79(
                 Box(
                     modifier = Modifier
                         .size(44.dp)
-                        .shadow(6.dp, CircleShape, spotColor = Color(0x33FF3366))
+                        .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(Color.White)
                         .clickable { onSelectScreenCode("s14") },
@@ -170,7 +171,7 @@ internal fun RenderPersonalSearchS80(
                 Box(
                     modifier = Modifier
                         .size(44.dp)
-                        .shadow(6.dp, CircleShape, spotColor = Color(0x33FF3366))
+                        .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(Color.White)
                         .clickable { onSelectScreenCode("s18") },
@@ -263,7 +264,7 @@ internal fun RenderPersonalPaymentsS82(
                 Box(
                     modifier = Modifier
                         .size(44.dp)
-                        .shadow(6.dp, CircleShape, spotColor = Color(0x33FF3366))
+                        .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(Color.White)
                         .clickable { onSelectScreenCode("s54") },
@@ -374,7 +375,7 @@ internal fun RenderAccountSettingsS86(
                 Box(
                     modifier = Modifier
                         .size(44.dp)
-                        .shadow(6.dp, CircleShape, spotColor = Color(0x33FF3366))
+                        .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(Color.White)
                         .clickable { onSelectScreenCode("s54") },
@@ -449,7 +450,7 @@ internal fun RenderTermsS87(
                 Box(
                     modifier = Modifier
                         .size(44.dp)
-                        .shadow(6.dp, CircleShape, spotColor = Color(0x33FF3366))
+                        .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(Color.White)
                         .clickable { onSelectScreenCode("s86") },
@@ -520,7 +521,7 @@ internal fun RenderDeleteAccountS88(
                 Box(
                     modifier = Modifier
                         .size(44.dp)
-                        .shadow(6.dp, CircleShape, spotColor = Color(0x33B450B4))
+                        .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(Color.White)
                         .clickable { onSelectScreenCode("s54") },
@@ -570,7 +571,7 @@ internal fun RenderDeleteAccountS88(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .shadow(10.dp, RoundedCornerShape(20.dp), spotColor = Color(0x22C850AA))
+                    .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
                     .clip(RoundedCornerShape(20.dp))
                     .background(Color.White)
                     .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(20.dp))
@@ -898,7 +899,7 @@ internal fun RenderGuestAuthModalS75(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(54.dp)
-                        .shadow(12.dp, RoundedCornerShape(16.dp), spotColor = Color(0xB2C846B4), ambientColor = Color.Transparent)
+                        .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
                         .clip(RoundedCornerShape(16.dp))
                         .background(RosaButtonGradient)
                         .clickable { onSelectScreenCode("s07") },
@@ -1400,7 +1401,7 @@ internal fun RenderEventReviewsModalS77(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp)
-                        .shadow(12.dp, RoundedCornerShape(16.dp), spotColor = Color(0xB2C846B4), ambientColor = Color.Transparent)
+                        .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
                         .clip(RoundedCornerShape(16.dp))
                         .background(RosaButtonGradient)
                         .clickable { onSelectScreenCode("s37") },
@@ -1687,7 +1688,7 @@ internal fun RenderCatalogFiltersModalS81(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(54.dp)
-                        .shadow(12.dp, RoundedCornerShape(16.dp), spotColor = Color(0xB3C846B4))
+                        .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
                         .clip(RoundedCornerShape(16.dp))
                         .background(RosaButtonGradient)
                         .clickable { onSelectScreenCode("s80") },
@@ -1786,7 +1787,7 @@ internal fun RenderChangeDateModalS84(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .shadow(14.dp, RoundedCornerShape(20.dp), spotColor = Color(0x33C850AA))
+                    .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
                     .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(20.dp))
                     .clip(RoundedCornerShape(20.dp))
                     .background(Color.White)
@@ -1972,7 +1973,7 @@ internal fun RenderChangeDateModalS84(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(54.dp)
-                    .shadow(12.dp, RoundedCornerShape(16.dp), spotColor = Color(0xB3C846B4))
+                    .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
                     .clip(RoundedCornerShape(16.dp))
                     .background(RosaButtonGradient)
                     .clickable { onSelectScreenCode("s40") },
@@ -2070,7 +2071,7 @@ internal fun RenderCancelEventModalS85(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .shadow(14.dp, RoundedCornerShape(20.dp), spotColor = Color(0x33C850AA))
+                    .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
                     .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(20.dp))
                     .clip(RoundedCornerShape(20.dp))
                     .background(Color.White)
@@ -2110,7 +2111,7 @@ internal fun RenderCancelEventModalS85(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .shadow(14.dp, RoundedCornerShape(20.dp), spotColor = Color(0x33C850AA))
+                    .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
                     .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(20.dp))
                     .clip(RoundedCornerShape(20.dp))
                     .background(Color.White)
@@ -2287,7 +2288,7 @@ internal fun RenderPersonalOfflineStateS91(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(54.dp)
-                    .shadow(12.dp, RoundedCornerShape(16.dp), spotColor = Color(0xB3C846B4))
+                    .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
                     .clip(RoundedCornerShape(16.dp))
                     .background(RosaButtonGradient)
                     .clickable { onSelectScreenCode("s91") },

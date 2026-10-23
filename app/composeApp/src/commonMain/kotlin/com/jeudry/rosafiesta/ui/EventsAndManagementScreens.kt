@@ -47,7 +47,9 @@ import com.jeudry.rosafiesta.designsystem.RfIconKind
 import com.jeudry.rosafiesta.designsystem.RfPhoto
 import com.jeudry.rosafiesta.designsystem.RfPhotoKey
 import com.jeudry.rosafiesta.designsystem.rfCardShadow
+import com.jeudry.rosafiesta.designsystem.rfHeroBannerShadow
 import com.jeudry.rosafiesta.designsystem.rfIconButtonShadow
+import com.jeudry.rosafiesta.designsystem.rfPrimaryButtonShadow
 import com.jeudry.rosafiesta.domain.CanonicalSampleData
 
 private val EventBackgroundGradient = Brush.radialGradient(
@@ -111,7 +113,7 @@ internal fun RenderMyEventsScreenS37(
                     Box(
                         modifier = Modifier
                             .size(44.dp)
-                            .shadow(6.dp, CircleShape, spotColor = Color(0x33B450B4))
+                            .rfIconButtonShadow(CircleShape, isAdmin = false)
                             .clip(CircleShape)
                             .background(Color.White)
                             .clickable { onSelectScreenCode("s39") },
@@ -123,7 +125,7 @@ internal fun RenderMyEventsScreenS37(
                     Box(
                         modifier = Modifier
                             .size(44.dp)
-                            .shadow(8.dp, CircleShape, spotColor = Color(0x66A050D2))
+                            .rfPrimaryButtonShadow(CircleShape, isAdmin = false)
                             .clip(CircleShape)
                             .background(RosaButtonGradient)
                             .clickable { onSelectScreenCode("s38") },
@@ -201,7 +203,7 @@ internal fun RenderMyEventsScreenS37(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 6.dp)
-                        .shadow(6.dp, RoundedCornerShape(22.dp), spotColor = Color(0x22865DEC))
+                        .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = false)
                         .clip(RoundedCornerShape(22.dp))
                         .background(Color.White)
                         .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(22.dp))
@@ -317,7 +319,7 @@ internal fun RenderNewEventScreenS38(
                 Box(
                     modifier = Modifier
                         .size(44.dp)
-                        .shadow(6.dp, CircleShape, spotColor = Color(0x33B450B4))
+                        .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(Color.White)
                         .clickable { onSelectScreenCode("s37") },
@@ -518,7 +520,7 @@ internal fun RenderNewEventScreenS38(
                 .padding(start = 20.dp, end = 20.dp, bottom = 40.dp)
                 .fillMaxWidth()
                 .height(56.dp)
-                .shadow(12.dp, RoundedCornerShape(16.dp), spotColor = Color(0xB3C846B4))
+                .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
                 .clip(RoundedCornerShape(16.dp))
                 .background(RosaButtonGradient)
                 .clickable { onSelectScreenCode("s26") },
@@ -566,7 +568,7 @@ internal fun RenderCalendarScreenS39(
                 Box(
                     modifier = Modifier
                         .size(44.dp)
-                        .shadow(6.dp, CircleShape, spotColor = Color(0x33B450B4))
+                        .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(Color.White)
                         .clickable { onSelectScreenCode("s37") },
@@ -594,7 +596,7 @@ internal fun RenderCalendarScreenS39(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .shadow(10.dp, RoundedCornerShape(22.dp), spotColor = Color(0x22865DEC))
+                    .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = false)
                     .clip(RoundedCornerShape(22.dp))
                     .background(Color.White)
                     .padding(16.dp),
@@ -1330,7 +1332,7 @@ internal fun RenderTimelineScreenS44(
                 Box(
                     modifier = Modifier
                         .size(44.dp)
-                        .shadow(6.dp, CircleShape, spotColor = Color(0x33B450B4))
+                        .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(Color.White)
                         .clickable { onSelectScreenCode("s40") },
@@ -1416,7 +1418,7 @@ internal fun RenderTasksScreenS45(
                 Box(
                     modifier = Modifier
                         .size(44.dp)
-                        .shadow(6.dp, CircleShape, spotColor = Color(0x33B450B4))
+                        .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(Color.White)
                         .clickable { onSelectScreenCode("s40") },
@@ -1516,7 +1518,7 @@ internal fun RenderChecklistScreenS46(
                 Box(
                     modifier = Modifier
                         .size(44.dp)
-                        .shadow(6.dp, CircleShape, spotColor = Color(0x33B450B4))
+                        .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(Color.White)
                         .clickable { onSelectScreenCode("s40") },
@@ -1606,7 +1608,7 @@ internal fun RenderGuestsScreenS47(
                 Box(
                     modifier = Modifier
                         .size(44.dp)
-                        .shadow(6.dp, CircleShape, spotColor = Color(0x33B450B4))
+                        .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(Color.White)
                         .clickable { onSelectScreenCode("s40") },
@@ -1722,7 +1724,7 @@ internal fun RenderQuoteScreenS48(
                 Box(
                     modifier = Modifier
                         .size(44.dp)
-                        .shadow(6.dp, CircleShape, spotColor = Color(0x33B450B4))
+                        .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(Color.White)
                         .clickable { onSelectScreenCode("s40") },
@@ -1883,7 +1885,7 @@ internal fun RenderQuoteScreenS48(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp)
-                    .shadow(12.dp, RoundedCornerShape(16.dp), spotColor = Color(0xB3C846B4))
+                    .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
                     .clip(RoundedCornerShape(16.dp))
                     .background(RosaButtonGradient)
                     .clickable { onSelectScreenCode("s50") },

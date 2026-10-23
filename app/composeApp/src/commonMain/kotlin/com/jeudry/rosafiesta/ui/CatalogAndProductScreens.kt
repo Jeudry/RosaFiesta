@@ -57,7 +57,9 @@ import com.jeudry.rosafiesta.designsystem.RfPhotoKey
 import com.jeudry.rosafiesta.designsystem.RosaAvatar
 import com.jeudry.rosafiesta.designsystem.RosaAvatarSize
 import com.jeudry.rosafiesta.designsystem.rfCardShadow
+import com.jeudry.rosafiesta.designsystem.rfHeroBannerShadow
 import com.jeudry.rosafiesta.designsystem.rfIconButtonShadow
+import com.jeudry.rosafiesta.designsystem.rfInputShadow
 import com.jeudry.rosafiesta.designsystem.rfPrimaryButtonShadow
 
 // ==============================================================================
@@ -92,6 +94,7 @@ internal fun RenderPersonalCatalogS18(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
                         .size(44.dp)
+                        .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(Color.White)
                         .border(1.dp, Color(0xFFECECF5), CircleShape)
@@ -109,6 +112,7 @@ internal fun RenderPersonalCatalogS18(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
                             .fillMaxSize()
+                            .rfIconButtonShadow(CircleShape, isAdmin = false)
                             .clip(CircleShape)
                             .background(Color.White)
                             .border(1.dp, Color(0xFFECECF5), CircleShape),
@@ -139,6 +143,7 @@ internal fun RenderPersonalCatalogS18(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(52.dp)
+                .rfInputShadow(RoundedCornerShape(16.dp), isAdmin = false)
                 .clip(RoundedCornerShape(16.dp))
                 .background(Color.White)
                 .border(1.dp, Color(0xFFF0EBF4), RoundedCornerShape(16.dp))
@@ -212,6 +217,7 @@ internal fun RenderPersonalCatalogS18(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
+                .rfCardShadow(RoundedCornerShape(18.dp), isAdmin = false)
                 .clip(RoundedCornerShape(18.dp))
                 .background(Brush.horizontalGradient(listOf(Color(0xFFFCE6F3), Color(0xFFECE4FD))))
                 .clickable { onSelectScreenCode("s26") }
@@ -684,7 +690,7 @@ internal fun RenderProductDetailS19(
                     modifier = Modifier
                         .weight(1f)
                         .height(56.dp)
-                        .shadow(12.dp, RoundedCornerShape(16.dp), spotColor = Color(0xB3A050D0))
+                        .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
                         .clip(RoundedCornerShape(16.dp))
                         .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))))
                         .clickable { onSelectScreenCode("s37") },
@@ -739,7 +745,7 @@ internal fun RenderCategoriesScreenS20(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
                         .size(44.dp)
-                        .shadow(8.dp, CircleShape, spotColor = Color(0x33B450B4))
+                        .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(Color.White)
                         .clickable { onSelectScreenCode("s18") },
@@ -1144,6 +1150,7 @@ internal fun RenderPackageDetailScreenS22(
                     modifier = Modifier
                         .offset(x = 20.dp, y = 54.dp)
                         .size(44.dp)
+                        .rfIconButtonShadow(RoundedCornerShape(14.dp), isAdmin = false)
                         .clip(RoundedCornerShape(14.dp))
                         .background(Color.White)
                         .clickable { onSelectScreenCode("s21") },
@@ -1248,7 +1255,7 @@ internal fun RenderPackageDetailScreenS22(
                     modifier = Modifier
                         .weight(1f)
                         .height(56.dp)
-                        .shadow(12.dp, RoundedCornerShape(16.dp), spotColor = Color(0xB3C846B4))
+                        .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
                         .clip(RoundedCornerShape(16.dp))
                         .background(Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC))))
                         .clickable { onSelectScreenCode("s37") },
@@ -1272,6 +1279,7 @@ private fun PackageItemRow(
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            .rfCardShadow(RoundedCornerShape(18.dp), isAdmin = false)
             .clip(RoundedCornerShape(18.dp))
             .background(Color.White)
             .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(18.dp))
@@ -1445,8 +1453,9 @@ internal fun RenderShopScreenS23(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(164.dp)
                     .padding(horizontal = 20.dp)
+                    .height(164.dp)
+                    .rfHeroBannerShadow(RoundedCornerShape(24.dp), isAdmin = false)
                     .clip(RoundedCornerShape(24.dp))
                     .background(Color(0xFFEFE8FD)),
             ) {
@@ -1861,6 +1870,7 @@ internal fun RenderClientFavoritesScreenS24(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
+                .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = false)
                 .clip(RoundedCornerShape(22.dp))
                 .background(Color(0xFFEFE8FD))
                 .padding(16.dp),
@@ -1880,7 +1890,7 @@ internal fun RenderClientFavoritesScreenS24(
                         modifier = Modifier
                             .weight(1f)
                             .height(46.dp)
-                            .shadow(elevation = 6.dp, shape = RoundedCornerShape(999.dp), spotColor = Color(0x99865DEC))
+                            .rfPrimaryButtonShadow(RoundedCornerShape(999.dp), isAdmin = false)
                             .clip(RoundedCornerShape(999.dp))
                             .background(Brush.horizontalGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))))
                             .clickable { onSelectScreenCode("s37") },
@@ -1892,6 +1902,7 @@ internal fun RenderClientFavoritesScreenS24(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
                             .height(46.dp)
+                            .rfCardShadow(RoundedCornerShape(14.dp), isAdmin = false)
                             .clip(RoundedCornerShape(14.dp))
                             .background(Color.White)
                             .clickable { onSelectScreenCode("s37") }

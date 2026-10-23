@@ -45,6 +45,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
@@ -121,6 +122,7 @@ public fun PersonalTabBar(
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .shadow(elevation = 16.dp, shape = RectangleShape, spotColor = Color(0x35EA4899), ambientColor = Color(0x18EA4899))
                 .background(barBg)
                 .drawBehind {
                     drawLine(
@@ -536,12 +538,7 @@ public fun RfHeroCard(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .shadow(
-                elevation = 14.dp,
-                shape = shape,
-                spotColor = if (useAdminGradient) Color(0x665B6CF0) else Color(0x73865DEC),
-                ambientColor = Color.Transparent,
-            )
+            .rfHeroBannerShadow(shape, isAdmin = useAdminGradient)
             .clip(shape)
             .background(gradient)
             .padding(16.dp),
@@ -591,12 +588,7 @@ public fun RfButton(
                 .then(widthModifier)
                 .then(alphaModifier)
                 .height(RfDimens.ButtonHeight)
-                .shadow(
-                    elevation = 12.dp,
-                    shape = shape,
-                    spotColor = if (palette.isAdmin) Color(0x665B6CF0) else Color(0xB3C846B4),
-                    ambientColor = Color.Transparent,
-                )
+                .rfPrimaryButtonShadow(shape, isAdmin = palette.isAdmin)
                 .clip(shape)
                 .background(palette.primaryGradient)
 

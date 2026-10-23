@@ -30,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import com.jeudry.rosafiesta.designsystem.rfCardShadow
+import com.jeudry.rosafiesta.designsystem.rfHeroBannerShadow
 import com.jeudry.rosafiesta.designsystem.rfIconButtonShadow
 import com.jeudry.rosafiesta.designsystem.rfInputShadow
 import androidx.compose.ui.geometry.CornerRadius
@@ -752,7 +753,7 @@ internal fun RenderPersonalHomeScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(186.dp)
-                .shadow(14.dp, RoundedCornerShape(24.dp), spotColor = Color(0x73865DEC), ambientColor = Color.Transparent)
+                .rfHeroBannerShadow(RoundedCornerShape(24.dp), isAdmin = false)
                 .clip(RoundedCornerShape(24.dp))
                 .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)))),
         ) {
