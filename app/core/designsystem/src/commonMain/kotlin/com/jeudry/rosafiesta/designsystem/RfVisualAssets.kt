@@ -377,6 +377,12 @@ public enum class RfIconKind {
     NOTE,
     KEYBOARD,
     UNDO,
+    MOVE,
+    DELETE,
+    CIRCLE,
+    TABLE,
+    CHAIR,
+    REDO,
 }
 
 private val iconPaths: Map<RfIconKind, String> = mapOf(
@@ -446,6 +452,12 @@ private val iconPaths: Map<RfIconKind, String> = mapOf(
     RfIconKind.NOTE to "M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5M9 13h6M9 17h4",
     RfIconKind.KEYBOARD to "M3 6.5A1.5 1.5 0 0 1 4.5 5h15A1.5 1.5 0 0 1 21 6.5v11a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5zM7 9h.01M11 9h.01M15 9h.01M7 13h.01M17 13h.01M8 16h8",
     RfIconKind.UNDO to "M9 14L4 9l5-5M4 9h10a6 6 0 0 1 0 12h-3",
+    RfIconKind.MOVE to "M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5",
+    RfIconKind.DELETE to "M4 7h16M9 7V4.5h6V7M6 7l1 13h10l1-13M10 11v6M14 11v6",
+    RfIconKind.CIRCLE to "M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0",
+    RfIconKind.TABLE to "M2 9h20M4 9v11M20 9v11M2 9l3-4h14l3 4M4 14h16",
+    RfIconKind.CHAIR to "M7 3h10v8H7zM6 11h12v3H6zM7 14v7M17 14v7M7 18h10",
+    RfIconKind.REDO to "M15 14l5-5-5-5M20 9H10a6 6 0 0 0 0 12h3",
 )
 
 /**
