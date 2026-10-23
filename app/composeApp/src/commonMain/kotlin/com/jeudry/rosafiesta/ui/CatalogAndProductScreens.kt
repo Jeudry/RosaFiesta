@@ -57,6 +57,8 @@ import com.jeudry.rosafiesta.designsystem.RfPhotoKey
 import com.jeudry.rosafiesta.designsystem.RosaAvatar
 import com.jeudry.rosafiesta.designsystem.RosaAvatarSize
 import com.jeudry.rosafiesta.designsystem.rfCardShadow
+import com.jeudry.rosafiesta.designsystem.rfIconButtonShadow
+import com.jeudry.rosafiesta.designsystem.rfPrimaryButtonShadow
 
 // ==============================================================================
 // s18 · CATÁLOGO (APP PERSONAL)
@@ -450,6 +452,7 @@ internal fun RenderProductDetailS19(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
                         .size(44.dp)
+                        .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(Color.White)
                         .clickable { onSelectScreenCode("s18") },
@@ -462,6 +465,7 @@ internal fun RenderProductDetailS19(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
                             .size(44.dp)
+                            .rfIconButtonShadow(CircleShape, isAdmin = false)
                             .clip(CircleShape)
                             .background(Color.White),
                     ) {
@@ -471,6 +475,7 @@ internal fun RenderProductDetailS19(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
                             .size(44.dp)
+                            .rfIconButtonShadow(CircleShape, isAdmin = false)
                             .clip(CircleShape)
                             .background(Color.White),
                     ) {

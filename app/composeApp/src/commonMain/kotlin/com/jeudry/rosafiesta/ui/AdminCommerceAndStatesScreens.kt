@@ -56,6 +56,10 @@ import com.jeudry.rosafiesta.designsystem.RfPhoto
 import com.jeudry.rosafiesta.designsystem.RfPhotoKey
 import com.jeudry.rosafiesta.designsystem.RosaAvatar
 import com.jeudry.rosafiesta.designsystem.RosaAvatarSize
+import com.jeudry.rosafiesta.designsystem.rfCardShadow
+import com.jeudry.rosafiesta.designsystem.rfIconButtonShadow
+import com.jeudry.rosafiesta.designsystem.rfInputShadow
+import com.jeudry.rosafiesta.designsystem.rfPrimaryButtonShadow
 
 private val AdminButtonGradient = Brush.horizontalGradient(
     listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0)),
@@ -113,6 +117,7 @@ internal fun RenderAdminCreateEventA04(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = true)
                         .clip(RoundedCornerShape(20.dp))
                         .background(Brush.linearGradient(listOf(Color(0xFFE9E8FF), Color(0xFFDDF2F6))))
                         .clickable { onSelectScreenCode("A08") }
@@ -141,6 +146,7 @@ internal fun RenderAdminCreateEventA04(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = true)
                         .clip(RoundedCornerShape(20.dp))
                         .background(Color.White)
                         .border(1.dp, Color(0xFFE9E9F2), RoundedCornerShape(20.dp))
@@ -167,6 +173,7 @@ internal fun RenderAdminCreateEventA04(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = true)
                         .clip(RoundedCornerShape(20.dp))
                         .background(Color.White)
                         .border(1.dp, Color(0xFFE9E9F2), RoundedCornerShape(20.dp))
@@ -232,6 +239,7 @@ internal fun RenderAdminManualEventA05(
                 Box(
                     modifier = Modifier
                         .size(44.dp)
+                        .rfIconButtonShadow(CircleShape, isAdmin = true)
                         .clip(CircleShape)
                         .background(Color.White)
                         .border(1.dp, Color(0xFFECECF5), CircleShape)
@@ -274,6 +282,7 @@ internal fun RenderAdminManualEventA05(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(50.dp)
+                        .rfInputShadow(RoundedCornerShape(14.dp), isAdmin = true)
                         .clip(RoundedCornerShape(14.dp))
                         .background(Color.White)
                         .border(1.dp, Color(0xFFE3E4EF), RoundedCornerShape(14.dp))
@@ -399,6 +408,7 @@ internal fun RenderAdminManualEventA05(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp)
+                            .rfInputShadow(RoundedCornerShape(14.dp), isAdmin = true)
                             .clip(RoundedCornerShape(14.dp))
                             .background(Color.White)
                             .border(1.dp, Color(0xFFE3E4EF), RoundedCornerShape(14.dp))
@@ -418,6 +428,7 @@ internal fun RenderAdminManualEventA05(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp)
+                            .rfInputShadow(RoundedCornerShape(14.dp), isAdmin = true)
                             .clip(RoundedCornerShape(14.dp))
                             .background(Color.White)
                             .border(1.dp, Color(0xFFE3E4EF), RoundedCornerShape(14.dp))
@@ -439,6 +450,7 @@ internal fun RenderAdminManualEventA05(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(50.dp)
+                        .rfInputShadow(RoundedCornerShape(14.dp), isAdmin = true)
                         .clip(RoundedCornerShape(14.dp))
                         .background(Color.White)
                         .border(1.dp, Color(0xFFE3E4EF), RoundedCornerShape(14.dp))
@@ -457,6 +469,7 @@ internal fun RenderAdminManualEventA05(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(58.dp)
+                    .rfInputShadow(RoundedCornerShape(14.dp), isAdmin = true)
                     .clip(RoundedCornerShape(14.dp))
                     .background(Color.White)
                     .border(1.dp, Color(0xFFE3E4EF), RoundedCornerShape(14.dp))
@@ -504,6 +517,7 @@ internal fun RenderAdminManualEventA05(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(72.dp)
+                        .rfInputShadow(RoundedCornerShape(14.dp), isAdmin = true)
                         .clip(RoundedCornerShape(14.dp))
                         .background(Color.White)
                         .border(1.dp, Color(0xFFE3E4EF), RoundedCornerShape(14.dp))
@@ -528,6 +542,7 @@ internal fun RenderAdminManualEventA05(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(54.dp)
+                    .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = true)
                     .clip(RoundedCornerShape(16.dp))
                     .background(AdminButtonGradient)
                     .clickable { onSelectScreenCode("A06") },
@@ -570,6 +585,7 @@ internal fun RenderAdminEventArticlesA06(
                 Box(
                     modifier = Modifier
                         .size(44.dp)
+                        .rfIconButtonShadow(CircleShape, isAdmin = true)
                         .clip(CircleShape)
                         .background(Color.White)
                         .border(1.dp, Color(0xFFECECF5), CircleShape)
@@ -610,6 +626,7 @@ internal fun RenderAdminEventArticlesA06(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp)
+                    .rfInputShadow(RoundedCornerShape(14.dp), isAdmin = true)
                     .clip(RoundedCornerShape(14.dp))
                     .background(Color.White)
                     .border(1.dp, Color(0xFFE3E4EF), RoundedCornerShape(14.dp))
@@ -640,6 +657,7 @@ internal fun RenderAdminEventArticlesA06(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = true)
                     .clip(RoundedCornerShape(20.dp))
                     .background(Color.White)
                     .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(20.dp)),
@@ -744,6 +762,7 @@ internal fun RenderAdminEventArticlesA06(
                     modifier = Modifier
                         .weight(1f)
                         .height(54.dp)
+                        .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = true)
                         .clip(RoundedCornerShape(16.dp))
                         .background(AdminButtonGradient)
                         .clickable { onSelectScreenCode("A07") },
@@ -798,6 +817,7 @@ internal fun RenderAdminEventSummaryA07(
                 Box(
                     modifier = Modifier
                         .size(44.dp)
+                        .rfIconButtonShadow(CircleShape, isAdmin = true)
                         .clip(CircleShape)
                         .background(Color.White)
                         .border(1.dp, Color(0xFFECECF5), CircleShape)
@@ -837,6 +857,7 @@ internal fun RenderAdminEventSummaryA07(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .shadow(12.dp, RoundedCornerShape(22.dp), spotColor = Color(0x665B6CF0), ambientColor = Color.Transparent)
                     .clip(RoundedCornerShape(22.dp))
                     .background(Brush.linearGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0), Color(0xFF2FB8C8)))),
             ) {
@@ -913,6 +934,7 @@ internal fun RenderAdminEventSummaryA07(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = true)
                     .clip(RoundedCornerShape(20.dp))
                     .background(Color.White)
                     .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(20.dp))
@@ -992,6 +1014,7 @@ internal fun RenderAdminEventSummaryA07(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .rfCardShadow(RoundedCornerShape(16.dp), isAdmin = true)
                     .clip(RoundedCornerShape(16.dp))
                     .background(Color.White)
                     .border(1.dp, Color(0xFFE3E4EF), RoundedCornerShape(16.dp))
@@ -1050,6 +1073,7 @@ internal fun RenderAdminEventSummaryA07(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(54.dp)
+                    .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = true)
                     .clip(RoundedCornerShape(16.dp))
                     .background(AdminButtonGradient)
                     .clickable { onSelectScreenCode("A11") },
@@ -1103,6 +1127,7 @@ internal fun RenderAdminChatsA14(
                 Box(
                     modifier = Modifier
                         .size(44.dp)
+                        .rfIconButtonShadow(CircleShape, isAdmin = true)
                         .clip(CircleShape)
                         .background(Color.White)
                         .border(1.dp, Color(0xFFECECF5), CircleShape)
@@ -1189,6 +1214,7 @@ internal fun RenderAdminChatsA14(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = true)
                     .clip(RoundedCornerShape(20.dp))
                     .background(Color.White)
                     .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(20.dp)),
@@ -1217,6 +1243,7 @@ internal fun RenderAdminChatsA14(
                             Box(
                                 modifier = Modifier
                                     .size(44.dp)
+                                    .rfIconButtonShadow(CircleShape, isAdmin = true)
                                     .clip(CircleShape)
                                     .background(chat.avatarBg),
                                 contentAlignment = Alignment.Center,
@@ -1435,6 +1462,7 @@ internal fun RenderAdminChatConversationA15(
                 Box(
                     modifier = Modifier
                         .size(44.dp)
+                        .rfIconButtonShadow(CircleShape, isAdmin = true)
                         .clip(CircleShape)
                         .clickable { onSelectScreenCode("A14") },
                     contentAlignment = Alignment.Center,
@@ -1465,6 +1493,7 @@ internal fun RenderAdminChatConversationA15(
                 Box(
                     modifier = Modifier
                         .size(44.dp)
+                        .rfIconButtonShadow(CircleShape, isAdmin = true)
                         .clip(CircleShape),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -1605,6 +1634,7 @@ internal fun RenderAdminQuotesA22(
                 Box(
                     modifier = Modifier
                         .size(44.dp)
+                        .rfIconButtonShadow(CircleShape, isAdmin = true)
                         .clip(CircleShape)
                         .background(Color.White)
                         .border(1.dp, Color(0xFFECECF5), CircleShape)
@@ -1674,6 +1704,7 @@ internal fun RenderAdminQuotesA22(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = true)
                         .clip(RoundedCornerShape(20.dp))
                         .background(Color.White)
                         .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(20.dp))
@@ -1775,6 +1806,7 @@ internal fun RenderAdminNotificationsA29(
             Box(
                 modifier = Modifier
                     .size(44.dp)
+                    .rfIconButtonShadow(CircleShape, isAdmin = true)
                     .clip(CircleShape)
                     .background(Color.White)
                     .border(1.dp, Color(0xFFECECF5), CircleShape)
@@ -1816,6 +1848,7 @@ internal fun RenderAdminNotificationsA29(
             modifier = Modifier
                 .fillMaxWidth()
                 .offset(y = (-4).dp)
+                .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = true)
                 .clip(RoundedCornerShape(20.dp))
                 .background(Color.White)
                 .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(20.dp)),
@@ -1907,6 +1940,7 @@ internal fun RenderAdminNotificationsA29(
             modifier = Modifier
                 .fillMaxWidth()
                 .offset(y = (-4).dp)
+                .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = true)
                 .clip(RoundedCornerShape(20.dp))
                 .background(Color.White)
                 .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(20.dp)),
@@ -2193,6 +2227,7 @@ internal fun RenderAdminSettingsA31(
                 Box(
                     modifier = Modifier
                         .size(44.dp)
+                        .rfIconButtonShadow(CircleShape, isAdmin = true)
                         .clip(CircleShape)
                         .background(Color.White)
                         .border(1.dp, Color(0xFFECECF5), CircleShape)
@@ -2217,6 +2252,7 @@ internal fun RenderAdminSettingsA31(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = true)
                     .clip(RoundedCornerShape(20.dp))
                     .background(Color.White)
                     .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(20.dp)),
@@ -2256,6 +2292,7 @@ internal fun RenderAdminSettingsA31(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = true)
                     .clip(RoundedCornerShape(20.dp))
                     .background(Color.White)
                     .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(20.dp)),
@@ -2312,6 +2349,7 @@ internal fun RenderAdminSettingsA31(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = true)
                     .clip(RoundedCornerShape(20.dp))
                     .background(Color.White)
                     .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(20.dp)),
@@ -2374,6 +2412,7 @@ internal fun RenderAdminSettingsA31(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(54.dp)
+                    .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = true)
                     .clip(RoundedCornerShape(16.dp))
                     .background(AdminButtonGradient)
                     .clickable { onSelectScreenCode("A12") },
@@ -2413,6 +2452,7 @@ internal fun RenderAdminCancellationsA32(
                 Box(
                     modifier = Modifier
                         .size(44.dp)
+                        .rfIconButtonShadow(CircleShape, isAdmin = true)
                         .clip(CircleShape)
                         .background(Color.White)
                         .border(1.dp, Color(0xFFECECF5), CircleShape)
@@ -2476,6 +2516,7 @@ internal fun RenderAdminCancellationsA32(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = true)
                     .clip(RoundedCornerShape(20.dp))
                     .background(Color.White)
                     .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(20.dp))
@@ -2574,6 +2615,7 @@ internal fun RenderAdminCancellationsA32(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = true)
                     .clip(RoundedCornerShape(20.dp))
                     .background(Color.White)
                     .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(20.dp))
@@ -2707,6 +2749,7 @@ internal fun RenderAdminCancellationsA32(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = true)
                     .clip(RoundedCornerShape(20.dp))
                     .background(Color.White)
                     .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(20.dp))
@@ -2767,6 +2810,7 @@ internal fun RenderAdminRefundA33(
                 Box(
                     modifier = Modifier
                         .size(44.dp)
+                        .rfIconButtonShadow(CircleShape, isAdmin = true)
                         .clip(CircleShape)
                         .background(Color.White)
                         .border(1.dp, Color(0xFFECECF5), CircleShape)
@@ -2807,6 +2851,7 @@ internal fun RenderAdminRefundA33(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = true)
                         .clip(RoundedCornerShape(20.dp))
                         .background(Color.White)
                         .border(2.dp, Color(0xFF5B6CF0), RoundedCornerShape(20.dp))
@@ -2845,6 +2890,7 @@ internal fun RenderAdminRefundA33(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = true)
                         .clip(RoundedCornerShape(20.dp))
                         .background(Color.White)
                         .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(20.dp))
@@ -2884,6 +2930,7 @@ internal fun RenderAdminRefundA33(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = true)
                     .clip(RoundedCornerShape(20.dp))
                     .background(Color.White)
                     .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(20.dp)),
@@ -2944,6 +2991,7 @@ internal fun RenderAdminRefundA33(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = true)
                         .clip(RoundedCornerShape(20.dp))
                         .background(Color.White)
                         .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(20.dp))
@@ -2967,6 +3015,7 @@ internal fun RenderAdminRefundA33(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(54.dp)
+                    .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = true)
                     .clip(RoundedCornerShape(16.dp))
                     .background(AdminButtonGradient)
                     .clickable { onSelectScreenCode("A32") },
@@ -3006,6 +3055,7 @@ internal fun RenderAdminReplyReviewA34(
                 Box(
                     modifier = Modifier
                         .size(44.dp)
+                        .rfIconButtonShadow(CircleShape, isAdmin = true)
                         .clip(CircleShape)
                         .background(Color.White)
                         .border(1.dp, Color(0xFFECECF5), CircleShape)
@@ -3025,6 +3075,7 @@ internal fun RenderAdminReplyReviewA34(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = true)
                     .clip(RoundedCornerShape(20.dp))
                     .background(Color.White)
                     .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(20.dp))
@@ -3143,6 +3194,7 @@ internal fun RenderAdminReplyReviewA34(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = true)
                     .clip(RoundedCornerShape(20.dp))
                     .background(Color.White)
                     .border(2.dp, Color(0xFF5B6CF0), RoundedCornerShape(20.dp))
@@ -3191,6 +3243,7 @@ internal fun RenderAdminReplyReviewA34(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(54.dp)
+                    .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = true)
                     .clip(RoundedCornerShape(16.dp))
                     .background(AdminButtonGradient)
                     .clickable { onSelectScreenCode("A12") },
@@ -3391,6 +3444,7 @@ internal fun RenderAdminEmptyStateA35(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(54.dp)
+                            .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = true)
                             .clip(RoundedCornerShape(16.dp))
                             .background(Color.White)
                             .border(1.dp, Color(0xFFE3E4EF), RoundedCornerShape(16.dp))
@@ -3487,6 +3541,7 @@ internal fun RenderAdminLoadingStateA36(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = true)
                     .clip(RoundedCornerShape(20.dp))
                     .background(Color.White)
                     .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(20.dp))
@@ -3588,6 +3643,7 @@ internal fun RenderAdminErrorStateA37(
                 Box(
                     modifier = Modifier
                         .size(44.dp)
+                        .rfIconButtonShadow(CircleShape, isAdmin = true)
                         .clip(CircleShape)
                         .background(Color.White)
                         .border(1.dp, Color(0xFFECECF5), CircleShape)
@@ -3655,6 +3711,7 @@ internal fun RenderAdminErrorStateA37(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(54.dp)
+                            .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = true)
                             .clip(RoundedCornerShape(16.dp))
                             .background(AdminButtonGradient)
                             .clickable { onSelectScreenCode("A09") },
@@ -3670,6 +3727,7 @@ internal fun RenderAdminErrorStateA37(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(54.dp)
+                            .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = true)
                             .clip(RoundedCornerShape(16.dp))
                             .background(Color.White)
                             .border(1.dp, Color(0xFFE3E4EF), RoundedCornerShape(16.dp))

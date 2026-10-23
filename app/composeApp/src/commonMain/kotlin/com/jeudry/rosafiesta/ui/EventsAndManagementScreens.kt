@@ -46,6 +46,8 @@ import com.jeudry.rosafiesta.designsystem.RfIcon
 import com.jeudry.rosafiesta.designsystem.RfIconKind
 import com.jeudry.rosafiesta.designsystem.RfPhoto
 import com.jeudry.rosafiesta.designsystem.RfPhotoKey
+import com.jeudry.rosafiesta.designsystem.rfCardShadow
+import com.jeudry.rosafiesta.designsystem.rfIconButtonShadow
 import com.jeudry.rosafiesta.domain.CanonicalSampleData
 
 private val EventBackgroundGradient = Brush.radialGradient(
@@ -388,6 +390,7 @@ internal fun RenderNewEventScreenS38(
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(112.dp)
+                                    .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
                                     .clip(RoundedCornerShape(20.dp))
                                     .background(card.bg)
                                     .then(if (isSelected) Modifier.border(2.5.dp, Color(0xFFB754CB), RoundedCornerShape(20.dp)) else Modifier)
@@ -722,6 +725,7 @@ internal fun RenderEventDetailScreenS40(
                 Box(
                     modifier = Modifier
                         .size(44.dp)
+                        .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(Color.White)
                         .border(1.dp, Color(0xFFEEEAF2), CircleShape)
@@ -757,6 +761,7 @@ internal fun RenderEventDetailScreenS40(
                 Box(
                     modifier = Modifier
                         .size(44.dp)
+                        .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(Color.White)
                         .border(1.dp, Color(0xFFEEEAF2), CircleShape),
@@ -769,6 +774,7 @@ internal fun RenderEventDetailScreenS40(
                 Box(
                     modifier = Modifier
                         .size(44.dp)
+                        .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(Color.White)
                         .border(1.dp, Color(0xFFEEEAF2), CircleShape)
@@ -942,6 +948,7 @@ internal fun RenderEventDetailScreenS40(
                 Box(
                     modifier = Modifier
                         .size(44.dp)
+                        .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(Color(0xFFFFD45C)),
                     contentAlignment = Alignment.Center,
@@ -1185,6 +1192,7 @@ internal fun RenderExecutionModeScreenS43(
                         Box(
                             modifier = Modifier
                                 .size(44.dp)
+                                .rfIconButtonShadow(CircleShape, isAdmin = false)
                                 .clip(CircleShape)
                                 .background(Color.White.copy(alpha = 0.2f))
                                 .clickable { onSelectScreenCode("s40") },
@@ -1840,6 +1848,7 @@ internal fun RenderQuoteScreenS48(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
                     .clip(RoundedCornerShape(20.dp))
                     .background(Color(0xFFFFF2C9))
                     .padding(horizontal = 16.dp, vertical = 14.dp),

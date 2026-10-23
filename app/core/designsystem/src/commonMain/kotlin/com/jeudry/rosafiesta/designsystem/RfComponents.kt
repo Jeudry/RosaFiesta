@@ -416,10 +416,10 @@ public fun Modifier.rfCardShadow(
     shape: Shape = RoundedCornerShape(RfDimens.CardRadius),
     isAdmin: Boolean = false,
 ): Modifier = this.shadow(
-    elevation = 8.dp,
+    elevation = 10.dp,
     shape = shape,
-    spotColor = if (isAdmin) Color(0x384650B4) else Color(0x38C850AA),
-    ambientColor = if (isAdmin) Color(0x154650B4) else Color(0x18C850AA),
+    spotColor = if (isAdmin) Color(0x454650B4) else Color(0x45C850AA),
+    ambientColor = if (isAdmin) Color(0x1C4650B4) else Color(0x1CC850AA),
 )
 
 /**
@@ -434,8 +434,8 @@ public fun Modifier.rfInputShadow(
 ): Modifier = this.shadow(
     elevation = if (isActive) 8.dp else 6.dp,
     shape = shape,
-    spotColor = if (isAdmin) Color(0x224650B4) else if (isActive) Color(0x38B450B4) else Color(0x28B450B4),
-    ambientColor = if (isAdmin) Color(0x0E4650B4) else Color(0x12B450B4),
+    spotColor = if (isAdmin) Color(0x304650B4) else if (isActive) Color(0x40B450B4) else Color(0x30B450B4),
+    ambientColor = if (isAdmin) Color(0x124650B4) else Color(0x15B450B4),
 )
 
 /**
@@ -449,8 +449,23 @@ public fun Modifier.rfIconButtonShadow(
 ): Modifier = this.shadow(
     elevation = 6.dp,
     shape = shape,
-    spotColor = if (isAdmin) Color(0x284650B4) else Color(0x28B450B4),
-    ambientColor = if (isAdmin) Color(0x104650B4) else Color(0x12B450B4),
+    spotColor = if (isAdmin) Color(0x354650B4) else Color(0x35B450B4),
+    ambientColor = if (isAdmin) Color(0x154650B4) else Color(0x18B450B4),
+)
+
+/**
+ * Sombra oficial de botones primarios (`.rf .bp`):
+ * Personal: `box-shadow: 0 12px 24px -12px rgba(234,72,153,.7);`
+ * Admin: `box-shadow: 0 12px 24px -12px rgba(91,108,240,.75);`
+ */
+public fun Modifier.rfPrimaryButtonShadow(
+    shape: Shape = RoundedCornerShape(RfDimens.ButtonRadius),
+    isAdmin: Boolean = false,
+): Modifier = this.shadow(
+    elevation = 12.dp,
+    shape = shape,
+    spotColor = if (isAdmin) Color(0x755B6CF0) else Color(0xB3EA4899),
+    ambientColor = Color.Transparent,
 )
 
 /**

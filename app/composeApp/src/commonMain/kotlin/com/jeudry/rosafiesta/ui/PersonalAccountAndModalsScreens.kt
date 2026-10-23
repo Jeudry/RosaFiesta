@@ -49,6 +49,10 @@ import androidx.compose.ui.unit.sp
 import com.jeudry.rosafiesta.designsystem.LocalRfTypography
 import com.jeudry.rosafiesta.designsystem.RfIcon
 import com.jeudry.rosafiesta.designsystem.RfIconKind
+import com.jeudry.rosafiesta.designsystem.rfCardShadow
+import com.jeudry.rosafiesta.designsystem.rfIconButtonShadow
+import com.jeudry.rosafiesta.designsystem.rfInputShadow
+import com.jeudry.rosafiesta.designsystem.rfPrimaryButtonShadow
 
 private val PersonalButtonGradient = Brush.horizontalGradient(
     listOf(Color(0xFFFF3366), Color(0xFFE6007A)),
@@ -635,6 +639,7 @@ internal fun RenderDeleteAccountS88(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(54.dp)
+                    .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
                     .clip(RoundedCornerShape(16.dp))
                     .background(Color(0xFFF1D5DB)),
                 contentAlignment = Alignment.Center,
@@ -915,6 +920,7 @@ internal fun RenderGuestAuthModalS75(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(54.dp)
+                        .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
                         .clip(RoundedCornerShape(16.dp))
                         .background(Color.White)
                         .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(16.dp))
@@ -1034,6 +1040,7 @@ internal fun RenderPlanningModalS76(
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = 84.dp)
+                        .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
                         .clip(RoundedCornerShape(20.dp))
                         .background(Color.White)
                         .border(1.dp, Color(0xFFEEE9F2), RoundedCornerShape(20.dp))
@@ -1079,6 +1086,7 @@ internal fun RenderPlanningModalS76(
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = 84.dp)
+                        .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
                         .clip(RoundedCornerShape(20.dp))
                         .background(Color(0xFFFAF8FF))
                         .border(2.dp, Color(0xFF865DEC), RoundedCornerShape(20.dp))
@@ -1143,6 +1151,7 @@ internal fun RenderPlanningModalS76(
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = 84.dp)
+                        .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
                         .clip(RoundedCornerShape(20.dp))
                         .background(Color.White)
                         .border(1.dp, Color(0xFFEEE9F2), RoundedCornerShape(20.dp))
@@ -1316,6 +1325,7 @@ internal fun RenderEventReviewsModalS77(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
                         .clip(RoundedCornerShape(20.dp))
                         .background(Color.White)
                         .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(20.dp))

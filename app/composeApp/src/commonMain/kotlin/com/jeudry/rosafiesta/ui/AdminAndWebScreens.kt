@@ -55,6 +55,8 @@ import com.jeudry.rosafiesta.designsystem.RfTheme
 import com.jeudry.rosafiesta.designsystem.RfThemeVariant
 import com.jeudry.rosafiesta.designsystem.RosaAvatar
 import com.jeudry.rosafiesta.designsystem.RosaAvatarSize
+import com.jeudry.rosafiesta.designsystem.rfCardShadow
+import com.jeudry.rosafiesta.designsystem.rfIconButtonShadow
 import com.jeudry.rosafiesta.domain.CanonicalSampleData
 
 @Composable
@@ -846,6 +848,7 @@ public fun RenderAdminWebDesktopA39(
                                 contentAlignment = Alignment.Center,
                                 modifier = Modifier
                                     .size(44.dp)
+                                    .rfIconButtonShadow(CircleShape, isAdmin = true)
                                     .clip(CircleShape)
                                     .background(Color.White)
                                     .border(1.dp, Color(0xFFECECF5), CircleShape)
@@ -1053,6 +1056,7 @@ private fun AdminStatCard(
     Column(
         verticalArrangement = Arrangement.spacedBy(10.dp),
         modifier = modifier
+            .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = true)
             .clip(RoundedCornerShape(20.dp))
             .background(Color.White)
             .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(20.dp))
@@ -1097,6 +1101,7 @@ private fun AdminUpcomingEventsTable(
     Column(
         modifier = modifier
             .fillMaxWidth()
+            .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = true)
             .clip(RoundedCornerShape(20.dp))
             .background(Color.White)
             .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(20.dp)),
@@ -1286,6 +1291,7 @@ private fun AdminMonthlyRevenueChart(
     Column(
         modifier = modifier
             .fillMaxWidth()
+            .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = true)
             .clip(RoundedCornerShape(20.dp))
             .background(Color.White)
             .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(20.dp))
@@ -1465,6 +1471,7 @@ private fun AdminNewRequestsCard(
     Column(
         modifier = modifier
             .fillMaxWidth()
+            .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = true)
             .clip(RoundedCornerShape(20.dp))
             .background(Color.White)
             .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(20.dp)),
@@ -1606,6 +1613,7 @@ private fun AdminAttentionTodayCard(
     Column(
         modifier = modifier
             .fillMaxWidth()
+            .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = true)
             .clip(RoundedCornerShape(20.dp))
             .background(Color.White)
             .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(20.dp)),

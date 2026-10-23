@@ -1007,6 +1007,7 @@ internal fun RenderEventChatTabS41(
                 Box(
                     modifier = Modifier
                         .size(44.dp)
+                        .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(Color.White)
                         .border(1.dp, Color(0xFFF0EBF4), CircleShape)
@@ -1046,6 +1047,7 @@ internal fun RenderEventChatTabS41(
                 Box(
                     modifier = Modifier
                         .size(44.dp)
+                        .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(Color.White)
                         .border(1.dp, Color(0xFFF0EBF4), CircleShape),
@@ -1062,6 +1064,7 @@ internal fun RenderEventChatTabS41(
                 Box(
                     modifier = Modifier
                         .size(44.dp)
+                        .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(Color.White)
                         .border(1.dp, Color(0xFFF0EBF4), CircleShape),
@@ -1224,6 +1227,7 @@ internal fun RenderEventChatTabS41(
             Box(
                 modifier = Modifier
                     .size(44.dp)
+                    .rfIconButtonShadow(CircleShape, isAdmin = false)
                     .clip(CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
@@ -1451,6 +1455,7 @@ internal fun RenderEventChatS42(
             Box(
                 modifier = Modifier
                     .size(44.dp)
+                    .rfIconButtonShadow(CircleShape, isAdmin = false)
                     .clip(CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
@@ -1560,6 +1565,7 @@ internal fun RenderFinanceDashboardS59(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
                     .clip(RoundedCornerShape(20.dp))
                     .background(Color.White)
                     .border(1.dp, Color(0xFFFFE3EC), RoundedCornerShape(20.dp))
@@ -1674,6 +1680,7 @@ private fun RenderGenericPersonalSubPanel(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
                     .clip(RoundedCornerShape(20.dp))
                     .background(Color.White)
                     .border(1.dp, Color(0xFFFFE3EC), RoundedCornerShape(20.dp))

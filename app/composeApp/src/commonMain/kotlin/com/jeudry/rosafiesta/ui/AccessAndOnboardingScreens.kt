@@ -3117,6 +3117,7 @@ internal fun RenderGuestCatalogS01(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(54.dp)
+                    .rfInputShadow(RoundedCornerShape(16.dp), isAdmin = false)
                     .clip(RoundedCornerShape(16.dp))
                     .background(Color.White)
                     .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(16.dp))
@@ -3267,6 +3268,7 @@ private fun GuestProductCard(
     val typo = LocalRfTypography.current
     Box(
         modifier = modifier
+            .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
             .clip(RoundedCornerShape(20.dp))
             .background(Color.White)
             .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(20.dp)),
@@ -3361,6 +3363,7 @@ internal fun RenderGuestFavoritesS02(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
+                .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
                 .clip(RoundedCornerShape(20.dp))
                 .background(Color(0xFFEFE8FD))
                 .padding(16.dp),
