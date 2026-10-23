@@ -1105,9 +1105,26 @@ internal fun RenderPackageDetailScreenS22(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(300.dp),
+                    .height(300.dp)
+                    .background(Color(0xFFFDE6F2)),
             ) {
-                RfPhoto(photoKey = RfPhotoKey.BODA, contentDescription = "Bodas Rosa", cornerRadius = 0.dp, modifier = Modifier.fillMaxSize())
+                RfPhoto(
+                    photoKey = RfPhotoKey.BODA,
+                    contentDescription = "Bodas Rosa",
+                    cornerRadius = 0.dp,
+                    alignment = androidx.compose.ui.BiasAlignment(0f, -0.4f),
+                    modifier = Modifier.fillMaxSize(),
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(110.dp)
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(Color(0x4D1A1A2E), Color.Transparent),
+                            ),
+                        ),
+                )
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier

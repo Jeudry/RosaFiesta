@@ -244,6 +244,7 @@ public fun RfPhoto(
     modifier: Modifier = Modifier,
     cornerRadius: Dp = 14.dp,
     bottomScrim: Boolean = false,
+    alignment: Alignment = Alignment.Center,
 ) {
     Box(
         modifier = modifier
@@ -254,6 +255,7 @@ public fun RfPhoto(
             painter = painterResource(drawableForPhotoKey(photoKey)),
             contentDescription = contentDescription,
             contentScale = ContentScale.Crop,
+            alignment = alignment,
             modifier = Modifier.fillMaxSize(),
         )
         if (bottomScrim) {
