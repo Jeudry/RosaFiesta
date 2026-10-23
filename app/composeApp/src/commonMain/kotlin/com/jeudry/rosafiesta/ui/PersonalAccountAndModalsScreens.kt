@@ -19,6 +19,17 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.CornerRadius
+import com.jeudry.rosafiesta.designsystem.RosaAvatar
+import com.jeudry.rosafiesta.designsystem.RosaAvatarSize
+import com.jeudry.rosafiesta.designsystem.RfThemeVariant
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -731,7 +742,679 @@ internal fun RenderPersonalLoadingStateS90(
 }
 
 // ==============================================================================
-// s81 · MODAL FILTROS DE CATÁLOGO
+// s75 · MODAL INICIA SESIÓN (MODAL PARA INVITADOS)
+// ==============================================================================
+@Composable
+internal fun RenderGuestAuthModalS75(
+    onSelectScreenCode: (String) -> Unit = {},
+) {
+    val typo = LocalRfTypography.current
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFFAFAFC)),
+    ) {
+        // Background guest catalog (s01)
+        RenderGuestCatalogS01(onSelectScreenCode = onSelectScreenCode)
+
+        // Scrim
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0x731E1432))
+                .clickable { onSelectScreenCode("s01") },
+        )
+
+        // Bottom sheet dialog
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.BottomCenter)
+                .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
+                .background(Color.White)
+                .padding(top = 12.dp, start = 24.dp, end = 24.dp, bottom = 34.dp),
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                // Grab handle
+                Box(
+                    modifier = Modifier
+                        .width(40.dp)
+                        .height(5.dp)
+                        .clip(RoundedCornerShape(3.dp))
+                        .background(Color(0xFFE3DCE8)),
+                )
+                Spacer(Modifier.height(2.dp))
+
+                // Candado illustration 110x110
+                Canvas(modifier = Modifier.size(110.dp)) {
+                    val scale = size.width / 120f
+                    // Pink circle
+                    drawCircle(
+                        color = Color(0xFFFCE4EF),
+                        radius = 42f * scale,
+                        center = Offset(60f * scale, 62f * scale),
+                    )
+                    // Purple shackle
+                    val shacklePath = androidx.compose.ui.graphics.Path().apply {
+                        moveTo(44f * scale, 56f * scale)
+                        lineTo(44f * scale, 42f * scale)
+                        arcTo(
+                            rect = Rect(44f * scale, 26f * scale, 76f * scale, 58f * scale),
+                            startAngleDegrees = 180f,
+                            sweepAngleDegrees = 180f,
+                            forceMoveTo = false,
+                        )
+                        lineTo(76f * scale, 56f * scale)
+                    }
+                    drawPath(
+                        path = shacklePath,
+                        color = Color(0xFF7650E8),
+                        style = Stroke(
+                            width = 8f * scale,
+                            cap = StrokeCap.Round,
+                        ),
+                    )
+                    // Pink lock body
+                    drawRoundRect(
+                        color = Color(0xFFEC4F97),
+                        topLeft = Offset(34f * scale, 52f * scale),
+                        size = Size(52f * scale, 44f * scale),
+                        cornerRadius = CornerRadius(12f * scale, 12f * scale),
+                    )
+                    // Keyhole circle
+                    drawCircle(
+                        color = Color.White,
+                        radius = 6f * scale,
+                        center = Offset(60f * scale, 70f * scale),
+                    )
+                    // Keyhole slot
+                    drawRoundRect(
+                        color = Color.White,
+                        topLeft = Offset(57.5f * scale, 72f * scale),
+                        size = Size(5f * scale, 12f * scale),
+                        cornerRadius = CornerRadius(2.5f * scale, 2.5f * scale),
+                    )
+                    // Sparkle star at (96, 30)
+                    val starPath = androidx.compose.ui.graphics.Path().apply {
+                        moveTo(96f * scale, 30f * scale)
+                        lineTo(98f * scale, 35f * scale)
+                        lineTo(103f * scale, 37f * scale)
+                        lineTo(98f * scale, 39f * scale)
+                        lineTo(96f * scale, 44f * scale)
+                        lineTo(94f * scale, 39f * scale)
+                        lineTo(89f * scale, 37f * scale)
+                        lineTo(94f * scale, 35f * scale)
+                        close()
+                    }
+                    drawPath(path = starPath, color = Color(0xFFF5B53B))
+                    // Dot at (22, 44)
+                    drawCircle(
+                        color = Color(0xFF2FB58F),
+                        radius = 3f * scale,
+                        center = Offset(22f * scale, 44f * scale),
+                    )
+                }
+
+                // Title
+                BasicText(
+                    text = "Inicia sesión para continuar",
+                    style = TextStyle(
+                        fontFamily = typo.displayFamily,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 22.sp,
+                        color = Color(0xFF1A1A2E),
+                        textAlign = TextAlign.Center,
+                    ),
+                )
+
+                // Subtitle
+                BasicText(
+                    text = "Entra o crea tu cuenta para guardar favoritos y armar tu evento.",
+                    style = TextStyle(
+                        fontFamily = typo.bodyFamily,
+                        fontSize = 15.sp,
+                        color = Color(0xFF62627A),
+                        textAlign = TextAlign.Center,
+                        lineHeight = 22.sp,
+                    ),
+                    modifier = Modifier.widthIn(max = 300.dp),
+                )
+
+                Spacer(Modifier.height(4.dp))
+
+                // Iniciar sesión CTA
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(54.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(RosaButtonGradient)
+                        .shadow(12.dp, RoundedCornerShape(16.dp), spotColor = Color(0xB2C846B4))
+                        .clickable { onSelectScreenCode("s07") },
+                ) {
+                    BasicText(
+                        "Iniciar sesión",
+                        style = TextStyle(
+                            fontFamily = typo.bodyFamily,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                            color = Color.White,
+                        ),
+                    )
+                }
+
+                // Crear cuenta CTA
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(54.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color.White)
+                        .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(16.dp))
+                        .clickable { onSelectScreenCode("s08") },
+                ) {
+                    BasicText(
+                        "Crear cuenta",
+                        style = TextStyle(
+                            fontFamily = typo.bodyFamily,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                            color = Color(0xFF1A1A2E),
+                        ),
+                    )
+                }
+
+                // Ahora no
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(44.dp)
+                        .clickable { onSelectScreenCode("s01") },
+                ) {
+                    BasicText(
+                        "Ahora no",
+                        style = TextStyle(
+                            fontFamily = typo.bodyFamily,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 15.sp,
+                            color = Color(0xFF62627A),
+                        ),
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ==============================================================================
+// s76 · MODAL CÓMO PLANIFICAR
+// ==============================================================================
+@Composable
+internal fun RenderPlanningModalS76(
+    onSelectScreenCode: (String) -> Unit = {},
+) {
+    val typo = LocalRfTypography.current
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFFAFAFC)),
+    ) {
+        // Background personal home (s14)
+        RenderPersonalHomeScreen(
+            spec = ScreenCatalog.findByCode("s14"),
+            onSelectScreenCode = onSelectScreenCode,
+        )
+
+        // Scrim
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0x731E1432))
+                .clickable { onSelectScreenCode("s14") },
+        )
+
+        // Bottom sheet dialog
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.BottomCenter)
+                .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
+                .background(Color.White)
+                .padding(top = 12.dp, start = 20.dp, end = 20.dp, bottom = 34.dp),
+        ) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                // Grab handle
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .width(40.dp)
+                        .height(5.dp)
+                        .clip(RoundedCornerShape(3.dp))
+                        .background(Color(0xFFE3DCE8)),
+                )
+
+                // Title header
+                Column(modifier = Modifier.padding(horizontal = 4.dp)) {
+                    BasicText(
+                        "¿Cómo quieres planificar?",
+                        style = TextStyle(
+                            fontFamily = typo.displayFamily,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 22.sp,
+                            color = Color(0xFF1A1A2E),
+                        ),
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    BasicText(
+                        "Elige cómo prefieres hablar con nosotros.",
+                        style = TextStyle(
+                            fontFamily = typo.bodyFamily,
+                            fontSize = 15.sp,
+                            color = Color(0xFF62627A),
+                        ),
+                    )
+                }
+
+                // Opción 1: WhatsApp con María
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 84.dp)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(Color.White)
+                        .border(1.dp, Color(0xFFEEE9F2), RoundedCornerShape(20.dp))
+                        .clickable { onSelectScreenCode("s31") }
+                        .padding(14.dp),
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(52.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color(0xFFEEF6D6)),
+                    ) {
+                        RfIcon(kind = RfIconKind.WHATSAPP, tint = Color(0xFF4E6A10), size = 26.dp)
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        BasicText(
+                            "WhatsApp con María",
+                            style = TextStyle(
+                                fontFamily = typo.bodyFamily,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp,
+                                color = Color(0xFF1A1A2E),
+                            ),
+                        )
+                        Spacer(Modifier.height(2.dp))
+                        BasicText(
+                            "Habla directo con la dueña",
+                            style = TextStyle(
+                                fontFamily = typo.bodyFamily,
+                                fontSize = 14.sp,
+                                color = Color(0xFF62627A),
+                            ),
+                        )
+                    }
+                    RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = Color(0xFF62627A), size = 20.dp)
+                }
+
+                // Opción 2: Chat con Rosa (Seleccionado)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 84.dp)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(Color(0xFFFAF8FF))
+                        .border(2.dp, Color(0xFF865DEC), RoundedCornerShape(20.dp))
+                        .clickable { onSelectScreenCode("s26") }
+                        .padding(14.dp),
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(52.dp)
+                            .clip(CircleShape),
+                    ) {
+                        RosaAvatar(size = RosaAvatarSize.MEDIUM)
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            BasicText(
+                                "Chat con Rosa",
+                                style = TextStyle(
+                                    fontFamily = typo.bodyFamily,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 16.sp,
+                                    color = Color(0xFF1A1A2E),
+                                ),
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(999.dp))
+                                    .background(Color(0xFFEFE8FD))
+                                    .padding(horizontal = 8.dp, vertical = 2.dp),
+                            ) {
+                                BasicText(
+                                    "Rápido",
+                                    style = TextStyle(
+                                        fontFamily = typo.bodyFamily,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 11.sp,
+                                        color = Color(0xFF7A4FD8),
+                                    ),
+                                )
+                            }
+                        }
+                        Spacer(Modifier.height(2.dp))
+                        BasicText(
+                            "Arma tu evento paso a paso",
+                            style = TextStyle(
+                                fontFamily = typo.bodyFamily,
+                                fontSize = 14.sp,
+                                color = Color(0xFF62627A),
+                            ),
+                        )
+                    }
+                    RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = Color(0xFF7A4FD8), size = 20.dp)
+                }
+
+                // Opción 3: Voz con Rosa
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 84.dp)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(Color.White)
+                        .border(1.dp, Color(0xFFEEE9F2), RoundedCornerShape(20.dp))
+                        .clickable { onSelectScreenCode("s78") }
+                        .padding(14.dp),
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(52.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color(0xFFFFF2C9)),
+                    ) {
+                        Canvas(modifier = Modifier.size(26.dp)) {
+                            val scale = size.width / 24f
+                            val strokeW = 1.8f * scale
+                            val waveColor = Color(0xFF7A5700)
+                            fun vLine(x: Float, y1: Float, y2: Float) {
+                                drawLine(
+                                    color = waveColor,
+                                    start = Offset(x * scale, y1 * scale),
+                                    end = Offset(x * scale, y2 * scale),
+                                    strokeWidth = strokeW,
+                                    cap = StrokeCap.Round,
+                                )
+                            }
+                            vLine(3.5f, 11f, 13f)
+                            vLine(7f, 8f, 16f)
+                            vLine(11f, 5f, 19f)
+                            vLine(15f, 9f, 15f)
+                            vLine(19f, 7f, 17f)
+                            vLine(21.75f, 11f, 13f)
+                        }
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            BasicText(
+                                "Voz con Rosa",
+                                style = TextStyle(
+                                    fontFamily = typo.bodyFamily,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 16.sp,
+                                    color = Color(0xFF1A1A2E),
+                                ),
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(999.dp))
+                                    .background(Color(0xFFFFF2C9))
+                                    .padding(horizontal = 8.dp, vertical = 2.dp),
+                            ) {
+                                BasicText(
+                                    "Manos libres",
+                                    style = TextStyle(
+                                        fontFamily = typo.bodyFamily,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 11.sp,
+                                        color = Color(0xFF7A5700),
+                                    ),
+                                )
+                            }
+                        }
+                        Spacer(Modifier.height(2.dp))
+                        BasicText(
+                            "Solo habla, nosotros te escuchamos",
+                            style = TextStyle(
+                                fontFamily = typo.bodyFamily,
+                                fontSize = 14.sp,
+                                color = Color(0xFF62627A),
+                            ),
+                        )
+                    }
+                    RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = Color(0xFF62627A), size = 20.dp)
+                }
+            }
+        }
+    }
+}
+
+// ==============================================================================
+// s77 · MODAL RESEÑAS DEL EVENTO
+// ==============================================================================
+@Composable
+internal fun RenderEventReviewsModalS77(
+    onSelectScreenCode: (String) -> Unit = {},
+) {
+    val typo = LocalRfTypography.current
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFFAFAFC)),
+    ) {
+        // Background my events (s37)
+        RenderMyEventsScreenS37(onSelectScreenCode = onSelectScreenCode)
+
+        // Scrim
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0x731E1432))
+                .clickable { onSelectScreenCode("s37") },
+        )
+
+        // Bottom sheet dialog (height 540dp, bg #FAFAFC)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(540.dp)
+                .align(Alignment.BottomCenter)
+                .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
+                .background(Color(0xFFFAFAFC))
+                .padding(top = 12.dp, start = 20.dp, end = 20.dp, bottom = 34.dp),
+        ) {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                // Grab handle
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .width(40.dp)
+                        .height(5.dp)
+                        .clip(RoundedCornerShape(3.dp))
+                        .background(Color(0xFFE3DCE8)),
+                )
+
+                // Header row
+                Row(
+                    verticalAlignment = Alignment.Top,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        BasicText(
+                            "Reseñas",
+                            style = TextStyle(
+                                fontFamily = typo.displayFamily,
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 21.sp,
+                                color = Color(0xFF1A1A2E),
+                            ),
+                        )
+                        Spacer(Modifier.height(2.dp))
+                        BasicText(
+                            "Gala Corporativa Grupo Caribe",
+                            style = TextStyle(
+                                fontFamily = typo.bodyFamily,
+                                fontSize = 14.sp,
+                                color = Color(0xFF62627A),
+                            ),
+                        )
+                    }
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(Color.White)
+                            .border(1.dp, Color(0xFFEEE9F2), RoundedCornerShape(14.dp))
+                            .clickable { onSelectScreenCode("s37") },
+                    ) {
+                        RfIcon(kind = RfIconKind.CLOSE, tint = Color(0xFF1A1A2E), size = 20.dp)
+                    }
+                }
+
+                // Review card
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(Color.White)
+                        .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(20.dp))
+                        .padding(16.dp),
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFFFFF2C9)),
+                            ) {
+                                BasicText(
+                                    "A",
+                                    style = TextStyle(
+                                        fontFamily = typo.bodyFamily,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        fontSize = 16.sp,
+                                        color = Color(0xFF7A5700),
+                                    ),
+                                )
+                            }
+                            Column(modifier = Modifier.weight(1f)) {
+                                BasicText(
+                                    "Anónimo",
+                                    style = TextStyle(
+                                        fontFamily = typo.bodyFamily,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 15.sp,
+                                        color = Color(0xFF1A1A2E),
+                                    ),
+                                )
+                                Spacer(Modifier.height(2.dp))
+                                Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    repeat(5) {
+                                        RfIcon(kind = RfIconKind.STAR, tint = Color(0xFFF7B500), size = 14.dp)
+                                    }
+                                }
+                            }
+                            BasicText(
+                                "19 oct",
+                                style = TextStyle(
+                                    fontFamily = typo.bodyFamily,
+                                    fontSize = 13.sp,
+                                    color = Color(0xFF62627A),
+                                ),
+                            )
+                        }
+                        BasicText(
+                            "Excelente coordinación en nuestra Gala Corporativa. Todo el mobiliario llegó impecable.",
+                            style = TextStyle(
+                                fontFamily = typo.bodyFamily,
+                                fontSize = 15.sp,
+                                color = Color(0xFF1A1A2E),
+                                lineHeight = 22.sp,
+                            ),
+                        )
+                    }
+                }
+
+                Spacer(Modifier.weight(1f))
+
+                // CTA button: Escribir reseña
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(RosaButtonGradient)
+                        .shadow(12.dp, RoundedCornerShape(16.dp), spotColor = Color(0xB2C846B4))
+                        .clickable { onSelectScreenCode("s37") },
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        RfIcon(kind = RfIconKind.EDIT, tint = Color.White, size = 20.dp)
+                        BasicText(
+                            "Escribir reseña",
+                            style = TextStyle(
+                                fontFamily = typo.bodyFamily,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp,
+                                color = Color.White,
+                            ),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
 // ==============================================================================
 @Composable
 internal fun RenderCatalogFiltersModalS81(
