@@ -37,6 +37,13 @@ import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -64,91 +71,441 @@ internal fun RenderAboutScreenS16(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFFFF6F8)),
+            .background(Color(0xFFFAFAFC))
+            .drawBehind {
+                drawRect(
+                    brush = Brush.radialGradient(
+                        colors = listOf(Color(0xFFF9E3F1), Color(0x00F9E3F1)),
+                        center = Offset(0f, 0f),
+                        radius = size.width * 1.1f,
+                    ),
+                )
+                drawRect(
+                    brush = Brush.radialGradient(
+                        colors = listOf(Color(0xFFEEE7FB), Color(0x00EEE7FB)),
+                        center = Offset(size.width, size.height * 0.15f),
+                        radius = size.width * 0.8f,
+                    ),
+                )
+            },
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 20.dp)
                 .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
-            Spacer(modifier = Modifier.height(56.dp))
+            Spacer(modifier = Modifier.height(36.dp))
 
+            // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 Box(
                     modifier = Modifier
                         .size(44.dp)
-                        .shadow(6.dp, CircleShape, spotColor = Color(0x33FF3366))
                         .clip(CircleShape)
                         .background(Color.White)
+                        .border(1.dp, Color(0xFFF0EBF4), CircleShape)
                         .clickable { onSelectScreenCode("s14") },
                     contentAlignment = Alignment.Center,
                 ) {
-                    RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1E1E24), size = 22.dp)
+                    RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1A1A2E), size = 22.dp)
                 }
 
                 BasicText(
                     text = "Acerca de",
-                    style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color(0xFF1E1E24)),
+                    style = TextStyle(
+                        fontFamily = typo.displayFamily,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 20.sp,
+                        letterSpacing = (-0.4).sp,
+                        color = Color(0xFF1A1A2E),
+                    ),
                 )
-
-                Spacer(modifier = Modifier.size(44.dp))
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(Color.White)
-                    .border(1.dp, Color(0xFFFFE3EC), RoundedCornerShape(20.dp))
-                    .padding(20.dp),
+            // Brand Header: Logo 84dp + Name
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp),
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    BasicText("Rosa Fiesta SRL", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, color = Color(0xFF1E1E24), fontSize = 22.sp))
-                    BasicText("Decoración y planificación de eventos inolvidables en República Dominicana.", style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFF7A7177), fontSize = 14.sp))
+                Box(
+                    modifier = Modifier
+                        .size(84.dp)
+                        .clip(CircleShape)
+                        .background(Color.White)
+                        .border(1.dp, Color(0x24EA4EA9), CircleShape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    RfLogo(customSize = 84.dp, insetPadding = false)
+                }
 
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                        Column {
-                            BasicText("127", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, color = Color(0xFFFF3366), fontSize = 24.sp))
-                            BasicText("eventos realizados", style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFF7A7177), fontSize = 12.sp))
-                        }
-                        Column {
-                            BasicText("8", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, color = Color(0xFFFF3366), fontSize = 24.sp))
-                            BasicText("años de experiencia", style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFF7A7177), fontSize = 12.sp))
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    val nameAnnotated = buildAnnotatedString {
+                        append("Rosa ")
+                        withStyle(SpanStyle(color = Color(0xFFD63F98))) {
+                            append("Fiesta")
                         }
                     }
+                    BasicText(
+                        text = nameAnnotated,
+                        style = TextStyle(
+                            fontFamily = typo.displayFamily,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 28.sp,
+                            letterSpacing = (-0.56).sp,
+                            lineHeight = 28.sp,
+                            color = Color(0xFF1A1A2E),
+                        ),
+                    )
+                    BasicText(
+                        text = "Decoración y planificación de eventos",
+                        style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF62627A)),
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
+            // Metrics Card (3 columns: 127 / 8 / 4.9 ★)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(18.dp))
+                    .clip(RoundedCornerShape(22.dp))
                     .background(Color.White)
-                    .border(1.dp, Color(0xFFFFE3EC), RoundedCornerShape(18.dp))
+                    .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(22.dp))
                     .clickable { onSelectScreenCode("s17") }
-                    .padding(16.dp),
+                    .padding(vertical = 16.dp),
             ) {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Column {
-                        BasicText("Opiniones y Reseñas", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24), fontSize = 15.sp))
-                        BasicText("Calificación promedio 5.0 ★★★★★", style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFF7A7177), fontSize = 12.sp))
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        BasicText(
+                            "127",
+                            style = TextStyle(
+                                fontFamily = typo.displayFamily,
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 26.sp,
+                                letterSpacing = (-0.52).sp,
+                                color = Color(0xFF1A1A2E),
+                            ),
+                        )
+                        BasicText("eventos", style = typo.body.copy(fontSize = 13.sp, color = Color(0xFF62627A)))
                     }
-                    RfIcon(kind = RfIconKind.MORE_VERT, tint = Color(0xFFFF3366), size = 18.dp)
+
+                    Box(
+                        modifier = Modifier
+                            .width(1.dp)
+                            .height(44.dp)
+                            .background(Color(0xFFF2EDF5)),
+                    )
+
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        BasicText(
+                            "8",
+                            style = TextStyle(
+                                fontFamily = typo.displayFamily,
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 26.sp,
+                                letterSpacing = (-0.52).sp,
+                                color = Color(0xFF1A1A2E),
+                            ),
+                        )
+                        BasicText("años", style = typo.body.copy(fontSize = 13.sp, color = Color(0xFF62627A)))
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .width(1.dp)
+                            .height(44.dp)
+                            .background(Color(0xFFF2EDF5)),
+                    )
+
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            BasicText(
+                                "4.9",
+                                style = TextStyle(
+                                    fontFamily = typo.displayFamily,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 26.sp,
+                                    letterSpacing = (-0.52).sp,
+                                    color = Color(0xFF1A1A2E),
+                                ),
+                            )
+                            CustomSvgIcon(
+                                pathData = "M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z",
+                                size = 18.dp,
+                                tint = Color(0xFFF7B500),
+                            )
+                        }
+                        BasicText("calificación", style = typo.body.copy(fontSize = 13.sp, color = Color(0xFF62627A)))
+                    }
                 }
             }
 
-            Spacer(modifier = Modifier.height(30.dp))
+            // Contact Card
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(22.dp))
+                    .background(Color.White)
+                    .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(22.dp))
+                    .padding(vertical = 6.dp),
+            ) {
+                Column {
+                    BasicText(
+                        text = "CONTACTO",
+                        style = TextStyle(
+                            fontFamily = typo.bodyFamily,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.sp,
+                            color = Color(0xFF62627A),
+                        ),
+                        modifier = Modifier.padding(start = 18.dp, top = 12.dp, bottom = 4.dp),
+                    )
+
+                    // Phone row
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color(0xFFFDE6F2)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            CustomSvgIcon(
+                                pathData = "M5 4h3.5l1.5 4.5-2.2 1.3a11 11 0 0 0 6.4 6.4l1.3-2.2L20 15.5V19a1.5 1.5 0 0 1-1.6 1.5C10.6 20 4 13.4 3.5 5.6A1.5 1.5 0 0 1 5 4z",
+                                size = 20.dp,
+                                tint = Color(0xFFC2338F),
+                            )
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            BasicText("Teléfono", style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A2E)))
+                            BasicText("+1 (829) 942-4971", style = typo.body.copy(fontSize = 14.sp, color = Color(0xFF62627A)))
+                        }
+                        Box(
+                            modifier = Modifier
+                                .height(38.dp)
+                                .shadow(8.dp, RoundedCornerShape(999.dp), spotColor = Color(0x66865DEC), ambientColor = Color.Transparent)
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))))
+                                .padding(horizontal = 14.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            BasicText("Llamar", style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White))
+                        }
+                    }
+
+                    // Divider
+                    Box(Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFF2F0F5)))
+
+                    // WhatsApp row
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { }
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color(0xFFEEF6D6)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            CustomSvgIcon(
+                                pathData = "M4 20l1.3-4A8.5 8.5 0 1 1 8 18.8zM9 8.5c0 3.2 3.2 6.5 6.5 6.5l1-1.6-2-1.1-1 .8c-1-.4-2.1-1.5-2.5-2.5l.8-1-1.1-2z",
+                                size = 20.dp,
+                                tint = Color(0xFF4E6A10),
+                            )
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            BasicText("WhatsApp", style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A2E)))
+                            BasicText("Escríbele a María", style = typo.body.copy(fontSize = 14.sp, color = Color(0xFF62627A)))
+                        }
+                        CustomSvgIcon(
+                            pathData = "M9 18l6-6-6-6",
+                            size = 20.dp,
+                            tint = Color(0xFF62627A),
+                        )
+                    }
+
+                    // Divider
+                    Box(Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFF2F0F5)))
+
+                    // Instagram row
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { }
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color(0xFFEFE8FD)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            CustomSvgIcon(
+                                pathData = "M3 8.5A1.5 1.5 0 0 1 4.5 7H7l1.5-2.5h7L17 7h2.5A1.5 1.5 0 0 1 21 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5zM8.5 13a3.5 3.5 0 1 0 7 0a3.5 3.5 0 1 0 -7 0",
+                                size = 20.dp,
+                                tint = Color(0xFF7A4FD8),
+                            )
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            BasicText("Instagram", style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A2E)))
+                            BasicText("Mira nuestros montajes", style = typo.body.copy(fontSize = 14.sp, color = Color(0xFF62627A)))
+                        }
+                        CustomSvgIcon(
+                            pathData = "M9 18l6-6-6-6",
+                            size = 20.dp,
+                            tint = Color(0xFF62627A),
+                        )
+                    }
+
+                    // Divider
+                    Box(Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFF2F0F5)))
+
+                    // Facebook row
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { }
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color(0xFFDDF4F3)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            CustomSvgIcon(
+                                pathData = "M5 8a3.5 3.5 0 1 0 7 0a3.5 3.5 0 1 0 -7 0M2 20c.6-3.2 3.3-5.5 6.5-5.5S14.4 16.8 15 20M15.5 4.6a3.5 3.5 0 0 1 0 6.8M18 14.8c2 .7 3.5 2.6 4 5.2",
+                                size = 20.dp,
+                                tint = Color(0xFF1F8A84),
+                            )
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            BasicText("Facebook", style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A2E)))
+                            BasicText("Únete a la comunidad", style = typo.body.copy(fontSize = 14.sp, color = Color(0xFF62627A)))
+                        }
+                        CustomSvgIcon(
+                            pathData = "M9 18l6-6-6-6",
+                            size = 20.dp,
+                            tint = Color(0xFF62627A),
+                        )
+                    }
+                }
+            }
+
+            // Map Card
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(22.dp))
+                    .background(Color.White)
+                    .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(22.dp)),
+            ) {
+                Column {
+                    // Map Canvas
+                    MapIllustrationS16(modifier = Modifier.fillMaxWidth().height(120.dp))
+
+                    // Map bottom row
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Column {
+                            BasicText("Santo Domingo, R.D.", style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A2E)))
+                            BasicText("[Dirección del local]", style = typo.body.copy(fontSize = 13.sp, color = Color(0xFF62627A)))
+                        }
+                        Box(
+                            modifier = Modifier
+                                .height(38.dp)
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(Color.White)
+                                .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(999.dp))
+                                .padding(horizontal = 14.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            BasicText("Cómo llegar", style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A2E)))
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+    }
+}
+
+@Composable
+private fun MapIllustrationS16(modifier: Modifier = Modifier) {
+    val land1 = remember { PathParser().parsePathString("M0 110C40 96 70 120 110 104S170 70 210 84 270 120 300 100V160H0Z").toPath() }
+    val park1 = remember { PathParser().parsePathString("M180 10C210 0 250 14 256 40S230 76 204 70 168 40 180 10Z").toPath() }
+    val park2 = remember { PathParser().parsePathString("M20 30C40 26 60 40 54 56S24 66 16 52 8 34 20 30Z").toPath() }
+    val roadMain = remember { PathParser().parsePathString("M-10 128C60 112 120 140 190 120S280 96 310 104").toPath() }
+    val pinPath = remember { PathParser().parsePathString("M150 95s-17-14-17-27a17 17 0 0 1 34 0c0 13-17 27-17 27z").toPath() }
+
+    Canvas(modifier = modifier) {
+        val s = size.width / 300f
+        drawRect(Color(0xFFEEF6FB))
+
+        scale(s, s, Offset.Zero) {
+            drawPath(land1, Color(0xFFDFF0FB))
+            drawPath(park1, Color(0xFFD7F2E6))
+            drawPath(park2, Color(0xFFD7F2E6))
+            drawPath(roadMain, Color(0xFFBFE1F5), style = Stroke(width = 12f))
+
+            // White roads
+            drawLine(Color.White, Offset(0f, 74f), Offset(300f, 74f), strokeWidth = 8f)
+            drawLine(Color.White, Offset(110f, 0f), Offset(110f, 160f), strokeWidth = 8f)
+            drawLine(Color.White, Offset(228f, 0f), Offset(196f, 160f), strokeWidth = 8f)
+            drawLine(Color.White, Offset(0f, 20f), Offset(300f, 60f), strokeWidth = 8f)
+
+            drawLine(Color.White, Offset(60f, 0f), Offset(60f, 160f), strokeWidth = 3.5f)
+            drawLine(Color.White, Offset(0f, 140f), Offset(300f, 140f), strokeWidth = 3.5f)
+            drawLine(Color.White, Offset(160f, 0f), Offset(170f, 160f), strokeWidth = 3.5f)
+
+            // Pin shadow
+            drawOval(Color(0x262B1730), topLeft = Offset(138f, 92.5f), size = androidx.compose.ui.geometry.Size(24f, 7f))
+
+            // Pin
+            drawPath(pinPath, Color(0xFFD12F7C))
+            drawCircle(Color.White, radius = 6.5f, center = Offset(150f, 68f))
         }
     }
 }
@@ -161,83 +518,338 @@ internal fun RenderCompanyReviewsS17(
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
+    var selectedFilter by remember { mutableStateOf(0) } // 0 = Todas, 1 = Verificadas
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFFFF6F8)),
+            .background(Color(0xFFFAFAFC))
+            .drawBehind {
+                drawRect(
+                    brush = Brush.radialGradient(
+                        colors = listOf(Color(0xFFF9E3F1), Color(0x00F9E3F1)),
+                        center = Offset(0f, 0f),
+                        radius = size.width * 1.1f,
+                    ),
+                )
+                drawRect(
+                    brush = Brush.radialGradient(
+                        colors = listOf(Color(0xFFEEE7FB), Color(0x00EEE7FB)),
+                        center = Offset(size.width, size.height * 0.15f),
+                        radius = size.width * 0.8f,
+                    ),
+                )
+            },
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 20.dp)
                 .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
-            Spacer(modifier = Modifier.height(56.dp))
+            Spacer(modifier = Modifier.height(36.dp))
 
+            // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 Box(
                     modifier = Modifier
                         .size(44.dp)
-                        .shadow(6.dp, CircleShape, spotColor = Color(0x33FF3366))
                         .clip(CircleShape)
                         .background(Color.White)
+                        .border(1.dp, Color(0xFFF0EBF4), CircleShape)
                         .clickable { onSelectScreenCode("s16") },
                     contentAlignment = Alignment.Center,
                 ) {
-                    RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1E1E24), size = 22.dp)
+                    RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1A1A2E), size = 22.dp)
                 }
 
                 BasicText(
                     text = "Reseñas",
-                    style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color(0xFF1E1E24)),
+                    style = TextStyle(
+                        fontFamily = typo.displayFamily,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 20.sp,
+                        letterSpacing = (-0.4).sp,
+                        color = Color(0xFF1A1A2E),
+                    ),
                 )
-
-                Spacer(modifier = Modifier.size(44.dp))
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
-
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                BasicText("5.0", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, color = Color(0xFF1E1E24), fontSize = 36.sp))
-                Column {
-                    BasicText("★★★★★", style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFFF59E0B), fontSize = 16.sp))
-                    BasicText("Basado en eventos reales verificados", style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFF7A7177), fontSize = 12.sp))
-                }
-            }
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            val reviews = listOf(
-                Pair("Patricia Lora", "Baby shower de ensueño. Las mesas y el arco floral superaron mis expectativas. 100% recomendados."),
-                Pair("Grupo Caribe", "Gala corporativa impecable. Montaje puntual y atención a cada detalle."),
-            )
-
-            reviews.forEach { (author, text) ->
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 5.dp)
-                        .clip(RoundedCornerShape(18.dp))
-                        .background(Color.White)
-                        .border(1.dp, Color(0xFFFFE3EC), RoundedCornerShape(18.dp))
-                        .padding(16.dp),
+            // Big Rating Card (5.0 + Stars + Breakdown bars)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(22.dp))
+                    .background(Color.White)
+                    .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(22.dp))
+                    .padding(18.dp),
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(20.dp),
                 ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            BasicText(author, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24), fontSize = 15.sp))
-                            BasicText("★★★★★", style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFFF59E0B), fontSize = 12.sp))
+                    // Left column: 5.0 + 5 stars + count
+                    Column(
+                        horizontalAlignment = Alignment.Start,
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        BasicText(
+                            text = "5.0",
+                            style = TextStyle(
+                                fontFamily = typo.displayFamily,
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 48.sp,
+                                letterSpacing = (-1).sp,
+                                lineHeight = 44.sp,
+                                color = Color(0xFF1A1A2E),
+                            ),
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                            repeat(5) {
+                                CustomSvgIcon(
+                                    pathData = "M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z",
+                                    size = 16.dp,
+                                    tint = Color(0xFFF7B500),
+                                )
+                            }
                         }
-                        BasicText(text, style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFF7A7177), fontSize = 13.sp))
+                        BasicText(
+                            text = "48 reseñas",
+                            style = typo.body.copy(fontSize = 13.sp, color = Color(0xFF62627A)),
+                        )
+                    }
+
+                    // Right column: Breakdown bars 5..1
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        RatingBarRow(star = "5", progress = 1.0f, count = "48", isTop = true)
+                        RatingBarRow(star = "4", progress = 0.0f, count = "0", isTop = false)
+                        RatingBarRow(star = "3", progress = 0.0f, count = "0", isTop = false)
+                        RatingBarRow(star = "2", progress = 0.0f, count = "0", isTop = false)
+                        RatingBarRow(star = "1", progress = 0.0f, count = "0", isTop = false)
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(30.dp))
+            // Filter chips ("Todas", "Verificadas · 0")
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Box(
+                    modifier = Modifier
+                        .height(38.dp)
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(
+                            if (selectedFilter == 0) Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)))
+                            else Brush.linearGradient(listOf(Color.White, Color.White)),
+                        )
+                        .then(
+                            if (selectedFilter != 0) Modifier.border(1.dp, Color(0xFFEEE9F2), RoundedCornerShape(999.dp)) else Modifier
+                        )
+                        .clickable { selectedFilter = 0 }
+                        .padding(horizontal = 15.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    BasicText(
+                        "Todas",
+                        style = typo.body.copy(
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (selectedFilter == 0) Color.White else Color(0xFF1A1A2E),
+                        ),
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .height(38.dp)
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(
+                            if (selectedFilter == 1) Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)))
+                            else Brush.linearGradient(listOf(Color.White, Color.White)),
+                        )
+                        .then(
+                            if (selectedFilter != 1) Modifier.border(1.dp, Color(0xFFEEE9F2), RoundedCornerShape(999.dp)) else Modifier
+                        )
+                        .clickable { selectedFilter = 1 }
+                        .padding(horizontal = 15.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    BasicText(
+                        "Verificadas · 0",
+                        style = typo.body.copy(
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (selectedFilter == 1) Color.White else Color(0xFF1A1A2E),
+                        ),
+                    )
+                }
+            }
+
+            // Review Card 1 (Patricia Lora / Boda)
+            ReviewCardItem(
+                avatarBg = Color(0xFFFDE6F2),
+                avatarTextColor = Color(0xFFC2338F),
+                initial = "P",
+                author = "Patricia Lora",
+                date = "Hoy",
+                comment = "El montaje de nuestra boda superó todas las expectativas. Las sillas Tiffany y el arco floral quedaron de revista.",
+            )
+
+            // Review Card 2 (Cliente / Rosa IA)
+            ReviewCardItem(
+                avatarBg = Color(0xFFEFE8FD),
+                avatarTextColor = Color(0xFF7A4FD8),
+                initial = "C",
+                author = "Cliente",
+                date = "Hoy",
+                comment = "Puntualidad impecable y atención personalizada con Rosa IA. ¡Recomendados 100%!",
+            )
+
+            Spacer(modifier = Modifier.height(100.dp))
+        }
+
+        // Floating Bottom Action Button "Escribir una reseña"
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.BottomCenter)
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(Color(0x00FAFAFC), Color(0xFFFAFAFC), Color(0xFFFAFAFC)),
+                    ),
+                )
+                .padding(start = 20.dp, end = 20.dp, bottom = 36.dp, top = 16.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+                    .shadow(12.dp, RoundedCornerShape(16.dp), spotColor = Color(0xB3C846B4), ambientColor = Color.Transparent)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC))))
+                    .clickable { },
+                contentAlignment = Alignment.Center,
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    CustomSvgIcon(
+                        pathData = "M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4",
+                        size = 20.dp,
+                        tint = Color.White,
+                    )
+                    BasicText(
+                        "Escribir una reseña",
+                        style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RatingBarRow(star: String, progress: Float, count: String, isTop: Boolean) {
+    val typo = LocalRfTypography.current
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        BasicText(star, style = typo.body.copy(fontSize = 12.sp, color = Color(0xFF62627A)), modifier = Modifier.width(10.dp))
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .height(6.dp)
+                .clip(RoundedCornerShape(3.dp))
+                .background(Color(0xFFF1EFF5)),
+        ) {
+            if (progress > 0f) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(progress)
+                        .height(6.dp)
+                        .clip(RoundedCornerShape(3.dp))
+                        .background(
+                            Brush.horizontalGradient(listOf(Color(0xFFE04FAF), Color(0xFF865DEC))),
+                        ),
+                )
+            }
+        }
+        BasicText(count, style = typo.body.copy(fontSize = 12.sp, color = Color(0xFF62627A)), modifier = Modifier.width(18.dp))
+    }
+}
+
+@Composable
+private fun ReviewCardItem(
+    avatarBg: Color,
+    avatarTextColor: Color,
+    initial: String,
+    author: String,
+    date: String,
+    comment: String,
+) {
+    val typo = LocalRfTypography.current
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(22.dp))
+            .background(Color.White)
+            .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(22.dp))
+            .padding(16.dp),
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(avatarBg),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    BasicText(
+                        text = initial,
+                        style = TextStyle(
+                            fontFamily = typo.bodyFamily,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 16.sp,
+                            color = avatarTextColor,
+                        ),
+                    )
+                }
+
+                Column(modifier = Modifier.weight(1f)) {
+                    BasicText(author, style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A2E)))
+                    Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                        repeat(5) {
+                            CustomSvgIcon(
+                                pathData = "M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z",
+                                size = 13.dp,
+                                tint = Color(0xFFF7B500),
+                            )
+                        }
+                    }
+                }
+
+                BasicText(date, style = typo.body.copy(fontSize = 13.sp, color = Color(0xFF62627A)))
+            }
+
+            BasicText(
+                comment,
+                style = typo.body.copy(fontSize = 15.sp, lineHeight = 22.sp, color = Color(0xFF1A1A2E)),
+            )
         }
     }
 }

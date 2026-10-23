@@ -28,6 +28,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -41,6 +42,8 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -299,7 +302,6 @@ private fun PersonalProductCard(
             .clip(RoundedCornerShape(20.dp))
             .background(Color.White)
             .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(20.dp))
-            .shadow(elevation = 6.dp, shape = RoundedCornerShape(20.dp), spotColor = Color(0x33C850AA))
             .clickable(onClick = onOpenDetail),
     ) {
         Column {
@@ -381,11 +383,11 @@ private fun PersonalProductCard(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
                             .size(40.dp)
+                            .shadow(elevation = 8.dp, shape = CircleShape, spotColor = Color(0x99865DEC), ambientColor = Color.Transparent)
                             .clip(CircleShape)
                             .background(
                                 Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))),
-                            )
-                            .shadow(elevation = 8.dp, shape = CircleShape, spotColor = Color(0x99865DEC)),
+                            ),
                     ) {
                         RfIcon(kind = RfIconKind.PLUS, tint = Color.White, size = 18.dp)
                     }
@@ -1052,7 +1054,6 @@ private fun PackageSummaryCard(
             .clip(RoundedCornerShape(20.dp))
             .background(Color.White)
             .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(20.dp))
-            .shadow(elevation = 4.dp, shape = RoundedCornerShape(20.dp), spotColor = Color(0x22C850AA))
             .clickable(onClick = onClick)
             .padding(10.dp),
     ) {
@@ -1439,51 +1440,28 @@ internal fun RenderShopScreenS23(
                     .height(164.dp)
                     .padding(horizontal = 20.dp)
                     .clip(RoundedCornerShape(24.dp))
-                    .background(Color(0xFFEFE8FD))
-                    .padding(20.dp),
+                    .background(Color(0xFFEFE8FD)),
             ) {
-                // Globos SVG
+                // Globos SVG exactos
                 Box(
-                    modifier = Modifier.size(170.dp).align(Alignment.TopEnd).offset(x = 10.dp, y = (-16).dp),
+                    modifier = Modifier
+                        .size(170.dp)
+                        .align(Alignment.TopEnd)
+                        .offset(x = 6.dp, y = 4.dp),
                 ) {
-                    Canvas(modifier = Modifier.fillMaxSize()) {
-                        val cx = size.width * 0.5f
-                        val cy = size.height * 0.87f
-                        val balloonTops = listOf(
-                            Offset(size.width * 0.33f, size.height * 0.45f),
-                            Offset(size.width * 0.58f, size.height * 0.40f),
-                            Offset(size.width * 0.48f, size.height * 0.60f),
-                            Offset(size.width * 0.70f, size.height * 0.58f),
-                            Offset(size.width * 0.28f, size.height * 0.53f),
-                        )
-                        val linePaint = androidx.compose.ui.graphics.Paint().apply {
-                            color = Color(0x726E5A72)
-                            strokeWidth = 1.5f
-                            strokeCap = StrokeCap.Round
-                        }
-                        balloonTops.forEach { pt ->
-                            drawContext.canvas.drawLine(pt, Offset(cx, cy), linePaint)
-                        }
-                        drawOval(Color(0xFFF9B6D3), topLeft = Offset(size.width * 0.20f, size.height * 0.25f), size = androidx.compose.ui.geometry.Size(size.width * 0.25f, size.height * 0.28f))
-                        drawOval(Color(0xFFA8D8F5), topLeft = Offset(size.width * 0.45f, size.height * 0.18f), size = androidx.compose.ui.geometry.Size(size.width * 0.25f, size.height * 0.28f))
-                        drawOval(Color(0xFFB9A6F7), topLeft = Offset(size.width * 0.62f, size.height * 0.40f), size = androidx.compose.ui.geometry.Size(size.width * 0.22f, size.height * 0.25f))
-                        drawOval(Color(0xFFFFD98A), topLeft = Offset(size.width * 0.16f, size.height * 0.45f), size = androidx.compose.ui.geometry.Size(size.width * 0.22f, size.height * 0.25f))
-                        drawOval(Color(0xFF9BE3C9), topLeft = Offset(size.width * 0.40f, size.height * 0.40f), size = androidx.compose.ui.geometry.Size(size.width * 0.25f, size.height * 0.28f))
-                        val knotPath = Path().apply {
-                            moveTo(cx * 0.85f, cy - 6f)
-                            cubicTo(cx * 0.72f, cy - 14f, cx * 0.65f, cy + 2f, cx, cy + 2f)
-                            cubicTo(cx * 1.30f, cy + 2f, cx * 1.20f, cy - 14f, cx * 1.12f, cy - 6f)
-                        }
-                        drawPath(knotPath, color = Color(0xFFEC4F97))
-                    }
+                    PastelDreamBalloonsIllustration(modifier = Modifier.fillMaxSize())
                 }
+
                 Column(
                     modifier = Modifier
                         .fillMaxHeight()
-                        .fillMaxWidth(0.55f),
+                        .padding(20.dp),
                     verticalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.widthIn(max = 190.dp),
+                    ) {
                         Box(
                             contentAlignment = Alignment.Center,
                             modifier = Modifier.height(24.dp).clip(RoundedCornerShape(999.dp)).background(Color.White).padding(horizontal = 9.dp),
@@ -1506,7 +1484,7 @@ internal fun RenderShopScreenS23(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
                             .height(42.dp)
-                            .shadow(8.dp, RoundedCornerShape(999.dp), spotColor = Color(0x66A050D2))
+                            .shadow(8.dp, RoundedCornerShape(999.dp), spotColor = Color(0x66A050D2), ambientColor = Color.Transparent)
                             .clip(RoundedCornerShape(999.dp))
                             .background(gradDiag)
                             .padding(horizontal = 16.dp),
@@ -1569,8 +1547,8 @@ internal fun RenderShopScreenS23(
                     modifier = Modifier.weight(1f),
                 )
                 TiendaBalloonProductCard(
-                    title = "Arco de globos",
-                    price = "RD$ 95.00",
+                    title = "Arco orgánico",
+                    price = "RD$ [precio]",
                     bg = Color(0xFFEEF6D6),
                     illustration = { BalloonArchShopIllustration(modifier = Modifier.size(108.dp)) },
                     modifier = Modifier.weight(1f),
@@ -1578,6 +1556,37 @@ internal fun RenderShopScreenS23(
             }
 
             Spacer(Modifier.height(96.dp))
+        }
+    }
+}
+
+@Composable
+private fun PastelDreamBalloonsIllustration(modifier: Modifier = Modifier) {
+    val knotPath = remember {
+        PathParser().parsePathString("M53 104c-3-4-9-3-9 1s9 3 16-1c7 4 16 5 16 1s-6-5-9-1").toPath()
+    }
+    Canvas(modifier = modifier) {
+        val s = size.width / 120f
+        val strokePaint = Color(0x736E5A72)
+        val strokeW = 1.2f * s
+
+        // Strings
+        drawLine(strokePaint, Offset(40f * s, 54f * s), Offset(60f * s, 104f * s), strokeWidth = strokeW)
+        drawLine(strokePaint, Offset(70f * s, 48f * s), Offset(60f * s, 104f * s), strokeWidth = strokeW)
+        drawLine(strokePaint, Offset(58f * s, 72f * s), Offset(60f * s, 104f * s), strokeWidth = strokeW)
+        drawLine(strokePaint, Offset(84f * s, 70f * s), Offset(60f * s, 104f * s), strokeWidth = strokeW)
+        drawLine(strokePaint, Offset(34f * s, 78f * s), Offset(60f * s, 104f * s), strokeWidth = strokeW)
+
+        // Ellipses
+        drawOval(Color(0xFFF9B6D3), topLeft = Offset((40f - 15f) * s, (38f - 17f) * s), size = androidx.compose.ui.geometry.Size(30f * s, 34f * s))
+        drawOval(Color(0xFFA8D8F5), topLeft = Offset((70f - 15f) * s, (32f - 17f) * s), size = androidx.compose.ui.geometry.Size(30f * s, 34f * s))
+        drawOval(Color(0xFFB9A6F7), topLeft = Offset((86f - 13f) * s, (56f - 15f) * s), size = androidx.compose.ui.geometry.Size(26f * s, 30f * s))
+        drawOval(Color(0xFFFFD98A), topLeft = Offset((34f - 13f) * s, (64f - 15f) * s), size = androidx.compose.ui.geometry.Size(26f * s, 30f * s))
+        drawOval(Color(0xFF9BE3C9), topLeft = Offset((59f - 15f) * s, (58f - 17f) * s), size = androidx.compose.ui.geometry.Size(30f * s, 34f * s))
+
+        // Ribbon knot
+        scale(s, s, Offset.Zero) {
+            drawPath(knotPath, Color(0xFFEC4F97))
         }
     }
 }
@@ -1743,10 +1752,10 @@ private fun TiendaBalloonProductCard(
                         .align(Alignment.TopEnd)
                         .padding(top = 8.dp, end = 8.dp)
                         .size(36.dp)
-                        .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.92f)),
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color.White.copy(alpha = 0.95f)),
                 ) {
-                    RfIcon(kind = RfIconKind.HEART, tint = if (isFavorite) Color(0xFFD63F98) else Color(0xFF1A1A2E), size = 18.dp)
+                    RfIcon(kind = RfIconKind.HEART, tint = if (isFavorite) Color(0xFFEA4EA9) else Color(0xFF1A1A2E), size = 18.dp)
                 }
             }
             Row(

@@ -2932,10 +2932,10 @@ internal fun RenderRosaSketchConfirmS78(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(236.dp)
+                    .shadow(14.dp, RoundedCornerShape(24.dp), spotColor = Color(0x73AA46A0), ambientColor = Color.Transparent)
                     .clip(RoundedCornerShape(24.dp))
                     .background(Color.White)
-                    .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(24.dp))
-                    .shadow(14.dp, RoundedCornerShape(24.dp), spotColor = Color(0x73AA46A0)),
+                    .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(24.dp)),
                 contentAlignment = Alignment.Center,
             ) {
                 // Sketch Canvas
@@ -3078,9 +3078,9 @@ internal fun RenderRosaSketchConfirmS78(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .shadow(18.dp, RoundedCornerShape(22.dp), spotColor = Color(0xCC9650DC), ambientColor = Color.Transparent)
                     .clip(RoundedCornerShape(22.dp))
                     .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))))
-                    .shadow(18.dp, RoundedCornerShape(22.dp), spotColor = Color(0xCC9650DC))
                     .padding(16.dp),
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -3145,9 +3145,9 @@ internal fun RenderRosaSketchConfirmS78(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp)
+                    .shadow(12.dp, RoundedCornerShape(16.dp), spotColor = Color(0xB2C846B4), ambientColor = Color.Transparent)
                     .clip(RoundedCornerShape(16.dp))
                     .background(RosaButtonGradient)
-                    .shadow(12.dp, RoundedCornerShape(16.dp), spotColor = Color(0xB2C846B4))
                     .clickable { onSelectScreenCode("s25") },
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {

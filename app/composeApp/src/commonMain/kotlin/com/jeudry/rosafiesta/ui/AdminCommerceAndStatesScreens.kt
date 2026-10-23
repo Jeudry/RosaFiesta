@@ -3253,10 +3253,10 @@ internal fun RenderAdminEmptyStateA35(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
                         .size(44.dp)
+                        .shadow(elevation = 6.dp, shape = CircleShape, spotColor = Color(0x334650B4), ambientColor = Color.Transparent)
                         .clip(CircleShape)
                         .background(Color.White)
                         .border(1.dp, Color(0xFFECECF5), CircleShape)
-                        .shadow(elevation = 6.dp, shape = CircleShape, spotColor = Color(0x334650B4))
                         .clickable { onSelectScreenCode("A01") },
                 ) {
                     RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF151729), size = 22.dp)
@@ -3283,9 +3283,9 @@ internal fun RenderAdminEmptyStateA35(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
                         .height(36.dp)
+                        .shadow(elevation = 8.dp, shape = RoundedCornerShape(999.dp), spotColor = Color(0xB35B6CF0), ambientColor = Color.Transparent)
                         .clip(RoundedCornerShape(999.dp))
                         .background(Brush.linearGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0))))
-                        .shadow(elevation = 8.dp, shape = RoundedCornerShape(999.dp), spotColor = Color(0xB35B6CF0))
                         .padding(horizontal = 14.dp),
                 ) {
                     BasicText("Nuevas · 0", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color.White))

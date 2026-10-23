@@ -893,9 +893,9 @@ internal fun RenderGuestAuthModalS75(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(54.dp)
+                        .shadow(12.dp, RoundedCornerShape(16.dp), spotColor = Color(0xB2C846B4), ambientColor = Color.Transparent)
                         .clip(RoundedCornerShape(16.dp))
                         .background(RosaButtonGradient)
-                        .shadow(12.dp, RoundedCornerShape(16.dp), spotColor = Color(0xB2C846B4))
                         .clickable { onSelectScreenCode("s07") },
                 ) {
                     BasicText(
@@ -1390,9 +1390,9 @@ internal fun RenderEventReviewsModalS77(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp)
+                        .shadow(12.dp, RoundedCornerShape(16.dp), spotColor = Color(0xB2C846B4), ambientColor = Color.Transparent)
                         .clip(RoundedCornerShape(16.dp))
                         .background(RosaButtonGradient)
-                        .shadow(12.dp, RoundedCornerShape(16.dp), spotColor = Color(0xB2C846B4))
                         .clickable { onSelectScreenCode("s37") },
                 ) {
                     Row(
@@ -1652,9 +1652,9 @@ internal fun RenderCatalogFiltersModalS81(
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(38.dp)
+                                    .then(if (isSel) Modifier.shadow(4.dp, RoundedCornerShape(12.dp), spotColor = Color(0x33B450B4), ambientColor = Color.Transparent) else Modifier)
                                     .clip(RoundedCornerShape(12.dp))
                                     .background(if (isSel) Color.White else Color.Transparent)
-                                    .then(if (isSel) Modifier.shadow(4.dp, RoundedCornerShape(12.dp), spotColor = Color(0x33B450B4)) else Modifier)
                                     .clickable { },
                                 contentAlignment = Alignment.Center,
                             ) {
@@ -1837,13 +1837,13 @@ internal fun RenderChangeDateModalS84(
                                     Box(
                                         modifier = Modifier
                                             .size(38.dp)
-                                            .clip(RoundedCornerShape(12.dp))
                                             .then(
                                                 if (isSelected) Modifier
-                                                    .shadow(8.dp, RoundedCornerShape(12.dp), spotColor = Color(0xB3865DEC))
+                                                    .shadow(8.dp, RoundedCornerShape(12.dp), spotColor = Color(0xB3865DEC), ambientColor = Color.Transparent)
+                                                    .clip(RoundedCornerShape(12.dp))
                                                     .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))))
-                                                else if (isCurrent) Modifier.border(1.5.dp, Color(0xFFE3DCE8), RoundedCornerShape(12.dp))
-                                                else Modifier
+                                                else if (isCurrent) Modifier.clip(RoundedCornerShape(12.dp)).border(1.5.dp, Color(0xFFE3DCE8), RoundedCornerShape(12.dp))
+                                                else Modifier.clip(RoundedCornerShape(12.dp))
                                             ),
                                         contentAlignment = Alignment.Center,
                                     ) {
