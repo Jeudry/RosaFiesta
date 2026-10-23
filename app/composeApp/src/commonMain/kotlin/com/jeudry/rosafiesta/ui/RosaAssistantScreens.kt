@@ -32,10 +32,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -469,6 +473,7 @@ internal fun RenderMyEventDraftS25(
 
 
 // ==============================================================================
+// ==============================================================================
 // s26 · ROSA · TIPO DE EVENTO (PASO 1 DE 6)
 // ==============================================================================
 @Composable
@@ -482,21 +487,29 @@ internal fun RenderRosaEventTypeS26(
             .fillMaxSize()
             .background(RosaBackgroundGradient),
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            RosaWizardHeader(
-                step = 1,
-                onBack = { onSelectScreenCode("s18") },
-                onCart = { onSelectScreenCode("s25") },
-            )
+        // Decorative background stars & confetti
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            drawCircle(color = Color(0xFFB9D84A), radius = 4.5f * density, center = Offset(318f * density, 168f * density))
+            drawCircle(color = Color(0x33CFE48A), radius = 24f * density, center = Offset(40f * density, 700f * density))
+        }
 
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 20.dp)
-                    .verticalScroll(rememberScrollState()),
-            ) {
-                Spacer(modifier = Modifier.height(24.dp))
+        // Header
+        RosaWizardHeader(
+            step = 1,
+            totalSteps = 6,
+            cartCount = 16,
+            onBack = { onSelectScreenCode("s18") },
+            onCart = { onSelectScreenCode("s25") },
+        )
 
+        // Main content
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 128.dp, start = 20.dp, end = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(22.dp),
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 // Saludo Rosa
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -519,109 +532,202 @@ internal fun RenderRosaEventTypeS26(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // Título
+                // Título con subrayado 'celebrar'
                 BasicText(
                     text = "¿Qué evento quieres celebrar?",
                     style = TextStyle(
                         fontFamily = typo.displayFamily,
                         fontWeight = FontWeight.ExtraBold,
                         fontSize = 26.sp,
+                        lineHeight = 28.sp,
                         color = Color(0xFF1A1A2E),
                     ),
                 )
+            }
 
-                Spacer(modifier = Modifier.height(20.dp))
+            // 6 event types in 2 columns
+            data class EventTypeItem(
+                val name: String,
+                val bg: Color,
+                val isGradient: Boolean = false,
+                val textColor: Color = Color(0xFF1A1A2E),
+            )
 
-                // Cuadrícula 2 columnas de tipos de eventos
-                val eventTypes = listOf(
-                    Triple("Boda", "Elegante y romántica", Color(0xFFFDE6F2)),
-                    Triple("Quinceañera", "Mágica y brillante", Color(0xFFEDE6FD)),
-                    Triple("Cumple infantil", "Divertido y colorido", Color(0xFFFDF2E6)),
-                    Triple("Baby shower", "Tierno y especial", Color(0xFFE6F8FD)),
-                    Triple("Graduación", "Logros que se celebran", Color(0xFFEAF6EB)),
-                    Triple("Corporativo", "Profesional e impecable", Color(0xFFF1EEF9)),
-                )
+            val items = listOf(
+                EventTypeItem("Boda", Color(0xFFFDE6F2)),
+                EventTypeItem("Cumpleaños", Color(0xFFFFF2C9)),
+                EventTypeItem("Baby shower", Color(0xFFDDF4F3)),
+                EventTypeItem("Gender reveal", Color(0xFFEFE8FD)),
+                EventTypeItem("Corporativo", Color(0xFFEEF6D6)),
+                EventTypeItem("Otro", Color(0xFF865DEC), isGradient = true, textColor = Color.White),
+            )
 
-                for (i in eventTypes.indices step 2) {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                items.chunked(2).forEach { row ->
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp),
+                        modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
-                        for (j in 0..1) {
-                            val item = eventTypes.getOrNull(i + j)
-                            if (item != null) {
-                                Box(
+                        row.forEach { item ->
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(116.dp)
+                                    .shadow(12.dp, RoundedCornerShape(20.dp), spotColor = Color(0x336E46B4))
+                                    .clip(RoundedCornerShape(20.dp))
+                                    .then(
+                                        if (item.isGradient) {
+                                            Modifier.background(Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC))))
+                                        } else {
+                                            Modifier.background(item.bg)
+                                        }
+                                    )
+                                    .border(1.dp, Color.White.copy(alpha = 0.7f), RoundedCornerShape(20.dp))
+                                    .clickable { onSelectScreenCode("s27") }
+                                    .padding(start = 14.dp, bottom = 12.dp, end = 14.dp),
+                                contentAlignment = Alignment.BottomStart,
+                            ) {
+                                // SVG illustration at top-end
+                                Canvas(
                                     modifier = Modifier
-                                        .weight(1f)
-                                        .height(116.dp)
-                                        .shadow(8.dp, RoundedCornerShape(20.dp), spotColor = Color(0x336E46B4))
-                                        .clip(RoundedCornerShape(20.dp))
-                                        .background(item.third)
-                                        .border(1.dp, Color.White.copy(alpha = 0.7f), RoundedCornerShape(20.dp))
-                                        .clickable { onSelectScreenCode("s27") }
-                                        .padding(14.dp),
-                                    contentAlignment = Alignment.BottomStart,
+                                        .size(88.dp)
+                                        .align(Alignment.TopEnd)
+                                        .offset(x = 4.dp, y = (-2).dp),
                                 ) {
-                                    Column {
-                                        BasicText(
-                                            text = item.first,
-                                            style = TextStyle(
-                                                fontFamily = typo.displayFamily,
-                                                fontWeight = FontWeight.ExtraBold,
-                                                fontSize = 16.sp,
-                                                color = Color(0xFF1A1A2E),
-                                            ),
-                                        )
-                                        BasicText(
-                                            text = item.second,
-                                            style = TextStyle(
-                                                fontFamily = typo.bodyFamily,
-                                                fontSize = 11.sp,
-                                                color = Color(0xFF62627A),
-                                            ),
-                                        )
+                                    val w = size.width; val h = size.height
+                                    when (item.name) {
+                                        "Boda" -> {
+                                            val gold = Color(0xFFD9A441)
+                                            val lightGold = Color(0xFFF0CC7A)
+                                            drawCircle(color = gold, radius = 17f * density, center = Offset(w * 0.45f, h * 0.65f), style = Stroke(width = 5f * density))
+                                            drawCircle(color = lightGold, radius = 17f * density, center = Offset(w * 0.65f, h * 0.67f), style = Stroke(width = 5f * density))
+                                            // Diamond
+                                            val diamond = Path().apply {
+                                                moveTo(w * 0.40f, h * 0.42f)
+                                                lineTo(w * 0.45f, h * 0.35f)
+                                                lineTo(w * 0.50f, h * 0.42f)
+                                                lineTo(w * 0.45f, h * 0.50f)
+                                                close()
+                                            }
+                                            drawPath(diamond, color = Color(0xFFA8D8F5))
+                                        }
+                                        "Cumpleaños" -> {
+                                            // Cake base
+                                            drawRoundRect(color = Color(0xFFFFF6EE), topLeft = Offset(w * 0.28f, h * 0.50f), size = Size(w * 0.52f, h * 0.34f), cornerRadius = CornerRadius(5f * density))
+                                            // Pink frosting
+                                            drawRoundRect(color = Color(0xFFEC4F97), topLeft = Offset(w * 0.28f, h * 0.50f), size = Size(w * 0.52f, h * 0.12f), cornerRadius = CornerRadius(4f * density))
+                                            // Candles
+                                            drawLine(color = Color(0xFF7650E8), start = Offset(w * 0.38f, h * 0.50f), end = Offset(w * 0.38f, h * 0.36f), strokeWidth = 4f * density, cap = StrokeCap.Round)
+                                            drawLine(color = Color(0xFF4AA8E0), start = Offset(w * 0.52f, h * 0.50f), end = Offset(w * 0.52f, h * 0.32f), strokeWidth = 4f * density, cap = StrokeCap.Round)
+                                            drawLine(color = Color(0xFF2FB58F), start = Offset(w * 0.66f, h * 0.50f), end = Offset(w * 0.66f, h * 0.36f), strokeWidth = 4f * density, cap = StrokeCap.Round)
+                                            // Flames
+                                            drawCircle(color = Color(0xFFF5B53B), radius = 3.5f * density, center = Offset(w * 0.38f, h * 0.31f))
+                                            drawCircle(color = Color(0xFFF5B53B), radius = 4f * density, center = Offset(w * 0.52f, h * 0.27f))
+                                            drawCircle(color = Color(0xFFF5B53B), radius = 3.5f * density, center = Offset(w * 0.66f, h * 0.31f))
+                                        }
+                                        "Baby shower" -> {
+                                            // Onesie body
+                                            val onesie = Path().apply {
+                                                moveTo(w * 0.40f, h * 0.36f)
+                                                lineTo(w * 0.32f, h * 0.44f)
+                                                lineTo(w * 0.38f, h * 0.52f)
+                                                lineTo(w * 0.42f, h * 0.48f)
+                                                lineTo(w * 0.42f, h * 0.78f)
+                                                lineTo(w * 0.62f, h * 0.78f)
+                                                lineTo(w * 0.62f, h * 0.48f)
+                                                lineTo(w * 0.66f, h * 0.52f)
+                                                lineTo(w * 0.72f, h * 0.44f)
+                                                lineTo(w * 0.64f, h * 0.36f)
+                                                close()
+                                            }
+                                            drawPath(onesie, color = Color(0xFFA8D8F5))
+                                            // Star center
+                                            drawCircle(color = Color(0xFFF5B53B), radius = 5f * density, center = Offset(w * 0.52f, h * 0.55f))
+                                        }
+                                        "Gender reveal" -> {
+                                            // Pink balloon
+                                            drawOval(color = Color(0xFFF9B6D3), topLeft = Offset(w * 0.26f, h * 0.30f), size = Size(w * 0.32f, h * 0.38f))
+                                            // Blue balloon
+                                            drawOval(color = Color(0xFFA8D8F5), topLeft = Offset(w * 0.52f, h * 0.34f), size = Size(w * 0.32f, h * 0.38f))
+                                        }
+                                        "Corporativo" -> {
+                                            val glassColor = Color(0xFFD9A441)
+                                            drawLine(color = glassColor, start = Offset(w * 0.38f, h * 0.40f), end = Offset(w * 0.38f, h * 0.76f), strokeWidth = 2.5f * density)
+                                            drawLine(color = glassColor, start = Offset(w * 0.30f, h * 0.76f), end = Offset(w * 0.46f, h * 0.76f), strokeWidth = 2.5f * density)
+                                            drawLine(color = glassColor, start = Offset(w * 0.62f, h * 0.40f), end = Offset(w * 0.62f, h * 0.76f), strokeWidth = 2.5f * density)
+                                            drawLine(color = glassColor, start = Offset(w * 0.54f, h * 0.76f), end = Offset(w * 0.70f, h * 0.76f), strokeWidth = 2.5f * density)
+                                            drawCircle(color = Color(0xFFF5B53B), radius = 3f * density, center = Offset(w * 0.50f, h * 0.30f))
+                                        }
+                                        "Otro" -> {
+                                            // Starburst
+                                            val star = Path().apply {
+                                                moveTo(w * 0.50f, h * 0.28f)
+                                                lineTo(w * 0.58f, h * 0.48f)
+                                                lineTo(w * 0.78f, h * 0.52f)
+                                                lineTo(w * 0.58f, h * 0.56f)
+                                                lineTo(w * 0.50f, h * 0.76f)
+                                                lineTo(w * 0.42f, h * 0.56f)
+                                                lineTo(w * 0.22f, h * 0.52f)
+                                                lineTo(w * 0.42f, h * 0.48f)
+                                                close()
+                                            }
+                                            drawPath(star, color = Color.White.copy(alpha = 0.85f))
+                                        }
                                     }
                                 }
-                            } else {
-                                Spacer(modifier = Modifier.weight(1f))
+
+                                BasicText(
+                                    text = item.name,
+                                    style = TextStyle(
+                                        fontFamily = typo.displayFamily,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        fontSize = 17.sp,
+                                        color = item.textColor,
+                                    ),
+                                )
                             }
                         }
                     }
                 }
+            }
+        }
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // CTA Chatea con Rosa
+        // Bottom input bar
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(start = 16.dp, end = 16.dp, bottom = 34.dp)
+                .fillMaxWidth()
+                .height(58.dp)
+                .shadow(14.dp, CircleShape, spotColor = Color(0x405A3CA0))
+                .clip(CircleShape)
+                .background(Color.White)
+                .padding(start = 20.dp, end = 6.dp),
+            contentAlignment = Alignment.CenterStart,
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                BasicText(
+                    text = "Escríbele a Rosa o habla…",
+                    style = TextStyle(
+                        fontFamily = typo.bodyFamily,
+                        fontSize = 15.sp,
+                        color = Color(0xFF62627A),
+                    ),
+                    modifier = Modifier.weight(1f),
+                )
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(54.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Color.White.copy(alpha = 0.85f))
-                        .border(1.dp, Color(0xFFDDD3F3), RoundedCornerShape(16.dp))
-                        .clickable { onSelectScreenCode("s34") },
+                        .size(46.dp)
+                        .clip(CircleShape)
+                        .background(Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        RfIcon(kind = RfIconKind.SPARK, tint = Color(0xFF9B45C8), size = 20.dp)
-                        BasicText(
-                            text = "¿No estás seguro? Chatea con Rosa",
-                            style = TextStyle(
-                                fontFamily = typo.bodyFamily,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 15.sp,
-                                color = Color(0xFF1A1A2E),
-                            ),
-                        )
-                    }
+                    RfIcon(kind = RfIconKind.MIC, tint = Color.White, size = 22.dp)
                 }
-
-                Spacer(modifier = Modifier.height(24.dp))
             }
         }
     }
@@ -1901,6 +2007,7 @@ internal fun RenderRosaDetailsS31(
 }
 
 // ==============================================================================
+// ==============================================================================
 // s32 · ROSA · RESUMEN (PASO 6 DE 6)
 // ==============================================================================
 @Composable
@@ -1914,141 +2021,251 @@ internal fun RenderRosaSummaryS32(
             .fillMaxSize()
             .background(RosaBackgroundGradient),
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            RosaWizardHeader(
-                step = 6,
-                onBack = { onSelectScreenCode("s31") },
-                onCart = { onSelectScreenCode("s25") },
-            )
+        // Header
+        RosaWizardHeader(
+            step = 6,
+            totalSteps = 6,
+            cartCount = 17,
+            onBack = { onSelectScreenCode("s31") },
+            onCart = { onSelectScreenCode("s25") },
+        )
 
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 20.dp)
-                    .verticalScroll(rememberScrollState()),
-            ) {
-                Spacer(modifier = Modifier.height(20.dp))
-
+        // Main content
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 128.dp, start = 20.dp, end = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp),
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                RosaAvatar(size = RosaAvatarSize.MEDIUM, forceAdminPalette = false)
                 BasicText(
-                    text = "Tu propuesta está lista 🎉",
+                    text = "Listo. Revisa que todo esté bien",
                     style = TextStyle(
                         fontFamily = typo.displayFamily,
                         fontWeight = FontWeight.ExtraBold,
-                        fontSize = 24.sp,
+                        fontSize = 26.sp,
+                        lineHeight = 28.sp,
                         color = Color(0xFF1A1A2E),
                     ),
                 )
+            }
+
+            // Summary Card
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .shadow(14.dp, RoundedCornerShape(24.dp), spotColor = Color(0x40AA46A0))
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(Color.White)
+                    .padding(vertical = 4.dp),
+            ) {
+                Column {
+                    // Row 1: Evento · Boda
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(Color(0xFFFDE6F2)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            RfIcon(kind = RfIconKind.RING, tint = Color(0xFFC2338F), size = 18.dp)
+                        }
+                        BasicText(
+                            text = "Evento",
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF62627A)),
+                            modifier = Modifier.weight(1f),
+                        )
+                        BasicText(
+                            text = "Boda",
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF1A1A2E)),
+                        )
+                    }
+
+                    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFF2F0F5)))
+
+                    // Row 2: Fecha · Por confirmar
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(Color(0xFFDDF4F3)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            RfIcon(kind = RfIconKind.CALENDAR, tint = Color(0xFF1F8A84), size = 18.dp)
+                        }
+                        BasicText(
+                            text = "Fecha",
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF62627A)),
+                            modifier = Modifier.weight(1f),
+                        )
+                        Box(
+                            modifier = Modifier
+                                .height(24.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFFFFF2C9))
+                                .padding(horizontal = 9.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            BasicText(
+                                text = "Por confirmar",
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF7A5700)),
+                            )
+                        }
+                    }
+
+                    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFF2F0F5)))
+
+                    // Row 3: Ubicación · Por confirmar
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(Color(0xFFEEF6D6)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            RfIcon(kind = RfIconKind.LOCATION, tint = Color(0xFF4E6A10), size = 18.dp)
+                        }
+                        BasicText(
+                            text = "Ubicación",
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF62627A)),
+                            modifier = Modifier.weight(1f),
+                        )
+                        Box(
+                            modifier = Modifier
+                                .height(24.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFFFFF2C9))
+                                .padding(horizontal = 9.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            BasicText(
+                                text = "Por confirmar",
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF7A5700)),
+                            )
+                        }
+                    }
+
+                    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFF2F0F5)))
+
+                    // Row 4: Artículos · 160
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onSelectScreenCode("s25") }
+                            .padding(horizontal = 16.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(Color(0xFFFFF2C9)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            RfIcon(kind = RfIconKind.BOX, tint = Color(0xFF7A5700), size = 18.dp)
+                        }
+                        BasicText(
+                            text = "Artículos",
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF62627A)),
+                            modifier = Modifier.weight(1f),
+                        )
+                        BasicText(
+                            text = "160",
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF1A1A2E)),
+                        )
+                        RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = Color(0xFF62627A), size = 18.dp)
+                    }
+                }
+            }
+
+            // Info hint
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.Top,
+            ) {
+                Box(modifier = Modifier.padding(top = 2.dp)) {
+                    RfIcon(kind = RfIconKind.INFO, tint = Color(0xFF7A4FD8), size = 18.dp)
+                }
                 BasicText(
-                    text = "Revisa los artículos sugeridos por Rosa IA para tu Boda",
+                    text = "El equipo de Rosa Fiesta revisa tu evento y te contacta con el precio final. No pagas nada todavía.",
                     style = TextStyle(
                         fontFamily = typo.bodyFamily,
                         fontSize = 14.sp,
-                        color = Color(0xFF62627A),
+                        lineHeight = 20.sp,
+                        color = Color(0xFF3B3550),
                     ),
                 )
+            }
+        }
 
-                Spacer(modifier = Modifier.height(18.dp))
+        // Bottom CTAs
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(start = 20.dp, end = 20.dp, bottom = 40.dp)
+                .fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+                    .shadow(12.dp, RoundedCornerShape(16.dp), spotColor = Color(0xB3C846B4))
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(RosaButtonGradient)
+                    .clickable { onSelectScreenCode("s33") },
+                contentAlignment = Alignment.Center,
+            ) {
+                BasicText(
+                    text = "Solicitar cotización",
+                    style = TextStyle(
+                        fontFamily = typo.bodyFamily,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        color = Color.White,
+                    ),
+                )
+            }
 
-                // Tarjeta de resumen
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .shadow(12.dp, RoundedCornerShape(22.dp), spotColor = Color(0x33B754CB))
-                        .clip(RoundedCornerShape(22.dp))
-                        .background(Color.White)
-                        .padding(18.dp),
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                        ) {
-                            BasicText("100 Sillas Tiffany Doradas", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A2E), fontSize = 14.sp))
-                            BasicText("RD$ 4,000", style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFF62627A), fontSize = 14.sp))
-                        }
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                        ) {
-                            BasicText("10 Mesas Redondas 10 pax", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A2E), fontSize = 14.sp))
-                            BasicText("RD$ 3,500", style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFF62627A), fontSize = 14.sp))
-                        }
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                        ) {
-                            BasicText("10 Centros de Mesa Florales", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A2E), fontSize = 14.sp))
-                            BasicText("RD$ 7,500", style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFF62627A), fontSize = 14.sp))
-                        }
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                        ) {
-                            BasicText("1 Arco de Boda Rosa & Blanco", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A2E), fontSize = 14.sp))
-                            BasicText("RD$ 4,500", style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFF62627A), fontSize = 14.sp))
-                        }
-
-                        Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFEBE6F2)))
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            BasicText("Total estimado", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.ExtraBold, color = Color(0xFF1A1A2E), fontSize = 15.sp))
-                            BasicText("RD$ 19,500", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color(0xFF865DEC)))
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                // Enlace a boceto
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Color(0xFFEFE8FD))
-                        .clickable { onSelectScreenCode("s36") }
-                        .padding(14.dp),
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
-                        RfIcon(kind = RfIconKind.SPARK, tint = Color(0xFF865DEC), size = 22.dp)
-                        Column {
-                            BasicText("Ver boceto de distribución", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A2E), fontSize = 14.sp))
-                            BasicText("Mira cómo quedarán las mesas y la tarima", style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFF62627A), fontSize = 12.sp))
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                // CTA Enviar solicitud
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp)
-                        .shadow(12.dp, RoundedCornerShape(16.dp), spotColor = Color(0x66C846B4))
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(RosaButtonGradient)
-                        .clickable { onSelectScreenCode("s33") },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    BasicText(
-                        text = "Solicitar cotización oficial",
-                        style = TextStyle(
-                            fontFamily = typo.bodyFamily,
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 16.sp,
-                            color = Color.White,
-                        ),
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+                    .clickable { onSelectScreenCode("s30") },
+                contentAlignment = Alignment.Center,
+            ) {
+                BasicText(
+                    text = "Agregar algo más",
+                    style = TextStyle(
+                        fontFamily = typo.bodyFamily,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        color = Color(0xFF1A1A2E),
+                    ),
+                )
             }
         }
     }
