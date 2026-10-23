@@ -57,6 +57,7 @@ import com.jeudry.rosafiesta.designsystem.RfPhotoKey
 import com.jeudry.rosafiesta.designsystem.RosaAvatar
 import com.jeudry.rosafiesta.designsystem.RosaAvatarSize
 import com.jeudry.rosafiesta.designsystem.rfCardShadow
+import com.jeudry.rosafiesta.designsystem.rfHeroBannerShadow
 import com.jeudry.rosafiesta.designsystem.rfIconButtonShadow
 import com.jeudry.rosafiesta.designsystem.rfInputShadow
 import com.jeudry.rosafiesta.designsystem.rfPrimaryButtonShadow
@@ -857,7 +858,7 @@ internal fun RenderAdminEventSummaryA07(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .shadow(12.dp, RoundedCornerShape(22.dp), spotColor = Color(0x665B6CF0), ambientColor = Color.Transparent)
+                    .rfHeroBannerShadow(RoundedCornerShape(22.dp), isAdmin = true)
                     .clip(RoundedCornerShape(22.dp))
                     .background(Brush.linearGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0), Color(0xFF2FB8C8)))),
             ) {
@@ -2090,7 +2091,7 @@ internal fun RenderAdminEntryChoiceA30(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .shadow(elevation = 18.dp, shape = RoundedCornerShape(24.dp), spotColor = Color(0xCC506EE6))
+                    .rfHeroBannerShadow(RoundedCornerShape(24.dp), isAdmin = true)
                     .clip(RoundedCornerShape(24.dp))
                     .background(Brush.linearGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0), Color(0xFF2FB8C8))))
                     .clickable { onSelectScreenCode("A01") }
@@ -2830,6 +2831,7 @@ internal fun RenderAdminRefundA33(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .rfHeroBannerShadow(RoundedCornerShape(22.dp), isAdmin = true)
                     .clip(RoundedCornerShape(22.dp))
                     .background(Brush.linearGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0), Color(0xFF2FB8C8))))
                     .padding(horizontal = 18.dp, vertical = 16.dp),

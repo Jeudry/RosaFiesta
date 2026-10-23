@@ -63,6 +63,7 @@ import com.jeudry.rosafiesta.designsystem.RfPhotoKey
 import com.jeudry.rosafiesta.designsystem.RosaAvatar
 import com.jeudry.rosafiesta.designsystem.RosaAvatarSize
 import com.jeudry.rosafiesta.designsystem.rfCardShadow
+import com.jeudry.rosafiesta.designsystem.rfHeroBannerShadow
 import com.jeudry.rosafiesta.designsystem.rfIconButtonShadow
 import com.jeudry.rosafiesta.designsystem.rfInputShadow
 import com.jeudry.rosafiesta.designsystem.rfPrimaryButtonShadow
@@ -224,12 +225,7 @@ internal fun RenderAdminHomeA01(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(132.dp)
-                .shadow(
-                    elevation = 20.dp,
-                    shape = RoundedCornerShape(24.dp),
-                    spotColor = Color(0xFF506EE6),
-                    ambientColor = Color(0x66506EE6),
-                )
+                .rfHeroBannerShadow(RoundedCornerShape(24.dp), isAdmin = true)
                 .clip(RoundedCornerShape(24.dp))
                 .background(
                     Brush.linearGradient(
@@ -3866,6 +3862,7 @@ internal fun RenderAdminNewArticleA10(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(50.dp)
+                        .rfInputShadow(RoundedCornerShape(14.dp), isAdmin = true)
                         .clip(RoundedCornerShape(14.dp))
                         .background(Color.White)
                         .border(1.dp, Color(0xFFE3E4EF), RoundedCornerShape(14.dp))
@@ -3886,6 +3883,7 @@ internal fun RenderAdminNewArticleA10(
                     Box(
                         modifier = Modifier
                             .height(36.dp)
+                            .shadow(6.dp, CircleShape, spotColor = Color(0xC05B6CF0), ambientColor = Color(0x405B6CF0))
                             .clip(CircleShape)
                             .background(Brush.linearGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0))))
                             .padding(horizontal = 14.dp),
@@ -3901,6 +3899,7 @@ internal fun RenderAdminNewArticleA10(
                         Box(
                             modifier = Modifier
                                 .height(36.dp)
+                                .shadow(4.dp, CircleShape, spotColor = Color(0x604650B4), ambientColor = Color(0x204650B4))
                                 .clip(CircleShape)
                                 .background(Color.White)
                                 .border(1.dp, Color(0xFFE9E9F2), CircleShape)
@@ -3924,6 +3923,7 @@ internal fun RenderAdminNewArticleA10(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp)
+                            .rfInputShadow(RoundedCornerShape(14.dp), isAdmin = true)
                             .clip(RoundedCornerShape(14.dp))
                             .background(Color.White)
                             .border(1.dp, Color(0xFFE3E4EF), RoundedCornerShape(14.dp))
@@ -3943,6 +3943,7 @@ internal fun RenderAdminNewArticleA10(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp)
+                            .rfInputShadow(RoundedCornerShape(14.dp), isAdmin = true)
                             .clip(RoundedCornerShape(14.dp))
                             .background(Color.White)
                             .border(1.dp, Color(0xFFE3E4EF), RoundedCornerShape(14.dp))
@@ -3968,6 +3969,7 @@ internal fun RenderAdminNewArticleA10(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(70.dp)
+                        .rfInputShadow(RoundedCornerShape(14.dp), isAdmin = true)
                         .clip(RoundedCornerShape(14.dp))
                         .background(Color.White)
                         .border(1.dp, Color(0xFFE3E4EF), RoundedCornerShape(14.dp))
@@ -3981,6 +3983,7 @@ internal fun RenderAdminNewArticleA10(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .rfCardShadow(RoundedCornerShape(16.dp), isAdmin = true)
                     .clip(RoundedCornerShape(16.dp))
                     .background(Color.White)
                     .border(1.dp, Color(0xFFE3E4EF), RoundedCornerShape(16.dp))

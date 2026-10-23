@@ -430,8 +430,8 @@ public fun Modifier.rfCardShadow(
 ): Modifier = this.shadow(
     elevation = 12.dp,
     shape = shape,
-    spotColor = if (isAdmin) Color(0x654650B4) else Color(0x65C850AA),
-    ambientColor = if (isAdmin) Color(0x254650B4) else Color(0x25C850AA),
+    spotColor = if (isAdmin) Color(0xC04650B4) else Color(0xC0C850AA),
+    ambientColor = if (isAdmin) Color(0x504650B4) else Color(0x50C850AA),
 )
 
 /**
@@ -446,8 +446,8 @@ public fun Modifier.rfInputShadow(
 ): Modifier = this.shadow(
     elevation = if (isActive) 8.dp else 6.dp,
     shape = shape,
-    spotColor = if (isAdmin) Color(0x304650B4) else if (isActive) Color(0x40B450B4) else Color(0x30B450B4),
-    ambientColor = if (isAdmin) Color(0x124650B4) else Color(0x15B450B4),
+    spotColor = if (isAdmin) Color(0x954650B4) else if (isActive) Color(0xA5B450B4) else Color(0x95B450B4),
+    ambientColor = if (isAdmin) Color(0x354650B4) else Color(0x35B450B4),
 )
 
 /**
@@ -459,10 +459,10 @@ public fun Modifier.rfIconButtonShadow(
     shape: Shape = CircleShape,
     isAdmin: Boolean = false,
 ): Modifier = this.shadow(
-    elevation = 6.dp,
+    elevation = 8.dp,
     shape = shape,
-    spotColor = if (isAdmin) Color(0x354650B4) else Color(0x35B450B4),
-    ambientColor = if (isAdmin) Color(0x154650B4) else Color(0x18B450B4),
+    spotColor = if (isAdmin) Color(0xA04650B4) else Color(0xA0B450B4),
+    ambientColor = if (isAdmin) Color(0x404650B4) else Color(0x40B450B4),
 )
 
 /**
@@ -474,10 +474,25 @@ public fun Modifier.rfPrimaryButtonShadow(
     shape: Shape = RoundedCornerShape(RfDimens.ButtonRadius),
     isAdmin: Boolean = false,
 ): Modifier = this.shadow(
-    elevation = 12.dp,
+    elevation = 14.dp,
     shape = shape,
-    spotColor = if (isAdmin) Color(0x755B6CF0) else Color(0xB3EA4899),
-    ambientColor = Color.Transparent,
+    spotColor = if (isAdmin) Color(0xFA5B6CF0) else Color(0xFAEA4899),
+    ambientColor = if (isAdmin) Color(0x705B6CF0) else Color(0x70EA4899),
+)
+
+/**
+ * Sombra oficial de banners Hero destacados:
+ * Personal: `box-shadow: 0 18px 34px -20px rgba(234,78,169,.8);`
+ * Admin: `box-shadow: 0 18px 34px -20px rgba(80,110,230,.8);`
+ */
+public fun Modifier.rfHeroBannerShadow(
+    shape: Shape = RoundedCornerShape(22.dp),
+    isAdmin: Boolean = true,
+): Modifier = this.shadow(
+    elevation = 20.dp,
+    shape = shape,
+    spotColor = if (isAdmin) Color(0xFF506EE6) else Color(0xFFEA4899),
+    ambientColor = if (isAdmin) Color(0x70506EE6) else Color(0x70EA4899),
 )
 
 /**
