@@ -225,10 +225,10 @@ internal fun RenderAdminHomeA01(
                 .fillMaxWidth()
                 .height(132.dp)
                 .shadow(
-                    elevation = 16.dp,
+                    elevation = 20.dp,
                     shape = RoundedCornerShape(24.dp),
-                    spotColor = Color(0xCC506EE6),
-                    ambientColor = Color(0x33506EE6),
+                    spotColor = Color(0xFF506EE6),
+                    ambientColor = Color(0x66506EE6),
                 )
                 .clip(RoundedCornerShape(24.dp))
                 .background(
@@ -373,6 +373,7 @@ internal fun RenderAdminHomeA01(
                         .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = true)
                         .clip(RoundedCornerShape(20.dp))
                         .background(Brush.linearGradient(listOf(Color(0xFFE9E8FF), Color(0xFFDDF2F6))))
+                        .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(20.dp))
                         .clickable { onSelectScreenCode("A08") }
                         .padding(horizontal = 12.dp, vertical = 10.dp),
                 ) {
@@ -382,8 +383,8 @@ internal fun RenderAdminHomeA01(
                     ) {
                         RosaAvatar(size = RosaAvatarSize.MEDIUM, customSize = 36.dp, forceAdminPalette = true)
                         Column(modifier = Modifier.weight(1f)) {
-                            BasicText("Crear con\nRosa IA", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2E324A), lineHeight = 17.sp))
-                            BasicText("Arma el borrador", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.Normal, color = Color(0xFF5F6377)))
+                            BasicText("Crear con Rosa IA", maxLines = 1, softWrap = false, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2E324A)))
+                            BasicText("Arma el borrador", maxLines = 1, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.Normal, color = Color(0xFF5F6377)))
                         }
                     }
                 }
