@@ -2883,118 +2883,293 @@ internal fun RenderRosaSketchConfirmS78(
             .fillMaxSize()
             .background(Color(0xFFFAFAFC)),
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            Row(
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            drawRect(Brush.radialGradient(colors = listOf(Color(0xFFF9E3F1), Color(0x00F9E3F1)), center = Offset(0f, 0f), radius = size.width * 1.1f))
+            drawRect(Brush.radialGradient(colors = listOf(Color(0xFFEEE7FB), Color(0x00EEE7FB)), center = Offset(size.width, size.height * 0.15f), radius = size.width * 0.8f))
+        }
+
+        // Header
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 54.dp, start = 16.dp, end = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(Color.White)
+                    .border(1.dp, Color(0xFFF0EBF4), CircleShape)
+                    .clickable { onSelectScreenCode("s36") },
+                contentAlignment = Alignment.Center,
+            ) {
+                RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1A1A2E), size = 22.dp)
+            }
+
+            Column(modifier = Modifier.weight(1f)) {
+                BasicText(
+                    text = "Revisa tu boceto",
+                    style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 19.sp, color = Color(0xFF1A1A2E)),
+                )
+                BasicText(
+                    text = "Boda Real Rosa & Dorado",
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF62627A)),
+                )
+            }
+        }
+
+        // Main content
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 114.dp, start = 16.dp, end = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            // Sketch preview card
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 54.dp, start = 16.dp, end = 16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
+                    .height(236.dp)
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(Color.White)
+                    .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(24.dp))
+                    .shadow(14.dp, RoundedCornerShape(24.dp), spotColor = Color(0x73AA46A0)),
+                contentAlignment = Alignment.Center,
             ) {
-                Box(
+                // Sketch Canvas
+                Canvas(
                     modifier = Modifier
-                        .size(44.dp)
-                        .shadow(6.dp, CircleShape, spotColor = Color(0x33B450B4))
-                        .clip(CircleShape)
-                        .background(Color.White)
-                        .clickable { onSelectScreenCode("s36") },
-                    contentAlignment = Alignment.Center,
+                        .size(width = 184.dp, height = 226.dp),
                 ) {
-                    RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1A1A2E), size = 22.dp)
+                    val scaleX = size.width / 358f
+                    val scaleY = size.height / 440f
+
+                    // Grid pattern dots/lines
+                    val gridStep = 22f * scaleX
+                    var gx = 0f
+                    while (gx <= size.width) {
+                        drawLine(Color(0xFFF3ECF4), Offset(gx, 0f), Offset(gx, size.height), 1f)
+                        gx += gridStep
+                    }
+                    var gy = 0f
+                    while (gy <= size.height) {
+                        drawLine(Color(0xFFF3ECF4), Offset(0f, gy), Offset(size.width, gy), 1f)
+                        gy += 22f * scaleY
+                    }
+
+                    // Tarima rect at top
+                    drawRoundRect(
+                        color = Color(0xFF865DEC),
+                        topLeft = Offset(70f * scaleX, 36f * scaleY),
+                        size = androidx.compose.ui.geometry.Size(218f * scaleX, 50f * scaleY),
+                        cornerRadius = CornerRadius(6f * scaleX, 6f * scaleY),
+                        style = Stroke(width = 3f * scaleX),
+                    )
+
+                    // 6 tables (circles)
+                    val tableRadius = 24f * scaleX
+                    val tables = listOf(
+                        Offset(134f * scaleX, 190f * scaleY),
+                        Offset(224f * scaleX, 190f * scaleY),
+                        Offset(70f * scaleX, 268f * scaleY),
+                        Offset(288f * scaleX, 268f * scaleY),
+                        Offset(70f * scaleX, 360f * scaleY),
+                        Offset(288f * scaleX, 360f * scaleY),
+                    )
+                    tables.forEach { center ->
+                        drawCircle(
+                            color = Color(0xFFEA4EA9),
+                            radius = tableRadius,
+                            center = center,
+                            style = Stroke(width = 3f * scaleX),
+                        )
+                    }
+
+                    // Pista de baile (dashed rect)
+                    drawRoundRect(
+                        color = Color(0xFF8DB52C),
+                        topLeft = Offset(128f * scaleX, 250f * scaleY),
+                        size = androidx.compose.ui.geometry.Size(102f * scaleX, 90f * scaleY),
+                        cornerRadius = CornerRadius(4f * scaleX, 4f * scaleY),
+                        style = Stroke(
+                            width = 2.6f * scaleX,
+                            pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(7f * scaleX, 7f * scaleX)),
+                        ),
+                    )
+
+                    // Entrada arrow
+                    drawLine(
+                        color = Color(0xFF1A1A2E),
+                        start = Offset(179f * scaleX, 436f * scaleY),
+                        end = Offset(179f * scaleX, 404f * scaleY),
+                        strokeWidth = 2.6f * scaleX,
+                        cap = StrokeCap.Round,
+                    )
+                    drawLine(
+                        color = Color(0xFF1A1A2E),
+                        start = Offset(150f * scaleX, 428f * scaleY),
+                        end = Offset(179f * scaleX, 404f * scaleY),
+                        strokeWidth = 2.6f * scaleX,
+                        cap = StrokeCap.Round,
+                    )
+                    drawLine(
+                        color = Color(0xFF1A1A2E),
+                        start = Offset(208f * scaleX, 428f * scaleY),
+                        end = Offset(179f * scaleX, 404f * scaleY),
+                        strokeWidth = 2.6f * scaleX,
+                        cap = StrokeCap.Round,
+                    )
                 }
 
-                Column(modifier = Modifier.weight(1f).padding(start = 12.dp)) {
-                    BasicText(
-                        text = "Revisa tu boceto",
-                        style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color(0xFF1A1A2E)),
+                // Edit button top-right
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(10.dp)
+                        .height(34.dp)
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(Color(0xFFF5EAF9))
+                        .clickable { onSelectScreenCode("s36") }
+                        .padding(horizontal = 12.dp),
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                        RfIcon(kind = RfIconKind.EDIT, tint = Color(0xFFB54BD6), size = 15.dp)
+                        BasicText("Editar", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFFB54BD6)))
+                    }
+                }
+            }
+
+            // Lo que dibujaste chips
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                BasicText(
+                    text = "LO QUE DIBUJASTE",
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF62627A), letterSpacing = 1.sp),
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                    val chips = listOf(
+                        Color(0xFF865DEC) to "Tarima",
+                        Color(0xFFEA4EA9) to "6 mesas redondas",
+                        Color(0xFF8DB52C) to "Pista de baile",
+                        Color(0xFF1A1A2E) to "Entrada",
                     )
+                    chips.forEach { (dotColor, label) ->
+                        Box(
+                            modifier = Modifier
+                                .height(34.dp)
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(Color.White)
+                                .border(1.dp, Color(0xFFEEE9F2), RoundedCornerShape(999.dp))
+                                .padding(horizontal = 12.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                                Box(modifier = Modifier.size(9.dp).clip(CircleShape).background(dotColor))
+                                BasicText(label, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Color(0xFF1A1A2E)))
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Rosa IA Assistant Card
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(22.dp))
+                    .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))))
+                    .shadow(18.dp, RoundedCornerShape(22.dp), spotColor = Color(0xCC9650DC))
+                    .padding(16.dp),
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.Top,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(Color(0x38FFFFFF)),
+                        ) {
+                            RosaAvatar(size = RosaAvatarSize.MEDIUM)
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            BasicText(
+                                text = "¿Te ayudo a completarlo?",
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.White),
+                            )
+                            Spacer(Modifier.height(2.dp))
+                            BasicText(
+                                text = "Ordeno tu boceto, calculo cuántas sillas caben y te propongo ejemplos en 3D.",
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFFF6EAFB), lineHeight = 20.sp),
+                            )
+                        }
+                    }
+
+                    // Button Ayúdame con IA
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(46.dp)
+                            .clip(RoundedCornerShape(999.dp))
+                            .background(Color.White)
+                            .clickable { onSelectScreenCode("s32") },
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            RfIcon(kind = RfIconKind.SPARKLE, tint = Color(0xFFA23FB8), size = 18.dp)
+                            BasicText(
+                                "Ayúdame con IA",
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFFA23FB8)),
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Bottom CTAs
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 16.dp, bottom = 34.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(RosaButtonGradient)
+                    .shadow(12.dp, RoundedCornerShape(16.dp), spotColor = Color(0xB2C846B4))
+                    .clickable { onSelectScreenCode("s25") },
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    RfIcon(kind = RfIconKind.CHECK, tint = Color.White, size = 20.dp)
                     BasicText(
-                        text = "Boda Real Rosa & Dorado",
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF62627A)),
+                        "Guardar en mi evento",
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White),
                     )
                 }
             }
 
-            Column(
+            Box(
+                contentAlignment = Alignment.Center,
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 20.dp)
-                    .verticalScroll(rememberScrollState()),
+                    .fillMaxWidth()
+                    .height(44.dp)
+                    .clickable { onSelectScreenCode("s36") },
             ) {
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Tarjeta miniatura del boceto
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(180.dp)
-                        .clip(RoundedCornerShape(24.dp))
-                        .background(Color.White)
-                        .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(24.dp))
-                        .padding(12.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    BasicText(
-                        text = "1 Tarima · 6 Mesas redondas · 60 Sillas Tiffany",
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, color = Color(0xFF865DEC), fontSize = 14.sp),
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
                 BasicText(
-                    text = "Artículos calculados automáticamente:",
-                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A2E), fontSize = 14.sp),
+                    "Seguir editando",
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = Color(0xFF62627A)),
                 )
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                val items = listOf(
-                    "6 Mesas redondas 10 personas" to "RD$ 2,100",
-                    "60 Sillas Tiffany Blancas" to "RD$ 2,400",
-                    "6 Manteles de gala lila" to "RD$ 900",
-                    "6 Centros de mesa florales" to "RD$ 4,500",
-                )
-
-                items.forEach { (name, price) ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 6.dp)
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(Color.White)
-                            .padding(14.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        BasicText(name, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A2E), fontSize = 14.sp))
-                        BasicText(price, style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.Bold, color = Color(0xFFEA4EA9), fontSize = 14.sp))
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp)
-                        .shadow(12.dp, RoundedCornerShape(16.dp), spotColor = Color(0x66C846B4))
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(RosaButtonGradient)
-                        .clickable { onSelectScreenCode("s25") },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    BasicText(
-                        text = "Guardar en mi evento",
-                        style = TextStyle(
-                            fontFamily = typo.bodyFamily,
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 16.sp,
-                            color = Color.White,
-                        ),
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
             }
         }
     }

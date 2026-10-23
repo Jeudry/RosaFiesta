@@ -132,11 +132,11 @@ internal fun RenderPersonalCatalogS18(
             contentAlignment = Alignment.CenterStart,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(50.dp)
-                .clip(RoundedCornerShape(14.dp))
+                .height(52.dp)
+                .clip(RoundedCornerShape(16.dp))
                 .background(Color.White)
-                .border(1.dp, Color(0xFFE3E4EF), RoundedCornerShape(14.dp))
-                .padding(start = 14.dp, end = 6.dp),
+                .border(1.dp, Color(0xFFF0EBF4), RoundedCornerShape(16.dp))
+                .padding(start = 16.dp, end = 6.dp),
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -175,7 +175,7 @@ internal fun RenderPersonalCatalogS18(
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
-                        .height(36.dp)
+                        .height(38.dp)
                         .clip(RoundedCornerShape(999.dp))
                         .background(
                             if (isSelected) {
@@ -200,7 +200,7 @@ internal fun RenderPersonalCatalogS18(
             }
         }
 
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(14.dp))
 
         // Banner asistente Rosa IA
         Box(
@@ -221,7 +221,7 @@ internal fun RenderPersonalCatalogS18(
             }
         }
 
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(16.dp))
 
         // Cuadrícula 2 columnas de productos
         Column(
@@ -235,15 +235,17 @@ internal fun RenderPersonalCatalogS18(
                     price = "4",
                     photoKey = RfPhotoKey.SILLA_TIFFANY,
                     bg = Color(0xFFEFE8FD),
+                    useGradientPrice = true,
                     onOpenDetail = { onSelectScreenCode("s19") },
                     modifier = Modifier.weight(1f),
                 )
                 PersonalProductCard(
                     title = "Mesa dulce temática",
-                    desc = "Decoración completa dulces",
+                    desc = "Decoración completa para dulces",
                     price = "150",
                     photoKey = RfPhotoKey.MESA_HELADOS,
                     bg = Color(0xFFEEF6D6),
+                    useGradientPrice = true,
                     onOpenDetail = { onSelectScreenCode("s19") },
                     modifier = Modifier.weight(1f),
                 )
@@ -251,20 +253,22 @@ internal fun RenderPersonalCatalogS18(
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
                 PersonalProductCard(
                     title = "Arco de globos",
-                    desc = "Rosa y nude, entrada",
+                    desc = "Rosa y nude, para la entrada",
                     price = "95",
                     photoKey = RfPhotoKey.ARCO_ROSA,
                     bg = Color(0xFFFDE6F2),
+                    useGradientPrice = true,
                     onOpenDetail = { onSelectScreenCode("s19") },
                     modifier = Modifier.weight(1f),
                 )
                 PersonalProductCard(
                     title = "Centro de mesa floral",
-                    desc = "Flores base madera",
+                    desc = "Flores naturales, base de madera",
                     price = "35",
                     photoKey = RfPhotoKey.CENTRO_FLORAL,
                     bg = Color(0xFFFFF2C9),
                     badge = "Nuevo",
+                    useGradientPrice = true,
                     onOpenDetail = { onSelectScreenCode("s19") },
                     modifier = Modifier.weight(1f),
                 )
@@ -302,7 +306,7 @@ private fun PersonalProductCard(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(140.dp)
+                    .height(128.dp)
                     .background(bg),
             ) {
                 RfPhoto(
@@ -331,7 +335,7 @@ private fun PersonalProductCard(
                         .align(Alignment.TopEnd)
                         .padding(8.dp)
                         .size(36.dp)
-                        .clip(CircleShape)
+                        .clip(RoundedCornerShape(12.dp))
                         .background(Color.White)
                         .clickable { isFavorite = !isFavorite },
                 ) {
@@ -344,9 +348,9 @@ private fun PersonalProductCard(
                 }
             }
 
-            Column(modifier = Modifier.padding(12.dp)) {
+            Column(modifier = Modifier.padding(start = 14.dp, end = 12.dp, top = 12.dp, bottom = 12.dp)) {
                 BasicText(title, maxLines = 1, style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A2E)))
-                Spacer(Modifier.height(2.dp))
+                Spacer(Modifier.height(3.dp))
                 BasicText(desc, maxLines = 1, style = typo.secondary.copy(fontSize = 13.sp, color = Color(0xFF62627A)))
                 Spacer(Modifier.height(8.dp))
 
@@ -357,8 +361,9 @@ private fun PersonalProductCard(
                 ) {
                     Row(verticalAlignment = Alignment.Bottom) {
                         if (useGradientPrice) {
-                            RfGradientPriceText(price, style = TextStyle(fontFamily = typo.displayFamily, fontSize = 24.sp, fontWeight = FontWeight.Bold))
-                            BasicText(" RD$/día", style = typo.secondary.copy(fontSize = 12.sp, color = Color(0xFF62627A)))
+                            RfGradientPriceText(price, style = TextStyle(fontFamily = typo.displayFamily, fontSize = 21.sp, fontWeight = FontWeight.ExtraBold))
+                            Spacer(Modifier.width(3.dp))
+                            BasicText("RD$/día", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFB54BD6)))
                         } else {
                             BasicText(
                                 "RD$ $price",
@@ -378,7 +383,7 @@ private fun PersonalProductCard(
                             .size(40.dp)
                             .clip(CircleShape)
                             .background(
-                                Brush.horizontalGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))),
+                                Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))),
                             )
                             .shadow(elevation = 8.dp, shape = CircleShape, spotColor = Color(0x99865DEC)),
                     ) {
