@@ -224,6 +224,12 @@ internal fun RenderAdminHomeA01(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(132.dp)
+                .shadow(
+                    elevation = 16.dp,
+                    shape = RoundedCornerShape(24.dp),
+                    spotColor = Color(0xCC506EE6),
+                    ambientColor = Color(0x33506EE6),
+                )
                 .clip(RoundedCornerShape(24.dp))
                 .background(
                     Brush.linearGradient(
@@ -461,7 +467,13 @@ internal fun RenderAdminHomeA01(
                         ) {
                             RfIcon(kind = RfIconKind.ORDERS, tint = Color(0xFF7A5700), size = 20.dp)
                         }
-                        BasicText("Solicitudes", modifier = Modifier.weight(1f, fill = false), style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2E324A)))
+                        BasicText(
+                            text = "Solicitudes",
+                            modifier = Modifier.weight(1f, fill = false),
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2E324A)),
+                            maxLines = 1,
+                            softWrap = false,
+                        )
                         Box(
                             modifier = Modifier
                                 .defaultMinSize(minWidth = 22.dp)

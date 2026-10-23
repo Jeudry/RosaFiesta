@@ -193,6 +193,12 @@ public fun PersonalTabBar(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .size(64.dp)
+                    .shadow(
+                        elevation = 8.dp,
+                        shape = CircleShape,
+                        spotColor = Color(0x70E04FAF),
+                        ambientColor = Color(0x25E04FAF),
+                    )
                     .clip(CircleShape)
                     .background(barBg)
                     .padding(4.dp),
@@ -355,6 +361,12 @@ public fun AdminTabBar(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .size(64.dp)
+                    .shadow(
+                        elevation = 8.dp,
+                        shape = CircleShape,
+                        spotColor = Color(0x707650E8),
+                        ambientColor = Color(0x257650E8),
+                    )
                     .clip(CircleShape)
                     .background(barBg)
                     .padding(4.dp),
@@ -416,10 +428,10 @@ public fun Modifier.rfCardShadow(
     shape: Shape = RoundedCornerShape(RfDimens.CardRadius),
     isAdmin: Boolean = false,
 ): Modifier = this.shadow(
-    elevation = 10.dp,
+    elevation = 12.dp,
     shape = shape,
-    spotColor = if (isAdmin) Color(0x454650B4) else Color(0x45C850AA),
-    ambientColor = if (isAdmin) Color(0x1C4650B4) else Color(0x1CC850AA),
+    spotColor = if (isAdmin) Color(0x654650B4) else Color(0x65C850AA),
+    ambientColor = if (isAdmin) Color(0x254650B4) else Color(0x25C850AA),
 )
 
 /**
