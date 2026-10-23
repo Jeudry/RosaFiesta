@@ -27,14 +27,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -402,11 +406,11 @@ internal fun RenderProductDetailS19(
             .fillMaxSize()
             .background(Color(0xFFFAFAFC)),
     ) {
-        // Foto de portada (alto 400dp)
+        // Foto de portada (alto 430dp)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(410.dp),
+                .height(430.dp),
         ) {
             RfPhoto(
                 photoKey = RfPhotoKey.SILLA_TIFFANY,
@@ -493,11 +497,11 @@ internal fun RenderProductDetailS19(
             }
         }
 
-        // Hoja blanca con detalles (top = 380dp)
+        // Hoja blanca con detalles (top = 400dp)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .offset(y = 380.dp)
+                .offset(y = 400.dp)
                 .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
                 .background(Color.White)
                 .padding(horizontal = 24.dp, vertical = 24.dp),
@@ -527,8 +531,11 @@ internal fun RenderProductDetailS19(
                     }
 
                     Column(horizontalAlignment = Alignment.End) {
-                        BasicText("RD$ 4", style = typo.heroTitle.copy(fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFFB54BD6)))
-                        BasicText("por unidad / día", style = typo.secondary.copy(fontSize = 12.sp, color = Color(0xFF5F6377)))
+                        RfGradientPriceText(
+                            text = "RD$ 4",
+                            style = typo.heroTitle.copy(fontSize = 28.sp, fontWeight = FontWeight.ExtraBold),
+                        )
+                        BasicText("por unidad / día", style = typo.secondary.copy(fontSize = 12.sp, color = Color(0xFF62627A)))
                     }
                 }
 
@@ -542,12 +549,13 @@ internal fun RenderProductDetailS19(
                         val colors = listOf("Transparente" to Color(0xFF7C5CF0), "Rosa" to Color(0xFFEA4EA9), "Verde" to Color(0xFFA9CC3A), "Dorado" to Color(0xFFF0B92E))
                         colors.forEach { (name, col) ->
                             val isSel = name == selectedColor
+                            val gradDiag = Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)))
                             Box(
                                 contentAlignment = Alignment.Center,
                                 modifier = Modifier
-                                    .size(36.dp)
+                                    .size(40.dp)
                                     .clip(CircleShape)
-                                    .background(if (isSel) col else Color.White)
+                                    .background(if (isSel && name == "Transparente") gradDiag else if (isSel) SolidColor(col) else SolidColor(Color.White))
                                     .border(2.5.dp, col, CircleShape)
                                     .clickable { selectedColor = name },
                             ) {
@@ -579,7 +587,7 @@ internal fun RenderProductDetailS19(
                                     .clip(RoundedCornerShape(12.dp))
                                     .background(
                                         if (isSel) {
-                                            Brush.horizontalGradient(listOf(Color(0xFFE04FAF), Color(0xFF865DEC)))
+                                            Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)))
                                         } else {
                                             SolidColor(Color.Transparent)
                                         },
@@ -660,14 +668,18 @@ internal fun RenderProductDetailS19(
                     modifier = Modifier
                         .weight(1f)
                         .height(56.dp)
+                        .shadow(12.dp, RoundedCornerShape(16.dp), spotColor = Color(0xB3A050D0))
                         .clip(RoundedCornerShape(16.dp))
-                        .background(Brush.linearGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0))))
+                        .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))))
                         .clickable { onSelectScreenCode("s37") },
                 ) {
-                    BasicText(
-                        text = "Agregar · RD$ ${count * 4}",
-                        style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White),
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        RfIcon(kind = RfIconKind.SPARKLE, tint = Color.White, size = 20.dp)
+                        BasicText(
+                            text = "Agregar · RD$ ${count * 4}",
+                            style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White),
+                        )
+                    }
                 }
             }
         }
@@ -865,11 +877,11 @@ internal fun RenderPackageDetailScreenS22(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState()),
         ) {
-            // Foto de portada (280dp)
+            // Foto de portada (300dp)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(280.dp),
+                    .height(300.dp),
             ) {
                 RfPhoto(photoKey = RfPhotoKey.BODA, contentDescription = "Bodas Rosa", cornerRadius = 0.dp, modifier = Modifier.fillMaxSize())
                 Box(
@@ -929,25 +941,49 @@ internal fun RenderPackageDetailScreenS22(
             }
         }
 
-        // Botón inferior
+        // Botón inferior con precio + CTA
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter)
                 .background(Color.White)
-                .border(1.dp, Color(0xFFF0EBF4))
-                .padding(horizontal = 20.dp, vertical = 18.dp),
+                .border(1.dp, Color(0xFFF2EDF5)),
         ) {
-            Box(
-                contentAlignment = Alignment.Center,
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(54.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Brush.linearGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0))))
-                    .clickable { onSelectScreenCode("s37") },
+                    .padding(horizontal = 20.dp, vertical = 14.dp)
+                    .padding(bottom = 20.dp),
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                BasicText("Agregar paquete · RD$ 850", style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White))
+                Column(modifier = Modifier.wrapContentWidth()) {
+                    BasicText(
+                        text = "134 artículos · RD$ 1,000",
+                        style = typo.secondary.copy(fontSize = 12.sp, color = Color(0xFF62627A)),
+                    )
+                    BasicText(
+                        text = "RD$ 850",
+                        style = TextStyle(
+                            fontFamily = typo.displayFamily,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 22.sp,
+                            color = Color(0xFF1A1A2E),
+                        ),
+                    )
+                }
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(54.dp)
+                        .shadow(12.dp, RoundedCornerShape(16.dp), spotColor = Color(0xB3C846B4))
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC))))
+                        .clickable { onSelectScreenCode("s37") },
+                ) {
+                    BasicText("Agregar al evento", style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White))
+                }
             }
         }
     }
@@ -990,14 +1026,21 @@ private fun PackageItemRow(
                 BasicText(price, style = typo.secondary.copy(fontSize = 13.sp, color = Color(0xFF5F6377)))
             }
 
-            Box(
-                contentAlignment = Alignment.Center,
+            // Stepper
+            Row(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(Color(0xFFF2F2F8))
-                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                    .clip(RoundedCornerShape(12.dp))
+                    .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(12.dp))
+                    .height(36.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                BasicText(qty, style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF151729)))
+                Box(modifier = Modifier.size(32.dp, 36.dp), contentAlignment = Alignment.Center) {
+                    RfIcon(kind = RfIconKind.MINUS, tint = Color(0xFF1A1A2E), size = 16.dp)
+                }
+                BasicText(qty, style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A2E)))
+                Box(modifier = Modifier.size(32.dp, 36.dp), contentAlignment = Alignment.Center) {
+                    RfIcon(kind = RfIconKind.PLUS, tint = Color(0xFF1A1A2E), size = 16.dp)
+                }
             }
         }
     }
@@ -1012,67 +1055,231 @@ internal fun RenderShopScreenS23(
     onSelectScreenCode: (String) -> Unit,
 ) {
     val typo = LocalRfTypography.current
+    val gradDiag = Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)))
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(top = 54.dp, start = 20.dp, end = 20.dp),
+            .background(Color(0xFFFAFAFC)),
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Column {
-                BasicText("Tienda", style = typo.secondary.copy(fontSize = 13.sp, color = Color(0xFF5F6377)))
-                BasicText("Globos", style = typo.heroTitle.copy(fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729)))
-            }
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            drawRect(
+                Brush.radialGradient(
+                    colors = listOf(Color(0xFFF9E3F1), Color(0x00F9E3F1)),
+                    center = Offset(0f, 0f),
+                    radius = size.width * 0.9f,
+                ),
+            )
+            drawRect(
+                Brush.radialGradient(
+                    colors = listOf(Color(0xFFEEE7FB), Color(0x00EEE7FB)),
+                    center = Offset(size.width, 0f),
+                    radius = size.width * 0.8f,
+                ),
+            )
+        }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(top = 54.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            // Header
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    BasicText("Tienda", style = typo.secondary.copy(fontSize = 13.sp, color = Color(0xFF62627A)))
+                    BasicText(
+                        "Globos",
+                        style = TextStyle(
+                            fontFamily = typo.displayFamily,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 26.sp,
+                            letterSpacing = (-0.52).sp,
+                            color = Color(0xFF1A1A2E),
+                        ),
+                    )
+                }
                 Box(
                     contentAlignment = Alignment.Center,
-                    modifier = Modifier.size(44.dp).clip(CircleShape).background(Color.White).border(1.dp, Color(0xFFECECF5), CircleShape),
+                    modifier = Modifier
+                        .size(44.dp)
+                        .shadow(8.dp, CircleShape, spotColor = Color(0x33B450B4))
+                        .clip(CircleShape)
+                        .background(Color.White),
                 ) {
-                    RfIcon(kind = RfIconKind.SEARCH, tint = Color(0xFF151729), size = 20.dp)
+                    RfIcon(kind = RfIconKind.SEARCH, tint = Color(0xFF1A1A2E), size = 20.dp)
                 }
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
                         .height(44.dp)
+                        .shadow(8.dp, RoundedCornerShape(999.dp), spotColor = Color(0x66A050D2))
                         .clip(RoundedCornerShape(999.dp))
-                        .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF6664E9))))
-                        .padding(horizontal = 12.dp),
+                        .background(gradDiag)
+                        .padding(horizontal = 10.dp),
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        RfIcon(kind = RfIconKind.ORDERS, tint = Color.White, size = 18.dp)
-                        Box(contentAlignment = Alignment.Center, modifier = Modifier.size(24.dp).clip(CircleShape).background(Color(0xFFFFD45C))) {
-                            BasicText("3", style = typo.sectionCap.copy(fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E1A47)))
+                        RfIcon(kind = RfIconKind.ORDERS, tint = Color.White, size = 20.dp)
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.size(24.dp).clip(CircleShape).background(Color(0xFFFFD45C)),
+                        ) {
+                            BasicText("3", style = typo.sectionCap.copy(fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF2E1A47)))
                         }
                     }
                 }
             }
-        }
 
-        Spacer(Modifier.height(14.dp))
+            // Chips filtro
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .height(38.dp)
+                        .shadow(8.dp, RoundedCornerShape(999.dp), spotColor = Color(0x66A050D2))
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(gradDiag)
+                        .padding(horizontal = 15.dp),
+                ) {
+                    BasicText("Todos", style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color.White))
+                }
+                listOf("Metalizados", "Látex", "Bouquets").forEach { label ->
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .height(38.dp)
+                            .clip(RoundedCornerShape(999.dp))
+                            .background(Color.White)
+                            .border(1.dp, Color(0xFFEEE9F2), RoundedCornerShape(999.dp))
+                            .padding(horizontal = 15.dp),
+                    ) {
+                        BasicText(label, style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF62627A)))
+                    }
+                }
+            }
 
-        // Banner hero de globos
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(150.dp)
-                .clip(RoundedCornerShape(24.dp))
-                .background(Color(0xFFEFE8FD)),
-        ) {
-            RfPhoto(photoKey = RfPhotoKey.ARCO_ROSA, contentDescription = "Arco Globos", cornerRadius = 24.dp, modifier = Modifier.fillMaxSize())
-        }
+            // Banner hero "Colección Pastel Dream"
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(164.dp)
+                    .padding(horizontal = 20.dp)
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(Color(0xFFEFE8FD)),
+            ) {
+                // Globos SVG
+                Box(
+                    modifier = Modifier.size(170.dp).align(Alignment.TopEnd).offset(x = 6.dp, y = 4.dp),
+                ) {
+                    Canvas(modifier = Modifier.fillMaxSize()) {
+                        val cx = size.width * 0.5f
+                        val cy = size.height * 0.87f
+                        val balloonTops = listOf(
+                            Offset(size.width * 0.33f, size.height * 0.45f),
+                            Offset(size.width * 0.58f, size.height * 0.40f),
+                            Offset(size.width * 0.48f, size.height * 0.60f),
+                            Offset(size.width * 0.70f, size.height * 0.58f),
+                            Offset(size.width * 0.28f, size.height * 0.53f),
+                        )
+                        val linePaint = androidx.compose.ui.graphics.Paint().apply {
+                            color = Color(0x726E5A72)
+                            strokeWidth = 1.5f
+                            strokeCap = StrokeCap.Round
+                        }
+                        balloonTops.forEach { pt ->
+                            drawContext.canvas.drawLine(pt, Offset(cx, cy), linePaint)
+                        }
+                        drawOval(Color(0xFFF9B6D3), topLeft = Offset(size.width * 0.20f, size.height * 0.25f), size = androidx.compose.ui.geometry.Size(size.width * 0.25f, size.height * 0.28f))
+                        drawOval(Color(0xFFA8D8F5), topLeft = Offset(size.width * 0.45f, size.height * 0.18f), size = androidx.compose.ui.geometry.Size(size.width * 0.25f, size.height * 0.28f))
+                        drawOval(Color(0xFFB9A6F7), topLeft = Offset(size.width * 0.62f, size.height * 0.40f), size = androidx.compose.ui.geometry.Size(size.width * 0.22f, size.height * 0.25f))
+                        drawOval(Color(0xFFFFD98A), topLeft = Offset(size.width * 0.16f, size.height * 0.45f), size = androidx.compose.ui.geometry.Size(size.width * 0.22f, size.height * 0.25f))
+                        drawOval(Color(0xFF9BE3C9), topLeft = Offset(size.width * 0.40f, size.height * 0.40f), size = androidx.compose.ui.geometry.Size(size.width * 0.25f, size.height * 0.28f))
+                        val knotPath = Path().apply {
+                            moveTo(cx * 0.85f, cy - 6f)
+                            cubicTo(cx * 0.72f, cy - 14f, cx * 0.65f, cy + 2f, cx, cy + 2f)
+                            cubicTo(cx * 1.30f, cy + 2f, cx * 1.20f, cy - 14f, cx * 1.12f, cy - 6f)
+                        }
+                        drawPath(knotPath, color = Color(0xFFEC4F97))
+                    }
+                }
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(start = 20.dp, bottom = 16.dp)
+                        .fillMaxWidth(0.55f),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.height(24.dp).clip(RoundedCornerShape(999.dp)).background(Color.White).padding(horizontal = 9.dp),
+                    ) {
+                        BasicText("Nuevo", style = typo.sectionCap.copy(fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF7A4FD8)))
+                    }
+                    BasicText(
+                        "Colección Pastel Dream",
+                        style = TextStyle(
+                            fontFamily = typo.displayFamily,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 21.sp,
+                            letterSpacing = (-0.42).sp,
+                            lineHeight = 24.sp,
+                            color = Color(0xFF1A1A2E),
+                        ),
+                    )
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .height(42.dp)
+                            .shadow(8.dp, RoundedCornerShape(999.dp), spotColor = Color(0x66A050D2))
+                            .clip(RoundedCornerShape(999.dp))
+                            .background(gradDiag)
+                            .padding(horizontal = 16.dp),
+                    ) {
+                        BasicText("Ver colección", style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White))
+                    }
+                }
+            }
 
-        Spacer(Modifier.height(14.dp))
+            // "Favoritos de la fiesta"
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                BasicText(
+                    "Favoritos de la fiesta",
+                    style = TextStyle(
+                        fontFamily = typo.displayFamily,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 20.sp,
+                        letterSpacing = (-0.40).sp,
+                        color = Color(0xFF1A1A2E),
+                    ),
+                )
+                BasicText("Ver todo", style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFFC2338F)))
+            }
 
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+            ) {
                 PersonalProductCard("Arco de globos", "Rosa y nude", "95", RfPhotoKey.ARCO_ROSA, Color(0xFFFDE6F2), onOpenDetail = { onSelectScreenCode("s19") }, modifier = Modifier.weight(1f))
                 PersonalProductCard("Bouquet temático", "Metalizado helio", "45", RfPhotoKey.ARCO_ROSA, Color(0xFFEEF6D6), onOpenDetail = { onSelectScreenCode("s19") }, modifier = Modifier.weight(1f))
             }
+
+            Spacer(Modifier.height(96.dp))
         }
     }
 }
