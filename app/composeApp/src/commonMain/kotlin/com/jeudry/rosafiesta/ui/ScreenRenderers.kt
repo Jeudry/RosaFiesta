@@ -108,11 +108,11 @@ fun RenderScreenSpec(
         "A10", "A13", "A16", "A17", "A18", "A19", "A23", "A24", "A25", "A26", "A27", "A28",
         "A04", "A05", "A06", "A07", "A14", "A15", "A22", "A29", "A30", "A31", "A32", "A33", "A34", "A35", "A36", "A37", "A38",
         "s16", "s17", "s41", "s42", "s59", "s60", "s61", "s62", "s63", "s64", "s65", "s66", "s67", "s68", "s69", "s70", "s71", "s72", "s73", "s74",
-        "s79", "s80", "s82", "s86", "s87", "s88", "s89", "s90", "s91", "s92",
+        "s79", "s80", "s81", "s82", "s84", "s85", "s86", "s87", "s88", "s89", "s90", "s91", "s92",
     )
     val showBottomBar = spec.code.lowercase() in setOf(
         "a01", "a02", "a09", "a11", "a12", "a32", "a35", "a36", "a37",
-        "s01", "s02", "s14", "s15", "s18", "s23", "s24", "s37", "s75", "s76", "s77", "s80", "s81", "s89", "s90", "s91", "s92",
+        "s01", "s02", "s14", "s15", "s18", "s23", "s24", "s37", "s75", "s76", "s77", "s80", "s89", "s90", "s91", "s92",
     )
 
     RfPhoneFrame(
@@ -159,7 +159,7 @@ fun RenderScreenSpec(
         },
         modifier = modifier.testTag("screen-${spec.code}"),
     ) {
-        if (ScreenCatalog.isBottomSheet(spec.code)) {
+        if (ScreenCatalog.isBottomSheet(spec.code) && spec.code !in setOf("s81", "s84", "s85")) {
             Column(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
                 modifier = Modifier.fillMaxSize(),
@@ -291,7 +291,10 @@ fun RenderScreenSpec(
                 "s74" -> RenderBotConversationsS74(onSelectScreenCode = onSelectScreenCode)
                 "s79" -> RenderPersonalNotificationsS79(onSelectScreenCode = onSelectScreenCode)
                 "s80" -> RenderPersonalSearchS80(onSelectScreenCode = onSelectScreenCode)
+                "s81" -> RenderCatalogFiltersModalS81(onSelectScreenCode = onSelectScreenCode)
                 "s82" -> RenderPersonalPaymentsS82(onSelectScreenCode = onSelectScreenCode)
+                "s84" -> RenderChangeDateModalS84(onSelectScreenCode = onSelectScreenCode)
+                "s85" -> RenderCancelEventModalS85(onSelectScreenCode = onSelectScreenCode)
                 "s86" -> RenderAccountSettingsS86(onSelectScreenCode = onSelectScreenCode)
                 "s87" -> RenderTermsS87(onSelectScreenCode = onSelectScreenCode)
                 "s88" -> RenderDeleteAccountS88(onSelectScreenCode = onSelectScreenCode)
