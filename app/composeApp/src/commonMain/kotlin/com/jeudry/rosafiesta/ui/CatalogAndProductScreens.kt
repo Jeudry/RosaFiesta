@@ -696,55 +696,88 @@ internal fun RenderCategoriesScreenS20(
 ) {
     val typo = LocalRfTypography.current
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(top = 54.dp, start = 20.dp, end = 20.dp),
+            .background(Color(0xFFFAFAFC)),
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            BasicText("Categorías", style = typo.heroTitle.copy(fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729)))
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(CircleShape)
-                    .background(Color.White)
-                    .border(1.dp, Color(0xFFECECF5), CircleShape)
-                    .clickable { onSelectScreenCode("s18") },
-            ) {
-                RfIcon(kind = RfIconKind.SEARCH, tint = Color(0xFF151729), size = 20.dp)
-            }
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            drawRect(Brush.radialGradient(colors = listOf(Color(0xFFF9E3F1), Color(0x00F9E3F1)), center = Offset(0f, 0f), radius = size.width * 0.9f))
+            drawRect(Brush.radialGradient(colors = listOf(Color(0xFFEEE7FB), Color(0x00EEE7FB)), center = Offset(size.width, 0f), radius = size.width * 0.8f))
         }
 
-        Spacer(Modifier.height(18.dp))
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(top = 56.dp, start = 20.dp, end = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp),
+        ) {
+            // Header: back + title + subtitle
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(44.dp)
+                        .shadow(8.dp, CircleShape, spotColor = Color(0x33B450B4))
+                        .clip(CircleShape)
+                        .background(Color.White)
+                        .clickable { onSelectScreenCode("s18") },
+                ) {
+                    RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1A1A2E), size = 22.dp)
+                }
+                Column {
+                    BasicText(
+                        "Categorías",
+                        style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 24.sp, letterSpacing = (-0.48).sp, color = Color(0xFF1A1A2E)),
+                    )
+                    BasicText(
+                        "Explora el catálogo por tipo de artículo",
+                        style = typo.secondary.copy(fontSize = 14.sp, color = Color(0xFF62627A)),
+                    )
+                }
+            }
 
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                CategoryGridCard("Iluminación", Color(0xFFDDF4F3), RfPhotoKey.CENTRO_FLORAL, Modifier.weight(1f)) { onSelectScreenCode("s18") }
-                CategoryGridCard("Floral", Color(0xFFFDE6F2), RfPhotoKey.ARCO_ROSA, Modifier.weight(1f)) { onSelectScreenCode("s18") }
+            // Grid 2x4 — order matches design: Iluminación/Floral, Globos/Mantelería, Mesa dulce/Letreros, Mobiliario/Decoración
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                    CategoryGridCard("Iluminación", Color(0xFFDDF4F3), CategoryIllustration.ILUMINACION, Modifier.weight(1f)) { onSelectScreenCode("s18") }
+                    CategoryGridCard("Floral", Color(0xFFFDE6F2), CategoryIllustration.FLORAL, Modifier.weight(1f)) { onSelectScreenCode("s18") }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                    CategoryGridCard("Globos", Color(0xFFFFF2C9), CategoryIllustration.GLOBOS, Modifier.weight(1f)) { onSelectScreenCode("s23") }
+                    CategoryGridCard("Mantelería", Color(0xFFEFE8FD), CategoryIllustration.MANTELERIA, Modifier.weight(1f)) { onSelectScreenCode("s18") }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                    CategoryGridCard("Mesa dulce", Color(0xFFEEF6D6), CategoryIllustration.MESA_DULCE, Modifier.weight(1f)) { onSelectScreenCode("s18") }
+                    CategoryGridCard("Letreros", Color(0xFF1E1A2E), CategoryIllustration.LETREROS, Modifier.weight(1f), titleColor = Color(0xFFFFFFFF)) { onSelectScreenCode("s18") }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                    CategoryGridCard("Mobiliario", Color(0xFFFFF2C9), CategoryIllustration.MOBILIARIO, Modifier.weight(1f)) { onSelectScreenCode("s18") }
+                    CategoryGridCard("Decoración", Color(0xFFFDE6F2), CategoryIllustration.DECORACION, Modifier.weight(1f)) { onSelectScreenCode("s18") }
+                }
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                CategoryGridCard("Globos", Color(0xFFF3EEF6), RfPhotoKey.ARCO_ROSA, Modifier.weight(1f)) { onSelectScreenCode("s23") }
-                CategoryGridCard("Mobiliario", Color(0xFFEFE8FD), RfPhotoKey.SILLA_TIFFANY, Modifier.weight(1f)) { onSelectScreenCode("s18") }
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                CategoryGridCard("Dulces / Postres", Color(0xFFEEF6D6), RfPhotoKey.MESA_HELADOS, Modifier.weight(1f)) { onSelectScreenCode("s18") }
-                CategoryGridCard("Mantelería", Color(0xFFFFF2C9), RfPhotoKey.MESA_REDONDA, Modifier.weight(1f)) { onSelectScreenCode("s18") }
-            }
+
+            Spacer(Modifier.height(96.dp))
         }
     }
+}
+
+private enum class CategoryIllustration {
+    ILUMINACION, FLORAL, GLOBOS, MANTELERIA, MESA_DULCE, LETREROS, MOBILIARIO, DECORACION
 }
 
 @Composable
 private fun CategoryGridCard(
     title: String,
     bg: Color,
-    photoKey: RfPhotoKey,
+    illustration: CategoryIllustration,
     modifier: Modifier = Modifier,
+    titleColor: Color = Color(0xFF1A1A2E),
     onClick: () -> Unit,
 ) {
     val typo = LocalRfTypography.current
@@ -754,21 +787,210 @@ private fun CategoryGridCard(
             .clip(RoundedCornerShape(22.dp))
             .background(bg)
             .clickable(onClick = onClick)
-            .padding(14.dp),
+            .padding(start = 14.dp, bottom = 14.dp),
     ) {
-        RfPhoto(
-            photoKey = photoKey,
-            contentDescription = title,
-            cornerRadius = 16.dp,
+        // SVG-style illustration via Canvas, positioned top-end 104dp
+        Canvas(
             modifier = Modifier
-                .size(72.dp)
+                .size(104.dp)
                 .align(Alignment.TopEnd)
-                .offset(x = 6.dp, y = (-4).dp),
-        )
+                .offset(x = 4.dp, y = (-2).dp),
+        ) {
+            val w = size.width
+            val h = size.height
+            when (illustration) {
+                CategoryIllustration.ILUMINACION -> {
+                    // String of colorful lights
+                    val wireColor = androidx.compose.ui.graphics.Color(0xFF2B1730).copy(alpha = 0.45f)
+                    drawPath(
+                        path = androidx.compose.ui.graphics.Path().apply {
+                            moveTo(w * 0.02f, h * 0.30f)
+                            cubicTo(w * 0.20f, h * 0.52f, w * 0.40f, h * 0.52f, w * 0.60f, h * 0.36f)
+                            cubicTo(w * 0.78f, h * 0.20f, w * 0.98f, h * 0.24f, w * 1.0f, h * 0.40f)
+                        },
+                        color = wireColor, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.5f * density)
+                    )
+                    drawPath(
+                        path = androidx.compose.ui.graphics.Path().apply {
+                            moveTo(w * 0.02f, h * 0.72f)
+                            cubicTo(w * 0.22f, h * 0.94f, w * 0.44f, h * 0.94f, w * 0.64f, h * 0.78f)
+                            cubicTo(w * 0.80f, h * 0.66f, w * 1.0f, h * 0.66f, w * 1.0f, h * 0.82f)
+                        },
+                        color = wireColor, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.5f * density)
+                    )
+                    // Bulbs
+                    val bulbColors = listOf(
+                        androidx.compose.ui.graphics.Color(0xFFF5B53B),
+                        androidx.compose.ui.graphics.Color(0xFFEC4F97),
+                        androidx.compose.ui.graphics.Color(0xFF2FB58F),
+                        androidx.compose.ui.graphics.Color(0xFF7650E8),
+                        androidx.compose.ui.graphics.Color(0xFF4AA8E0),
+                        androidx.compose.ui.graphics.Color(0xFFF5B53B),
+                    )
+                    val bulbXs = listOf(0.14f, 0.32f, 0.50f, 0.70f, 0.90f, 1.08f)
+                    val bulbYs = listOf(0.53f, 0.58f, 0.52f, 0.43f, 0.42f, 0.49f)
+                    bulbXs.forEachIndexed { i, bx ->
+                        val by = bulbYs[i]
+                        val c = bulbColors[i % bulbColors.size]
+                        drawOval(color = c.copy(alpha = 0.18f), topLeft = androidx.compose.ui.geometry.Offset((bx - 0.11f) * w, (by - 0.11f) * h), size = androidx.compose.ui.geometry.Size(w * 0.22f, h * 0.22f))
+                        drawOval(color = c, topLeft = androidx.compose.ui.geometry.Offset((bx - 0.05f) * w, (by - 0.07f) * h), size = androidx.compose.ui.geometry.Size(w * 0.10f, h * 0.14f))
+                    }
+                }
+                CategoryIllustration.FLORAL -> {
+                    // Simple flower vase
+                    // Vase
+                    drawRoundRect(color = androidx.compose.ui.graphics.Color(0xFFB9A6F7), topLeft = androidx.compose.ui.geometry.Offset(w * 0.35f, h * 0.58f), size = androidx.compose.ui.geometry.Size(w * 0.30f, h * 0.32f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(6f * density))
+                    // Stem
+                    drawLine(color = androidx.compose.ui.graphics.Color(0xFF4AA8E0).copy(alpha = 0.6f), start = androidx.compose.ui.geometry.Offset(w * 0.50f, h * 0.60f), end = androidx.compose.ui.geometry.Offset(w * 0.50f, h * 0.28f), strokeWidth = 3f * density)
+                    // Pink flower
+                    for (angle in listOf(0.0, 60.0, 120.0, 180.0, 240.0, 300.0)) {
+                        val rad = angle * kotlin.math.PI / 180.0
+                        val px = (w * 0.50f + w * 0.12f * kotlin.math.cos(rad)).toFloat()
+                        val py = (h * 0.22f + h * 0.12f * kotlin.math.sin(rad)).toFloat()
+                        drawCircle(color = androidx.compose.ui.graphics.Color(0xFFF9B6D3), radius = w * 0.10f, center = androidx.compose.ui.geometry.Offset(px, py))
+                    }
+                    drawCircle(color = androidx.compose.ui.graphics.Color(0xFFEC4F97), radius = w * 0.09f, center = androidx.compose.ui.geometry.Offset(w * 0.50f, h * 0.22f))
+                    // Yellow flower
+                    for (angle in listOf(0.0, 72.0, 144.0, 216.0, 288.0)) {
+                        val rad = angle * kotlin.math.PI / 180.0
+                        val px = (w * 0.72f + w * 0.09f * kotlin.math.cos(rad)).toFloat()
+                        val py = (h * 0.32f + h * 0.09f * kotlin.math.sin(rad)).toFloat()
+                        drawCircle(color = androidx.compose.ui.graphics.Color(0xFFF5B53B), radius = w * 0.08f, center = androidx.compose.ui.geometry.Offset(px, py))
+                    }
+                    drawCircle(color = androidx.compose.ui.graphics.Color(0xFFD9A441), radius = w * 0.06f, center = androidx.compose.ui.geometry.Offset(w * 0.72f, h * 0.32f))
+                }
+                CategoryIllustration.GLOBOS -> {
+                    // 3 balloons
+                    val balloonData = listOf(
+                        Triple(w * 0.30f, h * 0.35f, androidx.compose.ui.graphics.Color(0xFFEC4F97)),
+                        Triple(w * 0.60f, h * 0.28f, androidx.compose.ui.graphics.Color(0xFF7650E8)),
+                        Triple(w * 0.50f, h * 0.52f, androidx.compose.ui.graphics.Color(0xFFF5B53B)),
+                    )
+                    balloonData.forEach { (bx, by, bc) ->
+                        drawCircle(color = bc.copy(alpha = 0.18f), radius = w * 0.19f, center = androidx.compose.ui.geometry.Offset(bx, by))
+                        drawCircle(color = bc, radius = w * 0.15f, center = androidx.compose.ui.geometry.Offset(bx, by))
+                        drawLine(color = androidx.compose.ui.graphics.Color(0xFF2B1730).copy(alpha = 0.4f), start = androidx.compose.ui.geometry.Offset(bx, by + w * 0.15f), end = androidx.compose.ui.geometry.Offset(w * 0.50f, h * 0.95f), strokeWidth = 1.4f * density)
+                    }
+                }
+                CategoryIllustration.MANTELERIA -> {
+                    // Stacked tablecloth layers
+                    drawRoundRect(color = androidx.compose.ui.graphics.Color(0xFFB9A6F7), topLeft = androidx.compose.ui.geometry.Offset(w * 0.22f, h * 0.68f), size = androidx.compose.ui.geometry.Size(w * 0.56f, h * 0.16f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(5f * density))
+                    drawRoundRect(color = androidx.compose.ui.graphics.Color(0xFFF9B6D3), topLeft = androidx.compose.ui.geometry.Offset(w * 0.25f, h * 0.52f), size = androidx.compose.ui.geometry.Size(w * 0.50f, h * 0.16f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(5f * density))
+                    drawRoundRect(color = androidx.compose.ui.graphics.Color(0xFF9BE3C9), topLeft = androidx.compose.ui.geometry.Offset(w * 0.20f, h * 0.37f), size = androidx.compose.ui.geometry.Size(w * 0.54f, h * 0.16f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(5f * density))
+                    // Dashes on top layer
+                    val dashColor = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.6f)
+                    drawLine(dashColor, start = androidx.compose.ui.geometry.Offset(w * 0.28f, h * 0.45f), end = androidx.compose.ui.geometry.Offset(w * 0.72f, h * 0.45f), strokeWidth = 1.6f * density)
+                    drawLine(dashColor, start = androidx.compose.ui.geometry.Offset(w * 0.28f, h * 0.60f), end = androidx.compose.ui.geometry.Offset(w * 0.72f, h * 0.60f), strokeWidth = 1.6f * density)
+                    drawLine(dashColor, start = androidx.compose.ui.geometry.Offset(w * 0.30f, h * 0.76f), end = androidx.compose.ui.geometry.Offset(w * 0.70f, h * 0.76f), strokeWidth = 1.6f * density)
+                    // Bow
+                    drawRoundRect(color = androidx.compose.ui.graphics.Color(0xFFD9A441), topLeft = androidx.compose.ui.geometry.Offset(w * 0.44f, h * 0.30f), size = androidx.compose.ui.geometry.Size(w * 0.12f, h * 0.04f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f * density))
+                }
+                CategoryIllustration.MESA_DULCE -> {
+                    // Sweet table with cake
+                    // Table legs
+                    drawLine(color = androidx.compose.ui.graphics.Color(0xFFEC4F97).copy(alpha = 0.3f), start = androidx.compose.ui.geometry.Offset(w * 0.30f, h * 0.72f), end = androidx.compose.ui.geometry.Offset(w * 0.30f, h * 0.90f), strokeWidth = 2f * density)
+                    drawLine(color = androidx.compose.ui.graphics.Color(0xFFEC4F97).copy(alpha = 0.3f), start = androidx.compose.ui.geometry.Offset(w * 0.44f, h * 0.72f), end = androidx.compose.ui.geometry.Offset(w * 0.44f, h * 0.90f), strokeWidth = 2f * density)
+                    drawLine(color = androidx.compose.ui.graphics.Color(0xFFEC4F97).copy(alpha = 0.3f), start = androidx.compose.ui.geometry.Offset(w * 0.58f, h * 0.72f), end = androidx.compose.ui.geometry.Offset(w * 0.58f, h * 0.90f), strokeWidth = 2f * density)
+                    drawLine(color = androidx.compose.ui.graphics.Color(0xFFEC4F97).copy(alpha = 0.3f), start = androidx.compose.ui.geometry.Offset(w * 0.72f, h * 0.72f), end = androidx.compose.ui.geometry.Offset(w * 0.72f, h * 0.90f), strokeWidth = 2f * density)
+                    // Table top
+                    drawRoundRect(color = androidx.compose.ui.graphics.Color(0xFFF9B6D3), topLeft = androidx.compose.ui.geometry.Offset(w * 0.22f, h * 0.65f), size = androidx.compose.ui.geometry.Size(w * 0.56f, h * 0.08f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f * density))
+                    // Cake layers
+                    drawRoundRect(color = androidx.compose.ui.graphics.Color(0xFFF9B6D3), topLeft = androidx.compose.ui.geometry.Offset(w * 0.28f, h * 0.53f), size = androidx.compose.ui.geometry.Size(w * 0.44f, h * 0.13f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f * density))
+                    drawRoundRect(color = androidx.compose.ui.graphics.Color(0xFFB9A6F7), topLeft = androidx.compose.ui.geometry.Offset(w * 0.33f, h * 0.40f), size = androidx.compose.ui.geometry.Size(w * 0.34f, h * 0.13f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f * density))
+                    drawRoundRect(color = androidx.compose.ui.graphics.Color(0xFF9BE3C9), topLeft = androidx.compose.ui.geometry.Offset(w * 0.38f, h * 0.27f), size = androidx.compose.ui.geometry.Size(w * 0.24f, h * 0.13f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f * density))
+                    // Candle
+                    drawLine(color = androidx.compose.ui.graphics.Color(0xFF4AA8E0), start = androidx.compose.ui.geometry.Offset(w * 0.50f, h * 0.18f), end = androidx.compose.ui.geometry.Offset(w * 0.50f, h * 0.27f), strokeWidth = 3f * density)
+                    drawCircle(color = androidx.compose.ui.graphics.Color(0xFFF5B53B), radius = 5f * density, center = androidx.compose.ui.geometry.Offset(w * 0.50f, h * 0.16f))
+                }
+                CategoryIllustration.LETREROS -> {
+                    // Neon heart sign (pink on dark bg)
+                    val neonColor = androidx.compose.ui.graphics.Color(0xFFFF6FB0)
+                    val neonGlow = androidx.compose.ui.graphics.Color(0xFFEC4F97).copy(alpha = 0.22f)
+                    // Heart path: scale to 104x104
+                    fun heartPath(scale: Float): androidx.compose.ui.graphics.Path {
+                        val p = androidx.compose.ui.graphics.Path()
+                        val cx = w * 0.50f; val cy = h * 0.42f
+                        p.moveTo(cx, cy + scale * 0.46f)
+                        p.cubicTo(cx - scale * 0.60f, cy + scale * 0.26f, cx - scale * 0.80f, cy + scale * 0.05f, cx - scale * 0.50f, cy - scale * 0.18f)
+                        p.cubicTo(cx - scale * 0.20f, cy - scale * 0.40f, cx, cy - scale * 0.25f, cx, cy - scale * 0.10f)
+                        p.cubicTo(cx, cy - scale * 0.25f, cx + scale * 0.20f, cy - scale * 0.40f, cx + scale * 0.50f, cy - scale * 0.18f)
+                        p.cubicTo(cx + scale * 0.80f, cy + scale * 0.05f, cx + scale * 0.60f, cy + scale * 0.26f, cx, cy + scale * 0.46f)
+                        p.close()
+                        return p
+                    }
+                    drawPath(heartPath(w * 0.45f), color = neonGlow, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 14f * density))
+                    drawPath(heartPath(w * 0.45f), color = neonColor, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 4.5f * density))
+                    // Wavy line at bottom (yellow neon)
+                    drawPath(
+                        path = androidx.compose.ui.graphics.Path().apply {
+                            moveTo(w * 0.28f, h * 0.82f)
+                            cubicTo(w * 0.33f, h * 0.76f, w * 0.38f, h * 0.76f, w * 0.44f, h * 0.82f)
+                            cubicTo(w * 0.50f, h * 0.88f, w * 0.55f, h * 0.88f, w * 0.60f, h * 0.82f)
+                            cubicTo(w * 0.66f, h * 0.76f, w * 0.71f, h * 0.76f, w * 0.74f, h * 0.82f)
+                        },
+                        color = androidx.compose.ui.graphics.Color(0xFFF5B53B).copy(alpha = 0.2f),
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 10f * density)
+                    )
+                    drawPath(
+                        path = androidx.compose.ui.graphics.Path().apply {
+                            moveTo(w * 0.28f, h * 0.82f)
+                            cubicTo(w * 0.33f, h * 0.76f, w * 0.38f, h * 0.76f, w * 0.44f, h * 0.82f)
+                            cubicTo(w * 0.50f, h * 0.88f, w * 0.55f, h * 0.88f, w * 0.60f, h * 0.82f)
+                            cubicTo(w * 0.66f, h * 0.76f, w * 0.71f, h * 0.76f, w * 0.74f, h * 0.82f)
+                        },
+                        color = androidx.compose.ui.graphics.Color(0xFFFFC75A),
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 3.2f * density)
+                    )
+                    // String
+                    drawLine(color = androidx.compose.ui.graphics.Color(0xFF9B8AA0), start = androidx.compose.ui.geometry.Offset(w * 0.50f, h * 0.05f), end = androidx.compose.ui.geometry.Offset(w * 0.50f, h * 0.17f), strokeWidth = 1.4f * density)
+                }
+                CategoryIllustration.MOBILIARIO -> {
+                    // Chair — Tiffany style
+                    val chairColor = androidx.compose.ui.graphics.Color(0xFFD9A441)
+                    // Legs
+                    drawLine(chairColor, start = androidx.compose.ui.geometry.Offset(w * 0.32f, h * 0.72f), end = androidx.compose.ui.geometry.Offset(w * 0.30f, h * 0.92f), strokeWidth = 3f * density)
+                    drawLine(chairColor, start = androidx.compose.ui.geometry.Offset(w * 0.68f, h * 0.72f), end = androidx.compose.ui.geometry.Offset(w * 0.70f, h * 0.92f), strokeWidth = 3f * density)
+                    drawLine(chairColor, start = androidx.compose.ui.geometry.Offset(w * 0.32f, h * 0.92f), end = androidx.compose.ui.geometry.Offset(w * 0.68f, h * 0.92f), strokeWidth = 2.5f * density)
+                    // Seat
+                    drawRoundRect(color = chairColor, topLeft = androidx.compose.ui.geometry.Offset(w * 0.25f, h * 0.65f), size = androidx.compose.ui.geometry.Size(w * 0.50f, h * 0.08f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(3f * density))
+                    // Cushion
+                    drawRoundRect(color = androidx.compose.ui.graphics.Color(0xFFF9B6D3), topLeft = androidx.compose.ui.geometry.Offset(w * 0.27f, h * 0.62f), size = androidx.compose.ui.geometry.Size(w * 0.46f, h * 0.06f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f * density))
+                    // Back slats
+                    drawLine(chairColor, start = androidx.compose.ui.geometry.Offset(w * 0.40f, h * 0.62f), end = androidx.compose.ui.geometry.Offset(w * 0.40f, h * 0.20f), strokeWidth = 3f * density)
+                    drawLine(chairColor, start = androidx.compose.ui.geometry.Offset(w * 0.60f, h * 0.62f), end = androidx.compose.ui.geometry.Offset(w * 0.60f, h * 0.20f), strokeWidth = 3f * density)
+                    // Top rail
+                    drawRoundRect(color = chairColor, topLeft = androidx.compose.ui.geometry.Offset(w * 0.30f, h * 0.17f), size = androidx.compose.ui.geometry.Size(w * 0.40f, h * 0.06f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(3f * density))
+                    // Middle rail
+                    drawRoundRect(color = chairColor, topLeft = androidx.compose.ui.geometry.Offset(w * 0.33f, h * 0.38f), size = androidx.compose.ui.geometry.Size(w * 0.34f, h * 0.04f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(2f * density))
+                }
+                CategoryIllustration.DECORACION -> {
+                    // Vase with plants and candle
+                    // Vase
+                    drawRoundRect(color = androidx.compose.ui.graphics.Color(0xFFF5F0EA), topLeft = androidx.compose.ui.geometry.Offset(w * 0.35f, h * 0.55f), size = androidx.compose.ui.geometry.Size(w * 0.30f, h * 0.38f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(12f * density))
+                    // Stems
+                    drawLine(color = androidx.compose.ui.graphics.Color(0xFFD9A441), start = androidx.compose.ui.geometry.Offset(w * 0.45f, h * 0.55f), end = androidx.compose.ui.geometry.Offset(w * 0.38f, h * 0.15f), strokeWidth = 2.5f * density)
+                    drawLine(color = androidx.compose.ui.graphics.Color(0xFFD9A441), start = androidx.compose.ui.geometry.Offset(w * 0.50f, h * 0.55f), end = androidx.compose.ui.geometry.Offset(w * 0.52f, h * 0.08f), strokeWidth = 2.5f * density)
+                    drawLine(color = androidx.compose.ui.graphics.Color(0xFFD9A441), start = androidx.compose.ui.geometry.Offset(w * 0.55f, h * 0.55f), end = androidx.compose.ui.geometry.Offset(w * 0.64f, h * 0.20f), strokeWidth = 2.5f * density)
+                    // Leaves
+                    drawOval(color = androidx.compose.ui.graphics.Color(0xFFD9A441), topLeft = androidx.compose.ui.geometry.Offset(w * 0.28f, h * 0.14f), size = androidx.compose.ui.geometry.Size(w * 0.22f, h * 0.14f))
+                    drawOval(color = androidx.compose.ui.graphics.Color(0xFFD9A441), topLeft = androidx.compose.ui.geometry.Offset(w * 0.44f, h * 0.05f), size = androidx.compose.ui.geometry.Size(w * 0.16f, h * 0.10f))
+                    drawOval(color = androidx.compose.ui.graphics.Color(0xFFD9A441), topLeft = androidx.compose.ui.geometry.Offset(w * 0.56f, h * 0.15f), size = androidx.compose.ui.geometry.Size(w * 0.20f, h * 0.12f))
+                    // Candle
+                    drawRoundRect(color = androidx.compose.ui.graphics.Color(0xFFEC4F97), topLeft = androidx.compose.ui.geometry.Offset(w * 0.68f, h * 0.55f), size = androidx.compose.ui.geometry.Size(w * 0.18f, h * 0.35f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f * density))
+                    drawCircle(color = androidx.compose.ui.graphics.Color(0xFFF5B53B), radius = 5f * density, center = androidx.compose.ui.geometry.Offset(w * 0.77f, h * 0.52f))
+                }
+            }
+        }
 
         BasicText(
             text = title,
-            style = typo.heroTitle.copy(fontSize = 19.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF1A1A2E)),
+            style = TextStyle(
+                fontFamily = typo.displayFamily,
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = 17.sp,
+                letterSpacing = (-0.34).sp,
+                color = titleColor,
+            ),
             modifier = Modifier.align(Alignment.BottomStart),
         )
     }

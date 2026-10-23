@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -278,17 +279,26 @@ internal fun RenderMyEventsScreenS37(
 // ==============================================================================
 // s38 · NUEVO EVENTO
 // ==============================================================================
+private data class EventTypeCard(val name: String, val bg: Color, val illus: EventTypeIllus)
+private enum class EventTypeIllus { CUMPLE, BODA, QUINCEANERA, BABY_SHOWER, GRADUACION, CORPORATIVO }
+
 @Composable
 internal fun RenderNewEventScreenS38(
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
+    var selectedType by remember { mutableStateOf("Boda") }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFFFAFAFC)),
     ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            drawRect(Brush.radialGradient(colors = listOf(Color(0xFFF9E3F1), Color(0x00F9E3F1)), center = Offset(0f, 0f), radius = size.width * 0.9f))
+            drawRect(Brush.radialGradient(colors = listOf(Color(0xFFEEE7FB), Color(0x00EEE7FB)), center = Offset(size.width, 0f), radius = size.width * 0.8f))
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -297,10 +307,10 @@ internal fun RenderNewEventScreenS38(
         ) {
             Spacer(modifier = Modifier.height(56.dp))
 
-            // Header
+            // Header: back + title + step
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(
@@ -314,116 +324,224 @@ internal fun RenderNewEventScreenS38(
                 ) {
                     RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1A1A2E), size = 22.dp)
                 }
-
                 BasicText(
                     text = "Nuevo evento",
-                    style = TextStyle(
-                        fontFamily = typo.displayFamily,
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 20.sp,
-                        color = Color(0xFF1A1A2E),
-                    ),
+                    style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, letterSpacing = (-0.40).sp, color = Color(0xFF1A1A2E)),
+                    modifier = Modifier.weight(1f),
                 )
+                BasicText("1 de 5", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Color(0xFF62627A)))
+            }
 
-                Spacer(modifier = Modifier.size(44.dp))
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Progress bar 5 steps
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
+                    listOf(true, false, false, false, false).forEach { active ->
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(5.dp)
+                                .clip(RoundedCornerShape(3.dp))
+                                .background(if (active) Color(0xFFEA4EA9) else Color(0xFFE6DEEA)),
+                        )
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
+                    listOf("Tipo" to true, "Fecha" to false, "Lugar" to false, "Invitados" to false, "Listo" to false).forEach { (label, active) ->
+                        BasicText(
+                            label,
+                            style = TextStyle(
+                                fontFamily = typo.bodyFamily,
+                                fontWeight = if (active) FontWeight.Bold else FontWeight.SemiBold,
+                                fontSize = 12.sp,
+                                color = if (active) Color(0xFFC2338F) else Color(0xFF62627A),
+                            ),
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Title + subtitle
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                BasicText(
+                    "¿Qué tipo de evento planeas?",
+                    style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 24.sp, letterSpacing = (-0.48).sp, lineHeight = 28.sp, color = Color(0xFF1A1A2E)),
+                )
+                BasicText("Elige la categoría que mejor lo describa.", style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF62627A)))
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Event type grid 2x3
+            // Event type cards — order: Cumpleaños/Boda | Quinceañera/Baby shower | Graduación/Corporativo
+            val eventTypes = listOf(
+                EventTypeCard("Cumpleaños", Color(0xFFFFF2C9), EventTypeIllus.CUMPLE),
+                EventTypeCard("Boda", Color(0xFFFDE6F2), EventTypeIllus.BODA),
+                EventTypeCard("Quinceañera", Color(0xFFEFE8FD), EventTypeIllus.QUINCEANERA),
+                EventTypeCard("Baby shower", Color(0xFFDDF4F3), EventTypeIllus.BABY_SHOWER),
+                EventTypeCard("Graduación", Color(0xFFEEF6D6), EventTypeIllus.GRADUACION),
+                EventTypeCard("Corporativo", Color(0xFFF5F0F8), EventTypeIllus.CORPORATIVO),
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                eventTypes.chunked(2).forEach { row ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                        row.forEach { card ->
+                            val isSelected = card.name == selectedType
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(112.dp)
+                                    .clip(RoundedCornerShape(20.dp))
+                                    .background(card.bg)
+                                    .then(if (isSelected) Modifier.border(2.5.dp, Color(0xFFB754CB), RoundedCornerShape(20.dp)) else Modifier)
+                                    .clickable { selectedType = card.name }
+                                    .padding(start = 14.dp, bottom = 12.dp),
+                            ) {
+                                // Selected checkmark badge
+                                if (isSelected) {
+                                    Box(
+                                        contentAlignment = Alignment.Center,
+                                        modifier = Modifier
+                                            .size(26.dp)
+                                            .align(Alignment.TopStart)
+                                            .offset(x = 12.dp, y = 12.dp)
+                                            .shadow(8.dp, CircleShape, spotColor = Color(0xB36664E9))
+                                            .clip(CircleShape)
+                                            .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)))),
+                                    ) {
+                                        RfIcon(kind = RfIconKind.CHECK, tint = Color.White, size = 16.dp)
+                                    }
+                                }
+                                // Illustration canvas — top-end, 84dp
+                                Canvas(
+                                    modifier = Modifier
+                                        .size(84.dp)
+                                        .align(Alignment.TopEnd)
+                                        .offset(x = 4.dp, y = 2.dp),
+                                ) {
+                                    val w = size.width; val h = size.height
+                                    when (card.illus) {
+                                        EventTypeIllus.CUMPLE -> {
+                                            // Birthday cake
+                                            drawRoundRect(color = Color(0xFFFFF6EE), topLeft = androidx.compose.ui.geometry.Offset(w*0.25f, h*0.48f), size = androidx.compose.ui.geometry.Size(w*0.50f, h*0.33f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(5f*density))
+                                            drawRect(color = Color(0xFFF9B6D3), topLeft = androidx.compose.ui.geometry.Offset(w*0.25f, h*0.68f), size = androidx.compose.ui.geometry.Size(w*0.50f, h*0.05f))
+                                            // Candles
+                                            drawRoundRect(color = Color(0xFF7650E8), topLeft = androidx.compose.ui.geometry.Offset(w*0.35f, h*0.34f), size = androidx.compose.ui.geometry.Size(w*0.04f, h*0.14f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(2f*density))
+                                            drawRoundRect(color = Color(0xFF4AA8E0), topLeft = androidx.compose.ui.geometry.Offset(w*0.48f, h*0.32f), size = androidx.compose.ui.geometry.Size(w*0.04f, h*0.17f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(2f*density))
+                                            drawRoundRect(color = Color(0xFF2FB58F), topLeft = androidx.compose.ui.geometry.Offset(w*0.61f, h*0.34f), size = androidx.compose.ui.geometry.Size(w*0.04f, h*0.14f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(2f*density))
+                                            // Flames
+                                            drawCircle(color = Color(0xFFF5B53B), radius = 4f*density, center = androidx.compose.ui.geometry.Offset(w*0.37f, h*0.31f))
+                                            drawCircle(color = Color(0xFFF5B53B), radius = 4f*density, center = androidx.compose.ui.geometry.Offset(w*0.50f, h*0.29f))
+                                            drawCircle(color = Color(0xFFF5B53B), radius = 4f*density, center = androidx.compose.ui.geometry.Offset(w*0.63f, h*0.31f))
+                                        }
+                                        EventTypeIllus.BODA -> {
+                                            // Two interlocked rings
+                                            val strokeW = 6.5f * density
+                                            drawCircle(color = Color(0xFFD9A441), radius = w*0.18f, center = androidx.compose.ui.geometry.Offset(w*0.40f, h*0.58f), style = androidx.compose.ui.graphics.drawscope.Stroke(width = strokeW))
+                                            drawCircle(color = Color(0xFFF0CC7A), radius = w*0.18f, center = androidx.compose.ui.geometry.Offset(w*0.60f, h*0.60f), style = androidx.compose.ui.graphics.drawscope.Stroke(width = strokeW))
+                                            // Diamond
+                                            val path = androidx.compose.ui.graphics.Path()
+                                            path.moveTo(w*0.35f, h*0.36f); path.lineTo(w*0.47f, h*0.30f); path.lineTo(w*0.47f, h*0.37f); path.lineTo(w*0.41f, h*0.44f); path.close()
+                                            drawPath(path, color = Color(0xFFA8D8F5))
+                                        }
+                                        EventTypeIllus.QUINCEANERA -> {
+                                            // Crown with sparkles
+                                            val crownColor = Color(0xFFD9A441)
+                                            val crownPath = androidx.compose.ui.graphics.Path()
+                                            crownPath.moveTo(w*0.20f, h*0.75f); crownPath.lineTo(w*0.20f, h*0.50f); crownPath.lineTo(w*0.35f, h*0.62f); crownPath.lineTo(w*0.50f, h*0.40f); crownPath.lineTo(w*0.65f, h*0.62f); crownPath.lineTo(w*0.80f, h*0.50f); crownPath.lineTo(w*0.80f, h*0.75f); crownPath.close()
+                                            drawPath(crownPath, color = crownColor)
+                                            drawCircle(color = Color(0xFFEC4F97), radius = 5f*density, center = androidx.compose.ui.geometry.Offset(w*0.50f, h*0.38f))
+                                            drawCircle(color = Color(0xFF7650E8), radius = 3.5f*density, center = androidx.compose.ui.geometry.Offset(w*0.30f, h*0.58f))
+                                            drawCircle(color = Color(0xFF2FB58F), radius = 3.5f*density, center = androidx.compose.ui.geometry.Offset(w*0.70f, h*0.56f))
+                                        }
+                                        EventTypeIllus.BABY_SHOWER -> {
+                                            // Clothesline with baby onesie
+                                            drawPath(
+                                                path = androidx.compose.ui.graphics.Path().apply {
+                                                    moveTo(w*0.05f, h*0.25f); cubicTo(w*0.50f, h*0.38f, w*0.95f, h*0.25f, w*0.95f, h*0.25f)
+                                                },
+                                                color = Color(0xFF6E5A72).copy(alpha = 0.45f), style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.5f*density)
+                                            )
+                                            // Onesie body
+                                            drawRoundRect(color = Color(0xFF9BE3C9), topLeft = androidx.compose.ui.geometry.Offset(w*0.33f, h*0.35f), size = androidx.compose.ui.geometry.Size(w*0.34f, h*0.38f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(6f*density))
+                                            // Sleeves
+                                            drawRoundRect(color = Color(0xFF9BE3C9), topLeft = androidx.compose.ui.geometry.Offset(w*0.18f, h*0.35f), size = androidx.compose.ui.geometry.Size(w*0.17f, h*0.16f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f*density))
+                                            drawRoundRect(color = Color(0xFF9BE3C9), topLeft = androidx.compose.ui.geometry.Offset(w*0.65f, h*0.35f), size = androidx.compose.ui.geometry.Size(w*0.17f, h*0.16f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f*density))
+                                            // Star detail
+                                            drawCircle(color = Color(0xFFF5B53B), radius = 4f*density, center = androidx.compose.ui.geometry.Offset(w*0.50f, h*0.54f))
+                                        }
+                                        EventTypeIllus.GRADUACION -> {
+                                            // Graduation cap
+                                            val capColor = Color(0xFF1A1A2E)
+                                            drawRoundRect(color = capColor, topLeft = androidx.compose.ui.geometry.Offset(w*0.20f, h*0.45f), size = androidx.compose.ui.geometry.Size(w*0.60f, h*0.14f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(3f*density))
+                                            val hatPath = androidx.compose.ui.graphics.Path()
+                                            hatPath.moveTo(w*0.50f, h*0.28f); hatPath.lineTo(w*0.80f, h*0.45f); hatPath.lineTo(w*0.50f, h*0.60f); hatPath.lineTo(w*0.20f, h*0.45f); hatPath.close()
+                                            drawPath(hatPath, color = capColor)
+                                            // Tassel
+                                            drawLine(color = Color(0xFFF5B53B), start = androidx.compose.ui.geometry.Offset(w*0.76f, h*0.45f), end = androidx.compose.ui.geometry.Offset(w*0.76f, h*0.72f), strokeWidth = 2.5f*density)
+                                            drawCircle(color = Color(0xFFF5B53B), radius = 5f*density, center = androidx.compose.ui.geometry.Offset(w*0.76f, h*0.75f))
+                                        }
+                                        EventTypeIllus.CORPORATIVO -> {
+                                            // Champagne glasses clinking
+                                            val glassColor = Color(0xFFD9A441)
+                                            // Left glass
+                                            val lp = androidx.compose.ui.graphics.Path()
+                                            lp.moveTo(w*0.28f, h*0.25f); lp.lineTo(w*0.38f, h*0.25f); lp.lineTo(w*0.34f, h*0.50f); lp.lineTo(w*0.32f, h*0.50f); lp.close()
+                                            drawPath(lp, color = glassColor)
+                                            drawLine(color = glassColor, start = androidx.compose.ui.geometry.Offset(w*0.33f, h*0.50f), end = androidx.compose.ui.geometry.Offset(w*0.33f, h*0.72f), strokeWidth = 2.5f*density)
+                                            // Right glass
+                                            val rp = androidx.compose.ui.graphics.Path()
+                                            rp.moveTo(w*0.62f, h*0.25f); rp.lineTo(w*0.72f, h*0.25f); rp.lineTo(w*0.68f, h*0.50f); rp.lineTo(w*0.66f, h*0.50f); rp.close()
+                                            drawPath(rp, color = glassColor)
+                                            drawLine(color = glassColor, start = androidx.compose.ui.geometry.Offset(w*0.67f, h*0.50f), end = androidx.compose.ui.geometry.Offset(w*0.67f, h*0.72f), strokeWidth = 2.5f*density)
+                                            // Bubbles
+                                            drawCircle(color = Color(0xFFF5B53B).copy(alpha = 0.6f), radius = 3f*density, center = androidx.compose.ui.geometry.Offset(w*0.32f, h*0.35f))
+                                            drawCircle(color = Color(0xFFF5B53B).copy(alpha = 0.6f), radius = 2f*density, center = androidx.compose.ui.geometry.Offset(w*0.36f, h*0.28f))
+                                            drawCircle(color = Color(0xFFF5B53B).copy(alpha = 0.6f), radius = 3f*density, center = androidx.compose.ui.geometry.Offset(w*0.68f, h*0.33f))
+                                        }
+                                    }
+                                }
+                                BasicText(
+                                    card.name,
+                                    style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, letterSpacing = (-0.34).sp, color = Color(0xFF1A1A2E)),
+                                    modifier = Modifier.align(Alignment.BottomStart),
+                                )
+                            }
+                        }
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
-
-            // Formulario
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    BasicText("Nombre del evento", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A2E), fontSize = 14.sp))
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(52.dp)
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(Color.White)
-                            .border(1.dp, Color(0xFFE3E4EF), RoundedCornerShape(14.dp))
-                            .padding(horizontal = 14.dp),
-                        contentAlignment = Alignment.CenterStart,
-                    ) {
-                        BasicText("Cumpleaños 5 de Mateo", style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFF1A1A2E), fontSize = 15.sp))
-                    }
-                }
-
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    BasicText("Tipo de celebración", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A2E), fontSize = 14.sp))
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(52.dp)
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(Color.White)
-                            .border(1.dp, Color(0xFFE3E4EF), RoundedCornerShape(14.dp))
-                            .padding(horizontal = 14.dp),
-                        contentAlignment = Alignment.CenterStart,
-                    ) {
-                        BasicText("Cumpleaños infantil 🎈", style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFF1A1A2E), fontSize = 15.sp))
-                    }
-                }
-
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    BasicText("Fecha programada", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A2E), fontSize = 14.sp))
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(52.dp)
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(Color.White)
-                            .border(1.dp, Color(0xFFE3E4EF), RoundedCornerShape(14.dp))
-                            .padding(horizontal = 14.dp),
-                        contentAlignment = Alignment.CenterStart,
-                    ) {
-                        BasicText("Sábado, 12 de Diciembre 2026", style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFF1A1A2E), fontSize = 15.sp))
-                    }
-                }
-
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    BasicText("Lugar o dirección", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A2E), fontSize = 14.sp))
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(52.dp)
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(Color.White)
-                            .border(1.dp, Color(0xFFE3E4EF), RoundedCornerShape(14.dp))
-                            .padding(horizontal = 14.dp),
-                        contentAlignment = Alignment.CenterStart,
-                    ) {
-                        BasicText("Club Bella Vista, Distrito Nacional", style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFF1A1A2E), fontSize = 15.sp))
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(30.dp))
 
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp)
-                    .shadow(12.dp, RoundedCornerShape(16.dp), spotColor = Color(0x66C846B4))
+                    .shadow(12.dp, RoundedCornerShape(16.dp), spotColor = Color(0xB3C846B4))
                     .clip(RoundedCornerShape(16.dp))
                     .background(RosaButtonGradient)
-                    .clickable { onSelectScreenCode("s37") },
+                    .clickable { onSelectScreenCode("s26") },
                 contentAlignment = Alignment.Center,
             ) {
-                BasicText(
-                    text = "Crear evento",
-                    style = TextStyle(
-                        fontFamily = typo.bodyFamily,
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 16.sp,
-                        color = Color.White,
-                    ),
-                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    BasicText(
+                        text = "Siguiente: fecha",
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White),
+                    )
+                    RfIcon(kind = RfIconKind.ARROW_RIGHT, tint = Color.White, size = 20.dp)
+                }
             }
 
-            Spacer(modifier = Modifier.height(30.dp))
+            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 }
+
 
 // ==============================================================================
 // s39 · CALENDARIO
