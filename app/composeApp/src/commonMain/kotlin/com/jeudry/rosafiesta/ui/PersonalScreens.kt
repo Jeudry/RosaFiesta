@@ -1055,6 +1055,7 @@ internal fun RenderPersonalHomeScreen(
                             photoKey = RfPhotoKey.GRADUACION,
                             contentDescription = "Graduaciones",
                             modifier = Modifier.fillMaxSize(),
+                            cornerRadius = 0.dp,
                         )
                         Box(
                             contentAlignment = Alignment.Center,
@@ -1124,6 +1125,7 @@ internal fun RenderPersonalHomeScreen(
                             photoKey = RfPhotoKey.BODA,
                             contentDescription = "Bodas",
                             modifier = Modifier.fillMaxSize(),
+                            cornerRadius = 0.dp,
                         )
                         Box(
                             contentAlignment = Alignment.Center,
