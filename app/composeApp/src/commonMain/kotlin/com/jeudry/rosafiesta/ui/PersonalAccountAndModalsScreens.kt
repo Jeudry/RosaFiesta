@@ -1023,9 +1023,9 @@ internal fun RenderAccountSettingsS86(
             SettingsCaption86("CUENTA")
             Spacer(modifier = Modifier.height(8.dp))
             SettingsGroup86 {
-                SettingsRow86("Datos personales", RfIconKind.USER) { onSelectScreenCode("s54") }
+                SettingsRow86("Datos personales", RfIconKind.USER, onClick = { onSelectScreenCode("s54") })
                 SettingsDivider86()
-                SettingsRow86("Cambiar contraseña", RfIconKind.LOCK) { onSelectScreenCode("s54") }
+                SettingsRow86("Cambiar contraseña", RfIconKind.LOCK, onClick = { onSelectScreenCode("s54") })
                 SettingsDivider86()
                 SettingsRow86("Métodos de pago", RfIconKind.RECEIPT, onClick = { onSelectScreenCode("s82") }) {
                     BasicText("Visa •••• 4821", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF62627A)))
@@ -1051,9 +1051,9 @@ internal fun RenderAccountSettingsS86(
             SettingsCaption86("PRIVACIDAD Y LEGAL")
             Spacer(modifier = Modifier.height(8.dp))
             SettingsGroup86 {
-                SettingsRow86("Términos y condiciones", RfIconKind.NOTE) { onSelectScreenCode("s87") }
+                SettingsRow86("Términos y condiciones", RfIconKind.NOTE, onClick = { onSelectScreenCode("s87") })
                 SettingsDivider86()
-                SettingsRow86("Política de privacidad", RfIconKind.SHIELD) { onSelectScreenCode("s87") }
+                SettingsRow86("Política de privacidad", RfIconKind.SHIELD, onClick = { onSelectScreenCode("s87") })
                 SettingsDivider86()
                 Row(
                     modifier = Modifier.fillMaxWidth().heightIn(min = 54.dp).clickable { }.padding(horizontal = 16.dp),
