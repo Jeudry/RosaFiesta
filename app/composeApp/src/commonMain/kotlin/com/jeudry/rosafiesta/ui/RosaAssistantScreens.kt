@@ -558,8 +558,9 @@ internal fun RenderRosaEventTypeS26(
         // Main content
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 128.dp, start = 20.dp, end = 20.dp),
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(top = 128.dp, start = 20.dp, end = 20.dp, bottom = 116.dp),
             verticalArrangement = Arrangement.spacedBy(22.dp),
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -585,7 +586,7 @@ internal fun RenderRosaEventTypeS26(
                     }
                 }
 
-                // Título con subrayado 'celebrar'
+                // Título principal
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     BasicText(
                         text = "¿Qué evento quieres",
@@ -598,40 +599,17 @@ internal fun RenderRosaEventTypeS26(
                             color = Color(0xFF1A1A2E),
                         ),
                     )
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier.drawBehind {
-                                drawRect(
-                                    color = Color(0xFFFFDF6E),
-                                    topLeft = Offset(0f, size.height * 0.60f),
-                                    size = Size(size.width, size.height * 0.35f),
-                                )
-                            },
-                        ) {
-                            BasicText(
-                                text = "celebrar",
-                                style = TextStyle(
-                                    fontFamily = typo.displayFamily,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    fontSize = 26.sp,
-                                    lineHeight = 28.sp,
-                                    letterSpacing = (-0.52).sp,
-                                    color = Color(0xFF1A1A2E),
-                                ),
-                            )
-                        }
-                        BasicText(
-                            text = "?",
-                            style = TextStyle(
-                                fontFamily = typo.displayFamily,
-                                fontWeight = FontWeight.ExtraBold,
-                                fontSize = 26.sp,
-                                lineHeight = 28.sp,
-                                letterSpacing = (-0.52).sp,
-                                color = Color(0xFF1A1A2E),
-                            ),
-                        )
-                    }
+                    BasicText(
+                        text = "celebrar?",
+                        style = TextStyle(
+                            fontFamily = typo.displayFamily,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 26.sp,
+                            lineHeight = 28.sp,
+                            letterSpacing = (-0.52).sp,
+                            color = Color(0xFF1A1A2E),
+                        ),
+                    )
                 }
             }
 
@@ -1212,8 +1190,9 @@ internal fun RenderRosaHelpS28(
         Column(
             modifier = Modifier
                 .align(Alignment.TopStart)
-                .fillMaxWidth()
-                .padding(top = 128.dp, start = 20.dp, end = 20.dp),
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(top = 128.dp, start = 20.dp, end = 20.dp, bottom = 260.dp),
             verticalArrangement = Arrangement.spacedBy(22.dp),
         ) {
             Box(
@@ -1377,7 +1356,12 @@ internal fun RenderRosaSuggestionsS29(
             .fillMaxSize()
             .background(RosaBackgroundGradient),
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(bottom = 180.dp),
+        ) {
             RosaWizardHeader(
                 step = 3,
                 cartCount = 17,
@@ -1775,8 +1759,9 @@ internal fun RenderRosaCategoriesS30(
         Column(
             modifier = Modifier
                 .align(Alignment.TopStart)
-                .fillMaxWidth()
-                .padding(top = 128.dp, start = 20.dp, end = 20.dp),
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(top = 128.dp, start = 20.dp, end = 20.dp, bottom = 180.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -2065,8 +2050,9 @@ internal fun RenderRosaDetailsS31(
         // Main content
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 128.dp, start = 20.dp, end = 20.dp),
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(top = 128.dp, start = 20.dp, end = 20.dp, bottom = 180.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
             // Rosa Avatar + Title
@@ -2298,8 +2284,9 @@ internal fun RenderRosaSummaryS32(
         // Main content
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 128.dp, start = 20.dp, end = 20.dp),
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(top = 128.dp, start = 20.dp, end = 20.dp, bottom = 180.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -2564,117 +2551,123 @@ internal fun RenderRosaSubmittedS33(
             RfIcon(kind = RfIconKind.CLOSE, tint = Color(0xFF1A1A2E), size = 22.dp)
         }
 
-        // Ilustración + título + subtítulo (posición absoluta top=96dp)
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp)
-                .offset(y = 96.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(top = 96.dp, bottom = 120.dp),
         ) {
-            // Ilustración de éxito con confeti SVG 170×170
-            Canvas(modifier = Modifier.size(170.dp)) {
-                val cx = size.width / 2f
-                val cy = size.height / 2f
-                // Scale factor: viewBox 0 0 120 120, origin at (60,60)
-                val sc = size.width / 120f
+            // Ilustración + título + subtítulo (posición top=96dp)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                // Ilustración de éxito con confeti SVG 170×170
+                Canvas(modifier = Modifier.size(170.dp)) {
+                    val cx = size.width / 2f
+                    val cy = size.height / 2f
+                    // Scale factor: viewBox 0 0 120 120, origin at (60,60)
+                    val sc = size.width / 120f
 
-                // Outer circle DDF5EC r=36
-                drawCircle(color = Color(0xFFDDF5EC), radius = 36f * sc, center = Offset(cx, cy))
-                // Inner circle 2FB58F r=26
-                drawCircle(color = Color(0xFF2FB58F), radius = 26f * sc, center = Offset(cx, cy))
-                // Check mark: M48 61 l8 8 16-17
-                val check = Path().apply {
-                    moveTo((48f - 60f) * sc + cx, (61f - 60f) * sc + cy)
-                    lineTo((56f - 60f) * sc + cx, (69f - 60f) * sc + cy)
-                    lineTo((72f - 60f) * sc + cx, (52f - 60f) * sc + cy)
-                }
-                drawPath(check, Color.White, style = Stroke(6f * sc, cap = StrokeCap.Round, join = StrokeJoin.Round))
+                    // Outer circle DDF5EC r=36
+                    drawCircle(color = Color(0xFFDDF5EC), radius = 36f * sc, center = Offset(cx, cy))
+                    // Inner circle 2FB58F r=26
+                    drawCircle(color = Color(0xFF2FB58F), radius = 26f * sc, center = Offset(cx, cy))
+                    // Check mark: M48 61 l8 8 16-17
+                    val check = Path().apply {
+                        moveTo((48f - 60f) * sc + cx, (61f - 60f) * sc + cy)
+                        lineTo((56f - 60f) * sc + cx, (69f - 60f) * sc + cy)
+                        lineTo((72f - 60f) * sc + cx, (52f - 60f) * sc + cy)
+                    }
+                    drawPath(check, Color.White, style = Stroke(6f * sc, cap = StrokeCap.Round, join = StrokeJoin.Round))
 
-                // Confeti: pink rect rotated 20° (center 59.5, 12)
-                withTransform({
-                    translate((59.5f - 60f) * sc + cx, (12f - 60f) * sc + cy)
-                    rotate(20f)
-                }) {
-                    drawRoundRect(Color(0xFFEC4F97), topLeft = Offset(-3.5f * sc, -6f * sc), size = androidx.compose.ui.geometry.Size(7f * sc, 12f * sc), cornerRadius = androidx.compose.ui.geometry.CornerRadius(2f * sc))
+                    // Confeti: pink rect rotated 20° (center 59.5, 12)
+                    withTransform({
+                        translate((59.5f - 60f) * sc + cx, (12f - 60f) * sc + cy)
+                        rotate(20f)
+                    }) {
+                        drawRoundRect(Color(0xFFEC4F97), topLeft = Offset(-3.5f * sc, -6f * sc), size = androidx.compose.ui.geometry.Size(7f * sc, 12f * sc), cornerRadius = androidx.compose.ui.geometry.CornerRadius(2f * sc))
+                    }
+                    // Yellow circle (98, 28) r=4
+                    drawCircle(Color(0xFFF5B53B), radius = 4f * sc, center = Offset((98f - 60f) * sc + cx, (28f - 60f) * sc + cy))
+                    // Purple triangle (104,66)(114,71)(104,76)
+                    val tri1 = Path().apply {
+                        moveTo((104f - 60f) * sc + cx, (66f - 60f) * sc + cy)
+                        lineTo((114f - 60f) * sc + cx, (71f - 60f) * sc + cy)
+                        lineTo((104f - 60f) * sc + cx, (76f - 60f) * sc + cy)
+                        close()
+                    }
+                    drawPath(tri1, Color(0xFF7650E8))
+                    // Blue rect rotated -30° (center 89.5, 102)
+                    withTransform({
+                        translate((89.5f - 60f) * sc + cx, (102f - 60f) * sc + cy)
+                        rotate(-30f)
+                    }) {
+                        drawRoundRect(Color(0xFF4AA8E0), topLeft = Offset(-3.5f * sc, -6f * sc), size = androidx.compose.ui.geometry.Size(7f * sc, 12f * sc), cornerRadius = androidx.compose.ui.geometry.CornerRadius(2f * sc))
+                    }
+                    // Pink dot (38, 106) r=4
+                    drawCircle(Color(0xFFEC4F97), radius = 4f * sc, center = Offset((38f - 60f) * sc + cx, (106f - 60f) * sc + cy))
+                    // Yellow triangle (16,72)(6,68)(14,61)
+                    val tri2 = Path().apply {
+                        moveTo((16f - 60f) * sc + cx, (72f - 60f) * sc + cy)
+                        lineTo((6f - 60f) * sc + cx, (68f - 60f) * sc + cy)
+                        lineTo((14f - 60f) * sc + cx, (61f - 60f) * sc + cy)
+                        close()
+                    }
+                    drawPath(tri2, Color(0xFFF5B53B))
+                    // Purple rect rotated -35° (center 21.5, 28)
+                    withTransform({
+                        translate((21.5f - 60f) * sc + cx, (28f - 60f) * sc + cy)
+                        rotate(-35f)
+                    }) {
+                        drawRoundRect(Color(0xFF7650E8), topLeft = Offset(-3.5f * sc, -6f * sc), size = androidx.compose.ui.geometry.Size(7f * sc, 12f * sc), cornerRadius = androidx.compose.ui.geometry.CornerRadius(2f * sc))
+                    }
+                    // Small dots: green (80,14), blue (10,44), pink (110,46)
+                    drawCircle(Color(0xFF2FB58F), radius = 2.5f * sc, center = Offset((80f - 60f) * sc + cx, (14f - 60f) * sc + cy))
+                    drawCircle(Color(0xFF4AA8E0), radius = 2.5f * sc, center = Offset((10f - 60f) * sc + cx, (44f - 60f) * sc + cy))
+                    drawCircle(Color(0xFFEC4F97), radius = 2.5f * sc, center = Offset((110f - 60f) * sc + cx, (46f - 60f) * sc + cy))
                 }
-                // Yellow circle (98, 28) r=4
-                drawCircle(Color(0xFFF5B53B), radius = 4f * sc, center = Offset((98f - 60f) * sc + cx, (28f - 60f) * sc + cy))
-                // Purple triangle (104,66)(114,71)(104,76)
-                val tri1 = Path().apply {
-                    moveTo((104f - 60f) * sc + cx, (66f - 60f) * sc + cy)
-                    lineTo((114f - 60f) * sc + cx, (71f - 60f) * sc + cy)
-                    lineTo((104f - 60f) * sc + cx, (76f - 60f) * sc + cy)
-                    close()
-                }
-                drawPath(tri1, Color(0xFF7650E8))
-                // Blue rect rotated -30° (center 89.5, 102)
-                withTransform({
-                    translate((89.5f - 60f) * sc + cx, (102f - 60f) * sc + cy)
-                    rotate(-30f)
-                }) {
-                    drawRoundRect(Color(0xFF4AA8E0), topLeft = Offset(-3.5f * sc, -6f * sc), size = androidx.compose.ui.geometry.Size(7f * sc, 12f * sc), cornerRadius = androidx.compose.ui.geometry.CornerRadius(2f * sc))
-                }
-                // Pink dot (38, 106) r=4
-                drawCircle(Color(0xFFEC4F97), radius = 4f * sc, center = Offset((38f - 60f) * sc + cx, (106f - 60f) * sc + cy))
-                // Yellow triangle (16,72)(6,68)(14,61)
-                val tri2 = Path().apply {
-                    moveTo((16f - 60f) * sc + cx, (72f - 60f) * sc + cy)
-                    lineTo((6f - 60f) * sc + cx, (68f - 60f) * sc + cy)
-                    lineTo((14f - 60f) * sc + cx, (61f - 60f) * sc + cy)
-                    close()
-                }
-                drawPath(tri2, Color(0xFFF5B53B))
-                // Purple rect rotated -35° (center 21.5, 28)
-                withTransform({
-                    translate((21.5f - 60f) * sc + cx, (28f - 60f) * sc + cy)
-                    rotate(-35f)
-                }) {
-                    drawRoundRect(Color(0xFF7650E8), topLeft = Offset(-3.5f * sc, -6f * sc), size = androidx.compose.ui.geometry.Size(7f * sc, 12f * sc), cornerRadius = androidx.compose.ui.geometry.CornerRadius(2f * sc))
-                }
-                // Small dots: green (80,14), blue (10,44), pink (110,46)
-                drawCircle(Color(0xFF2FB58F), radius = 2.5f * sc, center = Offset((80f - 60f) * sc + cx, (14f - 60f) * sc + cy))
-                drawCircle(Color(0xFF4AA8E0), radius = 2.5f * sc, center = Offset((10f - 60f) * sc + cx, (44f - 60f) * sc + cy))
-                drawCircle(Color(0xFFEC4F97), radius = 2.5f * sc, center = Offset((110f - 60f) * sc + cx, (46f - 60f) * sc + cy))
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                BasicText(
+                    text = "¡Solicitud enviada!",
+                    style = TextStyle(
+                        fontFamily = typo.displayFamily,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 28.sp,
+                        lineHeight = (28 * 1.05f).sp,
+                        color = Color(0xFF1A1A2E),
+                        textAlign = TextAlign.Center,
+                    ),
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                BasicText(
+                    text = "Gracias por confiar en nosotros. Te avisamos por correo y WhatsApp.",
+                    style = TextStyle(
+                        fontFamily = typo.bodyFamily,
+                        fontSize = 16.sp,
+                        lineHeight = 24.sp,
+                        color = Color(0xFF62627A),
+                        textAlign = TextAlign.Center,
+                    ),
+                )
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(54.dp))
 
-            BasicText(
-                text = "¡Solicitud enviada!",
-                style = TextStyle(
-                    fontFamily = typo.displayFamily,
-                    fontWeight = FontWeight.ExtraBold,
-                    fontSize = 28.sp,
-                    lineHeight = (28 * 1.05f).sp,
-                    color = Color(0xFF1A1A2E),
-                    textAlign = TextAlign.Center,
-                ),
-            )
-            Spacer(modifier = Modifier.height(6.dp))
-            BasicText(
-                text = "Gracias por confiar en nosotros. Te avisamos por correo y WhatsApp.",
-                style = TextStyle(
-                    fontFamily = typo.bodyFamily,
-                    fontSize = 16.sp,
-                    lineHeight = 24.sp,
-                    color = Color(0xFF62627A),
-                    textAlign = TextAlign.Center,
-                ),
-            )
-        }
-
-        // Tarjeta "Qué sigue" — posición absoluta top=452dp
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp)
-                .offset(y = 452.dp)
-                .rfCardShadow(RoundedCornerShape(24.dp), isAdmin = false)
-                .clip(RoundedCornerShape(24.dp))
-                .background(Color.White)
-                .padding(20.dp),
-        ) {
+            // Tarjeta "Qué sigue"
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp)
+                    .rfCardShadow(RoundedCornerShape(24.dp), isAdmin = false)
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(Color.White)
+                    .padding(20.dp),
+            ) {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 BasicText(
                     text = "Qué sigue",
@@ -2739,6 +2732,7 @@ internal fun RenderRosaSubmittedS33(
                         }
                     }
                 }
+            }
             }
         }
 
@@ -2982,101 +2976,107 @@ internal fun RenderRosaVoiceS35(
             Spacer(modifier = Modifier.size(44.dp))
         }
 
-        // Rosa Avatar with concentric halos (top=150dp, centered)
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(top = 150.dp)
-                .size(240.dp)
-                .clip(CircleShape)
-                .background(Color.White.copy(alpha = 0.45f)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(180.dp)
-                    .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.7f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                // 124dp Rosa Avatar (headset icon)
-                RosaAvatar(
-                    size = RosaAvatarSize.LARGE,
-                    customSize = 124.dp,
-                    forceAdminPalette = false,
-                )
-            }
-        }
-
-        // Text block (top=430dp)
         Column(
             modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(top = 430.dp, start = 28.dp, end = 28.dp),
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(top = 150.dp, bottom = 140.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            // "Te escucho..." indicator
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            // Rosa Avatar with concentric halos (top=150dp, centered)
+            Box(
+                modifier = Modifier
+                    .size(240.dp)
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.45f)),
+                contentAlignment = Alignment.Center,
             ) {
                 Box(
                     modifier = Modifier
-                        .size(8.dp)
+                        .size(180.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFFEA4EA9)),
-                )
+                        .background(Color.White.copy(alpha = 0.7f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    // 124dp Rosa Avatar (headset icon)
+                    RosaAvatar(
+                        size = RosaAvatarSize.LARGE,
+                        customSize = 124.dp,
+                        forceAdminPalette = false,
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(40.dp))
+
+            // Text block (top=430dp)
+            Column(
+                modifier = Modifier
+                    .padding(horizontal = 28.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                // "Te escucho..." indicator
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFEA4EA9)),
+                    )
+                    BasicText(
+                        text = "Te escucho…",
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFFC2338F)),
+                    )
+                }
+                // Transcription text
                 BasicText(
-                    text = "Te escucho…",
-                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFFC2338F)),
+                    text = "Una boda en un jardín para unas ",
+                    style = TextStyle(
+                        fontFamily = typo.displayFamily,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 24.sp,
+                        lineHeight = 30.sp,
+                        color = Color(0xFF1A1A2E),
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
-            // Transcription text
-            BasicText(
-                text = "Una boda en un jardín para unas ",
-                style = TextStyle(
-                    fontFamily = typo.displayFamily,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 24.sp,
-                    lineHeight = 30.sp,
-                    color = Color(0xFF1A1A2E),
-                ),
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
 
-        // Multicolor audio bars (top=620dp)
-        Row(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(top = 620.dp),
-            horizontalArrangement = Arrangement.spacedBy(5.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            val bars = listOf(
-                Pair(10.dp, Color(0xFF865DEC)),
-                Pair(22.dp, Color(0xFFB9D84A)),
-                Pair(36.dp, Color(0xFFB54BD6)),
-                Pair(52.dp, Color(0xFFEA4EA9)),
-                Pair(30.dp, Color(0xFFEA4EA9)),
-                Pair(44.dp, Color(0xFFEA4EA9)),
-                Pair(58.dp, Color(0xFFFBCA3F)),
-                Pair(40.dp, Color(0xFFEA4EA9)),
-                Pair(24.dp, Color(0xFFEA4EA9)),
-                Pair(46.dp, Color(0xFFB54BD6)),
-                Pair(28.dp, Color(0xFF865DEC)),
-                Pair(16.dp, Color(0xFFB9D84A)),
-                Pair(8.dp, Color(0xFF865DEC)),
-            )
-            bars.forEach { (h, color) ->
-                Box(
-                    modifier = Modifier
-                        .width(6.dp)
-                        .height(h)
-                        .clip(RoundedCornerShape(3.dp))
-                        .background(color),
+            Spacer(modifier = Modifier.height(100.dp))
+
+            // Multicolor audio bars (top=620dp)
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(5.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                val bars = listOf(
+                    Pair(10.dp, Color(0xFF865DEC)),
+                    Pair(22.dp, Color(0xFFB9D84A)),
+                    Pair(36.dp, Color(0xFFB54BD6)),
+                    Pair(52.dp, Color(0xFFEA4EA9)),
+                    Pair(30.dp, Color(0xFFEA4EA9)),
+                    Pair(44.dp, Color(0xFFEA4EA9)),
+                    Pair(58.dp, Color(0xFFFBCA3F)),
+                    Pair(40.dp, Color(0xFFEA4EA9)),
+                    Pair(24.dp, Color(0xFFEA4EA9)),
+                    Pair(46.dp, Color(0xFFB54BD6)),
+                    Pair(28.dp, Color(0xFF865DEC)),
+                    Pair(16.dp, Color(0xFFB9D84A)),
+                    Pair(8.dp, Color(0xFF865DEC)),
                 )
+                bars.forEach { (h, color) ->
+                    Box(
+                        modifier = Modifier
+                            .width(6.dp)
+                            .height(h)
+                            .clip(RoundedCornerShape(3.dp))
+                            .background(color),
+                    )
+                }
             }
         }
 
@@ -3224,203 +3224,210 @@ internal fun RenderRosaSketchS36(
             }
         }
 
-        // Rosa tip banner — top=118dp, lavender pill #EFE8FD
-        Row(
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .offset(y = 118.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(Color(0xFFEFE8FD))
-                .padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(top = 118.dp, bottom = 120.dp),
         ) {
-            RosaAvatar(size = RosaAvatarSize.MINI)
-            BasicText(
-                text = "Dibuja tu espacio y te propongo ejemplos en 3D.",
-                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, lineHeight = (14 * 1.35f).sp, color = Color(0xFF1A1A2E)),
-            )
-        }
-
-        // Canvas card — top=186dp, height=400dp
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .offset(y = 186.dp)
-                .height(400.dp)
-                .shadow(elevation = 0.dp, shape = RoundedCornerShape(24.dp))
-                .clip(RoundedCornerShape(24.dp))
-                .background(Color.White)
-                .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(24.dp)),
-        ) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                val w = size.width
-                val h = size.height
-                // Scale from SVG viewBox 358×400
-                val sx = w / 358f
-                val sy = h / 400f
-
-                // Tarima rect (stroke #865DEC): coords from SVG path M18 20L340 20L340 70L18 70Z (approx)
-                val stageLeft = 18f * sx
-                val stageTop = 20f * sy
-                val stageW = (340f - 18f) * sx
-                val stageH = (70f - 20f) * sy
-                drawRoundRect(
-                    color = Color(0xFF865DEC),
-                    topLeft = Offset(stageLeft, stageTop),
-                    size = androidx.compose.ui.geometry.Size(stageW, stageH),
-                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(10f * sx),
-                    style = Stroke(3f * sx),
-                )
-
-                // "Tarima" label text (approximated at center)
-                // 6 mesas redondas (stroke #EA4EA9)
-                // From SVG: approx circles at (70,176),(288,176),(70,268),(288,268),(70,360),(288,360) r≈24
-                val tableR = 24f * sx
-                val tableCenters = listOf(
-                    Offset(70f * sx, 176f * sy),
-                    Offset(288f * sx, 176f * sy),
-                    Offset(70f * sx, 268f * sy),
-                    Offset(288f * sx, 268f * sy),
-                    Offset(70f * sx, 360f * sy),
-                    Offset(288f * sx, 360f * sy),
-                )
-                tableCenters.forEach { c ->
-                    drawCircle(Color(0xFFEA4EA9), radius = tableR, center = c, style = Stroke(3f * sx))
-                }
-
-                // Pista de baile — dashed green rect #8DB52C
-                val danceLeft = 128f * sx
-                val danceTop = 250f * sy
-                val danceRight = 230f * sx
-                val danceBottom = 340f * sy
-                val danceP = Path().apply {
-                    moveTo(danceLeft, danceTop)
-                    lineTo(danceRight, danceTop)
-                    lineTo(danceRight, danceBottom)
-                    lineTo(danceLeft, danceBottom)
-                    close()
-                }
-                drawPath(
-                    danceP,
-                    color = Color(0xFF8DB52C),
-                    style = Stroke(2.6f * sx, pathEffect = PathEffect.dashPathEffect(floatArrayOf(7f * sx, 7f * sx))),
-                )
-
-                // Entrada arrow M150 428L179 404L208 428M179 404V436 (approx scaled)
-                val arrowPath = Path().apply {
-                    moveTo(150f * sx, 375f * sy)
-                    lineTo(179f * sx, 352f * sy)
-                    lineTo(208f * sx, 375f * sy)
-                    moveTo(179f * sx, 352f * sy)
-                    lineTo(179f * sx, 390f * sy)
-                }
-                drawPath(arrowPath, color = Color(0xFF1A1A2E), style = Stroke(2.6f * sx, cap = StrokeCap.Round, join = StrokeJoin.Round))
-            }
-        }
-
-        // Color swatches row — top=598dp
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 28.dp)
-                .offset(y = 598.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            // Rosa (selected: ring)
-            Box(
+            // Rosa tip banner — top=118dp, lavender pill #EFE8FD
+            Row(
                 modifier = Modifier
-                    .size(32.dp)
-                    .border(2.dp, Color.White, CircleShape)
-                    .padding(2.dp)
-                    .border(2.dp, Color(0xFF1A1A2E), CircleShape)
-                    .padding(2.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFFEA4EA9)),
-            )
-            Box(modifier = Modifier.size(32.dp).clip(CircleShape).background(Color(0xFF865DEC)))
-            Box(modifier = Modifier.size(32.dp).clip(CircleShape).background(Color(0xFF8DB52C)))
-            Box(modifier = Modifier.size(32.dp).clip(CircleShape).background(Color(0xFFF7B500)))
-            Box(modifier = Modifier.size(32.dp).clip(CircleShape).background(Color(0xFF1FBDC0)))
-            Box(modifier = Modifier.size(32.dp).clip(CircleShape).background(Color(0xFF1A1A2E)))
-        }
-
-        // Toolbar — top=648dp, white pill with 7 tools
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .offset(y = 648.dp)
-                .shadow(
-                    elevation = 8.dp,
-                    shape = RoundedCornerShape(18.dp),
-                    spotColor = Color(0x73B450B4),
-                    ambientColor = Color(0x23B450B4),
-                )
-                .clip(RoundedCornerShape(18.dp))
-                .background(Color.White)
-                .border(1.dp, Color(0xFFF0EBF4), RoundedCornerShape(18.dp))
-                .padding(4.dp),
-            horizontalArrangement = Arrangement.spacedBy(0.dp),
-        ) {
-            // Move tool
-            Box(
-                modifier = Modifier.weight(1f).height(44.dp).clip(RoundedCornerShape(14.dp)),
-                contentAlignment = Alignment.Center,
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Color(0xFFEFE8FD))
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                RfIcon(kind = RfIconKind.MOVE, tint = Color(0xFF62627A), size = 20.dp)
-            }
-            // Pencil (active — gradient)
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(44.dp)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)))),
-                contentAlignment = Alignment.Center,
-            ) {
-                RfIcon(kind = RfIconKind.EDIT, tint = Color.White, size = 20.dp)
-            }
-            // Circle
-            Box(
-                modifier = Modifier.weight(1f).height(44.dp).clip(RoundedCornerShape(14.dp)),
-                contentAlignment = Alignment.Center,
-            ) {
-                RfIcon(kind = RfIconKind.CIRCLE, tint = Color(0xFF62627A), size = 20.dp)
-            }
-            // Table
-            Box(
-                modifier = Modifier.weight(1f).height(44.dp).clip(RoundedCornerShape(14.dp)),
-                contentAlignment = Alignment.Center,
-            ) {
-                RfIcon(kind = RfIconKind.TABLE, tint = Color(0xFF62627A), size = 20.dp)
-            }
-            // Chair
-            Box(
-                modifier = Modifier.weight(1f).height(44.dp).clip(RoundedCornerShape(14.dp)),
-                contentAlignment = Alignment.Center,
-            ) {
-                RfIcon(kind = RfIconKind.CHAIR, tint = Color(0xFF62627A), size = 20.dp)
-            }
-            // Aa text
-            Box(
-                modifier = Modifier.weight(1f).height(44.dp).clip(RoundedCornerShape(14.dp)),
-                contentAlignment = Alignment.Center,
-            ) {
+                RosaAvatar(size = RosaAvatarSize.MINI)
                 BasicText(
-                    text = "Aa",
-                    style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, color = Color(0xFF62627A)),
+                    text = "Dibuja tu espacio y te propongo ejemplos en 3D.",
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, lineHeight = (14 * 1.35f).sp, color = Color(0xFF1A1A2E)),
                 )
             }
-            // Redo
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Canvas card — top=186dp, height=400dp
             Box(
-                modifier = Modifier.weight(1f).height(44.dp).clip(RoundedCornerShape(14.dp)),
-                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .height(400.dp)
+                    .shadow(elevation = 0.dp, shape = RoundedCornerShape(24.dp))
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(Color.White)
+                    .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(24.dp)),
             ) {
-                RfIcon(kind = RfIconKind.REDO, tint = Color(0xFF62627A), size = 20.dp)
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    val w = size.width
+                    val h = size.height
+                    // Scale from SVG viewBox 358×400
+                    val sx = w / 358f
+                    val sy = h / 400f
+
+                    // Tarima rect (stroke #865DEC): coords from SVG path M18 20L340 20L340 70L18 70Z (approx)
+                    val stageLeft = 18f * sx
+                    val stageTop = 20f * sy
+                    val stageW = (340f - 18f) * sx
+                    val stageH = (70f - 20f) * sy
+                    drawRoundRect(
+                        color = Color(0xFF865DEC),
+                        topLeft = Offset(stageLeft, stageTop),
+                        size = androidx.compose.ui.geometry.Size(stageW, stageH),
+                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(10f * sx),
+                        style = Stroke(3f * sx),
+                    )
+
+                    // 6 mesas redondas (stroke #EA4EA9)
+                    val tableR = 24f * sx
+                    val tableCenters = listOf(
+                        Offset(70f * sx, 176f * sy),
+                        Offset(288f * sx, 176f * sy),
+                        Offset(70f * sx, 268f * sy),
+                        Offset(288f * sx, 268f * sy),
+                        Offset(70f * sx, 360f * sy),
+                        Offset(288f * sx, 360f * sy),
+                    )
+                    tableCenters.forEach { c ->
+                        drawCircle(Color(0xFFEA4EA9), radius = tableR, center = c, style = Stroke(3f * sx))
+                    }
+
+                    // Pista de baile — dashed green rect #8DB52C
+                    val danceLeft = 128f * sx
+                    val danceTop = 250f * sy
+                    val danceRight = 230f * sx
+                    val danceBottom = 340f * sy
+                    val danceP = Path().apply {
+                        moveTo(danceLeft, danceTop)
+                        lineTo(danceRight, danceTop)
+                        lineTo(danceRight, danceBottom)
+                        lineTo(danceLeft, danceBottom)
+                        close()
+                    }
+                    drawPath(
+                        danceP,
+                        color = Color(0xFF8DB52C),
+                        style = Stroke(2.6f * sx, pathEffect = PathEffect.dashPathEffect(floatArrayOf(7f * sx, 7f * sx))),
+                    )
+
+                    // Entrada arrow M150 428L179 404L208 428M179 404V436 (approx scaled)
+                    val arrowPath = Path().apply {
+                        moveTo(150f * sx, 375f * sy)
+                        lineTo(179f * sx, 352f * sy)
+                        lineTo(208f * sx, 375f * sy)
+                        moveTo(179f * sx, 352f * sy)
+                        lineTo(179f * sx, 390f * sy)
+                    }
+                    drawPath(arrowPath, color = Color(0xFF1A1A2E), style = Stroke(2.6f * sx, cap = StrokeCap.Round, join = StrokeJoin.Round))
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Color swatches row — top=598dp
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 28.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                // Rosa (selected: ring)
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .border(2.dp, Color.White, CircleShape)
+                        .padding(2.dp)
+                        .border(2.dp, Color(0xFF1A1A2E), CircleShape)
+                        .padding(2.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFEA4EA9)),
+                )
+                Box(modifier = Modifier.size(32.dp).clip(CircleShape).background(Color(0xFF865DEC)))
+                Box(modifier = Modifier.size(32.dp).clip(CircleShape).background(Color(0xFF8DB52C)))
+                Box(modifier = Modifier.size(32.dp).clip(CircleShape).background(Color(0xFFF7B500)))
+                Box(modifier = Modifier.size(32.dp).clip(CircleShape).background(Color(0xFF1FBDC0)))
+                Box(modifier = Modifier.size(32.dp).clip(CircleShape).background(Color(0xFF1A1A2E)))
+            }
+
+            Spacer(modifier = Modifier.height(18.dp))
+
+            // Toolbar — top=648dp, white pill with 7 tools
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .shadow(
+                        elevation = 8.dp,
+                        shape = RoundedCornerShape(18.dp),
+                        spotColor = Color(0x73B450B4),
+                        ambientColor = Color(0x23B450B4),
+                    )
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(Color.White)
+                    .border(1.dp, Color(0xFFF0EBF4), RoundedCornerShape(18.dp))
+                    .padding(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(0.dp),
+            ) {
+                // Move tool
+                Box(
+                    modifier = Modifier.weight(1f).height(44.dp).clip(RoundedCornerShape(14.dp)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    RfIcon(kind = RfIconKind.MOVE, tint = Color(0xFF62627A), size = 20.dp)
+                }
+                // Pencil (active — gradient)
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(44.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)))),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    RfIcon(kind = RfIconKind.EDIT, tint = Color.White, size = 20.dp)
+                }
+                // Circle
+                Box(
+                    modifier = Modifier.weight(1f).height(44.dp).clip(RoundedCornerShape(14.dp)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    RfIcon(kind = RfIconKind.CIRCLE, tint = Color(0xFF62627A), size = 20.dp)
+                }
+                // Table
+                Box(
+                    modifier = Modifier.weight(1f).height(44.dp).clip(RoundedCornerShape(14.dp)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    RfIcon(kind = RfIconKind.TABLE, tint = Color(0xFF62627A), size = 20.dp)
+                }
+                // Chair
+                Box(
+                    modifier = Modifier.weight(1f).height(44.dp).clip(RoundedCornerShape(14.dp)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    RfIcon(kind = RfIconKind.CHAIR, tint = Color(0xFF62627A), size = 20.dp)
+                }
+                // Aa text
+                Box(
+                    modifier = Modifier.weight(1f).height(44.dp).clip(RoundedCornerShape(14.dp)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    BasicText(
+                        text = "Aa",
+                        style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, color = Color(0xFF62627A)),
+                    )
+                }
+                // Redo
+                Box(
+                    modifier = Modifier.weight(1f).height(44.dp).clip(RoundedCornerShape(14.dp)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    RfIcon(kind = RfIconKind.REDO, tint = Color(0xFF62627A), size = 20.dp)
+                }
             }
         }
 
@@ -3548,8 +3555,9 @@ internal fun RenderRosaSketchConfirmS78(
         // Main content
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 114.dp, start = 16.dp, end = 16.dp),
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(top = 114.dp, start = 16.dp, end = 16.dp, bottom = 120.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             // Sketch preview card
@@ -3572,16 +3580,19 @@ internal fun RenderRosaSketchConfirmS78(
                     val scaleY = size.height / 440f
 
                     // Grid pattern dots/lines
-                    val gridStep = 22f * scaleX
-                    var gx = 0f
-                    while (gx <= size.width) {
-                        drawLine(Color(0xFFF3ECF4), Offset(gx, 0f), Offset(gx, size.height), 1f)
-                        gx += gridStep
+                    val gridStepX = 22f * scaleX
+                    val gridStepY = 22f * scaleY
+                    for (colIndex in 0..20) {
+                        val gx = colIndex * gridStepX
+                        if (gx <= size.width) {
+                            drawLine(Color(0xFFF3ECF4), Offset(gx, 0f), Offset(gx, size.height), 1f)
+                        }
                     }
-                    var gy = 0f
-                    while (gy <= size.height) {
-                        drawLine(Color(0xFFF3ECF4), Offset(0f, gy), Offset(size.width, gy), 1f)
-                        gy += 22f * scaleY
+                    for (rowIndex in 0..25) {
+                        val gy = rowIndex * gridStepY
+                        if (gy <= size.height) {
+                            drawLine(Color(0xFFF3ECF4), Offset(0f, gy), Offset(size.width, gy), 1f)
+                        }
                     }
 
                     // Tarima rect at top

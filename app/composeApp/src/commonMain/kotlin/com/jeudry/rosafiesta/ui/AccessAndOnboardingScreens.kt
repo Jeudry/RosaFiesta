@@ -495,58 +495,46 @@ internal fun RenderOnboardingScreen(
             }
         }
 
-        // Burbuja central ilustrada (y = 118dp)
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(340.dp)
-                .offset(y = 118.dp)
-                .padding(horizontal = 20.dp),
-        ) {
-            when (step) {
-                1 -> OnboardingIllustrationStep1()
-                2 -> OnboardingIllustrationStep2()
-                3 -> OnboardingIllustrationStep3()
-            }
-        }
-
-        // Bloque de texto descriptivo (y = 496dp)
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .offset(y = 496.dp)
-                .padding(horizontal = 28.dp),
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(top = 118.dp, bottom = 120.dp),
         ) {
-            BasicText(
-                text = stepTag.uppercase(),
-                style = typo.sectionCap.copy(
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = stepColor,
-                    letterSpacing = 1.sp,
-                ),
-            )
-
-            Spacer(Modifier.height(8.dp))
-
-            if (step == 1) {
-                val titleAnnotated = buildAnnotatedString {
-                    append("Mira ")
-                    withStyle(SpanStyle(background = Color(0xFFFFDF6E))) {
-                        append("todo")
-                    }
-                    append(" lo que tenemos")
+            // Burbuja central ilustrada (y = 118dp)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(340.dp)
+                    .padding(horizontal = 20.dp),
+            ) {
+                when (step) {
+                    1 -> OnboardingIllustrationStep1()
+                    2 -> OnboardingIllustrationStep2()
+                    3 -> OnboardingIllustrationStep3()
                 }
+            }
+
+            Spacer(Modifier.height(38.dp))
+
+            // Bloque de texto descriptivo (y = 496dp)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 28.dp),
+            ) {
                 BasicText(
-                    text = titleAnnotated,
-                    style = typo.heroTitle.copy(
-                        fontSize = 30.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = Color(0xFF151729),
-                        lineHeight = 34.sp,
+                    text = stepTag.uppercase(),
+                    style = typo.sectionCap.copy(
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = stepColor,
+                        letterSpacing = 1.sp,
                     ),
                 )
-            } else {
+
+                Spacer(Modifier.height(8.dp))
+
                 BasicText(
                     text = stepTitle,
                     style = typo.heroTitle.copy(
@@ -556,18 +544,18 @@ internal fun RenderOnboardingScreen(
                         lineHeight = 34.sp,
                     ),
                 )
+
+                Spacer(Modifier.height(12.dp))
+
+                BasicText(
+                    text = stepSubtitle,
+                    style = typo.body.copy(
+                        fontSize = 16.sp,
+                        color = Color(0xFF62627A),
+                        lineHeight = 24.sp,
+                    ),
+                )
             }
-
-            Spacer(Modifier.height(12.dp))
-
-            BasicText(
-                text = stepSubtitle,
-                style = typo.body.copy(
-                    fontSize = 16.sp,
-                    color = Color(0xFF62627A),
-                    lineHeight = 24.sp,
-                ),
-            )
         }
 
         // Navegación inferior: Dots + Botón Circular Siguiente
@@ -1366,9 +1354,9 @@ internal fun RenderBienvenidaScreen(
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
-                .fillMaxWidth()
-                .offset(y = 238.dp)
-                .padding(horizontal = 32.dp),
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(top = 238.dp, start = 32.dp, end = 32.dp, bottom = 220.dp),
         ) {
             Box(
                 contentAlignment = Alignment.Center,
@@ -1662,9 +1650,9 @@ internal fun RenderLoginScreenS07(
 
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .offset(y = 150.dp)
-                .padding(horizontal = 24.dp),
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(top = 150.dp, start = 24.dp, end = 24.dp, bottom = 96.dp),
         ) {
             BasicText(
                 text = "Hola de nuevo",
@@ -2203,9 +2191,9 @@ internal fun RenderRegisterScreenS08(
 
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .offset(y = 128.dp)
-                .padding(horizontal = 24.dp),
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(top = 128.dp, start = 24.dp, end = 24.dp, bottom = 84.dp),
         ) {
             BasicText(
                 "Crea tu cuenta",
@@ -2592,9 +2580,9 @@ internal fun RenderRecoveryAndConfirmationScreens(
 
                 Column(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .offset(y = 120.dp)
-                        .padding(horizontal = 24.dp),
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(top = 120.dp, start = 24.dp, end = 24.dp, bottom = 96.dp),
                 ) {
                     KeyIllustration(
                         size = 140.dp,
@@ -2719,9 +2707,9 @@ internal fun RenderRecoveryAndConfirmationScreens(
 
                 Column(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .offset(y = 170.dp)
-                        .padding(horizontal = 24.dp),
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(top = 170.dp, start = 24.dp, end = 24.dp, bottom = 120.dp),
                 ) {
                     BasicText(
                         "Crea una nueva contraseña",
@@ -2887,9 +2875,9 @@ internal fun RenderRecoveryAndConfirmationScreens(
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .offset(y = 190.dp)
-                        .padding(horizontal = 36.dp),
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(top = 190.dp, start = 36.dp, end = 36.dp, bottom = 120.dp),
                 ) {
                     ActiveAccountIllustration(size = 220.dp)
 
@@ -2961,9 +2949,9 @@ internal fun RenderRecoveryAndConfirmationScreens(
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .offset(y = 190.dp)
-                        .padding(horizontal = 36.dp),
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(top = 190.dp, start = 36.dp, end = 36.dp, bottom = 120.dp),
                 ) {
                     VerifiedMailIllustration(size = 220.dp)
 
@@ -3030,98 +3018,105 @@ internal fun RenderRecoveryAndConfirmationScreens(
             ) {
                 Column(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .offset(y = 84.dp)
-                        .padding(horizontal = 24.dp),
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(top = 84.dp, bottom = 120.dp),
                 ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
+                    Column(
                         modifier = Modifier
-                            .size(64.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFFFDE6F2)),
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp),
                     ) {
-                        BasicText(
-                            "C",
-                            style = typo.heroTitle.copy(
-                                fontSize = 24.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = Color(0xFFC2338F),
-                            ),
-                        )
-                    }
-
-                    Spacer(Modifier.height(12.dp))
-
-                    BasicText(
-                        "¡Hola de nuevo, Camila!",
-                        style = typo.heroTitle.copy(
-                            fontSize = 30.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            letterSpacing = (-0.6).sp,
-                            color = Color(0xFF1A1A2E),
-                            lineHeight = 31.sp,
-                        ),
-                    )
-                    Spacer(Modifier.height(6.dp))
-                    BasicText("camila.rodriguez@correo.com", style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF62627A)))
-                }
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .offset(y = 290.dp)
-                        .padding(horizontal = 20.dp)
-                        .shadow(elevation = 12.dp, shape = RoundedCornerShape(22.dp), spotColor = Color(0x66C850AA))
-                        .clip(RoundedCornerShape(22.dp))
-                        .background(Color.White)
-                        .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(22.dp))
-                        .padding(8.dp),
-                ) {
-                    Column {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween,
+                        Box(
+                            contentAlignment = Alignment.Center,
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(start = 12.dp, end = 12.dp, top = 12.dp, bottom = 8.dp),
+                                .size(64.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFFFDE6F2)),
                         ) {
-                            BasicText("Tus eventos", style = typo.heroTitle.copy(fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF1A1A2E)))
-                            BasicText("3 activos", style = typo.body.copy(fontSize = 14.sp, color = Color(0xFF62627A)))
+                            BasicText(
+                                "C",
+                                style = typo.heroTitle.copy(
+                                    fontSize = 24.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = Color(0xFFC2338F),
+                                ),
+                            )
                         }
 
-                        EventActiveItemRow(
-                            day = "23",
-                            month = "OCT",
-                            dateBg = Color(0xFFFDE6F2),
-                            title = "Boda Real Rosa & Dorado",
-                            tagText = "Por pagar",
-                            tagBg = Color(0xFFFFF2C9),
-                            tagColor = Color(0xFF7A5700),
-                            timing = "en 3 días",
-                        )
+                        Spacer(Modifier.height(12.dp))
 
-                        EventActiveItemRow(
-                            day = "2",
-                            month = "NOV",
-                            dateBg = Color(0xFFEFE8FD),
-                            title = "Quinceañera Valentina Crystal",
-                            tagText = "Confirmado",
-                            tagBg = Color(0xFFEEF6D6),
-                            tagColor = Color(0xFF4E6A10),
-                            timing = "en 13 días",
+                        BasicText(
+                            "¡Hola de nuevo, Camila!",
+                            style = typo.heroTitle.copy(
+                                fontSize = 30.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                letterSpacing = (-0.6).sp,
+                                color = Color(0xFF1A1A2E),
+                                lineHeight = 31.sp,
+                            ),
                         )
+                        Spacer(Modifier.height(6.dp))
+                        BasicText("camila.rodriguez@correo.com", style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF62627A)))
+                    }
 
-                        EventActiveItemRow(
-                            day = "9",
-                            month = "NOV",
-                            dateBg = Color(0xFFDDF4F3),
-                            title = "Baby Shower Sofía en Rosas",
-                            tagText = "Borrador",
-                            tagBg = Color(0xFFF1EFF5),
-                            tagColor = Color(0xFF62627A),
-                            timing = "en 20 días",
-                        )
+                    Spacer(Modifier.height(34.dp))
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp)
+                            .shadow(elevation = 12.dp, shape = RoundedCornerShape(22.dp), spotColor = Color(0x66C850AA))
+                            .clip(RoundedCornerShape(22.dp))
+                            .background(Color.White)
+                            .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(22.dp))
+                            .padding(8.dp),
+                    ) {
+                        Column {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(start = 12.dp, end = 12.dp, top = 12.dp, bottom = 8.dp),
+                            ) {
+                                BasicText("Tus eventos", style = typo.heroTitle.copy(fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF1A1A2E)))
+                                BasicText("3 activos", style = typo.body.copy(fontSize = 14.sp, color = Color(0xFF62627A)))
+                            }
+
+                            EventActiveItemRow(
+                                day = "23",
+                                month = "OCT",
+                                dateBg = Color(0xFFFDE6F2),
+                                title = "Boda Real Rosa & Dorado",
+                                tagText = "Por pagar",
+                                tagBg = Color(0xFFFFF2C9),
+                                tagColor = Color(0xFF7A5700),
+                                timing = "en 3 días",
+                            )
+
+                            EventActiveItemRow(
+                                day = "2",
+                                month = "NOV",
+                                dateBg = Color(0xFFEFE8FD),
+                                title = "Quinceañera Valentina Crystal",
+                                tagText = "Confirmado",
+                                tagBg = Color(0xFFEEF6D6),
+                                tagColor = Color(0xFF4E6A10),
+                                timing = "en 13 días",
+                            )
+
+                            EventActiveItemRow(
+                                day = "9",
+                                month = "NOV",
+                                dateBg = Color(0xFFDDF4F3),
+                                title = "Baby Shower Sofía en Rosas",
+                                tagText = "Borrador",
+                                tagBg = Color(0xFFF1EFF5),
+                                tagColor = Color(0xFF62627A),
+                                timing = "en 20 días",
+                            )
+                        }
                     }
                 }
 
@@ -3253,7 +3248,8 @@ internal fun RenderGuestCatalogS01(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 58.dp, start = 20.dp, end = 20.dp),
+                .verticalScroll(rememberScrollState())
+                .padding(top = 58.dp, start = 20.dp, end = 20.dp, bottom = 116.dp),
         ) {
             // Encabezado: Título + Botón de filtros
             Row(
@@ -3387,7 +3383,7 @@ internal fun RenderGuestCatalogS01(
             Spacer(Modifier.height(16.dp))
 
             // Grid 2x2 de productos canónicos
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.verticalScroll(rememberScrollState())) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
                     GuestProductCard(
                         title = "Silla Tiffany Cristal",
@@ -3520,7 +3516,8 @@ internal fun RenderGuestFavoritesS02(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(top = 58.dp, start = 20.dp, end = 20.dp),
+            .verticalScroll(rememberScrollState())
+            .padding(top = 58.dp, start = 20.dp, end = 20.dp, bottom = 116.dp),
     ) {
         BasicText(
             text = "Favoritos",

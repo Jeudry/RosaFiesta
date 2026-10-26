@@ -368,8 +368,9 @@ internal fun RenderNewEventScreenS38(
 
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 56.dp, start = 20.dp, end = 20.dp),
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(top = 56.dp, start = 20.dp, end = 20.dp, bottom = 104.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
             // Header: back + title + step
@@ -2495,8 +2496,9 @@ internal fun RenderQuoteScreenS48(
 
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 56.dp, start = 20.dp, end = 20.dp),
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(top = 56.dp, start = 20.dp, end = 20.dp, bottom = 104.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             // Header

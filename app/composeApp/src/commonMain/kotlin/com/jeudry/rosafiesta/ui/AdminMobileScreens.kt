@@ -154,7 +154,8 @@ internal fun RenderAdminHomeA01(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(top = 54.dp, start = 20.dp, end = 20.dp),
+            .verticalScroll(rememberScrollState())
+            .padding(top = 54.dp, start = 20.dp, end = 20.dp, bottom = 116.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         // Header
@@ -593,7 +594,8 @@ internal fun RenderAdminRequestsA02(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(top = 54.dp, start = 20.dp, end = 20.dp),
+            .verticalScroll(rememberScrollState())
+            .padding(top = 54.dp, start = 20.dp, end = 20.dp, bottom = 116.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         // Header
@@ -904,7 +906,8 @@ internal fun RenderAdminQuoteBuilderA03(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 54.dp, start = 20.dp, end = 20.dp, bottom = 90.dp),
+                .verticalScroll(rememberScrollState())
+                .padding(top = 54.dp, start = 20.dp, end = 20.dp, bottom = 104.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // Header
@@ -1203,7 +1206,8 @@ internal fun RenderAdminInventoryA09(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(top = 54.dp, start = 20.dp, end = 20.dp),
+            .verticalScroll(rememberScrollState())
+            .padding(top = 54.dp, start = 20.dp, end = 20.dp, bottom = 116.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         // Header
@@ -1438,7 +1442,8 @@ internal fun RenderAdminEventsA11(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(top = 54.dp, start = 20.dp, end = 20.dp),
+            .verticalScroll(rememberScrollState())
+            .padding(top = 54.dp, start = 20.dp, end = 20.dp, bottom = 116.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         // Header
@@ -1665,7 +1670,8 @@ internal fun RenderAdminMoreA12(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(top = 54.dp, start = 20.dp, end = 20.dp),
+            .verticalScroll(rememberScrollState())
+            .padding(top = 54.dp, start = 20.dp, end = 20.dp, bottom = 116.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         BasicText(
@@ -2130,11 +2136,13 @@ internal fun RenderAdminRecordPaymentA21(
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
-                .background(Color.White)
-                .padding(top = 12.dp, start = 20.dp, end = 20.dp, bottom = 34.dp),
+                .background(Color.White),
         ) {
             Column(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(top = 12.dp, start = 20.dp, end = 20.dp, bottom = 34.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 // Drag handle
@@ -2968,7 +2976,8 @@ internal fun RenderAdminTasksA17(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(top = 54.dp, start = 20.dp, end = 20.dp),
+            .verticalScroll(rememberScrollState())
+            .padding(top = 54.dp, start = 20.dp, end = 20.dp, bottom = 116.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         // Header
@@ -3323,7 +3332,8 @@ internal fun RenderAdminSketchA18(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 54.dp, start = 20.dp, end = 20.dp),
+                .verticalScroll(rememberScrollState())
+                .padding(top = 54.dp, start = 20.dp, end = 20.dp, bottom = 104.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // Header
@@ -3573,7 +3583,8 @@ internal fun RenderAdminCloseoutA19(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 54.dp, start = 20.dp, end = 20.dp),
+                .verticalScroll(rememberScrollState())
+                .padding(top = 54.dp, start = 20.dp, end = 20.dp, bottom = 104.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // Header
@@ -3801,7 +3812,8 @@ internal fun RenderAdminNewArticleA10(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 54.dp, start = 20.dp, end = 20.dp, bottom = 100.dp),
+                .verticalScroll(rememberScrollState())
+                .padding(top = 54.dp, start = 20.dp, end = 20.dp, bottom = 104.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // Header
@@ -4157,10 +4169,15 @@ internal fun RenderAdminArticleDetailA23(
                 .fillMaxSize()
                 .padding(top = 226.dp)
                 .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
-                .background(Color(0xFFF6F6FB))
-                .padding(top = 20.dp, start = 20.dp, end = 20.dp, bottom = 32.dp),
+                .background(Color(0xFFF6F6FB)),
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(top = 20.dp, start = 20.dp, end = 20.dp, bottom = 32.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
                 // Título y precio
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -4363,7 +4380,8 @@ internal fun RenderAdminPackagesA24(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(top = 54.dp, start = 20.dp, end = 20.dp),
+            .verticalScroll(rememberScrollState())
+            .padding(top = 54.dp, start = 20.dp, end = 20.dp, bottom = 116.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         // Header
@@ -4721,7 +4739,8 @@ internal fun RenderAdminClientsA26(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(top = 54.dp, start = 20.dp, end = 20.dp),
+            .verticalScroll(rememberScrollState())
+            .padding(top = 54.dp, start = 20.dp, end = 20.dp, bottom = 116.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         // Header
@@ -5129,7 +5148,8 @@ internal fun RenderAdminTeamA28(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(top = 54.dp, start = 20.dp, end = 20.dp),
+            .verticalScroll(rememberScrollState())
+            .padding(top = 54.dp, start = 20.dp, end = 20.dp, bottom = 116.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         // Header

@@ -1795,7 +1795,8 @@ internal fun RenderAdminNotificationsA29(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(top = 54.dp, start = 20.dp, end = 20.dp),
+            .verticalScroll(rememberScrollState())
+            .padding(top = 54.dp, start = 20.dp, end = 20.dp, bottom = 32.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         // Header
@@ -2053,127 +2054,133 @@ internal fun RenderAdminEntryChoiceA30(
             )
         }
 
-        // Logo y saludo
         Column(
             modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(top = 96.dp, start = 24.dp, end = 24.dp),
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(top = 96.dp, start = 20.dp, end = 20.dp, bottom = 96.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            RfLogo(
-                customSize = 88.dp,
-                insetPadding = false,
-                modifier = Modifier.shadow(elevation = 6.dp, shape = CircleShape, spotColor = Color(0x59B450B4)),
-            )
-
-            BasicText("Hola, María", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 26.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E324A)))
-            BasicText(
-                text = "Tu cuenta tiene acceso de administración.\n¿Cómo quieres entrar?",
-                style = TextStyle(
-                    fontFamily = typo.bodyFamily,
-                    fontSize = 15.sp,
-                    color = Color(0xFF5F6377),
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                    lineHeight = 21.sp,
-                ),
-            )
-        }
-
-        // 2 Tarjetas de modo
-        Column(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(top = 322.dp, start = 20.dp, end = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            // Administración Card
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .rfHeroBannerShadow(RoundedCornerShape(24.dp), isAdmin = true)
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(Brush.linearGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0), Color(0xFF2FB8C8))))
-                    .clickable { onSelectScreenCode("A01") }
-                    .padding(18.dp),
+            // Logo y saludo
+            Column(
+                modifier = Modifier.padding(horizontal = 4.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                // Decoración oficial: círculo tenue + estrella dorada
-                Canvas(
-                    modifier = Modifier
-                        .size(70.dp)
-                        .align(Alignment.TopEnd),
-                ) {
-                    drawCircle(Color.White.copy(alpha = 0.10f), radius = 35.dp.toPx(), center = Offset(35.dp.toPx(), 15.dp.toPx()))
-                    val cx = 35.dp.toPx()
-                    val cy = 20.dp.toPx()
-                    val sc = 0.9f
-                    val star = Path().apply {
-                        moveTo(cx + 0f * sc, cy - 10f * sc)
-                        lineTo(cx + 2.35f * sc, cy - 3.24f * sc)
-                        lineTo(cx + 9.5f * sc, cy - 3.1f * sc)
-                        lineTo(cx + 3.8f * sc, cy + 1.24f * sc)
-                        lineTo(cx + 5.9f * sc, cy + 8.1f * sc)
-                        lineTo(cx + 0f * sc, cy + 4f * sc)
-                        lineTo(cx - 5.9f * sc, cy + 8.1f * sc)
-                        lineTo(cx - 3.8f * sc, cy + 1.24f * sc)
-                        lineTo(cx - 9.5f * sc, cy - 3.1f * sc)
-                        lineTo(cx - 2.35f * sc, cy - 3.24f * sc)
-                        close()
-                    }
-                    drawPath(star, Color(0xFFFFD45C))
-                }
+                RfLogo(
+                    customSize = 88.dp,
+                    insetPadding = false,
+                    modifier = Modifier.shadow(elevation = 6.dp, shape = CircleShape, spotColor = Color(0x59B450B4)),
+                )
 
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Box(
-                        modifier = Modifier
-                            .size(48.dp)
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(Color(0x33FFFFFF)),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        RfIcon(kind = RfIconKind.BAR_CHART, tint = Color.White, size = 24.dp)
-                    }
-
-                    Column {
-                        BasicText("Administración", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.White))
-                        Spacer(modifier = Modifier.height(2.dp))
-                        BasicText("Eventos, inventario, pagos y clientes", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFFE9EEFF)))
-                    }
-                }
+                BasicText("Hola, María", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 26.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E324A)))
+                BasicText(
+                    text = "Tu cuenta tiene acceso de administración.\n¿Cómo quieres entrar?",
+                    style = TextStyle(
+                        fontFamily = typo.bodyFamily,
+                        fontSize = 15.sp,
+                        color = Color(0xFF5F6377),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        lineHeight = 21.sp,
+                    ),
+                )
             }
 
-            // Vista de cliente Card con sombra rosa oficial
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .shadow(elevation = 14.dp, shape = RoundedCornerShape(24.dp), spotColor = Color(0x66C850AA))
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(Color.White)
-                    .border(1.dp, Color(0xFFECE7F1), RoundedCornerShape(24.dp))
-                    .clickable { onSelectScreenCode("s14") }
-                    .padding(18.dp),
+            Spacer(modifier = Modifier.height(44.dp))
+
+            // 2 Tarjetas de modo
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                // Administración Card
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .rfHeroBannerShadow(RoundedCornerShape(24.dp), isAdmin = true)
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(Brush.linearGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0), Color(0xFF2FB8C8))))
+                        .clickable { onSelectScreenCode("A01") }
+                        .padding(18.dp),
                 ) {
-                    Box(
+                    // Decoración oficial: círculo tenue + estrella dorada
+                    Canvas(
                         modifier = Modifier
-                            .size(48.dp)
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))),
-                        contentAlignment = Alignment.Center,
+                            .size(70.dp)
+                            .align(Alignment.TopEnd),
                     ) {
-                        RfIcon(kind = RfIconKind.PARTY, tint = Color.White, size = 24.dp)
+                        drawCircle(Color.White.copy(alpha = 0.10f), radius = 35.dp.toPx(), center = Offset(35.dp.toPx(), 15.dp.toPx()))
+                        val cx = 35.dp.toPx()
+                        val cy = 20.dp.toPx()
+                        val sc = 0.9f
+                        val star = Path().apply {
+                            moveTo(cx + 0f * sc, cy - 10f * sc)
+                            lineTo(cx + 2.35f * sc, cy - 3.24f * sc)
+                            lineTo(cx + 9.5f * sc, cy - 3.1f * sc)
+                            lineTo(cx + 3.8f * sc, cy + 1.24f * sc)
+                            lineTo(cx + 5.9f * sc, cy + 8.1f * sc)
+                            lineTo(cx + 0f * sc, cy + 4f * sc)
+                            lineTo(cx - 5.9f * sc, cy + 8.1f * sc)
+                            lineTo(cx - 3.8f * sc, cy + 1.24f * sc)
+                            lineTo(cx - 9.5f * sc, cy - 3.1f * sc)
+                            lineTo(cx - 2.35f * sc, cy - 3.24f * sc)
+                            close()
+                        }
+                        drawPath(star, Color(0xFFFFD45C))
                     }
 
-                    Column(modifier = Modifier.weight(1f)) {
-                        BasicText("Vista de cliente", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E324A)))
-                        BasicText("Mira la app como la ven tus clientes", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF5F6377)))
-                    }
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(Color(0x33FFFFFF)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            RfIcon(kind = RfIconKind.BAR_CHART, tint = Color.White, size = 24.dp)
+                        }
 
-                    RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = Color(0xFF5F6377), size = 20.dp)
+                        Column {
+                            BasicText("Administración", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.White))
+                            Spacer(modifier = Modifier.height(2.dp))
+                            BasicText("Eventos, inventario, pagos y clientes", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFFE9EEFF)))
+                        }
+                    }
+                }
+
+                // Vista de cliente Card con sombra rosa oficial
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .shadow(elevation = 14.dp, shape = RoundedCornerShape(24.dp), spotColor = Color(0x66C850AA))
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(Color.White)
+                        .border(1.dp, Color(0xFFECE7F1), RoundedCornerShape(24.dp))
+                        .clickable { onSelectScreenCode("s14") }
+                        .padding(18.dp),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            RfIcon(kind = RfIconKind.PARTY, tint = Color.White, size = 24.dp)
+                        }
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            BasicText("Vista de cliente", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E324A)))
+                            BasicText("Mira la app como la ven tus clientes", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF5F6377)))
+                        }
+
+                        RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = Color(0xFF5F6377), size = 20.dp)
+                    }
                 }
             }
         }
@@ -3295,7 +3302,8 @@ internal fun RenderAdminEmptyStateA35(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 54.dp, start = 20.dp, end = 20.dp),
+                .verticalScroll(rememberScrollState())
+                .padding(top = 54.dp, start = 20.dp, end = 20.dp, bottom = 116.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // Header: Botón volver + Título + Subtítulo
@@ -3500,7 +3508,8 @@ internal fun RenderAdminLoadingStateA36(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 54.dp, start = 20.dp, end = 20.dp),
+                .verticalScroll(rememberScrollState())
+                .padding(top = 54.dp, start = 20.dp, end = 20.dp, bottom = 116.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             // Header skeleton: Logo + 2 lines + circular avatar
@@ -3633,7 +3642,8 @@ internal fun RenderAdminErrorStateA37(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 112.dp, start = 20.dp, end = 20.dp),
+                .verticalScroll(rememberScrollState())
+                .padding(top = 112.dp, start = 20.dp, end = 20.dp, bottom = 116.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // Header

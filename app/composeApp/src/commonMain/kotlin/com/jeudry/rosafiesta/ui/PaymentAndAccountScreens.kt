@@ -342,8 +342,9 @@ internal fun RenderPaymentCheckoutScreenS50(
 
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 56.dp, start = 20.dp, end = 20.dp),
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(top = 56.dp, start = 20.dp, end = 20.dp, bottom = 120.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             // Header
@@ -705,193 +706,200 @@ internal fun RenderPaymentSuccessScreenS51(
             drawCircle(color = Color(0xFFB9D84A), radius = 4f * density, center = Offset(30f * scaleX, 740f * scaleY))
         }
 
-        // Header at top 130dp
         Column(
             modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(top = 130.dp, start = 24.dp, end = 24.dp),
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(top = 130.dp, bottom = 160.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Box(
-                modifier = Modifier
-                    .size(72.dp)
-                    .shadow(14.dp, CircleShape, spotColor = Color(0xCC50BEC8), ambientColor = Color(0x4050BEC8))
-                    .clip(CircleShape)
-                    .background(Brush.linearGradient(listOf(Color(0xFF5CC9C0), Color(0xFF5AB7E0)))),
-                contentAlignment = Alignment.Center,
+            // Header at top 130dp
+            Column(
+                modifier = Modifier.padding(horizontal = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Canvas(modifier = Modifier.size(36.dp)) {
-                    val p = Path().apply {
-                        moveTo(5f * density, 12.5f * density)
-                        lineTo(9.5f * density, 17f * density)
-                        lineTo(19f * density, 7.5f * density)
+                Box(
+                    modifier = Modifier
+                        .size(72.dp)
+                        .shadow(14.dp, CircleShape, spotColor = Color(0xCC50BEC8), ambientColor = Color(0x4050BEC8))
+                        .clip(CircleShape)
+                        .background(Brush.linearGradient(listOf(Color(0xFF5CC9C0), Color(0xFF5AB7E0)))),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Canvas(modifier = Modifier.size(36.dp)) {
+                        val p = Path().apply {
+                            moveTo(5f * density, 12.5f * density)
+                            lineTo(9.5f * density, 17f * density)
+                            lineTo(19f * density, 7.5f * density)
+                        }
+                        drawPath(p, color = Color.White, style = Stroke(width = 3.5f * density, cap = StrokeCap.Round, join = StrokeJoin.Round))
                     }
-                    drawPath(p, color = Color.White, style = Stroke(width = 3.5f * density, cap = StrokeCap.Round, join = StrokeJoin.Round))
                 }
+
+                BasicText(
+                    text = "¡Evento confirmado!",
+                    style = TextStyle(
+                        fontFamily = typo.displayFamily,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 28.sp,
+                        brush = Brush.horizontalGradient(listOf(Color(0xFFEB4F9E), Color(0xFFF2894A), Color(0xFFE3B23C), Color(0xFF9CC04B))),
+                    ),
+                )
+
+                BasicText("Todo listo para el 23 de octubre.", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF62627A)))
             }
 
-            BasicText(
-                text = "¡Evento confirmado!",
-                style = TextStyle(
-                    fontFamily = typo.displayFamily,
-                    fontWeight = FontWeight.ExtraBold,
-                    fontSize = 28.sp,
-                    brush = Brush.horizontalGradient(listOf(Color(0xFFEB4F9E), Color(0xFFF2894A), Color(0xFFE3B23C), Color(0xFF9CC04B))),
-                ),
-            )
+            Spacer(modifier = Modifier.height(50.dp))
 
-            BasicText("Todo listo para el 23 de octubre.", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF62627A)))
-        }
-
-        // Ticket card at top 330dp
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(top = 330.dp, start = 20.dp, end = 20.dp)
-                .fillMaxWidth(),
-        ) {
-            // Main white card
+            // Ticket card at top 330dp
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .shadow(
-                        elevation = 14.dp,
-                        shape = RoundedCornerShape(24.dp),
-                        spotColor = Color(0x50C850AA),
-                        ambientColor = Color(0x20C850AA),
-                    )
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(Color.White),
+                    .padding(horizontal = 20.dp)
+                    .fillMaxWidth(),
             ) {
-                Column {
-                    // Card header
-                    Row(
-                        modifier = Modifier.padding(18.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(14.dp),
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(56.dp)
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Canvas(modifier = Modifier.size(26.dp)) {
-                                val s = size.width / 24f
-                                val horn = Path().apply {
-                                    moveTo(4f * s, 20f * s)
-                                    lineTo(8.5f * s, 8f * s)
-                                    lineTo(16f * s, 15.5f * s)
-                                    close()
-                                }
-                                drawPath(horn, color = Color.White, style = Stroke(width = 1.8f * s, cap = StrokeCap.Round, join = StrokeJoin.Round))
-                                val ribbons = Path().apply {
-                                    moveTo(14f * s, 4f * s)
-                                    quadraticTo(14f * s, 6f * s, 13f * s, 7.5f * s)
-                                    moveTo(17f * s, 7.5f * s)
-                                    quadraticTo(18.5f * s, 6.5f * s, 20.5f * s, 7.5f * s)
-                                    moveTo(20f * s, 12f * s)
-                                    quadraticTo(18.5f * s, 11.5f * s, 16.8f * s, 13f * s)
-                                }
-                                drawPath(ribbons, color = Color.White, style = Stroke(width = 1.8f * s, cap = StrokeCap.Round, join = StrokeJoin.Round))
-                                drawCircle(color = Color.White, radius = 0.9f * s, center = Offset(10f * s, 4.5f * s))
-                                drawCircle(color = Color.White, radius = 0.9f * s, center = Offset(20f * s, 4f * s))
-                                drawCircle(color = Color.White, radius = 0.9f * s, center = Offset(21f * s, 16f * s))
-                            }
-                        }
-
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            BasicText(event.title, style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 19.sp, lineHeight = 22.sp, color = Color(0xFF1A1A2E)))
-                            Box(
-                                modifier = Modifier
-                                    .height(24.dp)
-                                    .clip(CircleShape)
-                                    .background(Color(0xFFEEF6D6))
-                                    .padding(horizontal = 9.dp),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                                    Box(modifier = Modifier.size(7.dp).clip(CircleShape).background(Color(0xFFA9CC3A)))
-                                    BasicText("Confirmado", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF4E5A12)))
-                                }
-                            }
-                        }
-                    }
-
-                    // Dashed line
-                    Canvas(modifier = Modifier.fillMaxWidth().height(1.dp).padding(horizontal = 18.dp)) {
-                        drawLine(
-                            color = Color(0xFFEEE8F2),
-                            start = Offset(0f, 0f),
-                            end = Offset(size.width, 0f),
-                            strokeWidth = 2f * density,
+                // Main white card
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .shadow(
+                            elevation = 14.dp,
+                            shape = RoundedCornerShape(24.dp),
+                            spotColor = Color(0x50C850AA),
+                            ambientColor = Color(0x20C850AA),
                         )
-                    }
-
-                    // Ticket details
-                    Column(
-                        modifier = Modifier.padding(start = 18.dp, end = 18.dp, top = 16.dp, bottom = 18.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(Color.White),
+                ) {
+                    Column {
+                        // Card header
                         Row(
-                            modifier = Modifier.fillMaxWidth().height(30.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.padding(18.dp),
                             verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(14.dp),
                         ) {
-                            BasicText("Fecha", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF62627A)))
                             Box(
                                 modifier = Modifier
-                                    .height(28.dp)
-                                    .clip(CircleShape)
-                                    .background(Color(0xFFFFF2C9))
-                                    .padding(horizontal = 10.dp),
+                                    .size(56.dp)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))),
                                 contentAlignment = Alignment.Center,
                             ) {
-                                BasicText(event.dateLabel, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF7A5700)))
+                                Canvas(modifier = Modifier.size(26.dp)) {
+                                    val s = size.width / 24f
+                                    val horn = Path().apply {
+                                        moveTo(4f * s, 20f * s)
+                                        lineTo(8.5f * s, 8f * s)
+                                        lineTo(16f * s, 15.5f * s)
+                                        close()
+                                    }
+                                    drawPath(horn, color = Color.White, style = Stroke(width = 1.8f * s, cap = StrokeCap.Round, join = StrokeJoin.Round))
+                                    val ribbons = Path().apply {
+                                        moveTo(14f * s, 4f * s)
+                                        quadraticTo(14f * s, 6f * s, 13f * s, 7.5f * s)
+                                        moveTo(17f * s, 7.5f * s)
+                                        quadraticTo(18.5f * s, 6.5f * s, 20.5f * s, 7.5f * s)
+                                        moveTo(20f * s, 12f * s)
+                                        quadraticTo(18.5f * s, 11.5f * s, 16.8f * s, 13f * s)
+                                    }
+                                    drawPath(ribbons, color = Color.White, style = Stroke(width = 1.8f * s, cap = StrokeCap.Round, join = StrokeJoin.Round))
+                                    drawCircle(color = Color.White, radius = 0.9f * s, center = Offset(10f * s, 4.5f * s))
+                                    drawCircle(color = Color.White, radius = 0.9f * s, center = Offset(20f * s, 4f * s))
+                                    drawCircle(color = Color.White, radius = 0.9f * s, center = Offset(21f * s, 16f * s))
+                                }
+                            }
+
+                            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                BasicText(event.title, style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 19.sp, lineHeight = 22.sp, color = Color(0xFF1A1A2E)))
+                                Box(
+                                    modifier = Modifier
+                                        .height(24.dp)
+                                        .clip(CircleShape)
+                                        .background(Color(0xFFEEF6D6))
+                                        .padding(horizontal = 9.dp),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                                        Box(modifier = Modifier.size(7.dp).clip(CircleShape).background(Color(0xFFA9CC3A)))
+                                        BasicText("Confirmado", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF4E5A12)))
+                                    }
+                                }
                             }
                         }
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth().height(30.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            BasicText("Artículos", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF62627A)))
-                            BasicText("${event.articleCount}", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF1A1A2E)))
+                        // Dashed line
+                        Canvas(modifier = Modifier.fillMaxWidth().height(1.dp).padding(horizontal = 18.dp)) {
+                            drawLine(
+                                color = Color(0xFFEEE8F2),
+                                start = Offset(0f, 0f),
+                                end = Offset(size.width, 0f),
+                                strokeWidth = 2f * density,
+                            )
                         }
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth().height(30.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
+                        // Ticket details
+                        Column(
+                            modifier = Modifier.padding(start = 18.dp, end = 18.dp, top = 16.dp, bottom = 18.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            BasicText("Anticipo pagado", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF62627A)))
-                            BasicText("RD$ $depositPaid", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp, color = Color(0xFF3FB59A)))
+                            Row(
+                                modifier = Modifier.fillMaxWidth().height(30.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                BasicText("Fecha", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF62627A)))
+                                Box(
+                                    modifier = Modifier
+                                        .height(28.dp)
+                                        .clip(CircleShape)
+                                        .background(Color(0xFFFFF2C9))
+                                        .padding(horizontal = 10.dp),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    BasicText(event.dateLabel, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF7A5700)))
+                                }
+                            }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth().height(30.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                BasicText("Artículos", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF62627A)))
+                                BasicText("${event.articleCount}", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF1A1A2E)))
+                            }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth().height(30.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                BasicText("Anticipo pagado", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF62627A)))
+                                BasicText("RD$ $depositPaid", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp, color = Color(0xFF3FB59A)))
+                            }
                         }
                     }
                 }
+
+                // Ticket Notch on Left
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)
+                        .offset(x = (-12).dp, y = 80.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFFAFAFC)),
+                )
+
+                // Ticket Notch on Right
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .size(24.dp)
+                        .offset(x = 12.dp, y = 80.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFFAFAFC)),
+                )
             }
-
-            // Ticket Notch on Left
-            Box(
-                modifier = Modifier
-                    .size(24.dp)
-                    .offset(x = (-12).dp, y = 80.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFFFAFAFC)),
-            )
-
-            // Ticket Notch on Right
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .size(24.dp)
-                    .offset(x = 12.dp, y = 80.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFFFAFAFC)),
-            )
         }
 
         // Bottom CTA buttons at bottom 36dp
@@ -972,8 +980,9 @@ internal fun RenderPostEventReviewScreenS52(
 
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 56.dp, start = 20.dp, end = 20.dp),
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(top = 56.dp, start = 20.dp, end = 20.dp, bottom = 104.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             // Header

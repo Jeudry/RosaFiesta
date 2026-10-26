@@ -1411,8 +1411,9 @@ internal fun RenderDeleteAccountS88(
     RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 54.dp, start = 20.dp, end = 20.dp),
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(top = 54.dp, start = 20.dp, end = 20.dp, bottom = 140.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             // Header
@@ -1590,7 +1591,8 @@ internal fun RenderPersonalEmptyStateS89(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(start = 20.dp, end = 20.dp, top = 54.dp),
+                .verticalScroll(rememberScrollState())
+                .padding(start = 20.dp, end = 20.dp, top = 54.dp, bottom = 116.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             BasicText(
@@ -1827,7 +1829,8 @@ internal fun RenderPersonalLoadingStateS90(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 54.dp, start = 20.dp, end = 20.dp),
+                .verticalScroll(rememberScrollState())
+                .padding(top = 54.dp, start = 20.dp, end = 20.dp, bottom = 116.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             // Header: "Catálogo" (26px, 800) + 2 circular buttons (44x44)
@@ -2944,7 +2947,8 @@ internal fun RenderChangeDateModalS84(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 54.dp, start = 20.dp, end = 20.dp),
+                .verticalScroll(rememberScrollState())
+                .padding(top = 54.dp, start = 20.dp, end = 20.dp, bottom = 130.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // Header
@@ -3228,7 +3232,8 @@ internal fun RenderCancelEventModalS85(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 54.dp, start = 20.dp, end = 20.dp),
+                .verticalScroll(rememberScrollState())
+                .padding(top = 54.dp, start = 20.dp, end = 20.dp, bottom = 140.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // Header
@@ -3474,8 +3479,9 @@ internal fun RenderPersonalOfflineStateS91(
 
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 130.dp, start = 24.dp, end = 24.dp),
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(top = 130.dp, start = 24.dp, end = 24.dp, bottom = 116.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {

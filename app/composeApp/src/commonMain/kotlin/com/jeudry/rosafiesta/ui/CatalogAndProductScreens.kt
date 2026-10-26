@@ -578,13 +578,18 @@ internal fun RenderProductDetailS19(
         // Hoja blanca con detalles (top = 400dp)
         Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .offset(y = 400.dp)
+                .fillMaxSize()
+                .padding(top = 400.dp)
                 .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
-                .background(Color.White)
-                .padding(horizontal = 24.dp, vertical = 24.dp),
+                .background(Color.White),
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 110.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
                 // Título y Precio
                 Row(
                     verticalAlignment = Alignment.Top,
@@ -1125,7 +1130,8 @@ internal fun RenderPackagesScreenS21(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(top = 58.dp, start = 20.dp, end = 20.dp),
+            .verticalScroll(rememberScrollState())
+            .padding(top = 58.dp, start = 20.dp, end = 20.dp, bottom = 116.dp),
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             BasicText("Paquetes", style = typo.heroTitle.copy(fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF1A1A2E)))
@@ -1925,7 +1931,8 @@ internal fun RenderClientFavoritesScreenS24(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(top = 58.dp, start = 20.dp, end = 20.dp),
+            .verticalScroll(rememberScrollState())
+            .padding(top = 58.dp, start = 20.dp, end = 20.dp, bottom = 116.dp),
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             BasicText("Favoritos", style = typo.heroTitle.copy(fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF1A1A2E)))
