@@ -3538,8 +3538,9 @@ internal fun RenderPersonalOfflineStateS91(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .padding(top = 92.dp)
                 .verticalScroll(rememberScrollState())
-                .padding(top = 130.dp, start = 24.dp, end = 24.dp, bottom = 116.dp),
+                .padding(top = 38.dp, start = 24.dp, end = 24.dp, bottom = 116.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {

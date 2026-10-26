@@ -1393,8 +1393,9 @@ internal fun RenderEventChatS42(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .padding(top = 114.dp, bottom = 82.dp)
                 .verticalScroll(scrollState)
-                .padding(top = 126.dp, start = 16.dp, end = 16.dp, bottom = 90.dp),
+                .padding(top = 12.dp, start = 16.dp, end = 16.dp, bottom = 12.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Row(

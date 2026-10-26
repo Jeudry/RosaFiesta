@@ -564,8 +564,9 @@ internal fun RenderRosaEventTypeS26(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .padding(top = 114.dp, bottom = 104.dp)
                 .verticalScroll(rememberScrollState())
-                .padding(top = 128.dp, start = 20.dp, end = 20.dp, bottom = 116.dp),
+                .padding(top = 14.dp, start = 20.dp, end = 20.dp, bottom = 12.dp),
             verticalArrangement = Arrangement.spacedBy(22.dp),
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -1314,8 +1315,9 @@ internal fun RenderRosaHelpS28(
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .fillMaxSize()
+                .padding(top = 114.dp, bottom = 240.dp)
                 .verticalScroll(rememberScrollState())
-                .padding(top = 128.dp, start = 20.dp, end = 20.dp, bottom = 260.dp),
+                .padding(top = 14.dp, start = 20.dp, end = 20.dp, bottom = 20.dp),
             verticalArrangement = Arrangement.spacedBy(22.dp),
         ) {
             Box(
@@ -1943,8 +1945,9 @@ internal fun RenderRosaCategoriesS30(
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .fillMaxSize()
+                .padding(top = 114.dp, bottom = 160.dp)
                 .verticalScroll(rememberScrollState())
-                .padding(top = 128.dp, start = 20.dp, end = 20.dp, bottom = 180.dp),
+                .padding(top = 14.dp, start = 20.dp, end = 20.dp, bottom = 20.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -2281,8 +2284,9 @@ internal fun RenderRosaDetailsS31(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .padding(top = 114.dp, bottom = 160.dp)
                 .verticalScroll(rememberScrollState())
-                .padding(top = 128.dp, start = 20.dp, end = 20.dp, bottom = 180.dp),
+                .padding(top = 14.dp, start = 20.dp, end = 20.dp, bottom = 20.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -2607,8 +2611,9 @@ internal fun RenderRosaSummaryS32(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .padding(top = 114.dp, bottom = 160.dp)
                 .verticalScroll(rememberScrollState())
-                .padding(top = 128.dp, start = 20.dp, end = 20.dp, bottom = 180.dp),
+                .padding(top = 14.dp, start = 20.dp, end = 20.dp, bottom = 20.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -2893,8 +2898,9 @@ internal fun RenderRosaSubmittedS33(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .padding(top = 96.dp, bottom = 104.dp)
                 .verticalScroll(rememberScrollState())
-                .padding(top = 96.dp, bottom = 120.dp),
+                .padding(bottom = 16.dp),
         ) {
             // Ilustración + título + subtítulo (posición top=96dp)
             Column(
@@ -3387,8 +3393,9 @@ internal fun RenderRosaVoiceS35(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .padding(top = 104.dp, bottom = 120.dp)
                 .verticalScroll(rememberScrollState())
-                .padding(top = 150.dp, bottom = 140.dp),
+                .padding(top = 46.dp, bottom = 20.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Box(
@@ -3654,8 +3661,9 @@ internal fun RenderRosaSketchS36(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    .padding(top = 106.dp, bottom = 104.dp)
                     .verticalScroll(rememberScrollState())
-                    .padding(top = 118.dp, bottom = 120.dp),
+                    .padding(top = 12.dp, bottom = 16.dp),
             ) {
                 Row(
                     modifier = Modifier
@@ -4025,8 +4033,9 @@ internal fun RenderRosaSketchConfirmS78(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .padding(top = 106.dp, bottom = 104.dp)
                 .verticalScroll(rememberScrollState())
-                .padding(top = 114.dp, start = 16.dp, end = 16.dp, bottom = 120.dp),
+                .padding(top = 8.dp, start = 16.dp, end = 16.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Box(

@@ -1460,8 +1460,9 @@ internal fun RenderAdminChatConversationA15(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .padding(top = 106.dp, bottom = 148.dp)
                 .verticalScroll(scrollState)
-                .padding(top = 118.dp, start = 16.dp, end = 16.dp, bottom = 156.dp),
+                .padding(top = 12.dp, start = 16.dp, end = 16.dp, bottom = 12.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Box(
@@ -3970,8 +3971,9 @@ internal fun RenderAdminErrorStateA37(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .padding(top = 92.dp)
                 .verticalScroll(rememberScrollState())
-                .padding(top = 112.dp, start = 20.dp, end = 20.dp, bottom = 116.dp),
+                .padding(top = 20.dp, start = 20.dp, end = 20.dp, bottom = 116.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // Header

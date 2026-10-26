@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -458,50 +459,50 @@ internal fun RenderOnboardingScreen(
             }
         }
 
-        // Barra superior: Logo + Rosa Fiesta + Botón Omitir
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 52.dp, start = 20.dp, end = 12.dp),
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                RfLogo(customSize = if (step == 1) 38.dp else 36.dp)
-                RfBrandWordmark(text = "Rosa Fiesta", fontSize = 18.sp)
-            }
-
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .height(40.dp)
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(Color.White.copy(alpha = 0.7f))
-                    .border(1.dp, Color(0xFFE9DDEB), RoundedCornerShape(999.dp))
-                    .clickable { onSelectScreenCode("s06") }
-                    .padding(horizontal = 16.dp),
-            ) {
-                BasicText(
-                    text = "Omitir",
-                    style = typo.body.copy(
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF62627A),
-                    ),
-                )
-            }
-        }
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(top = 118.dp, bottom = 120.dp),
+                .padding(top = 52.dp, bottom = 36.dp),
         ) {
-            // Burbuja central ilustrada (y = 118dp)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 20.dp, end = 12.dp),
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    RfLogo(customSize = if (step == 1) 38.dp else 36.dp)
+                    RfBrandWordmark(text = "Rosa Fiesta", fontSize = 18.sp)
+                }
+
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .height(40.dp)
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(Color.White.copy(alpha = 0.7f))
+                        .border(1.dp, Color(0xFFE9DDEB), RoundedCornerShape(999.dp))
+                        .clickable { onSelectScreenCode("s06") }
+                        .padding(horizontal = 16.dp),
+                ) {
+                    BasicText(
+                        text = "Omitir",
+                        style = typo.body.copy(
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFF62627A),
+                        ),
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(26.dp))
+
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -515,9 +516,8 @@ internal fun RenderOnboardingScreen(
                 }
             }
 
-            Spacer(Modifier.height(38.dp))
+            Spacer(Modifier.height(34.dp))
 
-            // Bloque de texto descriptivo (y = 496dp)
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -556,72 +556,70 @@ internal fun RenderOnboardingScreen(
                     ),
                 )
             }
-        }
 
-        // Navegación inferior: Dots + Botón Circular Siguiente
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.BottomCenter)
-                .padding(start = 28.dp, end = 28.dp, bottom = 44.dp),
-        ) {
-            // Indicador de 4 pasos
+            Spacer(Modifier.height(28.dp))
+
             Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 28.dp),
             ) {
-                for (i in 1..4) {
-                    val isActive = i == step
-                    if (isActive) {
-                        Box(
-                            modifier = Modifier
-                                .width(28.dp)
-                                .height(6.dp)
-                                .clip(RoundedCornerShape(3.dp))
-                                .background(
-                                    when (step) {
-                                        1 -> Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))
-                                        2 -> SolidColor(Color(0xFF865DEC))
-                                        else -> SolidColor(Color(0xFF8DB52C))
-                                    },
-                                ),
-                        )
-                    } else {
-                        Box(
-                            modifier = Modifier
-                                .size(6.dp)
-                                .clip(CircleShape)
-                                .background(if (step == 1) Color(0xFFDCD3E4) else Color(0xFFE3DCE8)),
-                        )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    for (stepDotIndex in 1..4) {
+                        val isActive = stepDotIndex == step
+                        if (isActive) {
+                            Box(
+                                modifier = Modifier
+                                    .width(28.dp)
+                                    .height(6.dp)
+                                    .clip(RoundedCornerShape(3.dp))
+                                    .background(
+                                        when (step) {
+                                            1 -> Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))
+                                            2 -> SolidColor(Color(0xFF865DEC))
+                                            else -> SolidColor(Color(0xFF8DB52C))
+                                        },
+                                    ),
+                            )
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .size(6.dp)
+                                    .clip(CircleShape)
+                                    .background(if (step == 1) Color(0xFFDCD3E4) else Color(0xFFE3DCE8)),
+                            )
+                        }
                     }
                 }
-            }
 
-            // Botón circular de avance
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .size(64.dp)
-                    .clip(CircleShape)
-                    .background(
-                        Brush.linearGradient(
-                            when (step) {
-                                1 -> listOf(Color(0xFFEA4EA9), Color(0xFFB754CB))
-                                else -> listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))
-                            },
-                        ),
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(64.dp)
+                        .clip(CircleShape)
+                        .background(
+                            Brush.linearGradient(
+                                when (step) {
+                                    1 -> listOf(Color(0xFFEA4EA9), Color(0xFFB754CB))
+                                    else -> listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))
+                                },
+                            ),
+                        )
+                        .shadow(elevation = 12.dp, shape = CircleShape, spotColor = Color(0x99D646A0))
+                        .clickable { onSelectScreenCode(nextScreen) },
+                ) {
+                    RfIcon(
+                        kind = RfIconKind.BACK,
+                        tint = Color.White,
+                        size = 24.dp,
+                        modifier = Modifier.rotate(180f),
                     )
-                    .shadow(elevation = 12.dp, shape = CircleShape, spotColor = Color(0x99D646A0))
-                    .clickable { onSelectScreenCode(nextScreen) },
-            ) {
-                RfIcon(
-                    kind = RfIconKind.BACK,
-                    tint = Color.White,
-                    size = 24.dp,
-                    modifier = Modifier.rotate(180f),
-                )
+                }
             }
         }
     }
@@ -1350,13 +1348,12 @@ internal fun RenderBienvenidaScreen(
             drawBienvenidaDecorations()
         }
 
-        // Centro: Logo con halo doble + Título + Subtítulo
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(top = 238.dp, start = 32.dp, end = 32.dp, bottom = 220.dp),
+                .padding(top = 220.dp, start = 24.dp, end = 24.dp, bottom = 36.dp),
         ) {
             Box(
                 contentAlignment = Alignment.Center,
@@ -1408,16 +1405,9 @@ internal fun RenderBienvenidaScreen(
                 ),
                 modifier = Modifier.width(260.dp),
             )
-        }
 
-        // Navegación y CTAs inferiores (bottom 40dp)
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.BottomCenter)
-                .padding(horizontal = 24.dp, vertical = 40.dp),
-        ) {
-            // Indicador del 4to paso
+            Spacer(Modifier.height(140.dp))
+
             Row(
                 horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
                 verticalAlignment = Alignment.CenterVertically,
@@ -1437,7 +1427,6 @@ internal fun RenderBienvenidaScreen(
                 )
             }
 
-            // Botón primario Comenzar
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
@@ -1464,7 +1453,6 @@ internal fun RenderBienvenidaScreen(
 
             Spacer(Modifier.height(12.dp))
 
-            // Botón secundario Ya tengo cuenta
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
@@ -1625,297 +1613,298 @@ internal fun RenderLoginScreenS07(
             }
         }
 
-        // Globos festivos en la esquina superior derecha
-        BalloonClusterIllustration(
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .offset(x = 18.dp, y = 46.dp)
-                .size(170.dp),
-        )
-
-        // Botón volver
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .offset(x = 20.dp, y = 56.dp)
-                .size(44.dp)
-                .shadow(elevation = 6.dp, shape = CircleShape, spotColor = Color(0x334650B4), ambientColor = Color.Transparent)
-                .clip(CircleShape)
-                .background(Color.White)
-                .border(1.dp, Color(0xFFF0EBF4), CircleShape)
-                .clickable { onSelectScreenCode("BACK:s06") },
-        ) {
-            RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF151729), size = 20.dp)
-        }
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(top = 150.dp, start = 24.dp, end = 24.dp, bottom = 96.dp),
+                .padding(bottom = 44.dp),
         ) {
-            BasicText(
-                text = "Hola de nuevo",
-                style = typo.heroTitle.copy(
-                    fontSize = 30.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = Color(0xFF151729),
-                ),
-            )
-            Spacer(Modifier.height(8.dp))
-            BasicText(
-                text = "Entra para ver tus eventos y cotizaciones.",
-                style = typo.body.copy(fontSize = 16.sp, color = Color(0xFF62627A)),
-            )
+            Box(modifier = Modifier.fillMaxWidth().height(150.dp)) {
+                BalloonClusterIllustration(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .offset(x = 18.dp, y = 46.dp)
+                        .size(170.dp),
+                )
 
-            Spacer(Modifier.height(28.dp))
-
-            // Campo Correo
-            BasicText("Correo o usuario", style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A2E)))
-            Spacer(Modifier.height(8.dp))
-            Box(
-                contentAlignment = Alignment.CenterStart,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp)
-                    .rfInputShadow(RoundedCornerShape(16.dp))
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color.White)
-                    .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(16.dp))
-                    .padding(horizontal = 16.dp),
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    modifier = Modifier.fillMaxWidth(),
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .offset(x = 20.dp, y = 56.dp)
+                        .size(44.dp)
+                        .shadow(elevation = 6.dp, shape = CircleShape, spotColor = Color(0x334650B4), ambientColor = Color.Transparent)
+                        .clip(CircleShape)
+                        .background(Color.White)
+                        .border(1.dp, Color(0xFFF0EBF4), CircleShape)
+                        .clickable { onSelectScreenCode("BACK:s06") },
                 ) {
-                    RfIcon(kind = RfIconKind.MAIL, tint = Color(0xFF62627A), size = 20.dp)
-                    BasicTextField(
-                        value = email,
-                        onValueChange = { nextValue ->
-                            email = nextValue
-                            viewModel?.setLoginEmail(nextValue)
-                        },
-                        singleLine = true,
-                        textStyle = typo.body.copy(fontSize = 15.sp, color = Color(0xFF1A1A2E)),
-                        cursorBrush = SolidColor(Color(0xFFD63F98)),
-                        modifier = Modifier.weight(1f),
-                        decorationBox = { innerTextField ->
-                            if (email.isEmpty()) {
-                                BasicText(
-                                    text = "tucorreo@ejemplo.com o usuario",
-                                    style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF9A98AD)),
-                                )
-                            }
-                            innerTextField()
-                        },
-                    )
+                    RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF151729), size = 20.dp)
                 }
             }
 
-            Spacer(Modifier.height(16.dp))
-
-            // Campo Contraseña
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                BasicText("Contraseña", style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A2E)))
-                BasicText(
-                    text = "¿La olvidaste?",
-                    style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD63F98), textDecoration = TextDecoration.Underline),
-                    modifier = Modifier.clickable { onSelectScreenCode("s09") },
-                )
-            }
-            Spacer(Modifier.height(8.dp))
-            Box(
-                contentAlignment = Alignment.CenterStart,
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp)
-                    .rfInputShadow(RoundedCornerShape(16.dp))
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color.White)
-                    .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(16.dp))
-                    .padding(start = 16.dp, end = 6.dp),
+                    .padding(horizontal = 24.dp),
             ) {
+                BasicText(
+                    text = "Hola de nuevo",
+                    style = typo.heroTitle.copy(
+                        fontSize = 30.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color(0xFF151729),
+                    ),
+                )
+                Spacer(Modifier.height(8.dp))
+                BasicText(
+                    text = "Entra para ver tus eventos y cotizaciones.",
+                    style = typo.body.copy(fontSize = 16.sp, color = Color(0xFF62627A)),
+                )
+
+                Spacer(Modifier.height(28.dp))
+
+                BasicText("Correo o usuario", style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A2E)))
+                Spacer(Modifier.height(8.dp))
+                Box(
+                    contentAlignment = Alignment.CenterStart,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                        .rfInputShadow(RoundedCornerShape(16.dp))
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color.White)
+                        .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(16.dp))
+                        .padding(horizontal = 16.dp),
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        RfIcon(kind = RfIconKind.MAIL, tint = Color(0xFF62627A), size = 20.dp)
+                        BasicTextField(
+                            value = email,
+                            onValueChange = { nextValue ->
+                                email = nextValue
+                                viewModel?.setLoginEmail(nextValue)
+                            },
+                            singleLine = true,
+                            textStyle = typo.body.copy(fontSize = 15.sp, color = Color(0xFF1A1A2E)),
+                            cursorBrush = SolidColor(Color(0xFFD63F98)),
+                            modifier = Modifier.weight(1f),
+                            decorationBox = { innerTextField ->
+                                if (email.isEmpty()) {
+                                    BasicText(
+                                        text = "tucorreo@ejemplo.com o usuario",
+                                        style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF9A98AD)),
+                                    )
+                                }
+                                innerTextField()
+                            },
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(16.dp))
+
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.weight(1f)) {
-                        RfIcon(kind = RfIconKind.LOCK, tint = Color(0xFF62627A), size = 20.dp)
-                        if (showPassword) {
-                            BasicTextField(
-                                value = password,
-                                onValueChange = { nextPassword ->
-                                    password = nextPassword
-                                    viewModel?.setLoginPassword(nextPassword)
-                                },
-                                singleLine = true,
-                                textStyle = typo.body.copy(fontSize = 15.sp, color = Color(0xFF1A1A2E)),
-                                cursorBrush = SolidColor(Color(0xFFD63F98)),
-                                modifier = Modifier.fillMaxWidth(),
-                                decorationBox = { innerTextField ->
-                                    if (password.isEmpty()) {
-                                        BasicText(
-                                            text = "Ingresa tu contraseña",
-                                            style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF9A98AD)),
-                                        )
-                                    }
-                                    innerTextField()
-                                },
-                            )
-                        } else {
-                            BasicTextField(
-                                value = password,
-                                onValueChange = { nextPassword ->
-                                    password = nextPassword
-                                    viewModel?.setLoginPassword(nextPassword)
-                                },
-                                singleLine = true,
-                                textStyle = typo.body.copy(fontSize = 15.sp, color = Color.Transparent),
-                                cursorBrush = SolidColor(Color(0xFFD63F98)),
-                                modifier = Modifier.fillMaxWidth(),
-                                decorationBox = { innerTextField ->
-                                    Box(contentAlignment = Alignment.CenterStart) {
+                    BasicText("Contraseña", style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A2E)))
+                    BasicText(
+                        text = "¿La olvidaste?",
+                        style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD63F98), textDecoration = TextDecoration.Underline),
+                        modifier = Modifier.clickable { onSelectScreenCode("s09") },
+                    )
+                }
+                Spacer(Modifier.height(8.dp))
+                Box(
+                    contentAlignment = Alignment.CenterStart,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                        .rfInputShadow(RoundedCornerShape(16.dp))
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color.White)
+                        .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(16.dp))
+                        .padding(start = 16.dp, end = 6.dp),
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.weight(1f)) {
+                            RfIcon(kind = RfIconKind.LOCK, tint = Color(0xFF62627A), size = 20.dp)
+                            if (showPassword) {
+                                BasicTextField(
+                                    value = password,
+                                    onValueChange = { nextPassword ->
+                                        password = nextPassword
+                                        viewModel?.setLoginPassword(nextPassword)
+                                    },
+                                    singleLine = true,
+                                    textStyle = typo.body.copy(fontSize = 15.sp, color = Color(0xFF1A1A2E)),
+                                    cursorBrush = SolidColor(Color(0xFFD63F98)),
+                                    modifier = Modifier.fillMaxWidth(),
+                                    decorationBox = { innerTextField ->
                                         if (password.isEmpty()) {
                                             BasicText(
                                                 text = "Ingresa tu contraseña",
                                                 style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF9A98AD)),
                                             )
-                                        } else {
-                                            BasicText(
-                                                text = "•".repeat(password.length),
-                                                style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF1A1A2E), letterSpacing = 2.sp),
-                                            )
                                         }
                                         innerTextField()
-                                    }
-                                },
-                            )
+                                    },
+                                )
+                            } else {
+                                BasicTextField(
+                                    value = password,
+                                    onValueChange = { nextPassword ->
+                                        password = nextPassword
+                                        viewModel?.setLoginPassword(nextPassword)
+                                    },
+                                    singleLine = true,
+                                    textStyle = typo.body.copy(fontSize = 15.sp, color = Color.Transparent),
+                                    cursorBrush = SolidColor(Color(0xFFD63F98)),
+                                    modifier = Modifier.fillMaxWidth(),
+                                    decorationBox = { innerTextField ->
+                                        Box(contentAlignment = Alignment.CenterStart) {
+                                            if (password.isEmpty()) {
+                                                BasicText(
+                                                    text = "Ingresa tu contraseña",
+                                                    style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF9A98AD)),
+                                                )
+                                            } else {
+                                                BasicText(
+                                                    text = "•".repeat(password.length),
+                                                    style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF1A1A2E), letterSpacing = 2.sp),
+                                                )
+                                            }
+                                            innerTextField()
+                                        }
+                                    },
+                                )
+                            }
                         }
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clickable { showPassword = !showPassword },
+                        ) {
+                            RfIcon(kind = RfIconKind.EYE, tint = Color(0xFF62627A), size = 20.dp)
+                        }
+                    }
+                }
+
+                if (!formError.isNullOrBlank()) {
+                    Spacer(Modifier.height(6.dp))
+                    BasicText(
+                        text = formError,
+                        style = typo.caption.copy(fontSize = 12.5.sp, color = RfColors.Error, fontWeight = FontWeight.SemiBold),
+                    )
+                }
+
+                Spacer(Modifier.height(20.dp))
+
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                        .shadow(elevation = 12.dp, shape = RoundedCornerShape(16.dp), spotColor = Color(0xB3C846B4), ambientColor = Color.Transparent)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(
+                            Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC))),
+                        )
+                        .clickable {
+                            val trimmedIdentifier = email.trim()
+                            val hasAtSymbol = trimmedIdentifier.contains("@")
+                            val isInvalidKeyword = trimmedIdentifier.contains("invalido", ignoreCase = true)
+                            val isPlainText = !hasAtSymbol && !isInvalidKeyword
+                            val canExpandUsername = trimmedIdentifier.isNotEmpty() && isPlainText
+                            val resolvedEmail = if (canExpandUsername) "$trimmedIdentifier@rosafiesta.do" else trimmedIdentifier
+                            viewModel?.setLoginEmail(resolvedEmail)
+                            viewModel?.setLoginPassword(password)
+                            val success = viewModel?.submitLogin() ?: true
+                            if (success) {
+                                onSelectScreenCode("s14")
+                            }
+                        },
+                ) {
+                    BasicText("Ingresar", style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White))
+                }
+
+                Spacer(Modifier.height(24.dp))
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Box(Modifier.weight(1f).height(1.dp).background(Color(0xFFE6DEEA)))
+                    BasicText("o continúa con", style = typo.secondary.copy(fontSize = 13.sp, color = Color(0xFF62627A)))
+                    Box(Modifier.weight(1f).height(1.dp).background(Color(0xFFE6DEEA)))
+                }
+
+                Spacer(Modifier.height(16.dp))
+
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(56.dp)
+                            .rfInputShadow(RoundedCornerShape(16.dp))
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color.White)
+                            .border(1.dp, Color(0xFFEEE9F2), RoundedCornerShape(16.dp))
+                            .clickable {
+                                if (email.isNotBlank()) {
+                                    viewModel?.applyUserIdentityFromLogin(email)
+                                }
+                                onSelectScreenCode("s14")
+                            },
+                    ) {
+                        BasicText("Google", style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A2E)))
                     }
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
-                            .size(44.dp)
-                            .clickable { showPassword = !showPassword },
+                            .weight(1f)
+                            .height(56.dp)
+                            .rfInputShadow(RoundedCornerShape(16.dp))
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color.White)
+                            .border(1.dp, Color(0xFFEEE9F2), RoundedCornerShape(16.dp))
+                            .clickable {
+                                if (email.isNotBlank()) {
+                                    viewModel?.applyUserIdentityFromLogin(email)
+                                }
+                                onSelectScreenCode("s14")
+                            },
                     ) {
-                        RfIcon(kind = RfIconKind.EYE, tint = Color(0xFF62627A), size = 20.dp)
+                        BasicText("Apple", style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A2E)))
                     }
                 }
             }
 
-            if (!formError.isNullOrBlank()) {
-                Spacer(Modifier.height(6.dp))
-                BasicText(
-                    text = formError,
-                    style = typo.caption.copy(fontSize = 12.5.sp, color = RfColors.Error, fontWeight = FontWeight.SemiBold),
-                )
-            }
+            Spacer(Modifier.weight(1f).heightIn(min = 24.dp))
 
-            Spacer(Modifier.height(20.dp))
-
-            // Botón Ingresar
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp)
-                    .shadow(elevation = 12.dp, shape = RoundedCornerShape(16.dp), spotColor = Color(0xB3C846B4), ambientColor = Color.Transparent)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(
-                        Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC))),
-                    )
-                    .clickable {
-                        val trimmedIdentifier = email.trim()
-                        val hasAtSymbol = trimmedIdentifier.contains("@")
-                        val isInvalidKeyword = trimmedIdentifier.contains("invalido", ignoreCase = true)
-                        val canExpandUsername = trimmedIdentifier.isNotEmpty() && !hasAtSymbol && !isInvalidKeyword
-                        val resolvedEmail = if (canExpandUsername) "$trimmedIdentifier@rosafiesta.do" else trimmedIdentifier
-                        viewModel?.setLoginEmail(resolvedEmail)
-                        viewModel?.setLoginPassword(password)
-                        val success = viewModel?.submitLogin() ?: true
-                        if (success) {
-                            onSelectScreenCode("s14")
-                        }
-                    },
-            ) {
-                BasicText("Ingresar", style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White))
-            }
-
-            Spacer(Modifier.height(24.dp))
-
-            // Separador social
             Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.Center,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Box(Modifier.weight(1f).height(1.dp).background(Color(0xFFE6DEEA)))
-                BasicText("o continúa con", style = typo.secondary.copy(fontSize = 13.sp, color = Color(0xFF62627A)))
-                Box(Modifier.weight(1f).height(1.dp).background(Color(0xFFE6DEEA)))
+                BasicText("¿No tienes cuenta? ", style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF62627A)))
+                BasicText(
+                    text = "Regístrate",
+                    style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD63F98), textDecoration = TextDecoration.Underline),
+                    modifier = Modifier.clickable { onSelectScreenCode("s08") },
+                )
             }
-
-            Spacer(Modifier.height(16.dp))
-
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(56.dp)
-                        .rfInputShadow(RoundedCornerShape(16.dp))
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Color.White)
-                        .border(1.dp, Color(0xFFEEE9F2), RoundedCornerShape(16.dp))
-                        .clickable {
-                            if (email.isNotBlank()) {
-                                viewModel?.applyUserIdentityFromLogin(email)
-                            }
-                            onSelectScreenCode("s14")
-                        },
-                ) {
-                    BasicText("Google", style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A2E)))
-                }
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(56.dp)
-                        .rfInputShadow(RoundedCornerShape(16.dp))
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Color.White)
-                        .border(1.dp, Color(0xFFEEE9F2), RoundedCornerShape(16.dp))
-                        .clickable {
-                            if (email.isNotBlank()) {
-                                viewModel?.applyUserIdentityFromLogin(email)
-                            }
-                            onSelectScreenCode("s14")
-                        },
-                ) {
-                    BasicText("Apple", style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A2E)))
-                }
-            }
-        }
-
-        // Footer "¿No tienes cuenta? Regístrate"
-        Row(
-            horizontalArrangement = Arrangement.Center,
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 44.dp),
-        ) {
-            BasicText("¿No tienes cuenta? ", style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF62627A)))
-            BasicText(
-                text = "Regístrate",
-                style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD63F98), textDecoration = TextDecoration.Underline),
-                modifier = Modifier.clickable { onSelectScreenCode("s08") },
-            )
         }
     }
 }
@@ -2210,379 +2199,376 @@ internal fun RenderRegisterScreenS08(
                 )
             },
     ) {
-        BalloonArchIllustration(
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .offset(x = 6.dp, y = 44.dp)
-                .size(140.dp),
-        )
-
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .offset(x = 20.dp, y = 56.dp)
-                .size(44.dp)
-                .shadow(elevation = 8.dp, shape = CircleShape, spotColor = Color(0x66B450B4))
-                .clip(CircleShape)
-                .background(Color.White)
-                .border(1.dp, Color(0xFFF0EBF4), CircleShape)
-                .clickable { onSelectScreenCode("BACK:s07") },
-        ) {
-            RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1A1A2E), size = 20.dp)
-        }
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(top = 128.dp, start = 24.dp, end = 24.dp, bottom = 84.dp),
+                .padding(bottom = 36.dp),
         ) {
-            BasicText(
-                "Crea tu cuenta",
-                style = typo.heroTitle.copy(
-                    fontSize = 30.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    letterSpacing = (-0.6).sp,
-                    color = Color(0xFF1A1A2E),
-                    lineHeight = 31.sp,
-                ),
-            )
-            Spacer(Modifier.height(6.dp))
-            BasicText(
-                "Te toma menos de un minuto.",
-                style = typo.body.copy(fontSize = 16.sp, color = Color(0xFF62627A)),
-            )
-
-            Spacer(Modifier.height(20.dp))
-
-            // Nombre y Apellido
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                Box(
-                    contentAlignment = Alignment.CenterStart,
+            Box(modifier = Modifier.fillMaxWidth().height(128.dp)) {
+                BalloonArchIllustration(
                     modifier = Modifier
-                        .weight(1f)
-                        .height(52.dp)
-                        .rfInputShadow(RoundedCornerShape(16.dp))
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Color.White)
-                        .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(16.dp))
-                        .padding(horizontal = 16.dp),
-                ) {
-                    BasicTextField(
-                        value = firstName,
-                        onValueChange = { firstName = it },
-                        singleLine = true,
-                        textStyle = typo.body.copy(fontSize = 15.sp, color = Color(0xFF1A1A2E)),
-                        cursorBrush = SolidColor(Color(0xFFD63F98)),
-                        modifier = Modifier.fillMaxWidth(),
-                        decorationBox = { inner ->
-                            if (firstName.isEmpty()) {
-                                BasicText("Nombre", style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF62627A)))
-                            }
-                            inner()
-                        },
-                    )
-                }
+                        .align(Alignment.TopEnd)
+                        .offset(x = 6.dp, y = 44.dp)
+                        .size(140.dp),
+                )
+
                 Box(
-                    contentAlignment = Alignment.CenterStart,
+                    contentAlignment = Alignment.Center,
                     modifier = Modifier
-                        .weight(1f)
-                        .height(52.dp)
-                        .rfInputShadow(RoundedCornerShape(16.dp))
-                        .clip(RoundedCornerShape(16.dp))
+                        .offset(x = 20.dp, y = 56.dp)
+                        .size(44.dp)
+                        .shadow(elevation = 8.dp, shape = CircleShape, spotColor = Color(0x66B450B4))
+                        .clip(CircleShape)
                         .background(Color.White)
-                        .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(16.dp))
-                        .padding(horizontal = 16.dp),
+                        .border(1.dp, Color(0xFFF0EBF4), CircleShape)
+                        .clickable { onSelectScreenCode("BACK:s07") },
                 ) {
-                    BasicTextField(
-                        value = lastName,
-                        onValueChange = { lastName = it },
-                        singleLine = true,
-                        textStyle = typo.body.copy(fontSize = 15.sp, color = Color(0xFF1A1A2E)),
-                        cursorBrush = SolidColor(Color(0xFFD63F98)),
-                        modifier = Modifier.fillMaxWidth(),
-                        decorationBox = { inner ->
-                            if (lastName.isEmpty()) {
-                                BasicText("Apellido", style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF62627A)))
-                            }
-                            inner()
-                        },
-                    )
+                    RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1A1A2E), size = 20.dp)
                 }
             }
 
-            Spacer(Modifier.height(10.dp))
-
-            // Usuario
-            Box(
-                contentAlignment = Alignment.CenterStart,
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp)
-                    .rfInputShadow(RoundedCornerShape(16.dp))
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color.White)
-                    .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(16.dp))
-                    .padding(horizontal = 16.dp),
+                    .padding(horizontal = 24.dp),
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    RfIcon(kind = RfIconKind.USER, tint = Color(0xFF62627A), size = 20.dp)
-                    BasicTextField(
-                        value = username,
-                        onValueChange = { username = it },
-                        singleLine = true,
-                        textStyle = typo.body.copy(fontSize = 15.sp, color = Color(0xFF1A1A2E)),
-                        cursorBrush = SolidColor(Color(0xFFD63F98)),
-                        modifier = Modifier.fillMaxWidth(),
-                        decorationBox = { inner ->
-                            if (username.isEmpty()) {
-                                BasicText("Nombre de usuario", style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF62627A)))
-                            }
-                            inner()
-                        },
-                    )
-                }
-            }
+                BasicText(
+                    "Crea tu cuenta",
+                    style = typo.heroTitle.copy(
+                        fontSize = 30.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = (-0.6).sp,
+                        color = Color(0xFF1A1A2E),
+                        lineHeight = 31.sp,
+                    ),
+                )
+                Spacer(Modifier.height(6.dp))
+                BasicText(
+                    "Te toma menos de un minuto.",
+                    style = typo.body.copy(fontSize = 16.sp, color = Color(0xFF62627A)),
+                )
 
-            Spacer(Modifier.height(10.dp))
+                Spacer(Modifier.height(20.dp))
 
-            // Correo
-            Box(
-                contentAlignment = Alignment.CenterStart,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp)
-                    .rfInputShadow(RoundedCornerShape(16.dp))
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color.White)
-                    .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(16.dp))
-                    .padding(horizontal = 16.dp),
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    RfIcon(kind = RfIconKind.MAIL, tint = Color(0xFF62627A), size = 20.dp)
-                    BasicTextField(
-                        value = email,
-                        onValueChange = { email = it },
-                        singleLine = true,
-                        textStyle = typo.body.copy(fontSize = 15.sp, color = Color(0xFF1A1A2E)),
-                        cursorBrush = SolidColor(Color(0xFFD63F98)),
-                        modifier = Modifier.fillMaxWidth(),
-                        decorationBox = { inner ->
-                            if (email.isEmpty()) {
-                                BasicText("Correo electrónico", style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF62627A)))
-                            }
-                            inner()
-                        },
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(10.dp))
-
-            // Contraseña
-            Box(
-                contentAlignment = Alignment.CenterStart,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp)
-                    .rfInputShadow(RoundedCornerShape(16.dp))
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color.White)
-                    .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(16.dp))
-                    .padding(start = 16.dp, end = 6.dp),
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.weight(1f)) {
-                        RfIcon(kind = RfIconKind.LOCK, tint = Color(0xFF62627A), size = 20.dp)
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                    Box(
+                        contentAlignment = Alignment.CenterStart,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(52.dp)
+                            .rfInputShadow(RoundedCornerShape(16.dp))
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color.White)
+                            .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(16.dp))
+                            .padding(horizontal = 16.dp),
+                    ) {
                         BasicTextField(
-                            value = password,
-                            onValueChange = { password = it },
+                            value = firstName,
+                            onValueChange = { nextFirstName -> firstName = nextFirstName },
                             singleLine = true,
                             textStyle = typo.body.copy(fontSize = 15.sp, color = Color(0xFF1A1A2E)),
                             cursorBrush = SolidColor(Color(0xFFD63F98)),
                             modifier = Modifier.fillMaxWidth(),
                             decorationBox = { inner ->
-                                if (password.isEmpty()) {
-                                    BasicText("Contraseña", style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF62627A)))
+                                if (firstName.isEmpty()) {
+                                    BasicText("Nombre", style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF62627A)))
                                 }
                                 inner()
                             },
                         )
                     }
-                    Box(contentAlignment = Alignment.Center, modifier = Modifier.size(44.dp)) {
-                        RfIcon(kind = RfIconKind.EYE, tint = Color(0xFF62627A), size = 20.dp)
+                    Box(
+                        contentAlignment = Alignment.CenterStart,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(52.dp)
+                            .rfInputShadow(RoundedCornerShape(16.dp))
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color.White)
+                            .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(16.dp))
+                            .padding(horizontal = 16.dp),
+                    ) {
+                        BasicTextField(
+                            value = lastName,
+                            onValueChange = { nextLastName -> lastName = nextLastName },
+                            singleLine = true,
+                            textStyle = typo.body.copy(fontSize = 15.sp, color = Color(0xFF1A1A2E)),
+                            cursorBrush = SolidColor(Color(0xFFD63F98)),
+                            modifier = Modifier.fillMaxWidth(),
+                            decorationBox = { inner ->
+                                if (lastName.isEmpty()) {
+                                    BasicText("Apellido", style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF62627A)))
+                                }
+                                inner()
+                            },
+                        )
                     }
                 }
-            }
 
-            Spacer(Modifier.height(10.dp))
+                Spacer(Modifier.height(10.dp))
 
-            // Fecha de nacimiento
-            Box(
-                contentAlignment = Alignment.CenterStart,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp)
-                    .rfInputShadow(RoundedCornerShape(16.dp))
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color.White)
-                    .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(16.dp))
-                    .padding(horizontal = 16.dp),
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    RfIcon(kind = RfIconKind.CALENDAR, tint = Color(0xFF62627A), size = 20.dp)
-                    BasicTextField(
-                        value = birthDate,
-                        onValueChange = { birthDate = it },
-                        singleLine = true,
-                        textStyle = typo.body.copy(fontSize = 15.sp, color = Color(0xFF1A1A2E)),
-                        cursorBrush = SolidColor(Color(0xFFD63F98)),
-                        modifier = Modifier.fillMaxWidth(),
-                        decorationBox = { inner ->
-                            if (birthDate.isEmpty()) {
-                                BasicText("Fecha de nacimiento (DD/MM/AAAA)", style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF62627A)))
-                            }
-                            inner()
-                        },
-                    )
+                Box(
+                    contentAlignment = Alignment.CenterStart,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp)
+                        .rfInputShadow(RoundedCornerShape(16.dp))
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color.White)
+                        .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(16.dp))
+                        .padding(horizontal = 16.dp),
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        RfIcon(kind = RfIconKind.USER, tint = Color(0xFF62627A), size = 20.dp)
+                        BasicTextField(
+                            value = username,
+                            onValueChange = { nextUsername -> username = nextUsername },
+                            singleLine = true,
+                            textStyle = typo.body.copy(fontSize = 15.sp, color = Color(0xFF1A1A2E)),
+                            cursorBrush = SolidColor(Color(0xFFD63F98)),
+                            modifier = Modifier.fillMaxWidth(),
+                            decorationBox = { inner ->
+                                if (username.isEmpty()) {
+                                    BasicText("Nombre de usuario", style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF62627A)))
+                                }
+                                inner()
+                            },
+                        )
+                    }
                 }
-            }
 
-            Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(10.dp))
 
-            // Checkbox Términos
-            Row(
-                verticalAlignment = Alignment.Top,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 2.dp, top = 8.dp)
-                    .clickable { acceptedTerms = !acceptedTerms },
-            ) {
+                Box(
+                    contentAlignment = Alignment.CenterStart,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp)
+                        .rfInputShadow(RoundedCornerShape(16.dp))
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color.White)
+                        .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(16.dp))
+                        .padding(horizontal = 16.dp),
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        RfIcon(kind = RfIconKind.MAIL, tint = Color(0xFF62627A), size = 20.dp)
+                        BasicTextField(
+                            value = email,
+                            onValueChange = { nextEmail -> email = nextEmail },
+                            singleLine = true,
+                            textStyle = typo.body.copy(fontSize = 15.sp, color = Color(0xFF1A1A2E)),
+                            cursorBrush = SolidColor(Color(0xFFD63F98)),
+                            modifier = Modifier.fillMaxWidth(),
+                            decorationBox = { inner ->
+                                if (email.isEmpty()) {
+                                    BasicText("Correo electrónico", style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF62627A)))
+                                }
+                                inner()
+                            },
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(10.dp))
+
+                Box(
+                    contentAlignment = Alignment.CenterStart,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp)
+                        .rfInputShadow(RoundedCornerShape(16.dp))
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color.White)
+                        .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(16.dp))
+                        .padding(start = 16.dp, end = 6.dp),
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.weight(1f)) {
+                            RfIcon(kind = RfIconKind.LOCK, tint = Color(0xFF62627A), size = 20.dp)
+                            BasicTextField(
+                                value = password,
+                                onValueChange = { nextPassword -> password = nextPassword },
+                                singleLine = true,
+                                textStyle = typo.body.copy(fontSize = 15.sp, color = Color(0xFF1A1A2E)),
+                                cursorBrush = SolidColor(Color(0xFFD63F98)),
+                                modifier = Modifier.fillMaxWidth(),
+                                decorationBox = { inner ->
+                                    if (password.isEmpty()) {
+                                        BasicText("Contraseña", style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF62627A)))
+                                    }
+                                    inner()
+                                },
+                            )
+                        }
+                        Box(contentAlignment = Alignment.Center, modifier = Modifier.size(44.dp)) {
+                            RfIcon(kind = RfIconKind.EYE, tint = Color(0xFF62627A), size = 20.dp)
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(10.dp))
+
+                Box(
+                    contentAlignment = Alignment.CenterStart,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp)
+                        .rfInputShadow(RoundedCornerShape(16.dp))
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color.White)
+                        .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(16.dp))
+                        .padding(horizontal = 16.dp),
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        RfIcon(kind = RfIconKind.CALENDAR, tint = Color(0xFF62627A), size = 20.dp)
+                        BasicTextField(
+                            value = birthDate,
+                            onValueChange = { nextBirthDate -> birthDate = nextBirthDate },
+                            singleLine = true,
+                            textStyle = typo.body.copy(fontSize = 15.sp, color = Color(0xFF1A1A2E)),
+                            cursorBrush = SolidColor(Color(0xFFD63F98)),
+                            modifier = Modifier.fillMaxWidth(),
+                            decorationBox = { inner ->
+                                if (birthDate.isEmpty()) {
+                                    BasicText("Fecha de nacimiento (DD/MM/AAAA)", style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF62627A)))
+                                }
+                                inner()
+                            },
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(8.dp))
+
+                Row(
+                    verticalAlignment = Alignment.Top,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 2.dp, top = 8.dp)
+                        .clickable { acceptedTerms = !acceptedTerms },
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(22.dp)
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(if (acceptedTerms) Color(0xFFD63F98) else Color(0xFFE8E1EE)),
+                    ) {
+                        if (acceptedTerms) {
+                            RfIcon(kind = RfIconKind.CHECK, tint = Color.White, size = 14.dp)
+                        }
+                    }
+                    Row(modifier = Modifier.weight(1f)) {
+                        BasicText(
+                            "Acepto los Términos y condiciones y la Política de privacidad.",
+                            style = typo.body.copy(fontSize = 14.sp, lineHeight = 20.sp, color = Color(0xFF62627A)),
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(14.dp))
+
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
-                        .size(22.dp)
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(if (acceptedTerms) Color(0xFFD63F98) else Color(0xFFE8E1EE)),
+                        .fillMaxWidth()
+                        .height(54.dp)
+                        .shadow(elevation = 12.dp, shape = RoundedCornerShape(16.dp), spotColor = Color(0xB3C846B4), ambientColor = Color.Transparent)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC))))
+                        .clickable {
+                            val nameParts = listOf(firstName.trim(), lastName.trim()).filter { part -> part.isNotEmpty() }
+                            val fullName = nameParts.joinToString(" ")
+                            val cleanEmail = email.trim()
+                            val cleanUsername = username.trim()
+                            val cleanBirthDate = birthDate.trim()
+                            if (fullName.isNotEmpty()) {
+                                viewModel?.setProfileName(fullName)
+                            } else if (cleanUsername.isNotEmpty()) {
+                                viewModel?.applyUserIdentityFromLogin(cleanUsername)
+                            } else if (cleanEmail.isNotEmpty()) {
+                                viewModel?.applyUserIdentityFromLogin(cleanEmail)
+                            }
+                            if (cleanEmail.isNotEmpty()) {
+                                viewModel?.setProfileEmail(cleanEmail)
+                            }
+                            if (cleanUsername.isNotEmpty()) {
+                                viewModel?.setProfileUsername(cleanUsername)
+                            } else if (cleanEmail.isNotEmpty()) {
+                                viewModel?.setProfileUsername(cleanEmail.substringBefore("@"))
+                            }
+                            if (cleanBirthDate.isNotEmpty()) {
+                                viewModel?.setProfileBirthDate(cleanBirthDate)
+                            }
+                            onSelectScreenCode("s14")
+                        },
                 ) {
-                    if (acceptedTerms) {
-                        RfIcon(kind = RfIconKind.CHECK, tint = Color.White, size = 14.dp)
+                    BasicText("Crear cuenta", style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White))
+                }
+
+                Spacer(Modifier.height(16.dp))
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Box(Modifier.weight(1f).height(1.dp).background(Color(0xFFE6DEEA)))
+                    BasicText("o regístrate con", style = typo.body.copy(fontSize = 13.sp, color = Color(0xFF62627A)))
+                    Box(Modifier.weight(1f).height(1.dp).background(Color(0xFFE6DEEA)))
+                }
+
+                Spacer(Modifier.height(16.dp))
+
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(48.dp)
+                            .rfInputShadow(RoundedCornerShape(16.dp))
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color.White)
+                            .border(1.dp, Color(0xFFEEE9F2), RoundedCornerShape(16.dp))
+                            .clickable { onPrimaryAction() },
+                    ) {
+                        BasicText("Google", style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A2E)))
+                    }
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(48.dp)
+                            .rfInputShadow(RoundedCornerShape(16.dp))
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color.White)
+                            .border(1.dp, Color(0xFFEEE9F2), RoundedCornerShape(16.dp))
+                            .clickable { onPrimaryAction() },
+                    ) {
+                        BasicText("Apple", style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A2E)))
                     }
                 }
-                Row(modifier = Modifier.weight(1f)) {
-                    BasicText(
-                        "Acepto los Términos y condiciones y la Política de privacidad.",
-                        style = typo.body.copy(fontSize = 14.sp, lineHeight = 20.sp, color = Color(0xFF62627A)),
-                    )
-                }
             }
 
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.weight(1f).heightIn(min = 20.dp))
 
-            // Botón Crear cuenta
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(54.dp)
-                    .shadow(elevation = 12.dp, shape = RoundedCornerShape(16.dp), spotColor = Color(0xB3C846B4), ambientColor = Color.Transparent)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC))))
-                    .clickable {
-                        val nameParts = listOf(firstName.trim(), lastName.trim()).filter { part -> part.isNotEmpty() }
-                        val fullName = nameParts.joinToString(" ")
-                        val cleanEmail = email.trim()
-                        val cleanUsername = username.trim()
-                        val cleanBirthDate = birthDate.trim()
-                        if (fullName.isNotEmpty()) {
-                            viewModel?.setProfileName(fullName)
-                        } else if (cleanUsername.isNotEmpty()) {
-                            viewModel?.applyUserIdentityFromLogin(cleanUsername)
-                        } else if (cleanEmail.isNotEmpty()) {
-                            viewModel?.applyUserIdentityFromLogin(cleanEmail)
-                        }
-                        if (cleanEmail.isNotEmpty()) {
-                            viewModel?.setProfileEmail(cleanEmail)
-                        }
-                        if (cleanUsername.isNotEmpty()) {
-                            viewModel?.setProfileUsername(cleanUsername)
-                        } else if (cleanEmail.isNotEmpty()) {
-                            viewModel?.setProfileUsername(cleanEmail.substringBefore("@"))
-                        }
-                        if (cleanBirthDate.isNotEmpty()) {
-                            viewModel?.setProfileBirthDate(cleanBirthDate)
-                        }
-                        onSelectScreenCode("s14")
-                    },
-            ) {
-                BasicText("Crear cuenta", style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White))
-            }
-
-            Spacer(Modifier.height(16.dp))
-
-            // Separador "o regístrate con"
             Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.Center,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Box(Modifier.weight(1f).height(1.dp).background(Color(0xFFE6DEEA)))
-                BasicText("o regístrate con", style = typo.body.copy(fontSize = 13.sp, color = Color(0xFF62627A)))
-                Box(Modifier.weight(1f).height(1.dp).background(Color(0xFFE6DEEA)))
+                BasicText("¿Ya tienes cuenta? ", style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF62627A)))
+                BasicText(
+                    text = "Inicia sesión",
+                    style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFFC2338F), textDecoration = TextDecoration.Underline),
+                    modifier = Modifier.clickable { onSelectScreenCode("s07") },
+                )
             }
-
-            Spacer(Modifier.height(16.dp))
-
-            // Google & Apple
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(48.dp)
-                        .rfInputShadow(RoundedCornerShape(16.dp))
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Color.White)
-                        .border(1.dp, Color(0xFFEEE9F2), RoundedCornerShape(16.dp))
-                        .clickable { onPrimaryAction() },
-                ) {
-                    BasicText("Google", style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A2E)))
-                }
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(48.dp)
-                        .rfInputShadow(RoundedCornerShape(16.dp))
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Color.White)
-                        .border(1.dp, Color(0xFFEEE9F2), RoundedCornerShape(16.dp))
-                        .clickable { onPrimaryAction() },
-                ) {
-                    BasicText("Apple", style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A2E)))
-                }
-            }
-        }
-
-        // Footer "¿Ya tienes cuenta? Inicia sesión"
-        Row(
-            horizontalArrangement = Arrangement.Center,
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 36.dp),
-        ) {
-            BasicText("¿Ya tienes cuenta? ", style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF62627A)))
-            BasicText(
-                text = "Inicia sesión",
-                style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFFC2338F), textDecoration = TextDecoration.Underline),
-                modifier = Modifier.clickable { onSelectScreenCode("s07") },
-            )
         }
     }
 }
@@ -2628,119 +2614,129 @@ internal fun RenderRecoveryAndConfirmationScreens(
                         )
                     },
             ) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .offset(x = 20.dp, y = 56.dp)
-                        .size(44.dp)
-                        .shadow(elevation = 8.dp, shape = CircleShape, spotColor = Color(0x66B450B4))
-                        .clip(CircleShape)
-                        .background(Color.White)
-                        .border(1.dp, Color(0xFFF0EBF4), CircleShape)
-                        .clickable { onSelectScreenCode("BACK:s07") },
-                ) {
-                    RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1A1A2E), size = 20.dp)
-                }
-
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState())
-                        .padding(top = 120.dp, start = 24.dp, end = 24.dp, bottom = 96.dp),
+                        .padding(bottom = 44.dp),
                 ) {
-                    KeyIllustration(
-                        size = 140.dp,
-                        modifier = Modifier.offset(x = (-14).dp),
-                    )
-
-                    Spacer(Modifier.height(16.dp))
-
-                    BasicText(
-                        "¿Olvidaste tu contraseña?",
-                        style = typo.heroTitle.copy(
-                            fontSize = 30.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            letterSpacing = (-0.6).sp,
-                            color = Color(0xFF1A1A2E),
-                            lineHeight = 31.sp,
-                        ),
-                    )
-                    Spacer(Modifier.height(10.dp))
-                    BasicText(
-                        "Escribe tu correo y te enviamos un enlace para crear una nueva.",
-                        style = typo.body.copy(fontSize = 16.sp, lineHeight = 24.sp, color = Color(0xFF62627A)),
-                    )
-
-                    Spacer(Modifier.height(24.dp))
-
-                    BasicText("Correo electrónico", style = typo.fieldLabel.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A2E)))
-                    Spacer(Modifier.height(8.dp))
-                    Box(
-                        contentAlignment = Alignment.CenterStart,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp)
-                            .rfInputShadow(RoundedCornerShape(16.dp))
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(Color.White)
-                            .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(16.dp))
-                            .padding(horizontal = 16.dp),
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            RfIcon(kind = RfIconKind.MAIL, tint = Color(0xFF62627A), size = 20.dp)
-                            BasicTextField(
-                                value = recoveryEmail,
-                                onValueChange = { nextEmail -> recoveryEmail = nextEmail },
-                                singleLine = true,
-                                textStyle = typo.body.copy(fontSize = 15.sp, color = Color(0xFF1A1A2E)),
-                                cursorBrush = SolidColor(Color(0xFFD63F98)),
-                                modifier = Modifier.fillMaxWidth(),
-                                decorationBox = { innerTextField ->
-                                    if (recoveryEmail.isEmpty()) {
-                                        BasicText("tucorreo@ejemplo.com", style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF9A98AD)))
-                                    }
-                                    innerTextField()
-                                },
-                            )
+                    Box(modifier = Modifier.fillMaxWidth().height(120.dp)) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .offset(x = 20.dp, y = 56.dp)
+                                .size(44.dp)
+                                .shadow(elevation = 8.dp, shape = CircleShape, spotColor = Color(0x66B450B4))
+                                .clip(CircleShape)
+                                .background(Color.White)
+                                .border(1.dp, Color(0xFFF0EBF4), CircleShape)
+                                .clickable { onSelectScreenCode("BACK:s07") },
+                        ) {
+                            RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1A1A2E), size = 20.dp)
                         }
                     }
 
-                    Spacer(Modifier.height(20.dp))
-
-                    Box(
-                        contentAlignment = Alignment.Center,
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(56.dp)
-                            .shadow(elevation = 12.dp, shape = RoundedCornerShape(16.dp), spotColor = Color(0xB3C846B4), ambientColor = Color.Transparent)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC))))
-                            .clickable {
-                                if (recoveryEmail.isNotBlank()) {
-                                    viewModel?.applyUserIdentityFromLogin(recoveryEmail)
-                                }
-                                onSelectScreenCode("s10")
-                            },
+                            .padding(horizontal = 24.dp),
                     ) {
-                        BasicText("Enviar enlace", style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White))
+                        KeyIllustration(
+                            size = 140.dp,
+                            modifier = Modifier.offset(x = (-14).dp),
+                        )
+
+                        Spacer(Modifier.height(16.dp))
+
+                        BasicText(
+                            "¿Olvidaste tu contraseña?",
+                            style = typo.heroTitle.copy(
+                                fontSize = 30.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                letterSpacing = (-0.6).sp,
+                                color = Color(0xFF1A1A2E),
+                                lineHeight = 31.sp,
+                            ),
+                        )
+                        Spacer(Modifier.height(10.dp))
+                        BasicText(
+                            "Escribe tu correo y te enviamos un enlace para crear una nueva.",
+                            style = typo.body.copy(fontSize = 16.sp, lineHeight = 24.sp, color = Color(0xFF62627A)),
+                        )
+
+                        Spacer(Modifier.height(24.dp))
+
+                        BasicText("Correo electrónico", style = typo.fieldLabel.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A2E)))
+                        Spacer(Modifier.height(8.dp))
+                        Box(
+                            contentAlignment = Alignment.CenterStart,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp)
+                                .rfInputShadow(RoundedCornerShape(16.dp))
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(Color.White)
+                                .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(16.dp))
+                                .padding(horizontal = 16.dp),
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                RfIcon(kind = RfIconKind.MAIL, tint = Color(0xFF62627A), size = 20.dp)
+                                BasicTextField(
+                                    value = recoveryEmail,
+                                    onValueChange = { nextEmail -> recoveryEmail = nextEmail },
+                                    singleLine = true,
+                                    textStyle = typo.body.copy(fontSize = 15.sp, color = Color(0xFF1A1A2E)),
+                                    cursorBrush = SolidColor(Color(0xFFD63F98)),
+                                    modifier = Modifier.fillMaxWidth(),
+                                    decorationBox = { innerTextField ->
+                                        if (recoveryEmail.isEmpty()) {
+                                            BasicText("tucorreo@ejemplo.com", style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF9A98AD)))
+                                        }
+                                        innerTextField()
+                                    },
+                                )
+                            }
+                        }
+
+                        Spacer(Modifier.height(20.dp))
+
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp)
+                                .shadow(elevation = 12.dp, shape = RoundedCornerShape(16.dp), spotColor = Color(0xB3C846B4), ambientColor = Color.Transparent)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC))))
+                                .clickable {
+                                    if (recoveryEmail.isNotBlank()) {
+                                        viewModel?.applyUserIdentityFromLogin(recoveryEmail)
+                                    }
+                                    onSelectScreenCode("s10")
+                                },
+                        ) {
+                            BasicText("Enviar enlace", style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White))
+                        }
+
+                        Spacer(Modifier.height(16.dp))
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            RfIcon(kind = RfIconKind.INFO, tint = Color(0xFF62627A), size = 18.dp)
+                            BasicText("Si no lo ves, revisa la carpeta de spam.", style = typo.body.copy(fontSize = 14.sp, color = Color(0xFF62627A)))
+                        }
                     }
 
-                    Spacer(Modifier.height(16.dp))
+                    Spacer(Modifier.weight(1f).heightIn(min = 24.dp))
 
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        RfIcon(kind = RfIconKind.INFO, tint = Color(0xFF62627A), size = 18.dp)
-                        BasicText("Si no lo ves, revisa la carpeta de spam.", style = typo.body.copy(fontSize = 14.sp, color = Color(0xFF62627A)))
-                    }
+                    BasicText(
+                        text = "Volver a iniciar sesión",
+                        style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFFC2338F), textDecoration = TextDecoration.Underline),
+                        modifier = Modifier.align(Alignment.CenterHorizontally).clickable { onSelectScreenCode("s07") },
+                    )
                 }
-
-                BasicText(
-                    text = "Volver a iniciar sesión",
-                    style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFFC2338F), textDecoration = TextDecoration.Underline),
-                    modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 44.dp).clickable { onSelectScreenCode("s07") },
-                )
             }
         }
 
@@ -2766,222 +2762,230 @@ internal fun RenderRecoveryAndConfirmationScreens(
                         )
                     },
             ) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .offset(x = 20.dp, y = 56.dp)
-                        .size(44.dp)
-                        .shadow(elevation = 8.dp, shape = CircleShape, spotColor = Color(0x66B450B4))
-                        .clip(CircleShape)
-                        .background(Color.White)
-                        .border(1.dp, Color(0xFFF0EBF4), CircleShape)
-                        .clickable { onSelectScreenCode("BACK:s09") },
-                ) {
-                    RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1A1A2E), size = 20.dp)
-                }
-
-                PadlockIllustration(
-                    size = 112.dp,
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .offset(x = (-16).dp, y = 44.dp),
-                )
-
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState())
-                        .padding(top = 170.dp, start = 24.dp, end = 24.dp, bottom = 120.dp),
+                        .padding(bottom = 40.dp),
                 ) {
-                    BasicText(
-                        "Crea una nueva contraseña",
-                        style = typo.heroTitle.copy(
-                            fontSize = 30.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            letterSpacing = (-0.6).sp,
-                            color = Color(0xFF1A1A2E),
-                            lineHeight = 31.sp,
-                        ),
-                    )
-                    Spacer(Modifier.height(10.dp))
-                    BasicText("Elige una que no uses en otras apps.", style = typo.body.copy(fontSize = 16.sp, color = Color(0xFF62627A)))
+                    Box(modifier = Modifier.fillMaxWidth().height(170.dp)) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .offset(x = 20.dp, y = 56.dp)
+                                .size(44.dp)
+                                .shadow(elevation = 8.dp, shape = CircleShape, spotColor = Color(0x66B450B4))
+                                .clip(CircleShape)
+                                .background(Color.White)
+                                .border(1.dp, Color(0xFFF0EBF4), CircleShape)
+                                .clickable { onSelectScreenCode("BACK:s09") },
+                        ) {
+                            RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1A1A2E), size = 20.dp)
+                        }
 
-                    Spacer(Modifier.height(22.dp))
+                        PadlockIllustration(
+                            size = 112.dp,
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .offset(x = (-16).dp, y = 44.dp),
+                        )
+                    }
 
-                    BasicText("Nueva contraseña", style = typo.fieldLabel.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A2E)))
-                    Spacer(Modifier.height(8.dp))
-                    Box(
-                        contentAlignment = Alignment.CenterStart,
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(56.dp)
-                            .rfInputShadow(RoundedCornerShape(16.dp), isActive = true)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(Color.White)
-                            .border(2.dp, Color(0xFFB754CB), RoundedCornerShape(16.dp))
-                            .padding(start = 16.dp, end = 6.dp),
+                            .padding(horizontal = 24.dp),
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            modifier = Modifier.fillMaxWidth(),
+                        BasicText(
+                            "Crea una nueva contraseña",
+                            style = typo.heroTitle.copy(
+                                fontSize = 30.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                letterSpacing = (-0.6).sp,
+                                color = Color(0xFF1A1A2E),
+                                lineHeight = 31.sp,
+                            ),
+                        )
+                        Spacer(Modifier.height(10.dp))
+                        BasicText("Elige una que no uses en otras apps.", style = typo.body.copy(fontSize = 16.sp, color = Color(0xFF62627A)))
+
+                        Spacer(Modifier.height(22.dp))
+
+                        BasicText("Nueva contraseña", style = typo.fieldLabel.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A2E)))
+                        Spacer(Modifier.height(8.dp))
+                        Box(
+                            contentAlignment = Alignment.CenterStart,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp)
+                                .rfInputShadow(RoundedCornerShape(16.dp), isActive = true)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(Color.White)
+                                .border(2.dp, Color(0xFFB754CB), RoundedCornerShape(16.dp))
+                                .padding(start = 16.dp, end = 6.dp),
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                modifier = Modifier.weight(1f),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                modifier = Modifier.fillMaxWidth(),
                             ) {
-                                RfIcon(kind = RfIconKind.LOCK, tint = Color(0xFF62627A), size = 20.dp)
-                                BasicTextField(
-                                    value = newPassword,
-                                    onValueChange = { nextPass -> newPassword = nextPass },
-                                    singleLine = true,
-                                    textStyle = typo.body.copy(
-                                        fontSize = 15.sp,
-                                        color = if (showNewPassword) Color(0xFF1A1A2E) else Color.Transparent,
-                                    ),
-                                    cursorBrush = SolidColor(Color(0xFFD63F98)),
-                                    modifier = Modifier.fillMaxWidth(),
-                                    decorationBox = { innerTextField ->
-                                        Box(contentAlignment = Alignment.CenterStart) {
-                                            if (newPassword.isEmpty()) {
-                                                BasicText("Crea tu contraseña", style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF9A98AD)))
-                                            } else if (!showNewPassword) {
-                                                BasicText("•".repeat(newPassword.length), style = typo.body.copy(fontSize = 18.sp, letterSpacing = 2.sp, color = Color(0xFF1A1A2E)))
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                    modifier = Modifier.weight(1f),
+                                ) {
+                                    RfIcon(kind = RfIconKind.LOCK, tint = Color(0xFF62627A), size = 20.dp)
+                                    BasicTextField(
+                                        value = newPassword,
+                                        onValueChange = { nextPass -> newPassword = nextPass },
+                                        singleLine = true,
+                                        textStyle = typo.body.copy(
+                                            fontSize = 15.sp,
+                                            color = if (showNewPassword) Color(0xFF1A1A2E) else Color.Transparent,
+                                        ),
+                                        cursorBrush = SolidColor(Color(0xFFD63F98)),
+                                        modifier = Modifier.fillMaxWidth(),
+                                        decorationBox = { innerTextField ->
+                                            Box(contentAlignment = Alignment.CenterStart) {
+                                                if (newPassword.isEmpty()) {
+                                                    BasicText("Crea tu contraseña", style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF9A98AD)))
+                                                } else if (!showNewPassword) {
+                                                    BasicText("•".repeat(newPassword.length), style = typo.body.copy(fontSize = 18.sp, letterSpacing = 2.sp, color = Color(0xFF1A1A2E)))
+                                                }
+                                                innerTextField()
                                             }
-                                            innerTextField()
-                                        }
-                                    },
-                                )
-                            }
-                            Box(
-                                contentAlignment = Alignment.Center,
-                                modifier = Modifier.size(44.dp).clickable { showNewPassword = !showNewPassword },
-                            ) {
-                                RfIcon(kind = RfIconKind.EYE, tint = Color(0xFF62627A), size = 20.dp)
-                            }
-                        }
-                    }
-
-                    Spacer(Modifier.height(14.dp))
-
-                    // Barras de fuerza
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.weight(1f)) {
-                            Box(Modifier.weight(1f).height(5.dp).clip(RoundedCornerShape(3.dp)).background(Color(0xFF8DB52C)))
-                            Box(Modifier.weight(1f).height(5.dp).clip(RoundedCornerShape(3.dp)).background(Color(0xFF8DB52C)))
-                            Box(Modifier.weight(1f).height(5.dp).clip(RoundedCornerShape(3.dp)).background(Color(0xFF8DB52C)))
-                            Box(Modifier.weight(1f).height(5.dp).clip(RoundedCornerShape(3.dp)).background(Color(0xFFE6DEEA)))
-                        }
-                        BasicText("Buena", style = typo.body.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF4E6A10)))
-                    }
-
-                    Spacer(Modifier.height(10.dp))
-
-                    val checkCirclePath = remember { androidx.compose.ui.graphics.vector.PathParser().parsePathString("M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0M8 12.5l2.8 2.8L16 10").toPath() }
-                    val emptyCirclePath = remember { androidx.compose.ui.graphics.vector.PathParser().parsePathString("M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0").toPath() }
-
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Canvas(modifier = Modifier.size(18.dp)) {
-                            val s = size.width / 24f
-                            scale(s, s, Offset.Zero) {
-                                drawPath(checkCirclePath, Color(0xFF4E6A10), style = Stroke(width = 1.8f, cap = StrokeCap.Round, join = StrokeJoin.Round))
+                                        },
+                                    )
+                                }
+                                Box(
+                                    contentAlignment = Alignment.Center,
+                                    modifier = Modifier.size(44.dp).clickable { showNewPassword = !showNewPassword },
+                                ) {
+                                    RfIcon(kind = RfIconKind.EYE, tint = Color(0xFF62627A), size = 20.dp)
+                                }
                             }
                         }
-                        BasicText("Al menos 8 caracteres", style = typo.body.copy(fontSize = 14.sp, color = Color(0xFF4E6A10)))
-                    }
-                    Spacer(Modifier.height(10.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Canvas(modifier = Modifier.size(18.dp)) {
-                            val s = size.width / 24f
-                            scale(s, s, Offset.Zero) {
-                                drawPath(checkCirclePath, Color(0xFF4E6A10), style = Stroke(width = 1.8f, cap = StrokeCap.Round, join = StrokeJoin.Round))
-                            }
-                        }
-                        BasicText("Incluye un número", style = typo.body.copy(fontSize = 14.sp, color = Color(0xFF4E6A10)))
-                    }
-                    Spacer(Modifier.height(10.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Canvas(modifier = Modifier.size(18.dp)) {
-                            val s = size.width / 24f
-                            scale(s, s, Offset.Zero) {
-                                drawPath(emptyCirclePath, Color(0xFF62627A), style = Stroke(width = 1.8f, cap = StrokeCap.Round, join = StrokeJoin.Round))
-                            }
-                        }
-                        BasicText("Incluye un símbolo (opcional)", style = typo.body.copy(fontSize = 14.sp, color = Color(0xFF62627A)))
-                    }
 
-                    Spacer(Modifier.height(22.dp))
+                        Spacer(Modifier.height(14.dp))
 
-                    BasicText("Confirmar contraseña", style = typo.fieldLabel.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A2E)))
-                    Spacer(Modifier.height(8.dp))
-                    Box(
-                        contentAlignment = Alignment.CenterStart,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp)
-                            .rfInputShadow(RoundedCornerShape(16.dp))
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(Color.White)
-                            .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(16.dp))
-                            .padding(start = 16.dp, end = 6.dp),
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            modifier = Modifier.fillMaxWidth(),
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.weight(1f)) {
+                                Box(Modifier.weight(1f).height(5.dp).clip(RoundedCornerShape(3.dp)).background(Color(0xFF8DB52C)))
+                                Box(Modifier.weight(1f).height(5.dp).clip(RoundedCornerShape(3.dp)).background(Color(0xFF8DB52C)))
+                                Box(Modifier.weight(1f).height(5.dp).clip(RoundedCornerShape(3.dp)).background(Color(0xFF8DB52C)))
+                                Box(Modifier.weight(1f).height(5.dp).clip(RoundedCornerShape(3.dp)).background(Color(0xFFE6DEEA)))
+                            }
+                            BasicText("Buena", style = typo.body.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF4E6A10)))
+                        }
+
+                        Spacer(Modifier.height(10.dp))
+
+                        val checkCirclePath = remember { androidx.compose.ui.graphics.vector.PathParser().parsePathString("M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0M8 12.5l2.8 2.8L16 10").toPath() }
+                        val emptyCirclePath = remember { androidx.compose.ui.graphics.vector.PathParser().parsePathString("M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0").toPath() }
+
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Canvas(modifier = Modifier.size(18.dp)) {
+                                val s = size.width / 24f
+                                scale(s, s, Offset.Zero) {
+                                    drawPath(checkCirclePath, Color(0xFF4E6A10), style = Stroke(width = 1.8f, cap = StrokeCap.Round, join = StrokeJoin.Round))
+                                }
+                            }
+                            BasicText("Al menos 8 caracteres", style = typo.body.copy(fontSize = 14.sp, color = Color(0xFF4E6A10)))
+                        }
+                        Spacer(Modifier.height(10.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Canvas(modifier = Modifier.size(18.dp)) {
+                                val s = size.width / 24f
+                                scale(s, s, Offset.Zero) {
+                                    drawPath(checkCirclePath, Color(0xFF4E6A10), style = Stroke(width = 1.8f, cap = StrokeCap.Round, join = StrokeJoin.Round))
+                                }
+                            }
+                            BasicText("Incluye un número", style = typo.body.copy(fontSize = 14.sp, color = Color(0xFF4E6A10)))
+                        }
+                        Spacer(Modifier.height(10.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Canvas(modifier = Modifier.size(18.dp)) {
+                                val s = size.width / 24f
+                                scale(s, s, Offset.Zero) {
+                                    drawPath(emptyCirclePath, Color(0xFF62627A), style = Stroke(width = 1.8f, cap = StrokeCap.Round, join = StrokeJoin.Round))
+                                }
+                            }
+                            BasicText("Incluye un símbolo (opcional)", style = typo.body.copy(fontSize = 14.sp, color = Color(0xFF62627A)))
+                        }
+
+                        Spacer(Modifier.height(22.dp))
+
+                        BasicText("Confirmar contraseña", style = typo.fieldLabel.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A2E)))
+                        Spacer(Modifier.height(8.dp))
+                        Box(
+                            contentAlignment = Alignment.CenterStart,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp)
+                                .rfInputShadow(RoundedCornerShape(16.dp))
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(Color.White)
+                                .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(16.dp))
+                                .padding(start = 16.dp, end = 6.dp),
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                modifier = Modifier.weight(1f),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                modifier = Modifier.fillMaxWidth(),
                             ) {
-                                RfIcon(kind = RfIconKind.LOCK, tint = Color(0xFF62627A), size = 20.dp)
-                                BasicTextField(
-                                    value = confirmPassword,
-                                    onValueChange = { nextPass -> confirmPassword = nextPass },
-                                    singleLine = true,
-                                    textStyle = typo.body.copy(
-                                        fontSize = 15.sp,
-                                        color = if (showConfirmPassword) Color(0xFF1A1A2E) else Color.Transparent,
-                                    ),
-                                    cursorBrush = SolidColor(Color(0xFFD63F98)),
-                                    modifier = Modifier.fillMaxWidth(),
-                                    decorationBox = { innerTextField ->
-                                        Box(contentAlignment = Alignment.CenterStart) {
-                                            if (confirmPassword.isEmpty()) {
-                                                BasicText("Repite tu contraseña", style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF9A98AD)))
-                                            } else if (!showConfirmPassword) {
-                                                BasicText("•".repeat(confirmPassword.length), style = typo.body.copy(fontSize = 18.sp, letterSpacing = 2.sp, color = Color(0xFF1A1A2E)))
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                    modifier = Modifier.weight(1f),
+                                ) {
+                                    RfIcon(kind = RfIconKind.LOCK, tint = Color(0xFF62627A), size = 20.dp)
+                                    BasicTextField(
+                                        value = confirmPassword,
+                                        onValueChange = { nextPass -> confirmPassword = nextPass },
+                                        singleLine = true,
+                                        textStyle = typo.body.copy(
+                                            fontSize = 15.sp,
+                                            color = if (showConfirmPassword) Color(0xFF1A1A2E) else Color.Transparent,
+                                        ),
+                                        cursorBrush = SolidColor(Color(0xFFD63F98)),
+                                        modifier = Modifier.fillMaxWidth(),
+                                        decorationBox = { innerTextField ->
+                                            Box(contentAlignment = Alignment.CenterStart) {
+                                                if (confirmPassword.isEmpty()) {
+                                                    BasicText("Repite tu contraseña", style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF9A98AD)))
+                                                } else if (!showConfirmPassword) {
+                                                    BasicText("•".repeat(confirmPassword.length), style = typo.body.copy(fontSize = 18.sp, letterSpacing = 2.sp, color = Color(0xFF1A1A2E)))
+                                                }
+                                                innerTextField()
                                             }
-                                            innerTextField()
-                                        }
-                                    },
-                                )
-                            }
-                            Box(
-                                contentAlignment = Alignment.Center,
-                                modifier = Modifier.size(44.dp).clickable { showConfirmPassword = !showConfirmPassword },
-                            ) {
-                                RfIcon(kind = RfIconKind.EYE, tint = Color(0xFF62627A), size = 20.dp)
+                                        },
+                                    )
+                                }
+                                Box(
+                                    contentAlignment = Alignment.Center,
+                                    modifier = Modifier.size(44.dp).clickable { showConfirmPassword = !showConfirmPassword },
+                                ) {
+                                    RfIcon(kind = RfIconKind.EYE, tint = Color(0xFF62627A), size = 20.dp)
+                                }
                             }
                         }
                     }
-                }
 
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .align(Alignment.BottomCenter)
-                        .padding(start = 24.dp, end = 24.dp, bottom = 40.dp)
-                        .height(56.dp)
-                        .rfPrimaryButtonShadow(RoundedCornerShape(16.dp))
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC))))
-                        .clickable { onSelectScreenCode("s11") },
-                ) {
-                    BasicText("Guardar contraseña", style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White))
+                    Spacer(Modifier.weight(1f).heightIn(min = 24.dp))
+
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp)
+                            .height(56.dp)
+                            .rfPrimaryButtonShadow(RoundedCornerShape(16.dp))
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC))))
+                            .clickable { onSelectScreenCode("s11") },
+                    ) {
+                        BasicText("Guardar contraseña", style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White))
+                    }
                 }
             }
         }
@@ -3013,45 +3017,51 @@ internal fun RenderRecoveryAndConfirmationScreens(
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState())
-                        .padding(top = 190.dp, start = 36.dp, end = 36.dp, bottom = 120.dp),
+                        .padding(top = 190.dp, bottom = 40.dp),
                 ) {
-                    ActiveAccountIllustration(size = 220.dp)
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(horizontal = 36.dp),
+                    ) {
+                        ActiveAccountIllustration(size = 220.dp)
 
-                    Spacer(Modifier.height(10.dp))
+                        Spacer(Modifier.height(10.dp))
 
-                    BasicText(
-                        "¡Tu cuenta está activa!",
-                        style = typo.heroTitle.copy(
-                            fontSize = 28.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            letterSpacing = (-0.5).sp,
-                            color = Color(0xFF1A1A2E),
-                            lineHeight = 29.sp,
-                            textAlign = TextAlign.Center,
-                        ),
-                    )
+                        BasicText(
+                            "¡Tu cuenta está activa!",
+                            style = typo.heroTitle.copy(
+                                fontSize = 28.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                letterSpacing = (-0.5).sp,
+                                color = Color(0xFF1A1A2E),
+                                lineHeight = 29.sp,
+                                textAlign = TextAlign.Center,
+                            ),
+                        )
 
-                    Spacer(Modifier.height(10.dp))
+                        Spacer(Modifier.height(10.dp))
 
-                    BasicText(
-                        "Ya puedes iniciar sesión y empezar a planificar tu evento.",
-                        style = typo.body.copy(fontSize = 16.sp, lineHeight = 24.sp, color = Color(0xFF62627A), textAlign = TextAlign.Center),
-                    )
-                }
+                        BasicText(
+                            "Ya puedes iniciar sesión y empezar a planificar tu evento.",
+                            style = typo.body.copy(fontSize = 16.sp, lineHeight = 24.sp, color = Color(0xFF62627A), textAlign = TextAlign.Center),
+                        )
+                    }
 
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .align(Alignment.BottomCenter)
-                        .padding(horizontal = 24.dp, vertical = 40.dp)
-                        .height(56.dp)
-                        .shadow(elevation = 12.dp, shape = RoundedCornerShape(16.dp), spotColor = Color(0xB3C846B4))
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC))))
-                        .clickable { onSelectScreenCode("s07") },
-                ) {
-                    BasicText("Ir a iniciar sesión", style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White))
+                    Spacer(Modifier.weight(1f).heightIn(min = 32.dp))
+
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp)
+                            .height(56.dp)
+                            .shadow(elevation = 12.dp, shape = RoundedCornerShape(16.dp), spotColor = Color(0xB3C846B4))
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC))))
+                            .clickable { onSelectScreenCode("s07") },
+                    ) {
+                        BasicText("Ir a iniciar sesión", style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White))
+                    }
                 }
             }
         }
@@ -3087,45 +3097,51 @@ internal fun RenderRecoveryAndConfirmationScreens(
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState())
-                        .padding(top = 190.dp, start = 36.dp, end = 36.dp, bottom = 120.dp),
+                        .padding(top = 190.dp, bottom = 40.dp),
                 ) {
-                    VerifiedMailIllustration(size = 220.dp)
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(horizontal = 36.dp),
+                    ) {
+                        VerifiedMailIllustration(size = 220.dp)
 
-                    Spacer(Modifier.height(10.dp))
+                        Spacer(Modifier.height(10.dp))
 
-                    BasicText(
-                        "Correo verificado",
-                        style = typo.heroTitle.copy(
-                            fontSize = 30.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            letterSpacing = (-0.6).sp,
-                            color = Color(0xFF1A1A2E),
-                            lineHeight = 31.sp,
-                            textAlign = TextAlign.Center,
-                        ),
-                    )
+                        BasicText(
+                            "Correo verificado",
+                            style = typo.heroTitle.copy(
+                                fontSize = 30.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                letterSpacing = (-0.6).sp,
+                                color = Color(0xFF1A1A2E),
+                                lineHeight = 31.sp,
+                                textAlign = TextAlign.Center,
+                            ),
+                        )
 
-                    Spacer(Modifier.height(10.dp))
+                        Spacer(Modifier.height(10.dp))
 
-                    BasicText(
-                        "Tu cuenta ya está lista. Entra y comienza a planificar.",
-                        style = typo.body.copy(fontSize = 16.sp, lineHeight = 24.sp, color = Color(0xFF62627A), textAlign = TextAlign.Center),
-                    )
-                }
+                        BasicText(
+                            "Tu cuenta ya está lista. Entra y comienza a planificar.",
+                            style = typo.body.copy(fontSize = 16.sp, lineHeight = 24.sp, color = Color(0xFF62627A), textAlign = TextAlign.Center),
+                        )
+                    }
 
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .align(Alignment.BottomCenter)
-                        .padding(horizontal = 24.dp, vertical = 40.dp)
-                        .height(56.dp)
-                        .shadow(elevation = 12.dp, shape = RoundedCornerShape(16.dp), spotColor = Color(0xB3C846B4))
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC))))
-                        .clickable { onSelectScreenCode("s07") },
-                ) {
-                    BasicText("Ir a iniciar sesión", style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White))
+                    Spacer(Modifier.weight(1f).heightIn(min = 32.dp))
+
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp)
+                            .height(56.dp)
+                            .shadow(elevation = 12.dp, shape = RoundedCornerShape(16.dp), spotColor = Color(0xB3C846B4))
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC))))
+                            .clickable { onSelectScreenCode("s07") },
+                    ) {
+                        BasicText("Ir a iniciar sesión", style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White))
+                    }
                 }
             }
         }
@@ -3161,7 +3177,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState())
-                        .padding(top = 84.dp, bottom = 120.dp),
+                        .padding(top = 84.dp, bottom = 40.dp),
                 ) {
                     Column(
                         modifier = Modifier
@@ -3259,21 +3275,22 @@ internal fun RenderRecoveryAndConfirmationScreens(
                             )
                         }
                     }
-                }
 
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .align(Alignment.BottomCenter)
-                        .padding(horizontal = 24.dp, vertical = 40.dp)
-                        .height(56.dp)
-                        .shadow(elevation = 12.dp, shape = RoundedCornerShape(16.dp), spotColor = Color(0xB3C846B4))
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC))))
-                        .clickable { onSelectScreenCode("s14") },
-                ) {
-                    BasicText("Continuar al inicio", style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White))
+                    Spacer(Modifier.weight(1f).heightIn(min = 24.dp))
+
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp)
+                            .height(56.dp)
+                            .shadow(elevation = 12.dp, shape = RoundedCornerShape(16.dp), spotColor = Color(0xB3C846B4))
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC))))
+                            .clickable { onSelectScreenCode("s14") },
+                    ) {
+                        BasicText("Continuar al inicio", style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White))
+                    }
                 }
             }
         }
