@@ -30,8 +30,10 @@ import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.withFrameNanos
+import com.jeudry.rosafiesta.domain.EventStatus
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -2151,8 +2153,15 @@ private val ReportGradient = Brush.linearGradient(
 )
 
 @Composable
-internal fun RenderReportsIncomeS67(onSelectScreenCode: (String) -> Unit = {}) {
+internal fun RenderReportsIncomeS67(
+    onSelectScreenCode: (String) -> Unit = {},
+    viewModel: RosaFiestaViewModel? = null,
+) {
     val typo = LocalRfTypography.current
+    val payments = viewModel?.payments?.collectAsState()?.value ?: emptyList()
+    val totalIngresos = if (payments.isNotEmpty()) payments.sumOf { it.amountDop } else 45230
+    val totalGastos = totalIngresos * 28 / 100
+    val gananciaNeta = totalIngresos - totalGastos
 
     AdminSubScaffold(
         title = "Reportes",
@@ -2175,11 +2184,11 @@ internal fun RenderReportsIncomeS67(onSelectScreenCode: (String) -> Unit = {}) {
         ) {
             Column {
                 BasicText("Ganancia neta", style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFFF6EAFB), fontSize = 13.sp))
-                BasicText("RD$ 32,780", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 36.sp, lineHeight = 40.sp, color = Color.White))
+                BasicText("RD$ $gananciaNeta", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 36.sp, lineHeight = 40.sp, color = Color.White))
             }
             Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                ReportMetric("Ingresos", "RD$ 45,230")
-                ReportMetric("Gastos", "RD$ 12,450")
+                ReportMetric("Ingresos", "RD$ $totalIngresos")
+                ReportMetric("Gastos", "RD$ $totalGastos")
             }
         }
 
@@ -2316,8 +2325,16 @@ private fun BreakdownBar(label: String, value: String, fraction: Float, color: C
 }
 
 @Composable
-internal fun RenderReportsEventsS68(onSelectScreenCode: (String) -> Unit = {}) {
+internal fun RenderReportsEventsS68(
+    onSelectScreenCode: (String) -> Unit = {},
+    viewModel: RosaFiestaViewModel? = null,
+) {
     val typo = LocalRfTypography.current
+    val allEvents = viewModel?.events?.collectAsState()?.value ?: emptyList()
+    val totalCount = if (allEvents.isNotEmpty()) allEvents.size else 156
+    val completados = if (allEvents.isNotEmpty()) allEvents.count { it.status == EventStatus.COMPLETED } else 134
+    val enProceso = if (allEvents.isNotEmpty()) allEvents.count { it.status != EventStatus.COMPLETED && it.status != EventStatus.CANCELLED } else 18
+    val cancelados = if (allEvents.isNotEmpty()) allEvents.count { it.status == EventStatus.CANCELLED } else 4
 
     AdminSubScaffold(
         title = "Reportes",
@@ -2342,15 +2359,15 @@ internal fun RenderReportsEventsS68(onSelectScreenCode: (String) -> Unit = {}) {
         ) {
             Column {
                 BasicText("Eventos en total", style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFF5F6377), fontSize = 13.sp))
-                BasicText("156", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 44.sp, lineHeight = 44.sp, color = Color(0xFF151729)))
+                BasicText("$totalCount", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 44.sp, lineHeight = 44.sp, color = Color(0xFF151729)))
             }
             EventRingIllustration68(size = 96.dp)
         }
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            StatTile68("134", "Completados", Color(0xFFEEF6D6), Color(0xFF3F560C), Color(0xFF4E6A10), Modifier.weight(1f))
-            StatTile68("18", "En proceso", Color(0xFFFFF2C9), Color(0xFF6E4300), Color(0xFF7A5700), Modifier.weight(1f))
-            StatTile68("4", "Cancelados", Color(0xFFFDE3EA), Color(0xFF8E1A35), Color(0xFFB42345), Modifier.weight(1f))
+            StatTile68("$completados", "Completados", Color(0xFFEEF6D6), Color(0xFF3F560C), Color(0xFF4E6A10), Modifier.weight(1f))
+            StatTile68("$enProceso", "En proceso", Color(0xFFFFF2C9), Color(0xFF6E4300), Color(0xFF7A5700), Modifier.weight(1f))
+            StatTile68("$cancelados", "Cancelados", Color(0xFFFDE3EA), Color(0xFF8E1A35), Color(0xFFB42345), Modifier.weight(1f))
         }
 
         ReportCard(contentPadding = PaddingValues(16.dp)) {

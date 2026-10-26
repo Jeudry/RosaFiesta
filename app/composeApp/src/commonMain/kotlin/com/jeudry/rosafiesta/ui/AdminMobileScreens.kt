@@ -30,6 +30,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.jeudry.rosafiesta.domain.EventStatus
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -132,6 +133,23 @@ internal fun RenderAdminHomeA01(
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
+    val metrics = viewModel?.metrics?.collectAsState()?.value
+    val allPayments = viewModel?.payments?.collectAsState()?.value ?: emptyList()
+    val allEvents = viewModel?.events?.collectAsState()?.value ?: emptyList()
+
+    val totalOctoberRevenueDop = if (allPayments.isNotEmpty()) {
+        allPayments.sumOf { it.amountDop }
+    } else {
+        metrics?.octoberRevenueDop ?: 12450
+    }
+
+    val activeEventsCount = if (allEvents.isNotEmpty()) {
+        allEvents.count { it.status != EventStatus.COMPLETED && it.status != EventStatus.CANCELLED }
+    } else {
+        metrics?.activeEventsCount ?: 4
+    }
+
+    val newRequestsCount = metrics?.newRequestsCount ?: 2
 
     Column(
         modifier = Modifier
@@ -312,7 +330,7 @@ internal fun RenderAdminHomeA01(
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     BasicText("Ingresos oct", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = Color(0xFF5F6377)))
-                    BasicText("RD$ 12,450", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E3048)))
+                    BasicText("RD$ $totalOctoberRevenueDop", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E3048)))
                 }
             }
 
@@ -327,7 +345,7 @@ internal fun RenderAdminHomeA01(
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     BasicText("Eventos activos", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = Color(0xFF5F6377)))
-                    BasicText("4", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E3048)))
+                    BasicText("$activeEventsCount", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E3048)))
                 }
             }
 
@@ -342,7 +360,7 @@ internal fun RenderAdminHomeA01(
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     BasicText("Solicitudes", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = Color(0xFF7A5700)))
-                    BasicText("2 nuevas", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF7A5700)))
+                    BasicText("$newRequestsCount nuevas", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF7A5700)))
                 }
             }
         }
