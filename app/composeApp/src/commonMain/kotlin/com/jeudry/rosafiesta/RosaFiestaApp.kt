@@ -265,11 +265,15 @@ public fun RosaFiestaApp(
                 AnimatedContent(
                     targetState = spec,
                     transitionSpec = { buildScreenTransition(transitionKind) },
-                    contentKey = { it.code },
+                    contentKey = { screenItem -> screenAnimationGroupKey(screenItem.code) },
                     label = "rf-screen-transition",
                 ) { targetSpec ->
+                    val targetGroupKey = screenAnimationGroupKey(targetSpec.code)
+                    val currentGroupKey = screenAnimationGroupKey(spec.code)
+                    val isSameScreenGroup = targetGroupKey == currentGroupKey
+                    val activeSpec = if (isSameScreenGroup) spec else targetSpec
                     RenderScreenSpec(
-                        spec = targetSpec,
+                        spec = activeSpec,
                         viewModel = viewModel,
                         isFrameHarness = false,
                         includeBottomBar = false,
@@ -364,4 +368,9 @@ private fun buildScreenTransition(kind: NavigationTransitionKind): ContentTransf
         ).togetherWith(
         fadeOut(animationSpec = tween(durationMillis = 160)),
     )
+}
+
+private fun screenAnimationGroupKey(code: String): String = when (code) {
+    "s03", "s04", "s05" -> "personal-onboarding"
+    else -> code
 }

@@ -1,5 +1,18 @@
 package com.jeudry.rosafiesta.ui
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ContentTransform
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -53,6 +66,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import com.jeudry.rosafiesta.designsystem.LocalRfTypography
 import com.jeudry.rosafiesta.designsystem.RfIcon
 import com.jeudry.rosafiesta.designsystem.RfIconKind
@@ -2274,213 +2288,227 @@ internal fun RenderAdminEntryChoiceA30(
             )
         }
 
-        if (step < 4) {
-            RenderAdminOnboardingStep(
-                step = step,
-                onSelectStep = { nextStep -> step = nextStep },
-                onSkip = { step = 4 },
-            )
-            return@Box
-        }
-
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.TopCenter)
-                .padding(top = 16.dp, start = 20.dp, end = 20.dp),
-        ) {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .size(44.dp)
-                    .rfIconButtonShadow(CircleShape, isAdmin = true)
-                    .clip(CircleShape)
-                    .background(Color.White)
-                    .border(1.dp, Color(0xFFECECF5), CircleShape)
-                    .clickable { step = 3 },
-            ) {
-                RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF151729), size = 22.dp)
-            }
-        }
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(top = 72.dp, start = 20.dp, end = 20.dp, bottom = 84.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Column(
-                modifier = Modifier.padding(horizontal = 4.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                RfLogo(
-                    customSize = 88.dp,
-                    insetPadding = false,
-                    modifier = Modifier.shadow(elevation = 6.dp, shape = CircleShape, spotColor = Color(0x59B450B4)),
+        val isOnboardingPhase = step < 4
+        AnimatedContent(
+            targetState = isOnboardingPhase,
+            transitionSpec = {
+                val isAdvancingToChoice = !targetState
+                buildAdminOnboardingStepTransition(isAdvancingToChoice)
+            },
+            label = "admin-onboarding-phase",
+            modifier = Modifier.fillMaxSize(),
+        ) { inOnboardingSteps ->
+            if (inOnboardingSteps) {
+                val activeOnboardingStep = step.coerceIn(1, 3)
+                RenderAdminOnboardingStep(
+                    step = activeOnboardingStep,
+                    onSelectStep = { nextStep -> step = nextStep },
+                    onSkip = { step = 4 },
                 )
-
-                BasicText("Hola, María", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 26.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E324A)))
-                BasicText(
-                    text = "Tu cuenta tiene acceso de administración.\n¿Cómo quieres entrar?",
-                    style = TextStyle(
-                        fontFamily = typo.bodyFamily,
-                        fontSize = 15.sp,
-                        color = Color(0xFF5F6377),
-                        textAlign = TextAlign.Center,
-                        lineHeight = 21.sp,
-                    ),
-                )
-            }
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .rfHeroBannerShadow(RoundedCornerShape(24.dp), isAdmin = true)
-                        .clip(RoundedCornerShape(24.dp))
-                        .background(Brush.linearGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0), Color(0xFF2FB8C8))))
-                        .clickable { onSelectScreenCode("A01") }
-                        .padding(18.dp),
-                ) {
-                    Canvas(
-                        modifier = Modifier
-                            .size(70.dp)
-                            .align(Alignment.TopEnd),
-                    ) {
-                        drawCircle(Color.White.copy(alpha = 0.10f), radius = 35.dp.toPx(), center = Offset(35.dp.toPx(), 15.dp.toPx()))
-                        val cx = 35.dp.toPx()
-                        val cy = 20.dp.toPx()
-                        val sc = 0.9f
-                        val star = Path().apply {
-                            moveTo(cx + 0f * sc, cy - 10f * sc)
-                            lineTo(cx + 2.35f * sc, cy - 3.24f * sc)
-                            lineTo(cx + 9.5f * sc, cy - 3.1f * sc)
-                            lineTo(cx + 3.8f * sc, cy + 1.24f * sc)
-                            lineTo(cx + 5.9f * sc, cy + 8.1f * sc)
-                            lineTo(cx + 0f * sc, cy + 4f * sc)
-                            lineTo(cx - 5.9f * sc, cy + 8.1f * sc)
-                            lineTo(cx - 3.8f * sc, cy + 1.24f * sc)
-                            lineTo(cx - 9.5f * sc, cy - 3.1f * sc)
-                            lineTo(cx - 2.35f * sc, cy - 3.24f * sc)
-                            close()
-                        }
-                        drawPath(star, Color(0xFFFFD45C))
-                    }
-
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Box(
-                            modifier = Modifier
-                                .size(48.dp)
-                                .clip(RoundedCornerShape(14.dp))
-                                .background(Color(0x33FFFFFF)),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            RfIcon(kind = RfIconKind.BAR_CHART, tint = Color.White, size = 24.dp)
-                        }
-
-                        Column {
-                            BasicText("Administración", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.White))
-                            Spacer(modifier = Modifier.height(2.dp))
-                            BasicText("Eventos, inventario, pagos y clientes", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFFE9EEFF)))
-                        }
-                    }
-                }
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .shadow(elevation = 14.dp, shape = RoundedCornerShape(24.dp), spotColor = Color(0x66C850AA))
-                        .clip(RoundedCornerShape(24.dp))
-                        .background(Color.White)
-                        .border(1.dp, Color(0xFFECE7F1), RoundedCornerShape(24.dp))
-                        .clickable { onSelectScreenCode("s14") }
-                        .padding(18.dp),
-                ) {
+            } else {
+                Box(modifier = Modifier.fillMaxSize()) {
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .align(Alignment.TopCenter)
+                            .zIndex(2f)
+                            .padding(top = 16.dp, start = 20.dp, end = 20.dp),
+                    ) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .size(44.dp)
+                                .rfIconButtonShadow(CircleShape, isAdmin = true)
+                                .clip(CircleShape)
+                                .background(Color.White)
+                                .border(1.dp, Color(0xFFECECF5), CircleShape)
+                                .clickable { step = 3 },
+                        ) {
+                            RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF151729), size = 22.dp)
+                        }
+                    }
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
+                            .padding(top = 72.dp, start = 20.dp, end = 20.dp, bottom = 84.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(horizontal = 4.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            RfLogo(
+                                customSize = 88.dp,
+                                insetPadding = false,
+                                modifier = Modifier.shadow(elevation = 6.dp, shape = CircleShape, spotColor = Color(0x59B450B4)),
+                            )
+
+                            BasicText("Hola, María", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 26.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E324A)))
+                            BasicText(
+                                text = "Tu cuenta tiene acceso de administración.\n¿Cómo quieres entrar?",
+                                style = TextStyle(
+                                    fontFamily = typo.bodyFamily,
+                                    fontSize = 15.sp,
+                                    color = Color(0xFF5F6377),
+                                    textAlign = TextAlign.Center,
+                                    lineHeight = 21.sp,
+                                ),
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(32.dp))
+
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .rfHeroBannerShadow(RoundedCornerShape(24.dp), isAdmin = true)
+                                    .clip(RoundedCornerShape(24.dp))
+                                    .background(Brush.linearGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0), Color(0xFF2FB8C8))))
+                                    .clickable { onSelectScreenCode("A01") }
+                                    .padding(18.dp),
+                            ) {
+                                Canvas(
+                                    modifier = Modifier
+                                        .size(70.dp)
+                                        .align(Alignment.TopEnd),
+                                ) {
+                                    drawCircle(Color.White.copy(alpha = 0.10f), radius = 35.dp.toPx(), center = Offset(35.dp.toPx(), 15.dp.toPx()))
+                                    val centerX = 35.dp.toPx()
+                                    val centerY = 20.dp.toPx()
+                                    val starScale = 0.9f
+                                    val starPath = Path().apply {
+                                        moveTo(centerX + 0f * starScale, centerY - 10f * starScale)
+                                        lineTo(centerX + 2.35f * starScale, centerY - 3.24f * starScale)
+                                        lineTo(centerX + 9.5f * starScale, centerY - 3.1f * starScale)
+                                        lineTo(centerX + 3.8f * starScale, centerY + 1.24f * starScale)
+                                        lineTo(centerX + 5.9f * starScale, centerY + 8.1f * starScale)
+                                        lineTo(centerX + 0f * starScale, centerY + 4f * starScale)
+                                        lineTo(centerX - 5.9f * starScale, centerY + 8.1f * starScale)
+                                        lineTo(centerX - 3.8f * starScale, centerY + 1.24f * starScale)
+                                        lineTo(centerX - 9.5f * starScale, centerY - 3.1f * starScale)
+                                        lineTo(centerX - 2.35f * starScale, centerY - 3.24f * starScale)
+                                        close()
+                                    }
+                                    drawPath(starPath, Color(0xFFFFD45C))
+                                }
+
+                                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(48.dp)
+                                            .clip(RoundedCornerShape(14.dp))
+                                            .background(Color(0x33FFFFFF)),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        RfIcon(kind = RfIconKind.BAR_CHART, tint = Color.White, size = 24.dp)
+                                    }
+
+                                    Column {
+                                        BasicText("Administración", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.White))
+                                        Spacer(modifier = Modifier.height(2.dp))
+                                        BasicText("Eventos, inventario, pagos y clientes", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFFE9EEFF)))
+                                    }
+                                }
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .shadow(elevation = 14.dp, shape = RoundedCornerShape(24.dp), spotColor = Color(0x66C850AA))
+                                    .clip(RoundedCornerShape(24.dp))
+                                    .background(Color.White)
+                                    .border(1.dp, Color(0xFFECE7F1), RoundedCornerShape(24.dp))
+                                    .clickable { onSelectScreenCode("s14") }
+                                    .padding(18.dp),
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(48.dp)
+                                            .clip(RoundedCornerShape(14.dp))
+                                            .background(Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        RfIcon(kind = RfIconKind.PARTY, tint = Color.White, size = 24.dp)
+                                    }
+
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        BasicText("Vista de cliente", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E324A)))
+                                        BasicText("Mira la app como la ven tus clientes", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF5F6377)))
+                                    }
+
+                                    RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = Color(0xFF5F6377), size = 20.dp)
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            for (dotIndex in 1..3) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(8.dp)
+                                        .clip(CircleShape)
+                                        .background(Color(0xFFDCDDEA))
+                                        .clickable { step = dotIndex },
+                                )
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .width(28.dp)
+                                    .height(6.dp)
+                                    .clip(RoundedCornerShape(3.dp))
+                                    .background(AdminButtonGradient),
+                            )
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .clickable { rememberChoice = !rememberChoice }
+                            .padding(bottom = 24.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(48.dp)
-                                .clip(RoundedCornerShape(14.dp))
-                                .background(Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))),
+                                .size(22.dp)
+                                .clip(RoundedCornerShape(7.dp))
+                                .then(
+                                    if (rememberChoice) {
+                                        Modifier.background(AdminButtonGradient)
+                                    } else {
+                                        Modifier.background(Color.White).border(1.5.dp, Color(0xFFDCDDEA), RoundedCornerShape(7.dp))
+                                    },
+                                ),
                             contentAlignment = Alignment.Center,
                         ) {
-                            RfIcon(kind = RfIconKind.PARTY, tint = Color.White, size = 24.dp)
+                            if (rememberChoice) {
+                                RfIcon(kind = RfIconKind.CHECK, tint = Color.White, size = 14.dp)
+                            }
                         }
-
-                        Column(modifier = Modifier.weight(1f)) {
-                            BasicText("Vista de cliente", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E324A)))
-                            BasicText("Mira la app como la ven tus clientes", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF5F6377)))
-                        }
-
-                        RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = Color(0xFF5F6377), size = 20.dp)
+                        BasicText("Recordar mi elección", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF5F6377)))
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                for (dotIndex in 1..3) {
-                    Box(
-                        modifier = Modifier
-                            .size(8.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFFDCDDEA))
-                            .clickable { step = dotIndex },
-                    )
-                }
-                Box(
-                    modifier = Modifier
-                        .width(28.dp)
-                        .height(6.dp)
-                        .clip(RoundedCornerShape(3.dp))
-                        .background(AdminButtonGradient),
-                )
-            }
-        }
-
-        Row(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .clickable { rememberChoice = !rememberChoice }
-                .padding(bottom = 24.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(22.dp)
-                    .clip(RoundedCornerShape(7.dp))
-                    .then(
-                        if (rememberChoice) {
-                            Modifier.background(AdminButtonGradient)
-                        } else {
-                            Modifier.background(Color.White).border(1.5.dp, Color(0xFFDCDDEA), RoundedCornerShape(7.dp))
-                        },
-                    ),
-                contentAlignment = Alignment.Center,
-            ) {
-                if (rememberChoice) {
-                    RfIcon(kind = RfIconKind.CHECK, tint = Color.White, size = 14.dp)
-                }
-            }
-            BasicText("Recordar mi elección", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF5F6377)))
         }
     }
 }
@@ -2492,26 +2520,6 @@ private fun RenderAdminOnboardingStep(
     onSkip: () -> Unit,
 ) {
     val typo = LocalRfTypography.current
-    val stepTag = when (step) {
-        1 -> "01 · OPERACIÓN Y AGENDA"
-        2 -> "02 · ROSA IA ADMIN"
-        else -> "03 · INVENTARIO Y COBROS"
-    }
-    val stepColor = when (step) {
-        1 -> Color(0xFF4B47D6)
-        2 -> Color(0xFF5B6CF0)
-        else -> Color(0xFF1F8A84)
-    }
-    val stepTitle = when (step) {
-        1 -> "Controla cada evento de principio a fin"
-        2 -> "Cotiza en segundos con stock real"
-        else -> "Tu inventario y tus cobros al día"
-    }
-    val stepSubtitle = when (step) {
-        1 -> "Revisa solicitudes nuevas, asigna tareas de montaje a tu equipo y sigue cada entrega en tiempo real."
-        2 -> "Pídele a Rosa IA un borrador para cualquier fecha: verifica tu inventario disponible y redacta la propuesta al instante."
-        else -> "Consulta disponibilidad por fecha sin sobrevender, registra transferencias del 30 % de anticipo y emite recibos."
-    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Row(
@@ -2520,6 +2528,7 @@ private fun RenderAdminOnboardingStep(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.TopCenter)
+                .zIndex(2f)
                 .background(Color(0xFFF8F7FC))
                 .padding(top = 14.dp, bottom = 10.dp, start = 20.dp, end = 16.dp),
         ) {
@@ -2580,150 +2589,222 @@ private fun RenderAdminOnboardingStep(
             }
         }
 
-        Column(
+        AnimatedContent(
+            targetState = step,
+            transitionSpec = {
+                val isAdvancing = targetState > initialState
+                buildAdminOnboardingStepTransition(isAdvancing)
+            },
+            label = "admin-onboarding-step-content",
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(top = 72.dp, bottom = 20.dp),
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp),
-            ) {
-                AdminOnboardingIllustrationCard(step = step)
+                .padding(top = 72.dp, bottom = 92.dp),
+        ) { animatedStep ->
+            val stepTag = when (animatedStep) {
+                1 -> "01 · OPERACIÓN Y AGENDA"
+                2 -> "02 · ROSA IA ADMIN"
+                else -> "03 · INVENTARIO Y COBROS"
             }
-
-            Spacer(modifier = Modifier.height(18.dp))
+            val stepColor = when (animatedStep) {
+                1 -> Color(0xFF4B47D6)
+                2 -> Color(0xFF5B6CF0)
+                else -> Color(0xFF1F8A84)
+            }
+            val stepTitle = when (animatedStep) {
+                1 -> "Controla cada evento de principio a fin"
+                2 -> "Cotiza en segundos con stock real"
+                else -> "Tu inventario y tus cobros al día"
+            }
+            val stepSubtitle = when (animatedStep) {
+                1 -> "Revisa solicitudes nuevas, asigna tareas de montaje a tu equipo y sigue cada entrega en tiempo real."
+                2 -> "Pídele a Rosa IA un borrador para cualquier fecha: verifica tu inventario disponible y redacta la propuesta al instante."
+                else -> "Consulta disponibilidad por fecha sin sobrevender, registra transferencias del 30 % de anticipo y emite recibos."
+            }
 
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 28.dp),
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState()),
             ) {
-                BasicText(
-                    text = stepTag,
-                    style = TextStyle(
-                        fontFamily = typo.bodyFamily,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = stepColor,
-                        letterSpacing = 1.sp,
-                    ),
-                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp),
+                ) {
+                    AdminOnboardingIllustrationCard(step = animatedStep)
+                }
 
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(18.dp))
 
-                BasicText(
-                    text = stepTitle,
-                    style = TextStyle(
-                        fontFamily = typo.displayFamily,
-                        fontSize = 28.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = Color(0xFF151729),
-                        lineHeight = 33.sp,
-                    ),
-                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 28.dp),
+                ) {
+                    BasicText(
+                        text = stepTag,
+                        style = TextStyle(
+                            fontFamily = typo.bodyFamily,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = stepColor,
+                            letterSpacing = 1.sp,
+                        ),
+                    )
 
-                Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
 
-                BasicText(
-                    text = stepSubtitle,
-                    style = TextStyle(
-                        fontFamily = typo.bodyFamily,
-                        fontSize = 15.5.sp,
-                        color = Color(0xFF5F6377),
-                        lineHeight = 23.sp,
-                    ),
-                )
+                    BasicText(
+                        text = stepTitle,
+                        style = TextStyle(
+                            fontFamily = typo.displayFamily,
+                            fontSize = 28.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color(0xFF151729),
+                            lineHeight = 33.sp,
+                        ),
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    BasicText(
+                        text = stepSubtitle,
+                        style = TextStyle(
+                            fontFamily = typo.bodyFamily,
+                            fontSize = 15.5.sp,
+                            color = Color(0xFF5F6377),
+                            lineHeight = 23.sp,
+                        ),
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
             }
+        }
 
-            Spacer(modifier = Modifier.weight(1f).height(24.dp))
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.BottomCenter)
+                .zIndex(2f)
+                .background(Color(0xFFF8F7FC))
+                .padding(top = 10.dp, bottom = 18.dp, start = 28.dp, end = 28.dp),
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                for (dotIndex in 1..4) {
+                    val isActive = dotIndex == step
+                    val dotWidth by animateDpAsState(
+                        targetValue = if (isActive) 28.dp else 8.dp,
+                        animationSpec = tween(durationMillis = 240, easing = FastOutSlowInEasing),
+                        label = "admin-onboarding-dot-width",
+                    )
+                    val dotHeight by animateDpAsState(
+                        targetValue = if (isActive) 6.dp else 8.dp,
+                        animationSpec = tween(durationMillis = 240, easing = FastOutSlowInEasing),
+                        label = "admin-onboarding-dot-height",
+                    )
+                    val dotBrush = if (isActive) {
+                        Brush.horizontalGradient(
+                            listOf(Color(0xFF7C5CF0), Color(0xFF2FB8C8)),
+                        )
+                    } else {
+                        SolidColor(Color(0xFFDCDDEA))
+                    }
+                    Box(
+                        modifier = Modifier
+                            .width(dotWidth)
+                            .height(dotHeight)
+                            .clip(RoundedCornerShape(999.dp))
+                            .background(dotBrush)
+                            .clickable { onSelectStep(dotIndex) },
+                    )
+                }
+            }
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 28.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+                val hasPreviousStep = step > 1
+                AnimatedVisibility(
+                    visible = hasPreviousStep,
+                    enter = fadeIn(tween(200)) + scaleIn(tween(200), initialScale = 0.85f),
+                    exit = fadeOut(tween(160)) + scaleOut(tween(160), targetScale = 0.85f),
                 ) {
-                    for (dotIndex in 1..4) {
-                        val isActive = dotIndex == step
-                        if (isActive) {
-                            Box(
-                                modifier = Modifier
-                                    .width(28.dp)
-                                    .height(6.dp)
-                                    .clip(RoundedCornerShape(3.dp))
-                                    .background(
-                                        Brush.horizontalGradient(
-                                            listOf(Color(0xFF7C5CF0), Color(0xFF2FB8C8)),
-                                        ),
-                                    )
-                                    .clickable { onSelectStep(dotIndex) },
-                            )
-                        } else {
-                            Box(
-                                modifier = Modifier
-                                    .size(8.dp)
-                                    .clip(CircleShape)
-                                    .background(Color(0xFFDCDDEA))
-                                    .clickable { onSelectStep(dotIndex) },
-                            )
-                        }
-                    }
-                }
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    if (step > 1) {
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier
-                                .size(56.dp)
-                                .rfIconButtonShadow(CircleShape, isAdmin = true)
-                                .clip(CircleShape)
-                                .background(Color.White)
-                                .border(1.dp, Color(0xFFE3E4EF), CircleShape)
-                                .clickable { onSelectStep(step - 1) },
-                        ) {
-                            RfIcon(
-                                kind = RfIconKind.BACK,
-                                tint = Color(0xFF151729),
-                                size = 22.dp,
-                            )
-                        }
-                    }
-
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
-                            .size(64.dp)
-                            .shadow(elevation = 12.dp, shape = CircleShape, spotColor = Color(0x995B6CF0))
+                            .size(56.dp)
+                            .rfIconButtonShadow(CircleShape, isAdmin = true)
                             .clip(CircleShape)
-                            .background(
-                                Brush.linearGradient(
-                                    listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0), Color(0xFF2FB8C8)),
-                                ),
-                            )
-                            .clickable { onSelectStep(step + 1) },
+                            .background(Color.White)
+                            .border(1.dp, Color(0xFFE3E4EF), CircleShape)
+                            .clickable {
+                                val targetPrevStep = (step - 1).coerceAtLeast(1)
+                                onSelectStep(targetPrevStep)
+                            },
                     ) {
                         RfIcon(
-                            kind = RfIconKind.ARROW_RIGHT,
-                            tint = Color.White,
-                            size = 24.dp,
+                            kind = RfIconKind.BACK,
+                            tint = Color(0xFF151729),
+                            size = 22.dp,
                         )
                     }
+                }
+
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(64.dp)
+                        .shadow(elevation = 12.dp, shape = CircleShape, spotColor = Color(0x995B6CF0))
+                        .clip(CircleShape)
+                        .background(
+                            Brush.linearGradient(
+                                listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0), Color(0xFF2FB8C8)),
+                            ),
+                        )
+                        .clickable { onSelectStep(step + 1) },
+                ) {
+                    RfIcon(
+                        kind = RfIconKind.ARROW_RIGHT,
+                        tint = Color.White,
+                        size = 24.dp,
+                    )
                 }
             }
         }
     }
+}
+
+private fun buildAdminOnboardingStepTransition(isAdvancing: Boolean): ContentTransform = if (isAdvancing) {
+    (
+        slideInHorizontally(
+            animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing),
+            initialOffsetX = { fullWidth -> fullWidth / 3 },
+        ) + fadeIn(animationSpec = tween(durationMillis = 240))
+        ).togetherWith(
+        slideOutHorizontally(
+            animationSpec = tween(durationMillis = 240, easing = FastOutSlowInEasing),
+            targetOffsetX = { fullWidth -> -fullWidth / 4 },
+        ) + fadeOut(animationSpec = tween(durationMillis = 180)),
+    )
+} else {
+    (
+        slideInHorizontally(
+            animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing),
+            initialOffsetX = { fullWidth -> -fullWidth / 3 },
+        ) + fadeIn(animationSpec = tween(durationMillis = 240))
+        ).togetherWith(
+        slideOutHorizontally(
+            animationSpec = tween(durationMillis = 240, easing = FastOutSlowInEasing),
+            targetOffsetX = { fullWidth -> fullWidth / 4 },
+        ) + fadeOut(animationSpec = tween(durationMillis = 180)),
+    )
 }
 
 @Composable

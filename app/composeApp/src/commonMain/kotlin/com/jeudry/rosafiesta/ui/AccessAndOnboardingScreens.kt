@@ -1,5 +1,18 @@
 package com.jeudry.rosafiesta.ui
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ContentTransform
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -383,30 +396,6 @@ internal fun RenderOnboardingScreen(
         else -> 1
     }
 
-    val stepTag = when (step) {
-        1 -> "01 · Catálogo"
-        2 -> "02 · Rosa IA"
-        else -> "03 · WhatsApp"
-    }
-
-    val stepColor = when (step) {
-        1 -> Color(0xFFD63F98)
-        2 -> Color(0xFF7A4FD8)
-        else -> Color(0xFF4E6A10)
-    }
-
-    val stepTitle = when (step) {
-        1 -> "Mira todo lo que tenemos"
-        2 -> "Tu asistente para planificar"
-        else -> "Confirma directo, sin trámites"
-    }
-
-    val stepSubtitle = when (step) {
-        1 -> "Navega por nuestro catálogo de decoración y equipo para eventos. Sin registrarte, sin compromiso."
-        2 -> "Dinos qué evento planeas y Rosa te sugiere artículos, categorías y más, paso a paso."
-        else -> "Comparte tu lista por WhatsApp con María, la dueña, y confirma todo en minutos."
-    }
-
     val nextScreen = when (step) {
         1 -> "s04"
         2 -> "s05"
@@ -424,10 +413,8 @@ internal fun RenderOnboardingScreen(
             .fillMaxSize()
             .background(Color(0xFFFAFAFC)),
     ) {
-        // Fondo decorativo
         Canvas(modifier = Modifier.fillMaxSize()) {
             if (step == 1) {
-                // s03: fondo degradado vertical suave
                 drawRect(
                     Brush.verticalGradient(
                         0.0f to Color(0xFFF8EBF4),
@@ -435,31 +422,29 @@ internal fun RenderOnboardingScreen(
                         1.0f to Color(0xFFF3F1FA),
                     ),
                 )
-                // Figuras decorativas s03
-                val s = size.width / 390f
-                scale(s, s, Offset.Zero) {
+                val canvasScale = size.width / 390f
+                scale(canvasScale, canvasScale, Offset.Zero) {
                     drawCircle(color = Color(0xFFCFE48A), radius = 22f, center = Offset(34f, 770f), style = Stroke(width = 2f))
                     drawCircle(color = Color(0xFFE2CCF4), radius = 32f, center = Offset(352f, 720f), style = Stroke(width = 1.5f))
-                    val dPath = Path().apply {
+                    val diamondPath = Path().apply {
                         moveTo(330f, 470f)
                         lineTo(338f, 484f)
                         lineTo(330f, 498f)
                         lineTo(322f, 484f)
                         close()
                     }
-                    drawPath(dPath, color = Color(0xFF9ED7DC), style = Stroke(width = 1.5f))
-                    val sqPath = Path().apply {
+                    drawPath(diamondPath, color = Color(0xFF9ED7DC), style = Stroke(width = 1.5f))
+                    val squarePath = Path().apply {
                         moveTo(60f, 760f)
                         lineTo(80f, 754f)
                         lineTo(86f, 774f)
                         lineTo(66f, 780f)
                         close()
                     }
-                    drawPath(sqPath, color = Color(0xFFC9B6F2), style = Stroke(width = 1.5f))
+                    drawPath(squarePath, color = Color(0xFFC9B6F2), style = Stroke(width = 1.5f))
                     drawSvgStar(center = Offset(300f, 805f), scale = 1.1f, color = Color(0xFFFBCA3F))
                 }
             } else {
-                // s04 y s05: atmósfera radial cálida
                 drawPersonalAtmosphereBackground()
             }
         }
@@ -478,7 +463,7 @@ internal fun RenderOnboardingScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                RfLogo(customSize = if (step == 1) 38.dp else 36.dp)
+                RfLogo(customSize = 36.dp)
                 RfBrandWordmark(text = "Rosa Fiesta", fontSize = 18.sp)
             }
 
@@ -503,163 +488,239 @@ internal fun RenderOnboardingScreen(
             }
         }
 
-        Column(
+        AnimatedContent(
+            targetState = step,
+            transitionSpec = {
+                val isAdvancing = targetState > initialState
+                buildOnboardingStepTransition(isAdvancing)
+            },
+            label = "personal-onboarding-step-content",
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(top = 72.dp, bottom = 18.dp),
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp),
-            ) {
-                when (step) {
-                    1 -> OnboardingIllustrationStep1()
-                    2 -> OnboardingIllustrationStep2()
-                    3 -> OnboardingIllustrationStep3()
-                }
+                .padding(top = 72.dp, bottom = 92.dp),
+        ) { animatedStep ->
+            val stepTag = when (animatedStep) {
+                1 -> "01 · Catálogo"
+                2 -> "02 · Rosa IA"
+                else -> "03 · WhatsApp"
             }
 
-            Spacer(Modifier.height(16.dp))
+            val stepColor = when (animatedStep) {
+                1 -> Color(0xFFD63F98)
+                2 -> Color(0xFF7A4FD8)
+                else -> Color(0xFF4E6A10)
+            }
+
+            val stepTitle = when (animatedStep) {
+                1 -> "Mira todo lo que tenemos"
+                2 -> "Tu asistente para planificar"
+                else -> "Confirma directo, sin trámites"
+            }
+
+            val stepSubtitle = when (animatedStep) {
+                1 -> "Navega por nuestro catálogo de decoración y equipo para eventos. Sin registrarte, sin compromiso."
+                2 -> "Dinos qué evento planeas y Rosa te sugiere artículos, categorías y más, paso a paso."
+                else -> "Comparte tu lista por WhatsApp con María, la dueña, y confirma todo en minutos."
+            }
 
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 28.dp),
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState()),
             ) {
-                BasicText(
-                    text = stepTag.uppercase(),
-                    style = typo.sectionCap.copy(
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = stepColor,
-                        letterSpacing = 1.sp,
-                    ),
-                )
-
-                Spacer(Modifier.height(6.dp))
-
-                BasicText(
-                    text = stepTitle,
-                    style = typo.heroTitle.copy(
-                        fontSize = 30.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = Color(0xFF151729),
-                        lineHeight = 34.sp,
-                    ),
-                )
-
-                Spacer(Modifier.height(10.dp))
-
-                BasicText(
-                    text = stepSubtitle,
-                    style = typo.body.copy(
-                        fontSize = 16.sp,
-                        color = Color(0xFF62627A),
-                        lineHeight = 24.sp,
-                    ),
-                )
-            }
-
-            Spacer(Modifier.weight(1f).heightIn(min = 20.dp))
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 28.dp),
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp),
                 ) {
-                    for (stepDotIndex in 1..4) {
-                        val isActive = stepDotIndex == step
-                        val dotTargetCode = when (stepDotIndex) {
-                            1 -> if (step > 1) "BACK:s03" else "s03"
-                            2 -> if (step > 2) "BACK:s04" else "s04"
-                            3 -> "s05"
-                            else -> "s06"
-                        }
-                        if (isActive) {
-                            Box(
-                                modifier = Modifier
-                                    .width(28.dp)
-                                    .height(6.dp)
-                                    .clip(RoundedCornerShape(3.dp))
-                                    .background(
-                                        when (step) {
-                                            1 -> Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))
-                                            2 -> SolidColor(Color(0xFF865DEC))
-                                            else -> SolidColor(Color(0xFF8DB52C))
-                                        },
-                                    )
-                                    .clickable { onSelectScreenCode(dotTargetCode) },
-                            )
-                        } else {
-                            Box(
-                                modifier = Modifier
-                                    .size(8.dp)
-                                    .clip(CircleShape)
-                                    .background(if (step == 1) Color(0xFFDCD3E4) else Color(0xFFE3DCE8))
-                                    .clickable { onSelectScreenCode(dotTargetCode) },
-                            )
-                        }
+                    when (animatedStep) {
+                        1 -> OnboardingIllustrationStep1()
+                        2 -> OnboardingIllustrationStep2()
+                        3 -> OnboardingIllustrationStep3()
                     }
                 }
 
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    if (prevScreen != null) {
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier
-                                .size(56.dp)
-                                .rfIconButtonShadow(CircleShape, isAdmin = false)
-                                .clip(CircleShape)
-                                .background(Color.White)
-                                .border(1.dp, Color(0xFFE6DFEE), CircleShape)
-                                .clickable { onSelectScreenCode(prevScreen) },
-                        ) {
-                            RfIcon(
-                                kind = RfIconKind.BACK,
-                                tint = Color(0xFF151729),
-                                size = 22.dp,
-                            )
-                        }
-                    }
+                Spacer(Modifier.height(16.dp))
 
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 28.dp),
+                ) {
+                    BasicText(
+                        text = stepTag.uppercase(),
+                        style = typo.sectionCap.copy(
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = stepColor,
+                            letterSpacing = 1.sp,
+                        ),
+                    )
+
+                    Spacer(Modifier.height(6.dp))
+
+                    BasicText(
+                        text = stepTitle,
+                        style = typo.heroTitle.copy(
+                            fontSize = 30.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color(0xFF151729),
+                            lineHeight = 34.sp,
+                        ),
+                    )
+
+                    Spacer(Modifier.height(10.dp))
+
+                    BasicText(
+                        text = stepSubtitle,
+                        style = typo.body.copy(
+                            fontSize = 16.sp,
+                            color = Color(0xFF62627A),
+                            lineHeight = 24.sp,
+                        ),
+                    )
+                }
+
+                Spacer(Modifier.height(16.dp))
+            }
+        }
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.BottomCenter)
+                .zIndex(2f)
+                .personalTopBarBackground(isStep1 = step == 1)
+                .padding(top = 10.dp, bottom = 18.dp, start = 28.dp, end = 28.dp),
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                for (stepDotIndex in 1..4) {
+                    val isActive = stepDotIndex == step
+                    val dotWidth by animateDpAsState(
+                        targetValue = if (isActive) 28.dp else 8.dp,
+                        animationSpec = tween(durationMillis = 240, easing = FastOutSlowInEasing),
+                        label = "personal-onboarding-dot-width",
+                    )
+                    val dotHeight by animateDpAsState(
+                        targetValue = if (isActive) 6.dp else 8.dp,
+                        animationSpec = tween(durationMillis = 240, easing = FastOutSlowInEasing),
+                        label = "personal-onboarding-dot-height",
+                    )
+                    val dotTargetCode = when (stepDotIndex) {
+                        1 -> if (step > 1) "BACK:s03" else "s03"
+                        2 -> if (step > 2) "BACK:s04" else "s04"
+                        3 -> "s05"
+                        else -> "s06"
+                    }
+                    val dotBrush = if (isActive) {
+                        when (step) {
+                            1 -> Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))
+                            2 -> SolidColor(Color(0xFF865DEC))
+                            else -> SolidColor(Color(0xFF8DB52C))
+                        }
+                    } else {
+                        val inactiveColor = if (step == 1) Color(0xFFDCD3E4) else Color(0xFFE3DCE8)
+                        SolidColor(inactiveColor)
+                    }
+                    Box(
+                        modifier = Modifier
+                            .width(dotWidth)
+                            .height(dotHeight)
+                            .clip(RoundedCornerShape(999.dp))
+                            .background(dotBrush)
+                            .clickable { onSelectScreenCode(dotTargetCode) },
+                    )
+                }
+            }
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                val hasPreviousStep = prevScreen != null
+                AnimatedVisibility(
+                    visible = hasPreviousStep,
+                    enter = fadeIn(tween(200)) + scaleIn(tween(200), initialScale = 0.85f),
+                    exit = fadeOut(tween(160)) + scaleOut(tween(160), targetScale = 0.85f),
+                ) {
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
-                            .size(64.dp)
+                            .size(56.dp)
+                            .rfIconButtonShadow(CircleShape, isAdmin = false)
                             .clip(CircleShape)
-                            .background(
-                                Brush.linearGradient(
-                                    when (step) {
-                                        1 -> listOf(Color(0xFFEA4EA9), Color(0xFFB754CB))
-                                        else -> listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))
-                                    },
-                                ),
-                            )
-                            .shadow(elevation = 12.dp, shape = CircleShape, spotColor = Color(0x99D646A0))
-                            .clickable { onSelectScreenCode(nextScreen) },
+                            .background(Color.White)
+                            .border(1.dp, Color(0xFFE6DFEE), CircleShape)
+                            .clickable {
+                                val backCode = prevScreen ?: "BACK:s03"
+                                onSelectScreenCode(backCode)
+                            },
                     ) {
                         RfIcon(
                             kind = RfIconKind.BACK,
-                            tint = Color.White,
-                            size = 24.dp,
-                            modifier = Modifier.rotate(180f),
+                            tint = Color(0xFF151729),
+                            size = 22.dp,
                         )
                     }
+                }
+
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(64.dp)
+                        .clip(CircleShape)
+                        .background(
+                            Brush.linearGradient(
+                                when (step) {
+                                    1 -> listOf(Color(0xFFEA4EA9), Color(0xFFB754CB))
+                                    else -> listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))
+                                },
+                            ),
+                        )
+                        .shadow(elevation = 12.dp, shape = CircleShape, spotColor = Color(0x99D646A0))
+                        .clickable { onSelectScreenCode(nextScreen) },
+                ) {
+                    RfIcon(
+                        kind = RfIconKind.BACK,
+                        tint = Color.White,
+                        size = 24.dp,
+                        modifier = Modifier.rotate(180f),
+                    )
                 }
             }
         }
     }
+}
+
+private fun buildOnboardingStepTransition(isAdvancing: Boolean): ContentTransform = if (isAdvancing) {
+    (
+        slideInHorizontally(
+            animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing),
+            initialOffsetX = { fullWidth -> fullWidth / 3 },
+        ) + fadeIn(animationSpec = tween(durationMillis = 240))
+        ).togetherWith(
+        slideOutHorizontally(
+            animationSpec = tween(durationMillis = 240, easing = FastOutSlowInEasing),
+            targetOffsetX = { fullWidth -> -fullWidth / 4 },
+        ) + fadeOut(animationSpec = tween(durationMillis = 180)),
+    )
+} else {
+    (
+        slideInHorizontally(
+            animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing),
+            initialOffsetX = { fullWidth -> -fullWidth / 3 },
+        ) + fadeIn(animationSpec = tween(durationMillis = 240))
+        ).togetherWith(
+        slideOutHorizontally(
+            animationSpec = tween(durationMillis = 240, easing = FastOutSlowInEasing),
+            targetOffsetX = { fullWidth -> fullWidth / 4 },
+        ) + fadeOut(animationSpec = tween(durationMillis = 180)),
+    )
 }
 
 private fun Modifier.personalTopBarBackground(isStep1: Boolean = false): Modifier = this
