@@ -62,4 +62,40 @@ class DefaultRosaFiestaRepositoryTest {
         repo.sendChatMessage("Camila", "Hola equipo")
         assertTrue(repo.chatMessages.value.last().contains("Hola equipo"))
     }
+
+    @Test
+    fun `registra nuevos usuarios reales emite JWT HS256 y permite login por usuario o correo`() {
+        val repo = DefaultRosaFiestaRepository()
+        val regOutcome = repo.registerUser(
+            firstName = "Valeria",
+            lastName = "Montes",
+            username = "valeria_m",
+            email = "valeria@rosafiesta.do",
+            birthDate = "14/05/1998",
+            phone = "809-555-0199",
+            password = "Valeria2026!",
+        )
+        assertTrue(regOutcome.success)
+        assertEquals(3, regOutcome.accessToken?.split('.')?.size)
+        assertEquals("valeria_m", repo.currentAuthenticatedUser.value?.username)
+
+        val duplicateUser = repo.registerUser(
+            firstName = "Otra",
+            lastName = "Valeria",
+            username = "valeria_m",
+            email = "otra@rosafiesta.do",
+            birthDate = "14/05/1998",
+            phone = "809-555-0100",
+            password = "Valeria2026!",
+        )
+        assertEquals(false, duplicateUser.success)
+        assertEquals("AUTH_USERNAME_TAKEN", duplicateUser.errorCode)
+
+        val loginByUsername = repo.authenticateUser("valeria_m", "Valeria2026!")
+        assertTrue(loginByUsername.success)
+
+        val resetOutcome = repo.resetUserPassword("valeria@rosafiesta.do", "NuevaClave2026!")
+        assertTrue(resetOutcome.success)
+        assertTrue(repo.authenticateUser("valeria@rosafiesta.do", "NuevaClave2026!").success)
+    }
 }

@@ -24,10 +24,15 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -38,6 +43,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -637,12 +643,30 @@ internal fun RenderPersonalHomeScreen(
         }
     }
 
+    val vmSearchQuery = viewModel?.searchQuery?.collectAsState()?.value ?: ""
+    var homeQuery by remember(vmSearchQuery) { mutableStateOf(vmSearchQuery) }
+    val allHomeArticles = viewModel?.articles?.collectAsState()?.value ?: com.jeudry.rosafiesta.domain.CanonicalSampleData.articles
+    val matchingHomeArticles = remember(homeQuery, allHomeArticles) {
+        val trimmedQuery = homeQuery.trim()
+        if (trimmedQuery.isEmpty()) {
+            emptyList()
+        } else {
+            allHomeArticles.filter { article ->
+                val matchesName = article.name.contains(trimmedQuery, ignoreCase = true)
+                val matchesCategory = article.category.contains(trimmedQuery, ignoreCase = true)
+                val matchesCode = article.code.contains(trimmedQuery, ignoreCase = true)
+                val matchesWithNameOrCat = matchesName || matchesCategory
+                matchesWithNameOrCat || matchesCode
+            }
+        }
+    }
+
     Column(
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(top = 54.dp, bottom = 112.dp),
+            .padding(top = 16.dp, bottom = 112.dp),
     ) {
         // Header
         Row(
@@ -757,7 +781,6 @@ internal fun RenderPersonalHomeScreen(
             }
         }
 
-        // Search Bar
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -769,24 +792,142 @@ internal fun RenderPersonalHomeScreen(
                 .clip(RoundedCornerShape(16.dp))
                 .background(cardBg)
                 .border(1.dp, cardBorder, RoundedCornerShape(16.dp))
-                .clickable { onSelectScreenCode("s80") }
                 .padding(start = 16.dp, end = 6.dp),
         ) {
-            RfIcon(kind = RfIconKind.SEARCH, tint = mutedColor, size = 20.dp)
-            BasicText(
-                text = "¿Qué celebramos hoy?",
-                style = typo.body.copy(fontSize = 15.sp, color = mutedColor),
-                modifier = Modifier.weight(1f),
+            RfIcon(
+                kind = RfIconKind.SEARCH,
+                tint = mutedColor,
+                size = 20.dp,
+                modifier = Modifier.clickable { onSelectScreenCode("s80") },
             )
+            BasicTextField(
+                value = homeQuery,
+                onValueChange = { updatedText ->
+                    homeQuery = updatedText
+                    viewModel?.setSearchQuery(updatedText)
+                },
+                singleLine = true,
+                textStyle = typo.body.copy(fontSize = 15.sp, color = textColor),
+                cursorBrush = SolidColor(Color(0xFFC2338F)),
+                modifier = Modifier.weight(1f),
+                decorationBox = { innerField ->
+                    Box(contentAlignment = Alignment.CenterStart) {
+                        if (homeQuery.isEmpty()) {
+                            BasicText(
+                                text = "¿Qué celebramos hoy? (sillas, arcos, mesas...)",
+                                style = typo.body.copy(fontSize = 14.sp, color = mutedColor),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                        innerField()
+                    }
+                },
+            )
+            if (homeQuery.isNotEmpty()) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clip(CircleShape)
+                        .background(chipBg)
+                        .clickable {
+                            homeQuery = ""
+                            viewModel?.setSearchQuery("")
+                        },
+                ) {
+                    RfIcon(kind = RfIconKind.CLOSE, tint = chipText, size = 14.dp)
+                }
+            }
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .size(40.dp)
                     .clip(RoundedCornerShape(12.dp))
                     .background(chipBg)
-                    .clickable { onSelectScreenCode("s35") },
+                    .clickable {
+                        val targetScreen = if (homeQuery.isNotBlank()) "s80" else "s35"
+                        onSelectScreenCode(targetScreen)
+                    },
             ) {
-                RfIcon(kind = RfIconKind.MIC, tint = chipText, size = 20.dp)
+                val trailingIcon = if (homeQuery.isNotBlank()) RfIconKind.FILTER else RfIconKind.MIC
+                RfIcon(kind = trailingIcon, tint = chipText, size = 20.dp)
+            }
+        }
+
+        if (homeQuery.isNotBlank()) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier
+                    .padding(horizontal = 20.dp)
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(cardBg)
+                    .border(1.dp, cardBorder, RoundedCornerShape(18.dp))
+                    .padding(14.dp),
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    BasicText(
+                        text = "${matchingHomeArticles.size} resultados para “${homeQuery.trim()}”",
+                        style = typo.bodyStrong.copy(fontSize = 13.sp, color = textColor),
+                    )
+                    BasicText(
+                        text = "Ver filtros →",
+                        style = typo.caption.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFFC2338F)),
+                        modifier = Modifier.clickable { onSelectScreenCode("s80") },
+                    )
+                }
+                if (matchingHomeArticles.isEmpty()) {
+                    BasicText(
+                        text = "No encontramos artículos con ese nombre. Prueba con “silla”, “mesa”, “arco” o “floral”.",
+                        style = typo.caption.copy(fontSize = 13.sp, color = mutedColor),
+                    )
+                } else {
+                    matchingHomeArticles.take(4).forEach { article ->
+                        val resolvedPhoto = RfPhotoKey.entries.firstOrNull { entry ->
+                            val matchesAsset = entry.assetKey == article.photo.key
+                            val matchesEnumName = entry.name.equals(article.photo.key, ignoreCase = true)
+                            matchesAsset || matchesEnumName
+                        } ?: RfPhotoKey.MESA_REDONDA
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .clickable {
+                                    viewModel?.selectArticle(article.id)
+                                    onSelectScreenCode("s19")
+                                }
+                                .padding(vertical = 6.dp),
+                        ) {
+                            RfPhoto(
+                                photoKey = resolvedPhoto,
+                                contentDescription = article.name,
+                                modifier = Modifier.size(48.dp),
+                                cornerRadius = 10.dp,
+                            )
+                            Column(modifier = Modifier.weight(1f)) {
+                                BasicText(
+                                    text = article.name,
+                                    style = typo.bodyStrong.copy(fontSize = 14.sp, color = textColor),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                                BasicText(
+                                    text = "${article.category} · Stock ${article.totalStock}",
+                                    style = typo.caption.copy(fontSize = 12.sp, color = mutedColor),
+                                    maxLines = 1,
+                                )
+                            }
+                            RfGradientPriceText("RD$ ${article.pricePerDayDop}/día")
+                        }
+                    }
+                }
             }
         }
 
@@ -1411,23 +1552,10 @@ internal fun RenderPersonalCatalogContent(
         }
 
         "s80" -> {
-            RfCard {
-                BasicText("Comparativa de sillas y mesas", style = typo.cardTitle)
-                Spacer(Modifier.height(6.dp))
-                articles.take(3).forEach { art ->
-                    Row(
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            BasicText(art.name, style = typo.bodyStrong)
-                            BasicText("Stock 23 oct: ${art.availableOct23}/${art.totalStock} · ${art.variants.joinToString()}", style = typo.secondary)
-                        }
-                        RfGradientPriceText(art.formattedDailyRate)
-                    }
-                }
-            }
-            RfButton(label = spec.primaryCta, onClick = onPrimaryAction)
+            RenderPersonalSearchS80(
+                viewModel = viewModel,
+                onSelectScreenCode = onSelectScreenCode,
+            )
             return
         }
     }

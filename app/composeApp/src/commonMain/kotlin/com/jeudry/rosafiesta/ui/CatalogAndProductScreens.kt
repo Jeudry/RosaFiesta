@@ -103,7 +103,7 @@ internal fun RenderPersonalCatalogS18(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(top = 54.dp, start = 20.dp, end = 20.dp),
+            .padding(top = 16.dp, start = 20.dp, end = 20.dp),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -523,7 +523,7 @@ internal fun RenderProductDetailS19(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 54.dp, start = 20.dp, end = 20.dp),
+                    .padding(top = 16.dp, start = 20.dp, end = 20.dp),
             ) {
                 Box(
                     contentAlignment = Alignment.Center,
@@ -827,7 +827,7 @@ internal fun RenderCategoriesScreenS20(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(top = 56.dp, start = 20.dp, end = 20.dp),
+                .padding(top = 16.dp, start = 20.dp, end = 20.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
             // Header: back + title + subtitle
@@ -1177,7 +1177,7 @@ internal fun RenderPackagesScreenS21(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(top = 58.dp, start = 20.dp, end = 20.dp, bottom = 116.dp),
+            .padding(top = 16.dp, start = 20.dp, end = 20.dp, bottom = 116.dp),
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             BasicText("Paquetes", style = typo.heroTitle.copy(fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF1A1A2E)))
@@ -1563,7 +1563,7 @@ internal fun RenderShopScreenS23(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(top = 54.dp),
+                .padding(top = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Row(
@@ -2047,7 +2047,7 @@ internal fun RenderClientFavoritesScreenS24(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(top = 58.dp, start = 20.dp, end = 20.dp, bottom = 116.dp),
+            .padding(top = 16.dp, start = 20.dp, end = 20.dp, bottom = 116.dp),
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             BasicText("Favoritos", style = typo.heroTitle.copy(fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF1A1A2E)))

@@ -86,6 +86,18 @@ CREATE TABLE chatMessageEntity (
     formattedMessage TEXT NOT NULL
 );
 
+CREATE TABLE userAccountEntity (
+    id TEXT NOT NULL PRIMARY KEY,
+    username TEXT NOT NULL,
+    email TEXT NOT NULL,
+    fullName TEXT NOT NULL,
+    passwordHash TEXT NOT NULL,
+    salt TEXT NOT NULL,
+    birthDate TEXT NOT NULL DEFAULT '',
+    phone TEXT NOT NULL DEFAULT '',
+    role TEXT NOT NULL DEFAULT 'client'
+);
+
 selectAllArticles:
 SELECT * FROM LocalArticleEntity ORDER BY code ASC;
 
@@ -187,3 +199,17 @@ SELECT formattedMessage FROM chatMessageEntity ORDER BY id ASC;
 
 insertChatMessage:
 INSERT INTO chatMessageEntity(formattedMessage) VALUES (?);
+
+selectAllUserAccounts:
+SELECT * FROM userAccountEntity ORDER BY id ASC;
+
+upsertUserAccount:
+INSERT OR REPLACE INTO userAccountEntity(
+    id, username, email, fullName, passwordHash, salt, birthDate, phone, role
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateUserAccountPassword:
+UPDATE userAccountEntity
+SET passwordHash = ?, salt = ?
+WHERE id = ?;

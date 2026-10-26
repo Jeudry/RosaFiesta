@@ -1,6 +1,7 @@
 package com.jeudry.rosafiesta.domain
 
 import com.jeudry.rosafiesta.domain.security.InMemorySecureStorage
+import com.jeudry.rosafiesta.domain.security.JwtAuthManager
 import com.jeudry.rosafiesta.domain.security.SecureStorage
 import com.jeudry.rosafiesta.domain.security.SensitiveDataRedactor
 import com.jeudry.rosafiesta.domain.sound.NoOpSoundPlayer
@@ -10,6 +11,7 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -64,5 +66,25 @@ class SecurityAndSoundTest {
 
         storage.remove(SecureStorage.KEY_ACCESS_TOKEN)
         assertNull(storage.get(SecureStorage.KEY_ACCESS_TOKEN))
+    }
+
+    @Test
+    fun `verifica firma y validacion de tokens JWT HS256 y hashing de contrasenas con sal`() {
+        val hash = JwtAuthManager.hashPassword("RosaFiesta2026!", "usr-test-salt")
+        assertTrue(JwtAuthManager.verifyPassword("RosaFiesta2026!", "usr-test-salt", hash))
+        assertFalse(JwtAuthManager.verifyPassword("WrongPass2026!", "usr-test-salt", hash))
+
+        val account = JwtAuthManager.defaultSeedAccounts.first()
+        val token = JwtAuthManager.issueAccessToken(account, issuedAtEpochSeconds = 1_793_050_000L)
+        assertEquals(3, token.split('.').size)
+
+        val verified = JwtAuthManager.verifyAccessToken(token)
+        assertNotNull(verified)
+        assertEquals(account.id, verified.subjectId)
+        assertEquals(account.username, verified.username)
+        assertEquals(account.role, verified.role)
+
+        val tamperedToken = token.dropLast(2) + "AA"
+        assertNull(JwtAuthManager.verifyAccessToken(tamperedToken))
     }
 }

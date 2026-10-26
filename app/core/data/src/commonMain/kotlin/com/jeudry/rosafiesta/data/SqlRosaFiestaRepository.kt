@@ -19,6 +19,10 @@ import com.jeudry.rosafiesta.domain.PaymentRecord
 import com.jeudry.rosafiesta.domain.PhotoAsset
 import com.jeudry.rosafiesta.domain.RosaFiestaRepository
 import com.jeudry.rosafiesta.domain.StaffMember
+import com.jeudry.rosafiesta.domain.security.AuthOutcome
+import com.jeudry.rosafiesta.domain.security.JwtAuthManager
+import com.jeudry.rosafiesta.domain.security.RegisteredUserAccount
+import com.jeudry.rosafiesta.domain.security.SensitiveDataRedactor
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -69,6 +73,20 @@ public class SqlRosaFiestaRepository(
 
     private val _currentUserEmail = MutableStateFlow("camila@rosafiesta.do")
     override val currentUserEmail: StateFlow<String> = _currentUserEmail.asStateFlow()
+
+    private val userAccountsState = MutableStateFlow(JwtAuthManager.defaultSeedAccounts)
+
+    private val _currentAuthenticatedUser = MutableStateFlow<RegisteredUserAccount?>(
+        JwtAuthManager.defaultSeedAccounts.firstOrNull(),
+    )
+    override val currentAuthenticatedUser: StateFlow<RegisteredUserAccount?> = _currentAuthenticatedUser.asStateFlow()
+
+    private val _currentSessionJwt = MutableStateFlow<String?>(
+        JwtAuthManager.defaultSeedAccounts.firstOrNull()?.let { seedUser ->
+            JwtAuthManager.issueAccessToken(seedUser)
+        },
+    )
+    override val currentSessionJwt: StateFlow<String?> = _currentSessionJwt.asStateFlow()
 
     private val _favorites = MutableStateFlow(CanonicalSampleData.initialFavorites)
     override val favorites: StateFlow<Set<String>> = _favorites.asStateFlow()
@@ -178,6 +196,37 @@ public class SqlRosaFiestaRepository(
                 CanonicalSampleData.initialChatMessages.forEach { msg ->
                     queries.insertChatMessage(msg)
                 }
+                JwtAuthManager.defaultSeedAccounts.forEach { account ->
+                    queries.upsertUserAccount(
+                        id = account.id,
+                        username = account.username,
+                        email = account.email,
+                        fullName = account.fullName,
+                        passwordHash = account.passwordHash,
+                        salt = account.salt,
+                        birthDate = account.birthDate,
+                        phone = account.phone,
+                        role = account.role,
+                    )
+                }
+            }
+        }
+        val existingUsers = queries.selectAllUserAccounts().executeAsList()
+        if (existingUsers.isEmpty()) {
+            database.transaction {
+                JwtAuthManager.defaultSeedAccounts.forEach { account ->
+                    queries.upsertUserAccount(
+                        id = account.id,
+                        username = account.username,
+                        email = account.email,
+                        fullName = account.fullName,
+                        passwordHash = account.passwordHash,
+                        salt = account.salt,
+                        birthDate = account.birthDate,
+                        phone = account.phone,
+                        role = account.role,
+                    )
+                }
             }
         }
         reloadFromSql()
@@ -192,6 +241,26 @@ public class SqlRosaFiestaRepository(
         reloadFavoritesFromSql()
         reloadStaffFromSql()
         reloadChatFromSql()
+        reloadUserAccountsFromSql()
+    }
+
+    private fun reloadUserAccountsFromSql() {
+        val loadedUsers = queries.selectAllUserAccounts().executeAsList().map { row ->
+            RegisteredUserAccount(
+                id = row.id,
+                username = row.username,
+                email = row.email,
+                fullName = row.fullName,
+                passwordHash = row.passwordHash,
+                salt = row.salt,
+                birthDate = row.birthDate,
+                phone = row.phone,
+                role = row.role,
+            )
+        }
+        if (loadedUsers.isNotEmpty()) {
+            userAccountsState.value = loadedUsers
+        }
     }
 
     private fun reloadArticlesFromSql() {
@@ -707,20 +776,203 @@ public class SqlRosaFiestaRepository(
         }
     }
 
-    override fun login(email: String, password: String): Boolean {
-        val cleanEmail = email.trim().lowercase()
+    override fun login(email: String, password: String): Boolean = authenticateUser(email, password).success
+
+    override fun authenticateUser(identifier: String, password: String): AuthOutcome {
+        val cleanIdentifier = identifier.trim().lowercase()
         val cleanPass = password.trim()
-        val isValidEmail = cleanEmail.contains("@") && cleanEmail.substringAfter("@").contains(".")
-        if (!isValidEmail || cleanPass.length < 4) {
-            return false
+        val isMissingCredentials = cleanIdentifier.isEmpty() || cleanPass.length < 4
+        if (isMissingCredentials) {
+            return AuthOutcome.failure(
+                errorCode = "AUTH_INVALID_CREDENTIALS",
+                errorMessage = SensitiveDataRedactor.translateBusinessError("AUTH_INVALID_CREDENTIALS", null),
+            )
         }
-        _currentUserEmail.value = cleanEmail
-        _activeRole.value = when {
+        val matchedAccount = findAccountByIdentifier(userAccountsState.value, cleanIdentifier)
+        if (matchedAccount == null) {
+            return AuthOutcome.failure(
+                errorCode = "AUTH_INVALID_CREDENTIALS",
+                errorMessage = SensitiveDataRedactor.translateBusinessError("AUTH_INVALID_CREDENTIALS", null),
+            )
+        }
+        val passwordValid = JwtAuthManager.verifyPassword(
+            rawPassword = cleanPass,
+            salt = matchedAccount.salt,
+            expectedHash = matchedAccount.passwordHash,
+        )
+        if (!passwordValid) {
+            return AuthOutcome.failure(
+                errorCode = "AUTH_INVALID_CREDENTIALS",
+                errorMessage = SensitiveDataRedactor.translateBusinessError("AUTH_INVALID_CREDENTIALS", null),
+            )
+        }
+        val token = JwtAuthManager.issueAccessToken(matchedAccount)
+        _currentAuthenticatedUser.value = matchedAccount
+        _currentSessionJwt.value = token
+        _currentUserEmail.value = matchedAccount.email
+        _activeRole.value = matchedAccount.role
+        return AuthOutcome.authenticated(accessToken = token, account = matchedAccount)
+    }
+
+    override fun registerUser(
+        firstName: String,
+        lastName: String,
+        username: String,
+        email: String,
+        password: String,
+        birthDate: String,
+        phone: String,
+    ): AuthOutcome {
+        val cleanFirst = firstName.trim()
+        val cleanLast = lastName.trim()
+        val cleanUsername = username.trim().lowercase()
+        val cleanEmail = email.trim().lowercase()
+        val cleanPassword = password.trim()
+        val cleanBirthDate = birthDate.trim()
+        val cleanPhone = phone.trim()
+
+        val hasEmailAt = cleanEmail.contains("@")
+        val hasEmailDomainDot = cleanEmail.substringAfter("@").contains(".")
+        val validEmailFormat = hasEmailAt && hasEmailDomainDot
+        val fullName = listOf(cleanFirst, cleanLast).filter { part -> part.isNotEmpty() }.joinToString(" ")
+        val resolvedUsername = cleanUsername.ifEmpty { cleanEmail.substringBefore("@") }
+
+        val missingCoreFields = fullName.isEmpty() || resolvedUsername.length < 2 || !validEmailFormat
+        if (missingCoreFields) {
+            return AuthOutcome.failure(
+                errorCode = "AUTH_MISSING_FIELDS",
+                errorMessage = SensitiveDataRedactor.translateBusinessError("AUTH_MISSING_FIELDS", null),
+            )
+        }
+        if (cleanPassword.length < 6) {
+            return AuthOutcome.failure(
+                errorCode = "AUTH_WEAK_PASSWORD",
+                errorMessage = SensitiveDataRedactor.translateBusinessError("AUTH_WEAK_PASSWORD", null),
+            )
+        }
+        val existingAccounts = userAccountsState.value
+        val emailTaken = existingAccounts.any { account -> account.email.equals(cleanEmail, ignoreCase = true) }
+        if (emailTaken) {
+            return AuthOutcome.failure(
+                errorCode = "AUTH_EMAIL_TAKEN",
+                errorMessage = SensitiveDataRedactor.translateBusinessError("AUTH_EMAIL_TAKEN", null),
+            )
+        }
+        val usernameTaken = existingAccounts.any { account -> account.username.equals(resolvedUsername, ignoreCase = true) }
+        if (usernameTaken) {
+            return AuthOutcome.failure(
+                errorCode = "AUTH_USERNAME_TAKEN",
+                errorMessage = SensitiveDataRedactor.translateBusinessError("AUTH_USERNAME_TAKEN", null),
+            )
+        }
+
+        val salt = JwtAuthManager.generateDeterministicSalt("$cleanEmail:$resolvedUsername")
+        val passwordHash = JwtAuthManager.hashPassword(cleanPassword, salt)
+        val resolvedRole = when {
             cleanEmail.startsWith("maria") -> "admin"
             cleanEmail.startsWith("yuli") -> "staff_yuli"
             else -> "client"
         }
-        return true
+        val newAccount = RegisteredUserAccount(
+            id = "usr-${existingAccounts.size + 1}-$resolvedUsername",
+            username = resolvedUsername,
+            email = cleanEmail,
+            fullName = fullName,
+            passwordHash = passwordHash,
+            salt = salt,
+            birthDate = cleanBirthDate,
+            phone = cleanPhone,
+            role = resolvedRole,
+        )
+        userAccountsState.update { accounts -> accounts + newAccount }
+        scope.launch {
+            sqlMutex.withLock {
+                queries.upsertUserAccount(
+                    id = newAccount.id,
+                    username = newAccount.username,
+                    email = newAccount.email,
+                    fullName = newAccount.fullName,
+                    passwordHash = newAccount.passwordHash,
+                    salt = newAccount.salt,
+                    birthDate = newAccount.birthDate,
+                    phone = newAccount.phone,
+                    role = newAccount.role,
+                )
+                reloadUserAccountsFromSql()
+            }
+        }
+        val token = JwtAuthManager.issueAccessToken(newAccount)
+        _currentAuthenticatedUser.value = newAccount
+        _currentSessionJwt.value = token
+        _currentUserEmail.value = newAccount.email
+        _activeRole.value = newAccount.role
+        return AuthOutcome.authenticated(accessToken = token, account = newAccount)
+    }
+
+    override fun resetUserPassword(identifier: String, newPassword: String): AuthOutcome {
+        val cleanIdentifier = identifier.trim().lowercase()
+        val cleanPassword = newPassword.trim()
+        if (cleanPassword.length < 6) {
+            return AuthOutcome.failure(
+                errorCode = "AUTH_WEAK_PASSWORD",
+                errorMessage = SensitiveDataRedactor.translateBusinessError("AUTH_WEAK_PASSWORD", null),
+            )
+        }
+        val targetIdentifier = cleanIdentifier.ifEmpty { _currentUserEmail.value }
+        val existingAccount = findAccountByIdentifier(userAccountsState.value, targetIdentifier)
+        if (existingAccount == null) {
+            return AuthOutcome.failure(
+                errorCode = "AUTH_ACCOUNT_NOT_FOUND",
+                errorMessage = SensitiveDataRedactor.translateBusinessError("AUTH_ACCOUNT_NOT_FOUND", null),
+            )
+        }
+        val nextSalt = JwtAuthManager.generateDeterministicSalt("${existingAccount.email}:reset")
+        val nextHash = JwtAuthManager.hashPassword(cleanPassword, nextSalt)
+        val updatedAccount = existingAccount.copy(
+            passwordHash = nextHash,
+            salt = nextSalt,
+        )
+        userAccountsState.update { list ->
+            list.map { account ->
+                if (account.id == updatedAccount.id) updatedAccount else account
+            }
+        }
+        scope.launch {
+            sqlMutex.withLock {
+                queries.updateUserAccountPassword(
+                    passwordHash = updatedAccount.passwordHash,
+                    salt = updatedAccount.salt,
+                    id = updatedAccount.id,
+                )
+                reloadUserAccountsFromSql()
+            }
+        }
+        val token = JwtAuthManager.issueAccessToken(updatedAccount)
+        _currentAuthenticatedUser.value = updatedAccount
+        _currentSessionJwt.value = token
+        return AuthOutcome.authenticated(accessToken = token, account = updatedAccount)
+    }
+
+    private fun findAccountByIdentifier(
+        accounts: List<RegisteredUserAccount>,
+        rawIdentifier: String,
+    ): RegisteredUserAccount? {
+        val normalized = rawIdentifier.trim().lowercase()
+        if (normalized.isEmpty()) return null
+        val directMatch = accounts.firstOrNull { account ->
+            val emailMatch = account.email.equals(normalized, ignoreCase = true)
+            val usernameMatch = account.username.equals(normalized, ignoreCase = true)
+            if (emailMatch) true else usernameMatch
+        }
+        if (directMatch != null) return directMatch
+        val localPart = normalized.substringBefore("@")
+        val isRosaFiestaDomain = normalized.endsWith("@rosafiesta.do")
+        if (isRosaFiestaDomain) {
+            return accounts.firstOrNull { account ->
+                account.username.equals(localPart, ignoreCase = true)
+            }
+        }
+        return null
     }
 
     override fun switchRole(role: String) {

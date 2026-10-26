@@ -2,6 +2,8 @@ package com.jeudry.rosafiesta.domain
 
 import com.jeudry.rosafiesta.core.engine.CancellationRefund
 import com.jeudry.rosafiesta.core.engine.DateChangeResult
+import com.jeudry.rosafiesta.domain.security.AuthOutcome
+import com.jeudry.rosafiesta.domain.security.RegisteredUserAccount
 import kotlinx.coroutines.flow.StateFlow
 
 /**
@@ -16,6 +18,8 @@ public interface RosaFiestaRepository {
     public val metrics: StateFlow<BusinessMetrics>
     public val activeRole: StateFlow<String>
     public val currentUserEmail: StateFlow<String>
+    public val currentSessionJwt: StateFlow<String?>
+    public val currentAuthenticatedUser: StateFlow<RegisteredUserAccount?>
     public val favorites: StateFlow<Set<String>>
     public val staffMembers: StateFlow<List<StaffMember>>
     public val chatMessages: StateFlow<List<String>>
@@ -24,6 +28,17 @@ public interface RosaFiestaRepository {
     public fun syncOfflineQueue()
     public fun adjustArticleStock(articleId: String, delta: Int)
     public fun login(email: String, password: String): Boolean
+    public fun authenticateUser(identifier: String, password: String): AuthOutcome
+    public fun registerUser(
+        firstName: String,
+        lastName: String,
+        username: String,
+        email: String,
+        password: String,
+        birthDate: String,
+        phone: String = "",
+    ): AuthOutcome
+    public fun resetUserPassword(identifier: String, newPassword: String): AuthOutcome
     public fun switchRole(role: String)
     public fun toggleFavorite(articleId: String)
     public fun toggleStaffPaymentAccess(staffName: String)

@@ -314,7 +314,7 @@ fun RenderScreenSpec(
                 "s77" -> RenderEventReviewsModalS77(onSelectScreenCode = onSelectScreenCode)
                 "s79" -> RenderPersonalNotificationsS79(onSelectScreenCode = onSelectScreenCode)
                 "s80" -> RenderPersonalSearchS80(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
-                "s81" -> RenderCatalogFiltersModalS81(onSelectScreenCode = onSelectScreenCode)
+                "s81" -> RenderCatalogFiltersModalS81(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
                 "s82" -> RenderPersonalPaymentsS82(onSelectScreenCode = onSelectScreenCode)
                 "s84" -> RenderChangeDateModalS84(onSelectScreenCode = onSelectScreenCode)
                 "s85" -> RenderCancelEventModalS85(onSelectScreenCode = onSelectScreenCode)

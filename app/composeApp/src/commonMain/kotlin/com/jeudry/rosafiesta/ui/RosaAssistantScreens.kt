@@ -290,7 +290,7 @@ internal fun RenderMyEventDraftS25(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp),
         ) {
-            Spacer(modifier = Modifier.height(56.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Header
             Row(
@@ -2851,7 +2851,7 @@ internal fun RenderRosaSubmittedS33(
                 )
             }
 
-            Spacer(modifier = Modifier.height(54.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Tarjeta "Qué sigue"
             Box(

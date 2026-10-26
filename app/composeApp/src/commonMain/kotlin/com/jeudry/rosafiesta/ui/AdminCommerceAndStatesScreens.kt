@@ -263,7 +263,7 @@ internal fun RenderAdminManualEventA05(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(top = 54.dp, start = 20.dp, end = 20.dp),
+                .padding(top = 16.dp, start = 20.dp, end = 20.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             // Header
@@ -648,7 +648,7 @@ internal fun RenderAdminEventArticlesA06(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(top = 54.dp, start = 20.dp, end = 20.dp),
+                .padding(top = 16.dp, start = 20.dp, end = 20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // Header
@@ -904,7 +904,7 @@ internal fun RenderAdminEventSummaryA07(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(top = 54.dp, start = 20.dp, end = 20.dp),
+                .padding(top = 16.dp, start = 20.dp, end = 20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // Header
@@ -1249,7 +1249,7 @@ internal fun RenderAdminChatsA14(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(top = 54.dp, start = 20.dp, end = 20.dp),
+                .padding(top = 16.dp, start = 20.dp, end = 20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // Header
@@ -1638,7 +1638,7 @@ internal fun RenderAdminChatConversationA15(
                 .fillMaxWidth()
                 .background(Color.White)
                 .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(0.dp))
-                .padding(top = 52.dp, start = 12.dp, end = 12.dp, bottom = 12.dp),
+                .padding(top = 16.dp, start = 12.dp, end = 12.dp, bottom = 12.dp),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -1857,7 +1857,7 @@ internal fun RenderAdminQuotesA22(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(top = 54.dp, start = 20.dp, end = 20.dp),
+                .padding(top = 16.dp, start = 20.dp, end = 20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // Header
@@ -2028,7 +2028,7 @@ internal fun RenderAdminNotificationsA29(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(top = 54.dp, start = 20.dp, end = 20.dp, bottom = 32.dp),
+            .padding(top = 16.dp, start = 20.dp, end = 20.dp, bottom = 32.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         // Header
@@ -3064,7 +3064,7 @@ internal fun RenderAdminSettingsA31(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(top = 54.dp, start = 20.dp, end = 20.dp),
+                .padding(top = 16.dp, start = 20.dp, end = 20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // Header
@@ -3323,7 +3323,7 @@ internal fun RenderAdminCancellationsA32(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(top = 54.dp, start = 20.dp, end = 20.dp),
+                .padding(top = 16.dp, start = 20.dp, end = 20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // Header
@@ -3690,7 +3690,7 @@ internal fun RenderAdminRefundA33(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(top = 54.dp, start = 20.dp, end = 20.dp),
+                .padding(top = 16.dp, start = 20.dp, end = 20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // Header
@@ -3970,7 +3970,7 @@ internal fun RenderAdminReplyReviewA34(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(top = 54.dp, start = 20.dp, end = 20.dp),
+                .padding(top = 16.dp, start = 20.dp, end = 20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // Header
@@ -4236,7 +4236,7 @@ internal fun RenderAdminEmptyStateA35(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(top = 54.dp, start = 20.dp, end = 20.dp, bottom = 116.dp),
+                .padding(top = 16.dp, start = 20.dp, end = 20.dp, bottom = 116.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // Header: Botón volver + Título + Subtítulo
@@ -4442,7 +4442,7 @@ internal fun RenderAdminLoadingStateA36(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(top = 54.dp, start = 20.dp, end = 20.dp, bottom = 116.dp),
+                .padding(top = 16.dp, start = 20.dp, end = 20.dp, bottom = 116.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             // Header skeleton: Logo + 2 lines + circular avatar
@@ -4707,7 +4707,7 @@ internal fun RenderAdminSuccessStateA38(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 52.dp, start = 16.dp, end = 16.dp)
+                .padding(top = 16.dp, start = 16.dp, end = 16.dp)
                 .clip(RoundedCornerShape(18.dp))
                 .background(Color(0xFF151729))
                 .padding(horizontal = 14.dp, vertical = 12.dp),

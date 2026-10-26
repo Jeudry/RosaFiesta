@@ -1046,7 +1046,7 @@ internal fun RenderEventChatTabS41(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(scrollState)
-                .padding(top = 56.dp, start = 20.dp, end = 20.dp, bottom = 90.dp),
+                .padding(top = 16.dp, start = 20.dp, end = 20.dp, bottom = 90.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Row(
@@ -1498,7 +1498,7 @@ internal fun RenderEventChatS42(
                 .fillMaxWidth()
                 .background(Color.White)
                 .border(1.dp, Color(0xFFF2EDF5))
-                .padding(start = 12.dp, end = 12.dp, top = 52.dp, bottom = 12.dp),
+                .padding(start = 12.dp, end = 12.dp, top = 16.dp, bottom = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
@@ -1833,7 +1833,7 @@ internal fun RenderInventoryCalendarS63(onSelectScreenCode: (String) -> Unit = {
 
     RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-            Spacer(Modifier.height(56.dp))
+            Spacer(Modifier.height(16.dp))
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -2101,7 +2101,7 @@ private fun LeadsScaffold(
 
     RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-            Spacer(Modifier.height(56.dp))
+            Spacer(Modifier.height(16.dp))
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -3017,7 +3017,7 @@ private fun AdminSubScaffold(
 
     RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-            Spacer(Modifier.height(56.dp))
+            Spacer(Modifier.height(16.dp))
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -3109,7 +3109,7 @@ internal fun RenderReviewModerationS71(onSelectScreenCode: (String) -> Unit = {}
 
     RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-            Spacer(Modifier.height(56.dp))
+            Spacer(Modifier.height(16.dp))
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -3398,7 +3398,7 @@ private fun BotScaffold(
 
     RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-            Spacer(Modifier.height(56.dp))
+            Spacer(Modifier.height(16.dp))
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -3700,7 +3700,7 @@ private fun AdminPanelScaffold(
 
     RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-            Spacer(Modifier.height(56.dp))
+            Spacer(Modifier.height(16.dp))
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -4073,7 +4073,7 @@ private fun RenderGenericPersonalSubPanel(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp),
         ) {
-            Spacer(modifier = Modifier.height(56.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),

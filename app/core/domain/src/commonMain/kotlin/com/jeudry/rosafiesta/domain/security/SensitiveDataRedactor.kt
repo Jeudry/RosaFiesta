@@ -79,8 +79,15 @@ public object SensitiveDataRedactor {
     public fun translateBusinessError(code: String?, serverMessage: String?): String {
         val normalizedCode = code?.trim()?.uppercase().orEmpty()
         val mapped = when (normalizedCode) {
-            "AUTH_INVALID_CREDENTIALS" -> "Correo o contraseña incorrectos. Verifica tus datos e inténtalo de nuevo."
+            "AUTH_INVALID_CREDENTIALS" -> "Correo o contraseña incorrectos. Verifica tu usuario o correo e inténtalo de nuevo."
             "AUTH_MISSING_TOKEN", "AUTH_INVALID_TOKEN" -> "Tu sesión ha expirado. Inicia sesión nuevamente."
+            "AUTH_USERNAME_TAKEN" -> "Ese nombre de usuario ya está en uso. Elige otro."
+            "AUTH_EMAIL_TAKEN" -> "Ya existe una cuenta registrada con ese correo electrónico."
+            "AUTH_WEAK_PASSWORD" -> "La contraseña debe tener al menos 6 caracteres."
+            "AUTH_MISSING_FIELDS" -> "Completa tu nombre, usuario, correo electrónico válido y contraseña."
+            "AUTH_TERMS_REQUIRED" -> "Debes aceptar los Términos y condiciones para crear tu cuenta."
+            "AUTH_PASSWORD_MISMATCH" -> "Las contraseñas no coinciden. Verifica ambos campos."
+            "AUTH_ACCOUNT_NOT_FOUND" -> "No encontramos ninguna cuenta asociada a ese correo o usuario."
             "FORBIDDEN_PERMISSION" -> "Tu perfil operativo no tiene permisos para realizar esta acción."
             "FORBIDDEN_APP_VIEW" -> "Tu cuenta no tiene acceso a esta vista de la aplicación."
             "ACCOUNT_HAS_ACTIVE_EVENTS" -> "No puedes eliminar tu cuenta mientras tengas eventos activos o saldos pendientes."

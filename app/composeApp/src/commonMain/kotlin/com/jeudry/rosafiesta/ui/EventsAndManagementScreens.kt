@@ -107,7 +107,7 @@ internal fun RenderMyEventsScreenS37(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp),
         ) {
-            Spacer(modifier = Modifier.height(56.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Header: Título + Calendario + Botón Nuevo (+)
             Row(
@@ -377,7 +377,7 @@ internal fun RenderNewEventScreenS38(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(top = 56.dp, start = 20.dp, end = 20.dp, bottom = 104.dp),
+                .padding(top = 16.dp, start = 20.dp, end = 20.dp, bottom = 104.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
             // Header: back + title + step
@@ -658,7 +658,7 @@ internal fun RenderCalendarScreenS39(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp),
         ) {
-            Spacer(modifier = Modifier.height(56.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Header
             Row(
@@ -812,7 +812,7 @@ internal fun RenderEventDetailScreenS40(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(top = 54.dp, start = 20.dp, end = 20.dp, bottom = 30.dp),
+                .padding(top = 16.dp, start = 20.dp, end = 20.dp, bottom = 30.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             // Header
@@ -1369,7 +1369,7 @@ internal fun RenderExecutionModeScreenS43(
                     .rfHeroBannerShadow(RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp), isAdmin = false)
                     .clip(RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp))
                     .background(RosaButtonGradient)
-                    .padding(top = 52.dp, start = 20.dp, end = 20.dp, bottom = 28.dp),
+                    .padding(top = 16.dp, start = 20.dp, end = 20.dp, bottom = 28.dp),
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
                     Row(
@@ -1602,7 +1602,7 @@ internal fun RenderTimelineScreenS44(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(start = 20.dp, end = 20.dp, top = 56.dp, bottom = 30.dp),
+                .padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 30.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
             // Header
@@ -1832,7 +1832,7 @@ internal fun RenderTasksScreenS45(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(start = 20.dp, end = 20.dp, top = 56.dp, bottom = 30.dp),
+                .padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 30.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
             Row(
@@ -2110,7 +2110,7 @@ internal fun RenderChecklistScreenS46(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(start = 20.dp, end = 20.dp, top = 56.dp),
+                .padding(start = 20.dp, end = 20.dp, top = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             // Header
@@ -2366,7 +2366,7 @@ internal fun RenderGuestsScreenS47(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(start = 20.dp, end = 20.dp, top = 56.dp, bottom = 30.dp),
+                .padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 30.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             // Header
@@ -2602,7 +2602,7 @@ internal fun RenderQuoteScreenS48(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(top = 56.dp, start = 20.dp, end = 20.dp, bottom = 104.dp),
+                .padding(top = 16.dp, start = 20.dp, end = 20.dp, bottom = 104.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             // Header

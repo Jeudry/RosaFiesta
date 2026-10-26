@@ -99,7 +99,7 @@ internal fun RenderPersonalNotificationsS79(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(start = 20.dp, end = 20.dp, top = 54.dp),
+                .padding(start = 20.dp, end = 20.dp, top = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // Header
@@ -366,27 +366,64 @@ internal fun RenderPersonalSearchS80(
     val typo = LocalRfTypography.current
     val cardShape = RoundedCornerShape(20.dp)
     val vmQuery = viewModel?.searchQuery?.collectAsState()?.value ?: ""
-    var localQuery by remember(vmQuery) { mutableStateOf(vmQuery.ifBlank { "mesa" }) }
+    var localQuery by remember(vmQuery) { mutableStateOf(vmQuery) }
+    val selectedCategory = viewModel?.selectedCategory?.collectAsState()?.value ?: "Todas"
+    val maxPriceFilter = viewModel?.maxPriceFilterDop?.collectAsState()?.value ?: 5000
+    val onlyAvailable = viewModel?.onlyAvailableFilter?.collectAsState()?.value ?: true
+    val sortOrder = viewModel?.searchSortOrder?.collectAsState()?.value ?: "Populares"
     val allArticles = viewModel?.articles?.collectAsState()?.value ?: com.jeudry.rosafiesta.domain.CanonicalSampleData.articles
-    val filteredArticles = remember(localQuery, allArticles) {
-        val q = localQuery.trim()
-        if (q.isEmpty()) {
-            allArticles
-        } else {
-            allArticles.filter {
-                it.name.contains(q, ignoreCase = true) ||
-                    it.category.contains(q, ignoreCase = true) ||
-                    it.code.contains(q, ignoreCase = true)
+
+    val filteredArticles = remember(localQuery, selectedCategory, maxPriceFilter, onlyAvailable, sortOrder, allArticles) {
+        val trimmedQuery = localQuery.trim()
+        val matchingList = allArticles.filter { article ->
+            val matchesQuery = if (trimmedQuery.isEmpty()) {
+                true
+            } else {
+                val byName = article.name.contains(trimmedQuery, ignoreCase = true)
+                val byCategory = article.category.contains(trimmedQuery, ignoreCase = true)
+                val byCode = article.code.contains(trimmedQuery, ignoreCase = true)
+                val byDesc = article.description.contains(trimmedQuery, ignoreCase = true)
+                val matchesNameOrCategory = byName || byCategory
+                val matchesCodeOrDesc = byCode || byDesc
+                matchesNameOrCategory || matchesCodeOrDesc
             }
+            val matchesCategory = if (selectedCategory == "Todas") {
+                true
+            } else {
+                article.category.equals(selectedCategory, ignoreCase = true)
+            }
+            val matchesPrice = article.pricePerDayDop <= maxPriceFilter
+            val matchesStock = if (onlyAvailable) {
+                article.totalStock > 0
+            } else {
+                true
+            }
+            val matchesQueryAndCategory = matchesQuery && matchesCategory
+            val matchesPriceAndStock = matchesPrice && matchesStock
+            matchesQueryAndCategory && matchesPriceAndStock
+        }
+        when (sortOrder) {
+            "Precio ↑" -> matchingList.sortedBy { article -> article.pricePerDayDop }
+            "Precio ↓" -> matchingList.sortedByDescending { article -> article.pricePerDayDop }
+            "Nuevos" -> matchingList.sortedByDescending { article -> article.code }
+            else -> matchingList
         }
     }
+
+    val activeFilterCount = listOf(
+        selectedCategory != "Todas",
+        maxPriceFilter < 5000,
+        onlyAvailable,
+    ).count { isActive -> isActive }
+
+    val sortLabel = if (sortOrder == "Populares") "Más populares" else sortOrder
 
     RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(start = 20.dp, end = 20.dp, top = 54.dp, bottom = 112.dp),
+                .padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 112.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Row(
@@ -420,23 +457,25 @@ internal fun RenderPersonalSearchS80(
                     RfIcon(kind = RfIconKind.SEARCH, tint = Color(0xFF62627A), size = 18.dp)
                     BasicTextField(
                         value = localQuery,
-                        onValueChange = {
-                            localQuery = it
-                            viewModel?.setSearchQuery(it)
+                        onValueChange = { updatedText ->
+                            localQuery = updatedText
+                            viewModel?.setSearchQuery(updatedText)
                         },
                         singleLine = true,
                         textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF1A1A2E)),
                         cursorBrush = SolidColor(Color(0xFFC2338F)),
                         modifier = Modifier.weight(1f),
-                        decorationBox = { inner ->
-                            if (localQuery.isEmpty()) {
-                                BasicText(
-                                    text = "Buscar sillas, mesas, arcos...",
-                                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF62627A)),
-                                    maxLines = 1,
-                                )
+                        decorationBox = { innerField ->
+                            Box(contentAlignment = Alignment.CenterStart) {
+                                if (localQuery.isEmpty()) {
+                                    BasicText(
+                                        text = "Buscar sillas, mesas, arcos...",
+                                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF62627A)),
+                                        maxLines = 1,
+                                    )
+                                }
+                                innerField()
                             }
-                            inner()
                         },
                     )
                     if (localQuery.isNotEmpty()) {
@@ -468,36 +507,96 @@ internal fun RenderPersonalSearchS80(
                     ) {
                         RfIcon(kind = RfIconKind.FILTER, tint = Color(0xFF1A1A2E), size = 20.dp)
                     }
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .offset(x = 6.dp, y = (-4).dp)
-                            .height(20.dp)
-                            .widthIn(min = 20.dp)
-                            .clip(RoundedCornerShape(999.dp))
-                            .background(Color(0xFFFFD45C))
-                            .padding(horizontal = 5.dp),
-                    ) {
-                        BasicText(
-                            text = "2",
-                            style = TextStyle(
-                                fontFamily = typo.bodyFamily,
-                                fontWeight = FontWeight.ExtraBold,
-                                fontSize = 11.sp,
-                                color = Color(0xFF2E1A47),
-                            ),
-                        )
+                    if (activeFilterCount > 0) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .offset(x = 6.dp, y = (-4).dp)
+                                .height(20.dp)
+                                .widthIn(min = 20.dp)
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(Color(0xFFFFD45C))
+                                .padding(horizontal = 5.dp),
+                        ) {
+                            BasicText(
+                                text = activeFilterCount.toString(),
+                                style = TextStyle(
+                                    fontFamily = typo.bodyFamily,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 11.sp,
+                                    color = Color(0xFF2E1A47),
+                                ),
+                            )
+                        }
+                    }
+                }
+            }
+
+            if (localQuery.isBlank()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    listOf("Silla", "Mesa", "Arco", "Floral", "Helados").forEach { suggestion ->
+                        Box(
+                            modifier = Modifier
+                                .height(30.dp)
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(Color(0xFFF1EFF5))
+                                .clickable {
+                                    localQuery = suggestion
+                                    viewModel?.setSearchQuery(suggestion)
+                                }
+                                .padding(horizontal = 12.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            BasicText(
+                                text = suggestion,
+                                style = TextStyle(
+                                    fontFamily = typo.bodyFamily,
+                                    fontWeight = FontWeight.Medium,
+                                    fontSize = 12.sp,
+                                    color = Color(0xFF3B3550),
+                                ),
+                            )
+                        }
                     }
                 }
             }
 
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                SearchFilterChip80(label = "Disponible vie 23 oct")
-                SearchFilterChip80(label = "Hasta RD$ 200")
+                if (selectedCategory != "Todas") {
+                    SearchFilterChip80(
+                        label = selectedCategory,
+                        isActive = true,
+                        onClick = { viewModel?.setSelectedCategory("Todas") },
+                    )
+                }
+                SearchFilterChip80(
+                    label = if (onlyAvailable) "Disponible vie 23 oct" else "Incluir agotados",
+                    isActive = onlyAvailable,
+                    onClick = { viewModel?.setOnlyAvailableFilter(!onlyAvailable) },
+                )
+                SearchFilterChip80(
+                    label = if (maxPriceFilter < 5000) "Hasta RD$ $maxPriceFilter" else "Cualquier precio",
+                    isActive = maxPriceFilter < 5000,
+                    onClick = {
+                        val nextMaxPrice = when (maxPriceFilter) {
+                            5000 -> 1500
+                            1500 -> 500
+                            else -> 5000
+                        }
+                        viewModel?.setMaxPriceFilterDop(nextMaxPrice)
+                    },
+                )
             }
 
             Row(
@@ -512,7 +611,7 @@ internal fun RenderPersonalSearchS80(
                     )
                     if (localQuery.isNotBlank()) {
                         BasicText(
-                            text = " para “$localQuery”",
+                            text = " para “${localQuery.trim()}”",
                             style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF62627A)),
                         )
                     }
@@ -520,20 +619,81 @@ internal fun RenderPersonalSearchS80(
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable {
+                            val nextOrder = when (sortOrder) {
+                                "Populares" -> "Precio ↑"
+                                "Precio ↑" -> "Precio ↓"
+                                "Precio ↓" -> "Nuevos"
+                                else -> "Populares"
+                            }
+                            viewModel?.setSearchSortOrder(nextOrder)
+                        }
+                        .padding(horizontal = 6.dp, vertical = 4.dp),
                 ) {
                     BasicText(
-                        text = "Más populares",
+                        text = sortLabel,
                         style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF3B3550)),
                     )
                     RfIcon(kind = RfIconKind.CHEVRON_DOWN, tint = Color(0xFF3B3550), size = 16.dp)
                 }
             }
 
+            if (filteredArticles.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .rfCardShadow(cardShape, isAdmin = false)
+                        .clip(cardShape)
+                        .background(Color.White)
+                        .padding(24.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        BasicText(
+                            text = "Sin resultados para tu búsqueda",
+                            style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF1A1A2E)),
+                        )
+                        BasicText(
+                            text = "Intenta con otro término o limpia los filtros activos.",
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF62627A)),
+                        )
+                        Box(
+                            modifier = Modifier
+                                .padding(top = 4.dp)
+                                .height(36.dp)
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(Color(0xFFFDE6F2))
+                                .clickable {
+                                    localQuery = ""
+                                    viewModel?.setSearchQuery("")
+                                    viewModel?.setSelectedCategory("Todas")
+                                    viewModel?.setMaxPriceFilterDop(5000)
+                                    viewModel?.setOnlyAvailableFilter(false)
+                                }
+                                .padding(horizontal = 16.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            BasicText(
+                                text = "Limpiar búsqueda y filtros",
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFFC2338F)),
+                            )
+                        }
+                    }
+                }
+            }
+
             filteredArticles.forEach { article ->
                 val freeCount = article.totalStock.coerceAtLeast(0)
                 val lowStock = freeCount <= 3
-                val photoKey = RfPhotoKey.entries.firstOrNull {
-                    it.assetKey == article.photo.key || it.name.equals(article.photo.key, ignoreCase = true)
+                val photoKey = RfPhotoKey.entries.firstOrNull { entry ->
+                    val matchesAsset = entry.assetKey == article.photo.key
+                    val matchesName = entry.name.equals(article.photo.key, ignoreCase = true)
+                    matchesAsset || matchesName
                 } ?: RfPhotoKey.MESA_REDONDA
                 SearchResultCard80(
                     photoKey = photoKey,
@@ -561,23 +721,32 @@ internal fun RenderPersonalSearchS80(
 }
 
 @Composable
-private fun SearchFilterChip80(label: String) {
+private fun SearchFilterChip80(
+    label: String,
+    isActive: Boolean = true,
+    onClick: () -> Unit = {},
+) {
     val typo = LocalRfTypography.current
+    val chipBg = if (isActive) Color(0xFFFDE6F2) else Color(0xFFF1EFF5)
+    val chipFg = if (isActive) Color(0xFFC2338F) else Color(0xFF62627A)
 
     Row(
         modifier = Modifier
             .height(32.dp)
             .clip(RoundedCornerShape(999.dp))
-            .background(Color(0xFFFDE6F2))
+            .background(chipBg)
+            .clickable(onClick = onClick)
             .padding(start = 14.dp, end = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         BasicText(
             text = label,
-            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Color(0xFFC2338F)),
+            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = chipFg),
         )
-        RfIcon(kind = RfIconKind.CLOSE, tint = Color(0xFFC2338F), size = 13.dp)
+        if (isActive) {
+            RfIcon(kind = RfIconKind.CLOSE, tint = chipFg, size = 13.dp)
+        }
     }
 }
 
@@ -691,7 +860,7 @@ internal fun RenderPersonalPaymentsS82(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(start = 20.dp, end = 20.dp, top = 54.dp),
+                .padding(start = 20.dp, end = 20.dp, top = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Row(
@@ -1034,7 +1203,7 @@ internal fun RenderAccountSettingsS86(
 
     RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-            Spacer(modifier = Modifier.height(54.dp))
+            Spacer(modifier = Modifier.height(16.dp))
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -1234,7 +1403,7 @@ internal fun RenderTermsS87(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
-                    .padding(start = 20.dp, end = 20.dp, top = 54.dp, bottom = 108.dp),
+                    .padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 108.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 Row(
@@ -1433,7 +1602,7 @@ internal fun RenderDeleteAccountS88(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(top = 54.dp, start = 20.dp, end = 20.dp, bottom = 140.dp),
+                .padding(top = 16.dp, start = 20.dp, end = 20.dp, bottom = 140.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             // Header
@@ -1612,7 +1781,7 @@ internal fun RenderPersonalEmptyStateS89(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(start = 20.dp, end = 20.dp, top = 54.dp, bottom = 116.dp),
+                .padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 116.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             BasicText(
@@ -1853,7 +2022,7 @@ internal fun RenderPersonalLoadingStateS90(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(top = 54.dp, start = 20.dp, end = 20.dp, bottom = 116.dp),
+                .padding(top = 16.dp, start = 20.dp, end = 20.dp, bottom = 116.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             // Header: "Catálogo" (26px, 800) + 2 circular buttons (44x44)
@@ -2671,19 +2840,26 @@ internal fun RenderEventReviewsModalS77(
 // ==============================================================================
 @Composable
 internal fun RenderCatalogFiltersModalS81(
+    viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
+    val vmCategory = viewModel?.selectedCategory?.collectAsState()?.value ?: "Todas"
+    val vmAvailableOnly = viewModel?.onlyAvailableFilter?.collectAsState()?.value ?: true
+    val vmSortLabel = viewModel?.searchSortOrder?.collectAsState()?.value ?: "Populares"
+    val vmMaxPrice = viewModel?.maxPriceFilterDop?.collectAsState()?.value ?: 5000
+    var selectedCategory by remember(vmCategory) { mutableStateOf(vmCategory) }
+    var availableOnly by remember(vmAvailableOnly) { mutableStateOf(vmAvailableOnly) }
+    var selectedSortOption by remember(vmSortLabel) { mutableStateOf(vmSortLabel) }
+    var selectedMaxPrice by remember(vmMaxPrice) { mutableStateOf(vmMaxPrice) }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFFFAFAFC)),
     ) {
-        // Background search results (s80)
-        RenderPersonalSearchS80(onSelectScreenCode = onSelectScreenCode)
+        RenderPersonalSearchS80(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
 
-        // Scrim
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -2691,7 +2867,6 @@ internal fun RenderCatalogFiltersModalS81(
                 .clickable { onSelectScreenCode("s80") },
         )
 
-        // Bottom sheet dialog
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -2704,7 +2879,6 @@ internal fun RenderCatalogFiltersModalS81(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                // Grab handle
                 Box(
                     modifier = Modifier
                         .align(Alignment.CenterHorizontally)
@@ -2714,11 +2888,6 @@ internal fun RenderCatalogFiltersModalS81(
                         .background(Color(0xFFE3DCE8)),
                 )
 
-                var selectedCategory by remember { mutableStateOf("Todas") }
-                var availableOnly by remember { mutableStateOf(true) }
-                var selectedSortIndex by remember { mutableStateOf(0) }
-
-                // Header
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -2733,13 +2902,17 @@ internal fun RenderCatalogFiltersModalS81(
                         modifier = Modifier.clickable {
                             selectedCategory = "Todas"
                             availableOnly = true
-                            selectedSortIndex = 0
+                            selectedSortOption = "Populares"
+                            selectedMaxPrice = 5000
+                            viewModel?.setSelectedCategory("Todas")
+                            viewModel?.setOnlyAvailableFilter(true)
+                            viewModel?.setSearchSortOrder("Populares")
+                            viewModel?.setMaxPriceFilterDop(5000)
                         },
                         style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFFC2338F)),
                     )
                 }
 
-                // Categoría
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     BasicText("Categoría", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF3B3550)))
                     val rows = listOf(
@@ -2761,7 +2934,10 @@ internal fun RenderCatalogFiltersModalS81(
                                                 SolidColor(Color(0xFFF1EFF5))
                                             },
                                         )
-                                        .clickable { selectedCategory = categoryLabel }
+                                        .clickable {
+                                            selectedCategory = categoryLabel
+                                            viewModel?.setSelectedCategory(categoryLabel)
+                                        }
                                         .padding(horizontal = 14.dp),
                                     contentAlignment = Alignment.Center,
                                 ) {
@@ -2780,22 +2956,42 @@ internal fun RenderCatalogFiltersModalS81(
                     }
                 }
 
-                // Precio por día
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
                         BasicText("Precio por día", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF3B3550)))
-                        BasicText("RD$ 0 – RD$ 200", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF1A1A2E)))
+                        val priceRangeLabel = if (selectedMaxPrice < 5000) "RD$ 0 – RD$ $selectedMaxPrice" else "Sin límite"
+                        BasicText(
+                            priceRangeLabel,
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF1A1A2E)),
+                            modifier = Modifier.clickable {
+                                val nextCap = when (selectedMaxPrice) {
+                                    5000 -> 1500
+                                    1500 -> 500
+                                    else -> 5000
+                                }
+                                selectedMaxPrice = nextCap
+                                viewModel?.setMaxPriceFilterDop(nextCap)
+                            },
+                        )
                     }
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(28.dp),
+                            .height(28.dp)
+                            .clickable {
+                                val nextCap = when (selectedMaxPrice) {
+                                    5000 -> 1500
+                                    1500 -> 500
+                                    else -> 5000
+                                }
+                                selectedMaxPrice = nextCap
+                                viewModel?.setMaxPriceFilterDop(nextCap)
+                            },
                         contentAlignment = Alignment.CenterStart,
                     ) {
-                        // Inactive track
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -2803,15 +2999,18 @@ internal fun RenderCatalogFiltersModalS81(
                                 .clip(RoundedCornerShape(3.dp))
                                 .background(Color(0xFFF1EFF5)),
                         )
-                        // Active gradient track
+                        val trackFraction = when (selectedMaxPrice) {
+                            500 -> 0.35f
+                            1500 -> 0.65f
+                            else -> 1.0f
+                        }
                         Box(
                             modifier = Modifier
-                                .fillMaxWidth(0.58f)
+                                .fillMaxWidth(trackFraction)
                                 .height(5.dp)
                                 .clip(RoundedCornerShape(3.dp))
                                 .background(RosaButtonGradient),
                         )
-                        // Left thumb
                         Box(
                             modifier = Modifier
                                 .size(24.dp)
@@ -2820,11 +3019,15 @@ internal fun RenderCatalogFiltersModalS81(
                                 .clip(CircleShape)
                                 .background(Color.White),
                         )
-                        // Right thumb
+                        val thumbOffsetDp = when (selectedMaxPrice) {
+                            500 -> 110.dp
+                            1500 -> 191.dp
+                            else -> 280.dp
+                        }
                         Box(
                             modifier = Modifier
                                 .align(Alignment.CenterStart)
-                                .offset(x = 191.dp)
+                                .offset(x = thumbOffsetDp)
                                 .size(24.dp)
                                 .shadow(4.dp, CircleShape, spotColor = Color(0x80865DEC))
                                 .border(2.dp, Color(0xFF865DEC), CircleShape)
@@ -2834,7 +3037,6 @@ internal fun RenderCatalogFiltersModalS81(
                     }
                 }
 
-                // Disponible para
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     BasicText("Disponible para", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF3B3550)))
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
@@ -2872,7 +3074,6 @@ internal fun RenderCatalogFiltersModalS81(
                         }
                     }
 
-                    // Switch Solo disponibles
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -2893,7 +3094,11 @@ internal fun RenderCatalogFiltersModalS81(
                                         Brush.linearGradient(listOf(Color(0xFFE3DCE8), Color(0xFFE3DCE8)))
                                     },
                                 )
-                                .clickable { availableOnly = !availableOnly }
+                                .clickable {
+                                    val updatedAvailable = !availableOnly
+                                    availableOnly = updatedAvailable
+                                    viewModel?.setOnlyAvailableFilter(updatedAvailable)
+                                }
                                 .padding(3.dp),
                             contentAlignment = if (availableOnly) Alignment.CenterEnd else Alignment.CenterStart,
                         ) {
@@ -2908,7 +3113,6 @@ internal fun RenderCatalogFiltersModalS81(
                     }
                 }
 
-                // Ordenar por
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     BasicText("Ordenar por", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF3B3550)))
                     Row(
@@ -2919,8 +3123,8 @@ internal fun RenderCatalogFiltersModalS81(
                             .padding(4.dp),
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
-                        listOf("Populares", "Precio ↑", "Precio ↓", "Nuevos").forEachIndexed { sortIndex, sortOption ->
-                            val isSel = sortIndex == selectedSortIndex
+                        listOf("Populares", "Precio ↑", "Precio ↓", "Nuevos").forEach { sortOption ->
+                            val isSel = sortOption == selectedSortOption
                             Box(
                                 modifier = Modifier
                                     .weight(1f)
@@ -2928,7 +3132,10 @@ internal fun RenderCatalogFiltersModalS81(
                                     .then(if (isSel) Modifier.shadow(4.dp, RoundedCornerShape(12.dp), spotColor = Color(0x33B450B4), ambientColor = Color.Transparent) else Modifier)
                                     .clip(RoundedCornerShape(12.dp))
                                     .background(if (isSel) Color.White else Color.Transparent)
-                                    .clickable { selectedSortIndex = sortIndex },
+                                    .clickable {
+                                        selectedSortOption = sortOption
+                                        viewModel?.setSearchSortOrder(sortOption)
+                                    },
                                 contentAlignment = Alignment.Center,
                             ) {
                                 BasicText(
@@ -2945,7 +3152,6 @@ internal fun RenderCatalogFiltersModalS81(
                     }
                 }
 
-                // CTA
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -2957,7 +3163,7 @@ internal fun RenderCatalogFiltersModalS81(
                     contentAlignment = Alignment.Center,
                 ) {
                     BasicText(
-                        "Ver 4 resultados",
+                        "Aplicar filtros",
                         style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White),
                     )
                 }
@@ -2990,7 +3196,7 @@ internal fun RenderChangeDateModalS84(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(top = 54.dp, start = 20.dp, end = 20.dp, bottom = 130.dp),
+                .padding(top = 16.dp, start = 20.dp, end = 20.dp, bottom = 130.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // Header
@@ -3291,7 +3497,7 @@ internal fun RenderCancelEventModalS85(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(top = 54.dp, start = 20.dp, end = 20.dp, bottom = 140.dp),
+                .padding(top = 16.dp, start = 20.dp, end = 20.dp, bottom = 140.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // Header

@@ -1745,6 +1745,9 @@ internal fun RenderLoginScreenS07(
     var password by remember { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
     val formError = viewModel?.formError?.collectAsState()?.value
+    LaunchedEffect(Unit) {
+        viewModel?.clearFormError()
+    }
 
     Box(
         modifier = Modifier
@@ -1984,12 +1987,7 @@ internal fun RenderLoginScreenS07(
                     )
                     .clickable {
                         val trimmedIdentifier = email.trim()
-                        val hasAtSymbol = trimmedIdentifier.contains("@")
-                        val isInvalidKeyword = trimmedIdentifier.contains("invalido", ignoreCase = true)
-                        val isPlainText = !hasAtSymbol && !isInvalidKeyword
-                        val canExpandUsername = trimmedIdentifier.isNotEmpty() && isPlainText
-                        val resolvedEmail = if (canExpandUsername) "$trimmedIdentifier@rosafiesta.do" else trimmedIdentifier
-                        viewModel?.setLoginEmail(resolvedEmail)
+                        viewModel?.setLoginEmail(trimmedIdentifier)
                         viewModel?.setLoginPassword(password)
                         val success = viewModel?.submitLogin() ?: true
                         if (success) {
@@ -2340,6 +2338,10 @@ internal fun RenderRegisterScreenS08(
     var birthDate by remember { mutableStateOf("") }
     var showBirthDatePicker by remember { mutableStateOf(false) }
     var acceptedTerms by remember { mutableStateOf(true) }
+    val formError = viewModel?.formError?.collectAsState()?.value
+    LaunchedEffect(Unit) {
+        viewModel?.clearFormError()
+    }
 
     Box(
         modifier = Modifier
@@ -2430,7 +2432,10 @@ internal fun RenderRegisterScreenS08(
                 ) {
                     BasicTextField(
                         value = firstName,
-                        onValueChange = { nextFirstName -> firstName = nextFirstName },
+                        onValueChange = { nextFirstName ->
+                            firstName = nextFirstName
+                            viewModel?.clearFormError()
+                        },
                         singleLine = true,
                         textStyle = typo.body.copy(fontSize = 15.sp, color = Color(0xFF1A1A2E)),
                         cursorBrush = SolidColor(Color(0xFFD63F98)),
@@ -2456,7 +2461,10 @@ internal fun RenderRegisterScreenS08(
                 ) {
                     BasicTextField(
                         value = lastName,
-                        onValueChange = { nextLastName -> lastName = nextLastName },
+                        onValueChange = { nextLastName ->
+                            lastName = nextLastName
+                            viewModel?.clearFormError()
+                        },
                         singleLine = true,
                         textStyle = typo.body.copy(fontSize = 15.sp, color = Color(0xFF1A1A2E)),
                         cursorBrush = SolidColor(Color(0xFFD63F98)),
@@ -2493,7 +2501,10 @@ internal fun RenderRegisterScreenS08(
                         RfIcon(kind = RfIconKind.USER, tint = Color(0xFF62627A), size = 18.dp)
                         BasicTextField(
                             value = username,
-                            onValueChange = { nextUsername -> username = nextUsername },
+                            onValueChange = { nextUsername ->
+                                username = nextUsername
+                                viewModel?.clearFormError()
+                            },
                             singleLine = true,
                             textStyle = typo.body.copy(fontSize = 14.sp, color = Color(0xFF1A1A2E)),
                             cursorBrush = SolidColor(Color(0xFFD63F98)),
@@ -2542,7 +2553,10 @@ internal fun RenderRegisterScreenS08(
                             }
                             BasicTextField(
                                 value = password,
-                                onValueChange = { nextPassword -> password = nextPassword },
+                                onValueChange = { nextPassword ->
+                                    password = nextPassword
+                                    viewModel?.clearFormError()
+                                },
                                 singleLine = true,
                                 visualTransformation = registerPasswordVisualTransformation,
                                 textStyle = typo.body.copy(fontSize = 14.sp, color = Color(0xFF1A1A2E)),
@@ -2592,7 +2606,10 @@ internal fun RenderRegisterScreenS08(
                     RfIcon(kind = RfIconKind.MAIL, tint = Color(0xFF62627A), size = 20.dp)
                     BasicTextField(
                         value = email,
-                        onValueChange = { nextEmail -> email = nextEmail },
+                        onValueChange = { nextEmail ->
+                            email = nextEmail
+                            viewModel?.clearFormError()
+                        },
                         singleLine = true,
                         textStyle = typo.body.copy(fontSize = 15.sp, color = Color(0xFF1A1A2E)),
                         cursorBrush = SolidColor(Color(0xFFD63F98)),
@@ -2668,6 +2685,14 @@ internal fun RenderRegisterScreenS08(
                 }
             }
 
+            if (!formError.isNullOrBlank()) {
+                Spacer(Modifier.height(8.dp))
+                BasicText(
+                    text = formError,
+                    style = typo.caption.copy(fontSize = 12.5.sp, color = RfColors.Error, fontWeight = FontWeight.SemiBold),
+                )
+            }
+
             Spacer(Modifier.height(14.dp))
 
             Box(
@@ -2679,30 +2704,18 @@ internal fun RenderRegisterScreenS08(
                     .clip(RoundedCornerShape(16.dp))
                     .background(Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC))))
                     .clickable {
-                        val nameParts = listOf(firstName.trim(), lastName.trim()).filter { part -> part.isNotEmpty() }
-                        val fullName = nameParts.joinToString(" ")
-                        val cleanEmail = email.trim()
-                        val cleanUsername = username.trim()
-                        val cleanBirthDate = birthDate.trim()
-                        if (fullName.isNotEmpty()) {
-                            viewModel?.setProfileName(fullName)
-                        } else if (cleanUsername.isNotEmpty()) {
-                            viewModel?.applyUserIdentityFromLogin(cleanUsername)
-                        } else if (cleanEmail.isNotEmpty()) {
-                            viewModel?.applyUserIdentityFromLogin(cleanEmail)
+                        val registered = viewModel?.submitRegistration(
+                            firstName = firstName,
+                            lastName = lastName,
+                            username = username,
+                            email = email,
+                            password = password,
+                            birthDate = birthDate,
+                            acceptedTerms = acceptedTerms,
+                        ) ?: true
+                        if (registered) {
+                            onSelectScreenCode("s14")
                         }
-                        if (cleanEmail.isNotEmpty()) {
-                            viewModel?.setProfileEmail(cleanEmail)
-                        }
-                        if (cleanUsername.isNotEmpty()) {
-                            viewModel?.setProfileUsername(cleanUsername)
-                        } else if (cleanEmail.isNotEmpty()) {
-                            viewModel?.setProfileUsername(cleanEmail.substringBefore("@"))
-                        }
-                        if (cleanBirthDate.isNotEmpty()) {
-                            viewModel?.setProfileBirthDate(cleanBirthDate)
-                        }
-                        onSelectScreenCode("s14")
                     },
             ) {
                 BasicText("Crear cuenta", style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White))
@@ -3158,6 +3171,10 @@ internal fun RenderRecoveryAndConfirmationScreens(
     var confirmPassword by remember { mutableStateOf("") }
     var showNewPassword by remember { mutableStateOf(false) }
     var showConfirmPassword by remember { mutableStateOf(false) }
+    val formError = viewModel?.formError?.collectAsState()?.value
+    LaunchedEffect(spec.code) {
+        viewModel?.clearFormError()
+    }
 
     when (spec.code) {
         "s09" -> {
@@ -3277,8 +3294,10 @@ internal fun RenderRecoveryAndConfirmationScreens(
                             .clip(RoundedCornerShape(16.dp))
                             .background(Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC))))
                             .clickable {
-                                if (recoveryEmail.isNotBlank()) {
-                                    viewModel?.applyUserIdentityFromLogin(recoveryEmail)
+                                val trimmedRec = recoveryEmail.trim()
+                                if (trimmedRec.isNotEmpty()) {
+                                    viewModel?.setLoginEmail(trimmedRec)
+                                    viewModel?.applyUserIdentityFromLogin(trimmedRec)
                                 }
                                 onSelectScreenCode("s10")
                             },
@@ -3412,7 +3431,10 @@ internal fun RenderRecoveryAndConfirmationScreens(
                                 }
                                 BasicTextField(
                                     value = newPassword,
-                                    onValueChange = { nextPass -> newPassword = nextPass },
+                                    onValueChange = { nextPass ->
+                                        newPassword = nextPass
+                                        viewModel?.clearFormError()
+                                    },
                                     singleLine = true,
                                     visualTransformation = newPasswordVisualTransformation,
                                     textStyle = typo.body.copy(
@@ -3442,14 +3464,27 @@ internal fun RenderRecoveryAndConfirmationScreens(
 
                     Spacer(Modifier.height(14.dp))
 
+                    val hasMinLength = newPassword.length >= 8
+                    val hasNumber = newPassword.any { char -> char.isDigit() }
+                    val hasSymbol = newPassword.any { char -> !char.isLetterOrDigit() }
+                    val metCount = listOf(newPassword.length >= 6, hasMinLength, hasNumber, hasSymbol).count { met -> met }
+                    val strengthLabel = when {
+                        newPassword.isEmpty() -> "Ingresa una clave"
+                        metCount <= 1 -> "Débil"
+                        metCount == 2 -> "Media"
+                        metCount == 3 -> "Buena"
+                        else -> "Fuerte"
+                    }
+                    val activeBarColor = if (metCount <= 1) Color(0xFFE07A2A) else Color(0xFF8DB52C)
+
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.weight(1f)) {
-                            Box(Modifier.weight(1f).height(5.dp).clip(RoundedCornerShape(3.dp)).background(Color(0xFF8DB52C)))
-                            Box(Modifier.weight(1f).height(5.dp).clip(RoundedCornerShape(3.dp)).background(Color(0xFF8DB52C)))
-                            Box(Modifier.weight(1f).height(5.dp).clip(RoundedCornerShape(3.dp)).background(Color(0xFF8DB52C)))
-                            Box(Modifier.weight(1f).height(5.dp).clip(RoundedCornerShape(3.dp)).background(Color(0xFFE6DEEA)))
+                            for (barIndex in 1..4) {
+                                val barFill = if (barIndex <= metCount) activeBarColor else Color(0xFFE6DEEA)
+                                Box(Modifier.weight(1f).height(5.dp).clip(RoundedCornerShape(3.dp)).background(barFill))
+                            }
                         }
-                        BasicText("Buena", style = typo.body.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF4E6A10)))
+                        BasicText(strengthLabel, style = typo.body.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF4E6A10)))
                     }
 
                     Spacer(Modifier.height(10.dp))
@@ -3457,34 +3492,41 @@ internal fun RenderRecoveryAndConfirmationScreens(
                     val checkCirclePath = remember { androidx.compose.ui.graphics.vector.PathParser().parsePathString("M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0M8 12.5l2.8 2.8L16 10").toPath() }
                     val emptyCirclePath = remember { androidx.compose.ui.graphics.vector.PathParser().parsePathString("M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0").toPath() }
 
+                    val lengthColor = if (hasMinLength) Color(0xFF4E6A10) else Color(0xFF62627A)
+                    val numberColor = if (hasNumber) Color(0xFF4E6A10) else Color(0xFF62627A)
+                    val symbolColor = if (hasSymbol) Color(0xFF4E6A10) else Color(0xFF62627A)
+
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Canvas(modifier = Modifier.size(18.dp)) {
                             val s = size.width / 24f
                             scale(s, s, Offset.Zero) {
-                                drawPath(checkCirclePath, Color(0xFF4E6A10), style = Stroke(width = 1.8f, cap = StrokeCap.Round, join = StrokeJoin.Round))
+                                val path = if (hasMinLength) checkCirclePath else emptyCirclePath
+                                drawPath(path, lengthColor, style = Stroke(width = 1.8f, cap = StrokeCap.Round, join = StrokeJoin.Round))
                             }
                         }
-                        BasicText("Al menos 8 caracteres", style = typo.body.copy(fontSize = 14.sp, color = Color(0xFF4E6A10)))
+                        BasicText("Al menos 8 caracteres", style = typo.body.copy(fontSize = 14.sp, color = lengthColor))
                     }
                     Spacer(Modifier.height(10.dp))
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Canvas(modifier = Modifier.size(18.dp)) {
                             val s = size.width / 24f
                             scale(s, s, Offset.Zero) {
-                                drawPath(checkCirclePath, Color(0xFF4E6A10), style = Stroke(width = 1.8f, cap = StrokeCap.Round, join = StrokeJoin.Round))
+                                val path = if (hasNumber) checkCirclePath else emptyCirclePath
+                                drawPath(path, numberColor, style = Stroke(width = 1.8f, cap = StrokeCap.Round, join = StrokeJoin.Round))
                             }
                         }
-                        BasicText("Incluye un número", style = typo.body.copy(fontSize = 14.sp, color = Color(0xFF4E6A10)))
+                        BasicText("Incluye un número", style = typo.body.copy(fontSize = 14.sp, color = numberColor))
                     }
                     Spacer(Modifier.height(10.dp))
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Canvas(modifier = Modifier.size(18.dp)) {
                             val s = size.width / 24f
                             scale(s, s, Offset.Zero) {
-                                drawPath(emptyCirclePath, Color(0xFF62627A), style = Stroke(width = 1.8f, cap = StrokeCap.Round, join = StrokeJoin.Round))
+                                val path = if (hasSymbol) checkCirclePath else emptyCirclePath
+                                drawPath(path, symbolColor, style = Stroke(width = 1.8f, cap = StrokeCap.Round, join = StrokeJoin.Round))
                             }
                         }
-                        BasicText("Incluye un símbolo (opcional)", style = typo.body.copy(fontSize = 14.sp, color = Color(0xFF62627A)))
+                        BasicText("Incluye un símbolo (opcional)", style = typo.body.copy(fontSize = 14.sp, color = symbolColor))
                     }
 
                     Spacer(Modifier.height(22.dp))
@@ -3520,7 +3562,10 @@ internal fun RenderRecoveryAndConfirmationScreens(
                                 }
                                 BasicTextField(
                                     value = confirmPassword,
-                                    onValueChange = { nextPass -> confirmPassword = nextPass },
+                                    onValueChange = { nextPass ->
+                                        confirmPassword = nextPass
+                                        viewModel?.clearFormError()
+                                    },
                                     singleLine = true,
                                     visualTransformation = confirmPasswordVisualTransformation,
                                     textStyle = typo.body.copy(
@@ -3548,6 +3593,14 @@ internal fun RenderRecoveryAndConfirmationScreens(
                         }
                     }
 
+                    if (!formError.isNullOrBlank()) {
+                        Spacer(Modifier.height(8.dp))
+                        BasicText(
+                            text = formError,
+                            style = typo.caption.copy(fontSize = 12.5.sp, color = RfColors.Error, fontWeight = FontWeight.SemiBold),
+                        )
+                    }
+
                     Spacer(Modifier.weight(1f).heightIn(min = 24.dp))
 
                     Box(
@@ -3558,7 +3611,17 @@ internal fun RenderRecoveryAndConfirmationScreens(
                             .rfPrimaryButtonShadow(RoundedCornerShape(16.dp))
                             .clip(RoundedCornerShape(16.dp))
                             .background(Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC))))
-                            .clickable { onSelectScreenCode("s11") },
+                            .clickable {
+                                val targetEmail = recoveryEmail.ifBlank { viewModel?.loginEmail?.value.orEmpty() }
+                                val resetOk = viewModel?.submitPasswordReset(
+                                    identifier = targetEmail,
+                                    newPassword = newPassword,
+                                    confirmPassword = confirmPassword,
+                                ) ?: true
+                                if (resetOk) {
+                                    onSelectScreenCode("s11")
+                                }
+                            },
                     ) {
                         BasicText("Guardar contraseña", style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White))
                     }
@@ -3593,7 +3656,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState())
-                        .padding(top = 110.dp, start = 24.dp, end = 24.dp, bottom = 20.dp),
+                        .padding(top = 36.dp, start = 24.dp, end = 24.dp, bottom = 20.dp),
                 ) {
                     ActiveAccountIllustration(size = 220.dp)
 
@@ -3668,7 +3731,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState())
-                        .padding(top = 110.dp, start = 24.dp, end = 24.dp, bottom = 20.dp),
+                        .padding(top = 36.dp, start = 24.dp, end = 24.dp, bottom = 20.dp),
                 ) {
                     VerifiedMailIllustration(size = 220.dp)
 
@@ -3996,7 +4059,7 @@ internal fun RenderGuestCatalogS01(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(top = 58.dp, start = 20.dp, end = 20.dp, bottom = 116.dp),
+                .padding(top = 16.dp, start = 20.dp, end = 20.dp, bottom = 116.dp),
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -4256,7 +4319,7 @@ internal fun RenderGuestFavoritesS02(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(top = 58.dp, start = 20.dp, end = 20.dp, bottom = 116.dp),
+            .padding(top = 16.dp, start = 20.dp, end = 20.dp, bottom = 116.dp),
     ) {
         BasicText(
             text = "Favoritos",

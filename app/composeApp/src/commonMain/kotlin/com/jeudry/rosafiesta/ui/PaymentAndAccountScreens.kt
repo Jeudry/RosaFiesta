@@ -106,7 +106,7 @@ internal fun RenderQuoteHistoryScreenS49(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(start = 20.dp, end = 20.dp, top = 56.dp, bottom = 30.dp),
+                .padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 30.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             // Header
@@ -355,7 +355,7 @@ internal fun RenderPaymentCheckoutScreenS50(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(top = 56.dp, start = 20.dp, end = 20.dp, bottom = 120.dp),
+                .padding(top = 16.dp, start = 20.dp, end = 20.dp, bottom = 120.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             // Header
@@ -809,7 +809,7 @@ internal fun RenderPaymentSuccessScreenS51(
                 BasicText("Todo listo para el 23 de octubre.", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF62627A)))
             }
 
-            Spacer(modifier = Modifier.height(50.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Ticket card at top 330dp
             Box(
@@ -1042,7 +1042,7 @@ internal fun RenderPostEventReviewScreenS52(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(top = 56.dp, start = 20.dp, end = 20.dp, bottom = 104.dp),
+                .padding(top = 16.dp, start = 20.dp, end = 20.dp, bottom = 104.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             // Header
@@ -1223,7 +1223,7 @@ internal fun RenderMyReservationsScreenS53(
 
     RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-            Spacer(modifier = Modifier.height(56.dp))
+            Spacer(modifier = Modifier.height(16.dp))
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -1446,7 +1446,7 @@ internal fun RenderUserProfileScreenS54(
 
     RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-            Spacer(modifier = Modifier.height(56.dp))
+            Spacer(modifier = Modifier.height(16.dp))
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -1801,7 +1801,7 @@ internal fun RenderSuppliersScreenS55(
             )
         }
         Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-            Spacer(modifier = Modifier.height(56.dp))
+            Spacer(modifier = Modifier.height(16.dp))
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -2029,7 +2029,7 @@ internal fun RenderNewSupplierScreenS56(
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 20.dp),
             ) {
-                Spacer(modifier = Modifier.height(56.dp))
+                Spacer(modifier = Modifier.height(16.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -2173,7 +2173,7 @@ internal fun RenderSpendingAnalyticsScreenS57(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState()),
         ) {
-            Spacer(modifier = Modifier.height(56.dp))
+            Spacer(modifier = Modifier.height(16.dp))
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -2336,7 +2336,7 @@ internal fun RenderFinancialDashboardScreenS58(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState()),
         ) {
-            Spacer(modifier = Modifier.height(56.dp))
+            Spacer(modifier = Modifier.height(16.dp))
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -2562,7 +2562,7 @@ internal fun RenderOfficialReceiptScreenS83(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp),
         ) {
-            Spacer(modifier = Modifier.height(54.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Header: back | "Recibo" + "No. RF-2026-0412" | share
             Row(

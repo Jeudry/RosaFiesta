@@ -13,14 +13,19 @@ import com.jeudry.rosafiesta.domain.PaymentRecord
 import com.jeudry.rosafiesta.domain.RosaFiestaRepository
 import com.jeudry.rosafiesta.domain.StaffMember
 import com.jeudry.rosafiesta.domain.security.InMemorySecureStorage
+import com.jeudry.rosafiesta.domain.security.RegisteredUserAccount
 import com.jeudry.rosafiesta.domain.security.SecureStorage
 import com.jeudry.rosafiesta.domain.security.SensitiveDataRedactor
 import com.jeudry.rosafiesta.domain.sound.NoOpSoundPlayer
 import com.jeudry.rosafiesta.domain.sound.SoundPlayer
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 /**
  * ViewModel multiplataforma compartido para `PersonalApp` y `AdminApp`.
@@ -39,9 +44,12 @@ public class RosaFiestaViewModel(
     public val metrics: StateFlow<BusinessMetrics> = repository.metrics
     public val activeRole: StateFlow<String> = repository.activeRole
     public val currentUserEmail: StateFlow<String> = repository.currentUserEmail
+    public val currentSessionJwt: StateFlow<String?> = repository.currentSessionJwt
+    public val currentAuthenticatedUser: StateFlow<RegisteredUserAccount?> = repository.currentAuthenticatedUser
     public val favorites: StateFlow<Set<String>> = repository.favorites
     public val staffMembers: StateFlow<List<StaffMember>> = repository.staffMembers
     public val chatMessages: StateFlow<List<String>> = repository.chatMessages
+    private val securityScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     // Búsqueda, filtros y selección activa
     private val _searchQuery = MutableStateFlow("")
@@ -50,8 +58,14 @@ public class RosaFiestaViewModel(
     private val _selectedCategory = MutableStateFlow("Todos")
     public val selectedCategory: StateFlow<String> = _selectedCategory.asStateFlow()
 
-    private val _maxPriceFilterDop = MutableStateFlow(150)
+    private val _maxPriceFilterDop = MutableStateFlow(200)
     public val maxPriceFilterDop: StateFlow<Int> = _maxPriceFilterDop.asStateFlow()
+
+    private val _onlyAvailableFilter = MutableStateFlow(false)
+    public val onlyAvailableFilter: StateFlow<Boolean> = _onlyAvailableFilter.asStateFlow()
+
+    private val _searchSortOrder = MutableStateFlow("Más populares")
+    public val searchSortOrder: StateFlow<String> = _searchSortOrder.asStateFlow()
 
     private val _selectedEventId = MutableStateFlow("evt-boda-real")
     public val selectedEventId: StateFlow<String> = _selectedEventId.asStateFlow()
@@ -247,6 +261,18 @@ public class RosaFiestaViewModel(
 
     public fun setMaxPriceFilterDop(priceDop: Int) {
         _maxPriceFilterDop.value = priceDop.coerceAtLeast(1)
+    }
+
+    public fun setOnlyAvailableFilter(enabled: Boolean) {
+        _onlyAvailableFilter.value = enabled
+    }
+
+    public fun setSearchSortOrder(order: String) {
+        _searchSortOrder.value = order
+    }
+
+    public fun clearFormError() {
+        _formError.value = null
     }
 
     public fun selectEvent(eventId: String) {
@@ -569,13 +595,19 @@ public class RosaFiestaViewModel(
         if (_isSubmitting.value) return false
         _isSubmitting.value = true
         try {
-            val ok = repository.login(_loginEmail.value, _loginPassword.value)
-            if (!ok) {
+            val outcome = repository.authenticateUser(_loginEmail.value, _loginPassword.value)
+            if (!outcome.success) {
                 soundPlayer.playAlertError()
-                _formError.value = SensitiveDataRedactor.translateBusinessError("AUTH_INVALID_CREDENTIALS", null)
+                _formError.value = outcome.errorMessage
+                    ?: SensitiveDataRedactor.translateBusinessError(outcome.errorCode, null)
                 return false
             }
-            applyUserIdentityFromLogin(_loginEmail.value)
+            val account = outcome.account
+            if (account != null) {
+                applyAuthenticatedAccount(account, outcome.accessToken)
+            } else {
+                applyUserIdentityFromLogin(_loginEmail.value)
+            }
             soundPlayer.playPaymentSuccess()
             _formError.value = null
             val maskedEmail = SensitiveDataRedactor.maskEmail(_profileEmail.value)
@@ -586,32 +618,131 @@ public class RosaFiestaViewModel(
         }
     }
 
-    public fun submitRegister(): Boolean {
+    public fun submitRegistration(
+        firstName: String,
+        lastName: String,
+        username: String,
+        email: String,
+        password: String,
+        birthDate: String,
+        acceptedTerms: Boolean,
+    ): Boolean {
         if (_isSubmitting.value) return false
         _isSubmitting.value = true
         try {
-            val name = _registerName.value.trim()
-            val email = _registerEmail.value.trim().lowercase()
-            val phone = _registerPhone.value.trim()
-            val hasAt = email.contains("@")
-            val domainHasDot = email.substringAfter("@").contains(".")
-            val validEmail = hasAt && domainHasDot
-            val isInvalidRegistration = name.isEmpty() || !validEmail || phone.length < 7
-            if (isInvalidRegistration) {
-                _formError.value = "Completa tu nombre, un correo válido y tu teléfono de contacto."
+            if (!acceptedTerms) {
+                soundPlayer.playAlertError()
+                _formError.value = SensitiveDataRedactor.translateBusinessError("AUTH_TERMS_REQUIRED", null)
                 return false
             }
-            repository.login(email, "rosa2026")
-            _profileName.value = name
-            _profileEmail.value = email
-            _profileUsername.value = email.substringBefore("@")
-            _profilePhone.value = phone
+            val outcome = repository.registerUser(
+                firstName = firstName,
+                lastName = lastName,
+                username = username,
+                email = email,
+                password = password,
+                birthDate = birthDate,
+                phone = _registerPhone.value,
+            )
+            if (!outcome.success) {
+                soundPlayer.playAlertError()
+                _formError.value = outcome.errorMessage
+                    ?: SensitiveDataRedactor.translateBusinessError(outcome.errorCode, null)
+                return false
+            }
+            val account = outcome.account
+            if (account != null) {
+                applyAuthenticatedAccount(account, outcome.accessToken)
+            }
+            soundPlayer.playPaymentSuccess()
             _formError.value = null
-            _formFeedback.value = "Cuenta creada para $name"
+            _formFeedback.value = "Cuenta creada para ${_profileName.value}"
             return true
         } finally {
             _isSubmitting.value = false
         }
+    }
+
+    public fun submitPasswordReset(
+        identifier: String,
+        newPassword: String,
+        confirmPassword: String,
+    ): Boolean {
+        if (_isSubmitting.value) return false
+        _isSubmitting.value = true
+        try {
+            val cleanPass = newPassword.trim()
+            val cleanConfirm = confirmPassword.trim()
+            if (cleanPass.length < 6) {
+                soundPlayer.playAlertError()
+                _formError.value = SensitiveDataRedactor.translateBusinessError("AUTH_WEAK_PASSWORD", null)
+                return false
+            }
+            if (cleanPass != cleanConfirm) {
+                soundPlayer.playAlertError()
+                _formError.value = SensitiveDataRedactor.translateBusinessError("AUTH_PASSWORD_MISMATCH", null)
+                return false
+            }
+            val outcome = repository.resetUserPassword(identifier, cleanPass)
+            if (!outcome.success) {
+                soundPlayer.playAlertError()
+                _formError.value = outcome.errorMessage
+                    ?: SensitiveDataRedactor.translateBusinessError(outcome.errorCode, null)
+                return false
+            }
+            val account = outcome.account
+            if (account != null) {
+                applyAuthenticatedAccount(account, outcome.accessToken)
+            }
+            soundPlayer.playPaymentSuccess()
+            _formError.value = null
+            _formFeedback.value = "Contraseña actualizada correctamente."
+            return true
+        } finally {
+            _isSubmitting.value = false
+        }
+    }
+
+    private fun applyAuthenticatedAccount(
+        account: RegisteredUserAccount,
+        accessToken: String?,
+    ) {
+        _profileName.value = account.fullName
+        _profileEmail.value = account.email
+        _profileUsername.value = account.username
+        if (account.birthDate.isNotEmpty()) {
+            _profileBirthDate.value = account.birthDate
+        }
+        if (account.phone.isNotEmpty()) {
+            _profilePhone.value = account.phone
+        }
+        if (!accessToken.isNullOrBlank()) {
+            securityScope.launch {
+                secureStorage.put(SecureStorage.KEY_ACCESS_TOKEN, accessToken)
+                secureStorage.put(SecureStorage.KEY_USER_ROLE, account.role)
+            }
+        }
+    }
+
+    public fun submitRegister(): Boolean {
+        val rawName = _registerName.value.trim()
+        val firstPart = rawName.substringBefore(" ")
+        val lastPart = rawName.substringAfter(" ", missingDelimiterValue = "")
+        val derivedUser = _registerEmail.value.trim().substringBefore("@")
+        val phoneVal = _registerPhone.value.trim()
+        if (phoneVal.length < 7) {
+            _formError.value = "Completa tu nombre, un correo válido y tu teléfono de contacto."
+            return false
+        }
+        return submitRegistration(
+            firstName = firstPart,
+            lastName = lastPart,
+            username = derivedUser,
+            email = _registerEmail.value,
+            password = _loginPassword.value.ifBlank { "rosa2026" },
+            birthDate = _profileBirthDate.value,
+            acceptedTerms = true,
+        )
     }
 
     public fun submitNewEvent(): Boolean {
