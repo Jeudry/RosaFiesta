@@ -918,19 +918,21 @@ internal fun RenderPersonalHomeScreen(
                     ) {
                         ServiceIllustrationFloral(modifier = Modifier.size(56.dp))
                     }
-                    BasicText(
-                        text = "Decoración",
-                        style = typo.caption.copy(
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = textColor,
-                            textAlign = TextAlign.Center,
-                        ),
-                        maxLines = 1,
-                        softWrap = false,
-                        overflow = TextOverflow.Ellipsis,
+                    Box(
+                        contentAlignment = Alignment.Center,
                         modifier = Modifier.fillMaxWidth(),
-                    )
+                    ) {
+                        BasicText(
+                            text = "Decoración",
+                            style = typo.caption.copy(
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = textColor,
+                                textAlign = TextAlign.Center,
+                            ),
+                            maxLines = 1,
+                        )
+                    }
                 }
 
                 // Mobiliario
@@ -948,19 +950,21 @@ internal fun RenderPersonalHomeScreen(
                     ) {
                         ServiceIllustrationMobiliario(modifier = Modifier.size(56.dp))
                     }
-                    BasicText(
-                        text = "Mobiliario",
-                        style = typo.caption.copy(
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = textColor,
-                            textAlign = TextAlign.Center,
-                        ),
-                        maxLines = 1,
-                        softWrap = false,
-                        overflow = TextOverflow.Ellipsis,
+                    Box(
+                        contentAlignment = Alignment.Center,
                         modifier = Modifier.fillMaxWidth(),
-                    )
+                    ) {
+                        BasicText(
+                            text = "Mobiliario",
+                            style = typo.caption.copy(
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = textColor,
+                                textAlign = TextAlign.Center,
+                            ),
+                            maxLines = 1,
+                        )
+                    }
                 }
 
                 // Mesa dulce
@@ -978,19 +982,21 @@ internal fun RenderPersonalHomeScreen(
                     ) {
                         ServiceIllustrationDulce(modifier = Modifier.size(56.dp))
                     }
-                    BasicText(
-                        text = "Mesa dulce",
-                        style = typo.caption.copy(
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = textColor,
-                            textAlign = TextAlign.Center,
-                        ),
-                        maxLines = 1,
-                        softWrap = false,
-                        overflow = TextOverflow.Ellipsis,
+                    Box(
+                        contentAlignment = Alignment.Center,
                         modifier = Modifier.fillMaxWidth(),
-                    )
+                    ) {
+                        BasicText(
+                            text = "Mesa dulce",
+                            style = typo.caption.copy(
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = textColor,
+                                textAlign = TextAlign.Center,
+                            ),
+                            maxLines = 1,
+                        )
+                    }
                 }
 
                 // Iluminación
@@ -1008,19 +1014,21 @@ internal fun RenderPersonalHomeScreen(
                     ) {
                         ServiceIllustrationLuz(modifier = Modifier.size(56.dp))
                     }
-                    BasicText(
-                        text = "Iluminación",
-                        style = typo.caption.copy(
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = textColor,
-                            textAlign = TextAlign.Center,
-                        ),
-                        maxLines = 1,
-                        softWrap = false,
-                        overflow = TextOverflow.Ellipsis,
+                    Box(
+                        contentAlignment = Alignment.Center,
                         modifier = Modifier.fillMaxWidth(),
-                    )
+                    ) {
+                        BasicText(
+                            text = "Iluminación",
+                            style = typo.caption.copy(
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = textColor,
+                                textAlign = TextAlign.Center,
+                            ),
+                            maxLines = 1,
+                        )
+                    }
                 }
             }
         }
@@ -1068,7 +1076,7 @@ internal fun RenderPersonalHomeScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .horizontalScroll(rememberScrollState())
-                    .padding(top = 4.dp, bottom = 14.dp),
+                    .padding(top = 4.dp, bottom = 18.dp),
             ) {
                 // Card 1: Graduaciones
                 Column(
@@ -1138,8 +1146,9 @@ internal fun RenderPersonalHomeScreen(
                         )
                         BasicText(
                             text = "2.4K eventos",
-                            style = typo.caption.copy(fontSize = 13.sp, color = mutedColor),
+                            style = typo.caption.copy(fontSize = 12.sp, color = mutedColor),
                             maxLines = 1,
+                            softWrap = false,
                             modifier = Modifier.padding(start = 6.dp),
                         )
                     }
@@ -1213,8 +1222,9 @@ internal fun RenderPersonalHomeScreen(
                         )
                         BasicText(
                             text = if (isDark) "3.1K eventos" else "1.8K eventos",
-                            style = typo.caption.copy(fontSize = 13.sp, color = mutedColor),
+                            style = typo.caption.copy(fontSize = 12.sp, color = mutedColor),
                             maxLines = 1,
+                            softWrap = false,
                             modifier = Modifier.padding(start = 6.dp),
                         )
                     }

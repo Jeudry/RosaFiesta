@@ -44,6 +44,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
@@ -120,12 +121,21 @@ public fun PersonalTabBar(
             .fillMaxWidth()
             .height(RfDimens.BottomBarHeight),
     ) {
-        // Superficie principal de 96 dp con borde superior fino
+        // Superficie principal de 96 dp con borde superior fino y sombra superior suave
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(barBg)
                 .drawBehind {
+                    drawRect(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(Color.Transparent, if (dark) Color(0x28000000) else Color(0x0E1A1A2E)),
+                            startY = -14f,
+                            endY = 0f,
+                        ),
+                        topLeft = Offset(0f, -14f),
+                        size = Size(size.width, 14f),
+                    )
                     drawLine(
                         color = barLine,
                         start = Offset(0f, 0f),
@@ -282,6 +292,15 @@ public fun AdminTabBar(
                 .fillMaxSize()
                 .background(barBg)
                 .drawBehind {
+                    drawRect(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(Color.Transparent, Color(0x0E1A1A2E)),
+                            startY = -14f,
+                            endY = 0f,
+                        ),
+                        topLeft = Offset(0f, -14f),
+                        size = Size(size.width, 14f),
+                    )
                     drawLine(
                         color = barLine,
                         start = Offset(0f, 0f),
@@ -1165,23 +1184,22 @@ public fun rememberRfSkeletonBrush(
     animate: Boolean = true,
 ): Brush {
     val baseColor = if (isAdmin) Color(0xFFE4E5F0) else Color(0xFFEDE5F1)
-    val highlightColor = if (isAdmin) Color(0xFFF1F1F8) else Color(0xFFF7F3F9)
+    val highlightColor = if (isAdmin) Color(0xFFF7F8FD) else Color(0xFFFAF7FC)
     return if (animate) {
         val transition = rememberInfiniteTransition(label = "rf-skeleton-shimmer")
         val progress by transition.animateFloat(
-            initialValue = 0f,
-            targetValue = 1f,
+            initialValue = -300f,
+            targetValue = 1300f,
             animationSpec = infiniteRepeatable(
                 animation = tween(durationMillis = 1200, easing = LinearEasing),
                 repeatMode = RepeatMode.Restart,
             ),
             label = "shimmer-x",
         )
-        val offsetStart = (progress * 600f) - 200f
         Brush.linearGradient(
             colors = listOf(baseColor, highlightColor, baseColor),
-            start = Offset(offsetStart, 0f),
-            end = Offset(offsetStart + 240f, 40f),
+            start = Offset(progress, 0f),
+            end = Offset(progress + 320f, 60f),
         )
     } else {
         Brush.horizontalGradient(listOf(baseColor, highlightColor, baseColor))
@@ -1195,7 +1213,7 @@ public fun rememberRfSkeletonBrush(
 public fun Modifier.rfSkeleton(
     shape: Shape = RoundedCornerShape(10.dp),
     isAdmin: Boolean = LocalRfPalette.current.isAdmin,
-    animate: Boolean = false,
+    animate: Boolean = true,
 ): Modifier {
     val brush = rememberRfSkeletonBrush(isAdmin = isAdmin, animate = animate)
     return this.clip(shape).background(brush)

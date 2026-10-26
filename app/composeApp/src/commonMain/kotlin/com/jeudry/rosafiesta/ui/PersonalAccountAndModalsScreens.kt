@@ -62,6 +62,7 @@ import com.jeudry.rosafiesta.designsystem.RfPhoto
 import com.jeudry.rosafiesta.designsystem.RfPhotoKey
 import com.jeudry.rosafiesta.designsystem.RfGradientPriceText
 import com.jeudry.rosafiesta.designsystem.RfRadialBackgroundBox
+import com.jeudry.rosafiesta.designsystem.rememberRfSkeletonBrush
 import com.jeudry.rosafiesta.designsystem.rfCardShadow
 import com.jeudry.rosafiesta.designsystem.rfHeroBannerShadow
 import com.jeudry.rosafiesta.designsystem.rfIconButtonShadow
@@ -880,7 +881,7 @@ private fun PendingPaymentRow82(
         Column(modifier = Modifier.weight(1f)) {
             BasicText(
                 text = title,
-                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.5.sp, color = Color(0xFF1A1A2E)),
+                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Medium, fontSize = 14.5.sp, color = Color(0xFF1A1A2E)),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -893,7 +894,7 @@ private fun PendingPaymentRow82(
             text = amount,
             style = TextStyle(
                 fontFamily = typo.displayFamily,
-                fontWeight = FontWeight.ExtraBold,
+                fontWeight = FontWeight.Bold,
                 fontSize = 16.sp,
                 color = Color(0xFF1A1A2E),
             ),
@@ -954,7 +955,7 @@ private fun ReceiptRow82(
         Column(modifier = Modifier.weight(1f)) {
             BasicText(
                 text = title,
-                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.5.sp, color = Color(0xFF1A1A2E)),
+                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Medium, fontSize = 14.5.sp, color = Color(0xFF1A1A2E)),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -970,7 +971,7 @@ private fun ReceiptRow82(
                 text = amount,
                 style = TextStyle(
                     fontFamily = typo.displayFamily,
-                    fontWeight = FontWeight.ExtraBold,
+                    fontWeight = FontWeight.Bold,
                     fontSize = 16.sp,
                     color = Color(0xFF1A1A2E),
                 ),
@@ -1765,9 +1766,7 @@ internal fun RenderPersonalLoadingStateS90(
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
-    val skGradient = Brush.horizontalGradient(
-        listOf(Color(0xFFEDE5F1), Color(0xFFF7F3F9), Color(0xFFEDE5F1)),
-    )
+    val skGradient = rememberRfSkeletonBrush(isAdmin = false, animate = true)
 
     Box(
         modifier = Modifier
