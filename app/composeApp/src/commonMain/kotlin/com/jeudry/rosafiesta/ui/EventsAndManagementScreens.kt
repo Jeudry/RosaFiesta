@@ -58,6 +58,8 @@ import com.jeudry.rosafiesta.designsystem.RfRadialBackgroundBox
 import com.jeudry.rosafiesta.designsystem.rfCardShadow
 import com.jeudry.rosafiesta.designsystem.rfHeroBannerShadow
 import com.jeudry.rosafiesta.designsystem.rfIconButtonShadow
+import com.jeudry.rosafiesta.designsystem.rfInputShadow
+import com.jeudry.rosafiesta.designsystem.rfPrimaryButtonShadow
 import com.jeudry.rosafiesta.designsystem.rfPrimaryButtonShadow
 import com.jeudry.rosafiesta.domain.CanonicalSampleData
 
@@ -932,6 +934,7 @@ internal fun RenderEventDetailScreenS40(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(110.dp)
+                    .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = false)
                     .clip(RoundedCornerShape(22.dp))
                     .background(Color.White)
                     .border(1.dp, Color(0xFFF0EDF3), RoundedCornerShape(22.dp)),
@@ -1003,6 +1006,7 @@ internal fun RenderEventDetailScreenS40(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .rfHeroBannerShadow(RoundedCornerShape(22.dp), isAdmin = false)
                     .clip(RoundedCornerShape(22.dp))
                     .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))))
                     .clickable { onSelectScreenCode("s43") }
@@ -1037,7 +1041,7 @@ internal fun RenderEventDetailScreenS40(
                         .background(Color(0xFFFFD45C)),
                     contentAlignment = Alignment.Center,
                 ) {
-                    RfIcon(kind = RfIconKind.PLAY, tint = Color(0xFF2E1A47), size = 20.dp)
+                    RfIcon(kind = RfIconKind.PLAY, tint = Color.Black, size = 20.dp, filled = true)
                 }
             }
 
@@ -1045,6 +1049,7 @@ internal fun RenderEventDetailScreenS40(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = false)
                     .clip(RoundedCornerShape(22.dp))
                     .background(Color.White)
                     .border(1.dp, Color(0xFFF0EDF3), RoundedCornerShape(22.dp))
@@ -1087,6 +1092,7 @@ internal fun RenderEventDetailScreenS40(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = false)
                     .clip(RoundedCornerShape(22.dp))
                     .background(Color.White)
                     .border(1.dp, Color(0xFFF0EDF3), RoundedCornerShape(22.dp))
@@ -1308,6 +1314,7 @@ internal fun RenderExecutionModeScreenS43(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .rfHeroBannerShadow(RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp), isAdmin = false)
                     .clip(RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp))
                     .background(RosaButtonGradient)
                     .padding(top = 52.dp, start = 20.dp, end = 20.dp, bottom = 28.dp),
@@ -1449,6 +1456,7 @@ private fun ExecutionTaskRow43(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
             .clip(RoundedCornerShape(20.dp))
             .background(if (completed) Color(0xFFF6F4F9) else Color.White)
             .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(20.dp))
@@ -1515,28 +1523,33 @@ private fun ExecutionTaskRow43(
 // ==============================================================================
 // s44 · CRONOGRAMA
 // ==============================================================================
+private data class TimelineItem44(
+    val start: String,
+    val end: String,
+    val dotColor: Color,
+    val ringColor: Color,
+    val title: String,
+    val subtitle: String,
+)
+
 @Composable
 internal fun RenderTimelineScreenS44(
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFFAFAFC)),
-    ) {
+    RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 20.dp)
+                .padding(start = 20.dp, end = 20.dp, top = 56.dp, bottom = 30.dp)
                 .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
-            Spacer(modifier = Modifier.height(56.dp))
-
+            // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(
@@ -1551,49 +1564,163 @@ internal fun RenderTimelineScreenS44(
                     RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1A1A2E), size = 22.dp)
                 }
 
-                BasicText(
-                    text = "Cronograma",
-                    style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color(0xFF1A1A2E)),
-                )
+                Column(modifier = Modifier.weight(1f)) {
+                    BasicText(
+                        text = "Cronograma",
+                        style = TextStyle(
+                            fontFamily = typo.displayFamily,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 20.sp,
+                            lineHeight = 22.sp,
+                            color = Color(0xFF1A1A2E),
+                        ),
+                    )
+                    BasicText(
+                        text = "Viernes 23 de octubre",
+                        style = TextStyle(
+                            fontFamily = typo.bodyFamily,
+                            fontSize = 13.sp,
+                            color = Color(0xFF62627A),
+                        ),
+                    )
+                }
 
-                Spacer(modifier = Modifier.size(44.dp))
-            }
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            val timeline = listOf(
-                Pair("08:00 AM", "Llegada del equipo de logística al lugar"),
-                Pair("09:30 AM", "Descarga y montaje de mobiliario"),
-                Pair("11:30 AM", "Instalación de centros de mesa y manteles"),
-                Pair("01:00 PM", "Montaje del arco floral nupcial"),
-                Pair("03:00 PM", "Revisión final y entrega al cliente"),
-                Pair("05:00 PM", "Inicio de la recepción"),
-            )
-
-            timeline.forEach { (time, desc) ->
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(14.dp),
-                    verticalAlignment = Alignment.Top,
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .rfIconButtonShadow(CircleShape, isAdmin = false)
+                        .clip(CircleShape)
+                        .background(RosaButtonGradient),
+                    contentAlignment = Alignment.Center,
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .width(74.dp)
-                            .height(30.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Color(0xFFF1EFF8)),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        BasicText(time, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, color = Color(0xFF865DEC), fontSize = 12.sp))
-                    }
-
-                    Column(modifier = Modifier.weight(1f)) {
-                        BasicText(desc, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A2E), fontSize = 14.sp))
-                    }
+                    RfIcon(kind = RfIconKind.PLUS, tint = Color.White, size = 22.dp)
                 }
             }
 
-            Spacer(modifier = Modifier.height(30.dp))
+            val timelineItems = listOf(
+                TimelineItem44(
+                    start = "06:38",
+                    end = "09:08",
+                    dotColor = Color(0xFFF7B500),
+                    ringColor = Color(0xFFFFF2C9),
+                    title = "Descarga y montaje de mobiliario",
+                    subtitle = "Llega el camión con 120 sillas Tiffany y mesas",
+                ),
+                TimelineItem44(
+                    start = "09:38",
+                    end = "12:38",
+                    dotColor = Color(0xFFEA4EA9),
+                    ringColor = Color(0xFFFDE6F2),
+                    title = "Arco orgánico y flores",
+                    subtitle = "Montaje del backdrop principal y centros de mesa",
+                ),
+                TimelineItem44(
+                    start = "13:08",
+                    end = "14:38",
+                    dotColor = Color(0xFF1FBDC0),
+                    ringColor = Color(0xFFDDF4F3),
+                    title = "Pruebas de sonido e iluminación",
+                    subtitle = "Microfonía, luces ambientales y playlist lista",
+                ),
+                TimelineItem44(
+                    start = "15:38",
+                    end = "16:38",
+                    dotColor = Color(0xFF865DEC),
+                    ringColor = Color(0xFFEFE8FD),
+                    title = "Recepción de invitados",
+                    subtitle = "Cóctel de bienvenida en el área de la terraza",
+                ),
+            )
+
+            Column(modifier = Modifier.fillMaxWidth()) {
+                timelineItems.forEachIndexed { index, item ->
+                    TimelineRow44(item = item, isLast = index == timelineItems.lastIndex)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TimelineRow44(item: TimelineItem44, isLast: Boolean) {
+    val typo = LocalRfTypography.current
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        // Time column on left (48 dp width)
+        Column(
+            modifier = Modifier.width(48.dp).padding(top = 14.dp),
+            horizontalAlignment = Alignment.End,
+        ) {
+            BasicText(
+                text = item.start,
+                style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = Color(0xFF1A1A2E)),
+            )
+            BasicText(
+                text = item.end,
+                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = Color(0xFF62627A)),
+            )
+        }
+
+        // Timeline line & dot in center
+        Box(
+            modifier = Modifier.width(16.dp),
+            contentAlignment = Alignment.TopCenter,
+        ) {
+            if (!isLast) {
+                Box(
+                    modifier = Modifier
+                        .padding(top = 28.dp)
+                        .width(2.dp)
+                        .height(110.dp)
+                        .background(Color(0xFFEADFE7)),
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .padding(top = 18.dp)
+                    .size(14.dp)
+                    .clip(CircleShape)
+                    .background(item.dotColor)
+                    .border(4.dp, item.ringColor, CircleShape),
+            )
+        }
+
+        // Card on right
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .padding(bottom = 12.dp)
+                .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
+                .clip(RoundedCornerShape(20.dp))
+                .background(Color.White)
+                .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(20.dp))
+                .padding(start = 16.dp, top = 14.dp, end = 8.dp, bottom = 14.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    BasicText(
+                        text = item.title,
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, lineHeight = 21.sp, color = Color(0xFF1A1A2E)),
+                    )
+                    BasicText(
+                        text = item.subtitle,
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, lineHeight = 19.sp, color = Color(0xFF62627A)),
+                    )
+                }
+                Box(
+                    modifier = Modifier.size(36.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    RfIcon(kind = RfIconKind.MORE_VERTICAL, tint = Color(0xFF62627A), size = 20.dp)
+                }
+            }
         }
     }
 }
@@ -1607,22 +1734,18 @@ internal fun RenderTasksScreenS45(
 ) {
     val typo = LocalRfTypography.current
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFFAFAFC)),
-    ) {
+    RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 20.dp)
+                .padding(start = 20.dp, end = 20.dp, top = 56.dp, bottom = 30.dp)
                 .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
-            Spacer(modifier = Modifier.height(56.dp))
-
+            // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(
@@ -1637,61 +1760,285 @@ internal fun RenderTasksScreenS45(
                     RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1A1A2E), size = 22.dp)
                 }
 
-                BasicText(
-                    text = "Tareas del evento",
-                    style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color(0xFF1A1A2E)),
-                )
+                Column(modifier = Modifier.weight(1f)) {
+                    BasicText(
+                        text = "Tareas",
+                        style = TextStyle(
+                            fontFamily = typo.displayFamily,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 20.sp,
+                            lineHeight = 22.sp,
+                            color = Color(0xFF1A1A2E),
+                        ),
+                    )
+                    BasicText(
+                        text = "Boda Real Rosa & Dorado",
+                        style = TextStyle(
+                            fontFamily = typo.bodyFamily,
+                            fontSize = 13.sp,
+                            color = Color(0xFF62627A),
+                        ),
+                    )
+                }
 
-                Spacer(modifier = Modifier.size(44.dp))
-            }
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            val tasks = listOf(
-                "Aprobar muestra de centro de mesa" to true,
-                "Confirmar número final de invitados" to true,
-                "Pagar saldo restante (50%)" to false,
-                "Asignar asientos en el plano" to false,
-                "Coordinar entrega de pastel" to false,
-            )
-
-            tasks.forEach { (task, done) ->
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 5.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Color.White)
-                        .border(1.dp, Color(0xFFF0EDF3), RoundedCornerShape(16.dp))
-                        .padding(14.dp),
+                        .size(44.dp)
+                        .rfIconButtonShadow(CircleShape, isAdmin = false)
+                        .clip(CircleShape)
+                        .background(RosaButtonGradient),
+                    contentAlignment = Alignment.Center,
                 ) {
+                    RfIcon(kind = RfIconKind.PLUS, tint = Color.White, size = 22.dp)
+                }
+            }
+
+            // Progress Summary Section
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = false)
+                    .clip(RoundedCornerShape(22.dp))
+                    .background(Color.White)
+                    .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(22.dp))
+                    .padding(horizontal = 18.dp, vertical = 16.dp),
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.Bottom,
+                    ) {
+                        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            BasicText(
+                                text = "2",
+                                style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 26.sp, color = Color(0xFF1A1A2E)),
+                            )
+                            BasicText(
+                                text = "de 4 hechas",
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = Color(0xFF62627A)),
+                            )
+                        }
+                        BasicText(
+                            text = "50%",
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF4E6A10)),
+                        )
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(8.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(Color(0xFFF1EFF5)),
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(26.dp)
-                                .clip(CircleShape)
-                                .background(if (done) Color(0xFF865DEC) else Color(0xFFF1EFF5)),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            if (done) RfIcon(kind = RfIconKind.CHECK, tint = Color.White, size = 16.dp)
-                        }
-                        BasicText(
-                            text = task,
-                            style = TextStyle(
-                                fontFamily = typo.bodyFamily,
-                                fontWeight = FontWeight.SemiBold,
-                                color = if (done) Color(0xFF62627A) else Color(0xFF1A1A2E),
-                                fontSize = 14.sp,
-                            ),
+                                .fillMaxWidth(0.5f)
+                                .height(8.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(Color(0xFF8DB52C)),
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(30.dp))
+            // Caption: PENDIENTES
+            BasicText(
+                text = "PENDIENTES",
+                style = TextStyle(
+                    fontFamily = typo.bodyFamily,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp,
+                    color = Color(0xFF62627A),
+                ),
+            )
+
+            // Section: Pendientes
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 0.dp)
+                    .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = false)
+                    .clip(RoundedCornerShape(22.dp))
+                    .background(Color.White)
+                    .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(22.dp)),
+            ) {
+                Column {
+                    // Task 1
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                        verticalAlignment = Alignment.Top,
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .padding(top = 1.dp)
+                                .size(26.dp)
+                                .clip(CircleShape)
+                                .background(Color.White)
+                                .border(2.dp, Color(0xFFCDBFCB), CircleShape),
+                        )
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            BasicText(
+                                text = "Realizar pago inicial de reserva (30%)",
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, lineHeight = 21.sp, color = Color(0xFF1A1A2E)),
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .height(24.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFFFFF2C9))
+                                    .padding(horizontal = 9.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                BasicText("Vence hoy", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF7A5700)))
+                            }
+                        }
+                    }
+
+                    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFF2F0F5)))
+
+                    // Task 2
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                        verticalAlignment = Alignment.Top,
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .padding(top = 1.dp)
+                                .size(26.dp)
+                                .clip(CircleShape)
+                                .background(Color.White)
+                                .border(2.dp, Color(0xFFCDBFCB), CircleShape),
+                        )
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            BasicText(
+                                text = "Inspección técnica de iluminación exterior",
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, lineHeight = 21.sp, color = Color(0xFF1A1A2E)),
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .height(24.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFFF1EFF5))
+                                    .padding(horizontal = 9.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                BasicText("Mañana", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF62627A)))
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Caption: COMPLETADAS
+            BasicText(
+                text = "COMPLETADAS",
+                style = TextStyle(
+                    fontFamily = typo.bodyFamily,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp,
+                    color = Color(0xFF62627A),
+                ),
+            )
+
+            // Section: Completadas
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = false)
+                    .clip(RoundedCornerShape(22.dp))
+                    .background(Color(0xFFF7F3F6))
+                    .border(1.dp, Color(0xFFEDE4EA), RoundedCornerShape(22.dp)),
+            ) {
+                Column {
+                    // Completed 1
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                        verticalAlignment = Alignment.Top,
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .padding(top = 1.dp)
+                                .size(26.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF8DB52C)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            RfIcon(kind = RfIconKind.CHECK, tint = Color.White, size = 16.dp)
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            BasicText(
+                                text = "Confirmar paleta floral blanco y rosa pastel",
+                                style = TextStyle(
+                                    fontFamily = typo.bodyFamily,
+                                    fontSize = 16.sp,
+                                    lineHeight = 21.sp,
+                                    color = Color(0xFF62627A),
+                                    textDecoration = TextDecoration.LineThrough,
+                                ),
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            BasicText(
+                                text = "18 oct",
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF62627A)),
+                            )
+                        }
+                    }
+
+                    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFEDE4EA)))
+
+                    // Completed 2
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                        verticalAlignment = Alignment.Top,
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .padding(top = 1.dp)
+                                .size(26.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF8DB52C)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            RfIcon(kind = RfIconKind.CHECK, tint = Color.White, size = 16.dp)
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            BasicText(
+                                text = "Aprobar plano de mesas imperial y sillas Tiffany",
+                                style = TextStyle(
+                                    fontFamily = typo.bodyFamily,
+                                    fontSize = 16.sp,
+                                    lineHeight = 21.sp,
+                                    color = Color(0xFF62627A),
+                                    textDecoration = TextDecoration.LineThrough,
+                                ),
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            BasicText(
+                                text = "15 oct",
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF62627A)),
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
         }
     }
 }
@@ -1747,6 +2094,7 @@ internal fun RenderChecklistScreenS46(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = false)
                     .clip(RoundedCornerShape(22.dp))
                     .background(Color(0xFFFDE6F2))
                     .clickable { onSelectScreenCode("s40") }
@@ -1818,6 +2166,7 @@ internal fun RenderChecklistScreenS46(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
                             .clip(RoundedCornerShape(20.dp))
                             .background(Color.White)
                             .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(20.dp))
@@ -1954,22 +2303,18 @@ internal fun RenderGuestsScreenS47(
 ) {
     val typo = LocalRfTypography.current
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFFAFAFC)),
-    ) {
+    RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 20.dp)
+                .padding(start = 20.dp, end = 20.dp, top = 56.dp, bottom = 30.dp)
                 .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Spacer(modifier = Modifier.height(56.dp))
-
+            // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(
@@ -1984,17 +2329,30 @@ internal fun RenderGuestsScreenS47(
                     RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1A1A2E), size = 22.dp)
                 }
 
-                BasicText(
-                    text = "Lista de invitados",
-                    style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color(0xFF1A1A2E)),
-                )
+                Column(modifier = Modifier.weight(1f)) {
+                    BasicText(
+                        text = "Invitados",
+                        style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, lineHeight = 22.sp, color = Color(0xFF1A1A2E)),
+                    )
+                    BasicText(
+                        text = "120 invitados · Boda Real",
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF62627A)),
+                    )
+                }
 
-                Spacer(modifier = Modifier.size(44.dp))
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .rfIconButtonShadow(CircleShape, isAdmin = false)
+                        .clip(CircleShape)
+                        .background(RosaButtonGradient),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    RfIcon(kind = RfIconKind.PLUS, tint = Color.White, size = 22.dp)
+                }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // Resumen de confirmación
+            // Stat pills: Confirmados (84), Pendientes (26), Rechazados (10)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -2002,51 +2360,111 @@ internal fun RenderGuestsScreenS47(
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Color(0xFFE8F6F0))
-                        .padding(14.dp),
+                        .rfCardShadow(RoundedCornerShape(18.dp), isAdmin = false)
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(Color(0xFFEEF6D6))
+                        .padding(12.dp),
                 ) {
-                    Column {
-                        BasicText("Confirmados", style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFF2E9C76), fontSize = 12.sp))
-                        BasicText("100 pax", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.Bold, color = Color(0xFF2E9C76), fontSize = 18.sp))
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        BasicText("Confirmados", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, color = Color(0xFF62627A), fontSize = 12.sp))
+                        BasicText("84", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, color = Color(0xFF4E6A10), fontSize = 24.sp))
                     }
                 }
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Color(0xFFFFF6E6))
-                        .padding(14.dp),
+                        .rfCardShadow(RoundedCornerShape(18.dp), isAdmin = false)
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(Color(0xFFFFF2C9))
+                        .padding(12.dp),
                 ) {
-                    Column {
-                        BasicText("Pendientes", style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFFC78400), fontSize = 12.sp))
-                        BasicText("20 pax", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.Bold, color = Color(0xFFC78400), fontSize = 18.sp))
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        BasicText("Pendientes", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, color = Color(0xFF62627A), fontSize = 12.sp))
+                        BasicText("26", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, color = Color(0xFF7A5700), fontSize = 24.sp))
+                    }
+                }
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .rfCardShadow(RoundedCornerShape(18.dp), isAdmin = false)
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(Color(0xFFFDE6F2))
+                        .padding(12.dp),
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        BasicText("Rechazados", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, color = Color(0xFF62627A), fontSize = 12.sp))
+                        BasicText("10", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, color = Color(0xFFB42345), fontSize = 24.sp))
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            // Search bar
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp)
+                    .rfInputShadow(RoundedCornerShape(16.dp))
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Color.White)
+                    .border(1.dp, Color(0xFFF0EBF4), RoundedCornerShape(16.dp))
+                    .padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                RfIcon(kind = RfIconKind.SEARCH, tint = Color(0xFF62627A), size = 18.dp)
+                BasicText(
+                    text = "Buscar invitado por nombre o familia",
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF62627A)),
+                )
+            }
 
+            // Guest items
             val guests = listOf(
-                "Familia Pérez Martínez" to "Confirmado · 4 personas",
-                "Carlos & Andrea Sánchez" to "Confirmado · 2 personas",
-                "Dra. Laura Gómez" to "Pendiente · 1 persona",
-                "Lic. Roberto Fernández" to "Confirmado · 2 personas",
+                Triple("Familia Pérez Martínez", "Confirmados · Mesa 2 · 4 personas", "Confirmado"),
+                Triple("Carlos & Andrea Sánchez", "Confirmados · Mesa 1 · 2 personas", "Confirmado"),
+                Triple("Dra. Laura Gómez", "Pendiente respuesta · 1 persona", "Pendiente"),
+                Triple("Lic. Roberto Fernández", "Confirmado · Mesa 4 · 2 personas", "Confirmado"),
             )
 
-            guests.forEach { (name, status) ->
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 5.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Color.White)
-                        .border(1.dp, Color(0xFFF0EDF3), RoundedCornerShape(16.dp))
-                        .padding(14.dp),
-                ) {
-                    Column {
-                        BasicText(name, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A2E), fontSize = 14.sp))
-                        BasicText(status, style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFF62627A), fontSize = 12.sp))
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                guests.forEach { (name, desc, badge) ->
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(Color.White)
+                            .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(20.dp))
+                            .padding(14.dp),
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                BasicText(name, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A2E), fontSize = 15.sp))
+                                BasicText(desc, style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFF62627A), fontSize = 13.sp))
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .height(24.dp)
+                                    .clip(CircleShape)
+                                    .background(if (badge == "Confirmado") Color(0xFFEEF6D6) else Color(0xFFFFF2C9))
+                                    .padding(horizontal = 9.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                BasicText(
+                                    text = badge,
+                                    style = TextStyle(
+                                        fontFamily = typo.bodyFamily,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp,
+                                        color = if (badge == "Confirmado") Color(0xFF4E6A10) else Color(0xFF7A5700),
+                                    ),
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -2122,6 +2540,7 @@ internal fun RenderQuoteScreenS48(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = false)
                     .clip(RoundedCornerShape(22.dp))
                     .background(Color.White)
                     .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(22.dp)),

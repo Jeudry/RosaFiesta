@@ -248,6 +248,7 @@ internal fun RenderPaymentCheckoutScreenS50(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .rfCardShadow(RoundedCornerShape(18.dp), isAdmin = false)
                     .clip(RoundedCornerShape(18.dp))
                     .background(Color.White)
                     .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(18.dp))
@@ -347,6 +348,7 @@ internal fun RenderPaymentCheckoutScreenS50(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp)
+                    .rfInputShadow(RoundedCornerShape(14.dp), isAdmin = false)
                     .clip(RoundedCornerShape(14.dp))
                     .background(Color.White)
                     .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(14.dp))
@@ -364,6 +366,7 @@ internal fun RenderPaymentCheckoutScreenS50(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp)
+                    .rfInputShadow(RoundedCornerShape(14.dp), isAdmin = false)
                     .clip(RoundedCornerShape(14.dp))
                     .background(Color.White)
                     .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(14.dp))
@@ -382,6 +385,7 @@ internal fun RenderPaymentCheckoutScreenS50(
                     modifier = Modifier
                         .weight(1f)
                         .height(52.dp)
+                        .rfInputShadow(RoundedCornerShape(14.dp), isAdmin = false)
                         .clip(RoundedCornerShape(14.dp))
                         .background(Color.White)
                         .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(14.dp))
@@ -394,6 +398,7 @@ internal fun RenderPaymentCheckoutScreenS50(
                     modifier = Modifier
                         .weight(1f)
                         .height(52.dp)
+                        .rfInputShadow(RoundedCornerShape(14.dp), isAdmin = false)
                         .clip(RoundedCornerShape(14.dp))
                         .background(Color.White)
                         .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(14.dp))
@@ -409,6 +414,7 @@ internal fun RenderPaymentCheckoutScreenS50(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp)
+                    .rfInputShadow(RoundedCornerShape(14.dp), isAdmin = false)
                     .clip(RoundedCornerShape(14.dp))
                     .background(Color.White)
                     .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(14.dp))
