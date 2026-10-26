@@ -69,6 +69,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
@@ -1825,7 +1827,7 @@ internal fun RenderLoginScreenS07(
                     ),
                 )
                 BasicText(
-                    text = "Entra para ver tus eventos y cotizaciones.",
+                    text = "Entra a tus eventos.",
                     style = typo.body.copy(
                         fontSize = 13.5.sp,
                         color = Color(0xFF62627A),
@@ -1920,18 +1922,24 @@ internal fun RenderLoginScreenS07(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.weight(1f)) {
                         RfIcon(kind = RfIconKind.LOCK, tint = Color(0xFF62627A), size = 20.dp)
-                        if (showPassword) {
-                            BasicTextField(
-                                value = password,
-                                onValueChange = { nextPassword ->
-                                    password = nextPassword
-                                    viewModel?.setLoginPassword(nextPassword)
-                                },
-                                singleLine = true,
-                                textStyle = typo.body.copy(fontSize = 15.sp, color = Color(0xFF1A1A2E)),
-                                cursorBrush = SolidColor(Color(0xFFD63F98)),
-                                modifier = Modifier.fillMaxWidth(),
-                                decorationBox = { innerTextField ->
+                        val loginPasswordVisualTransformation = if (showPassword) {
+                            VisualTransformation.None
+                        } else {
+                            PasswordVisualTransformation()
+                        }
+                        BasicTextField(
+                            value = password,
+                            onValueChange = { nextPassword ->
+                                password = nextPassword
+                                viewModel?.setLoginPassword(nextPassword)
+                            },
+                            singleLine = true,
+                            visualTransformation = loginPasswordVisualTransformation,
+                            textStyle = typo.body.copy(fontSize = 15.sp, color = Color(0xFF1A1A2E)),
+                            cursorBrush = SolidColor(Color(0xFFD63F98)),
+                            modifier = Modifier.fillMaxWidth(),
+                            decorationBox = { innerTextField ->
+                                Box(contentAlignment = Alignment.CenterStart) {
                                     if (password.isEmpty()) {
                                         BasicText(
                                             text = "Ingresa tu contraseña",
@@ -1939,37 +1947,9 @@ internal fun RenderLoginScreenS07(
                                         )
                                     }
                                     innerTextField()
-                                },
-                            )
-                        } else {
-                            BasicTextField(
-                                value = password,
-                                onValueChange = { nextPassword ->
-                                    password = nextPassword
-                                    viewModel?.setLoginPassword(nextPassword)
-                                },
-                                singleLine = true,
-                                textStyle = typo.body.copy(fontSize = 15.sp, color = Color.Transparent),
-                                cursorBrush = SolidColor(Color(0xFFD63F98)),
-                                modifier = Modifier.fillMaxWidth(),
-                                decorationBox = { innerTextField ->
-                                    Box(contentAlignment = Alignment.CenterStart) {
-                                        if (password.isEmpty()) {
-                                            BasicText(
-                                                text = "Ingresa tu contraseña",
-                                                style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF9A98AD)),
-                                            )
-                                        } else {
-                                            BasicText(
-                                                text = "•".repeat(password.length),
-                                                style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF1A1A2E), letterSpacing = 2.sp),
-                                            )
-                                        }
-                                        innerTextField()
-                                    }
-                                },
-                            )
-                        }
+                                }
+                            },
+                        )
                     }
                     Box(
                         contentAlignment = Alignment.Center,
@@ -2555,12 +2535,17 @@ internal fun RenderRegisterScreenS08(
                             modifier = Modifier.weight(1f),
                         ) {
                             RfIcon(kind = RfIconKind.LOCK, tint = Color(0xFF62627A), size = 18.dp)
-                            val passwordTextColor = if (showPassword) Color(0xFF1A1A2E) else Color.Transparent
+                            val registerPasswordVisualTransformation = if (showPassword) {
+                                VisualTransformation.None
+                            } else {
+                                PasswordVisualTransformation()
+                            }
                             BasicTextField(
                                 value = password,
                                 onValueChange = { nextPassword -> password = nextPassword },
                                 singleLine = true,
-                                textStyle = typo.body.copy(fontSize = 14.sp, color = passwordTextColor),
+                                visualTransformation = registerPasswordVisualTransformation,
+                                textStyle = typo.body.copy(fontSize = 14.sp, color = Color(0xFF1A1A2E)),
                                 cursorBrush = SolidColor(Color(0xFFD63F98)),
                                 modifier = Modifier.fillMaxWidth(),
                                 decorationBox = { inner ->
@@ -2571,13 +2556,6 @@ internal fun RenderRegisterScreenS08(
                                                 maxLines = 1,
                                                 overflow = TextOverflow.Ellipsis,
                                                 style = typo.body.copy(fontSize = 14.sp, color = Color(0xFF62627A)),
-                                            )
-                                        } else if (!showPassword) {
-                                            BasicText(
-                                                "•".repeat(password.length),
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Clip,
-                                                style = typo.body.copy(fontSize = 15.sp, letterSpacing = 1.5.sp, color = Color(0xFF1A1A2E)),
                                             )
                                         }
                                         inner()
@@ -2641,56 +2619,23 @@ internal fun RenderRegisterScreenS08(
                     .background(Color.White)
                     .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(16.dp))
                     .clickable { showBirthDatePicker = true }
-                    .padding(start = 16.dp, end = 12.dp),
+                    .padding(horizontal = 16.dp),
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier
-                                .size(32.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(Color(0xFFFDE6F2))
-                                .clickable { showBirthDatePicker = true },
-                        ) {
-                            RfIcon(kind = RfIconKind.CALENDAR, tint = Color(0xFFD63F98), size = 18.dp)
-                        }
-                        BasicTextField(
-                            value = birthDate,
-                            onValueChange = { nextBirthDate -> birthDate = nextBirthDate },
-                            singleLine = true,
-                            textStyle = typo.body.copy(fontSize = 15.sp, color = Color(0xFF1A1A2E)),
-                            cursorBrush = SolidColor(Color(0xFFD63F98)),
-                            modifier = Modifier.fillMaxWidth(),
-                            decorationBox = { inner ->
-                                if (birthDate.isEmpty()) {
-                                    BasicText("Fecha de nacimiento (DD/MM/AAAA)", style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF62627A)))
-                                }
-                                inner()
-                            },
-                        )
-                    }
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(999.dp))
-                            .background(Color(0xFFF4EFF8))
-                            .clickable { showBirthDatePicker = true }
-                            .padding(horizontal = 10.dp, vertical = 5.dp),
-                    ) {
-                        BasicText(
-                            "Calendario",
-                            style = typo.body.copy(fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF7A4FD8)),
-                        )
-                    }
+                    RfIcon(kind = RfIconKind.CALENDAR, tint = Color(0xFF62627A), size = 20.dp)
+                    val hasBirthDateValue = birthDate.isNotEmpty()
+                    val birthDateLabel = if (hasBirthDateValue) birthDate else "Fecha de nacimiento (DD/MM/AAAA)"
+                    val birthDateTextColor = if (hasBirthDateValue) Color(0xFF1A1A2E) else Color(0xFF62627A)
+                    BasicText(
+                        text = birthDateLabel,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        style = typo.body.copy(fontSize = 15.sp, color = birthDateTextColor),
+                    )
                 }
             }
 
@@ -3275,7 +3220,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                             ),
                         )
                         BasicText(
-                            "Escribe tu correo y te enviamos un enlace para crear una nueva.",
+                            "Te enviamos un enlace a tu correo.",
                             style = typo.body.copy(fontSize = 13.5.sp, lineHeight = 18.sp, color = Color(0xFF62627A)),
                         )
                     }
@@ -3460,13 +3405,19 @@ internal fun RenderRecoveryAndConfirmationScreens(
                                 modifier = Modifier.weight(1f),
                             ) {
                                 RfIcon(kind = RfIconKind.LOCK, tint = Color(0xFF62627A), size = 20.dp)
+                                val newPasswordVisualTransformation = if (showNewPassword) {
+                                    VisualTransformation.None
+                                } else {
+                                    PasswordVisualTransformation()
+                                }
                                 BasicTextField(
                                     value = newPassword,
                                     onValueChange = { nextPass -> newPassword = nextPass },
                                     singleLine = true,
+                                    visualTransformation = newPasswordVisualTransformation,
                                     textStyle = typo.body.copy(
                                         fontSize = 15.sp,
-                                        color = if (showNewPassword) Color(0xFF1A1A2E) else Color.Transparent,
+                                        color = Color(0xFF1A1A2E),
                                     ),
                                     cursorBrush = SolidColor(Color(0xFFD63F98)),
                                     modifier = Modifier.fillMaxWidth(),
@@ -3474,8 +3425,6 @@ internal fun RenderRecoveryAndConfirmationScreens(
                                         Box(contentAlignment = Alignment.CenterStart) {
                                             if (newPassword.isEmpty()) {
                                                 BasicText("Crea tu contraseña", style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF9A98AD)))
-                                            } else if (!showNewPassword) {
-                                                BasicText("•".repeat(newPassword.length), style = typo.body.copy(fontSize = 18.sp, letterSpacing = 2.sp, color = Color(0xFF1A1A2E)))
                                             }
                                             innerTextField()
                                         }
@@ -3564,13 +3513,19 @@ internal fun RenderRecoveryAndConfirmationScreens(
                                 modifier = Modifier.weight(1f),
                             ) {
                                 RfIcon(kind = RfIconKind.LOCK, tint = Color(0xFF62627A), size = 20.dp)
+                                val confirmPasswordVisualTransformation = if (showConfirmPassword) {
+                                    VisualTransformation.None
+                                } else {
+                                    PasswordVisualTransformation()
+                                }
                                 BasicTextField(
                                     value = confirmPassword,
                                     onValueChange = { nextPass -> confirmPassword = nextPass },
                                     singleLine = true,
+                                    visualTransformation = confirmPasswordVisualTransformation,
                                     textStyle = typo.body.copy(
                                         fontSize = 15.sp,
-                                        color = if (showConfirmPassword) Color(0xFF1A1A2E) else Color.Transparent,
+                                        color = Color(0xFF1A1A2E),
                                     ),
                                     cursorBrush = SolidColor(Color(0xFFD63F98)),
                                     modifier = Modifier.fillMaxWidth(),
@@ -3578,8 +3533,6 @@ internal fun RenderRecoveryAndConfirmationScreens(
                                         Box(contentAlignment = Alignment.CenterStart) {
                                             if (confirmPassword.isEmpty()) {
                                                 BasicText("Repite tu contraseña", style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF9A98AD)))
-                                            } else if (!showConfirmPassword) {
-                                                BasicText("•".repeat(confirmPassword.length), style = typo.body.copy(fontSize = 18.sp, letterSpacing = 2.sp, color = Color(0xFF1A1A2E)))
                                             }
                                             innerTextField()
                                         }
