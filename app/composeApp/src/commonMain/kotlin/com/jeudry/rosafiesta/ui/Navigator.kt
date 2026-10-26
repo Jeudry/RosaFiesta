@@ -56,13 +56,34 @@ public class Navigator(
         get() = backStack.isNotEmpty()
 
     public fun navigateTo(code: String) {
+        if (code.startsWith("BACK")) {
+            if (popBack()) return
+            val fallback = code.substringAfter("BACK:", missingDelimiterValue = "").ifBlank {
+                if (activeView == AppView.ADMIN) "A01" else "s14"
+            }
+            if (fallback == currentCode) return
+            lastTransition = NavigationTransitionKind.BACKWARD
+            currentCode = fallback
+            return
+        }
         if (code == currentCode) return
+        val isModalSheet = ScreenCatalog.isBottomSheet(code)
+        val isRootTab = code in ROOT_TAB_CODES
         lastTransition = when {
-            ScreenCatalog.isBottomSheet(code) -> NavigationTransitionKind.MODAL_SHEET
-            code in ROOT_TAB_CODES -> NavigationTransitionKind.TAB_SWITCH
+            isModalSheet -> NavigationTransitionKind.MODAL_SHEET
+            isRootTab -> NavigationTransitionKind.TAB_SWITCH
             else -> NavigationTransitionKind.FORWARD
         }
-        backStack.add(currentCode)
+        val isHomeTab = code in HOME_TAB_CODES
+        if (isHomeTab) {
+            backStack.clear()
+        } else if (isRootTab) {
+            val homeCode = if (activeView == AppView.ADMIN) "A01" else "s14"
+            backStack.clear()
+            backStack.add(homeCode)
+        } else {
+            backStack.add(currentCode)
+        }
         currentCode = code
     }
 
@@ -95,6 +116,7 @@ public class Navigator(
     }
 
     private companion object {
+        val HOME_TAB_CODES = setOf("s01", "s14", "s15", "A01")
         val ROOT_TAB_CODES = setOf("s01", "s14", "s15", "s18", "s21", "s24", "s26", "s37", "A01", "A08", "A09", "A11", "A12")
     }
 }

@@ -37,8 +37,14 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -90,8 +96,8 @@ internal fun RenderPersonalNotificationsS79(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(start = 20.dp, end = 20.dp, top = 54.dp)
-                .verticalScroll(rememberScrollState()),
+                                .verticalScroll(rememberScrollState())
+            .padding(start = 20.dp, end = 20.dp, top = 54.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // Header
@@ -106,7 +112,7 @@ internal fun RenderPersonalNotificationsS79(
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(Color.White)
-                        .clickable { onSelectScreenCode("s14") },
+                        .clickable { onSelectScreenCode("BACK:s14") },
                     contentAlignment = Alignment.Center,
                 ) {
                     RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1A1A2E), size = 22.dp)
@@ -349,17 +355,33 @@ private fun NotificationCard79(items: List<NotificationItem79>) {
 // ==============================================================================
 @Composable
 internal fun RenderPersonalSearchS80(
+    viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
     val cardShape = RoundedCornerShape(20.dp)
+    val vmQuery = viewModel?.searchQuery?.collectAsState()?.value ?: ""
+    var localQuery by remember(vmQuery) { mutableStateOf(vmQuery.ifBlank { "mesa" }) }
+    val allArticles = viewModel?.articles?.collectAsState()?.value ?: com.jeudry.rosafiesta.domain.CanonicalSampleData.articles
+    val filteredArticles = remember(localQuery, allArticles) {
+        val q = localQuery.trim()
+        if (q.isEmpty()) {
+            allArticles
+        } else {
+            allArticles.filter {
+                it.name.contains(q, ignoreCase = true) ||
+                    it.category.contains(q, ignoreCase = true) ||
+                    it.code.contains(q, ignoreCase = true)
+            }
+        }
+    }
 
     RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(start = 20.dp, end = 20.dp, top = 54.dp),
+                .padding(start = 20.dp, end = 20.dp, top = 54.dp, bottom = 112.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Row(
@@ -373,7 +395,7 @@ internal fun RenderPersonalSearchS80(
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(Color.White)
-                        .clickable { onSelectScreenCode("s14") },
+                        .clickable { onSelectScreenCode("BACK:s14") },
                     contentAlignment = Alignment.Center,
                 ) {
                     RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1A1A2E), size = 22.dp)
@@ -391,21 +413,41 @@ internal fun RenderPersonalSearchS80(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     RfIcon(kind = RfIconKind.SEARCH, tint = Color(0xFF62627A), size = 18.dp)
-                    BasicText(
-                        text = "mesa",
+                    BasicTextField(
+                        value = localQuery,
+                        onValueChange = {
+                            localQuery = it
+                            viewModel?.setSearchQuery(it)
+                        },
+                        singleLine = true,
+                        textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF1A1A2E)),
+                        cursorBrush = SolidColor(Color(0xFFC2338F)),
                         modifier = Modifier.weight(1f),
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF1A1A2E)),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
+                        decorationBox = { inner ->
+                            if (localQuery.isEmpty()) {
+                                BasicText(
+                                    text = "Buscar sillas, mesas, arcos...",
+                                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF62627A)),
+                                    maxLines = 1,
+                                )
+                            }
+                            inner()
+                        },
                     )
-                    Box(
-                        modifier = Modifier
-                            .size(28.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFFF1EFF5)),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        RfIcon(kind = RfIconKind.CLOSE, tint = Color(0xFF62627A), size = 14.dp)
+                    if (localQuery.isNotEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .size(28.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFFF1EFF5))
+                                .clickable {
+                                    localQuery = ""
+                                    viewModel?.setSearchQuery("")
+                                },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            RfIcon(kind = RfIconKind.CLOSE, tint = Color(0xFF62627A), size = 14.dp)
+                        }
                     }
                 }
 
@@ -460,13 +502,15 @@ internal fun RenderPersonalSearchS80(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     BasicText(
-                        text = "4 resultados",
+                        text = "${filteredArticles.size} resultados",
                         style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF1A1A2E)),
                     )
-                    BasicText(
-                        text = " para “mesa”",
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF62627A)),
-                    )
+                    if (localQuery.isNotBlank()) {
+                        BasicText(
+                            text = " para “$localQuery”",
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF62627A)),
+                        )
+                    }
                 }
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -480,46 +524,31 @@ internal fun RenderPersonalSearchS80(
                 }
             }
 
-            SearchResultCard80(
-                photoKey = RfPhotoKey.MESA_REDONDA,
-                title = "Mesa redonda",
-                subtitle = "Para 8 a 10 personas · 1.5 m",
-                availability = "Disponible · 18 libres",
-                availabilityColor = Color(0xFF4E6A10),
-                availabilityBg = Color(0xFFEEF6D6),
-                price = "25",
-                cardShape = cardShape,
-            )
-            SearchResultCard80(
-                photoKey = RfPhotoKey.CENTRO_FLORAL,
-                title = "Centro de mesa floral",
-                subtitle = "Flores naturales, base de madera",
-                availability = "Disponible · 24 libres",
-                availabilityColor = Color(0xFF4E6A10),
-                availabilityBg = Color(0xFFEEF6D6),
-                price = "35",
-                cardShape = cardShape,
-            )
-            SearchResultCard80(
-                photoKey = RfPhotoKey.MESA_PLEGABLE,
-                title = "Mesa plegable",
-                subtitle = "Rectangular 1.8 m · blanca",
-                availability = "Disponible · 30 libres",
-                availabilityColor = Color(0xFF4E6A10),
-                availabilityBg = Color(0xFFEEF6D6),
-                price = "20",
-                cardShape = cardShape,
-            )
-            SearchResultCard80(
-                photoKey = RfPhotoKey.MESA_HELADOS,
-                title = "Mesa dulce temática",
-                subtitle = "Decoración completa para dulces",
-                availability = "Quedan 2",
-                availabilityColor = Color(0xFF7A5700),
-                availabilityBg = Color(0xFFFFF2C9),
-                price = "150",
-                cardShape = cardShape,
-            )
+            filteredArticles.forEach { article ->
+                val freeCount = article.totalStock.coerceAtLeast(0)
+                val lowStock = freeCount <= 3
+                val photoKey = RfPhotoKey.entries.firstOrNull {
+                    it.assetKey == article.photo.key || it.name.equals(article.photo.key, ignoreCase = true)
+                } ?: RfPhotoKey.MESA_REDONDA
+                SearchResultCard80(
+                    photoKey = photoKey,
+                    title = article.name,
+                    subtitle = article.description,
+                    availability = if (lowStock) "Quedan $freeCount" else "Disponible · $freeCount libres",
+                    availabilityColor = if (lowStock) Color(0xFF7A5700) else Color(0xFF4E6A10),
+                    availabilityBg = if (lowStock) Color(0xFFFFF2C9) else Color(0xFFEEF6D6),
+                    price = article.pricePerDayDop.toString(),
+                    cardShape = cardShape,
+                    onClick = {
+                        viewModel?.selectArticle(article.id)
+                        onSelectScreenCode("s19")
+                    },
+                    onAddClick = {
+                        viewModel?.adjustDraftQuantity(article.id, 1)
+                        onSelectScreenCode("s25")
+                    },
+                )
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
         }
@@ -557,6 +586,8 @@ private fun SearchResultCard80(
     availabilityBg: Color,
     price: String,
     cardShape: androidx.compose.ui.graphics.Shape,
+    onClick: () -> Unit = {},
+    onAddClick: () -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
 
@@ -566,6 +597,7 @@ private fun SearchResultCard80(
             .rfCardShadow(cardShape, isAdmin = false)
             .clip(cardShape)
             .background(Color.White)
+            .clickable(onClick = onClick)
             .padding(10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -628,7 +660,8 @@ private fun SearchResultCard80(
                     modifier = Modifier
                         .size(36.dp)
                         .clip(CircleShape)
-                        .background(RfColors.PersonalHeroGradient),
+                        .background(RfColors.PersonalHeroGradient)
+                        .clickable(onClick = onAddClick),
                     contentAlignment = Alignment.Center,
                 ) {
                     RfIcon(kind = RfIconKind.PLUS, tint = Color.White, size = 16.dp)
@@ -667,7 +700,7 @@ internal fun RenderPersonalPaymentsS82(
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(Color.White)
-                        .clickable { onSelectScreenCode("s54") },
+                        .clickable { onSelectScreenCode("BACK:s54") },
                     contentAlignment = Alignment.Center,
                 ) {
                     RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1A1A2E), size = 22.dp)
@@ -1008,7 +1041,7 @@ internal fun RenderAccountSettingsS86(
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(Color.White)
-                        .clickable { onSelectScreenCode("s54") },
+                        .clickable { onSelectScreenCode("BACK:s54") },
                     contentAlignment = Alignment.Center,
                 ) {
                     RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1A1A2E), size = 22.dp)
@@ -1207,7 +1240,7 @@ internal fun RenderTermsS87(
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(Color.White)
-                        .clickable { onSelectScreenCode("s86") },
+                        .clickable { onSelectScreenCode("BACK:s86") },
                     contentAlignment = Alignment.Center,
                 ) {
                     RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1A1A2E), size = 22.dp)
@@ -1394,7 +1427,7 @@ internal fun RenderDeleteAccountS88(
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(Color.White)
-                        .clickable { onSelectScreenCode("s54") },
+                        .clickable { onSelectScreenCode("BACK:s54") },
                     contentAlignment = Alignment.Center,
                 ) {
                     RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1A1A2E), size = 22.dp)
@@ -2926,7 +2959,7 @@ internal fun RenderChangeDateModalS84(
                         .shadow(8.dp, CircleShape, spotColor = Color(0x33B450B4))
                         .clip(CircleShape)
                         .background(Color.White)
-                        .clickable { onSelectScreenCode("s40") },
+                        .clickable { onSelectScreenCode("BACK:s40") },
                 ) {
                     RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1A1A2E), size = 22.dp)
                 }
@@ -3210,7 +3243,7 @@ internal fun RenderCancelEventModalS85(
                         .shadow(8.dp, CircleShape, spotColor = Color(0x33B450B4))
                         .clip(CircleShape)
                         .background(Color.White)
-                        .clickable { onSelectScreenCode("s40") },
+                        .clickable { onSelectScreenCode("BACK:s40") },
                 ) {
                     RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1A1A2E), size = 22.dp)
                 }

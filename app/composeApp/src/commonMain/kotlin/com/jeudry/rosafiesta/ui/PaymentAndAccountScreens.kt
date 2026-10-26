@@ -102,8 +102,8 @@ internal fun RenderQuoteHistoryScreenS49(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(start = 20.dp, end = 20.dp, top = 56.dp, bottom = 30.dp)
-                .verticalScroll(rememberScrollState()),
+                                .verticalScroll(rememberScrollState())
+            .padding(start = 20.dp, end = 20.dp, top = 56.dp, bottom = 30.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             // Header
@@ -119,7 +119,7 @@ internal fun RenderQuoteHistoryScreenS49(
                         .clip(CircleShape)
                         .background(Color.White)
                         .border(1.dp, Color(0xFFF0EBF4), CircleShape)
-                        .clickable { onSelectScreenCode("s37") },
+                        .clickable { onSelectScreenCode("BACK:s37") },
                     contentAlignment = Alignment.Center,
                 ) {
                     RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1A1A2E), size = 22.dp)
@@ -358,7 +358,7 @@ internal fun RenderPaymentCheckoutScreenS50(
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(Color.White)
-                        .clickable { onSelectScreenCode("s48") },
+                        .clickable { onSelectScreenCode("BACK:s48") },
                     contentAlignment = Alignment.Center,
                 ) {
                     RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1A1A2E), size = 22.dp)
@@ -988,7 +988,7 @@ internal fun RenderPostEventReviewScreenS52(
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(Color.White)
-                        .clickable { onSelectScreenCode("s40") },
+                        .clickable { onSelectScreenCode("BACK:s40") },
                     contentAlignment = Alignment.Center,
                 ) {
                     RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1A1A2E), size = 22.dp)
@@ -1166,7 +1166,7 @@ internal fun RenderMyReservationsScreenS53(
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(Color.White)
-                        .clickable { onSelectScreenCode("s54") },
+                        .clickable { onSelectScreenCode("BACK:s54") },
                     contentAlignment = Alignment.Center,
                 ) {
                     RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1A1A2E), size = 22.dp)
@@ -1375,7 +1375,7 @@ internal fun RenderUserProfileScreenS54(
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(Color.White)
-                        .clickable { onSelectScreenCode("s83") },
+                        .clickable { onSelectScreenCode("BACK:s14") },
                     contentAlignment = Alignment.Center,
                 ) {
                     RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1A1A2E), size = 22.dp)
@@ -1505,13 +1505,22 @@ internal fun RenderUserProfileScreenS54(
                         horizontalArrangement = Arrangement.spacedBy(2.dp),
                     ) {
                         Box(
-                            modifier = Modifier.height(30.dp).clip(RoundedCornerShape(8.dp)).background(Color.White).padding(horizontal = 10.dp),
+                            modifier = Modifier
+                                .height(30.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Color.White)
+                                .clickable { onSelectScreenCode("s14") }
+                                .padding(horizontal = 10.dp),
                             contentAlignment = Alignment.Center,
                         ) {
                             BasicText("Claro", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF1A1A2E)))
                         }
                         Box(
-                            modifier = Modifier.height(30.dp).clip(RoundedCornerShape(8.dp)).padding(horizontal = 10.dp),
+                            modifier = Modifier
+                                .height(30.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable { onSelectScreenCode("s15") }
+                                .padding(horizontal = 10.dp),
                             contentAlignment = Alignment.Center,
                         ) {
                             BasicText("Oscuro", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Color(0xFF62627A)))
@@ -1638,7 +1647,7 @@ internal fun RenderSuppliersScreenS55(
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(Color.White)
-                        .clickable { onSelectScreenCode("s54") },
+                        .clickable { onSelectScreenCode("BACK:s54") },
                     contentAlignment = Alignment.Center,
                 ) {
                     RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF151729), size = 22.dp)
@@ -1819,8 +1828,8 @@ internal fun RenderNewSupplierScreenS56(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 20.dp)
-                    .verticalScroll(rememberScrollState()),
+                                        .verticalScroll(rememberScrollState())
+            .padding(horizontal = 20.dp),
             ) {
                 Spacer(modifier = Modifier.height(56.dp))
                 Row(
@@ -1951,7 +1960,7 @@ internal fun RenderSpendingAnalyticsScreenS57(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                AdminPanelIconButton(RfIconKind.BACK) { onSelectScreenCode("s54") }
+                AdminPanelIconButton(RfIconKind.BACK) { onSelectScreenCode("BACK:s54") }
                 BasicText(
                     "Análisis",
                     modifier = Modifier.weight(1f),
@@ -2114,7 +2123,7 @@ internal fun RenderFinancialDashboardScreenS58(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                AdminPanelIconButton(RfIconKind.BACK) { onSelectScreenCode("s14") }
+                AdminPanelIconButton(RfIconKind.BACK) { onSelectScreenCode("BACK:s14") }
                 BasicText(
                     "Panel",
                     modifier = Modifier.weight(1f),
@@ -2324,8 +2333,8 @@ internal fun RenderOfficialReceiptScreenS83(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 20.dp)
-                .verticalScroll(rememberScrollState()),
+                                .verticalScroll(rememberScrollState())
+            .padding(horizontal = 20.dp),
         ) {
             Spacer(modifier = Modifier.height(54.dp))
 
@@ -2341,7 +2350,7 @@ internal fun RenderOfficialReceiptScreenS83(
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(Color.White)
-                        .clickable { onSelectScreenCode("s51") },
+                        .clickable { onSelectScreenCode("BACK:s51") },
                     contentAlignment = Alignment.Center,
                 ) {
                     RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1A1A2E), size = 22.dp)

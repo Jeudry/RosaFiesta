@@ -112,8 +112,8 @@ internal fun RenderAboutScreenS16(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 20.dp)
-                .verticalScroll(rememberScrollState()),
+                                .verticalScroll(rememberScrollState())
+            .padding(horizontal = 20.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
             Spacer(modifier = Modifier.height(36.dp))
@@ -131,7 +131,7 @@ internal fun RenderAboutScreenS16(
                         .clip(CircleShape)
                         .background(Color.White)
                         .border(1.dp, Color(0xFFF0EBF4), CircleShape)
-                        .clickable { onSelectScreenCode("s14") },
+                        .clickable { onSelectScreenCode("BACK:s14") },
                     contentAlignment = Alignment.Center,
                 ) {
                     RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1A1A2E), size = 22.dp)
@@ -569,8 +569,8 @@ internal fun RenderCompanyReviewsS17(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 20.dp)
-                .verticalScroll(rememberScrollState()),
+                                .verticalScroll(rememberScrollState())
+            .padding(horizontal = 20.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
             Spacer(modifier = Modifier.height(36.dp))
@@ -588,7 +588,7 @@ internal fun RenderCompanyReviewsS17(
                         .clip(CircleShape)
                         .background(Color.White)
                         .border(1.dp, Color(0xFFF0EBF4), CircleShape)
-                        .clickable { onSelectScreenCode("s16") },
+                        .clickable { onSelectScreenCode("BACK:s16") },
                     contentAlignment = Alignment.Center,
                 ) {
                     RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1A1A2E), size = 22.dp)
@@ -1012,8 +1012,8 @@ internal fun RenderEventChatTabS41(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 56.dp, start = 20.dp, end = 20.dp, bottom = 90.dp)
-                .verticalScroll(rememberScrollState()),
+                                .verticalScroll(rememberScrollState())
+            .padding(top = 56.dp, start = 20.dp, end = 20.dp, bottom = 90.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             // Header
@@ -1307,8 +1307,8 @@ internal fun RenderEventChatS42(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 126.dp, start = 16.dp, end = 16.dp, bottom = 90.dp)
-                .verticalScroll(rememberScrollState()),
+                                .verticalScroll(rememberScrollState())
+            .padding(top = 126.dp, start = 16.dp, end = 16.dp, bottom = 90.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             // Event Pill Card
@@ -1704,7 +1704,7 @@ internal fun RenderInventoryCalendarS63(onSelectScreenCode: (String) -> Unit = {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                ReportIconButton(RfIconKind.BACK) { onSelectScreenCode("s14") }
+                ReportIconButton(RfIconKind.BACK) { onSelectScreenCode("BACK:s14") }
                 BasicText(
                     "Disponibilidad",
                     modifier = Modifier.weight(1f),
@@ -1921,7 +1921,7 @@ private fun LeadsScaffold(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                ReportIconButton(RfIconKind.BACK) { onSelectScreenCode("s14") }
+                ReportIconButton(RfIconKind.BACK) { onSelectScreenCode("BACK:s14") }
                 BasicText(
                     "Leads",
                     modifier = Modifier.weight(1f),
@@ -2824,7 +2824,7 @@ private fun AdminSubScaffold(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                ReportIconButton(RfIconKind.BACK) { onSelectScreenCode("s14") }
+                ReportIconButton(RfIconKind.BACK) { onSelectScreenCode("BACK:s14") }
                 BasicText(
                     title,
                     modifier = Modifier.weight(1f),
@@ -2914,7 +2914,7 @@ internal fun RenderReviewModerationS71(onSelectScreenCode: (String) -> Unit = {}
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                ReportIconButton(RfIconKind.BACK) { onSelectScreenCode("s14") }
+                ReportIconButton(RfIconKind.BACK) { onSelectScreenCode("BACK:s14") }
                 BasicText(
                     "Reseñas",
                     modifier = Modifier.weight(1f),
@@ -3160,7 +3160,7 @@ private fun BotScaffold(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                ReportIconButton(RfIconKind.BACK) { onSelectScreenCode("s14") }
+                ReportIconButton(RfIconKind.BACK) { onSelectScreenCode("BACK:s14") }
                 Column(modifier = Modifier.weight(1f)) {
                     BasicText(
                         "Bot de WhatsApp",
@@ -3414,7 +3414,7 @@ private fun AdminPanelScaffold(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                ReportIconButton(RfIconKind.BACK) { onSelectScreenCode("s14") }
+                ReportIconButton(RfIconKind.BACK) { onSelectScreenCode("BACK:s14") }
                 BasicText(
                     "Panel",
                     modifier = Modifier.weight(1f),
@@ -3753,8 +3753,8 @@ private fun RenderGenericPersonalSubPanel(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 20.dp)
-                .verticalScroll(rememberScrollState()),
+                                .verticalScroll(rememberScrollState())
+            .padding(horizontal = 20.dp),
         ) {
             Spacer(modifier = Modifier.height(56.dp))
 
@@ -3774,7 +3774,7 @@ private fun RenderGenericPersonalSubPanel(
                         .shadow(6.dp, CircleShape, spotColor = Color(0x33FF3366))
                         .clip(CircleShape)
                         .background(Color.White)
-                        .clickable { onSelectScreenCode("s14") },
+                        .clickable { onSelectScreenCode("BACK:s14") },
                     contentAlignment = Alignment.Center,
                 ) {
                     RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1E1E24), size = 20.dp)

@@ -1,6 +1,7 @@
 package com.jeudry.rosafiesta
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
@@ -47,9 +48,11 @@ import com.jeudry.rosafiesta.dev.DevPanelScreen
 import com.jeudry.rosafiesta.di.appModule
 import com.jeudry.rosafiesta.ui.NavigationTransitionKind
 import com.jeudry.rosafiesta.ui.Navigator
+import com.jeudry.rosafiesta.ui.RenderAppBottomBar
 import com.jeudry.rosafiesta.ui.RenderScreenSpec
 import com.jeudry.rosafiesta.ui.RosaFiestaViewModel
 import com.jeudry.rosafiesta.ui.ScreenCatalog
+import com.jeudry.rosafiesta.ui.shouldShowBottomBar
 import org.koin.dsl.koinApplication
 
 /**
@@ -88,7 +91,7 @@ public fun AdminApp(
 public fun RosaFiestaApp(
     initialAppView: AppView = AppView.PERSONAL,
     initialScreenCode: String = if (initialAppView == AppView.ADMIN) "A01" else "s14",
-    showDevHeader: Boolean = false,
+    showDevHeader: Boolean = true,
     viewModel: RosaFiestaViewModel = remember {
         koinApplication { modules(appModule) }.koin.get()
     },
@@ -215,6 +218,10 @@ public fun RosaFiestaApp(
                     .fillMaxWidth(),
             ) {
                 val transitionKind = navigator.lastTransition
+                val navigateToCode: (String) -> Unit = { nextCode ->
+                    viewModel.soundPlayer.playTap()
+                    navigator.navigateTo(nextCode)
+                }
                 AnimatedContent(
                     targetState = spec,
                     transitionSpec = { buildScreenTransition(transitionKind) },
@@ -225,10 +232,8 @@ public fun RosaFiestaApp(
                         spec = targetSpec,
                         viewModel = viewModel,
                         isFrameHarness = false,
-                        onSelectScreenCode = { nextCode ->
-                            viewModel.soundPlayer.playTap()
-                            navigator.navigateTo(nextCode)
-                        },
+                        includeBottomBar = false,
+                        onSelectScreenCode = navigateToCode,
                         onSwitchAppMode = {
                             viewModel.soundPlayer.playTap()
                             if (navigator.activeView == AppView.ADMIN) {
@@ -242,6 +247,31 @@ public fun RosaFiestaApp(
                             navigator.advanceFlow()
                         },
                     )
+                }
+
+                val hasBottomBar = !spec.isDesktopWeb && shouldShowBottomBar(spec.code)
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth(),
+                ) {
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = hasBottomBar,
+                        enter = slideInVertically(
+                            animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing),
+                            initialOffsetY = { fullHeight -> fullHeight },
+                        ) + fadeIn(animationSpec = tween(durationMillis = 180)),
+                        exit = slideOutVertically(
+                            animationSpec = tween(durationMillis = 180, easing = FastOutSlowInEasing),
+                            targetOffsetY = { fullHeight -> fullHeight },
+                        ) + fadeOut(animationSpec = tween(durationMillis = 140)),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        RenderAppBottomBar(
+                            spec = spec,
+                            onSelectScreenCode = navigateToCode,
+                        )
+                    }
                 }
             }
         }

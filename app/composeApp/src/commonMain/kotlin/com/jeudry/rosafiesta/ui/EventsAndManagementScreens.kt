@@ -103,8 +103,8 @@ internal fun RenderMyEventsScreenS37(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 20.dp)
-                .verticalScroll(rememberScrollState()),
+                                .verticalScroll(rememberScrollState())
+            .padding(horizontal = 20.dp),
         ) {
             Spacer(modifier = Modifier.height(56.dp))
 
@@ -384,7 +384,7 @@ internal fun RenderNewEventScreenS38(
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(Color.White)
-                        .clickable { onSelectScreenCode("s37") },
+                        .clickable { onSelectScreenCode("BACK:s37") },
                     contentAlignment = Alignment.Center,
                 ) {
                     RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1A1A2E), size = 22.dp)
@@ -616,8 +616,8 @@ internal fun RenderCalendarScreenS39(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 20.dp)
-                .verticalScroll(rememberScrollState()),
+                                .verticalScroll(rememberScrollState())
+            .padding(horizontal = 20.dp),
         ) {
             Spacer(modifier = Modifier.height(56.dp))
 
@@ -633,7 +633,7 @@ internal fun RenderCalendarScreenS39(
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(Color.White)
-                        .clickable { onSelectScreenCode("s37") },
+                        .clickable { onSelectScreenCode("BACK:s37") },
                     contentAlignment = Alignment.Center,
                 ) {
                     RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1A1A2E), size = 22.dp)
@@ -772,8 +772,8 @@ internal fun RenderEventDetailScreenS40(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 54.dp, start = 20.dp, end = 20.dp, bottom = 30.dp)
-                .verticalScroll(rememberScrollState()),
+                                .verticalScroll(rememberScrollState())
+            .padding(top = 54.dp, start = 20.dp, end = 20.dp, bottom = 30.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             // Header
@@ -789,7 +789,7 @@ internal fun RenderEventDetailScreenS40(
                         .clip(CircleShape)
                         .background(Color.White)
                         .border(1.dp, Color(0xFFEEEAF2), CircleShape)
-                        .clickable { onSelectScreenCode("s37") },
+                        .clickable { onSelectScreenCode("BACK:s37") },
                     contentAlignment = Alignment.Center,
                 ) {
                     RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1A1A2E), size = 22.dp)
@@ -1413,8 +1413,8 @@ internal fun RenderExecutionModeScreenS43(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(start = 16.dp, end = 16.dp, top = 18.dp)
-                    .verticalScroll(rememberScrollState()),
+                                        .verticalScroll(rememberScrollState())
+            .padding(start = 16.dp, end = 16.dp, top = 18.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 ExecutionTaskRow43(
@@ -1541,8 +1541,8 @@ internal fun RenderTimelineScreenS44(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(start = 20.dp, end = 20.dp, top = 56.dp, bottom = 30.dp)
-                .verticalScroll(rememberScrollState()),
+                                .verticalScroll(rememberScrollState())
+            .padding(start = 20.dp, end = 20.dp, top = 56.dp, bottom = 30.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
             // Header
@@ -1557,7 +1557,7 @@ internal fun RenderTimelineScreenS44(
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(Color.White)
-                        .clickable { onSelectScreenCode("s40") },
+                        .clickable { onSelectScreenCode("BACK:s40") },
                     contentAlignment = Alignment.Center,
                 ) {
                     RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1A1A2E), size = 22.dp)
@@ -1737,8 +1737,8 @@ internal fun RenderTasksScreenS45(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(start = 20.dp, end = 20.dp, top = 56.dp, bottom = 30.dp)
-                .verticalScroll(rememberScrollState()),
+                                .verticalScroll(rememberScrollState())
+            .padding(start = 20.dp, end = 20.dp, top = 56.dp, bottom = 30.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
             // Header
@@ -1753,7 +1753,7 @@ internal fun RenderTasksScreenS45(
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(Color.White)
-                        .clickable { onSelectScreenCode("s40") },
+                        .clickable { onSelectScreenCode("BACK:s40") },
                     contentAlignment = Alignment.Center,
                 ) {
                     RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1A1A2E), size = 22.dp)
@@ -2059,8 +2059,8 @@ internal fun RenderChecklistScreenS46(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(start = 20.dp, end = 20.dp, top = 56.dp)
-                .verticalScroll(rememberScrollState()),
+                                .verticalScroll(rememberScrollState())
+            .padding(start = 20.dp, end = 20.dp, top = 56.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             // Header
@@ -2075,7 +2075,7 @@ internal fun RenderChecklistScreenS46(
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(Color.White)
-                        .clickable { onSelectScreenCode("s40") },
+                        .clickable { onSelectScreenCode("BACK:s40") },
                     contentAlignment = Alignment.Center,
                 ) {
                     RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1A1A2E), size = 22.dp)
@@ -2303,8 +2303,8 @@ internal fun RenderGuestsScreenS47(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(start = 20.dp, end = 20.dp, top = 56.dp, bottom = 30.dp)
-                .verticalScroll(rememberScrollState()),
+                                .verticalScroll(rememberScrollState())
+            .padding(start = 20.dp, end = 20.dp, top = 56.dp, bottom = 30.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             // Header
@@ -2319,7 +2319,7 @@ internal fun RenderGuestsScreenS47(
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(Color.White)
-                        .clickable { onSelectScreenCode("s40") },
+                        .clickable { onSelectScreenCode("BACK:s40") },
                     contentAlignment = Alignment.Center,
                 ) {
                     RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1A1A2E), size = 22.dp)
@@ -2511,7 +2511,7 @@ internal fun RenderQuoteScreenS48(
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(Color.White)
-                        .clickable { onSelectScreenCode("s40") },
+                        .clickable { onSelectScreenCode("BACK:s40") },
                     contentAlignment = Alignment.Center,
                 ) {
                     RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1A1A2E), size = 22.dp)

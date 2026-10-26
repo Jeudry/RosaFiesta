@@ -15,7 +15,7 @@ fun main() = application {
     ) {
         RosaFiestaApp(
             initialAppView = AppView.PERSONAL,
-            initialScreenCode = "s14",
+            initialScreenCode = "p00",
             showDevHeader = true,
         )
     }

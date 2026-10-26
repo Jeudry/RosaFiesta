@@ -513,7 +513,7 @@ internal fun RenderProductDetailS19(
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(Color.White)
-                        .clickable { onSelectScreenCode("s18") },
+                        .clickable { onSelectScreenCode("BACK:s18") },
                 ) {
                     RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF151729), size = 20.dp)
                 }
@@ -810,7 +810,7 @@ internal fun RenderCategoriesScreenS20(
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(Color.White)
-                        .clickable { onSelectScreenCode("s18") },
+                        .clickable { onSelectScreenCode("BACK:s18") },
                 ) {
                     RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1A1A2E), size = 22.dp)
                 }
@@ -1247,7 +1247,7 @@ internal fun RenderPackageDetailScreenS22(
                         .rfIconButtonShadow(RoundedCornerShape(14.dp), isAdmin = false)
                         .clip(RoundedCornerShape(14.dp))
                         .background(Color.White)
-                        .clickable { onSelectScreenCode("s21") },
+                        .clickable { onSelectScreenCode("BACK:s21") },
                 ) {
                     RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF151729), size = 20.dp)
                 }

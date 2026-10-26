@@ -1,5 +1,7 @@
 package com.jeudry.rosafiesta.ui
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -24,7 +26,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -590,10 +594,14 @@ private fun ServiceIllustrationLuz(modifier: Modifier = Modifier) {
 @Composable
 internal fun RenderPersonalHomeScreen(
     spec: ScreenSpec,
+    viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit,
 ) {
     val isDark = spec.variant == RfThemeVariant.PERSONAL_DARK
     val typo = LocalRfTypography.current
+    val fullName = viewModel?.profileName?.collectAsState()?.value ?: "Camila Duarte"
+    val firstName = fullName.substringBefore(" ").ifBlank { "Camila" }
+    val avatarInitial = firstName.firstOrNull()?.uppercaseChar()?.toString() ?: "C"
     val textColor = if (isDark) Color(0xFFF2F0F8) else Color(0xFF1A1A2E)
     val mutedColor = if (isDark) Color(0xFFA6A3BA) else Color(0xFF62627A)
     val cardBg = if (isDark) Color(0xFF1D1D30) else Color(0xFFFFFFFF)
@@ -604,19 +612,45 @@ internal fun RenderPersonalHomeScreen(
     val mobiliarioBg = if (isDark) Color(0xFF26204A) else Color(0xFFEFE8FD)
     val mesaDulceBg = if (isDark) Color(0xFF2B3216) else Color(0xFFEEF6D6)
     val iluminacionBg = if (isDark) Color(0xFF3A2E14) else Color(0xFFFFF2C9)
+    val arcosBg = if (isDark) Color(0xFF361B38) else Color(0xFFFCE8F6)
+    val centrosBg = if (isDark) Color(0xFF1B332E) else Color(0xFFE0F7F2)
+    val manteleriaBg = if (isDark) Color(0xFF232544) else Color(0xFFEAEBFF)
+
+    val trendsScrollState = rememberScrollState()
+    LaunchedEffect(Unit) {
+        for (cycle in 0 until 240) {
+            delay(3200L)
+            val maxScroll = trendsScrollState.maxValue
+            val canAutoScroll = maxScroll > 0 && !trendsScrollState.isScrollInProgress
+            if (canAutoScroll) {
+                val stepPx = (maxScroll / 3).coerceAtLeast(180)
+                val nextTarget = if (trendsScrollState.value + 40 >= maxScroll) {
+                    0
+                } else {
+                    (trendsScrollState.value + stepPx).coerceAtMost(maxScroll)
+                }
+                trendsScrollState.animateScrollTo(
+                    value = nextTarget,
+                    animationSpec = tween(durationMillis = 850, easing = FastOutSlowInEasing),
+                )
+            }
+        }
+    }
 
     Column(
         verticalArrangement = Arrangement.spacedBy(16.dp),
         modifier = Modifier
             .fillMaxSize()
-            .padding(top = 54.dp, start = 20.dp, end = 20.dp, bottom = 96.dp)
-            .verticalScroll(rememberScrollState()),
+            .verticalScroll(rememberScrollState())
+            .padding(top = 54.dp, bottom = 112.dp),
     ) {
         // Header
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp),
         ) {
             // Profile Button
             Box(
@@ -626,7 +660,7 @@ internal fun RenderPersonalHomeScreen(
                     .clip(CircleShape)
                     .background(Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC))))
                     .padding(2.dp)
-                    .clickable { onSelectScreenCode("s46") },
+                    .clickable { onSelectScreenCode("s54") },
             ) {
                 Box(
                     contentAlignment = Alignment.Center,
@@ -636,7 +670,7 @@ internal fun RenderPersonalHomeScreen(
                         .background(cardBg),
                 ) {
                     BasicText(
-                        text = "C",
+                        text = avatarInitial,
                         style = typo.rootTabTitle.copy(
                             fontSize = 18.sp,
                             fontWeight = FontWeight.ExtraBold,
@@ -647,13 +681,17 @@ internal fun RenderPersonalHomeScreen(
             }
 
             // User Greeting
-            Column(modifier = Modifier.weight(1f)) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable { onSelectScreenCode("s54") },
+            ) {
                 BasicText(
                     text = "Hola de nuevo",
                     style = typo.caption.copy(fontSize = 13.sp, color = mutedColor),
                 )
                 BasicText(
-                    text = "Camila",
+                    text = firstName,
                     style = typo.rootTabTitle.copy(
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
@@ -724,13 +762,14 @@ internal fun RenderPersonalHomeScreen(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             modifier = Modifier
+                .padding(horizontal = 20.dp)
                 .fillMaxWidth()
                 .height(52.dp)
                 .rfInputShadow(RoundedCornerShape(16.dp))
                 .clip(RoundedCornerShape(16.dp))
                 .background(cardBg)
                 .border(1.dp, cardBorder, RoundedCornerShape(16.dp))
-                .clickable { onSelectScreenCode("s17") }
+                .clickable { onSelectScreenCode("s80") }
                 .padding(start = 16.dp, end = 6.dp),
         ) {
             RfIcon(kind = RfIconKind.SEARCH, tint = mutedColor, size = 20.dp)
@@ -744,7 +783,8 @@ internal fun RenderPersonalHomeScreen(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(chipBg),
+                    .background(chipBg)
+                    .clickable { onSelectScreenCode("s35") },
             ) {
                 RfIcon(kind = RfIconKind.MIC, tint = chipText, size = 20.dp)
             }
@@ -753,6 +793,7 @@ internal fun RenderPersonalHomeScreen(
         // Hero Card
         Box(
             modifier = Modifier
+                .padding(horizontal = 20.dp)
                 .fillMaxWidth()
                 .height(186.dp)
                 .rfHeroBannerShadow(RoundedCornerShape(24.dp), isAdmin = false)
@@ -869,7 +910,9 @@ internal fun RenderPersonalHomeScreen(
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
             ) {
                 BasicText(
                     text = "Servicios",
@@ -885,7 +928,10 @@ internal fun RenderPersonalHomeScreen(
                         .height(32.dp)
                         .clip(CircleShape)
                         .background(chipBg)
-                        .clickable { onSelectScreenCode("s18") }
+                        .clickable {
+                            viewModel?.setSelectedCategory("Todas")
+                            onSelectScreenCode("s18")
+                        }
                         .padding(horizontal = 12.dp),
                 ) {
                     BasicText(
@@ -900,148 +946,116 @@ internal fun RenderPersonalHomeScreen(
             }
 
             Row(
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp, vertical = 4.dp),
             ) {
                 // Decoración
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier.weight(1f).clickable { onSelectScreenCode("s18") },
+                HomeServiceItem(
+                    label = "Decoración",
+                    bgColor = decoracionBg,
+                    textColor = textColor,
+                    onClick = {
+                        viewModel?.setSelectedCategory("Floral")
+                        onSelectScreenCode("s18")
+                    },
                 ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .size(74.dp)
-                            .clip(CircleShape)
-                            .background(decoracionBg),
-                    ) {
-                        ServiceIllustrationFloral(modifier = Modifier.size(56.dp))
-                    }
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        BasicText(
-                            text = "Decoración",
-                            style = typo.caption.copy(
-                                fontSize = 11.5.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = textColor,
-                                textAlign = TextAlign.Center,
-                            ),
-                            maxLines = 1,
-                        )
-                    }
+                    ServiceIllustrationFloral(modifier = Modifier.size(56.dp))
                 }
 
                 // Mobiliario
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier.weight(1f).clickable { onSelectScreenCode("s18") },
+                HomeServiceItem(
+                    label = "Mobiliario",
+                    bgColor = mobiliarioBg,
+                    textColor = textColor,
+                    onClick = {
+                        viewModel?.setSelectedCategory("Mobiliario")
+                        onSelectScreenCode("s18")
+                    },
                 ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .size(74.dp)
-                            .clip(CircleShape)
-                            .background(mobiliarioBg),
-                    ) {
-                        ServiceIllustrationMobiliario(modifier = Modifier.size(56.dp))
-                    }
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        BasicText(
-                            text = "Mobiliario",
-                            style = typo.caption.copy(
-                                fontSize = 11.5.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = textColor,
-                                textAlign = TextAlign.Center,
-                            ),
-                            maxLines = 1,
-                        )
-                    }
+                    ServiceIllustrationMobiliario(modifier = Modifier.size(56.dp))
                 }
 
                 // Mesa dulce
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier.weight(1f).clickable { onSelectScreenCode("s18") },
+                HomeServiceItem(
+                    label = "Mesa dulce",
+                    bgColor = mesaDulceBg,
+                    textColor = textColor,
+                    onClick = {
+                        viewModel?.setSelectedCategory("Mesa dulce")
+                        onSelectScreenCode("s18")
+                    },
                 ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .size(74.dp)
-                            .clip(CircleShape)
-                            .background(mesaDulceBg),
-                    ) {
-                        ServiceIllustrationDulce(modifier = Modifier.size(56.dp))
-                    }
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        BasicText(
-                            text = "Mesa dulce",
-                            style = typo.caption.copy(
-                                fontSize = 11.5.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = textColor,
-                                textAlign = TextAlign.Center,
-                            ),
-                            maxLines = 1,
-                        )
-                    }
+                    ServiceIllustrationDulce(modifier = Modifier.size(56.dp))
                 }
 
                 // Iluminación
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier.weight(1f).clickable { onSelectScreenCode("s18") },
+                HomeServiceItem(
+                    label = "Iluminación",
+                    bgColor = iluminacionBg,
+                    textColor = textColor,
+                    onClick = {
+                        viewModel?.setSelectedCategory("Iluminación")
+                        onSelectScreenCode("s18")
+                    },
                 ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .size(74.dp)
-                            .clip(CircleShape)
-                            .background(iluminacionBg),
-                    ) {
-                        ServiceIllustrationLuz(modifier = Modifier.size(56.dp))
-                    }
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        BasicText(
-                            text = "Iluminación",
-                            style = typo.caption.copy(
-                                fontSize = 11.5.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = textColor,
-                                textAlign = TextAlign.Center,
-                            ),
-                            maxLines = 1,
-                        )
-                    }
+                    ServiceIllustrationLuz(modifier = Modifier.size(56.dp))
+                }
+
+                // Arcos & Globos
+                HomeServiceItem(
+                    label = "Arcos & Globos",
+                    bgColor = arcosBg,
+                    textColor = textColor,
+                    onClick = {
+                        viewModel?.setSelectedCategory("Globos")
+                        onSelectScreenCode("s18")
+                    },
+                ) {
+                    RfIcon(kind = RfIconKind.SPARK, tint = Color(0xFFE04FAF), size = 30.dp)
+                }
+
+                // Centros florales
+                HomeServiceItem(
+                    label = "Centros florales",
+                    bgColor = centrosBg,
+                    textColor = textColor,
+                    onClick = {
+                        viewModel?.setSelectedCategory("Floral")
+                        onSelectScreenCode("s18")
+                    },
+                ) {
+                    RfIcon(kind = RfIconKind.STAR, tint = Color(0xFF1F9D8B), size = 30.dp)
+                }
+
+                // Mantelería
+                HomeServiceItem(
+                    label = "Mantelería",
+                    bgColor = manteleriaBg,
+                    textColor = textColor,
+                    onClick = {
+                        viewModel?.setSelectedCategory("Mobiliario")
+                        onSelectScreenCode("s18")
+                    },
+                ) {
+                    RfIcon(kind = RfIconKind.GIFT, tint = Color(0xFF6664E9), size = 30.dp)
                 }
             }
         }
 
         // Tendencias Section
         Column(
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
             ) {
                 BasicText(
                     text = "Tendencias",
@@ -1075,161 +1089,182 @@ internal fun RenderPersonalHomeScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState())
-                    .padding(top = 4.dp, bottom = 18.dp),
+                    .horizontalScroll(trendsScrollState)
+                    .padding(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 18.dp),
             ) {
-                // Card 1: Graduaciones
-                Column(
-                    modifier = Modifier
-                        .width(230.dp)
-                        .rfCardShadow(RoundedCornerShape(20.dp))
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(cardBg)
-                        .border(1.dp, cardBorder, RoundedCornerShape(20.dp))
-                        .clickable { onSelectScreenCode("s21") },
+                HomeTrendCard(
+                    title = "Graduaciones",
+                    eventsLabel = "2.4K eventos",
+                    photoKey = RfPhotoKey.GRADUACION,
+                    photoBg = if (isDark) Color(0xFF26204A) else Color(0xFFF3EEF6),
+                    cardBg = cardBg,
+                    cardBorder = cardBorder,
+                    textColor = textColor,
+                    mutedColor = mutedColor,
+                    onClick = { onSelectScreenCode("s21") },
+                )
+                HomeTrendCard(
+                    title = "Bodas",
+                    eventsLabel = if (isDark) "3.1K eventos" else "1.8K eventos",
+                    photoKey = RfPhotoKey.BODA,
+                    photoBg = if (isDark) Color(0xFF3A1630) else Color(0xFFFDE6F2),
+                    cardBg = cardBg,
+                    cardBorder = cardBorder,
+                    textColor = textColor,
+                    mutedColor = mutedColor,
+                    onClick = { onSelectScreenCode("s22") },
+                )
+                HomeTrendCard(
+                    title = "Quinceañeras",
+                    eventsLabel = "1.5K eventos",
+                    photoKey = RfPhotoKey.QUINCEANERA,
+                    photoBg = if (isDark) Color(0xFF361B38) else Color(0xFFFCE8F6),
+                    cardBg = cardBg,
+                    cardBorder = cardBorder,
+                    textColor = textColor,
+                    mutedColor = mutedColor,
+                    onClick = { onSelectScreenCode("s21") },
+                )
+                HomeTrendCard(
+                    title = "Baby Shower",
+                    eventsLabel = "1.2K eventos",
+                    photoKey = RfPhotoKey.BABY_SHOWER,
+                    photoBg = if (isDark) Color(0xFF1B332E) else Color(0xFFE0F7F2),
+                    cardBg = cardBg,
+                    cardBorder = cardBorder,
+                    textColor = textColor,
+                    mutedColor = mutedColor,
+                    onClick = { onSelectScreenCode("s21") },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun HomeServiceItem(
+    label: String,
+    bgColor: Color,
+    textColor: Color,
+    onClick: () -> Unit,
+    iconContent: @Composable () -> Unit,
+) {
+    val typo = LocalRfTypography.current
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+        modifier = Modifier
+            .width(80.dp)
+            .clickable(onClick = onClick),
+    ) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .size(74.dp)
+                .clip(CircleShape)
+                .background(bgColor),
+        ) {
+            iconContent()
+        }
+        BasicText(
+            text = label,
+            style = typo.caption.copy(
+                fontSize = 11.5.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = textColor,
+                textAlign = TextAlign.Center,
+            ),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+@Composable
+private fun HomeTrendCard(
+    title: String,
+    eventsLabel: String,
+    photoKey: RfPhotoKey,
+    photoBg: Color,
+    cardBg: Color,
+    cardBorder: Color,
+    textColor: Color,
+    mutedColor: Color,
+    onClick: () -> Unit,
+) {
+    val typo = LocalRfTypography.current
+    Column(
+        modifier = Modifier
+            .width(230.dp)
+            .rfCardShadow(RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(20.dp))
+            .background(cardBg)
+            .border(1.dp, cardBorder, RoundedCornerShape(20.dp))
+            .clickable(onClick = onClick),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(100.dp)
+                .background(photoBg),
+        ) {
+            RfPhoto(
+                photoKey = photoKey,
+                contentDescription = title,
+                modifier = Modifier.fillMaxSize(),
+                cornerRadius = 0.dp,
+            )
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .padding(10.dp)
+                    .height(24.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFFFFD45C))
+                    .padding(horizontal = 9.dp),
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(100.dp)
-                            .background(if (isDark) Color(0xFF26204A) else Color(0xFFF3EEF6)),
-                    ) {
-                        RfPhoto(
-                            photoKey = RfPhotoKey.GRADUACION,
-                            contentDescription = "Graduaciones",
-                            modifier = Modifier.fillMaxSize(),
-                            cornerRadius = 0.dp,
-                        )
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier
-                                .padding(10.dp)
-                                .height(24.dp)
-                                .clip(CircleShape)
-                                .background(Color(0xFFFFD45C))
-                                .padding(horizontal = 9.dp),
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            ) {
-                                RfIcon(kind = RfIconKind.TREND_UP, tint = Color(0xFF2E1A47), size = 14.dp)
-                                BasicText(
-                                    text = "Tendencia",
-                                    style = typo.caption.copy(
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color(0xFF2E1A47),
-                                    ),
-                                )
-                            }
-                        }
-                    }
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 14.dp, vertical = 11.dp),
-                    ) {
-                        BasicText(
-                            text = "Graduaciones",
-                            style = typo.rootTabTitle.copy(
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = textColor,
-                            ),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f, fill = false),
-                        )
-                        BasicText(
-                            text = "2.4K eventos",
-                            style = typo.caption.copy(fontSize = 12.sp, color = mutedColor),
-                            maxLines = 1,
-                            softWrap = false,
-                            modifier = Modifier.padding(start = 6.dp),
-                        )
-                    }
-                }
-
-                // Card 2: Bodas
-                Column(
-                    modifier = Modifier
-                        .width(230.dp)
-                        .rfCardShadow(RoundedCornerShape(20.dp))
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(cardBg)
-                        .border(1.dp, cardBorder, RoundedCornerShape(20.dp))
-                        .clickable { onSelectScreenCode("s21") },
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(100.dp)
-                            .background(if (isDark) Color(0xFF3A1630) else Color(0xFFFDE6F2)),
-                    ) {
-                        RfPhoto(
-                            photoKey = RfPhotoKey.BODA,
-                            contentDescription = "Bodas",
-                            modifier = Modifier.fillMaxSize(),
-                            cornerRadius = 0.dp,
-                        )
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier
-                                .padding(10.dp)
-                                .height(24.dp)
-                                .clip(CircleShape)
-                                .background(Color(0xFFFFD45C))
-                                .padding(horizontal = 9.dp),
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            ) {
-                                RfIcon(kind = RfIconKind.TREND_UP, tint = Color(0xFF2E1A47), size = 14.dp)
-                                BasicText(
-                                    text = "Tendencia",
-                                    style = typo.caption.copy(
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color(0xFF2E1A47),
-                                    ),
-                                )
-                            }
-                        }
-                    }
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 14.dp, vertical = 11.dp),
-                    ) {
-                        BasicText(
-                            text = "Bodas",
-                            style = typo.rootTabTitle.copy(
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = textColor,
-                            ),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f, fill = false),
-                        )
-                        BasicText(
-                            text = if (isDark) "3.1K eventos" else "1.8K eventos",
-                            style = typo.caption.copy(fontSize = 12.sp, color = mutedColor),
-                            maxLines = 1,
-                            softWrap = false,
-                            modifier = Modifier.padding(start = 6.dp),
-                        )
-                    }
+                    RfIcon(kind = RfIconKind.TREND_UP, tint = Color(0xFF2E1A47), size = 14.dp)
+                    BasicText(
+                        text = "Tendencia",
+                        style = typo.caption.copy(
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF2E1A47),
+                        ),
+                    )
                 }
             }
+        }
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 11.dp),
+        ) {
+            BasicText(
+                text = title,
+                style = typo.rootTabTitle.copy(
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = textColor,
+                ),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false),
+            )
+            BasicText(
+                text = eventsLabel,
+                style = typo.caption.copy(fontSize = 12.sp, color = mutedColor),
+                maxLines = 1,
+                softWrap = false,
+                modifier = Modifier.padding(start = 6.dp),
+            )
         }
     }
 }

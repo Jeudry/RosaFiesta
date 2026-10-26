@@ -609,7 +609,7 @@ internal fun RenderAdminRequestsA02(
                     .clip(CircleShape)
                     .background(Color.White)
                     .border(1.dp, Color(0xFFECECF5), CircleShape)
-                    .clickable { onSelectScreenCode("A01") },
+                    .clickable { onSelectScreenCode("BACK:A01") },
                 contentAlignment = Alignment.Center,
             ) {
                 RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF151729), size = 22.dp)
@@ -920,7 +920,7 @@ internal fun RenderAdminQuoteBuilderA03(
                         .clip(CircleShape)
                         .background(Color.White)
                         .border(1.dp, Color(0xFFECECF5), CircleShape)
-                        .clickable { onSelectScreenCode("A02") },
+                        .clickable { onSelectScreenCode("BACK:A02") },
                     contentAlignment = Alignment.Center,
                 ) {
                     RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF151729), size = 22.dp)
@@ -1857,8 +1857,8 @@ internal fun RenderAdminPaymentsA20(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 54.dp, start = 20.dp, end = 20.dp)
-                .verticalScroll(rememberScrollState()),
+                                .verticalScroll(rememberScrollState())
+            .padding(top = 54.dp, start = 20.dp, end = 20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // Header
@@ -1874,7 +1874,7 @@ internal fun RenderAdminPaymentsA20(
                         .clip(CircleShape)
                         .background(Color.White)
                         .border(1.dp, Color(0xFFECECF5), CircleShape)
-                        .clickable { onSelectScreenCode("A12") },
+                        .clickable { onSelectScreenCode("BACK:A12") },
                     contentAlignment = Alignment.Center,
                 ) {
                     RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF151729), size = 22.dp)
@@ -2330,8 +2330,8 @@ internal fun RenderAdminEventDetailA13(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 54.dp, start = 20.dp, end = 20.dp)
-                .verticalScroll(rememberScrollState()),
+                                .verticalScroll(rememberScrollState())
+            .padding(top = 54.dp, start = 20.dp, end = 20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // Header
@@ -2347,7 +2347,7 @@ internal fun RenderAdminEventDetailA13(
                         .clip(CircleShape)
                         .background(Color.White)
                         .border(1.dp, Color(0xFFECECF5), CircleShape)
-                        .clickable { onSelectScreenCode("A11") },
+                        .clickable { onSelectScreenCode("BACK:A11") },
                     contentAlignment = Alignment.Center,
                 ) {
                     RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF151729), size = 22.dp)
@@ -2984,7 +2984,7 @@ internal fun RenderAdminTasksA17(
                     .clip(CircleShape)
                     .background(Color.White)
                     .border(1.dp, Color(0xFFECECF5), CircleShape)
-                    .clickable { onSelectScreenCode("A13") },
+                    .clickable { onSelectScreenCode("BACK:A13") },
                 contentAlignment = Alignment.Center,
             ) {
                 RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF151729), size = 22.dp)
@@ -3339,7 +3339,7 @@ internal fun RenderAdminSketchA18(
                         .clip(CircleShape)
                         .background(Color.White)
                         .border(1.dp, Color(0xFFECECF5), CircleShape)
-                        .clickable { onSelectScreenCode("A13") },
+                        .clickable { onSelectScreenCode("BACK:A13") },
                     contentAlignment = Alignment.Center,
                 ) {
                     RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF151729), size = 22.dp)
@@ -3589,7 +3589,7 @@ internal fun RenderAdminCloseoutA19(
                         .clip(CircleShape)
                         .background(Color.White)
                         .border(1.dp, Color(0xFFECECF5), CircleShape)
-                        .clickable { onSelectScreenCode("A13") },
+                        .clickable { onSelectScreenCode("BACK:A13") },
                     contentAlignment = Alignment.Center,
                 ) {
                     RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF151729), size = 22.dp)
@@ -3817,7 +3817,7 @@ internal fun RenderAdminNewArticleA10(
                         .clip(CircleShape)
                         .background(Color.White)
                         .border(1.dp, Color(0xFFECECF5), CircleShape)
-                        .clickable { onSelectScreenCode("A09") },
+                        .clickable { onSelectScreenCode("BACK:A09") },
                     contentAlignment = Alignment.Center,
                 ) {
                     RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF151729), size = 22.dp)
@@ -4131,7 +4131,7 @@ internal fun RenderAdminArticleDetailA23(
                     .clip(CircleShape)
                     .background(Color.White)
                     .border(1.dp, Color(0xFFECECF5), CircleShape)
-                    .clickable { onSelectScreenCode("A09") },
+                    .clickable { onSelectScreenCode("BACK:A09") },
                 contentAlignment = Alignment.Center,
             ) {
                 RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF151729), size = 22.dp)
@@ -4379,7 +4379,7 @@ internal fun RenderAdminPackagesA24(
                     .clip(CircleShape)
                     .background(Color.White)
                     .border(1.dp, Color(0xFFECECF5), CircleShape)
-                    .clickable { onSelectScreenCode("A12") },
+                    .clickable { onSelectScreenCode("BACK:A12") },
                 contentAlignment = Alignment.Center,
             ) {
                 RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF151729), size = 22.dp)
@@ -4487,8 +4487,8 @@ internal fun RenderAdminPackageEditA25(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 54.dp, start = 20.dp, end = 20.dp)
-                .verticalScroll(rememberScrollState()),
+                                .verticalScroll(rememberScrollState())
+            .padding(top = 54.dp, start = 20.dp, end = 20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // Header
@@ -4504,7 +4504,7 @@ internal fun RenderAdminPackageEditA25(
                         .clip(CircleShape)
                         .background(Color.White)
                         .border(1.dp, Color(0xFFECECF5), CircleShape)
-                        .clickable { onSelectScreenCode("A24") },
+                        .clickable { onSelectScreenCode("BACK:A24") },
                     contentAlignment = Alignment.Center,
                 ) {
                     RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF151729), size = 22.dp)
@@ -4737,7 +4737,7 @@ internal fun RenderAdminClientsA26(
                     .clip(CircleShape)
                     .background(Color.White)
                     .border(1.dp, Color(0xFFECECF5), CircleShape)
-                    .clickable { onSelectScreenCode("A12") },
+                    .clickable { onSelectScreenCode("BACK:A12") },
                 contentAlignment = Alignment.Center,
             ) {
                 RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF151729), size = 22.dp)
@@ -4889,8 +4889,8 @@ internal fun RenderAdminClientProfileA27(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 54.dp, start = 20.dp, end = 20.dp)
-                .verticalScroll(rememberScrollState()),
+                                .verticalScroll(rememberScrollState())
+            .padding(top = 54.dp, start = 20.dp, end = 20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // Header
@@ -4906,7 +4906,7 @@ internal fun RenderAdminClientProfileA27(
                         .clip(CircleShape)
                         .background(Color.White)
                         .border(1.dp, Color(0xFFECECF5), CircleShape)
-                        .clickable { onSelectScreenCode("A26") },
+                        .clickable { onSelectScreenCode("BACK:A26") },
                     contentAlignment = Alignment.Center,
                 ) {
                     RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF151729), size = 22.dp)
@@ -5145,7 +5145,7 @@ internal fun RenderAdminTeamA28(
                     .clip(CircleShape)
                     .background(Color.White)
                     .border(1.dp, Color(0xFFECECF5), CircleShape)
-                    .clickable { onSelectScreenCode("A12") },
+                    .clickable { onSelectScreenCode("BACK:A12") },
                 contentAlignment = Alignment.Center,
             ) {
                 RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF151729), size = 22.dp)

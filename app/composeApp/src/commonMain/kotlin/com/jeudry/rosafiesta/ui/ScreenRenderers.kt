@@ -73,6 +73,55 @@ import com.jeudry.rosafiesta.designsystem.RosaAvatarSize
 import com.jeudry.rosafiesta.domain.CanonicalSampleData
 import com.jeudry.rosafiesta.domain.EventStatus
 
+public fun shouldShowBottomBar(code: String): Boolean =
+    code.lowercase() in setOf(
+        "a01", "a02", "a09", "a11", "a12", "a32", "a35", "a36", "a37",
+        "s01", "s02", "s14", "s15", "s18", "s23", "s24", "s37", "s80", "s89", "s90", "s91", "s92",
+    )
+
+@Composable
+public fun RenderAppBottomBar(
+    spec: ScreenSpec,
+    onSelectScreenCode: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val isAdmin = spec.variant == RfThemeVariant.ADMIN
+    if (isAdmin) {
+        AdminTabBar(
+            activeTab = ScreenCatalog.activeAdminTab(spec.code),
+            modifier = modifier,
+            onSelectTab = { tab ->
+                when (tab) {
+                    AdminTab.INICIO -> onSelectScreenCode("A01")
+                    AdminTab.EVENTOS -> onSelectScreenCode("A11")
+                    AdminTab.ROSA -> onSelectScreenCode("A08")
+                    AdminTab.INVENTARIO -> onSelectScreenCode("A09")
+                    AdminTab.MAS -> onSelectScreenCode("A12")
+                }
+            },
+        )
+    } else {
+        val guestMode = ScreenCatalog.isGuestScreen(spec.code)
+        PersonalTabBar(
+            activeTab = ScreenCatalog.activePersonalTab(spec.code),
+            guestMode = guestMode,
+            dark = spec.variant == RfThemeVariant.PERSONAL_DARK,
+            modifier = modifier,
+            onSelectTab = { tab ->
+                when (tab) {
+                    PersonalTab.INICIO -> onSelectScreenCode(if (guestMode) "s01" else "s14")
+                    PersonalTab.CATALOGO -> onSelectScreenCode(if (guestMode) "s01" else "s18")
+                    PersonalTab.ROSA -> onSelectScreenCode(if (guestMode) "s75" else "s26")
+                    PersonalTab.EVENTOS -> onSelectScreenCode("s37")
+                    PersonalTab.FAVORITOS -> onSelectScreenCode("s24")
+                    PersonalTab.PAQUETES -> onSelectScreenCode("s21")
+                    PersonalTab.ENTRAR -> onSelectScreenCode("s07")
+                }
+            },
+        )
+    }
+}
+
 /**
  * Renderiza cualquier pantalla de [ScreenCatalog] dentro de su marco oficial (390×844 móvil o 1440×900 web).
  */
@@ -84,6 +133,7 @@ fun RenderScreenSpec(
     onSelectScreenCode: (String) -> Unit = {},
     onSwitchAppMode: () -> Unit = {},
     isFrameHarness: Boolean = true,
+    includeBottomBar: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     if (spec.isDesktopWeb) {
@@ -111,10 +161,7 @@ fun RenderScreenSpec(
         "s16", "s17", "s41", "s42", "s59", "s60", "s61", "s62", "s63", "s64", "s65", "s66", "s67", "s68", "s69", "s70", "s71", "s72", "s73", "s74",
         "s75", "s76", "s77", "s79", "s80", "s81", "s82", "s84", "s85", "s86", "s87", "s88", "s89", "s90", "s91", "s92",
     )
-    val showBottomBar = spec.code.lowercase() in setOf(
-        "a01", "a02", "a09", "a11", "a12", "a32", "a35", "a36", "a37",
-        "s01", "s02", "s14", "s15", "s18", "s23", "s24", "s37", "s80", "s89", "s90", "s91", "s92",
-    )
+    val showBottomBar = includeBottomBar && shouldShowBottomBar(spec.code)
 
     RfPhoneFrame(
         variant = spec.variant,
@@ -125,38 +172,10 @@ fun RenderScreenSpec(
         fillAvailable = !isFrameHarness,
         bottomBar = {
             if (showBottomBar) {
-                if (isAdmin) {
-                    AdminTabBar(
-                        activeTab = ScreenCatalog.activeAdminTab(spec.code),
-                        onSelectTab = { tab ->
-                            when (tab) {
-                                AdminTab.INICIO -> onSelectScreenCode("A01")
-                                AdminTab.EVENTOS -> onSelectScreenCode("A11")
-                                AdminTab.ROSA -> onSelectScreenCode("A08")
-                                AdminTab.INVENTARIO -> onSelectScreenCode("A09")
-                                AdminTab.MAS -> onSelectScreenCode("A12")
-                            }
-                        },
-                    )
-                } else {
-                    val guestMode = ScreenCatalog.isGuestScreen(spec.code)
-                    PersonalTabBar(
-                        activeTab = ScreenCatalog.activePersonalTab(spec.code),
-                        guestMode = guestMode,
-                        dark = spec.variant == RfThemeVariant.PERSONAL_DARK,
-                        onSelectTab = { tab ->
-                            when (tab) {
-                                PersonalTab.INICIO -> onSelectScreenCode(if (guestMode) "s01" else "s14")
-                                PersonalTab.CATALOGO -> onSelectScreenCode(if (guestMode) "s01" else "s18")
-                                PersonalTab.ROSA -> onSelectScreenCode(if (guestMode) "s75" else "s26")
-                                PersonalTab.EVENTOS -> onSelectScreenCode("s37")
-                                PersonalTab.FAVORITOS -> onSelectScreenCode("s24")
-                                PersonalTab.PAQUETES -> onSelectScreenCode("s21")
-                                PersonalTab.ENTRAR -> onSelectScreenCode("s07")
-                            }
-                        },
-                    )
-                }
+                RenderAppBottomBar(
+                    spec = spec,
+                    onSelectScreenCode = onSelectScreenCode,
+                )
             }
         },
         modifier = modifier.testTag("screen-${spec.code}"),
@@ -189,9 +208,9 @@ fun RenderScreenSpec(
                 "s03", "s04", "s05" -> RenderOnboardingScreen(spec = spec, onSelectScreenCode = onSelectScreenCode)
                 "s06" -> RenderBienvenidaScreen(spec = spec, onSelectScreenCode = onSelectScreenCode)
                 "s07" -> RenderLoginScreenS07(viewModel = viewModel, onPrimaryAction = onPrimaryAction, onSelectScreenCode = onSelectScreenCode)
-                "s08" -> RenderRegisterScreenS08(onPrimaryAction = onPrimaryAction, onSelectScreenCode = onSelectScreenCode)
+                "s08" -> RenderRegisterScreenS08(viewModel = viewModel, onPrimaryAction = onPrimaryAction, onSelectScreenCode = onSelectScreenCode)
                 "s09", "s10", "s11", "s12", "s13" -> RenderRecoveryAndConfirmationScreens(spec = spec, onPrimaryAction = onPrimaryAction, onSelectScreenCode = onSelectScreenCode)
-                "s14", "s15" -> RenderPersonalHomeScreen(spec = spec, onSelectScreenCode = onSelectScreenCode)
+                "s14", "s15" -> RenderPersonalHomeScreen(spec = spec, viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
                 "s18" -> RenderPersonalCatalogS18(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
                 "s19" -> RenderProductDetailS19(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
                 "s20" -> RenderCategoriesScreenS20(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
@@ -295,7 +314,7 @@ fun RenderScreenSpec(
                 "s76" -> RenderPlanningModalS76(onSelectScreenCode = onSelectScreenCode)
                 "s77" -> RenderEventReviewsModalS77(onSelectScreenCode = onSelectScreenCode)
                 "s79" -> RenderPersonalNotificationsS79(onSelectScreenCode = onSelectScreenCode)
-                "s80" -> RenderPersonalSearchS80(onSelectScreenCode = onSelectScreenCode)
+                "s80" -> RenderPersonalSearchS80(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
                 "s81" -> RenderCatalogFiltersModalS81(onSelectScreenCode = onSelectScreenCode)
                 "s82" -> RenderPersonalPaymentsS82(onSelectScreenCode = onSelectScreenCode)
                 "s84" -> RenderChangeDateModalS84(onSelectScreenCode = onSelectScreenCode)
@@ -385,7 +404,7 @@ private fun ScreenHeaderBlock(
                 RfIconButton(
                     icon = RfIconKind.BACK,
                     contentDescription = "Volver",
-                    onClick = { onSelectScreenCode(if (palette.isAdmin) "A01" else "s14") },
+                    onClick = { onSelectScreenCode(if (palette.isAdmin) "BACK:A01" else "BACK:s14") },
                 )
             }
             Spacer(Modifier.width(10.dp))

@@ -7,11 +7,19 @@ import platform.UIKit.UIViewController
 /** Punto de entrada de iOS para la App Personal de RosaFiesta. */
 @Suppress("FunctionName")
 public fun MainViewController(): UIViewController = ComposeUIViewController {
-    RosaFiestaApp(initialAppView = AppView.PERSONAL)
+    RosaFiestaApp(
+        initialAppView = AppView.PERSONAL,
+        initialScreenCode = "p00",
+        showDevHeader = false,
+    )
 }
 
 /** Punto de entrada de iOS para la App Administrativa de RosaFiesta. */
 @Suppress("FunctionName")
 public fun AdminMainViewController(): UIViewController = ComposeUIViewController {
-    RosaFiestaApp(initialAppView = AppView.ADMIN)
+    RosaFiestaApp(
+        initialAppView = AppView.ADMIN,
+        initialScreenCode = "A00",
+        showDevHeader = false,
+    )
 }

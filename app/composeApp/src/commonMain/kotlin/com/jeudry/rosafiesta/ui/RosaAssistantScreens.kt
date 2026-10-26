@@ -271,8 +271,8 @@ internal fun RenderMyEventDraftS25(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 20.dp)
-                .verticalScroll(rememberScrollState()),
+                                .verticalScroll(rememberScrollState())
+            .padding(horizontal = 20.dp),
         ) {
             Spacer(modifier = Modifier.height(56.dp))
 
@@ -288,7 +288,7 @@ internal fun RenderMyEventDraftS25(
                         .shadow(6.dp, CircleShape, spotColor = Color(0x33B450B4))
                         .clip(CircleShape)
                         .background(Color.White)
-                        .clickable { onSelectScreenCode("s18") },
+                        .clickable { onSelectScreenCode("BACK:s18") },
                     contentAlignment = Alignment.Center,
                 ) {
                     RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1A1A2E), size = 22.dp)
@@ -1693,7 +1693,7 @@ internal fun RenderRosaCategoriesS30(
                     .clip(CircleShape)
                     .background(Color.White)
                     .border(1.dp, Color(0xFFF0EBF4), CircleShape)
-                    .clickable { onSelectScreenCode("s29") },
+                    .clickable { onSelectScreenCode("BACK:s29") },
                 contentAlignment = Alignment.Center,
             ) {
                 RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1A1A2E), size = 22.dp)
@@ -3527,7 +3527,7 @@ internal fun RenderRosaSketchConfirmS78(
                     .clip(CircleShape)
                     .background(Color.White)
                     .border(1.dp, Color(0xFFF0EBF4), CircleShape)
-                    .clickable { onSelectScreenCode("s36") },
+                    .clickable { onSelectScreenCode("BACK:s36") },
                 contentAlignment = Alignment.Center,
             ) {
                 RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1A1A2E), size = 22.dp)
@@ -3834,7 +3834,7 @@ internal fun RenderAdminRosaA08(
                     .clip(CircleShape)
                     .background(Color.White)
                     .border(1.dp, Color(0xFFECECF5), CircleShape)
-                    .clickable { onSelectScreenCode("A01") },
+                    .clickable { onSelectScreenCode("BACK:A01") },
                 contentAlignment = Alignment.Center,
             ) {
                 RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF151729), size = 22.dp)
@@ -3869,8 +3869,8 @@ internal fun RenderAdminRosaA08(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 118.dp, bottom = 150.dp, start = 16.dp, end = 16.dp)
-                .verticalScroll(rememberScrollState()),
+                                .verticalScroll(rememberScrollState())
+            .padding(top = 118.dp, bottom = 150.dp, start = 16.dp, end = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // User bubble

@@ -1,5 +1,6 @@
 package com.jeudry.rosafiesta.designsystem
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
@@ -154,35 +155,70 @@ public fun PersonalTabBar(
                         Spacer(Modifier.weight(1f))
                     } else {
                         val selected = tab == activeTab
+                        val pillProgress by animateFloatAsState(
+                            targetValue = if (selected) 1f else 0f,
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessMediumLow,
+                            ),
+                            label = "personal-tab-pill-${tab.key}",
+                        )
+                        val iconTint by animateColorAsState(
+                            targetValue = if (selected) Color.White else inactiveColor,
+                            animationSpec = tween(durationMillis = 220),
+                            label = "personal-tab-icon-${tab.key}",
+                        )
+                        val labelColor by animateColorAsState(
+                            targetValue = if (selected) activeLabelColor else inactiveColor,
+                            animationSpec = tween(durationMillis = 220),
+                            label = "personal-tab-label-${tab.key}",
+                        )
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(4.dp),
                             modifier = Modifier
                                 .weight(1f)
                                 .height(56.dp)
-                                .clickable { onSelectTab(tab) },
+                                .rfTactileClickable(pressedScale = 0.92f) { onSelectTab(tab) },
                         ) {
                             Box(
                                 contentAlignment = Alignment.Center,
-                                modifier = Modifier
-                                    .size(width = 52.dp, height = 30.dp)
-                                    .clip(RoundedCornerShape(999.dp))
-                                    .background(
-                                        if (selected) activePillBg else SolidColor(Color.Transparent),
-                                    ),
+                                modifier = Modifier.size(width = 52.dp, height = 30.dp),
                             ) {
-                                RfIcon(
-                                    kind = tab.icon,
-                                    tint = if (selected) Color.White else inactiveColor,
-                                    size = 22.dp,
-                                )
+                                if (pillProgress > 0.01f) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .graphicsLayer {
+                                                scaleX = 0.45f + (0.55f * pillProgress)
+                                                scaleY = 0.70f + (0.30f * pillProgress)
+                                                alpha = pillProgress.coerceIn(0f, 1f)
+                                            }
+                                            .clip(RoundedCornerShape(999.dp))
+                                            .background(activePillBg),
+                                    )
+                                }
+                                Box(
+                                    modifier = Modifier.graphicsLayer {
+                                        val iconScale = 1f + (0.08f * pillProgress)
+                                        scaleX = iconScale
+                                        scaleY = iconScale
+                                        translationY = -1.5f * pillProgress
+                                    },
+                                ) {
+                                    RfIcon(
+                                        kind = tab.icon,
+                                        tint = iconTint,
+                                        size = 22.dp,
+                                    )
+                                }
                             }
                             BasicText(
                                 text = tab.label,
                                 style = typo.caption.copy(
                                     fontSize = 11.5.sp,
                                     fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
-                                    color = if (selected) activeLabelColor else inactiveColor,
+                                    color = labelColor,
                                 ),
                                 maxLines = 1,
                             )
@@ -194,13 +230,25 @@ public fun PersonalTabBar(
 
         // Botón central Rosa sobresaliendo 26 dp respecto al contenedor de ítems (-16 dp del borde superior)
         val rosaSelected = activeTab == PersonalTab.ROSA
+        val rosaScale by animateFloatAsState(
+            targetValue = if (rosaSelected) 1.07f else 1f,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessMediumLow,
+            ),
+            label = "personal-rosa-scale",
+        )
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(4.dp),
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .offset(y = (-16).dp)
-                .clickable { onSelectTab(PersonalTab.ROSA) },
+                .graphicsLayer {
+                    scaleX = rosaScale
+                    scaleY = rosaScale
+                }
+                .rfTactileClickable(pressedScale = 0.92f) { onSelectTab(PersonalTab.ROSA) },
         ) {
             Box(
                 contentAlignment = Alignment.Center,
@@ -319,24 +367,59 @@ public fun AdminTabBar(
                         Spacer(Modifier.weight(1f))
                     } else {
                         val selected = tab == activeTab
+                        val pillProgress by animateFloatAsState(
+                            targetValue = if (selected) 1f else 0f,
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessMediumLow,
+                            ),
+                            label = "admin-tab-pill-${tab.key}",
+                        )
+                        val iconTint by animateColorAsState(
+                            targetValue = if (selected) Color.White else inactiveColor,
+                            animationSpec = tween(durationMillis = 220),
+                            label = "admin-tab-icon-${tab.key}",
+                        )
+                        val labelColor by animateColorAsState(
+                            targetValue = if (selected) activeLabelColor else inactiveColor,
+                            animationSpec = tween(durationMillis = 220),
+                            label = "admin-tab-label-${tab.key}",
+                        )
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(4.dp),
                             modifier = Modifier
                                 .weight(1f)
                                 .height(56.dp)
-                                .clickable { onSelectTab(tab) },
+                                .rfTactileClickable(pressedScale = 0.92f) { onSelectTab(tab) },
                         ) {
                             Box(
                                 contentAlignment = Alignment.Center,
-                                modifier = Modifier
-                                    .size(width = 52.dp, height = 30.dp)
-                                    .clip(RoundedCornerShape(999.dp))
-                                    .background(
-                                        if (selected) activePillBg else SolidColor(Color.Transparent),
-                                    ),
+                                modifier = Modifier.size(width = 52.dp, height = 30.dp),
                             ) {
-                                RfIcon(kind = tab.icon, tint = if (selected) Color.White else inactiveColor, size = 22.dp)
+                                if (pillProgress > 0.01f) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .graphicsLayer {
+                                                scaleX = 0.45f + (0.55f * pillProgress)
+                                                scaleY = 0.70f + (0.30f * pillProgress)
+                                                alpha = pillProgress.coerceIn(0f, 1f)
+                                            }
+                                            .clip(RoundedCornerShape(999.dp))
+                                            .background(activePillBg),
+                                    )
+                                }
+                                Box(
+                                    modifier = Modifier.graphicsLayer {
+                                        val iconScale = 1f + (0.08f * pillProgress)
+                                        scaleX = iconScale
+                                        scaleY = iconScale
+                                        translationY = -1.5f * pillProgress
+                                    },
+                                ) {
+                                    RfIcon(kind = tab.icon, tint = iconTint, size = 22.dp)
+                                }
                                 if (showBadges && tab.badgeCount > 0) {
                                     Box(
                                         contentAlignment = Alignment.Center,
@@ -359,7 +442,7 @@ public fun AdminTabBar(
                                 style = typo.caption.copy(
                                     fontSize = 11.5.sp,
                                     fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
-                                    color = if (selected) activeLabelColor else inactiveColor,
+                                    color = labelColor,
                                 ),
                                 maxLines = 1,
                             )
@@ -371,13 +454,25 @@ public fun AdminTabBar(
 
         // Botón central Rosa de 56 dp con rosa-admin-bg sobresaliendo 26 dp respecto al contenedor de ítems (-16 dp del borde superior)
         val rosaSelected = activeTab == AdminTab.ROSA
+        val rosaScale by animateFloatAsState(
+            targetValue = if (rosaSelected) 1.07f else 1f,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessMediumLow,
+            ),
+            label = "admin-rosa-scale",
+        )
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(4.dp),
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .offset(y = (-16).dp)
-                .clickable { onSelectTab(AdminTab.ROSA) },
+                .graphicsLayer {
+                    scaleX = rosaScale
+                    scaleY = rosaScale
+                }
+                .rfTactileClickable(pressedScale = 0.92f) { onSelectTab(AdminTab.ROSA) },
         ) {
             Box(
                 contentAlignment = Alignment.Center,
@@ -450,10 +545,10 @@ public fun Modifier.rfCardShadow(
     shape: Shape = RoundedCornerShape(RfDimens.CardRadius),
     isAdmin: Boolean = false,
 ): Modifier = this.shadow(
-    elevation = 12.dp,
+    elevation = 6.dp,
     shape = shape,
-    spotColor = if (isAdmin) Color(0xC04650B4) else Color(0xC0C850AA),
-    ambientColor = if (isAdmin) Color(0x504650B4) else Color(0x50C850AA),
+    spotColor = if (isAdmin) Color(0x304650B4) else Color(0x35C850AA),
+    ambientColor = if (isAdmin) Color(0x124650B4) else Color(0x15C850AA),
 )
 
 /**
@@ -466,10 +561,10 @@ public fun Modifier.rfInputShadow(
     isAdmin: Boolean = false,
     isActive: Boolean = false,
 ): Modifier = this.shadow(
-    elevation = if (isActive) 8.dp else 6.dp,
+    elevation = if (isActive) 6.dp else 4.dp,
     shape = shape,
-    spotColor = if (isAdmin) Color(0x954650B4) else if (isActive) Color(0xA5B450B4) else Color(0x95B450B4),
-    ambientColor = if (isAdmin) Color(0x354650B4) else Color(0x35B450B4),
+    spotColor = if (isAdmin) Color(0x254650B4) else if (isActive) Color(0x35B450B4) else Color(0x25B450B4),
+    ambientColor = if (isAdmin) Color(0x104650B4) else Color(0x10B450B4),
 )
 
 /**
@@ -481,10 +576,10 @@ public fun Modifier.rfIconButtonShadow(
     shape: Shape = CircleShape,
     isAdmin: Boolean = false,
 ): Modifier = this.shadow(
-    elevation = 8.dp,
+    elevation = 4.dp,
     shape = shape,
-    spotColor = if (isAdmin) Color(0xA04650B4) else Color(0xA0B450B4),
-    ambientColor = if (isAdmin) Color(0x404650B4) else Color(0x40B450B4),
+    spotColor = if (isAdmin) Color(0x254650B4) else Color(0x25B450B4),
+    ambientColor = if (isAdmin) Color(0x104650B4) else Color(0x10B450B4),
 )
 
 /**
@@ -496,10 +591,10 @@ public fun Modifier.rfPrimaryButtonShadow(
     shape: Shape = RoundedCornerShape(RfDimens.ButtonRadius),
     isAdmin: Boolean = false,
 ): Modifier = this.shadow(
-    elevation = 14.dp,
+    elevation = 8.dp,
     shape = shape,
-    spotColor = if (isAdmin) Color(0xFA5B6CF0) else Color(0xFAEA4899),
-    ambientColor = if (isAdmin) Color(0x705B6CF0) else Color(0x70EA4899),
+    spotColor = if (isAdmin) Color(0x505B6CF0) else Color(0x50EA4899),
+    ambientColor = if (isAdmin) Color(0x205B6CF0) else Color(0x20EA4899),
 )
 
 /**
@@ -511,10 +606,10 @@ public fun Modifier.rfHeroBannerShadow(
     shape: Shape = RoundedCornerShape(22.dp),
     isAdmin: Boolean = true,
 ): Modifier = this.shadow(
-    elevation = 20.dp,
+    elevation = 10.dp,
     shape = shape,
-    spotColor = if (isAdmin) Color(0xFF506EE6) else Color(0xFFEA4899),
-    ambientColor = if (isAdmin) Color(0x70506EE6) else Color(0x70EA4899),
+    spotColor = if (isAdmin) Color(0x40506EE6) else Color(0x45EA4899),
+    ambientColor = if (isAdmin) Color(0x15506EE6) else Color(0x18EA4899),
 )
 
 /**
