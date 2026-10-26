@@ -23,8 +23,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -43,6 +46,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
@@ -1433,19 +1437,33 @@ internal fun RenderAdminChatConversationA15(
     val typo = LocalRfTypography.current
     var messageInput by remember { mutableStateOf("") }
     var sentMessages by remember { mutableStateOf(listOf<String>()) }
+    var proposalApproved by remember { mutableStateOf(false) }
+    val scrollState = rememberScrollState()
+
+    val submitAdminMessage = {
+        val trimmed = messageInput.trim()
+        if (trimmed.isNotEmpty()) {
+            sentMessages = sentMessages + trimmed
+            messageInput = ""
+        }
+    }
+
+    LaunchedEffect(sentMessages.size) {
+        if (sentMessages.isNotEmpty()) {
+            scrollState.animateScrollTo(scrollState.maxValue)
+        }
+    }
 
     Box(
         modifier = Modifier.fillMaxSize(),
     ) {
-        // Chat scroll content
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(scrollState)
                 .padding(top = 118.dp, start = 16.dp, end = 16.dp, bottom = 156.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            // Ayer
             Box(
                 modifier = Modifier
                     .align(Alignment.CenterHorizontally)
@@ -1456,7 +1474,6 @@ internal fun RenderAdminChatConversationA15(
                 BasicText("Ayer", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = Color(0xFF5F6377)))
             }
 
-            // Bubble 1 (client)
             Box(
                 modifier = Modifier
                     .align(Alignment.Start)
@@ -1475,7 +1492,6 @@ internal fun RenderAdminChatConversationA15(
                 }
             }
 
-            // Bubble 2 (client)
             Box(
                 modifier = Modifier
                     .align(Alignment.Start)
@@ -1494,7 +1510,6 @@ internal fun RenderAdminChatConversationA15(
                 }
             }
 
-            // Hoy
             Box(
                 modifier = Modifier
                     .align(Alignment.CenterHorizontally)
@@ -1505,7 +1520,6 @@ internal fun RenderAdminChatConversationA15(
                 BasicText("Hoy", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = Color(0xFF5F6377)))
             }
 
-            // Admin response stack
             Column(
                 modifier = Modifier
                     .align(Alignment.End)
@@ -1524,13 +1538,21 @@ internal fun RenderAdminChatConversationA15(
                     )
                 }
 
-                // Proposal subcard
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(18.dp))
                         .background(Color.White)
                         .border(1.dp, Color(0xFFE3E4EF), RoundedCornerShape(18.dp))
+                        .clickable {
+                            proposalApproved = !proposalApproved
+                            val statusMessage = if (proposalApproved) {
+                                "Propuesta aprobada: +20 Sillas Chiavari doradas ✅"
+                            } else {
+                                "Propuesta marcada nuevamente por aprobar."
+                            }
+                            sentMessages = sentMessages + statusMessage
+                        }
                         .padding(12.dp),
                 ) {
                     Row(
@@ -1542,10 +1564,14 @@ internal fun RenderAdminChatConversationA15(
                             modifier = Modifier
                                 .size(40.dp)
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(Color(0xFFFFF2C9)),
+                                .background(if (proposalApproved) Color(0xFFEEF6D6) else Color(0xFFFFF2C9)),
                             contentAlignment = Alignment.Center,
                         ) {
-                            RfIcon(kind = RfIconKind.BOX, tint = Color(0xFF7A5700), size = 20.dp)
+                            RfIcon(
+                                kind = if (proposalApproved) RfIconKind.CHECK else RfIconKind.BOX,
+                                tint = if (proposalApproved) Color(0xFF4E6A10) else Color(0xFF7A5700),
+                                size = 20.dp,
+                            )
                         }
 
                         Column(modifier = Modifier.weight(1f)) {
@@ -1556,11 +1582,19 @@ internal fun RenderAdminChatConversationA15(
                                 modifier = Modifier
                                     .height(20.dp)
                                     .clip(CircleShape)
-                                    .background(Color(0xFFFFF2C9))
+                                    .background(if (proposalApproved) Color(0xFFEEF6D6) else Color(0xFFFFF2C9))
                                     .padding(horizontal = 8.dp),
                                 contentAlignment = Alignment.Center,
                             ) {
-                                BasicText("Por aprobar", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 11.sp, fontWeight = FontWeight.Medium, color = Color(0xFF7A5700)))
+                                BasicText(
+                                    text = if (proposalApproved) "Aprobado" else "Por aprobar",
+                                    style = TextStyle(
+                                        fontFamily = typo.bodyFamily,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = if (proposalApproved) Color(0xFF4E6A10) else Color(0xFF7A5700),
+                                    ),
+                                )
                             }
                         }
                     }
@@ -1586,7 +1620,6 @@ internal fun RenderAdminChatConversationA15(
             Spacer(modifier = Modifier.height(16.dp))
         }
 
-        // Header blanco fijo superior
         Box(
             modifier = Modifier
                 .align(Alignment.TopCenter)
@@ -1646,7 +1679,6 @@ internal fun RenderAdminChatConversationA15(
             }
         }
 
-        // Bottom Docked Bar
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -1656,7 +1688,6 @@ internal fun RenderAdminChatConversationA15(
                 .padding(top = 10.dp, start = 12.dp, end = 12.dp, bottom = 30.dp),
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                // Chips
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -1715,7 +1746,6 @@ internal fun RenderAdminChatConversationA15(
                     }
                 }
 
-                // Input row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -1744,6 +1774,8 @@ internal fun RenderAdminChatConversationA15(
                             value = messageInput,
                             onValueChange = { updated -> messageInput = updated },
                             singleLine = true,
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                            keyboardActions = KeyboardActions(onSend = { submitAdminMessage() }),
                             textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF2E324A)),
                             cursorBrush = SolidColor(Color(0xFF5B6CF0)),
                             modifier = Modifier.fillMaxWidth(),
@@ -1761,13 +1793,7 @@ internal fun RenderAdminChatConversationA15(
                             .size(48.dp)
                             .clip(CircleShape)
                             .background(AdminButtonGradient)
-                            .clickable {
-                                val trimmed = messageInput.trim()
-                                if (trimmed.isNotEmpty()) {
-                                    sentMessages = sentMessages + trimmed
-                                    messageInput = ""
-                                }
-                            },
+                            .clickable { submitAdminMessage() },
                         contentAlignment = Alignment.Center,
                     ) {
                         RfIcon(kind = RfIconKind.ARROW_RIGHT, tint = Color.White, size = 20.dp)

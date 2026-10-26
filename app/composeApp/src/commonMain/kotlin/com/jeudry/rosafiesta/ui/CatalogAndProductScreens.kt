@@ -18,6 +18,8 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -30,10 +32,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.text.style.TextOverflow
-import com.jeudry.rosafiesta.domain.CanonicalSampleData
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,6 +48,7 @@ import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jeudry.rosafiesta.designsystem.LocalRfTypography
@@ -65,6 +64,7 @@ import com.jeudry.rosafiesta.designsystem.rfHeroBannerShadow
 import com.jeudry.rosafiesta.designsystem.rfIconButtonShadow
 import com.jeudry.rosafiesta.designsystem.rfInputShadow
 import com.jeudry.rosafiesta.designsystem.rfPrimaryButtonShadow
+import com.jeudry.rosafiesta.domain.CanonicalSampleData
 
 // ==============================================================================
 // s18 · CATÁLOGO (APP PERSONAL)
@@ -81,17 +81,22 @@ internal fun RenderPersonalCatalogS18(
     val totalDraftCount = draftQuantitiesState.values.sum()
     val vmCategory = viewModel?.selectedCategory?.collectAsState()?.value ?: "Todas"
 
-    var selectedCategory by remember(vmCategory) { mutableStateOf(if (vmCategory in listOf("Todas", "Iluminación", "Floral", "Globos", "Mobiliario", "Mesa dulce")) vmCategory else "Todas") }
+    val validCategories = remember { listOf("Todas", "Iluminación", "Floral", "Globos", "Mobiliario", "Mesa dulce") }
+    var selectedCategory by remember(vmCategory) {
+        mutableStateOf(if (vmCategory in validCategories) vmCategory else "Todas")
+    }
     var searchQuery by remember { mutableStateOf("") }
 
     val filteredArticles = remember(articlesState, selectedCategory, searchQuery) {
-        articlesState.filter { art ->
-            val matchesCategory = selectedCategory.startsWith("Todas") ||
-                art.category.equals(selectedCategory, ignoreCase = true)
-            val matchesSearch = searchQuery.isBlank() ||
-                art.name.contains(searchQuery, ignoreCase = true) ||
-                art.description.contains(searchQuery, ignoreCase = true)
-            matchesCategory && matchesSearch
+        articlesState.filter { article ->
+            val isAllSelected = selectedCategory.startsWith("Todas")
+            val matchesCategoryName = article.category.equals(selectedCategory, ignoreCase = true)
+            val matchesCategory = listOf(isAllSelected, matchesCategoryName).any { matched -> matched }
+            val queryBlank = searchQuery.isBlank()
+            val matchesName = article.name.contains(searchQuery, ignoreCase = true)
+            val matchesDescription = article.description.contains(searchQuery, ignoreCase = true)
+            val matchesSearch = listOf(queryBlank, matchesName, matchesDescription).any { matched -> matched }
+            listOf(matchesCategory, matchesSearch).all { matched -> matched }
         }
     }
 
@@ -100,7 +105,6 @@ internal fun RenderPersonalCatalogS18(
             .fillMaxSize()
             .padding(top = 54.dp, start = 20.dp, end = 20.dp),
     ) {
-        // Cabecera: Título + Botón Cuadrícula + Botón Mi Evento con badge dinámico
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -141,7 +145,6 @@ internal fun RenderPersonalCatalogS18(
                     ) {
                         RfIcon(kind = RfIconKind.PARTY, tint = Color(0xFF151729), size = 20.dp)
                     }
-                    // Badge dinámico según artículos en borrador
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
@@ -162,7 +165,6 @@ internal fun RenderPersonalCatalogS18(
 
         Spacer(Modifier.height(14.dp))
 
-        // Campo de búsqueda interactivo con voz
         Box(
             contentAlignment = Alignment.CenterStart,
             modifier = Modifier
@@ -191,9 +193,9 @@ internal fun RenderPersonalCatalogS18(
                         }
                         BasicTextField(
                             value = searchQuery,
-                            onValueChange = {
-                                searchQuery = it
-                                viewModel?.setSearchQuery(it)
+                            onValueChange = { updatedQuery ->
+                                searchQuery = updatedQuery
+                                viewModel?.setSearchQuery(updatedQuery)
                             },
                             textStyle = typo.body.copy(fontSize = 15.sp, color = Color(0xFF151729)),
                             modifier = Modifier.fillMaxWidth(),
@@ -216,7 +218,6 @@ internal fun RenderPersonalCatalogS18(
 
         Spacer(Modifier.height(12.dp))
 
-        // Chips de categoría interactivos
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier
@@ -224,9 +225,11 @@ internal fun RenderPersonalCatalogS18(
                 .horizontalScroll(rememberScrollState()),
         ) {
             val categories = listOf("Todas · ${articlesState.size}", "Iluminación", "Floral", "Globos", "Mobiliario", "Mesa dulce")
-            categories.forEach { cat ->
-                val catClean = if (cat.startsWith("Todas")) "Todas" else cat
-                val isSelected = selectedCategory == catClean || (selectedCategory.startsWith("Todas") && catClean == "Todas")
+            categories.forEach { categoryLabel ->
+                val cleanCategory = if (categoryLabel.startsWith("Todas")) "Todas" else categoryLabel
+                val exactMatch = selectedCategory == cleanCategory
+                val allPrefixMatch = if (selectedCategory.startsWith("Todas")) cleanCategory == "Todas" else false
+                val isSelected = listOf(exactMatch, allPrefixMatch).any { matched -> matched }
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
@@ -242,13 +245,13 @@ internal fun RenderPersonalCatalogS18(
                         .border(1.dp, if (isSelected) Color.Transparent else Color(0xFFE9E9F2), RoundedCornerShape(999.dp))
                         .clickable {
                             viewModel?.soundPlayer?.playTap()
-                            selectedCategory = catClean
-                            viewModel?.setSelectedCategory(catClean)
+                            selectedCategory = cleanCategory
+                            viewModel?.setSelectedCategory(cleanCategory)
                         }
                         .padding(horizontal = 14.dp),
                 ) {
                     BasicText(
-                        text = cat,
+                        text = categoryLabel,
                         style = typo.body.copy(
                             fontSize = 14.sp,
                             fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
@@ -261,7 +264,6 @@ internal fun RenderPersonalCatalogS18(
 
         Spacer(Modifier.height(14.dp))
 
-        // Banner asistente Rosa IA
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -283,7 +285,6 @@ internal fun RenderPersonalCatalogS18(
 
         Spacer(Modifier.height(16.dp))
 
-        // Cuadrícula dinámica 2 columnas de productos
         Column(
             verticalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.verticalScroll(rememberScrollState()),
@@ -291,7 +292,11 @@ internal fun RenderPersonalCatalogS18(
             filteredArticles.chunked(2).forEach { rowPair ->
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
                     val first = rowPair[0]
-                    val firstPhoto = RfPhotoKey.entries.firstOrNull { it.assetKey == first.photo.key || it.name.equals(first.photo.key, ignoreCase = true) } ?: RfPhotoKey.SILLA_TIFFANY
+                    val firstPhoto = RfPhotoKey.entries.firstOrNull { photoEntry ->
+                        val matchesAsset = photoEntry.assetKey == first.photo.key
+                        val matchesName = photoEntry.name.equals(first.photo.key, ignoreCase = true)
+                        listOf(matchesAsset, matchesName).any { matched -> matched }
+                    } ?: RfPhotoKey.SILLA_TIFFANY
                     PersonalProductCard(
                         title = first.name,
                         desc = first.description,
@@ -304,11 +309,19 @@ internal fun RenderPersonalCatalogS18(
                             viewModel?.selectArticle(first.id)
                             onSelectScreenCode("s19")
                         },
+                        onAddClick = {
+                            viewModel?.soundPlayer?.playTap()
+                            viewModel?.adjustDraftQuantity(first.id, 1)
+                        },
                         modifier = Modifier.weight(1f),
                     )
                     if (rowPair.size > 1) {
                         val second = rowPair[1]
-                        val secondPhoto = RfPhotoKey.entries.firstOrNull { it.assetKey == second.photo.key || it.name.equals(second.photo.key, ignoreCase = true) } ?: RfPhotoKey.SILLA_TIFFANY
+                        val secondPhoto = RfPhotoKey.entries.firstOrNull { photoEntry ->
+                            val matchesAsset = photoEntry.assetKey == second.photo.key
+                            val matchesName = photoEntry.name.equals(second.photo.key, ignoreCase = true)
+                            listOf(matchesAsset, matchesName).any { matched -> matched }
+                        } ?: RfPhotoKey.SILLA_TIFFANY
                         PersonalProductCard(
                             title = second.name,
                             desc = second.description,
@@ -320,6 +333,10 @@ internal fun RenderPersonalCatalogS18(
                                 viewModel?.soundPlayer?.playTap()
                                 viewModel?.selectArticle(second.id)
                                 onSelectScreenCode("s19")
+                            },
+                            onAddClick = {
+                                viewModel?.soundPlayer?.playTap()
+                                viewModel?.adjustDraftQuantity(second.id, 1)
                             },
                             modifier = Modifier.weight(1f),
                         )
@@ -344,6 +361,7 @@ private fun PersonalProductCard(
     initialFavorite: Boolean = false,
     useGradientPrice: Boolean = false,
     onOpenDetail: () -> Unit,
+    onAddClick: () -> Unit = onOpenDetail,
     modifier: Modifier = Modifier,
 ) {
     val typo = LocalRfTypography.current
@@ -440,7 +458,8 @@ private fun PersonalProductCard(
                             .clip(CircleShape)
                             .background(
                                 Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))),
-                            ),
+                            )
+                            .clickable(onClick = onAddClick),
                     ) {
                         RfIcon(kind = RfIconKind.PLUS, tint = Color.White, size = 18.dp)
                     }
@@ -632,13 +651,22 @@ internal fun RenderProductDetailS19(
                         val colors = listOf("Transparente" to Color(0xFF7C5CF0), "Rosa" to Color(0xFFEA4EA9), "Verde" to Color(0xFFA9CC3A), "Dorado" to Color(0xFFF0B92E))
                         colors.forEach { (name, col) ->
                             val isSel = name == selectedColor
+                            val isSelectedTransparent = if (isSel) name == "Transparente" else false
                             val gradDiag = Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)))
                             Box(
                                 contentAlignment = Alignment.Center,
                                 modifier = Modifier
                                     .size(40.dp)
                                     .clip(CircleShape)
-                                    .background(if (isSel && name == "Transparente") gradDiag else if (isSel) SolidColor(col) else SolidColor(Color.White))
+                                    .background(
+                                        if (isSelectedTransparent) {
+                                            gradDiag
+                                        } else if (isSel) {
+                                            SolidColor(col)
+                                        } else {
+                                            SolidColor(Color.White)
+                                        },
+                                    )
                                     .border(2.5.dp, col, CircleShape)
                                     .clickable { selectedColor = name },
                             ) {
@@ -889,7 +917,14 @@ internal fun RenderCategoriesScreenS20(
 }
 
 private enum class CategoryIllustration {
-    ILUMINACION, FLORAL, GLOBOS, MANTELERIA, MESA_DULCE, LETREROS, MOBILIARIO, DECORACION
+    ILUMINACION,
+    FLORAL,
+    GLOBOS,
+    MANTELERIA,
+    MESA_DULCE,
+    LETREROS,
+    MOBILIARIO,
+    DECORACION,
 }
 
 @Composable
@@ -929,7 +964,8 @@ private fun CategoryGridCard(
                             cubicTo(w * 0.20f, h * 0.52f, w * 0.40f, h * 0.52f, w * 0.60f, h * 0.36f)
                             cubicTo(w * 0.78f, h * 0.20f, w * 0.98f, h * 0.24f, w * 1.0f, h * 0.40f)
                         },
-                        color = wireColor, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.5f * density)
+                        color = wireColor,
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.5f * density),
                     )
                     drawPath(
                         path = androidx.compose.ui.graphics.Path().apply {
@@ -937,7 +973,8 @@ private fun CategoryGridCard(
                             cubicTo(w * 0.22f, h * 0.94f, w * 0.44f, h * 0.94f, w * 0.64f, h * 0.78f)
                             cubicTo(w * 0.80f, h * 0.66f, w * 1.0f, h * 0.66f, w * 1.0f, h * 0.82f)
                         },
-                        color = wireColor, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.5f * density)
+                        color = wireColor,
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.5f * density),
                     )
                     // Bulbs
                     val bulbColors = listOf(
@@ -957,6 +994,7 @@ private fun CategoryGridCard(
                         drawOval(color = c, topLeft = androidx.compose.ui.geometry.Offset((bx - 0.05f) * w, (by - 0.07f) * h), size = androidx.compose.ui.geometry.Size(w * 0.10f, h * 0.14f))
                     }
                 }
+
                 CategoryIllustration.FLORAL -> {
                     // Simple flower vase
                     // Vase
@@ -980,6 +1018,7 @@ private fun CategoryGridCard(
                     }
                     drawCircle(color = androidx.compose.ui.graphics.Color(0xFFD9A441), radius = w * 0.06f, center = androidx.compose.ui.geometry.Offset(w * 0.72f, h * 0.32f))
                 }
+
                 CategoryIllustration.GLOBOS -> {
                     // 3 balloons
                     val balloonData = listOf(
@@ -993,6 +1032,7 @@ private fun CategoryGridCard(
                         drawLine(color = androidx.compose.ui.graphics.Color(0xFF2B1730).copy(alpha = 0.4f), start = androidx.compose.ui.geometry.Offset(bx, by + w * 0.15f), end = androidx.compose.ui.geometry.Offset(w * 0.50f, h * 0.95f), strokeWidth = 1.4f * density)
                     }
                 }
+
                 CategoryIllustration.MANTELERIA -> {
                     // Stacked tablecloth layers
                     drawRoundRect(color = androidx.compose.ui.graphics.Color(0xFFB9A6F7), topLeft = androidx.compose.ui.geometry.Offset(w * 0.22f, h * 0.68f), size = androidx.compose.ui.geometry.Size(w * 0.56f, h * 0.16f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(5f * density))
@@ -1006,6 +1046,7 @@ private fun CategoryGridCard(
                     // Bow
                     drawRoundRect(color = androidx.compose.ui.graphics.Color(0xFFD9A441), topLeft = androidx.compose.ui.geometry.Offset(w * 0.44f, h * 0.30f), size = androidx.compose.ui.geometry.Size(w * 0.12f, h * 0.04f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f * density))
                 }
+
                 CategoryIllustration.MESA_DULCE -> {
                     // Sweet table with cake
                     // Table legs
@@ -1023,14 +1064,17 @@ private fun CategoryGridCard(
                     drawLine(color = androidx.compose.ui.graphics.Color(0xFF4AA8E0), start = androidx.compose.ui.geometry.Offset(w * 0.50f, h * 0.18f), end = androidx.compose.ui.geometry.Offset(w * 0.50f, h * 0.27f), strokeWidth = 3f * density)
                     drawCircle(color = androidx.compose.ui.graphics.Color(0xFFF5B53B), radius = 5f * density, center = androidx.compose.ui.geometry.Offset(w * 0.50f, h * 0.16f))
                 }
+
                 CategoryIllustration.LETREROS -> {
                     // Neon heart sign (pink on dark bg)
                     val neonColor = androidx.compose.ui.graphics.Color(0xFFFF6FB0)
                     val neonGlow = androidx.compose.ui.graphics.Color(0xFFEC4F97).copy(alpha = 0.22f)
+
                     // Heart path: scale to 104x104
                     fun heartPath(scale: Float): androidx.compose.ui.graphics.Path {
                         val p = androidx.compose.ui.graphics.Path()
-                        val cx = w * 0.50f; val cy = h * 0.42f
+                        val cx = w * 0.50f
+                        val cy = h * 0.42f
                         p.moveTo(cx, cy + scale * 0.46f)
                         p.cubicTo(cx - scale * 0.60f, cy + scale * 0.26f, cx - scale * 0.80f, cy + scale * 0.05f, cx - scale * 0.50f, cy - scale * 0.18f)
                         p.cubicTo(cx - scale * 0.20f, cy - scale * 0.40f, cx, cy - scale * 0.25f, cx, cy - scale * 0.10f)
@@ -1050,7 +1094,7 @@ private fun CategoryGridCard(
                             cubicTo(w * 0.66f, h * 0.76f, w * 0.71f, h * 0.76f, w * 0.74f, h * 0.82f)
                         },
                         color = androidx.compose.ui.graphics.Color(0xFFF5B53B).copy(alpha = 0.2f),
-                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 10f * density)
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 10f * density),
                     )
                     drawPath(
                         path = androidx.compose.ui.graphics.Path().apply {
@@ -1060,11 +1104,12 @@ private fun CategoryGridCard(
                             cubicTo(w * 0.66f, h * 0.76f, w * 0.71f, h * 0.76f, w * 0.74f, h * 0.82f)
                         },
                         color = androidx.compose.ui.graphics.Color(0xFFFFC75A),
-                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 3.2f * density)
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 3.2f * density),
                     )
                     // String
                     drawLine(color = androidx.compose.ui.graphics.Color(0xFF9B8AA0), start = androidx.compose.ui.geometry.Offset(w * 0.50f, h * 0.05f), end = androidx.compose.ui.geometry.Offset(w * 0.50f, h * 0.17f), strokeWidth = 1.4f * density)
                 }
+
                 CategoryIllustration.MOBILIARIO -> {
                     // Chair — Tiffany style
                     val chairColor = androidx.compose.ui.graphics.Color(0xFFD9A441)
@@ -1084,6 +1129,7 @@ private fun CategoryGridCard(
                     // Middle rail
                     drawRoundRect(color = chairColor, topLeft = androidx.compose.ui.geometry.Offset(w * 0.33f, h * 0.38f), size = androidx.compose.ui.geometry.Size(w * 0.34f, h * 0.04f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(2f * density))
                 }
+
                 CategoryIllustration.DECORACION -> {
                     // Vase with plants and candle
                     // Vase
@@ -1429,12 +1475,67 @@ private fun PackageItemRow(
 // s23 · TIENDA (GLOBOS)
 // ==============================================================================
 
+private data class BalloonShopItemSpec(
+    val title: String,
+    val price: String,
+    val bg: Color,
+    val category: String,
+    val initialFavorite: Boolean = false,
+    val hasOfferBadge: Boolean = false,
+    val illustration: @Composable () -> Unit,
+)
+
 @Composable
 internal fun RenderShopScreenS23(
     onSelectScreenCode: (String) -> Unit,
 ) {
     val typo = LocalRfTypography.current
     val gradDiag = Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)))
+    var selectedFilter by remember { mutableStateOf("Todos") }
+    var cartCount by remember { mutableStateOf(3) }
+
+    val allBalloonItems = remember {
+        listOf(
+            BalloonShopItemSpec(
+                title = "Estrella dorada",
+                price = "RD$ 5.99",
+                bg = Color(0xFFFFF2C9),
+                category = "Metalizados",
+                initialFavorite = true,
+                illustration = { BalloonStarIllustration(modifier = Modifier.size(108.dp)) },
+            ),
+            BalloonShopItemSpec(
+                title = "Set rosa pastel",
+                price = "RD$ 3.50",
+                bg = Color(0xFFFDE6F2),
+                category = "Látex",
+                hasOfferBadge = true,
+                illustration = { BalloonPastelSetIllustration(modifier = Modifier.size(108.dp)) },
+            ),
+            BalloonShopItemSpec(
+                title = "Bouquet tricolor",
+                price = "RD$ [precio]",
+                bg = Color(0xFFDDF4F3),
+                category = "Bouquets",
+                illustration = { BalloonTricolorIllustration(modifier = Modifier.size(108.dp)) },
+            ),
+            BalloonShopItemSpec(
+                title = "Arco orgánico",
+                price = "RD$ [precio]",
+                bg = Color(0xFFEEF6D6),
+                category = "Látex",
+                illustration = { BalloonArchShopIllustration(modifier = Modifier.size(108.dp)) },
+            ),
+        )
+    }
+
+    val filteredItems = remember(allBalloonItems, selectedFilter) {
+        if (selectedFilter == "Todos") {
+            allBalloonItems
+        } else {
+            allBalloonItems.filter { item -> item.category == selectedFilter }
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -1465,7 +1566,6 @@ internal fun RenderShopScreenS23(
                 .padding(top = 54.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            // Header
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -1490,7 +1590,8 @@ internal fun RenderShopScreenS23(
                         .size(44.dp)
                         .shadow(8.dp, CircleShape, spotColor = Color(0x33B450B4))
                         .clip(CircleShape)
-                        .background(Color.White),
+                        .background(Color.White)
+                        .clickable { onSelectScreenCode("s80") },
                 ) {
                     RfIcon(kind = RfIconKind.SEARCH, tint = Color(0xFF1A1A2E), size = 20.dp)
                 }
@@ -1501,6 +1602,7 @@ internal fun RenderShopScreenS23(
                         .shadow(8.dp, RoundedCornerShape(999.dp), spotColor = Color(0x66A050D2))
                         .clip(RoundedCornerShape(999.dp))
                         .background(gradDiag)
+                        .clickable { onSelectScreenCode("s25") }
                         .padding(horizontal = 10.dp),
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1509,13 +1611,12 @@ internal fun RenderShopScreenS23(
                             contentAlignment = Alignment.Center,
                             modifier = Modifier.size(24.dp).clip(CircleShape).background(Color(0xFFFFD45C)),
                         ) {
-                            BasicText("3", style = typo.sectionCap.copy(fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF2E1A47)))
+                            BasicText("$cartCount", style = typo.sectionCap.copy(fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF2E1A47)))
                         }
                     }
                 }
             }
 
-            // Chips filtro
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1523,33 +1624,37 @@ internal fun RenderShopScreenS23(
                     .padding(horizontal = 20.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .height(38.dp)
-                        .shadow(8.dp, RoundedCornerShape(999.dp), spotColor = Color(0x66A050D2))
-                        .clip(RoundedCornerShape(999.dp))
-                        .background(gradDiag)
-                        .padding(horizontal = 15.dp),
-                ) {
-                    BasicText("Todos", style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color.White))
-                }
-                listOf("Metalizados", "Látex", "Bouquets").forEach { label ->
+                listOf("Todos", "Metalizados", "Látex", "Bouquets").forEach { label ->
+                    val isSelected = selectedFilter == label
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
                             .height(38.dp)
+                            .then(
+                                if (isSelected) {
+                                    Modifier.shadow(8.dp, RoundedCornerShape(999.dp), spotColor = Color(0x66A050D2))
+                                } else {
+                                    Modifier
+                                },
+                            )
                             .clip(RoundedCornerShape(999.dp))
-                            .background(Color.White)
-                            .border(1.dp, Color(0xFFEEE9F2), RoundedCornerShape(999.dp))
+                            .background(if (isSelected) gradDiag else SolidColor(Color.White))
+                            .border(1.dp, if (isSelected) Color.Transparent else Color(0xFFEEE9F2), RoundedCornerShape(999.dp))
+                            .clickable { selectedFilter = label }
                             .padding(horizontal = 15.dp),
                     ) {
-                        BasicText(label, style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF62627A)))
+                        BasicText(
+                            text = label,
+                            style = typo.body.copy(
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (isSelected) Color.White else Color(0xFF62627A),
+                            ),
+                        )
                     }
                 }
             }
 
-            // Banner hero "Colección Pastel Dream"
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1559,7 +1664,6 @@ internal fun RenderShopScreenS23(
                     .clip(RoundedCornerShape(24.dp))
                     .background(Color(0xFFEFE8FD)),
             ) {
-                // Globos SVG exactos
                 Box(
                     modifier = Modifier
                         .size(170.dp)
@@ -1604,6 +1708,7 @@ internal fun RenderShopScreenS23(
                             .shadow(8.dp, RoundedCornerShape(999.dp), spotColor = Color(0x66A050D2), ambientColor = Color.Transparent)
                             .clip(RoundedCornerShape(999.dp))
                             .background(gradDiag)
+                            .clickable { selectedFilter = "Látex" }
                             .padding(horizontal = 16.dp),
                     ) {
                         BasicText("Ver colección", style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White))
@@ -1611,7 +1716,6 @@ internal fun RenderShopScreenS23(
                 }
             }
 
-            // "Favoritos de la fiesta"
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -1627,49 +1731,45 @@ internal fun RenderShopScreenS23(
                         color = Color(0xFF1A1A2E),
                     ),
                 )
-                BasicText("Ver todo", style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFFC2338F)))
+                BasicText(
+                    text = "Ver todo",
+                    style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFFC2338F)),
+                    modifier = Modifier.clickable { selectedFilter = "Todos" },
+                )
             }
 
-            // Grid de 4 artículos (2x2)
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
-            ) {
-                TiendaBalloonProductCard(
-                    title = "Estrella dorada",
-                    price = "RD$ 5.99",
-                    bg = Color(0xFFFFF2C9),
-                    isFavorite = true,
-                    illustration = { BalloonStarIllustration(modifier = Modifier.size(108.dp)) },
-                    modifier = Modifier.weight(1f),
-                )
-                TiendaBalloonProductCard(
-                    title = "Set rosa pastel",
-                    price = "RD$ 3.50",
-                    bg = Color(0xFFFDE6F2),
-                    hasOfferBadge = true,
-                    illustration = { BalloonPastelSetIllustration(modifier = Modifier.size(108.dp)) },
-                    modifier = Modifier.weight(1f),
-                )
-            }
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
-            ) {
-                TiendaBalloonProductCard(
-                    title = "Bouquet tricolor",
-                    price = "RD$ [precio]",
-                    bg = Color(0xFFDDF4F3),
-                    illustration = { BalloonTricolorIllustration(modifier = Modifier.size(108.dp)) },
-                    modifier = Modifier.weight(1f),
-                )
-                TiendaBalloonProductCard(
-                    title = "Arco orgánico",
-                    price = "RD$ [precio]",
-                    bg = Color(0xFFEEF6D6),
-                    illustration = { BalloonArchShopIllustration(modifier = Modifier.size(108.dp)) },
-                    modifier = Modifier.weight(1f),
-                )
+            filteredItems.chunked(2).forEach { rowPair ->
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                ) {
+                    val first = rowPair[0]
+                    TiendaBalloonProductCard(
+                        title = first.title,
+                        price = first.price,
+                        bg = first.bg,
+                        isFavorite = first.initialFavorite,
+                        hasOfferBadge = first.hasOfferBadge,
+                        illustration = first.illustration,
+                        onAddClick = { cartCount += 1 },
+                        modifier = Modifier.weight(1f),
+                    )
+                    if (rowPair.size > 1) {
+                        val second = rowPair[1]
+                        TiendaBalloonProductCard(
+                            title = second.title,
+                            price = second.price,
+                            bg = second.bg,
+                            isFavorite = second.initialFavorite,
+                            hasOfferBadge = second.hasOfferBadge,
+                            illustration = second.illustration,
+                            onAddClick = { cartCount += 1 },
+                            modifier = Modifier.weight(1f),
+                        )
+                    } else {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
+                }
             }
 
             Spacer(Modifier.height(96.dp))
@@ -1687,21 +1787,18 @@ private fun PastelDreamBalloonsIllustration(modifier: Modifier = Modifier) {
         val strokePaint = Color(0x736E5A72)
         val strokeW = 1.2f * s
 
-        // Strings
         drawLine(strokePaint, Offset(40f * s, 54f * s), Offset(60f * s, 104f * s), strokeWidth = strokeW)
         drawLine(strokePaint, Offset(70f * s, 48f * s), Offset(60f * s, 104f * s), strokeWidth = strokeW)
         drawLine(strokePaint, Offset(58f * s, 72f * s), Offset(60f * s, 104f * s), strokeWidth = strokeW)
         drawLine(strokePaint, Offset(84f * s, 70f * s), Offset(60f * s, 104f * s), strokeWidth = strokeW)
         drawLine(strokePaint, Offset(34f * s, 78f * s), Offset(60f * s, 104f * s), strokeWidth = strokeW)
 
-        // Ellipses
         drawOval(Color(0xFFF9B6D3), topLeft = Offset((40f - 15f) * s, (38f - 17f) * s), size = androidx.compose.ui.geometry.Size(30f * s, 34f * s))
         drawOval(Color(0xFFA8D8F5), topLeft = Offset((70f - 15f) * s, (32f - 17f) * s), size = androidx.compose.ui.geometry.Size(30f * s, 34f * s))
         drawOval(Color(0xFFB9A6F7), topLeft = Offset((86f - 13f) * s, (56f - 15f) * s), size = androidx.compose.ui.geometry.Size(26f * s, 30f * s))
         drawOval(Color(0xFFFFD98A), topLeft = Offset((34f - 13f) * s, (64f - 15f) * s), size = androidx.compose.ui.geometry.Size(26f * s, 30f * s))
         drawOval(Color(0xFF9BE3C9), topLeft = Offset((59f - 15f) * s, (58f - 17f) * s), size = androidx.compose.ui.geometry.Size(30f * s, 34f * s))
 
-        // Ribbon knot
         scale(s, s, Offset.Zero) {
             drawPath(knotPath, Color(0xFFEC4F97))
         }
@@ -1723,8 +1820,8 @@ private fun BalloonStarIllustration(modifier: Modifier = Modifier) {
                 Offset(80f, 77.5f), Offset(60f, 65f), Offset(40f, 77.5f), Offset(45.7f, 54.6f),
                 Offset(27.7f, 39.5f), Offset(51.2f, 37.9f),
             )
-            pts.forEachIndexed { i, p ->
-                if (i == 0) moveTo(p.x * s, p.y * s) else lineTo(p.x * s, p.y * s)
+            pts.forEachIndexed { pointIndex, point ->
+                if (pointIndex == 0) moveTo(point.x * s, point.y * s) else lineTo(point.x * s, point.y * s)
             }
             close()
         }
@@ -1774,11 +1871,20 @@ private fun BalloonTricolorIllustration(modifier: Modifier = Modifier) {
     Canvas(modifier = modifier) {
         val s = size.width / 120f
         val strings = listOf(
-            Path().apply { moveTo(46f * s, 62f * s); cubicTo(48f * s, 80f * s, 58f * s, 90f * s, 60f * s, 110f * s) },
-            Path().apply { moveTo(76f * s, 58f * s); cubicTo(74f * s, 78f * s, 62f * s, 90f * s, 60f * s, 110f * s) },
-            Path().apply { moveTo(60f * s, 78f * s); cubicTo(60f * s, 92f * s, 60f * s, 100f * s, 60f * s, 110f * s) },
+            Path().apply {
+                moveTo(46f * s, 62f * s)
+                cubicTo(48f * s, 80f * s, 58f * s, 90f * s, 60f * s, 110f * s)
+            },
+            Path().apply {
+                moveTo(76f * s, 58f * s)
+                cubicTo(74f * s, 78f * s, 62f * s, 90f * s, 60f * s, 110f * s)
+            },
+            Path().apply {
+                moveTo(60f * s, 78f * s)
+                cubicTo(60f * s, 92f * s, 60f * s, 100f * s, 60f * s, 110f * s)
+            },
         )
-        strings.forEach { drawPath(it, Color(0x806E5A72), style = Stroke(width = 1.4f * s)) }
+        strings.forEach { stringPath -> drawPath(stringPath, Color(0x806E5A72), style = Stroke(width = 1.4f * s)) }
         drawOval(Color(0xFFEC4F97), topLeft = Offset(29f * s, 22f * s), size = androidx.compose.ui.geometry.Size(34f * s, 40f * s))
         drawOval(Color(0xFF7650E8), topLeft = Offset(59f * s, 18f * s), size = androidx.compose.ui.geometry.Size(34f * s, 40f * s))
         drawOval(Color(0xFFF5B53B), topLeft = Offset(44f * s, 41f * s), size = androidx.compose.ui.geometry.Size(32f * s, 38f * s))
@@ -1800,8 +1906,8 @@ private fun BalloonArchShopIllustration(modifier: Modifier = Modifier) {
             Offset(93.4f, 60f) to Color(0xFFA8D8F5),
             Offset(111f, 91f) to Color(0xFF9BE3C9),
         )
-        small.forEach { (pt, col) ->
-            drawCircle(col, radius = 6.5f * s, center = Offset(pt.x * s, pt.y * s))
+        small.forEach { (point, color) ->
+            drawCircle(color, radius = 6.5f * s, center = Offset(point.x * s, point.y * s))
         }
         val large = listOf(
             Offset(18f, 104f) to Color(0xFFEC4F97),
@@ -1815,8 +1921,8 @@ private fun BalloonArchShopIllustration(modifier: Modifier = Modifier) {
             Offset(99.5f, 86f) to Color(0xFF4AA8E0),
             Offset(102f, 104f) to Color(0xFF2FB58F),
         )
-        large.forEach { (pt, col) ->
-            drawCircle(col, radius = 10.5f * s, center = Offset(pt.x * s, pt.y * s))
+        large.forEach { (point, color) ->
+            drawCircle(color, radius = 10.5f * s, center = Offset(point.x * s, point.y * s))
         }
     }
 }
@@ -1829,10 +1935,12 @@ private fun TiendaBalloonProductCard(
     isFavorite: Boolean = false,
     hasOfferBadge: Boolean = false,
     illustration: @Composable () -> Unit,
+    onAddClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val typo = LocalRfTypography.current
     val gradDiag = Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)))
+    var favoriteState by remember { mutableStateOf(isFavorite) }
 
     Box(
         modifier = modifier
@@ -1871,9 +1979,15 @@ private fun TiendaBalloonProductCard(
                         .padding(top = 8.dp, end = 8.dp)
                         .size(36.dp)
                         .clip(RoundedCornerShape(12.dp))
-                        .background(Color.White.copy(alpha = 0.95f)),
+                        .background(Color.White.copy(alpha = 0.95f))
+                        .clickable { favoriteState = !favoriteState },
                 ) {
-                    RfIcon(kind = RfIconKind.HEART, tint = if (isFavorite) Color(0xFFEA4EA9) else Color(0xFF1A1A2E), size = 18.dp)
+                    RfIcon(
+                        kind = RfIconKind.HEART,
+                        tint = if (favoriteState) Color(0xFFEA4EA9) else Color(0xFF1A1A2E),
+                        filled = favoriteState,
+                        size = 18.dp,
+                    )
                 }
             }
             Row(
@@ -1909,7 +2023,8 @@ private fun TiendaBalloonProductCard(
                     modifier = Modifier
                         .size(40.dp)
                         .clip(CircleShape)
-                        .background(gradDiag),
+                        .background(gradDiag)
+                        .clickable(onClick = onAddClick),
                 ) {
                     RfIcon(kind = RfIconKind.PLUS, tint = Color.White, size = 18.dp)
                 }

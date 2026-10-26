@@ -563,7 +563,13 @@ public fun Modifier.rfInputShadow(
 ): Modifier = this.shadow(
     elevation = if (isActive) 6.dp else 4.dp,
     shape = shape,
-    spotColor = if (isAdmin) Color(0x254650B4) else if (isActive) Color(0x35B450B4) else Color(0x25B450B4),
+    spotColor = if (isAdmin) {
+        Color(0x254650B4)
+    } else if (isActive) {
+        Color(0x35B450B4)
+    } else {
+        Color(0x25B450B4)
+    },
     ambientColor = if (isAdmin) Color(0x104650B4) else Color(0x10B450B4),
 )
 
@@ -1449,6 +1455,7 @@ public fun RfSkeletonScreen(
                         RfSkeletonProductCard(shimmerBrush = shimmerBrush, isAdmin = isAdmin, modifier = Modifier.weight(1f))
                     }
                 }
+
                 RfSkeletonLayout.DASHBOARD -> {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
                         Box(modifier = Modifier.size(44.dp).clip(CircleShape).background(shimmerBrush))
@@ -1470,6 +1477,7 @@ public fun RfSkeletonScreen(
                         Box(modifier = Modifier.weight(1f).height(64.dp).clip(RoundedCornerShape(18.dp)).background(shimmerBrush))
                     }
                 }
+
                 RfSkeletonLayout.EVENTS_LIST -> {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
                         Box(modifier = Modifier.weight(1f).height(28.dp).clip(RoundedCornerShape(8.dp)).background(shimmerBrush))
@@ -1507,6 +1515,7 @@ public fun RfSkeletonScreen(
                         }
                     }
                 }
+
                 RfSkeletonLayout.ANALYTICS -> {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
                         Box(modifier = Modifier.weight(1f).height(28.dp).clip(RoundedCornerShape(8.dp)).background(shimmerBrush))
@@ -1531,6 +1540,7 @@ public fun RfSkeletonScreen(
                         Box(modifier = Modifier.fillMaxWidth().height(120.dp).clip(RoundedCornerShape(12.dp)).background(shimmerBrush))
                     }
                 }
+
                 RfSkeletonLayout.DETAIL_FORM -> {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Box(modifier = Modifier.size(44.dp).clip(CircleShape).background(shimmerBrush))
@@ -1544,6 +1554,7 @@ public fun RfSkeletonScreen(
                         }
                     }
                 }
+
                 RfSkeletonLayout.GENERIC -> {
                     RfSkeleton(isAdmin = isAdmin)
                 }
@@ -1630,6 +1641,7 @@ public fun RfRadialBackgroundBox(
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val w = size.width
                 val h = size.height
+
                 // CSS `radial-gradient(<rx> <ry> at <x> <y>)` is elliptical; emulate it by
                 // scaling the canvas on Y before drawing a circular gradient.
                 fun ellipse(centerX: Float, centerY: Float, rx: Float, ry: Float, color: Color) {

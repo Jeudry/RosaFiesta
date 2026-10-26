@@ -28,6 +28,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -57,6 +59,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
@@ -1018,6 +1021,21 @@ internal fun RenderEventChatTabS41(
     val typo = LocalRfTypography.current
     var draftInputS41 by remember { mutableStateOf("") }
     var sentMessagesS41 by remember { mutableStateOf(emptyList<String>()) }
+    val scrollState = rememberScrollState()
+
+    val submitMessageS41 = {
+        val trimmed = draftInputS41.trim()
+        if (trimmed.isNotEmpty()) {
+            sentMessagesS41 = sentMessagesS41 + trimmed
+            draftInputS41 = ""
+        }
+    }
+
+    LaunchedEffect(sentMessagesS41.size) {
+        if (sentMessagesS41.isNotEmpty()) {
+            scrollState.animateScrollTo(scrollState.maxValue)
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -1027,11 +1045,10 @@ internal fun RenderEventChatTabS41(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(scrollState)
                 .padding(top = 56.dp, start = 20.dp, end = 20.dp, bottom = 90.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -1076,7 +1093,6 @@ internal fun RenderEventChatTabS41(
                     )
                 }
 
-                // Download PDF
                 Box(
                     modifier = Modifier
                         .size(44.dp)
@@ -1094,7 +1110,6 @@ internal fun RenderEventChatTabS41(
                     )
                 }
 
-                // Share
                 Box(
                     modifier = Modifier
                         .size(44.dp)
@@ -1113,7 +1128,6 @@ internal fun RenderEventChatTabS41(
                 }
             }
 
-            // Tabs: Detalles / Chat
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1175,7 +1189,6 @@ internal fun RenderEventChatTabS41(
                 )
             }
 
-            // Team Status Card
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1222,7 +1235,6 @@ internal fun RenderEventChatTabS41(
                 }
             }
 
-            // Messages section
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1252,10 +1264,25 @@ internal fun RenderEventChatTabS41(
                         time = "Ahora",
                     )
                 }
+
+                if (sentMessagesS41.isNotEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.End)
+                            .widthIn(max = 280.dp)
+                            .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 20.dp, bottomEnd = 6.dp))
+                            .background(Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC))))
+                            .padding(horizontal = 14.dp, vertical = 12.dp),
+                    ) {
+                        BasicText(
+                            text = "¡Claro Camila! Ya lo anotamos en tu expediente de la boda 🌸",
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color.White, lineHeight = 20.sp),
+                        )
+                    }
+                }
             }
         }
 
-        // Bottom Input Bar
         Row(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -1270,7 +1297,10 @@ internal fun RenderEventChatTabS41(
                 modifier = Modifier
                     .size(44.dp)
                     .rfIconButtonShadow(CircleShape, isAdmin = false)
-                    .clip(CircleShape),
+                    .clip(CircleShape)
+                    .clickable {
+                        sentMessagesS41 = sentMessagesS41 + "📎 Plano-brindis-jardin.pdf adjuntado"
+                    },
                 contentAlignment = Alignment.Center,
             ) {
                 CustomSvgIcon(
@@ -1303,6 +1333,8 @@ internal fun RenderEventChatTabS41(
                     value = draftInputS41,
                     onValueChange = { updatedText -> draftInputS41 = updatedText },
                     singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                    keyboardActions = KeyboardActions(onSend = { submitMessageS41() }),
                     textStyle = TextStyle(
                         fontFamily = typo.bodyFamily,
                         fontSize = 15.sp,
@@ -1317,13 +1349,7 @@ internal fun RenderEventChatTabS41(
                     .size(48.dp)
                     .clip(CircleShape)
                     .background(Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC))))
-                    .clickable {
-                        val trimmed = draftInputS41.trim()
-                        if (trimmed.isNotEmpty()) {
-                            sentMessagesS41 = sentMessagesS41 + trimmed
-                            draftInputS41 = ""
-                        }
-                    },
+                    .clickable { submitMessageS41() },
                 contentAlignment = Alignment.Center,
             ) {
                 CustomSvgIcon(
@@ -1343,21 +1369,34 @@ internal fun RenderEventChatS42(
     val typo = LocalRfTypography.current
     var draftInputS42 by remember { mutableStateOf("") }
     var sentMessagesS42 by remember { mutableStateOf(emptyList<String>()) }
+    val scrollState = rememberScrollState()
+
+    val submitMessageS42 = {
+        val trimmed = draftInputS42.trim()
+        if (trimmed.isNotEmpty()) {
+            sentMessagesS42 = sentMessagesS42 + trimmed
+            draftInputS42 = ""
+        }
+    }
+
+    LaunchedEffect(sentMessagesS42.size) {
+        if (sentMessagesS42.isNotEmpty()) {
+            scrollState.animateScrollTo(scrollState.maxValue)
+        }
+    }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFFFAFAFC)),
     ) {
-        // Content container
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(scrollState)
                 .padding(top = 126.dp, start = 16.dp, end = 16.dp, bottom = 90.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            // Event Pill Card
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1409,7 +1448,6 @@ internal fun RenderEventChatS42(
                 )
             }
 
-            // Date Badge
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1419,7 +1457,6 @@ internal fun RenderEventChatS42(
                 ChatDateBadge("Ayer")
             }
 
-            // Messages
             ChatMessageBubble(
                 text = "¡Hola equipo Rosa Fiesta! ¿Podemos incluir 20 sillas Chiavari doradas adicionales para el área del brindis?",
                 time = "7:38 p. m.",
@@ -1436,9 +1473,24 @@ internal fun RenderEventChatS42(
                     time = "Ahora",
                 )
             }
+
+            if (sentMessagesS42.isNotEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.End)
+                        .widthIn(max = 280.dp)
+                        .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 20.dp, bottomEnd = 6.dp))
+                        .background(Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC))))
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                ) {
+                    BasicText(
+                        text = "¡Claro Camila! Ya lo anotamos en tu expediente de la boda 🌸",
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color.White, lineHeight = 20.sp),
+                    )
+                }
+            }
         }
 
-        // Top Header
         Row(
             modifier = Modifier
                 .align(Alignment.TopCenter)
@@ -1500,7 +1552,9 @@ internal fun RenderEventChatS42(
             }
 
             Box(
-                modifier = Modifier.size(44.dp),
+                modifier = Modifier
+                    .size(44.dp)
+                    .clickable { onSelectScreenCode("s40") },
                 contentAlignment = Alignment.Center,
             ) {
                 CustomSvgIcon(
@@ -1512,7 +1566,6 @@ internal fun RenderEventChatS42(
             }
         }
 
-        // Bottom Input Bar
         Row(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -1527,7 +1580,10 @@ internal fun RenderEventChatS42(
                 modifier = Modifier
                     .size(44.dp)
                     .rfIconButtonShadow(CircleShape, isAdmin = false)
-                    .clip(CircleShape),
+                    .clip(CircleShape)
+                    .clickable {
+                        draftInputS42 = "$draftInputS42 ✨"
+                    },
                 contentAlignment = Alignment.Center,
             ) {
                 CustomSvgIcon(
@@ -1562,6 +1618,8 @@ internal fun RenderEventChatS42(
                         value = draftInputS42,
                         onValueChange = { updatedText -> draftInputS42 = updatedText },
                         singleLine = true,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                        keyboardActions = KeyboardActions(onSend = { submitMessageS42() }),
                         textStyle = TextStyle(
                             fontFamily = typo.bodyFamily,
                             fontSize = 15.sp,
@@ -1572,7 +1630,12 @@ internal fun RenderEventChatS42(
                 }
 
                 Box(
-                    modifier = Modifier.size(38.dp),
+                    modifier = Modifier
+                        .size(38.dp)
+                        .clip(CircleShape)
+                        .clickable {
+                            sentMessagesS42 = sentMessagesS42 + "📷 Foto de referencia adjuntada"
+                        },
                     contentAlignment = Alignment.Center,
                 ) {
                     CustomSvgIcon(
@@ -1588,13 +1651,7 @@ internal fun RenderEventChatS42(
                     .size(48.dp)
                     .clip(CircleShape)
                     .background(Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC))))
-                    .clickable {
-                        val trimmed = draftInputS42.trim()
-                        if (trimmed.isNotEmpty()) {
-                            sentMessagesS42 = sentMessagesS42 + trimmed
-                            draftInputS42 = ""
-                        }
-                    },
+                    .clickable { submitMessageS42() },
                 contentAlignment = Alignment.Center,
             ) {
                 CustomSvgIcon(

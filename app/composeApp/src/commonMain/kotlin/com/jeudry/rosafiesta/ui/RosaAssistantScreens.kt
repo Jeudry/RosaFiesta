@@ -25,8 +25,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -53,6 +56,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
@@ -770,6 +774,16 @@ internal fun RenderRosaEventTypeS26(
                 .padding(start = 20.dp, end = 6.dp),
             contentAlignment = Alignment.CenterStart,
         ) {
+            val hasPromptText = promptText.isNotBlank()
+            val submitS26Prompt = {
+                if (promptText.isNotBlank()) {
+                    applyNaturalLanguageEventPrompt(promptText, viewModel)
+                    promptText = ""
+                    onSelectScreenCode("s27")
+                } else {
+                    onSelectScreenCode("s34")
+                }
+            }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -790,6 +804,8 @@ internal fun RenderRosaEventTypeS26(
                         value = promptText,
                         onValueChange = { updatedText -> promptText = updatedText },
                         singleLine = true,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                        keyboardActions = KeyboardActions(onSend = { submitS26Prompt() }),
                         textStyle = TextStyle(
                             fontFamily = typo.bodyFamily,
                             fontSize = 15.sp,
@@ -798,21 +814,12 @@ internal fun RenderRosaEventTypeS26(
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
-                val hasPromptText = promptText.isNotBlank()
                 Box(
                     modifier = Modifier
                         .size(46.dp)
                         .clip(CircleShape)
                         .background(Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC))))
-                        .clickable {
-                            if (hasPromptText) {
-                                viewModel?.setRosaProposalMessage(promptText)
-                                promptText = ""
-                                onSelectScreenCode("s27")
-                            } else {
-                                onSelectScreenCode("s34")
-                            }
-                        },
+                        .clickable { submitS26Prompt() },
                     contentAlignment = Alignment.Center,
                 ) {
                     RfIcon(
@@ -824,6 +831,78 @@ internal fun RenderRosaEventTypeS26(
             }
         }
     }
+}
+
+private data class ParsedRosaPrompt(
+    val eventType: String?,
+    val guestsCount: Int?,
+    val dateLabel: String?,
+    val venueLabel: String?,
+)
+
+private fun parseRosaNaturalLanguagePrompt(rawText: String): ParsedRosaPrompt {
+    val lower = rawText.trim().lowercase()
+    val detectedEventType = when {
+        lower.contains("quince") -> "Quinceañera"
+        lower.contains("cumple") -> "Cumpleaños"
+        lower.contains("baby") -> "Baby shower"
+        lower.contains("gradu") -> "Graduación"
+        lower.contains("corporat") -> "Corporativo"
+        lower.contains("bautiz") -> "Bautizo"
+        lower.contains("boda") -> "Boda"
+        else -> null
+    }
+    val numberMatch = Regex("\\b(\\d{2,3})\\b").find(lower)
+    val rawNumber = numberMatch?.groupValues?.getOrNull(1)?.toIntOrNull()
+    val isGuestRange = if (rawNumber != null) rawNumber in 15..500 else false
+    val detectedGuests = if (isGuestRange) rawNumber else null
+    val detectedDate = when {
+        lower.contains("14") -> "Sábado 14 de noviembre"
+        lower.contains("21") -> "Sábado 21 de noviembre"
+        lower.contains("30") -> "Viernes 30 de octubre"
+        lower.contains("7 nov") -> "Sábado 7 de noviembre"
+        lower.contains("diciembre") -> "Viernes 4 de diciembre"
+        lower.contains("noviembre") -> "Sábado 14 de noviembre"
+        else -> null
+    }
+    val detectedVenue = when {
+        lower.contains("botánico") -> "Jardín Botánico"
+        lower.contains("botanico") -> "Jardín Botánico"
+        lower.contains("jardín") -> "Jardín Los Rosales"
+        lower.contains("jardin") -> "Jardín Los Rosales"
+        lower.contains("piantini") -> "Salón Piantini"
+        lower.contains("salón") -> "Salón Piantini"
+        lower.contains("salon") -> "Salón Piantini"
+        lower.contains("terraza") -> "Terraza Mirador"
+        lower.contains("playa") -> "Club de Playa Boca Chica"
+        else -> null
+    }
+    return ParsedRosaPrompt(
+        eventType = detectedEventType,
+        guestsCount = detectedGuests,
+        dateLabel = detectedDate,
+        venueLabel = detectedVenue,
+    )
+}
+
+private fun applyNaturalLanguageEventPrompt(rawText: String, viewModel: RosaFiestaViewModel?): ParsedRosaPrompt {
+    val trimmed = rawText.trim()
+    val parsed = parseRosaNaturalLanguagePrompt(trimmed)
+    if (trimmed.isEmpty()) return parsed
+    viewModel?.setRosaProposalMessage(trimmed)
+    if (parsed.eventType != null) {
+        viewModel?.setEventTypeInput(parsed.eventType)
+    }
+    if (parsed.guestsCount != null) {
+        viewModel?.setEventGuestsInput(parsed.guestsCount.toString())
+    }
+    if (parsed.dateLabel != null) {
+        viewModel?.setEventDateInput(parsed.dateLabel)
+    }
+    if (parsed.venueLabel != null) {
+        viewModel?.setEventVenueInput(parsed.venueLabel)
+    }
+    return parsed
 }
 
 // ==============================================================================
@@ -1025,6 +1104,17 @@ internal fun RenderRosaTutorialS27(
             )
         }
 
+        val hasPromptText = promptText.isNotBlank()
+        val submitS27Prompt = {
+            if (promptText.isNotBlank()) {
+                applyNaturalLanguageEventPrompt(promptText, viewModel)
+                promptText = ""
+                onSelectScreenCode("s28")
+            } else {
+                onSelectScreenCode("s35")
+            }
+        }
+
         Row(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -1056,6 +1146,8 @@ internal fun RenderRosaTutorialS27(
                     value = promptText,
                     onValueChange = { updatedText -> promptText = updatedText },
                     singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                    keyboardActions = KeyboardActions(onSend = { submitS27Prompt() }),
                     textStyle = TextStyle(
                         fontFamily = typo.bodyFamily,
                         fontSize = 15.sp,
@@ -1064,7 +1156,6 @@ internal fun RenderRosaTutorialS27(
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
-            val hasPromptText = promptText.isNotBlank()
             Box(
                 modifier = Modifier.size(46.dp),
                 contentAlignment = Alignment.Center,
@@ -1086,15 +1177,7 @@ internal fun RenderRosaTutorialS27(
                         .size(46.dp)
                         .clip(CircleShape)
                         .background(micGradient)
-                        .clickable {
-                            if (hasPromptText) {
-                                viewModel?.setRosaProposalMessage(promptText)
-                                promptText = ""
-                                onSelectScreenCode("s28")
-                            } else {
-                                onSelectScreenCode("s35")
-                            }
-                        },
+                        .clickable { submitS27Prompt() },
                     contentAlignment = Alignment.Center,
                 ) {
                     RfIcon(
@@ -1343,6 +1426,17 @@ internal fun RenderRosaHelpS28(
             }
         }
 
+        val hasPromptText = promptText.isNotBlank()
+        val submitS28Prompt = {
+            if (promptText.isNotBlank()) {
+                applyNaturalLanguageEventPrompt(promptText, viewModel)
+                promptText = ""
+                onSelectScreenCode("s29")
+            } else {
+                onSelectScreenCode("s35")
+            }
+        }
+
         Row(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -1371,6 +1465,8 @@ internal fun RenderRosaHelpS28(
                     value = promptText,
                     onValueChange = { updatedText -> promptText = updatedText },
                     singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                    keyboardActions = KeyboardActions(onSend = { submitS28Prompt() }),
                     textStyle = TextStyle(
                         fontFamily = typo.bodyFamily,
                         fontSize = 15.sp,
@@ -1379,21 +1475,12 @@ internal fun RenderRosaHelpS28(
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
-            val hasPromptText = promptText.isNotBlank()
             Box(
                 modifier = Modifier
                     .size(46.dp)
                     .clip(CircleShape)
                     .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))))
-                    .clickable {
-                        if (hasPromptText) {
-                            viewModel?.setRosaProposalMessage(promptText)
-                            promptText = ""
-                            onSelectScreenCode("s29")
-                        } else {
-                            onSelectScreenCode("s35")
-                        }
-                    },
+                    .clickable { submitS28Prompt() },
                 contentAlignment = Alignment.Center,
             ) {
                 RfIcon(
@@ -1640,6 +1727,17 @@ internal fun RenderRosaSuggestionsS29(
             }
         }
 
+        val hasPromptText = promptText.isNotBlank()
+        val submitS29Prompt = {
+            if (promptText.isNotBlank()) {
+                applyNaturalLanguageEventPrompt(promptText, viewModel)
+                suggestionBatch += 1
+                promptText = ""
+            } else {
+                onSelectScreenCode("s35")
+            }
+        }
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -1668,25 +1766,19 @@ internal fun RenderRosaSuggestionsS29(
                         value = promptText,
                         onValueChange = { updatedText -> promptText = updatedText },
                         singleLine = true,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                        keyboardActions = KeyboardActions(onSend = { submitS29Prompt() }),
                         textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF1A1A2E)),
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
-                val hasPromptText = promptText.isNotBlank()
                 Box(
                     modifier = Modifier
                         .size(46.dp)
                         .shadow(8.dp, CircleShape, spotColor = Color(0xB3865DEC))
                         .clip(CircleShape)
                         .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))))
-                        .clickable {
-                            if (hasPromptText) {
-                                suggestionBatch += 1
-                                promptText = ""
-                            } else {
-                                onSelectScreenCode("s35")
-                            }
-                        },
+                        .clickable { submitS29Prompt() },
                     contentAlignment = Alignment.Center,
                 ) {
                     RfIcon(
@@ -1965,6 +2057,32 @@ internal fun RenderRosaCategoriesS30(
             }
         }
 
+        val hasPromptText = promptText.isNotBlank()
+        val submitS30Prompt = {
+            if (promptText.isNotBlank()) {
+                val lowerPrompt = promptText.lowercase()
+                applyNaturalLanguageEventPrompt(promptText, viewModel)
+                val mentionsLighting = lowerPrompt.contains("luz") || lowerPrompt.contains("ilumin")
+                if (mentionsLighting) {
+                    chosenCategories = chosenCategories + "Iluminación"
+                    viewModel?.adjustDraftQuantity("art-arco-rosa", 1)
+                }
+                if (lowerPrompt.contains("mantel")) {
+                    chosenCategories = chosenCategories + "Mantelería"
+                    viewModel?.adjustDraftQuantity("art-mesa-plegable", 1)
+                }
+                val mentionsFlorals = lowerPrompt.contains("flor") || lowerPrompt.contains("centro")
+                if (mentionsFlorals) {
+                    chosenCategories = chosenCategories + "Centros de mesa"
+                    viewModel?.adjustDraftQuantity("art-centro-floral", 1)
+                }
+                showExtraIdeas = true
+                promptText = ""
+            } else {
+                onSelectScreenCode("s35")
+            }
+        }
+
         Row(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -1993,6 +2111,8 @@ internal fun RenderRosaCategoriesS30(
                     value = promptText,
                     onValueChange = { updatedText -> promptText = updatedText },
                     singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                    keyboardActions = KeyboardActions(onSend = { submitS30Prompt() }),
                     textStyle = TextStyle(
                         fontFamily = typo.bodyFamily,
                         fontSize = 15.sp,
@@ -2001,20 +2121,12 @@ internal fun RenderRosaCategoriesS30(
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
-            val hasPromptText = promptText.isNotBlank()
             Box(
                 modifier = Modifier
                     .size(46.dp)
                     .clip(CircleShape)
                     .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))))
-                    .clickable {
-                        if (hasPromptText) {
-                            showExtraIdeas = true
-                            promptText = ""
-                        } else {
-                            onSelectScreenCode("s35")
-                        }
-                    },
+                    .clickable { submitS30Prompt() },
                 contentAlignment = Alignment.Center,
             ) {
                 RfIcon(
@@ -2391,6 +2503,26 @@ internal fun RenderRosaDetailsS31(
             }
         }
 
+        val hasPromptText = promptText.isNotBlank()
+        val submitS31Prompt = {
+            if (promptText.isNotBlank()) {
+                val parsed = applyNaturalLanguageEventPrompt(promptText, viewModel)
+                if (parsed.dateLabel != null) {
+                    dateValue = parsed.dateLabel
+                }
+                if (parsed.guestsCount != null) {
+                    guestsValue = "${parsed.guestsCount} personas"
+                }
+                if (parsed.venueLabel != null) {
+                    venueValue = parsed.venueLabel
+                }
+                ideaValue = promptText
+                promptText = ""
+            } else {
+                onSelectScreenCode("s35")
+            }
+        }
+
         Row(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -2416,25 +2548,18 @@ internal fun RenderRosaDetailsS31(
                     value = promptText,
                     onValueChange = { updatedText -> promptText = updatedText },
                     singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                    keyboardActions = KeyboardActions(onSend = { submitS31Prompt() }),
                     textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF1A1A2E)),
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
-            val hasPromptText = promptText.isNotBlank()
             Box(
                 modifier = Modifier
                     .size(46.dp)
                     .clip(CircleShape)
                     .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))))
-                    .clickable {
-                        if (hasPromptText) {
-                            ideaValue = promptText
-                            viewModel?.setRosaProposalMessage(promptText)
-                            promptText = ""
-                        } else {
-                            onSelectScreenCode("s35")
-                        }
-                    },
+                    .clickable { submitS31Prompt() },
                 contentAlignment = Alignment.Center,
             ) {
                 RfIcon(
@@ -3093,6 +3218,15 @@ internal fun RenderRosaChatS34(
                     }
                 }
 
+                val submitChatPrompt = {
+                    val trimmedMessage = chatMessageText.trim()
+                    if (trimmedMessage.isNotEmpty()) {
+                        applyNaturalLanguageEventPrompt(trimmedMessage, viewModel)
+                    }
+                    viewModel?.setRosaProposalMessage(chatMessageText)
+                    onSelectScreenCode("s29")
+                }
+
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -3112,6 +3246,8 @@ internal fun RenderRosaChatS34(
                     BasicTextField(
                         value = chatMessageText,
                         onValueChange = { updatedText -> chatMessageText = updatedText },
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                        keyboardActions = KeyboardActions(onSend = { submitChatPrompt() }),
                         textStyle = TextStyle(
                             fontFamily = typo.bodyFamily,
                             fontSize = 18.sp,
@@ -3186,10 +3322,7 @@ internal fun RenderRosaChatS34(
                                     listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC)),
                                 ),
                             )
-                            .clickable {
-                                viewModel?.setRosaProposalMessage(chatMessageText)
-                                onSelectScreenCode("s29")
-                            },
+                            .clickable { submitChatPrompt() },
                         contentAlignment = Alignment.Center,
                     ) {
                         RfIcon(kind = RfIconKind.SEND, tint = Color.White, size = 22.dp)
@@ -4010,6 +4143,8 @@ internal fun RenderRosaSketchConfirmS78(
                 }
             }
 
+            val draftQuantities = viewModel?.draftQuantities?.collectAsState()?.value.orEmpty()
+            val sketchTableCount = draftQuantities["art-mesa-redonda"] ?: 6
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 BasicText(
                     text = "LO QUE DIBUJASTE",
@@ -4018,7 +4153,7 @@ internal fun RenderRosaSketchConfirmS78(
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         SketchChip78(dotColor = Color(0xFF865DEC), label = "Tarima")
-                        SketchChip78(dotColor = Color(0xFFEA4EA9), label = "6 mesas redondas")
+                        SketchChip78(dotColor = Color(0xFFEA4EA9), label = "$sketchTableCount mesas redondas")
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         SketchChip78(dotColor = Color(0xFF8DB52C), label = "Pista de baile")
@@ -4086,7 +4221,7 @@ internal fun RenderRosaSketchConfirmS78(
                             .clip(RoundedCornerShape(999.dp))
                             .background(Color.White)
                             .clickable {
-                                viewModel?.adjustDraftQuantity("art-silla-tiffany", 60)
+                                viewModel?.adjustDraftQuantity("art-silla-tiffany", sketchTableCount * 10)
                                 onSelectScreenCode("s32")
                             },
                     ) {
@@ -4152,6 +4287,15 @@ private data class AdminRosaChatTurn(
     val rosaReply: String,
 )
 
+private fun formatDopCurrency(amount: Int): String {
+    if (amount < 1000) {
+        return "RD$ $amount"
+    }
+    val thousands = amount / 1000
+    val remainder = (amount % 1000).toString().padStart(3, '0')
+    return "RD$ $thousands,$remainder"
+}
+
 @Composable
 internal fun RenderAdminRosaA08(
     onSelectScreenCode: (String) -> Unit = {},
@@ -4167,70 +4311,143 @@ internal fun RenderAdminRosaA08(
         )
     }
 
+    var eventTypeTitle by remember { mutableStateOf("Boda") }
     var assignedClient by remember { mutableStateOf<String?>(null) }
     var clientCycleIndex by remember { mutableStateOf(0) }
     var dateCycleIndex by remember { mutableStateOf(0) }
     var includeLighting by remember { mutableStateOf(false) }
+    var includeDessertStation by remember { mutableStateOf(false) }
     var guestCount by remember { mutableStateOf(120) }
     var promptText by remember { mutableStateOf("") }
     var extraChatTurns by remember { mutableStateOf(emptyList<AdminRosaChatTurn>()) }
+    val messagesScrollState = rememberScrollState()
+
+    LaunchedEffect(extraChatTurns.size) {
+        if (extraChatTurns.isNotEmpty()) {
+            messagesScrollState.animateScrollTo(messagesScrollState.maxValue)
+        }
+    }
 
     val currentShortDate = dateCycle[dateCycleIndex % dateCycle.size].first
     val currentLongDate = dateCycle[dateCycleIndex % dateCycle.size].second
     val chairCount = guestCount
     val tableCount = (guestCount / 10).coerceAtLeast(1)
     val baseEstimateDop = chairCount * 8 + tableCount * 20 + 95
-    val totalEstimateDop = if (includeLighting) baseEstimateDop + 180 else baseEstimateDop
-    val formattedEstimate = if (totalEstimateDop >= 1000) {
-        val thousands = totalEstimateDop / 1000
-        val remainder = (totalEstimateDop % 1000).toString().padStart(3, '0')
-        "RD$ $thousands,$remainder"
-    } else {
-        "RD$ $totalEstimateDop"
+    val lightingSurcharge = if (includeLighting) 180 else 0
+    val dessertSurcharge = if (includeDessertStation) 150 else 0
+    val totalEstimateDop = baseEstimateDop + lightingSurcharge + dessertSurcharge
+    val formattedEstimate = formatDopCurrency(totalEstimateDop)
+
+    val syncDraftToViewModel = {
+        val targetClient = assignedClient ?: "Camila Rodríguez"
+        viewModel?.setEventTypeInput(eventTypeTitle)
+        viewModel?.setEventDateInput(currentShortDate)
+        viewModel?.setEventGuestsInput(guestCount.toString())
+        viewModel?.setNewEventTitle("$eventTypeTitle de $targetClient")
+        viewModel?.setNewEventClient(targetClient)
+        viewModel?.setNewEventDate(currentShortDate)
+        viewModel?.setNewEventGuests(guestCount.toString())
+        viewModel?.setDraftQuantity("art-silla-tiffany", chairCount)
+        viewModel?.setDraftQuantity("art-mesa-redonda", tableCount)
+        viewModel?.setDraftQuantity("art-centro-floral", tableCount)
+        viewModel?.setDraftQuantity("art-arco-rosa", 1)
     }
 
     val handleUserCommand: (String) -> Unit = { rawCommand ->
         val trimmed = rawCommand.trim()
         if (trimmed.isNotEmpty()) {
             val lower = trimmed.lowercase()
-            val mentionsClient = listOf("cliente", "camila", "laura", "asignar").any { keyword -> lower.contains(keyword) }
-            val mentionsLighting = listOf("ilumin", "luz", "luces", "guirnalda").any { keyword -> lower.contains(keyword) }
-            val mentionsDate = listOf("fecha", "nov", "dic", "sáb", "viernes").any { keyword -> lower.contains(keyword) }
-            val mentionsGuests = listOf("invitado", "persona", "80", "150").any { keyword -> lower.contains(keyword) }
+            val replySegments = mutableListOf<String>()
 
-            val replyText = when {
-                mentionsClient -> {
-                    val chosenClient = clientCycle[clientCycleIndex % clientCycle.size]
-                    clientCycleIndex += 1
-                    assignedClient = chosenClient
-                    "Listo, asigné este borrador a $chosenClient y vinculé su historial."
-                }
+            val mentionsClient = listOf("cliente", "camila", "laura", "ana", "corporat", "asignar").any { keyword -> lower.contains(keyword) }
+            if (mentionsClient) {
+                val chosenClient = when {
+                    lower.contains("laura") -> "Laura Peña"
 
-                mentionsLighting -> {
-                    includeLighting = !includeLighting
-                    if (includeLighting) {
-                        "Agregué 4 sets de Guirnalda LED cálida (+RD$ 180) al borrador. Nuevo estimado: RD$ ${totalEstimateDop + 180}."
-                    } else {
-                        "Quité la iluminación adicional del borrador."
+                    lower.contains("ana") -> "Ana Gómez"
+
+                    lower.contains("corporat") -> "Eventos Corporativos SD"
+
+                    lower.contains("camila") -> "Camila Rodríguez"
+
+                    else -> {
+                        val cycled = clientCycle[clientCycleIndex % clientCycle.size]
+                        clientCycleIndex += 1
+                        cycled
                     }
                 }
+                assignedClient = chosenClient
+                viewModel?.setNewEventClient(chosenClient)
+                replySegments.add("Asigné el borrador a $chosenClient y vinculé su historial.")
+            }
 
-                mentionsDate -> {
-                    dateCycleIndex += 1
-                    val nextDate = dateCycle[dateCycleIndex % dateCycle.size]
-                    viewModel?.setEventDateInput(nextDate.first)
-                    "Actualicé la fecha del evento al ${nextDate.second} y verifiqué disponibilidad completa en almacén."
-                }
+            val parsedNumber = Regex("\\b(\\d{2,3})\\b").find(lower)?.groupValues?.getOrNull(1)?.toIntOrNull()
+            val mentionsGuestsKeyword = listOf("invitado", "persona", "silla").any { keyword -> lower.contains(keyword) }
+            val hasExplicitGuestUpdate = parsedNumber != null || mentionsGuestsKeyword
+            if (hasExplicitGuestUpdate) {
+                val updatedGuests = parsedNumber ?: if (guestCount == 120) 150 else 120
+                guestCount = updatedGuests
+                val updatedTables = (updatedGuests / 10).coerceAtLeast(1)
+                viewModel?.setEventGuestsInput(updatedGuests.toString())
+                viewModel?.setNewEventGuests(updatedGuests.toString())
+                viewModel?.setDraftQuantity("art-silla-tiffany", updatedGuests)
+                viewModel?.setDraftQuantity("art-mesa-redonda", updatedTables)
+                replySegments.add("Ajusté el borrador para $updatedGuests invitados ($updatedGuests sillas Tiffany y $updatedTables mesas redondas).")
+            }
 
-                mentionsGuests -> {
-                    guestCount = if (guestCount == 120) 150 else 120
-                    viewModel?.setEventGuestsInput(guestCount.toString())
-                    "Ajusté el borrador para $guestCount invitados ($guestCount sillas Tiffany y ${guestCount / 10} mesas redondas)."
+            val mentionsLighting = listOf("ilumin", "luz", "luces", "guirnalda").any { keyword -> lower.contains(keyword) }
+            if (mentionsLighting) {
+                val wantsRemoval = lower.contains("quitar") || lower.contains("sin ")
+                includeLighting = if (wantsRemoval) false else !includeLighting
+                if (includeLighting) {
+                    replySegments.add("Agregué 4 sets de Guirnalda LED cálida (+RD$ 180) al borrador.")
+                } else {
+                    replySegments.add("Quité la iluminación adicional del borrador.")
                 }
+            }
 
-                else -> {
-                    "Perfecto, tomé nota de \"$trimmed\" y actualicé las observaciones del borrador de boda."
+            val mentionsDessert = listOf("dulce", "helado", "postre", "candy").any { keyword -> lower.contains(keyword) }
+            if (mentionsDessert) {
+                includeDessertStation = !includeDessertStation
+                if (includeDessertStation) {
+                    viewModel?.adjustDraftQuantity("art-mesa-helados", 1)
+                    replySegments.add("Incluí la estación de dulces y helados (+RD$ 150).")
+                } else {
+                    replySegments.add("Retiré la estación de dulces del borrador.")
                 }
+            }
+
+            val mentionsDate = listOf("fecha", "nov", "dic", "sáb", "viernes").any { keyword -> lower.contains(keyword) }
+            if (mentionsDate) {
+                dateCycleIndex += 1
+                val nextDate = dateCycle[dateCycleIndex % dateCycle.size]
+                viewModel?.setEventDateInput(nextDate.first)
+                viewModel?.setNewEventDate(nextDate.first)
+                replySegments.add("Actualicé la fecha del evento al ${nextDate.second} con disponibilidad confirmada.")
+            }
+
+            val parsedEventType = when {
+                lower.contains("quince") -> "Quinceañera"
+                lower.contains("cumple") -> "Cumpleaños"
+                lower.contains("baby") -> "Baby Shower"
+                lower.contains("gradu") -> "Graduación"
+                lower.contains("corporat") -> "Corporativo"
+                lower.contains("boda") -> "Boda"
+                else -> null
+            }
+            if (parsedEventType != null) {
+                eventTypeTitle = parsedEventType
+                viewModel?.setEventTypeInput(parsedEventType)
+                replySegments.add("Configuré el tipo de evento como $parsedEventType.")
+            }
+
+            val updatedChairs = guestCount
+            val updatedTables = (guestCount / 10).coerceAtLeast(1)
+            val updatedTotal = updatedChairs * 8 + updatedTables * 20 + 95 + (if (includeLighting) 180 else 0) + (if (includeDessertStation) 150 else 0)
+            val replyText = if (replySegments.isNotEmpty()) {
+                "${replySegments.joinToString(" ")} Nuevo estimado: ${formatDopCurrency(updatedTotal)}."
+            } else {
+                "Perfecto, tomé nota de \"$trimmed\" y actualicé las observaciones del borrador ($eventTypeTitle · ${formatDopCurrency(updatedTotal)})."
             }
             viewModel?.setRosaProposalMessage(trimmed)
             extraChatTurns = extraChatTurns + AdminRosaChatTurn(userText = trimmed, rosaReply = replyText)
@@ -4239,7 +4456,6 @@ internal fun RenderAdminRosaA08(
 
     Box(modifier = Modifier.fillMaxSize().background(AdminRosaBackgroundGradient)) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // Header
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -4286,16 +4502,14 @@ internal fun RenderAdminRosaA08(
                 }
             }
 
-            // Message stack (scrollable, occupies weight(1f) so it never overlaps bottom chips/input)
             Column(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
+                    .verticalScroll(messagesScrollState)
                     .padding(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                // User bubble
                 Box(
                     modifier = Modifier
                         .align(Alignment.End)
@@ -4311,7 +4525,6 @@ internal fun RenderAdminRosaA08(
                     )
                 }
 
-                // Rosa proposal
                 Column(
                     modifier = Modifier.widthIn(max = 330.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -4337,7 +4550,6 @@ internal fun RenderAdminRosaA08(
                         )
                     }
 
-                    // Card proposal
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -4362,7 +4574,7 @@ internal fun RenderAdminRosaA08(
                                     ) {
                                         RfIcon(kind = RfIconKind.RING, tint = Color(0xFF2E324A), size = 16.dp)
                                         BasicText(
-                                            text = "Boda · $currentShortDate",
+                                            text = "$eventTypeTitle · $currentShortDate",
                                             style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2E324A)),
                                         )
                                     }
@@ -4396,7 +4608,7 @@ internal fun RenderAdminRosaA08(
                                 Triple(RfPhotoKey.CENTRO_FLORAL, "Centro de mesa floral" to "$tableCount", "Disponible" to (Color(0xFFEEF6D6) to Color(0xFF4E6A10))),
                                 Triple(RfPhotoKey.ARCO_ROSA, "Arco de globos rosa" to "1", "Queda 1" to (Color(0xFFFFF2C9) to Color(0xFF7A5700))),
                             )
-                            val proposalItems = if (includeLighting) {
+                            val withLightingItems = if (includeLighting) {
                                 baseProposalItems + Triple(
                                     RfPhotoKey.BODA,
                                     "Guirnalda luces LED" to "4",
@@ -4404,6 +4616,15 @@ internal fun RenderAdminRosaA08(
                                 )
                             } else {
                                 baseProposalItems
+                            }
+                            val proposalItems = if (includeDessertStation) {
+                                withLightingItems + Triple(
+                                    RfPhotoKey.MESA_HELADOS,
+                                    "Carrito de helados" to "1",
+                                    "Agregado" to (Color(0xFFECEBFF) to Color(0xFF4B47D6)),
+                                )
+                            } else {
+                                withLightingItems
                             }
 
                             proposalItems.forEach { (photo, itemData, tagInfo) ->
@@ -4476,9 +4697,7 @@ internal fun RenderAdminRosaA08(
                                             .clip(RoundedCornerShape(12.dp))
                                             .background(Brush.linearGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0))))
                                             .clickable {
-                                                viewModel?.setEventTypeInput("Boda")
-                                                viewModel?.setEventDateInput(currentShortDate)
-                                                viewModel?.setEventGuestsInput(guestCount.toString())
+                                                syncDraftToViewModel()
                                                 onSelectScreenCode("A07")
                                             },
                                         contentAlignment = Alignment.Center,
@@ -4500,9 +4719,7 @@ internal fun RenderAdminRosaA08(
                                             .background(Color.White)
                                             .border(1.dp, Color(0xFFE3E4EF), RoundedCornerShape(12.dp))
                                             .clickable {
-                                                viewModel?.setEventTypeInput("Boda")
-                                                viewModel?.setEventDateInput(currentShortDate)
-                                                viewModel?.setEventGuestsInput(guestCount.toString())
+                                                syncDraftToViewModel()
                                                 onSelectScreenCode("A06")
                                             },
                                         contentAlignment = Alignment.Center,
@@ -4521,7 +4738,6 @@ internal fun RenderAdminRosaA08(
                     }
                 }
 
-                // Additional interactive turns
                 extraChatTurns.forEach { turn ->
                     Box(
                         modifier = Modifier
@@ -4556,7 +4772,6 @@ internal fun RenderAdminRosaA08(
                 }
             }
 
-            // Docked bottom area: horizontally scrollable chips + interactive input bar
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -4635,6 +4850,17 @@ internal fun RenderAdminRosaA08(
                     }
                 }
 
+                val hasPromptText = promptText.isNotBlank()
+                val submitAdminRosaPrompt = {
+                    if (promptText.isNotBlank()) {
+                        val submitted = promptText
+                        promptText = ""
+                        handleUserCommand(submitted)
+                    } else {
+                        handleUserCommand("Asignar a Camila Rodríguez y agregar iluminación cálida")
+                    }
+                }
+
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -4662,27 +4888,20 @@ internal fun RenderAdminRosaA08(
                                 value = promptText,
                                 onValueChange = { updatedText -> promptText = updatedText },
                                 singleLine = true,
+                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                                keyboardActions = KeyboardActions(onSend = { submitAdminRosaPrompt() }),
                                 textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF151729)),
                                 modifier = Modifier.fillMaxWidth(),
                             )
                         }
 
-                        val hasPromptText = promptText.isNotBlank()
                         Box(
                             modifier = Modifier
                                 .size(46.dp)
                                 .shadow(10.dp, CircleShape, spotColor = Color(0xFA5B6CF0), ambientColor = Color(0x705B6CF0))
                                 .clip(CircleShape)
                                 .background(Brush.linearGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0))))
-                                .clickable {
-                                    if (hasPromptText) {
-                                        val submitted = promptText
-                                        promptText = ""
-                                        handleUserCommand(submitted)
-                                    } else {
-                                        handleUserCommand("Asignar a Camila Rodríguez y agregar iluminación cálida")
-                                    }
-                                },
+                                .clickable { submitAdminRosaPrompt() },
                             contentAlignment = Alignment.Center,
                         ) {
                             RfIcon(

@@ -18,13 +18,19 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -768,6 +774,8 @@ public fun RenderAdminWebDesktopA39(
                 // ==========================================
                 // 2. CONTENIDO PRINCIPAL (main)
                 // ==========================================
+                var desktopSearchQuery by remember { mutableStateOf("") }
+
                 Column(
                     verticalArrangement = Arrangement.spacedBy(20.dp),
                     modifier = Modifier
@@ -775,7 +783,6 @@ public fun RenderAdminWebDesktopA39(
                         .fillMaxHeight()
                         .padding(horizontal = 32.dp, vertical = 24.dp),
                 ) {
-                    // Header de la pantalla
                     Row(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
@@ -797,7 +804,6 @@ public fun RenderAdminWebDesktopA39(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
-                            // Buscador con ⌘K
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -819,10 +825,23 @@ public fun RenderAdminWebDesktopA39(
                                         tint = Color(0xFF5F6377),
                                         size = 18.dp,
                                     )
-                                    BasicText(
-                                        text = "Buscar eventos, clientes, artículos",
-                                        style = typo.body.copy(fontSize = 14.sp, color = Color(0xFF5F6377)),
-                                        maxLines = 1,
+                                    BasicTextField(
+                                        value = desktopSearchQuery,
+                                        onValueChange = { updated -> desktopSearchQuery = updated },
+                                        singleLine = true,
+                                        textStyle = typo.body.copy(fontSize = 14.sp, color = Color(0xFF151729)),
+                                        cursorBrush = SolidColor(Color(0xFF5B6CF0)),
+                                        modifier = Modifier.fillMaxWidth(),
+                                        decorationBox = { innerTextField ->
+                                            if (desktopSearchQuery.isEmpty()) {
+                                                BasicText(
+                                                    text = "Buscar eventos, clientes, artículos",
+                                                    style = typo.body.copy(fontSize = 14.sp, color = Color(0xFF5F6377)),
+                                                    maxLines = 1,
+                                                )
+                                            }
+                                            innerTextField()
+                                        },
                                     )
                                 }
                                 Box(
@@ -830,6 +849,7 @@ public fun RenderAdminWebDesktopA39(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(6.dp))
                                         .background(Color(0xFFF2F2F8))
+                                        .clickable { desktopSearchQuery = "" }
                                         .padding(horizontal = 7.dp, vertical = 3.dp),
                                 ) {
                                     BasicText(
@@ -843,7 +863,6 @@ public fun RenderAdminWebDesktopA39(
                                 }
                             }
 
-                            // Campana con badge 3
                             Box(
                                 contentAlignment = Alignment.Center,
                                 modifier = Modifier
@@ -874,7 +893,6 @@ public fun RenderAdminWebDesktopA39(
                                 }
                             }
 
-                            // Botón "Crear con Rosa"
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -897,7 +915,6 @@ public fun RenderAdminWebDesktopA39(
                                 )
                             }
 
-                            // Botón "Nuevo evento"
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -943,7 +960,6 @@ public fun RenderAdminWebDesktopA39(
                         }
                     }
 
-                    // 4 Stat Cards
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                         modifier = Modifier.fillMaxWidth(),
@@ -956,6 +972,7 @@ public fun RenderAdminWebDesktopA39(
                             iconKind = RfIconKind.ORDERS,
                             tileBg = Color(0xFFEEF6D6),
                             tileTint = Color(0xFF4E6A10),
+                            onClick = { onSelectScreenCode("s67") },
                             modifier = Modifier.weight(1f),
                         )
                         AdminStatCard(
@@ -966,6 +983,7 @@ public fun RenderAdminWebDesktopA39(
                             iconKind = RfIconKind.WALLET,
                             tileBg = Color(0xFFFFF2C9),
                             tileTint = Color(0xFF7A5700),
+                            onClick = { onSelectScreenCode("A20") },
                             modifier = Modifier.weight(1f),
                         )
                         AdminStatCard(
@@ -976,6 +994,7 @@ public fun RenderAdminWebDesktopA39(
                             iconKind = RfIconKind.CALENDAR,
                             tileBg = Color(0xFFECEBFF),
                             tileTint = Color(0xFF4B47D6),
+                            onClick = { onSelectScreenCode("A11") },
                             modifier = Modifier.weight(1f),
                         )
                         AdminStatCard(
@@ -986,18 +1005,17 @@ public fun RenderAdminWebDesktopA39(
                             iconKind = RfIconKind.ORDERS,
                             tileBg = Color(0xFFFDE6F2),
                             tileTint = Color(0xFFC2338F),
+                            onClick = { onSelectScreenCode("A02") },
                             modifier = Modifier.weight(1f),
                         )
                     }
 
-                    // Sección Inferior (2 Columnas)
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1f),
                     ) {
-                        // Columna Izquierda: Tabla y Gráfica
                         Column(
                             verticalArrangement = Arrangement.spacedBy(16.dp),
                             modifier = Modifier
@@ -1005,6 +1023,7 @@ public fun RenderAdminWebDesktopA39(
                                 .fillMaxHeight(),
                         ) {
                             AdminUpcomingEventsTable(
+                                searchQuery = desktopSearchQuery,
                                 onSelectScreenCode = onSelectScreenCode,
                                 modifier = Modifier.weight(1.3f),
                             )
@@ -1014,7 +1033,6 @@ public fun RenderAdminWebDesktopA39(
                             )
                         }
 
-                        // Columna Derecha (360 px fija): Hero Card, Solicitudes, Atención hoy
                         Column(
                             verticalArrangement = Arrangement.spacedBy(16.dp),
                             modifier = Modifier
@@ -1050,6 +1068,7 @@ private fun AdminStatCard(
     iconKind: RfIconKind,
     tileBg: Color,
     tileTint: Color,
+    onClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val typo = LocalRfTypography.current
@@ -1060,6 +1079,7 @@ private fun AdminStatCard(
             .clip(RoundedCornerShape(20.dp))
             .background(Color.White)
             .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(20.dp))
+            .clickable(onClick = onClick)
             .padding(horizontal = 20.dp, vertical = 18.dp),
     ) {
         Row(
@@ -1092,12 +1112,82 @@ private fun AdminStatCard(
     }
 }
 
+private data class AdminDesktopEventRowSpec(
+    val photoKey: RfPhotoKey,
+    val title: String,
+    val date: String,
+    val client: String,
+    val total: String,
+    val percent: Int,
+    val statusLabel: String,
+    val statusTone: RfTagTone,
+)
+
 @Composable
 private fun AdminUpcomingEventsTable(
+    searchQuery: String = "",
     onSelectScreenCode: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val typo = LocalRfTypography.current
+    val allRows = remember {
+        listOf(
+            AdminDesktopEventRowSpec(
+                photoKey = RfPhotoKey.BODA,
+                title = "Boda Real Rosa & Dorado",
+                date = "Vie 23 oct",
+                client = "Camila R.",
+                total = "RD$ 4,500",
+                percent = 30,
+                statusLabel = "Ajustado",
+                statusTone = RfTagTone.TEAL,
+            ),
+            AdminDesktopEventRowSpec(
+                photoKey = RfPhotoKey.QUINCEANERA,
+                title = "Quinceañera Valentina Crystal",
+                date = "Lun 2 nov",
+                client = "Camila R.",
+                total = "RD$ 6,200",
+                percent = 30,
+                statusLabel = "Confirmado",
+                statusTone = RfTagTone.LIMA,
+            ),
+            AdminDesktopEventRowSpec(
+                photoKey = RfPhotoKey.CUMPLE_INFANTIL,
+                title = "Cumpleaños de Mateo",
+                date = "Sáb 7 nov",
+                client = "Laura Peña",
+                total = "RD$ 780",
+                percent = 0,
+                statusLabel = "Cotización enviada",
+                statusTone = RfTagTone.SOL,
+            ),
+            AdminDesktopEventRowSpec(
+                photoKey = RfPhotoKey.BABY_SHOWER,
+                title = "Baby Shower Sofía en Rosas",
+                date = "Lun 9 nov",
+                client = "Camila R.",
+                total = "Por cotizar",
+                percent = 0,
+                statusLabel = "Borrador",
+                statusTone = RfTagTone.INDIGO,
+            ),
+        )
+    }
+    val filteredRows = remember(allRows, searchQuery) {
+        val trimmed = searchQuery.trim()
+        if (trimmed.isEmpty()) {
+            allRows
+        } else {
+            allRows.filter { row ->
+                val matchesTitle = row.title.contains(trimmed, ignoreCase = true)
+                val matchesClient = row.client.contains(trimmed, ignoreCase = true)
+                val matchesStatus = row.statusLabel.contains(trimmed, ignoreCase = true)
+                listOf(matchesTitle, matchesClient, matchesStatus).any { matched -> matched }
+            }
+        }
+    }
+
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -1106,7 +1196,6 @@ private fun AdminUpcomingEventsTable(
             .background(Color.White)
             .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(20.dp)),
     ) {
-        // Encabezado
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -1129,7 +1218,6 @@ private fun AdminUpcomingEventsTable(
             )
         }
 
-        // Fila de encabezado de tabla
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
@@ -1145,51 +1233,19 @@ private fun AdminUpcomingEventsTable(
             BasicText("ESTADO", modifier = Modifier.weight(1.25f), style = typo.sectionCap.copy(fontSize = 11.sp))
         }
 
-        // 4 Filas de eventos
-        AdminEventRow(
-            photoKey = RfPhotoKey.BODA,
-            title = "Boda Real Rosa & Dorado",
-            date = "Vie 23 oct",
-            client = "Camila R.",
-            total = "RD$ 4,500",
-            percent = 30,
-            statusLabel = "Ajustado",
-            statusTone = RfTagTone.TEAL,
-            onClick = { onSelectScreenCode("A13") },
-        )
-        AdminEventRow(
-            photoKey = RfPhotoKey.QUINCEANERA,
-            title = "Quinceañera Valentina Crystal",
-            date = "Lun 2 nov",
-            client = "Camila R.",
-            total = "RD$ 6,200",
-            percent = 30,
-            statusLabel = "Confirmado",
-            statusTone = RfTagTone.LIMA,
-            onClick = { onSelectScreenCode("A13") },
-        )
-        AdminEventRow(
-            photoKey = RfPhotoKey.CUMPLE_INFANTIL,
-            title = "Cumpleaños de Mateo",
-            date = "Sáb 7 nov",
-            client = "Laura Peña",
-            total = "RD$ 780",
-            percent = 0,
-            statusLabel = "Cotización enviada",
-            statusTone = RfTagTone.SOL,
-            onClick = { onSelectScreenCode("A13") },
-        )
-        AdminEventRow(
-            photoKey = RfPhotoKey.BABY_SHOWER,
-            title = "Baby Shower Sofía en Rosas",
-            date = "Lun 9 nov",
-            client = "Camila R.",
-            total = "Por cotizar",
-            percent = 0,
-            statusLabel = "Borrador",
-            statusTone = RfTagTone.INDIGO,
-            onClick = { onSelectScreenCode("A13") },
-        )
+        filteredRows.forEach { rowSpec ->
+            AdminEventRow(
+                photoKey = rowSpec.photoKey,
+                title = rowSpec.title,
+                date = rowSpec.date,
+                client = rowSpec.client,
+                total = rowSpec.total,
+                percent = rowSpec.percent,
+                statusLabel = rowSpec.statusLabel,
+                statusTone = rowSpec.statusTone,
+                onClick = { onSelectScreenCode("A13") },
+            )
+        }
     }
 }
 
@@ -1244,7 +1300,6 @@ private fun AdminEventRow(
                 color = if (total.startsWith("RD$")) Color(0xFF151729) else Color(0xFF5F6377),
             ),
         )
-        // Barra de progreso de pago
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -1288,6 +1343,8 @@ private fun AdminMonthlyRevenueChart(
     modifier: Modifier = Modifier,
 ) {
     val typo = LocalRfTypography.current
+    var selectedMonths by remember { mutableStateOf(6) }
+
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -1306,35 +1363,48 @@ private fun AdminMonthlyRevenueChart(
                 text = "Ingresos por mes",
                 style = typo.cardTitle.copy(fontSize = 16.sp, fontWeight = FontWeight.ExtraBold),
             )
-            // Segmented pill
             Row(
                 modifier = Modifier
                     .clip(RoundedCornerShape(10.dp))
                     .background(Color(0xFFF2F2F8))
                     .padding(3.dp),
             ) {
+                val isSixMonths = selectedMonths == 6
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
                         .height(30.dp)
                         .clip(RoundedCornerShape(8.dp))
-                        .background(Color.White)
+                        .background(if (isSixMonths) Color.White else Color.Transparent)
+                        .clickable { selectedMonths = 6 }
                         .padding(horizontal = 12.dp),
                 ) {
                     BasicText(
                         text = "6 meses",
-                        style = typo.caption.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF151729)),
+                        style = typo.caption.copy(
+                            fontSize = 13.sp,
+                            fontWeight = if (isSixMonths) FontWeight.Bold else FontWeight.SemiBold,
+                            color = if (isSixMonths) Color(0xFF151729) else Color(0xFF5F6377),
+                        ),
                     )
                 }
+                val isTwelveMonths = selectedMonths == 12
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
                         .height(30.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(if (isTwelveMonths) Color.White else Color.Transparent)
+                        .clickable { selectedMonths = 12 }
                         .padding(horizontal = 12.dp),
                 ) {
                     BasicText(
                         text = "12 meses",
-                        style = typo.caption.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF5F6377)),
+                        style = typo.caption.copy(
+                            fontSize = 13.sp,
+                            fontWeight = if (isTwelveMonths) FontWeight.Bold else FontWeight.SemiBold,
+                            color = if (isTwelveMonths) Color(0xFF151729) else Color(0xFF5F6377),
+                        ),
                     )
                 }
             }
@@ -1342,15 +1412,25 @@ private fun AdminMonthlyRevenueChart(
 
         Spacer(Modifier.weight(1f))
 
-        // Gráfica de 6 barras
-        val bars = listOf(
-            Triple("may", "6.2k", 66.dp),
-            Triple("jun", "9.8k", 105.dp),
-            Triple("jul", "8.1k", 87.dp),
-            Triple("ago", "11.3k", 121.dp),
-            Triple("sep", "10.2k", 109.dp),
-            Triple("oct", "12.45k", 133.dp),
-        )
+        val bars = if (selectedMonths == 6) {
+            listOf(
+                Triple("may", "6.2k", 66.dp),
+                Triple("jun", "9.8k", 105.dp),
+                Triple("jul", "8.1k", 87.dp),
+                Triple("ago", "11.3k", 121.dp),
+                Triple("sep", "10.2k", 109.dp),
+                Triple("oct", "12.45k", 133.dp),
+            )
+        } else {
+            listOf(
+                Triple("nov", "7.4k", 78.dp),
+                Triple("ene", "8.5k", 90.dp),
+                Triple("mar", "9.1k", 96.dp),
+                Triple("may", "6.2k", 66.dp),
+                Triple("jul", "8.1k", 87.dp),
+                Triple("oct", "12.45k", 133.dp),
+            )
+        }
 
         Row(
             horizontalArrangement = Arrangement.spacedBy(18.dp),

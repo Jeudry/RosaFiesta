@@ -28,15 +28,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import com.jeudry.rosafiesta.designsystem.rfCardShadow
-import com.jeudry.rosafiesta.designsystem.rfHeroBannerShadow
-import com.jeudry.rosafiesta.designsystem.rfIconButtonShadow
-import com.jeudry.rosafiesta.designsystem.rfInputShadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -77,7 +72,12 @@ import com.jeudry.rosafiesta.designsystem.RfTagTone
 import com.jeudry.rosafiesta.designsystem.RfThemeVariant
 import com.jeudry.rosafiesta.designsystem.RosaAvatar
 import com.jeudry.rosafiesta.designsystem.RosaAvatarSize
+import com.jeudry.rosafiesta.designsystem.rfCardShadow
+import com.jeudry.rosafiesta.designsystem.rfHeroBannerShadow
+import com.jeudry.rosafiesta.designsystem.rfIconButtonShadow
+import com.jeudry.rosafiesta.designsystem.rfInputShadow
 import com.jeudry.rosafiesta.domain.CanonicalSampleData
+import kotlinx.coroutines.delay
 
 @Composable
 internal fun RenderSplashAndOnboardingContent(spec: ScreenSpec, onPrimaryAction: () -> Unit) {

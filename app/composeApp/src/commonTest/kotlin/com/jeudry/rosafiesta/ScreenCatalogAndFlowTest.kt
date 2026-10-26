@@ -234,4 +234,74 @@ class ScreenCatalogAndFlowTest {
         onNodeWithText("Asignar a un cliente").performClick()
         onNodeWithText("Cliente: Camila Rodríguez").assertExists()
     }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun `pantalla A08 procesa prompts compuestos con numero personalizado de invitados y sincroniza borrador`() = runComposeUiTest {
+        val koin = org.koin.dsl.koinApplication {
+            modules(com.jeudry.rosafiesta.di.appModule)
+        }.koin
+        val viewModel = koin.get<com.jeudry.rosafiesta.ui.RosaFiestaViewModel>()
+
+        setContent {
+            RosaFiestaApp(
+                initialAppView = AppView.ADMIN,
+                initialScreenCode = "A08",
+                viewModel = viewModel,
+            )
+        }
+
+        onNodeWithText("120 invitados").performClick()
+        onNodeWithText("150 invitados").assertExists()
+        onNodeWithText("Mesa redonda × 15").assertExists()
+
+        onNodeWithText("Usar borrador").performClick()
+        assertEquals("150", viewModel.newEventGuests.value)
+        assertEquals(15, viewModel.draftQuantities.value["art-mesa-redonda"])
+        assertEquals(150, viewModel.draftQuantities.value["art-silla-tiffany"])
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun `pantalla A09 filtra articulos por categoria y A25 recalcula descuento del paquete`() = runComposeUiTest {
+        val koin = org.koin.dsl.koinApplication {
+            modules(com.jeudry.rosafiesta.di.appModule)
+        }.koin
+        val viewModel = koin.get<com.jeudry.rosafiesta.ui.RosaFiestaViewModel>()
+
+        setContent {
+            RosaFiestaApp(
+                initialAppView = AppView.ADMIN,
+                initialScreenCode = "A09",
+                viewModel = viewModel,
+            )
+        }
+
+        onNodeWithTag("screen-A09").assertExists()
+        onNodeWithText("Centro de mesa floral").assertExists()
+        onNodeWithText("Mesa redonda para 8").assertExists()
+
+        onNodeWithText("Floral").performClick()
+        onNodeWithText("Centro de mesa floral").assertExists()
+        onNodeWithText("Mesa redonda para 8").assertDoesNotExist()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun `pantalla A25 recalcula precio normal y con descuento al alternar porcentaje`() = runComposeUiTest {
+        setContent {
+            RosaFiestaApp(
+                initialAppView = AppView.ADMIN,
+                initialScreenCode = "A25",
+            )
+        }
+
+        onNodeWithTag("screen-A25").assertExists()
+        onNodeWithText("RD$ 1,000").assertExists()
+        onNodeWithText("RD$ 850").assertExists()
+
+        onNodeWithText("15%").performClick()
+        onNodeWithText("20%").assertExists()
+        onNodeWithText("RD$ 800").assertExists()
+    }
 }

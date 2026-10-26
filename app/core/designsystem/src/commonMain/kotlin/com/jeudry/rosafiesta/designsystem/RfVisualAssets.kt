@@ -845,5 +845,3 @@ public fun BalloonClusterIllustration(
         drawPath(knot3, color = Color(0xFFFBCA3F))
     }
 }
-
-

@@ -259,7 +259,7 @@ fun RenderScreenSpec(
                 "A11" -> RenderAdminEventsA11(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
                 "A12" -> RenderAdminMoreA12(onSelectScreenCode = onSelectScreenCode)
                 "A20" -> RenderAdminPaymentsA20(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
-                "A21" -> RenderAdminRecordPaymentA21(onSelectScreenCode = onSelectScreenCode)
+                "A21" -> RenderAdminRecordPaymentA21(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
                 "A10" -> RenderAdminNewArticleA10(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
                 "A13" -> RenderAdminEventDetailA13(onSelectScreenCode = onSelectScreenCode)
                 "A16" -> RenderAdminExecutionA16(onSelectScreenCode = onSelectScreenCode)

@@ -141,8 +141,7 @@ public val LocalRfPalette: androidx.compose.runtime.ProvidableCompositionLocal<R
  * de escala alrededor del centro del propio elemento (respetando círculos, píldoras, tarjetas e iconos).
  */
 private object RfContextualIndication : IndicationNodeFactory {
-    override fun create(interactionSource: InteractionSource): DelegatableNode =
-        RfContextualIndicationNode(interactionSource)
+    override fun create(interactionSource: InteractionSource): DelegatableNode = RfContextualIndicationNode(interactionSource)
 
     override fun hashCode(): Int = -1948271635
 
@@ -151,7 +150,8 @@ private object RfContextualIndication : IndicationNodeFactory {
 
 private class RfContextualIndicationNode(
     private val interactionSource: InteractionSource,
-) : Modifier.Node(), DrawModifierNode {
+) : Modifier.Node(),
+    DrawModifierNode {
     private val scale = Animatable(1f)
 
     override fun onAttach() {

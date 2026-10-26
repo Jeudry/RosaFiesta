@@ -269,6 +269,12 @@ public class RosaFiestaViewModel(
         }
     }
 
+    public fun setDraftQuantity(articleId: String, quantity: Int) {
+        _draftQuantities.update { current ->
+            current + (articleId to quantity.coerceAtLeast(0))
+        }
+    }
+
     public fun updateRosaParameters(
         eventType: String = _rosaEventType.value,
         guests: Int = _rosaGuestsCount.value,
