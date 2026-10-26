@@ -60,6 +60,7 @@ import com.jeudry.rosafiesta.designsystem.RfPhoto
 import com.jeudry.rosafiesta.designsystem.RfPhotoKey
 import com.jeudry.rosafiesta.designsystem.RfRadialBackgroundBox
 import com.jeudry.rosafiesta.designsystem.RfSegmented
+import com.jeudry.rosafiesta.designsystem.RfSkeletonLayout
 import com.jeudry.rosafiesta.designsystem.RfSkeletonScreen
 import com.jeudry.rosafiesta.designsystem.RfSwitch
 import com.jeudry.rosafiesta.designsystem.RfTag
@@ -582,7 +583,8 @@ private fun RenderScreenBodyByCode(
     when (spec.code) {
         // Estados explícitos de la Sección 5
         "s90", "A36" -> {
-            RfSkeletonScreen(isAdmin = spec.variant == RfThemeVariant.ADMIN)
+            val layout = if (spec.code == "s90") RfSkeletonLayout.CATALOG else RfSkeletonLayout.DASHBOARD
+            RfSkeletonScreen(layout = layout, isAdmin = spec.variant == RfThemeVariant.ADMIN)
         }
 
         "s89", "A35" -> {

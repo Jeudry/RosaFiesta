@@ -1283,14 +1283,225 @@ public fun RfSkeleton(
 }
 
 /**
- * Alias de [RfSkeleton] para pantallas de estado de carga (`s90`, `A36`).
+ * Estructuras oficiales de esqueleto de carga según el tipo de pantalla (Sección 5).
+ */
+public enum class RfSkeletonLayout {
+    CATALOG,
+    DASHBOARD,
+    EVENTS_LIST,
+    ANALYTICS,
+    DETAIL_FORM,
+    GENERIC,
+}
+
+/**
+ * Pantalla completa de estado de carga en esqueleto (`s90`, `A36`, Sección 5).
+ * Adapta su estructura según el tipo de pantalla ([layout]) con brillo de 1.2 s de izquierda a derecha.
  */
 @Composable
 public fun RfSkeletonScreen(
+    layout: RfSkeletonLayout = RfSkeletonLayout.GENERIC,
     isAdmin: Boolean = LocalRfPalette.current.isAdmin,
     modifier: Modifier = Modifier,
 ) {
-    RfSkeleton(modifier = modifier, isAdmin = isAdmin)
+    val shimmerBrush = rememberRfSkeletonBrush(isAdmin = isAdmin, animate = true)
+    val baseColor = if (isAdmin) Color(0xFFE4E5F0) else Color(0xFFEDE5F1)
+
+    RfRadialBackgroundBox(modifier = modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = 54.dp, start = 20.dp, end = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            when (layout) {
+                RfSkeletonLayout.CATALOG -> {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Box(modifier = Modifier.weight(1f).height(28.dp).clip(RoundedCornerShape(8.dp)).background(shimmerBrush))
+                        Box(modifier = Modifier.size(44.dp).clip(CircleShape).background(shimmerBrush))
+                        Box(modifier = Modifier.size(44.dp).clip(CircleShape).background(shimmerBrush))
+                    }
+                    Box(modifier = Modifier.fillMaxWidth().height(52.dp).clip(RoundedCornerShape(16.dp)).background(shimmerBrush))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Box(modifier = Modifier.width(96.dp).height(36.dp).clip(RoundedCornerShape(999.dp)).background(shimmerBrush))
+                        Box(modifier = Modifier.width(110.dp).height(36.dp).clip(RoundedCornerShape(999.dp)).background(shimmerBrush))
+                        Box(modifier = Modifier.width(80.dp).height(36.dp).clip(RoundedCornerShape(999.dp)).background(shimmerBrush))
+                    }
+                    Box(modifier = Modifier.fillMaxWidth().height(58.dp).clip(RoundedCornerShape(18.dp)).background(shimmerBrush))
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                        RfSkeletonProductCard(shimmerBrush = shimmerBrush, isAdmin = isAdmin, modifier = Modifier.weight(1f))
+                        RfSkeletonProductCard(shimmerBrush = shimmerBrush, isAdmin = isAdmin, modifier = Modifier.weight(1f))
+                    }
+                }
+                RfSkeletonLayout.DASHBOARD -> {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                        Box(modifier = Modifier.size(44.dp).clip(CircleShape).background(shimmerBrush))
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Box(modifier = Modifier.fillMaxWidth(0.4f).height(12.dp).clip(RoundedCornerShape(6.dp)).background(shimmerBrush))
+                            Box(modifier = Modifier.fillMaxWidth(0.6f).height(18.dp).clip(RoundedCornerShape(8.dp)).background(shimmerBrush))
+                        }
+                        Box(modifier = Modifier.size(44.dp).clip(CircleShape).background(shimmerBrush))
+                    }
+                    Box(modifier = Modifier.fillMaxWidth().height(132.dp).clip(RoundedCornerShape(24.dp)).background(shimmerBrush))
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                        Box(modifier = Modifier.weight(1f).height(74.dp).clip(RoundedCornerShape(18.dp)).background(shimmerBrush))
+                        Box(modifier = Modifier.weight(1f).height(74.dp).clip(RoundedCornerShape(18.dp)).background(shimmerBrush))
+                        Box(modifier = Modifier.weight(1f).height(74.dp).clip(RoundedCornerShape(18.dp)).background(shimmerBrush))
+                    }
+                    Box(modifier = Modifier.fillMaxWidth(0.35f).height(14.dp).clip(RoundedCornerShape(6.dp)).background(shimmerBrush))
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                        Box(modifier = Modifier.weight(1f).height(64.dp).clip(RoundedCornerShape(18.dp)).background(shimmerBrush))
+                        Box(modifier = Modifier.weight(1f).height(64.dp).clip(RoundedCornerShape(18.dp)).background(shimmerBrush))
+                    }
+                }
+                RfSkeletonLayout.EVENTS_LIST -> {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                        Box(modifier = Modifier.weight(1f).height(28.dp).clip(RoundedCornerShape(8.dp)).background(shimmerBrush))
+                        Box(modifier = Modifier.size(44.dp).clip(CircleShape).background(shimmerBrush))
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Box(modifier = Modifier.width(100.dp).height(36.dp).clip(RoundedCornerShape(999.dp)).background(shimmerBrush))
+                        Box(modifier = Modifier.width(90.dp).height(36.dp).clip(RoundedCornerShape(999.dp)).background(shimmerBrush))
+                        Box(modifier = Modifier.width(110.dp).height(36.dp).clip(RoundedCornerShape(999.dp)).background(shimmerBrush))
+                    }
+                    repeat(3) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .rfCardShadow(RoundedCornerShape(RfDimens.CardRadius), isAdmin = isAdmin)
+                                .clip(RoundedCornerShape(RfDimens.CardRadius))
+                                .background(Color.White)
+                                .border(1.dp, baseColor, RoundedCornerShape(RfDimens.CardRadius))
+                                .padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Box(modifier = Modifier.size(48.dp).clip(RoundedCornerShape(12.dp)).background(shimmerBrush))
+                                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Box(modifier = Modifier.fillMaxWidth(0.65f).height(16.dp).clip(RoundedCornerShape(6.dp)).background(shimmerBrush))
+                                    Box(modifier = Modifier.fillMaxWidth(0.40f).height(12.dp).clip(RoundedCornerShape(6.dp)).background(shimmerBrush))
+                                }
+                                Box(modifier = Modifier.width(60.dp).height(24.dp).clip(RoundedCornerShape(999.dp)).background(shimmerBrush))
+                            }
+                            Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(baseColor))
+                            Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                                Box(modifier = Modifier.width(80.dp).height(14.dp).clip(RoundedCornerShape(6.dp)).background(shimmerBrush))
+                                Box(modifier = Modifier.width(70.dp).height(14.dp).clip(RoundedCornerShape(6.dp)).background(shimmerBrush))
+                            }
+                        }
+                    }
+                }
+                RfSkeletonLayout.ANALYTICS -> {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                        Box(modifier = Modifier.weight(1f).height(28.dp).clip(RoundedCornerShape(8.dp)).background(shimmerBrush))
+                        Box(modifier = Modifier.width(90.dp).height(38.dp).clip(RoundedCornerShape(12.dp)).background(shimmerBrush))
+                    }
+                    Box(modifier = Modifier.fillMaxWidth().height(120.dp).clip(RoundedCornerShape(22.dp)).background(shimmerBrush))
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                        Box(modifier = Modifier.weight(1f).height(80.dp).clip(RoundedCornerShape(18.dp)).background(shimmerBrush))
+                        Box(modifier = Modifier.weight(1f).height(80.dp).clip(RoundedCornerShape(18.dp)).background(shimmerBrush))
+                    }
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .rfCardShadow(RoundedCornerShape(RfDimens.CardRadius), isAdmin = isAdmin)
+                            .clip(RoundedCornerShape(RfDimens.CardRadius))
+                            .background(Color.White)
+                            .border(1.dp, baseColor, RoundedCornerShape(RfDimens.CardRadius))
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Box(modifier = Modifier.fillMaxWidth(0.4f).height(16.dp).clip(RoundedCornerShape(6.dp)).background(shimmerBrush))
+                        Box(modifier = Modifier.fillMaxWidth().height(120.dp).clip(RoundedCornerShape(12.dp)).background(shimmerBrush))
+                    }
+                }
+                RfSkeletonLayout.DETAIL_FORM -> {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Box(modifier = Modifier.size(44.dp).clip(CircleShape).background(shimmerBrush))
+                        Box(modifier = Modifier.fillMaxWidth(0.5f).height(24.dp).clip(RoundedCornerShape(8.dp)).background(shimmerBrush))
+                    }
+                    Box(modifier = Modifier.fillMaxWidth().height(180.dp).clip(RoundedCornerShape(20.dp)).background(shimmerBrush))
+                    repeat(3) {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Box(modifier = Modifier.fillMaxWidth(0.3f).height(12.dp).clip(RoundedCornerShape(4.dp)).background(shimmerBrush))
+                            Box(modifier = Modifier.fillMaxWidth().height(52.dp).clip(RoundedCornerShape(16.dp)).background(shimmerBrush))
+                        }
+                    }
+                }
+                RfSkeletonLayout.GENERIC -> {
+                    RfSkeleton(isAdmin = isAdmin)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RfSkeletonProductCard(
+    shimmerBrush: Brush,
+    isAdmin: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .rfCardShadow(RoundedCornerShape(RfDimens.CardRadius), isAdmin = isAdmin)
+            .clip(RoundedCornerShape(RfDimens.CardRadius))
+            .background(Color.White)
+            .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(RfDimens.CardRadius)),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(128.dp)
+                .background(shimmerBrush),
+        )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.80f)
+                    .height(14.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(shimmerBrush),
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.55f)
+                    .height(12.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(shimmerBrush),
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 6.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .width(40.dp)
+                        .height(18.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(shimmerBrush),
+                )
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(shimmerBrush),
+                )
+            }
+        }
+    }
 }
 
 /**
