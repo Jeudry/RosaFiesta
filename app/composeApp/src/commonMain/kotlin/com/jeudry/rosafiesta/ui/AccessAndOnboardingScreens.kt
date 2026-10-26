@@ -113,12 +113,11 @@ internal fun RenderPersonalSplashP00(onPrimaryAction: () -> Unit) {
             drawGarlandAndConfettiPersonal()
         }
 
-        // Centro: Logo con halo doble + Título + Subtítulo
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
                 .fillMaxWidth()
-                .offset(y = 264.dp),
+                .align(Alignment.Center),
         ) {
             // Doble halo oficial
             Box(
@@ -290,12 +289,11 @@ internal fun RenderAdminSplashA00(onPrimaryAction: () -> Unit) {
             }
         }
 
-        // Centro: Logo con halo doble + Título + Tag ADMINISTRACIÓN
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
                 .fillMaxWidth()
-                .offset(y = 264.dp),
+                .align(Alignment.Center),
         ) {
             Box(
                 contentAlignment = Alignment.Center,
@@ -508,7 +506,6 @@ internal fun RenderOnboardingScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(310.dp)
                     .padding(horizontal = 20.dp),
             ) {
                 when (step) {
@@ -518,7 +515,7 @@ internal fun RenderOnboardingScreen(
                 }
             }
 
-            Spacer(Modifier.height(18.dp))
+            Spacer(Modifier.height(16.dp))
 
             Column(
                 modifier = Modifier
@@ -686,7 +683,8 @@ private fun DrawScope.drawPersonalAtmosphereBackground() {
 private fun OnboardingIllustrationStep1() {
     Box(
         modifier = Modifier
-            .fillMaxSize(),
+            .fillMaxWidth()
+            .height(328.dp),
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val sX = size.width / 350f
@@ -1070,14 +1068,12 @@ private fun FlowerVaseIllustration(modifier: Modifier = Modifier) {
 @Composable
 private fun OnboardingIllustrationStep2() {
     Box(
-        modifier = Modifier
-            .fillMaxSize(),
+        modifier = Modifier.fillMaxWidth(),
     ) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
+        Canvas(modifier = Modifier.matchParentSize()) {
             val sX = size.width / 350f
             val sY = size.height / 340f
             scale(sX, sY, Offset.Zero) {
-                // Fondo orgánico (blob morado tenue)
                 val blobPath = Path().apply {
                     moveTo(180f, 14f)
                     cubicTo(276f, 10f, 344f, 78f, 340f, 170f)
@@ -1088,7 +1084,6 @@ private fun OnboardingIllustrationStep2() {
                 }
                 drawPath(blobPath, color = Color(0xFFEFE8FD), style = Fill)
 
-                // Estrellas y círculos
                 val star1 = Path().apply {
                     moveTo(250f, 40f)
                     lineTo(252.4f, 46.4f)
@@ -1119,80 +1114,82 @@ private fun OnboardingIllustrationStep2() {
             }
         }
 
-        // Avatar gigante de Rosa (left: 127dp, top: 22dp, size: 96dp)
-        Box(
+        Column(
             modifier = Modifier
-                .offset(x = 127.dp, y = 22.dp)
-                .size(96.dp),
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 18.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            RosaAvatar(size = RosaAvatarSize.GIANT, glow = true)
-        }
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .size(92.dp),
+            ) {
+                RosaAvatar(size = RosaAvatarSize.GIANT, glow = true)
+            }
 
-        // Burbuja 1: ¿Qué evento quieres celebrar? (left: 14dp, top: 136dp)
-        Box(
-            modifier = Modifier
-                .offset(x = 14.dp, y = 136.dp)
-                .shadow(elevation = 10.dp, shape = RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomEnd = 18.dp, bottomStart = 6.dp), spotColor = Color(0x40AA46A0))
-                .clip(RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomEnd = 18.dp, bottomStart = 6.dp))
-                .background(Color.White)
-                .padding(horizontal = 14.dp, vertical = 12.dp),
-        ) {
-            BasicText(
-                text = "¿Qué evento quieres celebrar?",
-                style = LocalRfTypography.current.body.copy(fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A2E)),
-            )
-        }
-
-        // Burbuja 2: Una boda en un jardín (right: 14dp, top: 192dp)
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .offset(x = (-14).dp, y = 192.dp)
-                .shadow(elevation = 10.dp, shape = RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomEnd = 6.dp, bottomStart = 18.dp), spotColor = Color(0x66865DEC))
-                .clip(RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomEnd = 6.dp, bottomStart = 18.dp))
-                .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))))
-                .padding(horizontal = 14.dp, vertical = 12.dp),
-        ) {
-            BasicText(
-                text = "Una boda en un jardín",
-                style = LocalRfTypography.current.body.copy(fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Color.White),
-            )
-        }
-
-        // Burbuja 3: ¡Me encanta! Te sugiero: (left: 14dp, top: 246dp)
-        Box(
-            modifier = Modifier
-                .offset(x = 14.dp, y = 246.dp)
-                .width(250.dp)
-                .shadow(elevation = 10.dp, shape = RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomEnd = 18.dp, bottomStart = 6.dp), spotColor = Color(0x40AA46A0))
-                .clip(RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomEnd = 18.dp, bottomStart = 6.dp))
-                .background(Color.White)
-                .padding(12.dp),
-        ) {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.Start)
+                    .shadow(elevation = 10.dp, shape = RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomEnd = 18.dp, bottomStart = 6.dp), spotColor = Color(0x40AA46A0))
+                    .clip(RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomEnd = 18.dp, bottomStart = 6.dp))
+                    .background(Color.White)
+                    .padding(horizontal = 14.dp, vertical = 11.dp),
+            ) {
                 BasicText(
-                    text = "¡Me encanta! Te sugiero:",
+                    text = "¿Qué evento quieres celebrar?",
                     style = LocalRfTypography.current.body.copy(fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A2E)),
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    RfPhoto(
-                        photoKey = RfPhotoKey.SILLA_TIFFANY,
-                        contentDescription = "Silla Tiffany",
-                        cornerRadius = 12.dp,
-                        modifier = Modifier.size(58.dp),
+            }
+
+            Box(
+                modifier = Modifier
+                    .align(Alignment.End)
+                    .shadow(elevation = 10.dp, shape = RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomEnd = 6.dp, bottomStart = 18.dp), spotColor = Color(0x66865DEC))
+                    .clip(RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomEnd = 6.dp, bottomStart = 18.dp))
+                    .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))))
+                    .padding(horizontal = 14.dp, vertical = 11.dp),
+            ) {
+                BasicText(
+                    text = "Una boda en un jardín",
+                    style = LocalRfTypography.current.body.copy(fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Color.White),
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .align(Alignment.Start)
+                    .width(250.dp)
+                    .shadow(elevation = 10.dp, shape = RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomEnd = 18.dp, bottomStart = 6.dp), spotColor = Color(0x40AA46A0))
+                    .clip(RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomEnd = 18.dp, bottomStart = 6.dp))
+                    .background(Color.White)
+                    .padding(12.dp),
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    BasicText(
+                        text = "¡Me encanta! Te sugiero:",
+                        style = LocalRfTypography.current.body.copy(fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A2E)),
                     )
-                    RfPhoto(
-                        photoKey = RfPhotoKey.CENTRO_FLORAL,
-                        contentDescription = "Centro Floral",
-                        cornerRadius = 12.dp,
-                        modifier = Modifier.size(58.dp),
-                    )
-                    RfPhoto(
-                        photoKey = RfPhotoKey.ARCO_ROSA,
-                        contentDescription = "Arco Rosa",
-                        cornerRadius = 12.dp,
-                        modifier = Modifier.size(58.dp),
-                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        RfPhoto(
+                            photoKey = RfPhotoKey.SILLA_TIFFANY,
+                            contentDescription = "Silla Tiffany",
+                            cornerRadius = 12.dp,
+                            modifier = Modifier.size(58.dp),
+                        )
+                        RfPhoto(
+                            photoKey = RfPhotoKey.CENTRO_FLORAL,
+                            contentDescription = "Centro Floral",
+                            cornerRadius = 12.dp,
+                            modifier = Modifier.size(58.dp),
+                        )
+                        RfPhoto(
+                            photoKey = RfPhotoKey.ARCO_ROSA,
+                            contentDescription = "Arco Rosa",
+                            cornerRadius = 12.dp,
+                            modifier = Modifier.size(58.dp),
+                        )
+                    }
                 }
             }
         }
@@ -1202,14 +1199,12 @@ private fun OnboardingIllustrationStep2() {
 @Composable
 private fun OnboardingIllustrationStep3() {
     Box(
-        modifier = Modifier
-            .fillMaxSize(),
+        modifier = Modifier.fillMaxWidth(),
     ) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
+        Canvas(modifier = Modifier.matchParentSize()) {
             val sX = size.width / 350f
             val sY = size.height / 340f
             scale(sX, sY, Offset.Zero) {
-                // Fondo orgánico (blob verde lima suave)
                 val blobPath = Path().apply {
                     moveTo(168f, 12f)
                     cubicTo(262f, 6f, 346f, 70f, 338f, 172f)
@@ -1220,10 +1215,8 @@ private fun OnboardingIllustrationStep3() {
                 }
                 drawPath(blobPath, color = Color(0xFFEEF6D6), style = Fill)
 
-                // Círculo amarillo
                 drawCircle(Color(0xFFF7B500), radius = 5f, center = Offset(306f, 60f))
 
-                // Estrella rosa
                 val star = Path().apply {
                     moveTo(30f, 252f)
                     lineTo(32f, 257.4f)
@@ -1239,127 +1232,130 @@ private fun OnboardingIllustrationStep3() {
             }
         }
 
-        // Tarjeta inclinada de WhatsApp (-3deg)
-        Box(
+        Column(
             modifier = Modifier
-                .offset(x = 34.dp, y = 30.dp)
-                .width(236.dp)
-                .rotate(-3f)
-                .shadow(elevation = 16.dp, shape = RoundedCornerShape(24.dp), spotColor = Color(0x40AA46A0))
-                .clip(RoundedCornerShape(24.dp))
-                .background(Color.White)
-                .padding(16.dp),
+                .fillMaxWidth()
+                .padding(top = 20.dp, bottom = 6.dp, start = 24.dp, end = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Column {
-                    BasicText(
-                        text = "Tu lista",
-                        style = LocalRfTypography.current.sheetOrEmptyTitle.copy(fontSize = 17.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF1A1A2E)),
-                    )
-                    BasicText(
-                        text = "Boda Real Rosa & Dorado",
-                        style = LocalRfTypography.current.secondary.copy(fontSize = 12.sp, color = Color(0xFF62627A)),
-                    )
-                }
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    RfPhoto(
-                        photoKey = RfPhotoKey.SILLA_TIFFANY,
-                        contentDescription = "Sillas Tiffany",
-                        cornerRadius = 10.dp,
-                        modifier = Modifier.size(40.dp),
-                    )
-                    BasicText("Sillas Tiffany", style = LocalRfTypography.current.body.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A2E)), modifier = Modifier.weight(1f))
-                    BasicText("×40", style = LocalRfTypography.current.secondary.copy(fontSize = 13.sp, color = Color(0xFF62627A)))
-                }
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    RfPhoto(
-                        photoKey = RfPhotoKey.ARCO_ROSA,
-                        contentDescription = "Arco de globos",
-                        cornerRadius = 10.dp,
-                        modifier = Modifier.size(40.dp),
-                    )
-                    BasicText("Arco de globos", style = LocalRfTypography.current.body.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A2E)), modifier = Modifier.weight(1f))
-                    BasicText("×1", style = LocalRfTypography.current.secondary.copy(fontSize = 13.sp, color = Color(0xFF62627A)))
-                }
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    RfPhoto(
-                        photoKey = RfPhotoKey.CENTRO_FLORAL,
-                        contentDescription = "Centros de mesa",
-                        cornerRadius = 10.dp,
-                        modifier = Modifier.size(40.dp),
-                    )
-                    BasicText("Centros de mesa", style = LocalRfTypography.current.body.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A2E)), modifier = Modifier.weight(1f))
-                    BasicText("×8", style = LocalRfTypography.current.secondary.copy(fontSize = 13.sp, color = Color(0xFF62627A)))
-                }
-
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(42.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Color(0xFF2E9E5B)),
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        RfIcon(kind = RfIconKind.WHATSAPP, tint = Color.White, size = 18.dp)
+            Box(
+                modifier = Modifier
+                    .width(236.dp)
+                    .rotate(-3f)
+                    .shadow(elevation = 16.dp, shape = RoundedCornerShape(24.dp), spotColor = Color(0x40AA46A0))
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(Color.White)
+                    .padding(16.dp),
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Column {
                         BasicText(
-                            text = "Enviar por WhatsApp",
-                            style = LocalRfTypography.current.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White),
+                            text = "Tu lista",
+                            style = LocalRfTypography.current.sheetOrEmptyTitle.copy(fontSize = 17.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF1A1A2E)),
                         )
+                        BasicText(
+                            text = "Boda Real Rosa & Dorado",
+                            style = LocalRfTypography.current.secondary.copy(fontSize = 12.sp, color = Color(0xFF62627A)),
+                        )
+                    }
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        RfPhoto(
+                            photoKey = RfPhotoKey.SILLA_TIFFANY,
+                            contentDescription = "Sillas Tiffany",
+                            cornerRadius = 10.dp,
+                            modifier = Modifier.size(38.dp),
+                        )
+                        BasicText("Sillas Tiffany", style = LocalRfTypography.current.body.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A2E)), modifier = Modifier.weight(1f))
+                        BasicText("×40", style = LocalRfTypography.current.secondary.copy(fontSize = 13.sp, color = Color(0xFF62627A)))
+                    }
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        RfPhoto(
+                            photoKey = RfPhotoKey.ARCO_ROSA,
+                            contentDescription = "Arco de globos",
+                            cornerRadius = 10.dp,
+                            modifier = Modifier.size(38.dp),
+                        )
+                        BasicText("Arco de globos", style = LocalRfTypography.current.body.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A2E)), modifier = Modifier.weight(1f))
+                        BasicText("×1", style = LocalRfTypography.current.secondary.copy(fontSize = 13.sp, color = Color(0xFF62627A)))
+                    }
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        RfPhoto(
+                            photoKey = RfPhotoKey.CENTRO_FLORAL,
+                            contentDescription = "Centros de mesa",
+                            cornerRadius = 10.dp,
+                            modifier = Modifier.size(38.dp),
+                        )
+                        BasicText("Centros de mesa", style = LocalRfTypography.current.body.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A2E)), modifier = Modifier.weight(1f))
+                        BasicText("×8", style = LocalRfTypography.current.secondary.copy(fontSize = 13.sp, color = Color(0xFF62627A)))
+                    }
+
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(40.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color(0xFF2E9E5B)),
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            RfIcon(kind = RfIconKind.WHATSAPP, tint = Color.White, size = 18.dp)
+                            BasicText(
+                                text = "Enviar por WhatsApp",
+                                style = LocalRfTypography.current.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White),
+                            )
+                        }
                     }
                 }
             }
-        }
 
-        // Burbuja de confirmación solapada (right: 8dp, top: 288dp)
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .offset(x = (-8).dp, y = 288.dp)
-                .shadow(elevation = 14.dp, shape = RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomEnd = 6.dp, bottomStart = 18.dp), spotColor = Color(0x40AA46A0))
-                .clip(RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomEnd = 6.dp, bottomStart = 18.dp))
-                .background(Color.White)
-                .padding(start = 10.dp, end = 14.dp, top = 10.dp, bottom = 10.dp),
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFFEEF6D6)),
-                ) {
-                    BasicText(
-                        text = "M",
-                        style = LocalRfTypography.current.body.copy(fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF4E6A10)),
-                    )
-                }
-                Column {
-                    BasicText(
-                        text = "María · Rosa Fiesta",
-                        style = LocalRfTypography.current.secondary.copy(fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF4E6A10)),
-                    )
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.End)
+                    .shadow(elevation = 14.dp, shape = RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomEnd = 6.dp, bottomStart = 18.dp), spotColor = Color(0x40AA46A0))
+                    .clip(RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomEnd = 6.dp, bottomStart = 18.dp))
+                    .background(Color.White)
+                    .padding(start = 10.dp, end = 14.dp, top = 10.dp, bottom = 10.dp),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFEEF6D6)),
+                    ) {
                         BasicText(
-                            text = "¡Todo confirmado!",
-                            style = LocalRfTypography.current.body.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A2E)),
+                            text = "M",
+                            style = LocalRfTypography.current.body.copy(fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF4E6A10)),
                         )
-                        RfIcon(kind = RfIconKind.CHECK, tint = Color(0xFF8DB52C), size = 16.dp)
+                    }
+                    Column {
+                        BasicText(
+                            text = "María · Rosa Fiesta",
+                            style = LocalRfTypography.current.secondary.copy(fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF4E6A10)),
+                        )
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            BasicText(
+                                text = "¡Todo confirmado!",
+                                style = LocalRfTypography.current.body.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A2E)),
+                            )
+                            RfIcon(kind = RfIconKind.CHECK, tint = Color(0xFF8DB52C), size = 16.dp)
+                        }
                     }
                 }
             }
