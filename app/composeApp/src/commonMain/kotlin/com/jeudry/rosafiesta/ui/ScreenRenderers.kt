@@ -112,7 +112,7 @@ public fun RenderAppBottomBar(
                     PersonalTab.CATALOGO -> onSelectScreenCode(if (guestMode) "s01" else "s18")
                     PersonalTab.ROSA -> onSelectScreenCode(if (guestMode) "s75" else "s26")
                     PersonalTab.EVENTOS -> onSelectScreenCode("s37")
-                    PersonalTab.FAVORITOS -> onSelectScreenCode("s24")
+                    PersonalTab.FAVORITOS -> onSelectScreenCode(if (guestMode) "s02" else "s24")
                     PersonalTab.PAQUETES -> onSelectScreenCode("s21")
                     PersonalTab.ENTRAR -> onSelectScreenCode("s07")
                 }

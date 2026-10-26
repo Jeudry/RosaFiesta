@@ -1838,7 +1838,7 @@ internal fun RenderInventoryCalendarS63(onSelectScreenCode: (String) -> Unit = {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                ReportIconButton(RfIconKind.BACK) { onSelectScreenCode("BACK:s14") }
+                ReportIconButton(RfIconKind.BACK) { onSelectScreenCode("BACK:A12") }
                 BasicText(
                     "Disponibilidad",
                     modifier = Modifier.weight(1f),
@@ -2106,7 +2106,7 @@ private fun LeadsScaffold(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                ReportIconButton(RfIconKind.BACK) { onSelectScreenCode("BACK:s14") }
+                ReportIconButton(RfIconKind.BACK) { onSelectScreenCode("BACK:A12") }
                 BasicText(
                     "Leads",
                     modifier = Modifier.weight(1f),
@@ -3022,7 +3022,7 @@ private fun AdminSubScaffold(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                ReportIconButton(RfIconKind.BACK) { onSelectScreenCode("BACK:s14") }
+                ReportIconButton(RfIconKind.BACK) { onSelectScreenCode("BACK:A12") }
                 BasicText(
                     title,
                     modifier = Modifier.weight(1f),
@@ -3114,7 +3114,7 @@ internal fun RenderReviewModerationS71(onSelectScreenCode: (String) -> Unit = {}
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                ReportIconButton(RfIconKind.BACK) { onSelectScreenCode("BACK:s14") }
+                ReportIconButton(RfIconKind.BACK) { onSelectScreenCode("BACK:A12") }
                 BasicText(
                     "Reseñas",
                     modifier = Modifier.weight(1f),
@@ -3143,8 +3143,11 @@ internal fun RenderReviewModerationS71(onSelectScreenCode: (String) -> Unit = {}
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                val isRicardoRejected = ricardoStatus == "REJECTED"
-                if (!isRicardoRejected) {
+                val showRicardo = when (selectedFilter) {
+                    "Rechazadas" -> ricardoStatus == "REJECTED"
+                    else -> ricardoStatus != "REJECTED"
+                }
+                if (showRicardo) {
                     ReviewCard71(
                         initial = "R",
                         avatarBackground = Color(0xFFEFE8FD),
@@ -3154,19 +3157,23 @@ internal fun RenderReviewModerationS71(onSelectScreenCode: (String) -> Unit = {}
                         body = "¡Superó todas nuestras expectativas! El arco orgánico y las mesas imperiales lucieron espectaculares.",
                         response = if (ricardoStatus == "PENDING") "¡Gracias, Ricardo! Fue un honor acompañarles en su gala." else null,
                         verified = ricardoStatus == "VERIFIED",
+                        onEditResponse = { onSelectScreenCode("A34") },
                         onReject = { ricardoStatus = "REJECTED" },
                         onVerify = { ricardoStatus = "VERIFIED" },
                     )
                 }
-                ReviewCard71(
-                    initial = "S",
-                    avatarBackground = Color(0xFFECEBFF),
-                    avatarTint = Color(0xFF4B47D6),
-                    name = "Sofía Hernández",
-                    event = "Quinceañero Primaveral · 19 oct",
-                    body = "Puntualidad impecable y mobiliario en perfecto estado. Recomendados al 100%.",
-                    verified = true,
-                )
+                val showSofia = selectedFilter != "Rechazadas"
+                if (showSofia) {
+                    ReviewCard71(
+                        initial = "S",
+                        avatarBackground = Color(0xFFECEBFF),
+                        avatarTint = Color(0xFF4B47D6),
+                        name = "Sofía Hernández",
+                        event = "Quinceañero Primaveral · 19 oct",
+                        body = "Puntualidad impecable y mobiliario en perfecto estado. Recomendados al 100%.",
+                        verified = true,
+                    )
+                }
             }
             Spacer(Modifier.height(30.dp))
         }
@@ -3245,6 +3252,7 @@ private fun ReviewCard71(
     body: String,
     response: String? = null,
     verified: Boolean = false,
+    onEditResponse: () -> Unit = {},
     onReject: () -> Unit = {},
     onVerify: () -> Unit = {},
 ) {
@@ -3286,6 +3294,7 @@ private fun ReviewCard71(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(14.dp))
                     .background(Color(0xFFF6F6FB))
+                    .clickable(onClick = onEditResponse)
                     .padding(horizontal = 12.dp, vertical = 10.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
@@ -3394,7 +3403,7 @@ private fun BotScaffold(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                ReportIconButton(RfIconKind.BACK) { onSelectScreenCode("BACK:s14") }
+                ReportIconButton(RfIconKind.BACK) { onSelectScreenCode("BACK:A12") }
                 Column(modifier = Modifier.weight(1f)) {
                     BasicText(
                         "Bot de WhatsApp",
@@ -3696,7 +3705,7 @@ private fun AdminPanelScaffold(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                ReportIconButton(RfIconKind.BACK) { onSelectScreenCode("BACK:s14") }
+                ReportIconButton(RfIconKind.BACK) { onSelectScreenCode("BACK:A12") }
                 BasicText(
                     "Panel",
                     modifier = Modifier.weight(1f),
@@ -3964,7 +3973,7 @@ internal fun RenderClientsAnalyticsS62(onSelectScreenCode: (String) -> Unit = {}
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(22.dp))
                 .background(Color(0xFFFFF2C9))
-                .clickable { onSelectScreenCode("s40") }
+                .clickable { onSelectScreenCode("A13") }
                 .padding(14.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp),
@@ -3992,9 +4001,9 @@ internal fun RenderClientsAnalyticsS62(onSelectScreenCode: (String) -> Unit = {}
                 .background(Color.White)
                 .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(22.dp)),
         ) {
-            ClientActionRow62("Eventos del cliente", RfIconKind.CALENDAR, Color(0xFFEFE8FD), Color(0xFF7A4FD8), badge = "3", divider = false, onClick = { onSelectScreenCode("s37") })
+            ClientActionRow62("Eventos del cliente", RfIconKind.CALENDAR, Color(0xFFEFE8FD), Color(0xFF7A4FD8), badge = "3", divider = false, onClick = { onSelectScreenCode("A11") })
             ClientActionRow62("Pagos", RfIconKind.WALLET, Color(0xFFEEF6D6), Color(0xFF4E6A10), divider = true, onClick = { onSelectScreenCode("s59") })
-            ClientActionRow62("Notificaciones", RfIconKind.BELL, Color(0xFFDDF4F3), Color(0xFF1F8A84), divider = true, onClick = { onSelectScreenCode("s79") })
+            ClientActionRow62("Notificaciones", RfIconKind.BELL, Color(0xFFDDF4F3), Color(0xFF1F8A84), divider = true, onClick = { onSelectScreenCode("A29") })
         }
     }
 }

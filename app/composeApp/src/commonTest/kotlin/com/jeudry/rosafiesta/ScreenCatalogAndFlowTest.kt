@@ -304,4 +304,30 @@ class ScreenCatalogAndFlowTest {
         onNodeWithText("20%").assertExists()
         onNodeWithText("RD$ 800").assertExists()
     }
+
+    @Test
+    fun `Navigator rompe ciclos en pila de regreso y reemplaza pestanas hermanas sin duplicar backStack`() {
+        val nav = Navigator(initialAppView = AppView.PERSONAL, initialScreenCode = "s14")
+        nav.navigateTo("s37")
+        nav.navigateTo("s40")
+        nav.navigateTo("s43")
+
+        nav.navigateTo("s40")
+        assertEquals("s40", nav.currentCode)
+        assertTrue(nav.popBack())
+        assertEquals("s37", nav.currentCode)
+        assertTrue(nav.popBack())
+        assertEquals("s14", nav.currentCode)
+        assertFalse(nav.canGoBack)
+
+        val adminNav = Navigator(initialAppView = AppView.ADMIN, initialScreenCode = "A12")
+        adminNav.navigateTo("s58")
+        adminNav.navigateTo("s59")
+        adminNav.navigateTo("s62")
+        assertEquals("s62", adminNav.currentCode)
+
+        assertTrue(adminNav.popBack())
+        assertEquals("A12", adminNav.currentCode)
+        assertFalse(adminNav.canGoBack)
+    }
 }

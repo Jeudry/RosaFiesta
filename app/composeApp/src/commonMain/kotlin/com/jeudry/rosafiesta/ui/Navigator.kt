@@ -67,6 +67,19 @@ public class Navigator(
             return
         }
         if (code == currentCode) return
+        val existingBackIndex = backStack.indexOf(code)
+        if (existingBackIndex >= 0) {
+            backStack.removeRange(existingBackIndex, backStack.size)
+            lastTransition = NavigationTransitionKind.BACKWARD
+            currentCode = code
+            return
+        }
+        val isSiblingTabSwitch = isSameSiblingTabGroup(currentCode, code)
+        if (isSiblingTabSwitch) {
+            lastTransition = NavigationTransitionKind.TAB_SWITCH
+            currentCode = code
+            return
+        }
         val isModalSheet = ScreenCatalog.isBottomSheet(code)
         val isRootTab = code in ROOT_TAB_CODES
         lastTransition = when {
@@ -115,8 +128,22 @@ public class Navigator(
         navigateTo(next)
     }
 
+    private fun isSameSiblingTabGroup(firstCode: String, secondCode: String): Boolean = SIBLING_TAB_GROUPS.any { group ->
+        val hasFirst = firstCode in group
+        val hasSecond = secondCode in group
+        if (hasFirst) hasSecond else false
+    }
+
     private companion object {
         val HOME_TAB_CODES = setOf("s01", "s14", "s15", "A01")
-        val ROOT_TAB_CODES = setOf("s01", "s14", "s15", "s18", "s21", "s24", "s26", "s37", "A01", "A08", "A09", "A11", "A12")
+        val ROOT_TAB_CODES = setOf("s01", "s02", "s14", "s15", "s18", "s21", "s24", "s26", "s37", "A01", "A08", "A09", "A11", "A12")
+        val SIBLING_TAB_GROUPS = listOf(
+            setOf("s40", "s41"),
+            setOf("s84", "s85"),
+            setOf("s58", "s59", "s60", "s61", "s62"),
+            setOf("s64", "s65", "s66"),
+            setOf("s67", "s68", "s69", "s70"),
+            setOf("s72", "s73", "s74"),
+        )
     }
 }

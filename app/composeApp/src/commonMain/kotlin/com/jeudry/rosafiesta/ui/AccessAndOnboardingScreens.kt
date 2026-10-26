@@ -3358,12 +3358,35 @@ private fun EventActiveItemRow(
 // s01 · CATÁLOGO (MODO INVITADO)
 // ==============================================================================
 
+private data class GuestCatalogItem(
+    val title: String,
+    val desc: String,
+    val price: String,
+    val category: String,
+    val photoKey: RfPhotoKey,
+    val bg: Color,
+)
+
 @Composable
 internal fun RenderGuestCatalogS01(
     onSelectScreenCode: (String) -> Unit,
 ) {
     val typo = LocalRfTypography.current
     var selectedCategory by remember { mutableStateOf("Todas") }
+    var searchQuery by remember { mutableStateOf("") }
+    val allGuestProducts = remember {
+        listOf(
+            GuestCatalogItem("Silla Tiffany Cristal", "Acrílica transparente", "RD$ 4", "Mobiliario", RfPhotoKey.SILLA_TIFFANY, Color(0xFFEFE8FD)),
+            GuestCatalogItem("Arco Orgánico Rosa", "3 metros · personalizable", "RD$ 95", "Globos", RfPhotoKey.ARCO_ROSA, Color(0xFFFDE6F2)),
+            GuestCatalogItem("Mesa de Postres Completa", "Incluye bases y mantel", "RD$ 150", "Mobiliario", RfPhotoKey.MESA_HELADOS, Color(0xFFEEF6D6)),
+            GuestCatalogItem("Centro Floral Silvestre", "Flores frescas de temporada", "RD$ 45", "Floral", RfPhotoKey.CENTRO_FLORAL, Color(0xFFFFF2C9)),
+        )
+    }
+    val filteredProducts = allGuestProducts.filter { item ->
+        val matchesCategory = if (selectedCategory == "Todas") true else item.category == selectedCategory
+        val matchesQuery = if (searchQuery.isBlank()) true else item.title.contains(searchQuery, ignoreCase = true)
+        if (matchesCategory) matchesQuery else false
+    }
 
     Box(
         modifier = Modifier
@@ -3392,7 +3415,6 @@ internal fun RenderGuestCatalogS01(
                 .verticalScroll(rememberScrollState())
                 .padding(top = 58.dp, start = 20.dp, end = 20.dp, bottom = 116.dp),
         ) {
-            // Encabezado: Título + Botón de filtros
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -3414,7 +3436,8 @@ internal fun RenderGuestCatalogS01(
                         .shadow(elevation = 8.dp, shape = CircleShape, spotColor = Color(0x66B450B4))
                         .clip(CircleShape)
                         .background(Color.White)
-                        .border(1.dp, Color(0xFFF0EBF4), CircleShape),
+                        .border(1.dp, Color(0xFFF0EBF4), CircleShape)
+                        .clickable { onSelectScreenCode("s75") },
                 ) {
                     RfIcon(kind = RfIconKind.FILTER, tint = Color(0xFF1A1A2E), size = 22.dp)
                 }
@@ -3422,7 +3445,6 @@ internal fun RenderGuestCatalogS01(
 
             Spacer(Modifier.height(16.dp))
 
-            // Barra de búsqueda con micrófono (height 54dp, radius 16dp)
             Box(
                 contentAlignment = Alignment.CenterStart,
                 modifier = Modifier
@@ -3445,17 +3467,29 @@ internal fun RenderGuestCatalogS01(
                         modifier = Modifier.weight(1f),
                     ) {
                         RfIcon(kind = RfIconKind.SEARCH, tint = Color(0xFF62627A), size = 20.dp)
-                        BasicText(
-                            "Buscar sillas, mesas, flores…",
-                            style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF62627A)),
-                        )
+                        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                            if (searchQuery.isEmpty()) {
+                                BasicText(
+                                    "Buscar sillas, mesas, flores…",
+                                    style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF62627A)),
+                                )
+                            }
+                            BasicTextField(
+                                value = searchQuery,
+                                onValueChange = { updatedQuery -> searchQuery = updatedQuery },
+                                singleLine = true,
+                                textStyle = typo.body.copy(fontSize = 15.sp, color = Color(0xFF1A1A2E)),
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
                     }
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
                             .size(42.dp)
                             .clip(RoundedCornerShape(12.dp))
-                            .background(Color(0xFFFDE6F2)),
+                            .background(Color(0xFFFDE6F2))
+                            .clickable { onSelectScreenCode("s75") },
                     ) {
                         RfIcon(kind = RfIconKind.MIC, tint = Color(0xFFC2338F), size = 20.dp)
                     }
@@ -3464,7 +3498,6 @@ internal fun RenderGuestCatalogS01(
 
             Spacer(Modifier.height(16.dp))
 
-            // Chips horizontales (height 38dp)
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier
@@ -3505,7 +3538,6 @@ internal fun RenderGuestCatalogS01(
 
             Spacer(Modifier.height(16.dp))
 
-            // Conteo y orden (height 32dp)
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -3523,43 +3555,24 @@ internal fun RenderGuestCatalogS01(
 
             Spacer(Modifier.height(16.dp))
 
-            // Grid 2x2 de productos canónicos
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                    GuestProductCard(
-                        title = "Silla Tiffany Cristal",
-                        desc = "Acrílica transparente",
-                        price = "RD$ 4",
-                        photoKey = RfPhotoKey.SILLA_TIFFANY,
-                        bg = Color(0xFFEFE8FD),
-                        modifier = Modifier.weight(1f),
-                    )
-                    GuestProductCard(
-                        title = "Arco Orgánico Rosa",
-                        desc = "3 metros · personalizable",
-                        price = "RD$ 95",
-                        photoKey = RfPhotoKey.ARCO_ROSA,
-                        bg = Color(0xFFFDE6F2),
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                    GuestProductCard(
-                        title = "Mesa de Postres Completa",
-                        desc = "Incluye bases y mantel",
-                        price = "RD$ 150",
-                        photoKey = RfPhotoKey.MESA_HELADOS,
-                        bg = Color(0xFFEEF6D6),
-                        modifier = Modifier.weight(1f),
-                    )
-                    GuestProductCard(
-                        title = "Centro Floral Silvestre",
-                        desc = "Flores frescas de temporada",
-                        price = "RD$ 45",
-                        photoKey = RfPhotoKey.CENTRO_FLORAL,
-                        bg = Color(0xFFFFF2C9),
-                        modifier = Modifier.weight(1f),
-                    )
+                filteredProducts.chunked(2).forEach { rowItems ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                        rowItems.forEach { product ->
+                            GuestProductCard(
+                                title = product.title,
+                                desc = product.desc,
+                                price = product.price,
+                                photoKey = product.photoKey,
+                                bg = product.bg,
+                                onClick = { onSelectScreenCode("s75") },
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                        if (rowItems.size == 1) {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
+                    }
                 }
                 Spacer(Modifier.height(110.dp))
             }
@@ -3574,6 +3587,7 @@ private fun GuestProductCard(
     price: String,
     photoKey: RfPhotoKey,
     bg: Color,
+    onClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val typo = LocalRfTypography.current
@@ -3582,7 +3596,8 @@ private fun GuestProductCard(
             .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
             .clip(RoundedCornerShape(20.dp))
             .background(Color.White)
-            .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(20.dp)),
+            .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(20.dp))
+            .clickable { onClick() },
     ) {
         Column {
             Box(

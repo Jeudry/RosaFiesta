@@ -22,6 +22,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -38,6 +39,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
@@ -861,7 +863,8 @@ internal fun RenderEventDetailScreenS40(
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(Color.White)
-                        .border(1.dp, Color(0xFFEEEAF2), CircleShape),
+                        .border(1.dp, Color(0xFFEEEAF2), CircleShape)
+                        .clickable { onSelectScreenCode("s83") },
                     contentAlignment = Alignment.Center,
                 ) {
                     RfIcon(kind = RfIconKind.DOWNLOAD, tint = Color(0xFF1A1A2E), size = 20.dp)
@@ -1346,6 +1349,13 @@ internal fun RenderExecutionModeScreenS43(
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
+    var task1Done by remember { mutableStateOf(true) }
+    var task2Done by remember { mutableStateOf(true) }
+    var task3Done by remember { mutableStateOf(false) }
+    var task4Done by remember { mutableStateOf(false) }
+    val completedBase = listOf(task1Done, task2Done, task3Done, task4Done).count { isDone -> isDone } + 1
+    val progressFraction = (completedBase.toFloat() / 8f).coerceIn(0f, 1f)
+    val progressPercent = (progressFraction * 100).toInt()
 
     Box(
         modifier = Modifier
@@ -1372,7 +1382,7 @@ internal fun RenderExecutionModeScreenS43(
                                 .size(44.dp)
                                 .clip(CircleShape)
                                 .background(Color.White.copy(alpha = 0.18f))
-                                .clickable { onSelectScreenCode("s40") },
+                                .clickable { onSelectScreenCode("BACK:s40") },
                             contentAlignment = Alignment.Center,
                         ) {
                             RfIcon(kind = RfIconKind.CLOSE, tint = Color.White, size = 22.dp)
@@ -1419,7 +1429,7 @@ internal fun RenderExecutionModeScreenS43(
                                 drawArc(
                                     color = Color(0xFFFFD45C),
                                     startAngle = -90f,
-                                    sweepAngle = 360f * 0.37f,
+                                    sweepAngle = 360f * progressFraction,
                                     useCenter = false,
                                     style = androidx.compose.ui.graphics.drawscope.Stroke(
                                         width = stroke,
@@ -1433,7 +1443,7 @@ internal fun RenderExecutionModeScreenS43(
                                 )
                             }
                             BasicText(
-                                text = "37%",
+                                text = "$progressPercent%",
                                 style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, color = Color.White, fontSize = 18.sp),
                             )
                         }
@@ -1445,7 +1455,7 @@ internal fun RenderExecutionModeScreenS43(
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             BasicText(
-                                text = "Boda Real Rosa & Dorado · 3 de 8 tareas",
+                                text = "Boda Real Rosa & Dorado · $completedBase de 8 tareas",
                                 style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFFF6EAFB), fontSize = 14.sp),
                             )
                         }
@@ -1463,22 +1473,26 @@ internal fun RenderExecutionModeScreenS43(
                 ExecutionTaskRow43(
                     title = "Confirmar paleta floral blanco y rosa pastel",
                     subtitle = "Revisión final con la florista principal",
-                    completed = true,
+                    completed = task1Done,
+                    onClick = { task1Done = !task1Done },
                 )
                 ExecutionTaskRow43(
                     title = "Aprobar plano de mesas imperial y sillas Tiffany",
                     subtitle = "Distribución para 120 invitados en el jardín central",
-                    completed = true,
+                    completed = task2Done,
+                    onClick = { task2Done = !task2Done },
                 )
                 ExecutionTaskRow43(
                     title = "Realizar pago inicial de reserva (30%)",
                     subtitle = "Transferencia o tarjeta desde el portal Rosa Fiesta",
-                    completed = false,
+                    completed = task3Done,
+                    onClick = { task3Done = !task3Done },
                 )
                 ExecutionTaskRow43(
                     title = "Inspección técnica de iluminación exterior",
                     subtitle = "Coordinar generador y guirnaldas cálidas",
-                    completed = false,
+                    completed = task4Done,
+                    onClick = { task4Done = !task4Done },
                 )
 
                 Spacer(modifier = Modifier.height(20.dp))
@@ -1492,6 +1506,7 @@ private fun ExecutionTaskRow43(
     title: String,
     subtitle: String,
     completed: Boolean,
+    onClick: () -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
 
@@ -1502,6 +1517,7 @@ private fun ExecutionTaskRow43(
             .clip(RoundedCornerShape(20.dp))
             .background(if (completed) Color(0xFFF6F4F9) else Color.White)
             .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(20.dp))
+            .clickable(onClick = onClick)
             .padding(16.dp),
         horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
@@ -1579,6 +1595,7 @@ internal fun RenderTimelineScreenS44(
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
+    var extraTimelineItems by remember { mutableStateOf(emptyList<TimelineItem44>()) }
 
     RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -1632,7 +1649,18 @@ internal fun RenderTimelineScreenS44(
                         .size(44.dp)
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
-                        .background(RosaButtonGradient),
+                        .background(RosaButtonGradient)
+                        .clickable {
+                            val nextIndex = extraTimelineItems.size + 1
+                            extraTimelineItems = extraTimelineItems + TimelineItem44(
+                                start = "22:00",
+                                end = "23:30",
+                                dotColor = Color(0xFF8DB52C),
+                                ringColor = Color(0xFFEEF6D6),
+                                title = "Desmontaje y retorno a bodega #$nextIndex",
+                                subtitle = "Conteo de 145 piezas con el equipo de Pedro",
+                            )
+                        },
                     contentAlignment = Alignment.Center,
                 ) {
                     RfIcon(kind = RfIconKind.PLUS, tint = Color.White, size = 22.dp)
@@ -1672,7 +1700,7 @@ internal fun RenderTimelineScreenS44(
                     title = "Recepción de invitados",
                     subtitle = "Cóctel de bienvenida en el área de la terraza",
                 ),
-            )
+            ) + extraTimelineItems
 
             Column(modifier = Modifier.fillMaxWidth()) {
                 timelineItems.forEachIndexed { index, item ->
@@ -1770,11 +1798,34 @@ private fun TimelineRow44(item: TimelineItem44, isLast: Boolean) {
 // ==============================================================================
 // s45 · TAREAS
 // ==============================================================================
+private data class EventTaskRowState(
+    val title: String,
+    val badgeText: String,
+    val isUrgent: Boolean,
+    val completed: Boolean,
+)
+
 @Composable
 internal fun RenderTasksScreenS45(
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
+    var taskItems by remember {
+        mutableStateOf(
+            listOf(
+                EventTaskRowState("Realizar pago inicial de reserva (30%)", "Vence hoy", true, false),
+                EventTaskRowState("Inspección técnica de iluminación exterior", "Mañana", false, false),
+                EventTaskRowState("Confirmar paleta floral blanco y rosa pastel", "18 oct", false, true),
+                EventTaskRowState("Aprobar plano de mesas imperial y sillas Tiffany", "15 oct", false, true),
+            ),
+        )
+    }
+    val completedCount = taskItems.count { taskItem -> taskItem.completed }
+    val totalCount = taskItems.size.coerceAtLeast(1)
+    val completionFraction = completedCount.toFloat() / totalCount.toFloat()
+    val completionPercent = (completionFraction * 100f).toInt()
+    val pendingTasks = taskItems.filter { taskItem -> !taskItem.completed }
+    val completedTasks = taskItems.filter { taskItem -> taskItem.completed }
 
     RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -1784,7 +1835,6 @@ internal fun RenderTasksScreenS45(
                 .padding(start = 20.dp, end = 20.dp, top = 56.dp, bottom = 30.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
-            // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -1828,14 +1878,24 @@ internal fun RenderTasksScreenS45(
                         .size(44.dp)
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
-                        .background(RosaButtonGradient),
+                        .background(RosaButtonGradient)
+                        .clickable {
+                            val nextIndex = taskItems.size + 1
+                            taskItems = listOf(
+                                EventTaskRowState(
+                                    title = "Nueva tarea de coordinación #$nextIndex",
+                                    badgeText = "Pendiente",
+                                    isUrgent = false,
+                                    completed = false,
+                                ),
+                            ) + taskItems
+                        },
                     contentAlignment = Alignment.Center,
                 ) {
                     RfIcon(kind = RfIconKind.PLUS, tint = Color.White, size = 22.dp)
                 }
             }
 
-            // Progress Summary Section
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1853,16 +1913,16 @@ internal fun RenderTasksScreenS45(
                     ) {
                         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                             BasicText(
-                                text = "2",
+                                text = "$completedCount",
                                 style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 26.sp, color = Color(0xFF1A1A2E)),
                             )
                             BasicText(
-                                text = "de 4 hechas",
+                                text = "de ${taskItems.size} hechas",
                                 style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = Color(0xFF62627A)),
                             )
                         }
                         BasicText(
-                            text = "50%",
+                            text = "$completionPercent%",
                             style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF4E6A10)),
                         )
                     }
@@ -1876,7 +1936,7 @@ internal fun RenderTasksScreenS45(
                     ) {
                         Box(
                             modifier = Modifier
-                                .fillMaxWidth(0.5f)
+                                .fillMaxWidth(completionFraction)
                                 .height(8.dp)
                                 .clip(RoundedCornerShape(4.dp))
                                 .background(Color(0xFF8DB52C)),
@@ -1885,7 +1945,6 @@ internal fun RenderTasksScreenS45(
                 }
             }
 
-            // Caption: PENDIENTES
             BasicText(
                 text = "PENDIENTES",
                 style = TextStyle(
@@ -1897,7 +1956,6 @@ internal fun RenderTasksScreenS45(
                 ),
             )
 
-            // Section: Pendientes
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1908,79 +1966,59 @@ internal fun RenderTasksScreenS45(
                     .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(22.dp)),
             ) {
                 Column {
-                    // Task 1
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 14.dp),
-                        horizontalArrangement = Arrangement.spacedBy(14.dp),
-                        verticalAlignment = Alignment.Top,
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .padding(top = 1.dp)
-                                .size(26.dp)
-                                .clip(CircleShape)
-                                .background(Color.White)
-                                .border(2.dp, Color(0xFFCDBFCB), CircleShape),
-                        )
-                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            BasicText(
-                                text = "Realizar pago inicial de reserva (30%)",
-                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, lineHeight = 21.sp, color = Color(0xFF1A1A2E)),
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .height(24.dp)
-                                    .clip(CircleShape)
-                                    .background(Color(0xFFFFF2C9))
-                                    .padding(horizontal = 9.dp),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                BasicText("Vence hoy", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF7A5700)))
-                            }
+                    pendingTasks.forEachIndexed { index, taskItem ->
+                        if (index > 0) {
+                            Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFF2F0F5)))
                         }
-                    }
-
-                    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFF2F0F5)))
-
-                    // Task 2
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 14.dp),
-                        horizontalArrangement = Arrangement.spacedBy(14.dp),
-                        verticalAlignment = Alignment.Top,
-                    ) {
-                        Box(
+                        Row(
                             modifier = Modifier
-                                .padding(top = 1.dp)
-                                .size(26.dp)
-                                .clip(CircleShape)
-                                .background(Color.White)
-                                .border(2.dp, Color(0xFFCDBFCB), CircleShape),
-                        )
-                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            BasicText(
-                                text = "Inspección técnica de iluminación exterior",
-                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, lineHeight = 21.sp, color = Color(0xFF1A1A2E)),
-                            )
+                                .fillMaxWidth()
+                                .clickable {
+                                    taskItems = taskItems.map { current ->
+                                        if (current.title == taskItem.title) current.copy(completed = true) else current
+                                    }
+                                }
+                                .padding(horizontal = 16.dp, vertical = 14.dp),
+                            horizontalArrangement = Arrangement.spacedBy(14.dp),
+                            verticalAlignment = Alignment.Top,
+                        ) {
                             Box(
                                 modifier = Modifier
-                                    .height(24.dp)
+                                    .padding(top = 1.dp)
+                                    .size(26.dp)
                                     .clip(CircleShape)
-                                    .background(Color(0xFFF1EFF5))
-                                    .padding(horizontal = 9.dp),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                BasicText("Mañana", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF62627A)))
+                                    .background(Color.White)
+                                    .border(2.dp, Color(0xFFCDBFCB), CircleShape),
+                            )
+                            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                BasicText(
+                                    text = taskItem.title,
+                                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, lineHeight = 21.sp, color = Color(0xFF1A1A2E)),
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .height(24.dp)
+                                        .clip(CircleShape)
+                                        .background(if (taskItem.isUrgent) Color(0xFFFFF2C9) else Color(0xFFF1EFF5))
+                                        .padding(horizontal = 9.dp),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    BasicText(
+                                        taskItem.badgeText,
+                                        style = TextStyle(
+                                            fontFamily = typo.bodyFamily,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 12.sp,
+                                            color = if (taskItem.isUrgent) Color(0xFF7A5700) else Color(0xFF62627A),
+                                        ),
+                                    )
+                                }
                             }
                         }
                     }
                 }
             }
 
-            // Caption: COMPLETADAS
             BasicText(
                 text = "COMPLETADAS",
                 style = TextStyle(
@@ -1992,7 +2030,6 @@ internal fun RenderTasksScreenS45(
                 ),
             )
 
-            // Section: Completadas
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -2002,79 +2039,49 @@ internal fun RenderTasksScreenS45(
                     .border(1.dp, Color(0xFFEDE4EA), RoundedCornerShape(22.dp)),
             ) {
                 Column {
-                    // Completed 1
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 14.dp),
-                        horizontalArrangement = Arrangement.spacedBy(14.dp),
-                        verticalAlignment = Alignment.Top,
-                    ) {
-                        Box(
+                    completedTasks.forEachIndexed { index, taskItem ->
+                        if (index > 0) {
+                            Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFEDE4EA)))
+                        }
+                        Row(
                             modifier = Modifier
-                                .padding(top = 1.dp)
-                                .size(26.dp)
-                                .clip(CircleShape)
-                                .background(Color(0xFF8DB52C)),
-                            contentAlignment = Alignment.Center,
+                                .fillMaxWidth()
+                                .clickable {
+                                    taskItems = taskItems.map { current ->
+                                        if (current.title == taskItem.title) current.copy(completed = false) else current
+                                    }
+                                }
+                                .padding(horizontal = 16.dp, vertical = 14.dp),
+                            horizontalArrangement = Arrangement.spacedBy(14.dp),
+                            verticalAlignment = Alignment.Top,
                         ) {
-                            RfIcon(kind = RfIconKind.CHECK, tint = Color.White, size = 16.dp)
-                        }
-                        Column(modifier = Modifier.weight(1f)) {
-                            BasicText(
-                                text = "Confirmar paleta floral blanco y rosa pastel",
-                                style = TextStyle(
-                                    fontFamily = typo.bodyFamily,
-                                    fontSize = 16.sp,
-                                    lineHeight = 21.sp,
-                                    color = Color(0xFF62627A),
-                                    textDecoration = TextDecoration.LineThrough,
-                                ),
-                            )
-                            Spacer(Modifier.height(4.dp))
-                            BasicText(
-                                text = "18 oct",
-                                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF62627A)),
-                            )
-                        }
-                    }
-
-                    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFEDE4EA)))
-
-                    // Completed 2
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 14.dp),
-                        horizontalArrangement = Arrangement.spacedBy(14.dp),
-                        verticalAlignment = Alignment.Top,
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .padding(top = 1.dp)
-                                .size(26.dp)
-                                .clip(CircleShape)
-                                .background(Color(0xFF8DB52C)),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            RfIcon(kind = RfIconKind.CHECK, tint = Color.White, size = 16.dp)
-                        }
-                        Column(modifier = Modifier.weight(1f)) {
-                            BasicText(
-                                text = "Aprobar plano de mesas imperial y sillas Tiffany",
-                                style = TextStyle(
-                                    fontFamily = typo.bodyFamily,
-                                    fontSize = 16.sp,
-                                    lineHeight = 21.sp,
-                                    color = Color(0xFF62627A),
-                                    textDecoration = TextDecoration.LineThrough,
-                                ),
-                            )
-                            Spacer(Modifier.height(4.dp))
-                            BasicText(
-                                text = "15 oct",
-                                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF62627A)),
-                            )
+                            Box(
+                                modifier = Modifier
+                                    .padding(top = 1.dp)
+                                    .size(26.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFF8DB52C)),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                RfIcon(kind = RfIconKind.CHECK, tint = Color.White, size = 16.dp)
+                            }
+                            Column(modifier = Modifier.weight(1f)) {
+                                BasicText(
+                                    text = taskItem.title,
+                                    style = TextStyle(
+                                        fontFamily = typo.bodyFamily,
+                                        fontSize = 16.sp,
+                                        lineHeight = 21.sp,
+                                        color = Color(0xFF62627A),
+                                        textDecoration = TextDecoration.LineThrough,
+                                    ),
+                                )
+                                Spacer(Modifier.height(4.dp))
+                                BasicText(
+                                    text = taskItem.badgeText,
+                                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF62627A)),
+                                )
+                            }
                         }
                     }
                 }
@@ -2341,6 +2348,18 @@ internal fun RenderGuestsScreenS47(
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
+    var searchQuery by remember { mutableStateOf("") }
+    var selectedStatusFilter by remember { mutableStateOf("Todos") }
+    var guestStatuses by remember {
+        mutableStateOf(
+            listOf(
+                Triple("Familia Pérez Martínez", "Confirmados · Mesa 2 · 4 personas", "Confirmado"),
+                Triple("Carlos & Andrea Sánchez", "Confirmados · Mesa 1 · 2 personas", "Confirmado"),
+                Triple("Dra. Laura Gómez", "Pendiente respuesta · 1 persona", "Pendiente"),
+                Triple("Lic. Roberto Fernández", "Confirmado · Mesa 4 · 2 personas", "Confirmado"),
+            ),
+        )
+    }
 
     RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -2374,7 +2393,7 @@ internal fun RenderGuestsScreenS47(
                         style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, lineHeight = 22.sp, color = Color(0xFF1A1A2E)),
                     )
                     BasicText(
-                        text = "120 invitados · Boda Real",
+                        text = "${116 + guestStatuses.size} invitados · Boda Real",
                         style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF62627A)),
                     )
                 }
@@ -2384,7 +2403,15 @@ internal fun RenderGuestsScreenS47(
                         .size(44.dp)
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
-                        .background(RosaButtonGradient),
+                        .background(RosaButtonGradient)
+                        .clickable {
+                            val nextGuestNum = guestStatuses.size + 1
+                            guestStatuses = guestStatuses + Triple(
+                                "Invitado VIP #$nextGuestNum",
+                                "Confirmado · Mesa ${nextGuestNum + 3} · 2 personas",
+                                "Confirmado",
+                            )
+                        },
                     contentAlignment = Alignment.Center,
                 ) {
                     RfIcon(kind = RfIconKind.PLUS, tint = Color.White, size = 22.dp)
@@ -2402,11 +2429,14 @@ internal fun RenderGuestsScreenS47(
                         .rfCardShadow(RoundedCornerShape(18.dp), isAdmin = false)
                         .clip(RoundedCornerShape(18.dp))
                         .background(Color(0xFFEEF6D6))
+                        .clickable {
+                            selectedStatusFilter = if (selectedStatusFilter == "Confirmado") "Todos" else "Confirmado"
+                        }
                         .padding(12.dp),
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         BasicText("Confirmados", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, color = Color(0xFF62627A), fontSize = 12.sp))
-                        BasicText("84", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, color = Color(0xFF4E6A10), fontSize = 24.sp))
+                        BasicText("${81 + guestStatuses.count { guest -> guest.third == "Confirmado" }}", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, color = Color(0xFF4E6A10), fontSize = 24.sp))
                     }
                 }
                 Box(
@@ -2415,11 +2445,14 @@ internal fun RenderGuestsScreenS47(
                         .rfCardShadow(RoundedCornerShape(18.dp), isAdmin = false)
                         .clip(RoundedCornerShape(18.dp))
                         .background(Color(0xFFFFF2C9))
+                        .clickable {
+                            selectedStatusFilter = if (selectedStatusFilter == "Pendiente") "Todos" else "Pendiente"
+                        }
                         .padding(12.dp),
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         BasicText("Pendientes", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, color = Color(0xFF62627A), fontSize = 12.sp))
-                        BasicText("26", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, color = Color(0xFF7A5700), fontSize = 24.sp))
+                        BasicText("${25 + guestStatuses.count { guest -> guest.third == "Pendiente" }}", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, color = Color(0xFF7A5700), fontSize = 24.sp))
                     }
                 }
                 Box(
@@ -2428,6 +2461,9 @@ internal fun RenderGuestsScreenS47(
                         .rfCardShadow(RoundedCornerShape(18.dp), isAdmin = false)
                         .clip(RoundedCornerShape(18.dp))
                         .background(Color(0xFFFDE6F2))
+                        .clickable {
+                            selectedStatusFilter = "Todos"
+                        }
                         .padding(12.dp),
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -2451,22 +2487,38 @@ internal fun RenderGuestsScreenS47(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 RfIcon(kind = RfIconKind.SEARCH, tint = Color(0xFF62627A), size = 18.dp)
-                BasicText(
-                    text = "Buscar invitado por nombre o familia",
-                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF62627A)),
+                BasicTextField(
+                    value = searchQuery,
+                    onValueChange = { updatedText -> searchQuery = updatedText },
+                    singleLine = true,
+                    textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF1A1A2E)),
+                    cursorBrush = SolidColor(Color(0xFFC2338F)),
+                    modifier = Modifier.weight(1f),
+                    decorationBox = { innerTextField ->
+                        if (searchQuery.isEmpty()) {
+                            BasicText(
+                                text = "Buscar invitado por nombre o familia",
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF62627A)),
+                            )
+                        }
+                        innerTextField()
+                    },
                 )
             }
 
-            // Guest items
-            val guests = listOf(
-                Triple("Familia Pérez Martínez", "Confirmados · Mesa 2 · 4 personas", "Confirmado"),
-                Triple("Carlos & Andrea Sánchez", "Confirmados · Mesa 1 · 2 personas", "Confirmado"),
-                Triple("Dra. Laura Gómez", "Pendiente respuesta · 1 persona", "Pendiente"),
-                Triple("Lic. Roberto Fernández", "Confirmado · Mesa 4 · 2 personas", "Confirmado"),
-            )
+            val filteredGuests = guestStatuses.filter { guestTriple ->
+                val matchesStatus = if (selectedStatusFilter == "Todos") true else guestTriple.third == selectedStatusFilter
+                val trimmedSearch = searchQuery.trim()
+                val matchesSearch = if (trimmedSearch.isEmpty()) {
+                    true
+                } else {
+                    "${guestTriple.first} ${guestTriple.second}".contains(trimmedSearch, ignoreCase = true)
+                }
+                if (matchesStatus) matchesSearch else false
+            }
 
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                guests.forEach { (name, desc, badge) ->
+                filteredGuests.forEach { (name, desc, badge) ->
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -2474,6 +2526,16 @@ internal fun RenderGuestsScreenS47(
                             .clip(RoundedCornerShape(20.dp))
                             .background(Color.White)
                             .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(20.dp))
+                            .clickable {
+                                guestStatuses = guestStatuses.map { existingGuest ->
+                                    if (existingGuest.first == name) {
+                                        val nextStatus = if (existingGuest.third == "Confirmado") "Pendiente" else "Confirmado"
+                                        Triple(existingGuest.first, existingGuest.second, nextStatus)
+                                    } else {
+                                        existingGuest
+                                    }
+                                }
+                            }
                             .padding(14.dp),
                     ) {
                         Row(
@@ -2734,7 +2796,7 @@ internal fun RenderQuoteScreenS48(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp)
-                    .clickable { onSelectScreenCode("s40") },
+                    .clickable { onSelectScreenCode("BACK:s40") },
                 contentAlignment = Alignment.Center,
             ) {
                 BasicText(

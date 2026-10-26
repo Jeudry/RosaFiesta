@@ -1544,7 +1544,7 @@ internal fun RenderAdminEventsA11(
                     .clip(CircleShape)
                     .background(Color.White)
                     .border(1.dp, Color(0xFFECECF5), CircleShape)
-                    .clickable { onSelectScreenCode("s39") },
+                    .clickable { onSelectScreenCode("s63") },
                 contentAlignment = Alignment.Center,
             ) {
                 RfIcon(kind = RfIconKind.CALENDAR, tint = Color(0xFF151729), size = 20.dp)

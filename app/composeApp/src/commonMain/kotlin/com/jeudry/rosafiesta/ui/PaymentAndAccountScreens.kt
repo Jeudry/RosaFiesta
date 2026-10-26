@@ -334,6 +334,11 @@ internal fun RenderPaymentCheckoutScreenS50(
     val selectedId = viewModel?.selectedEventId?.collectAsState()?.value ?: "evt-boda-real"
     val event = events.firstOrNull { it.id == selectedId } ?: events.first()
     val depositAmount = (event.totalDop * 30 / 100).coerceAtLeast(100)
+    var cardHolderName by remember(event.clientName) { mutableStateOf(event.clientName) }
+    var cardNumberText by remember { mutableStateOf("•••• •••• •••• 4242") }
+    var cardExpiryText by remember { mutableStateOf("12/28") }
+    var cardCvcText by remember { mutableStateOf("•••") }
+    var contactPhoneText by remember { mutableStateOf("(809) 555-0142") }
 
     Box(
         modifier = Modifier
@@ -412,7 +417,11 @@ internal fun RenderPaymentCheckoutScreenS50(
                         BasicText(event.venue, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF1A1A2E)))
                     }
 
-                    BasicText("Cambiar", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFFC2338F)))
+                    BasicText(
+                        "Cambiar",
+                        modifier = Modifier.clickable { onSelectScreenCode("s40") },
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFFC2338F)),
+                    )
                 }
             }
 
@@ -504,7 +513,14 @@ internal fun RenderPaymentCheckoutScreenS50(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     RfIcon(kind = RfIconKind.USER, tint = Color(0xFF62627A), size = 18.dp)
-                    BasicText(event.clientName, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF1A1A2E)))
+                    BasicTextField(
+                        value = cardHolderName,
+                        onValueChange = { updatedName -> cardHolderName = updatedName },
+                        singleLine = true,
+                        textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF1A1A2E)),
+                        cursorBrush = SolidColor(Color(0xFFC2338F)),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                 }
             }
 
@@ -522,7 +538,14 @@ internal fun RenderPaymentCheckoutScreenS50(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     RfIcon(kind = RfIconKind.WALLET, tint = Color(0xFF62627A), size = 18.dp)
-                    BasicText("•••• •••• •••• 4242", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF1A1A2E)))
+                    BasicTextField(
+                        value = cardNumberText,
+                        onValueChange = { updatedCard -> cardNumberText = updatedCard },
+                        singleLine = true,
+                        textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF1A1A2E)),
+                        cursorBrush = SolidColor(Color(0xFFC2338F)),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                 }
             }
 
@@ -539,7 +562,14 @@ internal fun RenderPaymentCheckoutScreenS50(
                         .padding(horizontal = 14.dp),
                     contentAlignment = Alignment.CenterStart,
                 ) {
-                    BasicText("12/28", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF1A1A2E)))
+                    BasicTextField(
+                        value = cardExpiryText,
+                        onValueChange = { updatedExpiry -> cardExpiryText = updatedExpiry },
+                        singleLine = true,
+                        textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF1A1A2E)),
+                        cursorBrush = SolidColor(Color(0xFFC2338F)),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                 }
                 Box(
                     modifier = Modifier
@@ -552,7 +582,14 @@ internal fun RenderPaymentCheckoutScreenS50(
                         .padding(horizontal = 14.dp),
                     contentAlignment = Alignment.CenterStart,
                 ) {
-                    BasicText("•••", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF1A1A2E)))
+                    BasicTextField(
+                        value = cardCvcText,
+                        onValueChange = { updatedCvc -> cardCvcText = updatedCvc },
+                        singleLine = true,
+                        textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF1A1A2E)),
+                        cursorBrush = SolidColor(Color(0xFFC2338F)),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                 }
             }
 
@@ -570,7 +607,14 @@ internal fun RenderPaymentCheckoutScreenS50(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     RfIcon(kind = RfIconKind.PHONE, tint = Color(0xFF62627A), size = 18.dp)
-                    BasicText("(809) 555-0142", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF1A1A2E)))
+                    BasicTextField(
+                        value = contactPhoneText,
+                        onValueChange = { updatedPhone -> contactPhoneText = updatedPhone },
+                        singleLine = true,
+                        textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF1A1A2E)),
+                        cursorBrush = SolidColor(Color(0xFFC2338F)),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                 }
             }
         }
@@ -1151,7 +1195,7 @@ internal fun RenderPostEventReviewScreenS52(
                 .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
                 .clip(RoundedCornerShape(16.dp))
                 .background(RosaButtonGradient)
-                .clickable { onSelectScreenCode("s37") },
+                .clickable { onSelectScreenCode("s77") },
             contentAlignment = Alignment.Center,
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1239,45 +1283,51 @@ internal fun RenderMyReservationsScreenS53(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                ReservationCard53(
-                    title = "Boda Real Rosa & Dorado",
-                    meta = "Vie 23 oct · Jardín Botánico",
-                    tag = "Cotización lista",
-                    tagBackground = Color(0xFFDDF4F3),
-                    tagColor = Color(0xFF1F8A84),
-                    photoKey = RfPhotoKey.BODA,
-                    paid = "RD$ 1,350",
-                    total = "RD$ 4,500",
-                    remaining = "Resta RD$ 3,150",
-                    progress = 0.30f,
-                    onClick = { onSelectScreenCode("s49") },
-                )
-                ReservationCard53(
-                    title = "Quinceañera Valentina Crystal",
-                    meta = "Lun 2 nov · Hotel El Embajador",
-                    tag = "Confirmado",
-                    tagBackground = Color(0xFFEEF6D6),
-                    tagColor = Color(0xFF4E6A10),
-                    photoKey = RfPhotoKey.QUINCEANERA,
-                    paid = "RD$ 1,860",
-                    total = "RD$ 6,200",
-                    remaining = "Resta RD$ 4,340",
-                    progress = 0.30f,
-                    onClick = { onSelectScreenCode("s49") },
-                )
-                ReservationCard53(
-                    title = "Baby Shower Sofía en Rosas",
-                    meta = "Lun 9 nov · Terraza Cava Alta, Piantini",
-                    tag = "Borrador",
-                    tagBackground = Color(0xFFF1EFF5),
-                    tagColor = Color(0xFF62627A),
-                    photoKey = RfPhotoKey.BABY_SHOWER,
-                    paid = "RD$ 555",
-                    total = "RD$ 1,850",
-                    remaining = "Resta RD$ 1,295",
-                    progress = 0.30f,
-                    onClick = { onSelectScreenCode("s49") },
-                )
+                val showUpcoming = selectedTab != "Pasadas"
+                if (showUpcoming) {
+                    ReservationCard53(
+                        title = "Boda Real Rosa & Dorado",
+                        meta = "Vie 23 oct · Jardín Botánico",
+                        tag = "Cotización lista",
+                        tagBackground = Color(0xFFDDF4F3),
+                        tagColor = Color(0xFF1F8A84),
+                        photoKey = RfPhotoKey.BODA,
+                        paid = "RD$ 1,350",
+                        total = "RD$ 4,500",
+                        remaining = "Resta RD$ 3,150",
+                        progress = 0.30f,
+                        onClick = { onSelectScreenCode("s49") },
+                    )
+                    ReservationCard53(
+                        title = "Quinceañera Valentina Crystal",
+                        meta = "Lun 2 nov · Hotel El Embajador",
+                        tag = "Confirmado",
+                        tagBackground = Color(0xFFEEF6D6),
+                        tagColor = Color(0xFF4E6A10),
+                        photoKey = RfPhotoKey.QUINCEANERA,
+                        paid = "RD$ 1,860",
+                        total = "RD$ 6,200",
+                        remaining = "Resta RD$ 4,340",
+                        progress = 0.30f,
+                        onClick = { onSelectScreenCode("s49") },
+                    )
+                }
+                val showPastOrDraft = selectedTab != "Próximas"
+                if (showPastOrDraft) {
+                    ReservationCard53(
+                        title = "Baby Shower Sofía en Rosas",
+                        meta = "Lun 9 nov · Terraza Cava Alta, Piantini",
+                        tag = "Borrador",
+                        tagBackground = Color(0xFFF1EFF5),
+                        tagColor = Color(0xFF62627A),
+                        photoKey = RfPhotoKey.BABY_SHOWER,
+                        paid = "RD$ 555",
+                        total = "RD$ 1,850",
+                        remaining = "Resta RD$ 1,295",
+                        progress = 0.30f,
+                        onClick = { onSelectScreenCode("s49") },
+                    )
+                }
             }
             Spacer(modifier = Modifier.height(30.dp))
         }
@@ -1761,7 +1811,7 @@ internal fun RenderSuppliersScreenS55(
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(Color.White)
-                        .clickable { onSelectScreenCode("BACK:s54") },
+                        .clickable { onSelectScreenCode("BACK:A12") },
                     contentAlignment = Alignment.Center,
                 ) {
                     RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF151729), size = 22.dp)
@@ -1817,26 +1867,41 @@ internal fun RenderSuppliersScreenS55(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                SupplierCard55(
-                    initial = "F",
-                    initialBackground = Color(0xFFECEBFF),
-                    initialColor = Color(0xFF4B47D6),
-                    name = "Flores del Jarabacoa Premium",
-                    contact = "Doña Carmen Polanco",
-                    phone = "+1 809 555 2201",
-                    onEditClick = { onSelectScreenCode("s56") },
-                    onChatClick = { onSelectScreenCode("s42") },
-                )
-                SupplierCard55(
-                    initial = "C",
-                    initialBackground = Color(0xFFDDF4F3),
-                    initialColor = Color(0xFF1F8A84),
-                    name = "Cristalería & Eventos Caribe",
-                    contact = "Ing. Marcos Tavares",
-                    phone = "+1 809 555 2202",
-                    onEditClick = { onSelectScreenCode("s56") },
-                    onChatClick = { onSelectScreenCode("s42") },
-                )
+                val trimmedSupplierQuery = searchQuery.trim()
+                val matchesFlores = if (trimmedSupplierQuery.isEmpty()) {
+                    true
+                } else {
+                    "Flores del Jarabacoa Premium Doña Carmen Polanco".contains(trimmedSupplierQuery, ignoreCase = true)
+                }
+                if (matchesFlores) {
+                    SupplierCard55(
+                        initial = "F",
+                        initialBackground = Color(0xFFECEBFF),
+                        initialColor = Color(0xFF4B47D6),
+                        name = "Flores del Jarabacoa Premium",
+                        contact = "Doña Carmen Polanco",
+                        phone = "+1 809 555 2201",
+                        onEditClick = { onSelectScreenCode("s56") },
+                        onChatClick = { onSelectScreenCode("A15") },
+                    )
+                }
+                val matchesCristaleria = if (trimmedSupplierQuery.isEmpty()) {
+                    true
+                } else {
+                    "Cristalería & Eventos Caribe Ing. Marcos Tavares".contains(trimmedSupplierQuery, ignoreCase = true)
+                }
+                if (matchesCristaleria) {
+                    SupplierCard55(
+                        initial = "C",
+                        initialBackground = Color(0xFFDDF4F3),
+                        initialColor = Color(0xFF1F8A84),
+                        name = "Cristalería & Eventos Caribe",
+                        contact = "Ing. Marcos Tavares",
+                        phone = "+1 809 555 2202",
+                        onEditClick = { onSelectScreenCode("s56") },
+                        onChatClick = { onSelectScreenCode("A15") },
+                    )
+                }
             }
             Spacer(modifier = Modifier.height(30.dp))
         }
@@ -1968,7 +2033,7 @@ internal fun RenderNewSupplierScreenS56(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    AdminPanelIconButton(RfIconKind.CLOSE) { onSelectScreenCode("s55") }
+                    AdminPanelIconButton(RfIconKind.CLOSE) { onSelectScreenCode("BACK:s55") }
                     BasicText(
                         "Nuevo proveedor",
                         modifier = Modifier.weight(1f),
@@ -1998,7 +2063,7 @@ internal fun RenderNewSupplierScreenS56(
                 .shadow(12.dp, RoundedCornerShape(16.dp), spotColor = Color(0x995B6CF0))
                 .clip(RoundedCornerShape(16.dp))
                 .background(AdminPanelGradient)
-                .clickable { onSelectScreenCode("s55") },
+                .clickable { onSelectScreenCode("BACK:s55") },
             contentAlignment = Alignment.Center,
         ) {
             BasicText("Guardar proveedor", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White))
@@ -2112,7 +2177,7 @@ internal fun RenderSpendingAnalyticsScreenS57(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                AdminPanelIconButton(RfIconKind.BACK) { onSelectScreenCode("BACK:s54") }
+                AdminPanelIconButton(RfIconKind.BACK) { onSelectScreenCode("BACK:A12") }
                 BasicText(
                     "Análisis",
                     modifier = Modifier.weight(1f),
@@ -2275,7 +2340,7 @@ internal fun RenderFinancialDashboardScreenS58(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                AdminPanelIconButton(RfIconKind.BACK) { onSelectScreenCode("BACK:s14") }
+                AdminPanelIconButton(RfIconKind.BACK) { onSelectScreenCode("BACK:A12") }
                 BasicText(
                     "Panel",
                     modifier = Modifier.weight(1f),
@@ -2340,6 +2405,7 @@ internal fun RenderFinancialDashboardScreenS58(
                         title = "Eventos activos",
                         value = "4",
                         divider = false,
+                        onLinkClick = { onSelectScreenCode("A11") },
                     )
                     PanelSummaryRow58(
                         icon = RfIconKind.WARNING,
@@ -2358,6 +2424,7 @@ internal fun RenderFinancialDashboardScreenS58(
                         title = "Clientes nuevos",
                         value = "2",
                         divider = true,
+                        onLinkClick = { onSelectScreenCode("s62") },
                     )
                 }
             }
@@ -2436,6 +2503,7 @@ private fun PanelSummaryRow58(
                 }
             }
             .heightIn(min = 72.dp)
+            .clickable(onClick = onLinkClick)
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp),
