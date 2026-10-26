@@ -30,6 +30,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.jeudry.rosafiesta.domain.EventStatus
+import com.jeudry.rosafiesta.domain.PhotoAsset
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -77,12 +79,25 @@ private val RosaButtonGradient = Brush.horizontalGradient(
 // ==============================================================================
 // s37 · MIS EVENTOS (TAB EVENTOS EN PERSONAL)
 // ==============================================================================
+// ==============================================================================
+// s37 · MIS EVENTOS
+// ==============================================================================
 @Composable
 internal fun RenderMyEventsScreenS37(
     onSelectScreenCode: (String) -> Unit = {},
+    viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
     var selectedTab by remember { mutableStateOf(0) } // 0: Próximos, 1: Pasados, 2: Todos
+    val allEvents = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
+    val proximos = remember(allEvents) { allEvents.filter { it.status != EventStatus.COMPLETED && it.status != EventStatus.CANCELLED } }
+    val pasados = remember(allEvents) { allEvents.filter { it.status == EventStatus.COMPLETED || it.status == EventStatus.CANCELLED } }
+
+    val displayedEvents = when (selectedTab) {
+        0 -> proximos
+        1 -> pasados
+        else -> allEvents
+    }
 
     RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -137,7 +152,7 @@ internal fun RenderMyEventsScreenS37(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Segmented control: Próximos · 3 / Pasados · 1 / Todos
+            // Segmented control: Próximos · N / Pasados · N / Todos
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -147,7 +162,7 @@ internal fun RenderMyEventsScreenS37(
                     .padding(4.dp),
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                listOf("Próximos · 3", "Pasados · 1", "Todos").forEachIndexed { index, label ->
+                listOf("Próximos · ${proximos.size}", "Pasados · ${pasados.size}", "Todos").forEachIndexed { index, label ->
                     val isSelected = selectedTab == index
                     Box(
                         modifier = Modifier
@@ -181,62 +196,41 @@ internal fun RenderMyEventsScreenS37(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Próximos eventos
+            // Lista de eventos mostrados
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                MyEventRow37(
-                    title = "Boda Real Rosa & Dorado",
-                    date = "Vie 23 oct",
-                    status = "Ajustado",
-                    statusBg = Color(0xFFDDF4F3),
-                    statusColor = Color(0xFF1F8A84),
-                    photoKey = RfPhotoKey.BODA,
-                    onClick = { onSelectScreenCode("s40") },
-                )
-                MyEventRow37(
-                    title = "Quinceañera Valentina Crystal",
-                    date = "Lun 2 nov",
-                    status = "Confirmado",
-                    statusBg = Color(0xFFEEF6D6),
-                    statusColor = Color(0xFF4E6A10),
-                    photoKey = RfPhotoKey.QUINCEANERA,
-                    onClick = { onSelectScreenCode("s40") },
-                )
-                MyEventRow37(
-                    title = "Baby Shower Sofía en Rosas",
-                    date = "Lun 9 nov",
-                    status = "Borrador",
-                    statusBg = Color(0xFFF1EFF5),
-                    statusColor = Color(0xFF62627A),
-                    photoKey = RfPhotoKey.BABY_SHOWER,
-                    onClick = { onSelectScreenCode("s40") },
-                )
+                displayedEvents.forEach { ev ->
+                    val photoKey = when (ev.photo) {
+                        PhotoAsset.BODA -> RfPhotoKey.BODA
+                        PhotoAsset.QUINCEANERA -> RfPhotoKey.QUINCEANERA
+                        PhotoAsset.CUMPLE_INFANTIL -> RfPhotoKey.CUMPLE_INFANTIL
+                        PhotoAsset.BABY_SHOWER -> RfPhotoKey.BABY_SHOWER
+                        PhotoAsset.GRADUACION -> RfPhotoKey.GRADUACION
+                        PhotoAsset.CORPORATIVO -> RfPhotoKey.CORPORATIVO
+                        else -> RfPhotoKey.BODA
+                    }
+                    val (statusBg, statusColor) = when (ev.status) {
+                        EventStatus.CONFIRMED -> Color(0xFFEEF6D6) to Color(0xFF4E6A10)
+                        EventStatus.IN_SETUP -> Color(0xFFDDF4F3) to Color(0xFF1F8A84)
+                        EventStatus.PENDING_QUOTE -> Color(0xFFF1EFF5) to Color(0xFF62627A)
+                        EventStatus.COMPLETED -> Color(0xFFEFE8FD) to Color(0xFF7A4FD8)
+                        EventStatus.CANCELLED -> Color(0xFFFCE8E8) to Color(0xFFB42345)
+                    }
+
+                    MyEventRow37(
+                        title = ev.title,
+                        date = ev.dateLabel,
+                        status = ev.statusLabel,
+                        statusBg = statusBg,
+                        statusColor = statusColor,
+                        photoKey = photoKey,
+                        showReview = ev.status == EventStatus.COMPLETED,
+                        onClick = {
+                            viewModel?.selectEvent(ev.id)
+                            onSelectScreenCode("s40")
+                        },
+                    )
+                }
             }
-
-            Spacer(modifier = Modifier.height(22.dp))
-
-            BasicText(
-                text = "PASADOS",
-                style = TextStyle(
-                    fontFamily = typo.bodyFamily,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 12.sp,
-                    letterSpacing = 0.96.sp,
-                    color = Color(0xFF62627A),
-                ),
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            MyEventRow37(
-                title = "Gala Corporativa Grupo Caribe",
-                date = "Lun 12 oct",
-                status = "Completado",
-                statusBg = Color(0xFFEFE8FD),
-                statusColor = Color(0xFF7A4FD8),
-                photoKey = RfPhotoKey.CORPORATIVO,
-                showReview = true,
-                onClick = { onSelectScreenCode("s40") },
-            )
 
             Spacer(modifier = Modifier.height(110.dp))
         }
@@ -2058,8 +2052,8 @@ internal fun RenderChecklistScreenS46(
 ) {
     val typo = LocalRfTypography.current
     val checklist = viewModel?.checklist?.collectAsState()?.value ?: CanonicalSampleData.bodaChecklist
-    val checked = remember { mutableStateMapOf<String, Boolean>() }
-    val totalSteps = 5
+    val totalSteps = checklist.size.coerceAtLeast(1)
+    val completedCount = checklist.count { it.completed }
 
     RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -2095,7 +2089,6 @@ internal fun RenderChecklistScreenS46(
             }
 
             // Event summary card
-            val completedCount = checked.values.count { it }
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -2167,7 +2160,7 @@ internal fun RenderChecklistScreenS46(
 
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items.forEach { item ->
-                    val isChecked = checked[item.id] == true
+                    val isChecked = checklist.firstOrNull { it.id == item.id }?.completed ?: false
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -2176,7 +2169,6 @@ internal fun RenderChecklistScreenS46(
                             .background(Color.White)
                             .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(20.dp))
                             .clickable {
-                                checked[item.id] = !isChecked
                                 viewModel?.toggleChecklistStep(item.id)
                             }
                             .testTag("checklist-step-${item.id}")
@@ -2214,14 +2206,13 @@ internal fun RenderChecklistScreenS46(
                 }
 
                 // Pending payment row (5th checklist item)
-                val paid = checked["chk-5"] == true
+                val paid = checklist.firstOrNull { it.id == "chk-5" }?.completed ?: false
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(20.dp))
                         .background(Color(0xFFFFF2C9))
                         .clickable {
-                            checked["chk-5"] = !paid
                             viewModel?.toggleChecklistStep("chk-5")
                         }
                         .testTag("checklist-step-chk-5")

@@ -213,7 +213,7 @@ fun RenderScreenSpec(
                 "s36" -> RenderRosaSketchS36(onSelectScreenCode = onSelectScreenCode)
                 "s78" -> RenderRosaSketchConfirmS78(onSelectScreenCode = onSelectScreenCode)
                 "A08" -> RenderAdminRosaA08(onSelectScreenCode = onSelectScreenCode)
-                "s37" -> RenderMyEventsScreenS37(onSelectScreenCode = onSelectScreenCode)
+                "s37" -> RenderMyEventsScreenS37(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
                 "s38" -> RenderNewEventScreenS38(onSelectScreenCode = onSelectScreenCode)
                 "s39" -> RenderCalendarScreenS39(onSelectScreenCode = onSelectScreenCode)
                 "s40" -> RenderEventDetailScreenS40(onSelectScreenCode = onSelectScreenCode)
