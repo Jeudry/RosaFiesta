@@ -2689,7 +2689,6 @@ private fun RenderAdminOnboardingStep(
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter)
                 .zIndex(2f)
-                .background(Color(0xFFF8F7FC))
                 .padding(top = 10.dp, bottom = 18.dp, start = 28.dp, end = 28.dp),
         ) {
             Row(
