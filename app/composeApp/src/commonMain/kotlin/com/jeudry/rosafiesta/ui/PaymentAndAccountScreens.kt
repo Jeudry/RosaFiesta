@@ -1353,8 +1353,13 @@ private fun ReservationCard53(
 @Composable
 internal fun RenderUserProfileScreenS54(
     onSelectScreenCode: (String) -> Unit = {},
+    viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
+    val profileName = viewModel?.profileName?.collectAsState()?.value ?: "Camila Rodríguez"
+    val profileEmail = viewModel?.profileEmail?.collectAsState()?.value ?: "camila.rodriguez@correo.com"
+    val profilePhone = viewModel?.profilePhone?.collectAsState()?.value ?: "809-555-0142"
+    val initials = profileName.split(" ").mapNotNull { it.firstOrNull()?.toString() }.take(2).joinToString("").ifEmpty { "CR" }
 
     RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
@@ -1412,7 +1417,7 @@ internal fun RenderUserProfileScreenS54(
                             contentAlignment = Alignment.Center,
                         ) {
                             BasicText(
-                                "CR",
+                                initials,
                                 style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 28.sp, color = Color(0xFFC2338F)),
                             )
                         }
@@ -1420,11 +1425,11 @@ internal fun RenderUserProfileScreenS54(
                 }
                 Column(modifier = Modifier.weight(1f)) {
                     BasicText(
-                        "Camila Rodríguez",
+                        profileName,
                         style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp, lineHeight = 24.sp, color = Color(0xFF1A1A2E)),
                     )
                     BasicText(
-                        "camila.rodriguez@correo.com",
+                        profileEmail,
                         style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF62627A)),
                     )
                 }
@@ -1441,7 +1446,7 @@ internal fun RenderUserProfileScreenS54(
                     .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(20.dp)),
             ) {
                 ProfileRow54("Teléfono", RfIconKind.PHONE) {
-                    BasicText("Agregar", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFFC2338F)))
+                    BasicText(profilePhone, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFFC2338F)))
                 }
                 ProfileDivider54()
                 ProfileRow54("Cumpleaños", RfIconKind.CAKE) {

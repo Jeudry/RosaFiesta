@@ -228,7 +228,7 @@ fun RenderScreenSpec(
                 "s51" -> RenderPaymentSuccessScreenS51(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
                 "s52" -> RenderPostEventReviewScreenS52(onSelectScreenCode = onSelectScreenCode)
                 "s53" -> RenderMyReservationsScreenS53(onSelectScreenCode = onSelectScreenCode)
-                "s54" -> RenderUserProfileScreenS54(onSelectScreenCode = onSelectScreenCode)
+                "s54" -> RenderUserProfileScreenS54(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
                 "s55" -> RenderSuppliersScreenS55(onSelectScreenCode = onSelectScreenCode)
                 "s56" -> RenderNewSupplierScreenS56(onSelectScreenCode = onSelectScreenCode)
                 "s57" -> RenderSpendingAnalyticsScreenS57(onSelectScreenCode = onSelectScreenCode)
