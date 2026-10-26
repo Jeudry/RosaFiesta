@@ -128,7 +128,7 @@ private fun RosaWizardHeader(
             .fillMaxWidth()
             .zIndex(2f)
             .background(Color(0xFFDED5F7))
-            .padding(top = 54.dp, bottom = 14.dp, start = 16.dp, end = 16.dp),
+            .padding(top = 16.dp, bottom = 12.dp, start = 16.dp, end = 16.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -567,9 +567,9 @@ internal fun RenderRosaEventTypeS26(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 114.dp, bottom = 104.dp)
+                .padding(top = 74.dp, bottom = 88.dp)
                 .verticalScroll(rememberScrollState())
-                .padding(top = 14.dp, start = 20.dp, end = 20.dp, bottom = 12.dp),
+                .padding(top = 12.dp, start = 20.dp, end = 20.dp, bottom = 12.dp),
             verticalArrangement = Arrangement.spacedBy(22.dp),
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -769,7 +769,7 @@ internal fun RenderRosaEventTypeS26(
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(start = 16.dp, end = 16.dp, bottom = 34.dp)
+                .padding(start = 16.dp, end = 16.dp, bottom = 18.dp)
                 .fillMaxWidth()
                 .height(58.dp)
                 .rfInputShadow(CircleShape, isAdmin = false)
@@ -933,18 +933,19 @@ internal fun RenderRosaTutorialS27(
             .fillMaxSize()
             .background(RosaBackgroundGradient),
     ) {
+        RosaWizardHeader(
+            step = 1,
+            onBack = { onSelectScreenCode("s26") },
+            onCart = { onSelectScreenCode("s25") },
+        )
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .padding(top = 74.dp, bottom = 88.dp)
                 .verticalScroll(rememberScrollState()),
         ) {
-            RosaWizardHeader(
-                step = 1,
-                onBack = { onSelectScreenCode("s26") },
-                onCart = { onSelectScreenCode("s25") },
-            )
-
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
             Column(
                 modifier = Modifier
@@ -1122,7 +1123,7 @@ internal fun RenderRosaTutorialS27(
         Row(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(start = 16.dp, end = 16.dp, bottom = 34.dp)
+                .padding(start = 16.dp, end = 16.dp, bottom = 18.dp)
                 .fillMaxWidth()
                 .height(58.dp)
                 .rfInputShadow(RoundedCornerShape(999.dp), isAdmin = false)
@@ -1227,7 +1228,7 @@ internal fun RenderRosaHelpS28(
                 .fillMaxWidth()
                 .zIndex(2f)
                 .background(Color(0xFFDED5F7))
-                .padding(top = 54.dp, bottom = 14.dp, start = 16.dp, end = 16.dp),
+                .padding(top = 16.dp, bottom = 12.dp, start = 16.dp, end = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -1320,9 +1321,9 @@ internal fun RenderRosaHelpS28(
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .fillMaxSize()
-                .padding(top = 114.dp, bottom = 240.dp)
+                .padding(top = 74.dp, bottom = 224.dp)
                 .verticalScroll(rememberScrollState())
-                .padding(top = 14.dp, start = 20.dp, end = 20.dp, bottom = 20.dp),
+                .padding(top = 12.dp, start = 20.dp, end = 20.dp, bottom = 20.dp),
             verticalArrangement = Arrangement.spacedBy(22.dp),
         ) {
             Box(
@@ -1378,7 +1379,7 @@ internal fun RenderRosaHelpS28(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .padding(start = 20.dp, end = 20.dp, bottom = 116.dp),
+                .padding(start = 20.dp, end = 20.dp, bottom = 92.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Row(
@@ -1448,7 +1449,7 @@ internal fun RenderRosaHelpS28(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .padding(start = 16.dp, end = 16.dp, bottom = 34.dp)
+                .padding(start = 16.dp, end = 16.dp, bottom = 18.dp)
                 .height(58.dp)
                 .clip(CircleShape)
                 .background(Color.White)
@@ -1556,7 +1557,7 @@ internal fun RenderRosaSuggestionsS29(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(top = 118.dp, bottom = 180.dp),
+                .padding(top = 78.dp, bottom = 160.dp),
         ) {
             Column(
                 modifier = Modifier
@@ -1697,7 +1698,7 @@ internal fun RenderRosaSuggestionsS29(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter)
-                .padding(start = 20.dp, end = 20.dp, bottom = 110.dp),
+                .padding(start = 20.dp, end = 20.dp, bottom = 88.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Box(
@@ -1747,7 +1748,7 @@ internal fun RenderRosaSuggestionsS29(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter)
-                .padding(start = 16.dp, end = 16.dp, bottom = 34.dp)
+                .padding(start = 16.dp, end = 16.dp, bottom = 18.dp)
                 .height(58.dp)
                 .shadow(12.dp, CircleShape, spotColor = Color(0x26AA46A0))
                 .border(1.dp, Color(0xFFE7DEF5), CircleShape)
@@ -1857,7 +1858,7 @@ internal fun RenderRosaCategoriesS30(
                 .fillMaxWidth()
                 .zIndex(2f)
                 .background(Color(0xFFDED5F7))
-                .padding(top = 54.dp, bottom = 14.dp, start = 16.dp, end = 16.dp),
+                .padding(top = 16.dp, bottom = 12.dp, start = 16.dp, end = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -1950,9 +1951,9 @@ internal fun RenderRosaCategoriesS30(
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .fillMaxSize()
-                .padding(top = 114.dp, bottom = 160.dp)
+                .padding(top = 74.dp, bottom = 148.dp)
                 .verticalScroll(rememberScrollState())
-                .padding(top = 14.dp, start = 20.dp, end = 20.dp, bottom = 20.dp),
+                .padding(top = 12.dp, start = 20.dp, end = 20.dp, bottom = 20.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -2016,7 +2017,7 @@ internal fun RenderRosaCategoriesS30(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .padding(start = 20.dp, end = 20.dp, bottom = 110.dp),
+                .padding(start = 20.dp, end = 20.dp, bottom = 88.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Box(
@@ -2095,7 +2096,7 @@ internal fun RenderRosaCategoriesS30(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .padding(start = 16.dp, end = 16.dp, bottom = 34.dp)
+                .padding(start = 16.dp, end = 16.dp, bottom = 18.dp)
                 .height(58.dp)
                 .clip(CircleShape)
                 .background(Color.White)
@@ -2289,9 +2290,9 @@ internal fun RenderRosaDetailsS31(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 114.dp, bottom = 160.dp)
+                .padding(top = 74.dp, bottom = 148.dp)
                 .verticalScroll(rememberScrollState())
-                .padding(top = 14.dp, start = 20.dp, end = 20.dp, bottom = 20.dp),
+                .padding(top = 12.dp, start = 20.dp, end = 20.dp, bottom = 20.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -2483,7 +2484,7 @@ internal fun RenderRosaDetailsS31(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .padding(start = 20.dp, end = 20.dp, bottom = 110.dp),
+                .padding(start = 20.dp, end = 20.dp, bottom = 88.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Box(
@@ -2536,7 +2537,7 @@ internal fun RenderRosaDetailsS31(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .padding(start = 16.dp, end = 16.dp, bottom = 34.dp)
+                .padding(start = 16.dp, end = 16.dp, bottom = 18.dp)
                 .height(58.dp)
                 .rfInputShadow(CircleShape, isAdmin = false)
                 .border(1.dp, Color(0xFFE7DEF5), CircleShape)
@@ -2616,9 +2617,9 @@ internal fun RenderRosaSummaryS32(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 114.dp, bottom = 160.dp)
+                .padding(top = 74.dp, bottom = 148.dp)
                 .verticalScroll(rememberScrollState())
-                .padding(top = 14.dp, start = 20.dp, end = 20.dp, bottom = 20.dp),
+                .padding(top = 12.dp, start = 20.dp, end = 20.dp, bottom = 20.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -2823,7 +2824,7 @@ internal fun RenderRosaSummaryS32(
         Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(start = 20.dp, end = 20.dp, bottom = 40.dp)
+                .padding(start = 20.dp, end = 20.dp, bottom = 18.dp)
                 .fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
@@ -2891,7 +2892,7 @@ internal fun RenderRosaSubmittedS33(
                 .fillMaxWidth()
                 .zIndex(2f)
                 .background(Color(0xFFDED5F7))
-                .padding(top = 54.dp, bottom = 12.dp, start = 16.dp, end = 16.dp),
+                .padding(top = 16.dp, bottom = 12.dp, start = 16.dp, end = 16.dp),
         ) {
             Box(
                 modifier = Modifier
@@ -2909,7 +2910,7 @@ internal fun RenderRosaSubmittedS33(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 96.dp, bottom = 104.dp)
+                .padding(top = 68.dp, bottom = 92.dp)
                 .verticalScroll(rememberScrollState())
                 .padding(bottom = 16.dp),
         ) {
@@ -3097,7 +3098,7 @@ internal fun RenderRosaSubmittedS33(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter)
-                .padding(horizontal = 20.dp, vertical = 40.dp),
+                .padding(horizontal = 20.dp, vertical = 18.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Box(
@@ -3381,7 +3382,7 @@ internal fun RenderRosaVoiceS35(
                 .fillMaxWidth()
                 .zIndex(2f)
                 .background(Color(0xFFDED5F7))
-                .padding(top = 54.dp, bottom = 14.dp, start = 16.dp, end = 16.dp),
+                .padding(top = 16.dp, bottom = 12.dp, start = 16.dp, end = 16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -3406,9 +3407,9 @@ internal fun RenderRosaVoiceS35(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 104.dp, bottom = 120.dp)
+                .padding(top = 74.dp, bottom = 104.dp)
                 .verticalScroll(rememberScrollState())
-                .padding(top = 46.dp, bottom = 20.dp),
+                .padding(top = 24.dp, bottom = 20.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Box(
@@ -3509,7 +3510,7 @@ internal fun RenderRosaVoiceS35(
         Row(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 44.dp),
+                .padding(bottom = 20.dp),
             horizontalArrangement = Arrangement.spacedBy(28.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -3613,7 +3614,7 @@ internal fun RenderRosaSketchS36(
                     .fillMaxWidth()
                     .zIndex(2f)
                     .background(Color(0xFFFAF6FC))
-                    .padding(top = 54.dp, bottom = 12.dp, start = 16.dp, end = 16.dp),
+                    .padding(top = 16.dp, bottom = 12.dp, start = 16.dp, end = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -3676,9 +3677,9 @@ internal fun RenderRosaSketchS36(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(top = 106.dp, bottom = 104.dp)
+                    .padding(top = 72.dp, bottom = 88.dp)
                     .verticalScroll(rememberScrollState())
-                    .padding(top = 12.dp, bottom = 16.dp),
+                    .padding(top = 10.dp, bottom = 16.dp),
             ) {
                 Row(
                     modifier = Modifier
@@ -3928,7 +3929,7 @@ internal fun RenderRosaSketchS36(
                 modifier = Modifier
                     .fillMaxWidth()
                     .align(Alignment.BottomCenter)
-                    .padding(horizontal = 16.dp, vertical = 40.dp)
+                    .padding(horizontal = 16.dp, vertical = 18.dp)
                     .height(56.dp)
                     .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
                     .clip(RoundedCornerShape(16.dp))
@@ -4018,7 +4019,7 @@ internal fun RenderRosaSketchConfirmS78(
                 .fillMaxWidth()
                 .zIndex(2f)
                 .background(Color(0xFFFAF6FC))
-                .padding(top = 54.dp, bottom = 12.dp, start = 16.dp, end = 16.dp),
+                .padding(top = 16.dp, bottom = 12.dp, start = 16.dp, end = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -4050,7 +4051,7 @@ internal fun RenderRosaSketchConfirmS78(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 106.dp, bottom = 104.dp)
+                .padding(top = 72.dp, bottom = 92.dp)
                 .verticalScroll(rememberScrollState())
                 .padding(top = 8.dp, start = 16.dp, end = 16.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
@@ -4267,7 +4268,7 @@ internal fun RenderRosaSketchConfirmS78(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .padding(start = 16.dp, end = 16.dp, bottom = 34.dp),
+                .padding(start = 16.dp, end = 16.dp, bottom = 18.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Box(
@@ -4485,7 +4486,7 @@ internal fun RenderAdminRosaA08(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 54.dp, start = 16.dp, end = 16.dp, bottom = 10.dp)
+                    .padding(top = 16.dp, start = 16.dp, end = 16.dp, bottom = 10.dp)
                     .height(44.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),

@@ -468,7 +468,7 @@ internal fun RenderOnboardingScreen(
                 .align(Alignment.TopCenter)
                 .zIndex(2f)
                 .personalTopBarBackground(isStep1 = step == 1)
-                .padding(top = 52.dp, bottom = 14.dp, start = 20.dp, end = 12.dp),
+                .padding(top = 14.dp, bottom = 10.dp, start = 20.dp, end = 12.dp),
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -503,12 +503,12 @@ internal fun RenderOnboardingScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(top = 118.dp, bottom = 120.dp),
+                .padding(top = 72.dp, bottom = 18.dp),
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(340.dp)
+                    .height(310.dp)
                     .padding(horizontal = 20.dp),
             ) {
                 when (step) {
@@ -518,7 +518,7 @@ internal fun RenderOnboardingScreen(
                 }
             }
 
-            Spacer(Modifier.height(34.dp))
+            Spacer(Modifier.height(18.dp))
 
             Column(
                 modifier = Modifier
@@ -535,7 +535,7 @@ internal fun RenderOnboardingScreen(
                     ),
                 )
 
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(6.dp))
 
                 BasicText(
                     text = stepTitle,
@@ -547,7 +547,7 @@ internal fun RenderOnboardingScreen(
                     ),
                 )
 
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(10.dp))
 
                 BasicText(
                     text = stepSubtitle,
@@ -558,71 +558,70 @@ internal fun RenderOnboardingScreen(
                     ),
                 )
             }
-        }
 
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.BottomCenter)
-                .zIndex(2f)
-                .background(Color(0xFFFAFAFC))
-                .padding(top = 12.dp, bottom = 36.dp, start = 28.dp, end = 28.dp),
-        ) {
+            Spacer(Modifier.weight(1f).heightIn(min = 20.dp))
+
             Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 28.dp),
             ) {
-                for (stepDotIndex in 1..4) {
-                    val isActive = stepDotIndex == step
-                    if (isActive) {
-                        Box(
-                            modifier = Modifier
-                                .width(28.dp)
-                                .height(6.dp)
-                                .clip(RoundedCornerShape(3.dp))
-                                .background(
-                                    when (step) {
-                                        1 -> Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))
-                                        2 -> SolidColor(Color(0xFF865DEC))
-                                        else -> SolidColor(Color(0xFF8DB52C))
-                                    },
-                                ),
-                        )
-                    } else {
-                        Box(
-                            modifier = Modifier
-                                .size(6.dp)
-                                .clip(CircleShape)
-                                .background(if (step == 1) Color(0xFFDCD3E4) else Color(0xFFE3DCE8)),
-                        )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    for (stepDotIndex in 1..4) {
+                        val isActive = stepDotIndex == step
+                        if (isActive) {
+                            Box(
+                                modifier = Modifier
+                                    .width(28.dp)
+                                    .height(6.dp)
+                                    .clip(RoundedCornerShape(3.dp))
+                                    .background(
+                                        when (step) {
+                                            1 -> Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))
+                                            2 -> SolidColor(Color(0xFF865DEC))
+                                            else -> SolidColor(Color(0xFF8DB52C))
+                                        },
+                                    ),
+                            )
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .size(6.dp)
+                                    .clip(CircleShape)
+                                    .background(if (step == 1) Color(0xFFDCD3E4) else Color(0xFFE3DCE8)),
+                            )
+                        }
                     }
                 }
-            }
 
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .size(64.dp)
-                    .clip(CircleShape)
-                    .background(
-                        Brush.linearGradient(
-                            when (step) {
-                                1 -> listOf(Color(0xFFEA4EA9), Color(0xFFB754CB))
-                                else -> listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))
-                            },
-                        ),
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(64.dp)
+                        .clip(CircleShape)
+                        .background(
+                            Brush.linearGradient(
+                                when (step) {
+                                    1 -> listOf(Color(0xFFEA4EA9), Color(0xFFB754CB))
+                                    else -> listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))
+                                },
+                            ),
+                        )
+                        .shadow(elevation = 12.dp, shape = CircleShape, spotColor = Color(0x99D646A0))
+                        .clickable { onSelectScreenCode(nextScreen) },
+                ) {
+                    RfIcon(
+                        kind = RfIconKind.BACK,
+                        tint = Color.White,
+                        size = 24.dp,
+                        modifier = Modifier.rotate(180f),
                     )
-                    .shadow(elevation = 12.dp, shape = CircleShape, spotColor = Color(0x99D646A0))
-                    .clickable { onSelectScreenCode(nextScreen) },
-            ) {
-                RfIcon(
-                    kind = RfIconKind.BACK,
-                    tint = Color.White,
-                    size = 24.dp,
-                    modifier = Modifier.rotate(180f),
-                )
+                }
             }
         }
     }
@@ -1393,7 +1392,7 @@ internal fun RenderBienvenidaScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(top = 220.dp, start = 24.dp, end = 24.dp, bottom = 216.dp),
+                .padding(top = 130.dp, start = 24.dp, end = 24.dp, bottom = 20.dp),
         ) {
             Box(
                 contentAlignment = Alignment.Center,
@@ -1445,17 +1444,9 @@ internal fun RenderBienvenidaScreen(
                 ),
                 modifier = Modifier.width(260.dp),
             )
-        }
 
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.BottomCenter)
-                .zIndex(2f)
-                .background(Color(0xFFFAFAFC))
-                .padding(top = 12.dp, start = 24.dp, end = 24.dp, bottom = 36.dp),
-        ) {
+            Spacer(Modifier.weight(1f).heightIn(min = 32.dp))
+
             Row(
                 horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
                 verticalAlignment = Alignment.CenterVertically,
@@ -1664,7 +1655,7 @@ internal fun RenderLoginScreenS07(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(124.dp)
+                .height(78.dp)
                 .align(Alignment.TopCenter)
                 .zIndex(2f)
                 .personalTopBarBackground(isStep1 = true),
@@ -1672,14 +1663,14 @@ internal fun RenderLoginScreenS07(
             BalloonClusterIllustration(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .offset(x = 18.dp, y = 46.dp)
-                    .size(170.dp),
+                    .offset(x = 18.dp, y = 8.dp)
+                    .size(150.dp),
             )
 
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
-                    .offset(x = 20.dp, y = 56.dp)
+                    .offset(x = 20.dp, y = 16.dp)
                     .size(44.dp)
                     .shadow(elevation = 6.dp, shape = CircleShape, spotColor = Color(0x334650B4), ambientColor = Color.Transparent)
                     .clip(CircleShape)
@@ -1695,7 +1686,7 @@ internal fun RenderLoginScreenS07(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(top = 150.dp, start = 24.dp, end = 24.dp, bottom = 96.dp),
+                .padding(top = 92.dp, start = 24.dp, end = 24.dp, bottom = 20.dp),
         ) {
             BasicText(
                 text = "Hola de nuevo",
@@ -1940,23 +1931,20 @@ internal fun RenderLoginScreenS07(
                     BasicText("Apple", style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A2E)))
                 }
             }
-        }
 
-        Row(
-            horizontalArrangement = Arrangement.Center,
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.BottomCenter)
-                .zIndex(2f)
-                .background(Color(0xFFFAFAFC))
-                .padding(top = 12.dp, bottom = 44.dp),
-        ) {
-            BasicText("¿No tienes cuenta? ", style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF62627A)))
-            BasicText(
-                text = "Regístrate",
-                style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD63F98), textDecoration = TextDecoration.Underline),
-                modifier = Modifier.clickable { onSelectScreenCode("s08") },
-            )
+            Spacer(Modifier.weight(1f).heightIn(min = 20.dp))
+
+            Row(
+                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                BasicText("¿No tienes cuenta? ", style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF62627A)))
+                BasicText(
+                    text = "Regístrate",
+                    style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD63F98), textDecoration = TextDecoration.Underline),
+                    modifier = Modifier.clickable { onSelectScreenCode("s08") },
+                )
+            }
         }
     }
 }
@@ -2254,7 +2242,7 @@ internal fun RenderRegisterScreenS08(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(114.dp)
+                .height(74.dp)
                 .align(Alignment.TopCenter)
                 .zIndex(2f)
                 .personalTopBarBackground(isStep1 = false),
@@ -2262,14 +2250,14 @@ internal fun RenderRegisterScreenS08(
             BalloonArchIllustration(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .offset(x = 6.dp, y = 44.dp)
-                    .size(140.dp),
+                    .offset(x = 6.dp, y = 8.dp)
+                    .size(130.dp),
             )
 
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
-                    .offset(x = 20.dp, y = 56.dp)
+                    .offset(x = 20.dp, y = 16.dp)
                     .size(44.dp)
                     .shadow(elevation = 8.dp, shape = CircleShape, spotColor = Color(0x66B450B4))
                     .clip(CircleShape)
@@ -2285,7 +2273,7 @@ internal fun RenderRegisterScreenS08(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(top = 128.dp, start = 24.dp, end = 24.dp, bottom = 84.dp),
+                .padding(top = 86.dp, start = 24.dp, end = 24.dp, bottom = 20.dp),
         ) {
             BasicText(
                 "Crea tu cuenta",
@@ -2608,23 +2596,20 @@ internal fun RenderRegisterScreenS08(
                     BasicText("Apple", style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A2E)))
                 }
             }
-        }
 
-        Row(
-            horizontalArrangement = Arrangement.Center,
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.BottomCenter)
-                .zIndex(2f)
-                .background(Color(0xFFFAFAFC))
-                .padding(top = 12.dp, bottom = 36.dp),
-        ) {
-            BasicText("¿Ya tienes cuenta? ", style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF62627A)))
-            BasicText(
-                text = "Inicia sesión",
-                style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFFC2338F), textDecoration = TextDecoration.Underline),
-                modifier = Modifier.clickable { onSelectScreenCode("s07") },
-            )
+            Spacer(Modifier.weight(1f).heightIn(min = 18.dp))
+
+            Row(
+                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                BasicText("¿Ya tienes cuenta? ", style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF62627A)))
+                BasicText(
+                    text = "Inicia sesión",
+                    style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFFC2338F), textDecoration = TextDecoration.Underline),
+                    modifier = Modifier.clickable { onSelectScreenCode("s07") },
+                )
+            }
         }
     }
 }
@@ -2673,7 +2658,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(114.dp)
+                        .height(72.dp)
                         .align(Alignment.TopCenter)
                         .zIndex(2f)
                         .personalTopBarBackground(isStep1 = false),
@@ -2681,7 +2666,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
-                            .offset(x = 20.dp, y = 56.dp)
+                            .offset(x = 20.dp, y = 16.dp)
                             .size(44.dp)
                             .shadow(elevation = 8.dp, shape = CircleShape, spotColor = Color(0x66B450B4))
                             .clip(CircleShape)
@@ -2697,7 +2682,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState())
-                        .padding(top = 120.dp, start = 24.dp, end = 24.dp, bottom = 96.dp),
+                        .padding(top = 78.dp, start = 24.dp, end = 24.dp, bottom = 20.dp),
                 ) {
                     KeyIllustration(
                         size = 140.dp,
@@ -2785,21 +2770,13 @@ internal fun RenderRecoveryAndConfirmationScreens(
                         RfIcon(kind = RfIconKind.INFO, tint = Color(0xFF62627A), size = 18.dp)
                         BasicText("Si no lo ves, revisa la carpeta de spam.", style = typo.body.copy(fontSize = 14.sp, color = Color(0xFF62627A)))
                     }
-                }
 
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .align(Alignment.BottomCenter)
-                        .zIndex(2f)
-                        .background(Color(0xFFFAFAFC))
-                        .padding(top = 12.dp, bottom = 44.dp),
-                ) {
+                    Spacer(Modifier.weight(1f).heightIn(min = 24.dp))
+
                     BasicText(
                         text = "Volver a iniciar sesión",
                         style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFFC2338F), textDecoration = TextDecoration.Underline),
-                        modifier = Modifier.clickable { onSelectScreenCode("s07") },
+                        modifier = Modifier.align(Alignment.CenterHorizontally).clickable { onSelectScreenCode("s07") },
                     )
                 }
             }
@@ -2830,7 +2807,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(160.dp)
+                        .height(114.dp)
                         .align(Alignment.TopCenter)
                         .zIndex(2f)
                         .personalTopBarBackground(isStep1 = false),
@@ -2838,7 +2815,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
-                            .offset(x = 20.dp, y = 56.dp)
+                            .offset(x = 20.dp, y = 16.dp)
                             .size(44.dp)
                             .shadow(elevation = 8.dp, shape = CircleShape, spotColor = Color(0x66B450B4))
                             .clip(CircleShape)
@@ -2850,10 +2827,10 @@ internal fun RenderRecoveryAndConfirmationScreens(
                     }
 
                     PadlockIllustration(
-                        size = 112.dp,
+                        size = 104.dp,
                         modifier = Modifier
                             .align(Alignment.TopEnd)
-                            .offset(x = (-16).dp, y = 44.dp),
+                            .offset(x = (-16).dp, y = 8.dp),
                     )
                 }
 
@@ -2861,7 +2838,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState())
-                        .padding(top = 170.dp, start = 24.dp, end = 24.dp, bottom = 120.dp),
+                        .padding(top = 122.dp, start = 24.dp, end = 24.dp, bottom = 20.dp),
                 ) {
                     BasicText(
                         "Crea una nueva contraseña",
@@ -3036,16 +3013,9 @@ internal fun RenderRecoveryAndConfirmationScreens(
                             }
                         }
                     }
-                }
 
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .align(Alignment.BottomCenter)
-                        .zIndex(2f)
-                        .background(Color(0xFFFAFAFC))
-                        .padding(top = 12.dp, start = 24.dp, end = 24.dp, bottom = 40.dp),
-                ) {
+                    Spacer(Modifier.weight(1f).heightIn(min = 24.dp))
+
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
@@ -3089,7 +3059,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState())
-                        .padding(top = 190.dp, start = 36.dp, end = 36.dp, bottom = 120.dp),
+                        .padding(top = 110.dp, start = 24.dp, end = 24.dp, bottom = 20.dp),
                 ) {
                     ActiveAccountIllustration(size = 220.dp)
 
@@ -3112,17 +3082,11 @@ internal fun RenderRecoveryAndConfirmationScreens(
                     BasicText(
                         "Ya puedes iniciar sesión y empezar a planificar tu evento.",
                         style = typo.body.copy(fontSize = 16.sp, lineHeight = 24.sp, color = Color(0xFF62627A), textAlign = TextAlign.Center),
+                        modifier = Modifier.padding(horizontal = 12.dp),
                     )
-                }
 
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .align(Alignment.BottomCenter)
-                        .zIndex(2f)
-                        .background(Color(0xFFFAFAFC))
-                        .padding(top = 12.dp, start = 24.dp, end = 24.dp, bottom = 40.dp),
-                ) {
+                    Spacer(Modifier.weight(1f).heightIn(min = 28.dp))
+
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
@@ -3160,7 +3124,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                             ),
                         )
                         val cx = size.width / 2f
-                        val cy = 300.dp.toPx()
+                        val cy = 220.dp.toPx()
                         drawCircle(color = Color(0xFFEFE8FD), radius = 170.dp.toPx(), center = Offset(cx, cy), alpha = 0.55f)
                         drawCircle(color = Color(0xFFEFE8FD), radius = 120.dp.toPx(), center = Offset(cx, cy))
                     },
@@ -3170,7 +3134,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState())
-                        .padding(top = 190.dp, start = 36.dp, end = 36.dp, bottom = 120.dp),
+                        .padding(top = 110.dp, start = 24.dp, end = 24.dp, bottom = 20.dp),
                 ) {
                     VerifiedMailIllustration(size = 220.dp)
 
@@ -3193,17 +3157,11 @@ internal fun RenderRecoveryAndConfirmationScreens(
                     BasicText(
                         "Tu cuenta ya está lista. Entra y comienza a planificar.",
                         style = typo.body.copy(fontSize = 16.sp, lineHeight = 24.sp, color = Color(0xFF62627A), textAlign = TextAlign.Center),
+                        modifier = Modifier.padding(horizontal = 12.dp),
                     )
-                }
 
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .align(Alignment.BottomCenter)
-                        .zIndex(2f)
-                        .background(Color(0xFFFAFAFC))
-                        .padding(top = 12.dp, start = 24.dp, end = 24.dp, bottom = 40.dp),
-                ) {
+                    Spacer(Modifier.weight(1f).heightIn(min = 28.dp))
+
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
@@ -3251,7 +3209,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState())
-                        .padding(top = 84.dp, bottom = 120.dp),
+                        .padding(top = 36.dp, bottom = 20.dp),
                 ) {
                     Column(
                         modifier = Modifier
@@ -3291,7 +3249,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                         BasicText(s13Email, style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF62627A)))
                     }
 
-                    Spacer(Modifier.height(34.dp))
+                    Spacer(Modifier.height(28.dp))
 
                     Box(
                         modifier = Modifier
@@ -3349,20 +3307,14 @@ internal fun RenderRecoveryAndConfirmationScreens(
                             )
                         }
                     }
-                }
 
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .align(Alignment.BottomCenter)
-                        .zIndex(2f)
-                        .background(Color(0xFFFAFAFC))
-                        .padding(top = 12.dp, start = 24.dp, end = 24.dp, bottom = 40.dp),
-                ) {
+                    Spacer(Modifier.weight(1f).heightIn(min = 24.dp))
+
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
                             .fillMaxWidth()
+                            .padding(horizontal = 24.dp)
                             .height(56.dp)
                             .shadow(elevation = 12.dp, shape = RoundedCornerShape(16.dp), spotColor = Color(0xB3C846B4))
                             .clip(RoundedCornerShape(16.dp))

@@ -769,7 +769,7 @@ internal fun RenderPaymentSuccessScreenS51(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(top = 130.dp, bottom = 160.dp),
+                .padding(top = 48.dp, bottom = 148.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             // Header at top 130dp
@@ -966,7 +966,7 @@ internal fun RenderPaymentSuccessScreenS51(
                 .align(Alignment.BottomCenter)
                 .zIndex(2f)
                 .background(Color(0xFFFAFAFC))
-                .padding(top = 12.dp, start = 20.dp, end = 20.dp, bottom = 36.dp)
+                .padding(top = 10.dp, start = 20.dp, end = 20.dp, bottom = 18.dp)
                 .fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
