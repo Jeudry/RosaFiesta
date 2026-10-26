@@ -124,7 +124,6 @@ public fun PersonalTabBar(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .shadow(elevation = 16.dp, shape = RectangleShape, spotColor = Color(0x35EA4899), ambientColor = Color(0x18EA4899))
                 .background(barBg)
                 .drawBehind {
                     drawLine(
@@ -1562,6 +1561,7 @@ public fun RfPhoneFrame(
     bottomBar: (@Composable () -> Unit)? = null,
     showMockStatusBar: Boolean = false,
     wrapInPhoneBorder: Boolean = false,
+    fillAvailable: Boolean = false,
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
@@ -1572,6 +1572,8 @@ public fun RfPhoneFrame(
                 .height(RfDimens.PhoneFrameHeight)
                 .clip(RoundedCornerShape(RfDimens.PhoneInnerRadius))
                 .border(1.5.dp, LocalRfPalette.current.line, RoundedCornerShape(RfDimens.PhoneInnerRadius))
+        } else if (fillAvailable) {
+            modifier.fillMaxSize()
         } else {
             modifier
                 .width(RfDimens.PhoneFrameWidth)

@@ -85,7 +85,7 @@ public fun AdminApp(
 public fun RosaFiestaApp(
     initialAppView: AppView = AppView.PERSONAL,
     initialScreenCode: String = if (initialAppView == AppView.ADMIN) "A01" else "s14",
-    showDevHeader: Boolean = true,
+    showDevHeader: Boolean = false,
     viewModel: RosaFiestaViewModel = remember {
         koinApplication { modules(appModule) }.koin.get()
     },

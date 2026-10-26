@@ -43,6 +43,8 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jeudry.rosafiesta.core.engine.RosaFiestaEngine
@@ -918,8 +920,16 @@ internal fun RenderPersonalHomeScreen(
                     }
                     BasicText(
                         text = "Decoración",
-                        style = typo.caption.copy(fontSize = 13.sp, fontWeight = FontWeight.Medium, color = textColor),
+                        style = typo.caption.copy(
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = textColor,
+                            textAlign = TextAlign.Center,
+                        ),
                         maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.fillMaxWidth(),
                     )
                 }
 
@@ -940,8 +950,16 @@ internal fun RenderPersonalHomeScreen(
                     }
                     BasicText(
                         text = "Mobiliario",
-                        style = typo.caption.copy(fontSize = 13.sp, fontWeight = FontWeight.Medium, color = textColor),
+                        style = typo.caption.copy(
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = textColor,
+                            textAlign = TextAlign.Center,
+                        ),
                         maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.fillMaxWidth(),
                     )
                 }
 
@@ -962,8 +980,16 @@ internal fun RenderPersonalHomeScreen(
                     }
                     BasicText(
                         text = "Mesa dulce",
-                        style = typo.caption.copy(fontSize = 13.sp, fontWeight = FontWeight.Medium, color = textColor),
+                        style = typo.caption.copy(
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = textColor,
+                            textAlign = TextAlign.Center,
+                        ),
                         maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.fillMaxWidth(),
                     )
                 }
 
@@ -984,8 +1010,16 @@ internal fun RenderPersonalHomeScreen(
                     }
                     BasicText(
                         text = "Iluminación",
-                        style = typo.caption.copy(fontSize = 13.sp, fontWeight = FontWeight.Medium, color = textColor),
+                        style = typo.caption.copy(
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = textColor,
+                            textAlign = TextAlign.Center,
+                        ),
                         maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.fillMaxWidth(),
                     )
                 }
             }
@@ -1033,7 +1067,8 @@ internal fun RenderPersonalHomeScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
+                    .horizontalScroll(rememberScrollState())
+                    .padding(top = 4.dp, bottom = 14.dp),
             ) {
                 // Card 1: Graduaciones
                 Column(
@@ -1093,14 +1128,19 @@ internal fun RenderPersonalHomeScreen(
                         BasicText(
                             text = "Graduaciones",
                             style = typo.rootTabTitle.copy(
-                                fontSize = 17.sp,
+                                fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = textColor,
                             ),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false),
                         )
                         BasicText(
                             text = "2.4K eventos",
                             style = typo.caption.copy(fontSize = 13.sp, color = mutedColor),
+                            maxLines = 1,
+                            modifier = Modifier.padding(start = 6.dp),
                         )
                     }
                 }
@@ -1163,14 +1203,19 @@ internal fun RenderPersonalHomeScreen(
                         BasicText(
                             text = "Bodas",
                             style = typo.rootTabTitle.copy(
-                                fontSize = 17.sp,
+                                fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = textColor,
                             ),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false),
                         )
                         BasicText(
-                            text = "[N] eventos",
+                            text = if (isDark) "3.1K eventos" else "1.8K eventos",
                             style = typo.caption.copy(fontSize = 13.sp, color = mutedColor),
+                            maxLines = 1,
+                            modifier = Modifier.padding(start = 6.dp),
                         )
                     }
                 }

@@ -122,6 +122,7 @@ fun RenderScreenSpec(
         screenTitle = spec.title,
         showMockStatusBar = false,
         wrapInPhoneBorder = false,
+        fillAvailable = !isFrameHarness,
         bottomBar = {
             if (showBottomBar) {
                 if (isAdmin) {
