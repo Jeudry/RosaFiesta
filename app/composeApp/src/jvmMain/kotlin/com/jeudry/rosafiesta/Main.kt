@@ -14,9 +14,9 @@ fun main() = application {
         state = rememberWindowState(width = 1280.dp, height = 820.dp),
     ) {
         RosaFiestaApp(
-            initialAppView = AppView.ADMIN,
-            initialScreenCode = "A39",
-            showDevHeader = false,
+            initialAppView = AppView.PERSONAL,
+            initialScreenCode = "s14",
+            showDevHeader = true,
         )
     }
 }
