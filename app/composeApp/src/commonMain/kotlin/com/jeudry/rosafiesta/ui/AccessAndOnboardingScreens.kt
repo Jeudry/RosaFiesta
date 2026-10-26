@@ -1576,8 +1576,8 @@ internal fun RenderLoginScreenS07(
     onSelectScreenCode: (String) -> Unit,
 ) {
     val typo = LocalRfTypography.current
-    var email by remember { mutableStateOf(viewModel?.profileEmail?.value ?: "camila.duarte@correo.com") }
-    var password by remember { mutableStateOf("contrasena12") }
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
     val formError = viewModel?.formError?.collectAsState()?.value
 
@@ -1692,14 +1692,23 @@ internal fun RenderLoginScreenS07(
                     RfIcon(kind = RfIconKind.MAIL, tint = Color(0xFF62627A), size = 20.dp)
                     BasicTextField(
                         value = email,
-                        onValueChange = {
-                            email = it
-                            viewModel?.setLoginEmail(it)
+                        onValueChange = { nextValue ->
+                            email = nextValue
+                            viewModel?.setLoginEmail(nextValue)
                         },
                         singleLine = true,
                         textStyle = typo.body.copy(fontSize = 15.sp, color = Color(0xFF1A1A2E)),
                         cursorBrush = SolidColor(Color(0xFFD63F98)),
                         modifier = Modifier.weight(1f),
+                        decorationBox = { innerTextField ->
+                            if (email.isEmpty()) {
+                                BasicText(
+                                    text = "tucorreo@ejemplo.com o usuario",
+                                    style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF9A98AD)),
+                                )
+                            }
+                            innerTextField()
+                        },
                     )
                 }
             }
@@ -1741,31 +1750,50 @@ internal fun RenderLoginScreenS07(
                         if (showPassword) {
                             BasicTextField(
                                 value = password,
-                                onValueChange = {
-                                    password = it
-                                    viewModel?.setLoginPassword(it)
+                                onValueChange = { nextPassword ->
+                                    password = nextPassword
+                                    viewModel?.setLoginPassword(nextPassword)
                                 },
                                 singleLine = true,
                                 textStyle = typo.body.copy(fontSize = 15.sp, color = Color(0xFF1A1A2E)),
                                 cursorBrush = SolidColor(Color(0xFFD63F98)),
                                 modifier = Modifier.fillMaxWidth(),
+                                decorationBox = { innerTextField ->
+                                    if (password.isEmpty()) {
+                                        BasicText(
+                                            text = "Ingresa tu contraseña",
+                                            style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF9A98AD)),
+                                        )
+                                    }
+                                    innerTextField()
+                                },
                             )
                         } else {
                             BasicTextField(
                                 value = password,
-                                onValueChange = {
-                                    password = it
-                                    viewModel?.setLoginPassword(it)
+                                onValueChange = { nextPassword ->
+                                    password = nextPassword
+                                    viewModel?.setLoginPassword(nextPassword)
                                 },
                                 singleLine = true,
                                 textStyle = typo.body.copy(fontSize = 15.sp, color = Color.Transparent),
                                 cursorBrush = SolidColor(Color(0xFFD63F98)),
                                 modifier = Modifier.fillMaxWidth(),
-                                decorationBox = {
-                                    BasicText(
-                                        text = "•".repeat(password.length.coerceAtLeast(8)),
-                                        style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF1A1A2E), letterSpacing = 2.sp),
-                                    )
+                                decorationBox = { innerTextField ->
+                                    Box(contentAlignment = Alignment.CenterStart) {
+                                        if (password.isEmpty()) {
+                                            BasicText(
+                                                text = "Ingresa tu contraseña",
+                                                style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF9A98AD)),
+                                            )
+                                        } else {
+                                            BasicText(
+                                                text = "•".repeat(password.length),
+                                                style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF1A1A2E), letterSpacing = 2.sp),
+                                            )
+                                        }
+                                        innerTextField()
+                                    }
                                 },
                             )
                         }
@@ -1803,11 +1831,15 @@ internal fun RenderLoginScreenS07(
                         Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC))),
                     )
                     .clickable {
-                        viewModel?.setLoginEmail(email)
+                        val trimmedIdentifier = email.trim()
+                        val hasAtSymbol = trimmedIdentifier.contains("@")
+                        val isInvalidKeyword = trimmedIdentifier.contains("invalido", ignoreCase = true)
+                        val canExpandUsername = trimmedIdentifier.isNotEmpty() && !hasAtSymbol && !isInvalidKeyword
+                        val resolvedEmail = if (canExpandUsername) "$trimmedIdentifier@rosafiesta.do" else trimmedIdentifier
+                        viewModel?.setLoginEmail(resolvedEmail)
                         viewModel?.setLoginPassword(password)
                         val success = viewModel?.submitLogin() ?: true
                         if (success) {
-                            viewModel?.setProfileEmail(email)
                             onSelectScreenCode("s14")
                         }
                     },
@@ -1840,7 +1872,12 @@ internal fun RenderLoginScreenS07(
                         .clip(RoundedCornerShape(16.dp))
                         .background(Color.White)
                         .border(1.dp, Color(0xFFEEE9F2), RoundedCornerShape(16.dp))
-                        .clickable { onSelectScreenCode("s14") },
+                        .clickable {
+                            if (email.isNotBlank()) {
+                                viewModel?.applyUserIdentityFromLogin(email)
+                            }
+                            onSelectScreenCode("s14")
+                        },
                 ) {
                     BasicText("Google", style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A2E)))
                 }
@@ -1853,7 +1890,12 @@ internal fun RenderLoginScreenS07(
                         .clip(RoundedCornerShape(16.dp))
                         .background(Color.White)
                         .border(1.dp, Color(0xFFEEE9F2), RoundedCornerShape(16.dp))
-                        .clickable { onSelectScreenCode("s14") },
+                        .clickable {
+                            if (email.isNotBlank()) {
+                                viewModel?.applyUserIdentityFromLogin(email)
+                            }
+                            onSelectScreenCode("s14")
+                        },
                 ) {
                     BasicText("Apple", style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A2E)))
                 }
@@ -2452,12 +2494,28 @@ internal fun RenderRegisterScreenS08(
                     .clip(RoundedCornerShape(16.dp))
                     .background(Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC))))
                     .clickable {
-                        val fullName = listOf(firstName.trim(), lastName.trim()).filter { it.isNotEmpty() }.joinToString(" ")
+                        val nameParts = listOf(firstName.trim(), lastName.trim()).filter { part -> part.isNotEmpty() }
+                        val fullName = nameParts.joinToString(" ")
+                        val cleanEmail = email.trim()
+                        val cleanUsername = username.trim()
+                        val cleanBirthDate = birthDate.trim()
                         if (fullName.isNotEmpty()) {
                             viewModel?.setProfileName(fullName)
+                        } else if (cleanUsername.isNotEmpty()) {
+                            viewModel?.applyUserIdentityFromLogin(cleanUsername)
+                        } else if (cleanEmail.isNotEmpty()) {
+                            viewModel?.applyUserIdentityFromLogin(cleanEmail)
                         }
-                        if (email.isNotBlank()) {
-                            viewModel?.setProfileEmail(email.trim())
+                        if (cleanEmail.isNotEmpty()) {
+                            viewModel?.setProfileEmail(cleanEmail)
+                        }
+                        if (cleanUsername.isNotEmpty()) {
+                            viewModel?.setProfileUsername(cleanUsername)
+                        } else if (cleanEmail.isNotEmpty()) {
+                            viewModel?.setProfileUsername(cleanEmail.substringBefore("@"))
+                        }
+                        if (cleanBirthDate.isNotEmpty()) {
+                            viewModel?.setProfileBirthDate(cleanBirthDate)
                         }
                         onSelectScreenCode("s14")
                     },
@@ -2536,10 +2594,16 @@ internal fun RenderRegisterScreenS08(
 @Composable
 internal fun RenderRecoveryAndConfirmationScreens(
     spec: ScreenSpec,
+    viewModel: RosaFiestaViewModel? = null,
     onPrimaryAction: () -> Unit,
     onSelectScreenCode: (String) -> Unit,
 ) {
     val typo = LocalRfTypography.current
+    var recoveryEmail by remember { mutableStateOf("") }
+    var newPassword by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
+    var showNewPassword by remember { mutableStateOf(false) }
+    var showConfirmPassword by remember { mutableStateOf(false) }
 
     when (spec.code) {
         "s09" -> {
@@ -2624,7 +2688,20 @@ internal fun RenderRecoveryAndConfirmationScreens(
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             RfIcon(kind = RfIconKind.MAIL, tint = Color(0xFF62627A), size = 20.dp)
-                            BasicText("tucorreo@ejemplo.com", style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF62627A)))
+                            BasicTextField(
+                                value = recoveryEmail,
+                                onValueChange = { nextEmail -> recoveryEmail = nextEmail },
+                                singleLine = true,
+                                textStyle = typo.body.copy(fontSize = 15.sp, color = Color(0xFF1A1A2E)),
+                                cursorBrush = SolidColor(Color(0xFFD63F98)),
+                                modifier = Modifier.fillMaxWidth(),
+                                decorationBox = { innerTextField ->
+                                    if (recoveryEmail.isEmpty()) {
+                                        BasicText("tucorreo@ejemplo.com", style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF9A98AD)))
+                                    }
+                                    innerTextField()
+                                },
+                            )
                         }
                     }
 
@@ -2638,7 +2715,12 @@ internal fun RenderRecoveryAndConfirmationScreens(
                             .shadow(elevation = 12.dp, shape = RoundedCornerShape(16.dp), spotColor = Color(0xB3C846B4), ambientColor = Color.Transparent)
                             .clip(RoundedCornerShape(16.dp))
                             .background(Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC))))
-                            .clickable { onSelectScreenCode("s10") },
+                            .clickable {
+                                if (recoveryEmail.isNotBlank()) {
+                                    viewModel?.applyUserIdentityFromLogin(recoveryEmail)
+                                }
+                                onSelectScreenCode("s10")
+                            },
                     ) {
                         BasicText("Enviar enlace", style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White))
                     }
@@ -2744,11 +2826,38 @@ internal fun RenderRecoveryAndConfirmationScreens(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             modifier = Modifier.fillMaxWidth(),
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                modifier = Modifier.weight(1f),
+                            ) {
                                 RfIcon(kind = RfIconKind.LOCK, tint = Color(0xFF62627A), size = 20.dp)
-                                BasicText("••••••••••", style = typo.body.copy(fontSize = 18.sp, letterSpacing = 2.sp, color = Color(0xFF1A1A2E)))
+                                BasicTextField(
+                                    value = newPassword,
+                                    onValueChange = { nextPass -> newPassword = nextPass },
+                                    singleLine = true,
+                                    textStyle = typo.body.copy(
+                                        fontSize = 15.sp,
+                                        color = if (showNewPassword) Color(0xFF1A1A2E) else Color.Transparent,
+                                    ),
+                                    cursorBrush = SolidColor(Color(0xFFD63F98)),
+                                    modifier = Modifier.fillMaxWidth(),
+                                    decorationBox = { innerTextField ->
+                                        Box(contentAlignment = Alignment.CenterStart) {
+                                            if (newPassword.isEmpty()) {
+                                                BasicText("Crea tu contraseña", style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF9A98AD)))
+                                            } else if (!showNewPassword) {
+                                                BasicText("•".repeat(newPassword.length), style = typo.body.copy(fontSize = 18.sp, letterSpacing = 2.sp, color = Color(0xFF1A1A2E)))
+                                            }
+                                            innerTextField()
+                                        }
+                                    },
+                                )
                             }
-                            Box(contentAlignment = Alignment.Center, modifier = Modifier.size(44.dp)) {
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier.size(44.dp).clickable { showNewPassword = !showNewPassword },
+                            ) {
                                 RfIcon(kind = RfIconKind.EYE, tint = Color(0xFF62627A), size = 20.dp)
                             }
                         }
@@ -2822,11 +2931,38 @@ internal fun RenderRecoveryAndConfirmationScreens(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             modifier = Modifier.fillMaxWidth(),
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                modifier = Modifier.weight(1f),
+                            ) {
                                 RfIcon(kind = RfIconKind.LOCK, tint = Color(0xFF62627A), size = 20.dp)
-                                BasicText("Repite tu contraseña", style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF62627A)))
+                                BasicTextField(
+                                    value = confirmPassword,
+                                    onValueChange = { nextPass -> confirmPassword = nextPass },
+                                    singleLine = true,
+                                    textStyle = typo.body.copy(
+                                        fontSize = 15.sp,
+                                        color = if (showConfirmPassword) Color(0xFF1A1A2E) else Color.Transparent,
+                                    ),
+                                    cursorBrush = SolidColor(Color(0xFFD63F98)),
+                                    modifier = Modifier.fillMaxWidth(),
+                                    decorationBox = { innerTextField ->
+                                        Box(contentAlignment = Alignment.CenterStart) {
+                                            if (confirmPassword.isEmpty()) {
+                                                BasicText("Repite tu contraseña", style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF9A98AD)))
+                                            } else if (!showConfirmPassword) {
+                                                BasicText("•".repeat(confirmPassword.length), style = typo.body.copy(fontSize = 18.sp, letterSpacing = 2.sp, color = Color(0xFF1A1A2E)))
+                                            }
+                                            innerTextField()
+                                        }
+                                    },
+                                )
                             }
-                            Box(contentAlignment = Alignment.Center, modifier = Modifier.size(44.dp)) {
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier.size(44.dp).clickable { showConfirmPassword = !showConfirmPassword },
+                            ) {
                                 RfIcon(kind = RfIconKind.EYE, tint = Color(0xFF62627A), size = 20.dp)
                             }
                         }
@@ -2995,6 +3131,11 @@ internal fun RenderRecoveryAndConfirmationScreens(
         }
 
         "s13" -> {
+            val s13ProfileName = viewModel?.profileName?.collectAsState()?.value ?: "Invitado Rosa Fiesta"
+            val s13FirstName = s13ProfileName.substringBefore(" ").ifBlank { "Cliente" }
+            val s13AvatarInitial = s13FirstName.firstOrNull()?.uppercaseChar()?.toString() ?: "R"
+            val s13Email = viewModel?.profileEmail?.collectAsState()?.value ?: "cliente@rosafiesta.do"
+
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -3035,7 +3176,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                                 .background(Color(0xFFFDE6F2)),
                         ) {
                             BasicText(
-                                "C",
+                                s13AvatarInitial,
                                 style = typo.heroTitle.copy(
                                     fontSize = 24.sp,
                                     fontWeight = FontWeight.ExtraBold,
@@ -3047,7 +3188,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                         Spacer(Modifier.height(12.dp))
 
                         BasicText(
-                            "¡Hola de nuevo, Camila!",
+                            "¡Hola de nuevo, $s13FirstName!",
                             style = typo.heroTitle.copy(
                                 fontSize = 30.sp,
                                 fontWeight = FontWeight.ExtraBold,
@@ -3057,7 +3198,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                             ),
                         )
                         Spacer(Modifier.height(6.dp))
-                        BasicText("camila.rodriguez@correo.com", style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF62627A)))
+                        BasicText(s13Email, style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF62627A)))
                     }
 
                     Spacer(Modifier.height(34.dp))

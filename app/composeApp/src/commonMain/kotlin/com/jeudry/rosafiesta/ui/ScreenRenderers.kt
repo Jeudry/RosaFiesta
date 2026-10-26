@@ -209,7 +209,7 @@ fun RenderScreenSpec(
                 "s06" -> RenderBienvenidaScreen(spec = spec, onSelectScreenCode = onSelectScreenCode)
                 "s07" -> RenderLoginScreenS07(viewModel = viewModel, onPrimaryAction = onPrimaryAction, onSelectScreenCode = onSelectScreenCode)
                 "s08" -> RenderRegisterScreenS08(viewModel = viewModel, onPrimaryAction = onPrimaryAction, onSelectScreenCode = onSelectScreenCode)
-                "s09", "s10", "s11", "s12", "s13" -> RenderRecoveryAndConfirmationScreens(spec = spec, onPrimaryAction = onPrimaryAction, onSelectScreenCode = onSelectScreenCode)
+                "s09", "s10", "s11", "s12", "s13" -> RenderRecoveryAndConfirmationScreens(spec = spec, viewModel = viewModel, onPrimaryAction = onPrimaryAction, onSelectScreenCode = onSelectScreenCode)
                 "s14", "s15" -> RenderPersonalHomeScreen(spec = spec, viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
                 "s18" -> RenderPersonalCatalogS18(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
                 "s19" -> RenderProductDetailS19(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
@@ -252,7 +252,7 @@ fun RenderScreenSpec(
                 "s56" -> RenderNewSupplierScreenS56(onSelectScreenCode = onSelectScreenCode)
                 "s57" -> RenderSpendingAnalyticsScreenS57(onSelectScreenCode = onSelectScreenCode)
                 "s58" -> RenderFinancialDashboardScreenS58(onSelectScreenCode = onSelectScreenCode)
-                "s83" -> RenderOfficialReceiptScreenS83(onSelectScreenCode = onSelectScreenCode)
+                "s83" -> RenderOfficialReceiptScreenS83(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
                 "A01" -> RenderAdminHomeA01(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
                 "A02" -> RenderAdminRequestsA02(onSelectScreenCode = onSelectScreenCode)
                 "A03" -> RenderAdminQuoteBuilderA03(onSelectScreenCode = onSelectScreenCode)
@@ -925,7 +925,7 @@ private fun RenderTeamDirectChatScreen(
     RfButton(
         label = spec.primaryCta,
         onClick = {
-            viewModel?.submitChatMessage("Camila")
+            viewModel?.submitChatMessage()
             onPrimaryAction()
         },
     )

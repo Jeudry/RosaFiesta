@@ -133,11 +133,11 @@ internal fun RenderAuthFormByCode(
     onSelectScreenCode: (String) -> Unit,
 ) {
     val typo = LocalRfTypography.current
-    val loginEmail = viewModel?.loginEmail?.collectAsState()?.value ?: "camila@rosafiesta.do"
-    val loginPassword = viewModel?.loginPassword?.collectAsState()?.value ?: "••••••••••••"
-    val regName = viewModel?.registerName?.collectAsState()?.value ?: "Camila Rodríguez"
-    val regEmail = viewModel?.registerEmail?.collectAsState()?.value ?: "camila@rosafiesta.do"
-    val regPhone = viewModel?.registerPhone?.collectAsState()?.value ?: "+1 (809) 555-0142"
+    val loginEmail = viewModel?.loginEmail?.collectAsState()?.value ?: ""
+    val loginPassword = viewModel?.loginPassword?.collectAsState()?.value ?: ""
+    val regName = viewModel?.registerName?.collectAsState()?.value ?: ""
+    val regEmail = viewModel?.registerEmail?.collectAsState()?.value ?: ""
+    val regPhone = viewModel?.registerPhone?.collectAsState()?.value ?: ""
     val formError = viewModel?.formError?.collectAsState()?.value
 
     when (spec.code) {
@@ -599,9 +599,9 @@ internal fun RenderPersonalHomeScreen(
 ) {
     val isDark = spec.variant == RfThemeVariant.PERSONAL_DARK
     val typo = LocalRfTypography.current
-    val fullName = viewModel?.profileName?.collectAsState()?.value ?: "Camila Duarte"
-    val firstName = fullName.substringBefore(" ").ifBlank { "Camila" }
-    val avatarInitial = firstName.firstOrNull()?.uppercaseChar()?.toString() ?: "C"
+    val fullName = viewModel?.profileName?.collectAsState()?.value ?: "Invitado Rosa Fiesta"
+    val firstName = fullName.substringBefore(" ").ifBlank { "Invitado" }
+    val avatarInitial = firstName.firstOrNull()?.uppercaseChar()?.toString() ?: "R"
     val textColor = if (isDark) Color(0xFFF2F0F8) else Color(0xFF1A1A2E)
     val mutedColor = if (isDark) Color(0xFFA6A3BA) else Color(0xFF62627A)
     val cardBg = if (isDark) Color(0xFF1D1D30) else Color(0xFFFFFFFF)
@@ -1827,7 +1827,11 @@ internal fun RenderRosaAssistantContent(
     val rosaType = viewModel?.rosaEventType?.collectAsState()?.value ?: "Boda Real Rosa & Dorado"
     val rosaGuests = viewModel?.rosaGuestsCount?.collectAsState()?.value ?: 120
     val rosaPalette = viewModel?.rosaPalette?.collectAsState()?.value ?: "Rosa & Dorado"
-    val isCustomized = rosaGuests != 120 || rosaType != "Boda Real Rosa & Dorado" || rosaPalette != "Rosa & Dorado"
+    val clientFirstName = (viewModel?.profileName?.collectAsState()?.value ?: "Cliente").substringBefore(" ").ifBlank { "Cliente" }
+    val isDiffGuests = rosaGuests != 120
+    val isDiffType = rosaType != "Boda Real Rosa & Dorado"
+    val isDiffPalette = rosaPalette != "Rosa & Dorado"
+    val isCustomized = isDiffGuests || isDiffType || isDiffPalette
     val proposal = RosaFiestaEngine.buildRosaProposal(rosaType, rosaGuests)
     val canonicalBoda = CanonicalSampleData.events.first()
 
@@ -1858,10 +1862,10 @@ internal fun RenderRosaAssistantContent(
                         "«María, verifiqué almacén para el lun 2 nov: tenemos las 100 sillas Tiffany y 13 mesas redondas libres para Quinceañera Valentina Crystal (RD$ 6,200).»"
 
                     isCustomized ->
-                        "«Camila, para tus $rosaGuests invitados en Jardín Botánico ($rosaPalette) preparé la propuesta completa por ${RosaFiestaEngine.formatDop(proposal.totalDop)}.»"
+                        "«$clientFirstName, para tus $rosaGuests invitados en Jardín Botánico ($rosaPalette) preparé la propuesta completa por ${RosaFiestaEngine.formatDop(proposal.totalDop)}.»"
 
                     else ->
-                        "«Camila, para tus 120 invitados en Jardín Botánico preparé 120 sillas Tiffany doradas, 15 mesas redondas, 8 centros florales y el arco orgánico rosa dentro de tu presupuesto de RD$ 4,500.»"
+                        "«$clientFirstName, para tus 120 invitados en Jardín Botánico preparé 120 sillas Tiffany doradas, 15 mesas redondas, 8 centros florales y el arco orgánico rosa dentro de tu presupuesto de RD$ 4,500.»"
                 },
                 style = typo.body,
             )
@@ -1907,8 +1911,8 @@ internal fun RenderPersonalProfileAndStateContent(
     onSelectScreenCode: (String) -> Unit,
 ) {
     val typo = LocalRfTypography.current
-    val nameVal = viewModel?.profileName?.collectAsState()?.value ?: "Camila Rodríguez"
-    val emailVal = viewModel?.profileEmail?.collectAsState()?.value ?: "camila@rosafiesta.do"
+    val nameVal = viewModel?.profileName?.collectAsState()?.value ?: "Invitado Rosa Fiesta"
+    val emailVal = viewModel?.profileEmail?.collectAsState()?.value ?: "cliente@rosafiesta.do"
     val phoneVal = viewModel?.profilePhone?.collectAsState()?.value ?: "+1 (809) 555-0142"
     val pushEnabled = viewModel?.pushNotificationsEnabled?.collectAsState()?.value ?: true
     val soundEnabled = viewModel?.soundEffectsEnabled?.collectAsState()?.value ?: true

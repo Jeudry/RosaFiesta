@@ -92,19 +92,19 @@ public class RosaFiestaViewModel(
     public val rosaProposalMessage: StateFlow<String> = _rosaProposalMessage.asStateFlow()
 
     // Formularios interactivos (Auth, Eventos, Pagos, Catálogo, Perfil, Soporte, Config)
-    private val _loginEmail = MutableStateFlow("camila@rosafiesta.do")
+    private val _loginEmail = MutableStateFlow("")
     public val loginEmail: StateFlow<String> = _loginEmail.asStateFlow()
 
-    private val _loginPassword = MutableStateFlow("rosa2026")
+    private val _loginPassword = MutableStateFlow("")
     public val loginPassword: StateFlow<String> = _loginPassword.asStateFlow()
 
-    private val _registerName = MutableStateFlow("Camila Rodríguez")
+    private val _registerName = MutableStateFlow("")
     public val registerName: StateFlow<String> = _registerName.asStateFlow()
 
-    private val _registerEmail = MutableStateFlow("camila@rosafiesta.do")
+    private val _registerEmail = MutableStateFlow("")
     public val registerEmail: StateFlow<String> = _registerEmail.asStateFlow()
 
-    private val _registerPhone = MutableStateFlow("809-555-0142")
+    private val _registerPhone = MutableStateFlow("")
     public val registerPhone: StateFlow<String> = _registerPhone.asStateFlow()
 
     private val _eventTypeInput = MutableStateFlow("Boda Real")
@@ -149,11 +149,17 @@ public class RosaFiestaViewModel(
     private val _dateChangeBanner = MutableStateFlow("Primer cambio gratis con al menos 48h de antelación.")
     public val dateChangeBanner: StateFlow<String> = _dateChangeBanner.asStateFlow()
 
-    private val _profileName = MutableStateFlow("Camila Rodríguez")
+    private val _profileName = MutableStateFlow("Invitado Rosa Fiesta")
     public val profileName: StateFlow<String> = _profileName.asStateFlow()
 
-    private val _profileEmail = MutableStateFlow("camila@rosafiesta.do")
+    private val _profileEmail = MutableStateFlow("cliente@rosafiesta.do")
     public val profileEmail: StateFlow<String> = _profileEmail.asStateFlow()
+
+    private val _profileUsername = MutableStateFlow("cliente")
+    public val profileUsername: StateFlow<String> = _profileUsername.asStateFlow()
+
+    private val _profileBirthDate = MutableStateFlow("")
+    public val profileBirthDate: StateFlow<String> = _profileBirthDate.asStateFlow()
 
     private val _profilePhone = MutableStateFlow("809-555-0142")
     public val profilePhone: StateFlow<String> = _profilePhone.asStateFlow()
@@ -375,6 +381,16 @@ public class RosaFiestaViewModel(
         _formError.value = null
     }
 
+    public fun setProfileUsername(value: String) {
+        _profileUsername.value = value
+        _formError.value = null
+    }
+
+    public fun setProfileBirthDate(value: String) {
+        _profileBirthDate.value = value
+        _formError.value = null
+    }
+
     public fun setProfilePhone(value: String) {
         _profilePhone.value = value
         _formError.value = null
@@ -382,6 +398,40 @@ public class RosaFiestaViewModel(
 
     public fun setProfileZone(value: String) {
         _profileZone.value = value
+    }
+
+    public fun applyUserIdentityFromLogin(rawIdentifier: String) {
+        val trimmed = rawIdentifier.trim()
+        if (trimmed.isEmpty()) return
+        val hasAtSymbol = trimmed.contains("@")
+        val resolvedEmail = if (hasAtSymbol) trimmed.lowercase() else "${trimmed.lowercase()}@rosafiesta.do"
+        val resolvedUsername = resolvedEmail.substringBefore("@")
+        val derivedDisplayName = deriveDisplayNameFromUsername(resolvedUsername)
+        _profileEmail.value = resolvedEmail
+        _profileUsername.value = resolvedUsername
+        _profileName.value = derivedDisplayName
+    }
+
+    private fun deriveDisplayNameFromUsername(username: String): String {
+        val cleanUser = username.trim().lowercase()
+        val knownDisplayName = when (cleanUser) {
+            "maria" -> "María"
+            "yuli" -> "Yuli"
+            "pedro" -> "Pedro"
+            "laura" -> "Laura Peña"
+            "ana" -> "Ana Gómez"
+            "camila", "camila.duarte", "camila.rodriguez" -> "Camila Rodríguez"
+            else -> null
+        }
+        if (knownDisplayName != null) {
+            return knownDisplayName
+        }
+        val words = cleanUser
+            .split(".", "_", "-")
+            .map { token -> token.trim() }
+            .filter { token -> token.isNotEmpty() }
+            .map { token -> token.replaceFirstChar { char -> char.uppercaseChar() } }
+        return if (words.isEmpty()) "Cliente" else words.joinToString(" ")
     }
 
     public fun setSupportSubject(value: String) {
@@ -514,9 +564,10 @@ public class RosaFiestaViewModel(
                 _formError.value = SensitiveDataRedactor.translateBusinessError("AUTH_INVALID_CREDENTIALS", null)
                 return false
             }
+            applyUserIdentityFromLogin(_loginEmail.value)
             soundPlayer.playPaymentSuccess()
             _formError.value = null
-            val maskedEmail = SensitiveDataRedactor.maskEmail(_loginEmail.value)
+            val maskedEmail = SensitiveDataRedactor.maskEmail(_profileEmail.value)
             _formFeedback.value = "Sesión iniciada como $maskedEmail"
             return true
         } finally {
@@ -531,14 +582,18 @@ public class RosaFiestaViewModel(
             val name = _registerName.value.trim()
             val email = _registerEmail.value.trim().lowercase()
             val phone = _registerPhone.value.trim()
-            val validEmail = email.contains("@") && email.substringAfter("@").contains(".")
-            if (name.isEmpty() || !validEmail || phone.length < 7) {
+            val hasAt = email.contains("@")
+            val domainHasDot = email.substringAfter("@").contains(".")
+            val validEmail = hasAt && domainHasDot
+            val isInvalidRegistration = name.isEmpty() || !validEmail || phone.length < 7
+            if (isInvalidRegistration) {
                 _formError.value = "Completa tu nombre, un correo válido y tu teléfono de contacto."
                 return false
             }
             repository.login(email, "rosa2026")
             _profileName.value = name
             _profileEmail.value = email
+            _profileUsername.value = email.substringBefore("@")
             _profilePhone.value = phone
             _formError.value = null
             _formFeedback.value = "Cuenta creada para $name"
@@ -578,11 +633,13 @@ public class RosaFiestaViewModel(
             val date = _eventDateInput.value.trim()
             val venue = _eventVenueInput.value.trim()
             val guests = _eventGuestsInput.value.trim().toIntOrNull() ?: 0
-            if (title.isEmpty() || date.isEmpty() || venue.isEmpty() || guests <= 0) {
+            val isMissingFields = title.isEmpty() || date.isEmpty() || venue.isEmpty() || guests <= 0
+            if (isMissingFields) {
                 _formError.value = "Completa el tipo de evento, fecha, lugar e invitados (> 0)."
                 return false
             }
-            repository.createEvent(title, _profileName.value.trim().ifEmpty { "Camila Rodríguez" }, date, venue, guests)
+            val resolvedClientName = _profileName.value.trim().ifEmpty { "Cliente" }
+            repository.createEvent(title, resolvedClientName, date, venue, guests)
             _formError.value = null
             _formFeedback.value = "Evento '$title' configurado."
             return true
@@ -659,7 +716,7 @@ public class RosaFiestaViewModel(
         return refund
     }
 
-    public fun submitChatMessage(author: String = "Camila") {
+    public fun submitChatMessage(author: String = _profileName.value.substringBefore(" ").ifEmpty { "Cliente" }) {
         val text = _chatInput.value.trim()
         if (text.isEmpty()) return
         soundPlayer.playRosaSend()

@@ -126,7 +126,14 @@ public fun RosaFiestaApp(
     }
 
     val spec = ScreenCatalog.findByCode(navigator.currentCode)
-    val themeVariant = if (navigator.activeView == AppView.ADMIN && !navigator.adminPreviewingPersonal) {
+    val isAdminApp = initialAppView == AppView.ADMIN
+    val isNonAdminVariant = spec.variant != RfThemeVariant.ADMIN
+    val isPersonalScreenInAdminApp = isAdminApp && isNonAdminVariant
+    val isAdminActive = navigator.activeView == AppView.ADMIN
+    val isNotPreviewingPersonal = !navigator.adminPreviewingPersonal
+    val isNotPersonalScreenInAdminApp = !isPersonalScreenInAdminApp
+    val shouldUseAdminTheme = isAdminActive && isNotPreviewingPersonal && isNotPersonalScreenInAdminApp
+    val themeVariant = if (shouldUseAdminTheme) {
         RfThemeVariant.ADMIN
     } else {
         spec.variant
@@ -143,6 +150,37 @@ public fun RosaFiestaApp(
                 .background(palette.bg)
                 .testTag("rosafiesta-root"),
         ) {
+            val shouldShowReturnBanner = !showDevHeader && isPersonalScreenInAdminApp
+            if (shouldShowReturnBanner) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFF151729))
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                ) {
+                    BasicText(
+                        text = "Vista previa de cliente",
+                        style = typo.tagLabel.copy(color = Color(0xFFE9EEFF)),
+                    )
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(999.dp))
+                            .background(RfColors.IndigoBrand)
+                            .clickable {
+                                viewModel.soundPlayer.playTap()
+                                navigator.switchToAdmin("A01")
+                            }
+                            .padding(horizontal = 12.dp, vertical = 5.dp),
+                    ) {
+                        BasicText(
+                            text = "Volver a Administración",
+                            style = typo.tagLabel.copy(color = Color.White),
+                        )
+                    }
+                }
+            }
             if (showDevHeader) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,

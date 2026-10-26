@@ -435,7 +435,7 @@ object ScreenCatalog {
         "s92" -> "s25"
 
         // 4.2 Admin
-        "A00" -> "A30"
+        "A00" -> "A01"
 
         "A30" -> "A01"
 

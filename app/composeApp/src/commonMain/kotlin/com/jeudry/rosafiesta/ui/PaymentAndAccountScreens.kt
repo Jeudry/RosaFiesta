@@ -22,6 +22,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -42,6 +43,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
@@ -1365,10 +1367,18 @@ internal fun RenderUserProfileScreenS54(
     viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
-    val profileName = viewModel?.profileName?.collectAsState()?.value ?: "Camila Rodríguez"
-    val profileEmail = viewModel?.profileEmail?.collectAsState()?.value ?: "camila.rodriguez@correo.com"
+    val profileName = viewModel?.profileName?.collectAsState()?.value ?: "Invitado Rosa Fiesta"
+    val profileEmail = viewModel?.profileEmail?.collectAsState()?.value ?: "cliente@rosafiesta.do"
     val profilePhone = viewModel?.profilePhone?.collectAsState()?.value ?: "809-555-0142"
-    val initials = profileName.split(" ").mapNotNull { it.firstOrNull()?.toString() }.take(2).joinToString("").ifEmpty { "CR" }
+    val profileUsername = viewModel?.profileUsername?.collectAsState()?.value ?: profileEmail.substringBefore("@")
+    val profileBirthDate = viewModel?.profileBirthDate?.collectAsState()?.value ?: ""
+    var isEditing by remember { mutableStateOf(false) }
+    val initials = profileName
+        .split(" ")
+        .mapNotNull { word -> word.firstOrNull()?.uppercaseChar()?.toString() }
+        .take(2)
+        .joinToString("")
+        .ifEmpty { "RF" }
 
     RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
@@ -1399,11 +1409,20 @@ internal fun RenderUserProfileScreenS54(
                         .size(44.dp)
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
-                        .background(Color.White)
-                        .clickable { },
+                        .background(if (isEditing) Color(0xFFFDE6F2) else Color.White)
+                        .clickable {
+                            if (isEditing) {
+                                viewModel?.saveProfile()
+                            }
+                            isEditing = !isEditing
+                        },
                     contentAlignment = Alignment.Center,
                 ) {
-                    RfIcon(kind = RfIconKind.EDIT, tint = Color(0xFF1A1A2E), size = 20.dp)
+                    RfIcon(
+                        kind = if (isEditing) RfIconKind.CHECK else RfIconKind.EDIT,
+                        tint = if (isEditing) Color(0xFFC2338F) else Color(0xFF1A1A2E),
+                        size = 20.dp,
+                    )
                 }
             }
             Spacer(modifier = Modifier.height(14.dp))
@@ -1433,14 +1452,34 @@ internal fun RenderUserProfileScreenS54(
                     }
                 }
                 Column(modifier = Modifier.weight(1f)) {
-                    BasicText(
-                        profileName,
-                        style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp, lineHeight = 24.sp, color = Color(0xFF1A1A2E)),
-                    )
-                    BasicText(
-                        profileEmail,
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF62627A)),
-                    )
+                    if (isEditing) {
+                        BasicTextField(
+                            value = profileName,
+                            onValueChange = { nextName -> viewModel?.setProfileName(nextName) },
+                            singleLine = true,
+                            textStyle = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp, lineHeight = 24.sp, color = Color(0xFF1A1A2E)),
+                            cursorBrush = SolidColor(Color(0xFFC2338F)),
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        BasicTextField(
+                            value = profileEmail,
+                            onValueChange = { nextEmail -> viewModel?.setProfileEmail(nextEmail) },
+                            singleLine = true,
+                            textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF62627A)),
+                            cursorBrush = SolidColor(Color(0xFFC2338F)),
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    } else {
+                        BasicText(
+                            profileName,
+                            style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp, lineHeight = 24.sp, color = Color(0xFF1A1A2E)),
+                        )
+                        BasicText(
+                            profileEmail,
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF62627A)),
+                        )
+                    }
                 }
             }
 
@@ -1455,15 +1494,57 @@ internal fun RenderUserProfileScreenS54(
                     .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(20.dp)),
             ) {
                 ProfileRow54("Teléfono", RfIconKind.PHONE) {
-                    BasicText(profilePhone, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFFC2338F)))
+                    if (isEditing) {
+                        BasicTextField(
+                            value = profilePhone,
+                            onValueChange = { nextPhone -> viewModel?.setProfilePhone(nextPhone) },
+                            singleLine = true,
+                            textStyle = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFFC2338F), textAlign = TextAlign.End),
+                            cursorBrush = SolidColor(Color(0xFFC2338F)),
+                        )
+                    } else {
+                        BasicText(profilePhone, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFFC2338F)))
+                    }
                 }
                 ProfileDivider54()
                 ProfileRow54("Cumpleaños", RfIconKind.CAKE) {
-                    BasicText("Agregar", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFFC2338F)))
+                    if (isEditing) {
+                        BasicTextField(
+                            value = profileBirthDate,
+                            onValueChange = { nextBirth -> viewModel?.setProfileBirthDate(nextBirth) },
+                            singleLine = true,
+                            textStyle = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFFC2338F), textAlign = TextAlign.End),
+                            cursorBrush = SolidColor(Color(0xFFC2338F)),
+                            decorationBox = { innerTextField ->
+                                if (profileBirthDate.isEmpty()) {
+                                    BasicText("DD/MM/AAAA", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF9A98AD)))
+                                }
+                                innerTextField()
+                            },
+                        )
+                    } else {
+                        BasicText(
+                            profileBirthDate.ifBlank { "Agregar" },
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFFC2338F)),
+                        )
+                    }
                 }
                 ProfileDivider54()
                 ProfileRow54("Usuario", RfIconKind.USER) {
-                    BasicText("camila", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF62627A)))
+                    if (isEditing) {
+                        BasicTextField(
+                            value = profileUsername,
+                            onValueChange = { nextUsername -> viewModel?.setProfileUsername(nextUsername) },
+                            singleLine = true,
+                            textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF1A1A2E), textAlign = TextAlign.End),
+                            cursorBrush = SolidColor(Color(0xFFC2338F)),
+                        )
+                    } else {
+                        BasicText(
+                            profileUsername.ifBlank { profileEmail.substringBefore("@") },
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF62627A)),
+                        )
+                    }
                 }
             }
 
@@ -1563,7 +1644,11 @@ internal fun RenderUserProfileScreenS54(
                     "Cerrar sesión",
                     RfIconKind.LOGOUT,
                     labelColor = Color(0xFFB42345),
-                    onClick = { onSelectScreenCode("s07") },
+                    onClick = {
+                        viewModel?.setLoginEmail("")
+                        viewModel?.setLoginPassword("")
+                        onSelectScreenCode("s07")
+                    },
                 ) {}
             }
             Spacer(modifier = Modifier.height(30.dp))
@@ -2328,9 +2413,11 @@ private fun PanelSummaryRow58(
 // ==============================================================================
 @Composable
 internal fun RenderOfficialReceiptScreenS83(
+    viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
+    val profileName = viewModel?.profileName?.collectAsState()?.value ?: "Cliente Rosa Fiesta"
 
     // Background: radial pink top-left + lavender top-right + #FAFAFC
     Box(
@@ -2483,7 +2570,7 @@ internal fun RenderOfficialReceiptScreenS83(
                     val rows = listOf(
                         "Fecha" to "18 oct 2026 · 10:24 a. m.",
                         "Método" to "Transferencia · Banco Popular",
-                        "A nombre de" to "Camila Rodríguez",
+                        "A nombre de" to profileName,
                         "Evento" to "Vie 23 oct · Jardín Botánico",
                         "Total del evento" to "RD$ 4,500",
                         "Pagado hasta hoy" to "RD$ 1,350",
