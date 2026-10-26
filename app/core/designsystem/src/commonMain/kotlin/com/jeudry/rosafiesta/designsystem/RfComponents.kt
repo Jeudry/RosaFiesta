@@ -1158,6 +1158,51 @@ public fun RfBottomSheet(
 }
 
 /**
+ * Pincel oficial de brillo para esqueletos (`s90`, `A36`, Sección 5).
+ */
+@Composable
+public fun rememberRfSkeletonBrush(
+    isAdmin: Boolean = LocalRfPalette.current.isAdmin,
+    animate: Boolean = true,
+): Brush {
+    val baseColor = if (isAdmin) Color(0xFFE4E5F0) else Color(0xFFEDE5F1)
+    val highlightColor = if (isAdmin) Color(0xFFF1F1F8) else Color(0xFFF7F3F9)
+    return if (animate) {
+        val transition = rememberInfiniteTransition(label = "rf-skeleton-shimmer")
+        val progress by transition.animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 1200, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart,
+            ),
+            label = "shimmer-x",
+        )
+        val offsetStart = (progress * 600f) - 200f
+        Brush.linearGradient(
+            colors = listOf(baseColor, highlightColor, baseColor),
+            start = Offset(offsetStart, 0f),
+            end = Offset(offsetStart + 240f, 40f),
+        )
+    } else {
+        Brush.horizontalGradient(listOf(baseColor, highlightColor, baseColor))
+    }
+}
+
+/**
+ * Modificador para aplicar el fondo de esqueleto oficial a cualquier elemento.
+ */
+@Composable
+public fun Modifier.rfSkeleton(
+    shape: Shape = RoundedCornerShape(10.dp),
+    isAdmin: Boolean = LocalRfPalette.current.isAdmin,
+    animate: Boolean = false,
+): Modifier {
+    val brush = rememberRfSkeletonBrush(isAdmin = isAdmin, animate = animate)
+    return this.clip(shape).background(brush)
+}
+
+/**
  * Componente `Esqueleto` de carga (`s90`, `A36`, Sección 5):
  * Misma estructura que la pantalla y un brillo de izquierda a derecha de 1.2 s (`1200` ms).
  * Nada de spinners a pantalla completa.
@@ -1167,25 +1212,8 @@ public fun RfSkeleton(
     modifier: Modifier = Modifier,
     isAdmin: Boolean = LocalRfPalette.current.isAdmin,
 ) {
-    val transition = rememberInfiniteTransition(label = "rf-skeleton-shimmer")
-    val progress by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1200, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart,
-        ),
-        label = "shimmer-x",
-    )
-
-    val baseColor = if (isAdmin) Color(0xFFE7E8F3) else Color(0xFFEEEAF4)
-    val highlightColor = Color.White.copy(alpha = 0.85f)
-    val offsetStart = (progress * 500f) - 180f
-    val shimmerBrush = Brush.linearGradient(
-        colors = listOf(baseColor, highlightColor, baseColor),
-        start = Offset(offsetStart, 0f),
-        end = Offset(offsetStart + 200f, 40f),
-    )
+    val shimmerBrush = rememberRfSkeletonBrush(isAdmin = isAdmin, animate = true)
+    val baseColor = if (isAdmin) Color(0xFFE4E5F0) else Color(0xFFEDE5F1)
 
     Column(
         verticalArrangement = Arrangement.spacedBy(RfDimens.BlockSpacing),
@@ -1217,6 +1245,7 @@ public fun RfSkeleton(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
+                    .rfCardShadow(RoundedCornerShape(RfDimens.CardRadius), isAdmin = isAdmin)
                     .clip(RoundedCornerShape(RfDimens.CardRadius))
                     .background(Color.White)
                     .border(1.dp, baseColor, RoundedCornerShape(RfDimens.CardRadius))

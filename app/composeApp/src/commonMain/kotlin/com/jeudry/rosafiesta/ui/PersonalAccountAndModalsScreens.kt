@@ -752,7 +752,7 @@ internal fun RenderPersonalPaymentsS82(
                 text = "PRÓXIMOS PAGOS",
                 style = TextStyle(
                     fontFamily = typo.bodyFamily,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.SemiBold,
                     fontSize = 12.sp,
                     letterSpacing = 0.96.sp,
                     color = Color(0xFF62627A),
@@ -794,7 +794,7 @@ internal fun RenderPersonalPaymentsS82(
                 text = "HISTORIAL",
                 style = TextStyle(
                     fontFamily = typo.bodyFamily,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.SemiBold,
                     fontSize = 12.sp,
                     letterSpacing = 0.96.sp,
                     color = Color(0xFF62627A),
@@ -880,13 +880,13 @@ private fun PendingPaymentRow82(
         Column(modifier = Modifier.weight(1f)) {
             BasicText(
                 text = title,
-                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.5.sp, color = Color(0xFF1A1A2E)),
+                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.5.sp, color = Color(0xFF1A1A2E)),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             BasicText(
                 text = due,
-                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = dueColor),
+                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Medium, fontSize = 13.sp, color = dueColor),
             )
         }
         BasicText(
@@ -954,7 +954,7 @@ private fun ReceiptRow82(
         Column(modifier = Modifier.weight(1f)) {
             BasicText(
                 text = title,
-                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.5.sp, color = Color(0xFF1A1A2E)),
+                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.5.sp, color = Color(0xFF1A1A2E)),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -977,7 +977,7 @@ private fun ReceiptRow82(
             )
             BasicText(
                 text = "Recibo",
-                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFFC2338F)),
+                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = Color(0xFFC2338F)),
             )
         }
     }
@@ -1758,31 +1758,172 @@ private fun BalloonsIllustration89(modifier: Modifier = Modifier) {
 // ==============================================================================
 // s90 · ESTADO CARGANDO PERSONAL
 // ==============================================================================
+// s90 · ESTADO CARGANDO PERSONAL
+// ==============================================================================
 @Composable
 internal fun RenderPersonalLoadingStateS90(
     onSelectScreenCode: (String) -> Unit = {},
 ) {
+    val typo = LocalRfTypography.current
+    val skGradient = Brush.horizontalGradient(
+        listOf(Color(0xFFEDE5F1), Color(0xFFF7F3F9), Color(0xFFEDE5F1)),
+    )
+
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFFFF6F8)),
+            .background(Color(0xFFFAFAFC)),
     ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            drawRect(Color(0xFFFAFAFC))
+            drawRect(
+                Brush.radialGradient(
+                    listOf(Color(0xFFF9E3F1), Color(0x00F9E3F1)),
+                    center = Offset(0f, 0f),
+                    radius = size.width * 1.1f,
+                ),
+            )
+            drawRect(
+                Brush.radialGradient(
+                    listOf(Color(0xFFEEE7FB), Color(0x00EEE7FB)),
+                    center = Offset(size.width, size.height * 0.15f),
+                    radius = size.width * 0.8f,
+                ),
+            )
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 20.dp),
+                .padding(top = 54.dp, start = 20.dp, end = 20.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Spacer(modifier = Modifier.height(56.dp))
-            Box(modifier = Modifier.fillMaxWidth().height(40.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFFFFE3EC)))
-            repeat(4) {
+            // Header: "Catálogo" (26px, 800) + 2 circular buttons (44x44)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                BasicText(
+                    text = "Catálogo",
+                    style = TextStyle(
+                        fontFamily = typo.displayFamily,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 26.sp,
+                        lineHeight = 28.sp,
+                        color = Color(0xFF1A1A2E),
+                    ),
+                    modifier = Modifier.weight(1f),
+                )
+                Box(modifier = Modifier.size(44.dp).clip(CircleShape).background(skGradient))
+                Box(modifier = Modifier.size(44.dp).clip(CircleShape).background(skGradient))
+            }
+
+            // Search bar: height 52dp, radius 16dp
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(skGradient),
+            )
+
+            // 4 chips: heights 36dp, widths 96dp, 110dp, 80dp, 90dp
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Box(modifier = Modifier.width(96.dp).height(36.dp).clip(RoundedCornerShape(999.dp)).background(skGradient))
+                Box(modifier = Modifier.width(110.dp).height(36.dp).clip(RoundedCornerShape(999.dp)).background(skGradient))
+                Box(modifier = Modifier.width(80.dp).height(36.dp).clip(RoundedCornerShape(999.dp)).background(skGradient))
+                Box(modifier = Modifier.width(90.dp).height(36.dp).clip(RoundedCornerShape(999.dp)).background(skGradient))
+            }
+
+            // Hero banner: height 58dp, radius 18dp
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(58.dp)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(skGradient),
+            )
+
+            // 2x2 grid of product cards
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                CatalogProductSkeletonCardS90(skGradient = skGradient, modifier = Modifier.weight(1f))
+                CatalogProductSkeletonCardS90(skGradient = skGradient, modifier = Modifier.weight(1f))
+            }
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                CatalogProductSkeletonCardS90(skGradient = skGradient, modifier = Modifier.weight(1f))
+                CatalogProductSkeletonCardS90(skGradient = skGradient, modifier = Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+@Composable
+private fun CatalogProductSkeletonCardS90(
+    skGradient: Brush,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
+            .clip(RoundedCornerShape(20.dp))
+            .background(Color.White)
+            .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(20.dp)),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(128.dp)
+                .background(skGradient),
+        )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.80f)
+                    .height(14.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(skGradient),
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.55f)
+                    .height(12.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(skGradient),
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 6.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(90.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Color.White)
-                        .border(1.dp, Color(0xFFFFE3EC), RoundedCornerShape(16.dp)),
+                        .width(40.dp)
+                        .height(18.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(skGradient),
+                )
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(skGradient),
                 )
             }
         }

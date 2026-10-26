@@ -1989,6 +1989,7 @@ private fun LeadPipelineCard64(
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = true)
             .clip(RoundedCornerShape(22.dp))
             .background(Color.White)
             .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(22.dp))
@@ -2057,6 +2058,7 @@ private fun LeadFollowupCard65(task: String, due: String) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = true)
             .clip(RoundedCornerShape(22.dp))
             .background(Color.White)
             .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(22.dp))
@@ -2330,6 +2332,7 @@ internal fun RenderReportsEventsS68(onSelectScreenCode: (String) -> Unit = {}) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = true)
                 .clip(RoundedCornerShape(22.dp))
                 .background(Color.White)
                 .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(22.dp))
@@ -2438,6 +2441,7 @@ internal fun RenderReportsClientsS69(onSelectScreenCode: (String) -> Unit = {}) 
             Column(
                 modifier = Modifier
                     .weight(1.4f)
+                    .shadow(18.dp, RoundedCornerShape(22.dp), spotColor = Color(0x996E82E6))
                     .clip(RoundedCornerShape(22.dp))
                     .background(ReportGradient)
                     .padding(16.dp),
@@ -2448,6 +2452,7 @@ internal fun RenderReportsClientsS69(onSelectScreenCode: (String) -> Unit = {}) 
             Column(
                 modifier = Modifier
                     .weight(1f)
+                    .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = true)
                     .clip(RoundedCornerShape(22.dp))
                     .background(Color.White)
                     .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(22.dp))
@@ -2461,6 +2466,7 @@ internal fun RenderReportsClientsS69(onSelectScreenCode: (String) -> Unit = {}) 
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = true)
                 .clip(RoundedCornerShape(22.dp))
                 .background(Color.White)
                 .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(22.dp)),
@@ -2554,6 +2560,7 @@ internal fun RenderReportsInventoryS70(onSelectScreenCode: (String) -> Unit = {}
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = true)
                 .clip(RoundedCornerShape(22.dp))
                 .background(Color.White)
                 .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(22.dp))
@@ -2606,6 +2613,7 @@ internal fun RenderReportsInventoryS70(onSelectScreenCode: (String) -> Unit = {}
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .rfCardShadow(RoundedCornerShape(18.dp), isAdmin = true)
                 .clip(RoundedCornerShape(18.dp))
                 .background(Color.White)
                 .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(18.dp))
@@ -2771,6 +2779,7 @@ private fun ReportCard(
     Column(
         modifier = modifier
             .fillMaxWidth()
+            .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = true)
             .clip(RoundedCornerShape(22.dp))
             .background(Color.White)
             .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(22.dp))

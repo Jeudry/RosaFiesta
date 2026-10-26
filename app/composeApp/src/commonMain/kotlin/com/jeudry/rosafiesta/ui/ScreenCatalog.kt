@@ -246,7 +246,7 @@ object ScreenCatalog {
      * Pestaña activa de `PersonalTabBar` para un código de pantalla de la App Personal.
      */
     fun activePersonalTab(code: String): PersonalTab = when (code) {
-        "s01", "s18", "s19", "s20", "s23", "s80", "s81", "s92" -> PersonalTab.CATALOGO
+        "s01", "s18", "s19", "s20", "s23", "s80", "s81", "s90", "s92" -> PersonalTab.CATALOGO
 
         "s21", "s22" -> if (isGuestScreen(code)) PersonalTab.PAQUETES else PersonalTab.CATALOGO
 
