@@ -53,6 +53,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import com.jeudry.rosafiesta.designsystem.LocalRfTypography
 import com.jeudry.rosafiesta.designsystem.RfIcon
 import com.jeudry.rosafiesta.designsystem.RfIconKind
@@ -768,7 +769,7 @@ internal fun RenderPaymentSuccessScreenS51(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(top = 130.dp, bottom = 36.dp),
+                .padding(top = 130.dp, bottom = 160.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             // Header at top 130dp
@@ -958,59 +959,60 @@ internal fun RenderPaymentSuccessScreenS51(
                         .background(Color(0xFFFAFAFC)),
                 )
             }
+        }
 
-            Spacer(modifier = Modifier.weight(1f).heightIn(min = 28.dp))
-
-            Column(
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .zIndex(2f)
+                .background(Color(0xFFFAFAFC))
+                .padding(top = 12.dp, start = 20.dp, end = 20.dp, bottom = 36.dp)
+                .fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Box(
                 modifier = Modifier
-                    .padding(horizontal = 20.dp)
-                    .fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                    .fillMaxWidth()
+                    .height(56.dp)
+                    .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(RosaButtonGradient)
+                    .clickable { onSelectScreenCode("s37") },
+                contentAlignment = Alignment.Center,
             ) {
+                BasicText(
+                    text = "Ver mis eventos",
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White),
+                )
+            }
+
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp)
-                        .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
+                        .weight(1f)
+                        .height(50.dp)
                         .clip(RoundedCornerShape(16.dp))
-                        .background(RosaButtonGradient)
-                        .clickable { onSelectScreenCode("s37") },
+                        .background(Color.White)
+                        .border(1.dp, Color(0xFFECE6F0), RoundedCornerShape(16.dp))
+                        .clickable { onSelectScreenCode("s40") },
                     contentAlignment = Alignment.Center,
                 ) {
-                    BasicText(
-                        text = "Ver mis eventos",
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White),
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        RfIcon(kind = RfIconKind.SHARE, tint = Color(0xFF1A1A2E), size = 18.dp)
+                        BasicText("Compartir", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF1A1A2E)))
+                    }
                 }
 
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(50.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(Color.White)
-                            .border(1.dp, Color(0xFFECE6F0), RoundedCornerShape(16.dp))
-                            .clickable { onSelectScreenCode("s40") },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            RfIcon(kind = RfIconKind.SHARE, tint = Color(0xFF1A1A2E), size = 18.dp)
-                            BasicText("Compartir", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF1A1A2E)))
-                        }
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(50.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(Color(0xFFF1EFF5))
-                            .clickable { onSelectScreenCode("s18") },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        BasicText("Ir al catálogo", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF1A1A2E)))
-                    }
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(50.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color(0xFFF1EFF5))
+                        .clickable { onSelectScreenCode("s18") },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    BasicText("Ir al catálogo", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF1A1A2E)))
                 }
             }
         }

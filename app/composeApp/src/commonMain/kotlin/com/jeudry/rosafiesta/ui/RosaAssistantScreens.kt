@@ -63,6 +63,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import com.jeudry.rosafiesta.designsystem.LocalRfTypography
 import com.jeudry.rosafiesta.designsystem.RfIcon
 import com.jeudry.rosafiesta.designsystem.RfIconKind
@@ -125,7 +126,9 @@ private fun RosaWizardHeader(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 54.dp, start = 16.dp, end = 16.dp),
+            .zIndex(2f)
+            .background(Color(0xFFDED5F7))
+            .padding(top = 54.dp, bottom = 14.dp, start = 16.dp, end = 16.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -1222,7 +1225,9 @@ internal fun RenderRosaHelpS28(
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .fillMaxWidth()
-                .padding(top = 54.dp, start = 16.dp, end = 16.dp),
+                .zIndex(2f)
+                .background(Color(0xFFDED5F7))
+                .padding(top = 54.dp, bottom = 14.dp, start = 16.dp, end = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -1540,21 +1545,19 @@ internal fun RenderRosaSuggestionsS29(
             .fillMaxSize()
             .background(RosaBackgroundGradient),
     ) {
+        RosaWizardHeader(
+            step = 3,
+            cartCount = totalCartBadge,
+            onBack = { onSelectScreenCode("s28") },
+            onCart = { onSelectScreenCode("s25") },
+        )
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(bottom = 180.dp),
+                .padding(top = 118.dp, bottom = 180.dp),
         ) {
-            RosaWizardHeader(
-                step = 3,
-                cartCount = totalCartBadge,
-                onBack = { onSelectScreenCode("s28") },
-                onCart = { onSelectScreenCode("s25") },
-            )
-
-            Spacer(modifier = Modifier.height(20.dp))
-
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1852,7 +1855,9 @@ internal fun RenderRosaCategoriesS30(
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .fillMaxWidth()
-                .padding(top = 54.dp, start = 16.dp, end = 16.dp),
+                .zIndex(2f)
+                .background(Color(0xFFDED5F7))
+                .padding(top = 54.dp, bottom = 14.dp, start = 16.dp, end = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -2881,18 +2886,24 @@ internal fun RenderRosaSubmittedS33(
             .fillMaxSize()
             .background(RosaBackgroundGradient),
     ) {
-        // Botón cerrar en la esquina
         Box(
             modifier = Modifier
-                .padding(top = 54.dp, start = 16.dp)
-                .size(44.dp)
-                .rfIconButtonShadow(CircleShape, isAdmin = false)
-                .clip(CircleShape)
-                .background(Color.White)
-                .clickable { onSelectScreenCode("s14") },
-            contentAlignment = Alignment.Center,
+                .fillMaxWidth()
+                .zIndex(2f)
+                .background(Color(0xFFDED5F7))
+                .padding(top = 54.dp, bottom = 12.dp, start = 16.dp, end = 16.dp),
         ) {
-            RfIcon(kind = RfIconKind.CLOSE, tint = Color(0xFF1A1A2E), size = 22.dp)
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .rfIconButtonShadow(CircleShape, isAdmin = false)
+                    .clip(CircleShape)
+                    .background(Color.White)
+                    .clickable { onSelectScreenCode("s14") },
+                contentAlignment = Alignment.Center,
+            ) {
+                RfIcon(kind = RfIconKind.CLOSE, tint = Color(0xFF1A1A2E), size = 22.dp)
+            }
         }
 
         Column(
@@ -3368,7 +3379,9 @@ internal fun RenderRosaVoiceS35(
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .fillMaxWidth()
-                .padding(top = 54.dp, start = 16.dp, end = 16.dp),
+                .zIndex(2f)
+                .background(Color(0xFFDED5F7))
+                .padding(top = 54.dp, bottom = 14.dp, start = 16.dp, end = 16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -3598,7 +3611,9 @@ internal fun RenderRosaSketchS36(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 54.dp, start = 16.dp, end = 16.dp),
+                    .zIndex(2f)
+                    .background(Color(0xFFFAF6FC))
+                    .padding(top = 54.dp, bottom = 12.dp, start = 16.dp, end = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -4001,7 +4016,9 @@ internal fun RenderRosaSketchConfirmS78(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 54.dp, start = 16.dp, end = 16.dp),
+                .zIndex(2f)
+                .background(Color(0xFFFAF6FC))
+                .padding(top = 54.dp, bottom = 12.dp, start = 16.dp, end = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
