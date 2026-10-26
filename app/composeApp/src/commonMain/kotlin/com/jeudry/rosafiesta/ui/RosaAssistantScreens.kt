@@ -120,6 +120,7 @@ private fun RosaWizardHeader(
     cartCount: Int = 16,
     onBack: () -> Unit = {},
     onCart: () -> Unit = {},
+    onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
 
@@ -132,7 +133,6 @@ private fun RosaWizardHeader(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Botón atrás / cerrar circular blanco
         Box(
             modifier = Modifier
                 .size(44.dp)
@@ -143,13 +143,12 @@ private fun RosaWizardHeader(
             contentAlignment = Alignment.Center,
         ) {
             RfIcon(
-                kind = if (step == 1) RfIconKind.CHEVRON_DOWN else RfIconKind.BACK,
+                kind = RfIconKind.BACK,
                 tint = Color(0xFF1A1A2E),
                 size = 22.dp,
             )
         }
 
-        // Progreso central
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -167,19 +166,28 @@ private fun RosaWizardHeader(
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                 modifier = Modifier.width(150.dp),
             ) {
-                for (i in 1..totalSteps) {
+                for (stepBarIndex in 1..totalSteps) {
+                    val targetCode = when (stepBarIndex) {
+                        1 -> if (step > 1) "BACK:s27" else "s27"
+                        2 -> if (step > 2) "BACK:s28" else "s28"
+                        3 -> if (step > 3) "BACK:s29" else "s29"
+                        4 -> if (step > 4) "BACK:s30" else "s30"
+                        5 -> if (step > 5) "BACK:s31" else "s31"
+                        else -> "s32"
+                    }
                     Box(
                         modifier = Modifier
                             .weight(1f)
                             .height(5.dp)
                             .clip(RoundedCornerShape(3.dp))
                             .background(
-                                if (i <= step) {
+                                if (stepBarIndex <= step) {
                                     Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB)))
                                 } else {
                                     SolidColor(Color(0xFFDDD3F3))
                                 },
-                            ),
+                            )
+                            .clickable { onSelectScreenCode(targetCode) },
                     )
                 }
             }
@@ -935,8 +943,9 @@ internal fun RenderRosaTutorialS27(
     ) {
         RosaWizardHeader(
             step = 1,
-            onBack = { onSelectScreenCode("s26") },
+            onBack = { onSelectScreenCode("BACK:s26") },
             onCart = { onSelectScreenCode("s25") },
+            onSelectScreenCode = onSelectScreenCode,
         )
 
         Column(
@@ -1222,100 +1231,13 @@ internal fun RenderRosaHelpS28(
                 ),
             ),
     ) {
-        Row(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .fillMaxWidth()
-                .zIndex(2f)
-                .background(Color(0xFFDED5F7))
-                .padding(top = 16.dp, bottom = 12.dp, start = 16.dp, end = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .rfIconButtonShadow(CircleShape, isAdmin = false)
-                    .clip(CircleShape)
-                    .background(Color.White)
-                    .border(1.dp, Color(0xFFF0EBF4), CircleShape)
-                    .clickable { onSelectScreenCode("s26") },
-                contentAlignment = Alignment.Center,
-            ) {
-                RfIcon(kind = RfIconKind.CHEVRON_DOWN, tint = Color(0xFF1A1A2E), size = 22.dp)
-            }
-
-            Column(
-                modifier = Modifier.weight(1f),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                BasicText(
-                    text = "Paso 2 de 6",
-                    style = TextStyle(
-                        fontFamily = typo.bodyFamily,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1A1A2E),
-                    ),
-                )
-                Row(
-                    modifier = Modifier.width(150.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    repeat(2) {
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(5.dp)
-                                .clip(RoundedCornerShape(3.dp))
-                                .background(Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB)))),
-                        )
-                    }
-                    repeat(4) {
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(5.dp)
-                                .clip(RoundedCornerShape(3.dp))
-                                .background(Color(0xFFDDD3F3)),
-                        )
-                    }
-                }
-            }
-
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .rfIconButtonShadow(CircleShape, isAdmin = false)
-                    .clip(CircleShape)
-                    .background(Color.White)
-                    .border(1.dp, Color(0xFFF0EBF4), CircleShape)
-                    .clickable { onSelectScreenCode("s25") },
-                contentAlignment = Alignment.Center,
-            ) {
-                RfIcon(kind = RfIconKind.ORDERS, tint = Color(0xFF1A1A2E), size = 22.dp)
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .offset(x = 4.dp, y = (-4).dp)
-                        .height(20.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFFFFD45C))
-                        .padding(horizontal = 5.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    BasicText(
-                        text = "16",
-                        style = TextStyle(
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = Color(0xFF2E1A47),
-                        ),
-                    )
-                }
-            }
-        }
+        RosaWizardHeader(
+            step = 2,
+            cartCount = 16,
+            onBack = { onSelectScreenCode("BACK:s27") },
+            onCart = { onSelectScreenCode("s25") },
+            onSelectScreenCode = onSelectScreenCode,
+        )
 
         Column(
             modifier = Modifier
@@ -1549,8 +1471,9 @@ internal fun RenderRosaSuggestionsS29(
         RosaWizardHeader(
             step = 3,
             cartCount = totalCartBadge,
-            onBack = { onSelectScreenCode("s28") },
+            onBack = { onSelectScreenCode("BACK:s28") },
             onCart = { onSelectScreenCode("s25") },
+            onSelectScreenCode = onSelectScreenCode,
         )
 
         Column(
@@ -1852,100 +1775,13 @@ internal fun RenderRosaCategoriesS30(
                 ),
             ),
     ) {
-        Row(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .fillMaxWidth()
-                .zIndex(2f)
-                .background(Color(0xFFDED5F7))
-                .padding(top = 16.dp, bottom = 12.dp, start = 16.dp, end = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .rfIconButtonShadow(CircleShape, isAdmin = false)
-                    .clip(CircleShape)
-                    .background(Color.White)
-                    .border(1.dp, Color(0xFFF0EBF4), CircleShape)
-                    .clickable { onSelectScreenCode("BACK:s29") },
-                contentAlignment = Alignment.Center,
-            ) {
-                RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1A1A2E), size = 22.dp)
-            }
-
-            Column(
-                modifier = Modifier.weight(1f),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                BasicText(
-                    text = "Paso 4 de 6",
-                    style = TextStyle(
-                        fontFamily = typo.bodyFamily,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1A1A2E),
-                    ),
-                )
-                Row(
-                    modifier = Modifier.width(150.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    repeat(4) {
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(5.dp)
-                                .clip(RoundedCornerShape(3.dp))
-                                .background(Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB)))),
-                        )
-                    }
-                    repeat(2) {
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(5.dp)
-                                .clip(RoundedCornerShape(3.dp))
-                                .background(Color(0xFFDDD3F3)),
-                        )
-                    }
-                }
-            }
-
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .rfIconButtonShadow(CircleShape, isAdmin = false)
-                    .clip(CircleShape)
-                    .background(Color.White)
-                    .border(1.dp, Color(0xFFF0EBF4), CircleShape)
-                    .clickable { onSelectScreenCode("s25") },
-                contentAlignment = Alignment.Center,
-            ) {
-                RfIcon(kind = RfIconKind.ORDERS, tint = Color(0xFF1A1A2E), size = 22.dp)
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .offset(x = 4.dp, y = (-4).dp)
-                        .height(20.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFFFFD45C))
-                        .padding(horizontal = 5.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    BasicText(
-                        text = "$badgeCount",
-                        style = TextStyle(
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = Color(0xFF2E1A47),
-                        ),
-                    )
-                }
-            }
-        }
+        RosaWizardHeader(
+            step = 4,
+            cartCount = badgeCount,
+            onBack = { onSelectScreenCode("BACK:s29") },
+            onCart = { onSelectScreenCode("s25") },
+            onSelectScreenCode = onSelectScreenCode,
+        )
 
         Column(
             modifier = Modifier
@@ -2283,8 +2119,9 @@ internal fun RenderRosaDetailsS31(
         RosaWizardHeader(
             step = 5,
             cartCount = 17,
-            onBack = { onSelectScreenCode("s30") },
+            onBack = { onSelectScreenCode("BACK:s30") },
             onCart = { onSelectScreenCode("s25") },
+            onSelectScreenCode = onSelectScreenCode,
         )
 
         Column(
@@ -2610,8 +2447,9 @@ internal fun RenderRosaSummaryS32(
             step = 6,
             totalSteps = 6,
             cartCount = 17,
-            onBack = { onSelectScreenCode("s31") },
+            onBack = { onSelectScreenCode("BACK:s31") },
             onCart = { onSelectScreenCode("s25") },
+            onSelectScreenCode = onSelectScreenCode,
         )
 
         Column(

@@ -413,6 +413,12 @@ internal fun RenderOnboardingScreen(
         else -> "s06"
     }
 
+    val prevScreen = when (step) {
+        2 -> "BACK:s03"
+        3 -> "BACK:s04"
+        else -> null
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -571,6 +577,12 @@ internal fun RenderOnboardingScreen(
                 ) {
                     for (stepDotIndex in 1..4) {
                         val isActive = stepDotIndex == step
+                        val dotTargetCode = when (stepDotIndex) {
+                            1 -> if (step > 1) "BACK:s03" else "s03"
+                            2 -> if (step > 2) "BACK:s04" else "s04"
+                            3 -> "s05"
+                            else -> "s06"
+                        }
                         if (isActive) {
                             Box(
                                 modifier = Modifier
@@ -583,41 +595,67 @@ internal fun RenderOnboardingScreen(
                                             2 -> SolidColor(Color(0xFF865DEC))
                                             else -> SolidColor(Color(0xFF8DB52C))
                                         },
-                                    ),
+                                    )
+                                    .clickable { onSelectScreenCode(dotTargetCode) },
                             )
                         } else {
                             Box(
                                 modifier = Modifier
-                                    .size(6.dp)
+                                    .size(8.dp)
                                     .clip(CircleShape)
-                                    .background(if (step == 1) Color(0xFFDCD3E4) else Color(0xFFE3DCE8)),
+                                    .background(if (step == 1) Color(0xFFDCD3E4) else Color(0xFFE3DCE8))
+                                    .clickable { onSelectScreenCode(dotTargetCode) },
                             )
                         }
                     }
                 }
 
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .size(64.dp)
-                        .clip(CircleShape)
-                        .background(
-                            Brush.linearGradient(
-                                when (step) {
-                                    1 -> listOf(Color(0xFFEA4EA9), Color(0xFFB754CB))
-                                    else -> listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))
-                                },
-                            ),
-                        )
-                        .shadow(elevation = 12.dp, shape = CircleShape, spotColor = Color(0x99D646A0))
-                        .clickable { onSelectScreenCode(nextScreen) },
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    RfIcon(
-                        kind = RfIconKind.BACK,
-                        tint = Color.White,
-                        size = 24.dp,
-                        modifier = Modifier.rotate(180f),
-                    )
+                    if (prevScreen != null) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .size(56.dp)
+                                .rfIconButtonShadow(CircleShape, isAdmin = false)
+                                .clip(CircleShape)
+                                .background(Color.White)
+                                .border(1.dp, Color(0xFFE6DFEE), CircleShape)
+                                .clickable { onSelectScreenCode(prevScreen) },
+                        ) {
+                            RfIcon(
+                                kind = RfIconKind.BACK,
+                                tint = Color(0xFF151729),
+                                size = 22.dp,
+                            )
+                        }
+                    }
+
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(64.dp)
+                            .clip(CircleShape)
+                            .background(
+                                Brush.linearGradient(
+                                    when (step) {
+                                        1 -> listOf(Color(0xFFEA4EA9), Color(0xFFB754CB))
+                                        else -> listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))
+                                    },
+                                ),
+                            )
+                            .shadow(elevation = 12.dp, shape = CircleShape, spotColor = Color(0x99D646A0))
+                            .clickable { onSelectScreenCode(nextScreen) },
+                    ) {
+                        RfIcon(
+                            kind = RfIconKind.BACK,
+                            tint = Color.White,
+                            size = 24.dp,
+                            modifier = Modifier.rotate(180f),
+                        )
+                    }
                 }
             }
         }
@@ -1383,12 +1421,38 @@ internal fun RenderBienvenidaScreen(
             drawBienvenidaDecorations()
         }
 
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.TopCenter)
+                .zIndex(2f)
+                .padding(top = 16.dp, start = 20.dp, end = 20.dp),
+        ) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(44.dp)
+                    .rfIconButtonShadow(CircleShape, isAdmin = false)
+                    .clip(CircleShape)
+                    .background(Color.White)
+                    .border(1.dp, Color(0xFFE6DFEE), CircleShape)
+                    .clickable { onSelectScreenCode("BACK:s05") },
+            ) {
+                RfIcon(
+                    kind = RfIconKind.BACK,
+                    tint = Color(0xFF151729),
+                    size = 22.dp,
+                )
+            }
+        }
+
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(top = 130.dp, start = 24.dp, end = 24.dp, bottom = 20.dp),
+                .padding(top = 96.dp, start = 24.dp, end = 24.dp, bottom = 20.dp),
         ) {
             Box(
                 contentAlignment = Alignment.Center,
@@ -1450,9 +1514,24 @@ internal fun RenderBienvenidaScreen(
                     .fillMaxWidth()
                     .padding(bottom = 20.dp),
             ) {
-                Box(Modifier.size(6.dp).background(Color(0xFFE3DCE8), CircleShape))
-                Box(Modifier.size(6.dp).background(Color(0xFFE3DCE8), CircleShape))
-                Box(Modifier.size(6.dp).background(Color(0xFFE3DCE8), CircleShape))
+                Box(
+                    Modifier
+                        .size(8.dp)
+                        .background(Color(0xFFE3DCE8), CircleShape)
+                        .clickable { onSelectScreenCode("BACK:s03") },
+                )
+                Box(
+                    Modifier
+                        .size(8.dp)
+                        .background(Color(0xFFE3DCE8), CircleShape)
+                        .clickable { onSelectScreenCode("BACK:s04") },
+                )
+                Box(
+                    Modifier
+                        .size(8.dp)
+                        .background(Color(0xFFE3DCE8), CircleShape)
+                        .clickable { onSelectScreenCode("BACK:s05") },
+                )
                 Box(
                     Modifier
                         .width(28.dp)

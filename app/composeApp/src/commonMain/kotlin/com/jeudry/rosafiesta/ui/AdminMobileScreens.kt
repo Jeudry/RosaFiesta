@@ -1910,7 +1910,7 @@ internal fun RenderAdminMoreA12(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { onSelectScreenCode("A00") }
+                        .clickable { onSelectScreenCode("A30") }
                         .padding(horizontal = 14.dp, vertical = 11.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
