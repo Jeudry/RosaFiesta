@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -41,6 +42,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -74,32 +76,37 @@ private val RosaButtonGradient = Brush.horizontalGradient(
 // ==============================================================================
 // s49 · HISTORIAL DE COTIZACIONES
 // ==============================================================================
+private data class QuoteHistoryItem49(
+    val title: String,
+    val dateLocation: String,
+    val tagText: String,
+    val tagBg: Color,
+    val tagTextCol: Color,
+    val stepText: String,
+    val activeSteps: Int,
+    val stepColor: Color,
+    val guests: String,
+    val price: String,
+)
+
 @Composable
 internal fun RenderQuoteHistoryScreenS49(
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFFAFAFC)),
-    ) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            drawRect(PaymentBackgroundGradient)
-        }
-
+    RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 20.dp)
+                .padding(start = 20.dp, end = 20.dp, top = 56.dp, bottom = 30.dp)
                 .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Spacer(modifier = Modifier.height(56.dp))
-
+            // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(
@@ -108,6 +115,7 @@ internal fun RenderQuoteHistoryScreenS49(
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(Color.White)
+                        .border(1.dp, Color(0xFFF0EBF4), CircleShape)
                         .clickable { onSelectScreenCode("s37") },
                     contentAlignment = Alignment.Center,
                 ) {
@@ -116,74 +124,190 @@ internal fun RenderQuoteHistoryScreenS49(
 
                 BasicText(
                     text = "Cotizaciones",
-                    style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color(0xFF1A1A2E)),
+                    style = TextStyle(
+                        fontFamily = typo.displayFamily,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 20.sp,
+                        color = Color(0xFF1A1A2E),
+                    ),
                 )
-
-                Spacer(modifier = Modifier.size(44.dp))
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
-
             val quotes = listOf(
-                Triple("Boda Real Rosa & Dorado", "Vie 23 oct · Jardín Botánico", "Revisada" to Color(0xFFFFF2C9)),
-                Triple("Baby Shower Sofía", "Sáb 2 nov · Salón Los Almendros", "Pendiente" to Color(0xFFF1EFF5)),
-                Triple("Cumpleaños Mateo", "Sáb 12 dic · Club Bella Vista", "Aprobada" to Color(0xFFDDF4F3)),
+                QuoteHistoryItem49(
+                    title = "Boda Real Rosa & Dorado",
+                    dateLocation = "Vie 23 oct · Jardín Botánico",
+                    tagText = "Revisada",
+                    tagBg = Color(0xFFFFF2C9),
+                    tagTextCol = Color(0xFF7A5700),
+                    stepText = "Paso 2 de 5 · Revisada",
+                    activeSteps = 2,
+                    stepColor = Color(0xFFF7B500),
+                    guests = "120 invitados",
+                    price = "RD$ 4,500",
+                ),
+                QuoteHistoryItem49(
+                    title = "Quinceañera Valentina Crystal",
+                    dateLocation = "Lun 2 nov · Hotel El Embajador",
+                    tagText = "Confirmada",
+                    tagBg = Color(0xFFEEF6D6),
+                    tagTextCol = Color(0xFF4E6A10),
+                    stepText = "Paso 3 de 5 · Confirmada",
+                    activeSteps = 3,
+                    stepColor = Color(0xFF8DB52C),
+                    guests = "150 invitados",
+                    price = "RD$ 6,200",
+                ),
+                QuoteHistoryItem49(
+                    title = "Gala Corporativa Grupo Caribe",
+                    dateLocation = "Lun 12 oct · JW Marriott BlueMall",
+                    tagText = "Completada",
+                    tagBg = Color(0xFFEFE8FD),
+                    tagTextCol = Color(0xFF7A4FD8),
+                    stepText = "Paso 5 de 5 · Completada",
+                    activeSteps = 5,
+                    stepColor = Color(0xFF865DEC),
+                    guests = "200 invitados",
+                    price = "RD$ 8,500",
+                ),
             )
 
-            quotes.forEach { (name, date, status) ->
+            quotes.forEach { item ->
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 6.dp)
-                        .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = false)
+                        .shadow(
+                            elevation = 8.dp,
+                            shape = RoundedCornerShape(22.dp),
+                            spotColor = Color(0x30505078),
+                            ambientColor = Color(0x15505078),
+                        )
                         .clip(RoundedCornerShape(22.dp))
                         .background(Color.White)
                         .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(22.dp))
                         .clickable { onSelectScreenCode("s48") }
-                        .padding(16.dp),
+                        .padding(horizontal = 18.dp, vertical = 16.dp),
                 ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        // Top row: Title/subtitle + Tag
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.Top,
+                        ) {
+                            Column(
+                                modifier = Modifier.weight(1f).padding(end = 10.dp),
+                                verticalArrangement = Arrangement.spacedBy(2.dp),
+                            ) {
+                                BasicText(
+                                    text = item.title,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    style = TextStyle(
+                                        fontFamily = typo.bodyFamily,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 16.sp,
+                                        color = Color(0xFF1A1A2E),
+                                    ),
+                                )
+                                BasicText(
+                                    text = item.dateLocation,
+                                    style = TextStyle(
+                                        fontFamily = typo.bodyFamily,
+                                        fontSize = 13.sp,
+                                        color = Color(0xFF62627A),
+                                    ),
+                                )
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .height(24.dp)
+                                    .clip(CircleShape)
+                                    .background(item.tagBg)
+                                    .padding(horizontal = 9.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                BasicText(
+                                    text = item.tagText,
+                                    style = TextStyle(
+                                        fontFamily = typo.bodyFamily,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp,
+                                        color = item.tagTextCol,
+                                    ),
+                                )
+                            }
+                        }
+
+                        // Middle: 5 progress bars + step text
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            ) {
+                                for (i in 1..5) {
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(6.dp)
+                                            .clip(RoundedCornerShape(3.dp))
+                                            .background(
+                                                if (i <= item.activeSteps) item.stepColor
+                                                else Color(0xFFF1EFF5)
+                                            ),
+                                    )
+                                }
+                            }
+                            BasicText(
+                                text = item.stepText,
+                                style = TextStyle(
+                                    fontFamily = typo.bodyFamily,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 12.sp,
+                                    color = Color(0xFF62627A),
+                                ),
+                            )
+                        }
+
+                        // Bottom: guests + price
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Column {
-                                BasicText(name, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A2E), fontSize = 16.sp))
-                                BasicText(date, style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFF62627A), fontSize = 13.sp))
-                            }
-                            Box(
-                                modifier = Modifier
-                                    .height(26.dp)
-                                    .clip(CircleShape)
-                                    .background(status.second)
-                                    .padding(horizontal = 10.dp),
-                                contentAlignment = Alignment.Center,
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
                             ) {
-                                BasicText(status.first, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A2E), fontSize = 12.sp))
-                            }
-                        }
-
-                        // Progreso de 5 pasos
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            for (i in 1..5) {
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(6.dp)
-                                        .clip(RoundedCornerShape(3.dp))
-                                        .background(if (i <= 2) Color(0xFFF7B500) else Color(0xFFF1EFF5)),
+                                RfIcon(kind = RfIconKind.GUESTS, tint = Color(0xFF62627A), size = 16.dp)
+                                BasicText(
+                                    text = item.guests,
+                                    style = TextStyle(
+                                        fontFamily = typo.bodyFamily,
+                                        fontSize = 14.sp,
+                                        color = Color(0xFF62627A),
+                                    ),
                                 )
                             }
+                            BasicText(
+                                text = item.price,
+                                style = TextStyle(
+                                    fontFamily = typo.displayFamily,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 17.sp,
+                                    color = Color(0xFF1A1A2E),
+                                ),
+                            )
                         }
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.height(30.dp))
         }
     }
 }
@@ -477,10 +601,91 @@ internal fun RenderPaymentSuccessScreenS51(
     ) {
         // Decorative background garland & shapes
         Canvas(modifier = Modifier.fillMaxSize()) {
-            drawCircle(color = Color(0xFFB9D84A), radius = 5f * density, center = Offset(140f * density, 150f * density))
-            drawCircle(color = Color(0xFFFBCA3F), radius = 3.5f * density, center = Offset(150f * density, 220f * density))
-            drawCircle(color = Color(0x33F2C4DF), radius = 30f * density, center = Offset(52f * density, 200f * density), style = Stroke(width = 1.5f * density))
-            drawCircle(color = Color(0x33CFE48A), radius = 24f * density, center = Offset(344f * density, 250f * density), style = Stroke(width = 2f * density))
+            val scaleX = size.width / 390f
+            val scaleY = size.height / 844f
+
+            // Garland wire
+            val wirePath = Path().apply {
+                moveTo(-10f * scaleX, 50f * scaleY)
+                quadraticTo(195f * scaleX, 110f * scaleY, 400f * scaleX, 50f * scaleY)
+            }
+            drawPath(
+                wirePath,
+                color = Color(0xFF1A1A2E).copy(alpha = 0.18f),
+                style = Stroke(width = 1.2f * density),
+            )
+
+            // 9 Garland flags
+            val flags = listOf(
+                Triple(listOf(Offset(14f, 56f), Offset(34f, 56f), Offset(24f, 80f)), Color(0xFFEC4F97), 1f),
+                Triple(listOf(Offset(58f, 66f), Offset(78f, 66f), Offset(68f, 90f)), Color(0xFFFBCA3F), 1f),
+                Triple(listOf(Offset(102f, 73f), Offset(122f, 73f), Offset(112f, 97f)), Color(0xFF5CC9C0), 1f),
+                Triple(listOf(Offset(146f, 78f), Offset(166f, 78f), Offset(156f, 102f)), Color(0xFF865DEC), 1f),
+                Triple(listOf(Offset(190f, 79f), Offset(210f, 79f), Offset(200f, 103f)), Color(0xFFB9D84A), 1f),
+                Triple(listOf(Offset(234f, 77f), Offset(254f, 77f), Offset(244f, 101f)), Color(0xFFEC4F97), 1f),
+                Triple(listOf(Offset(278f, 73f), Offset(298f, 73f), Offset(288f, 97f)), Color(0xFFFBCA3F), 1f),
+                Triple(listOf(Offset(322f, 66f), Offset(342f, 66f), Offset(332f, 90f)), Color(0xFF5CC9C0), 1f),
+                Triple(listOf(Offset(366f, 56f), Offset(386f, 56f), Offset(376f, 80f)), Color(0xFF865DEC), 1f),
+            )
+
+            flags.forEach { (pts, color, _) ->
+                val p = Path().apply {
+                    moveTo(pts[0].x * scaleX, pts[0].y * scaleY)
+                    lineTo(pts[1].x * scaleX, pts[1].y * scaleY)
+                    lineTo(pts[2].x * scaleX, pts[2].y * scaleY)
+                    close()
+                }
+                drawPath(p, color = color)
+            }
+
+            // Hollow circles
+            drawCircle(
+                color = Color(0xFFF2C4DF),
+                radius = 30f * density,
+                center = Offset(52f * scaleX, 200f * scaleY),
+                style = Stroke(width = 1.5f * density),
+            )
+            drawCircle(
+                color = Color(0xFFCFE48A),
+                radius = 24f * density,
+                center = Offset(344f * scaleX, 250f * scaleY),
+                style = Stroke(width = 2f * density),
+            )
+
+            // Diamond at (330, 150)
+            val diamond = Path().apply {
+                moveTo(330f * scaleX, 150f * scaleY)
+                lineTo(338f * scaleX, 164f * scaleY)
+                lineTo(330f * scaleX, 178f * scaleY)
+                lineTo(322f * scaleX, 164f * scaleY)
+                close()
+            }
+            drawPath(diamond, color = Color(0xFF9ED7DC), style = Stroke(width = 1.5f * density))
+
+            // Sparkle 4-point at (70, 290)
+            val spk1 = Path().apply {
+                moveTo(70f * scaleX, 282f * scaleY)
+                lineTo(73f * scaleX, 290f * scaleY)
+                lineTo(81f * scaleX, 293f * scaleY)
+                lineTo(73f * scaleX, 296f * scaleY)
+                lineTo(70f * scaleX, 304f * scaleY)
+                lineTo(67f * scaleX, 296f * scaleY)
+                lineTo(59f * scaleX, 293f * scaleY)
+                lineTo(67f * scaleX, 290f * scaleY)
+                close()
+            }
+            drawPath(spk1, color = Color(0xFFF7C9DF))
+
+            // Solid dots
+            drawCircle(color = Color(0xFFB9D84A), radius = 5f * density, center = Offset(140f * scaleX, 150f * scaleY))
+            drawCircle(color = Color(0xFFFBCA3F), radius = 3.5f * density, center = Offset(150f * scaleX, 220f * scaleY))
+
+            // Star 5-point at (246, 136)
+            drawCircle(color = Color(0xFFFBCA3F), radius = 6f * density, center = Offset(246f * scaleX, 136f * scaleY))
+
+            // Bottom sparkles
+            drawCircle(color = Color(0xFFFBCA3F).copy(alpha = 0.85f), radius = 5f * density, center = Offset(360f * scaleX, 700f * scaleY))
+            drawCircle(color = Color(0xFFB9D84A), radius = 4f * density, center = Offset(30f * scaleX, 740f * scaleY))
         }
 
         // Header at top 130dp
@@ -494,12 +699,19 @@ internal fun RenderPaymentSuccessScreenS51(
             Box(
                 modifier = Modifier
                     .size(72.dp)
-                    .shadow(14.dp, CircleShape, spotColor = Color(0xCC50BEC8))
+                    .shadow(14.dp, CircleShape, spotColor = Color(0xCC50BEC8), ambientColor = Color(0x4050BEC8))
                     .clip(CircleShape)
                     .background(Brush.linearGradient(listOf(Color(0xFF5CC9C0), Color(0xFF5AB7E0)))),
                 contentAlignment = Alignment.Center,
             ) {
-                RfIcon(kind = RfIconKind.CHECK, tint = Color.White, size = 36.dp)
+                Canvas(modifier = Modifier.size(36.dp)) {
+                    val p = Path().apply {
+                        moveTo(5f * density, 12.5f * density)
+                        lineTo(9.5f * density, 17f * density)
+                        lineTo(19f * density, 7.5f * density)
+                    }
+                    drawPath(p, color = Color.White, style = Stroke(width = 3.5f * density, cap = StrokeCap.Round, join = StrokeJoin.Round))
+                }
             }
 
             BasicText(
@@ -520,98 +732,149 @@ internal fun RenderPaymentSuccessScreenS51(
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .padding(top = 330.dp, start = 20.dp, end = 20.dp)
-                .fillMaxWidth()
-                .rfCardShadow(RoundedCornerShape(24.dp), isAdmin = false)
-                .clip(RoundedCornerShape(24.dp))
-                .background(Color.White),
+                .fillMaxWidth(),
         ) {
-            Column {
-                // Card header
-                Row(
-                    modifier = Modifier.padding(18.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(14.dp),
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(56.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))),
-                        contentAlignment = Alignment.Center,
+            // Main white card
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .shadow(
+                        elevation = 14.dp,
+                        shape = RoundedCornerShape(24.dp),
+                        spotColor = Color(0x50C850AA),
+                        ambientColor = Color(0x20C850AA),
+                    )
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(Color.White),
+            ) {
+                Column {
+                    // Card header
+                    Row(
+                        modifier = Modifier.padding(18.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
                     ) {
-                        RfIcon(kind = RfIconKind.SPARK, tint = Color.White, size = 26.dp)
-                    }
-
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        BasicText("Boda Real Rosa & Dorado", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 19.sp, lineHeight = 22.sp, color = Color(0xFF1A1A2E)))
                         Box(
                             modifier = Modifier
-                                .height(24.dp)
-                                .clip(CircleShape)
-                                .background(Color(0xFFEEF6D6))
-                                .padding(horizontal = 9.dp),
+                                .size(56.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))),
                             contentAlignment = Alignment.Center,
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                                Box(modifier = Modifier.size(7.dp).clip(CircleShape).background(Color(0xFFA9CC3A)))
-                                BasicText("Cotización lista", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF4E5A12)))
+                            Canvas(modifier = Modifier.size(26.dp)) {
+                                val s = size.width / 24f
+                                val horn = Path().apply {
+                                    moveTo(4f * s, 20f * s)
+                                    lineTo(8.5f * s, 8f * s)
+                                    lineTo(16f * s, 15.5f * s)
+                                    close()
+                                }
+                                drawPath(horn, color = Color.White, style = Stroke(width = 1.8f * s, cap = StrokeCap.Round, join = StrokeJoin.Round))
+                                val ribbons = Path().apply {
+                                    moveTo(14f * s, 4f * s)
+                                    quadraticTo(14f * s, 6f * s, 13f * s, 7.5f * s)
+                                    moveTo(17f * s, 7.5f * s)
+                                    quadraticTo(18.5f * s, 6.5f * s, 20.5f * s, 7.5f * s)
+                                    moveTo(20f * s, 12f * s)
+                                    quadraticTo(18.5f * s, 11.5f * s, 16.8f * s, 13f * s)
+                                }
+                                drawPath(ribbons, color = Color.White, style = Stroke(width = 1.8f * s, cap = StrokeCap.Round, join = StrokeJoin.Round))
+                                drawCircle(color = Color.White, radius = 0.9f * s, center = Offset(10f * s, 4.5f * s))
+                                drawCircle(color = Color.White, radius = 0.9f * s, center = Offset(20f * s, 4f * s))
+                                drawCircle(color = Color.White, radius = 0.9f * s, center = Offset(21f * s, 16f * s))
+                            }
+                        }
+
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            BasicText("Boda Real Rosa & Dorado", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 19.sp, lineHeight = 22.sp, color = Color(0xFF1A1A2E)))
+                            Box(
+                                modifier = Modifier
+                                    .height(24.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFFEEF6D6))
+                                    .padding(horizontal = 9.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                                    Box(modifier = Modifier.size(7.dp).clip(CircleShape).background(Color(0xFFA9CC3A)))
+                                    BasicText("Cotización lista", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF4E5A12)))
+                                }
                             }
                         }
                     }
-                }
 
-                // Dashed line
-                Canvas(modifier = Modifier.fillMaxWidth().height(1.dp).padding(horizontal = 18.dp)) {
-                    drawLine(
-                        color = Color(0xFFEEE8F2),
-                        start = Offset(0f, 0f),
-                        end = Offset(size.width, 0f),
-                        strokeWidth = 2f * density,
-                    )
-                }
+                    // Dashed line
+                    Canvas(modifier = Modifier.fillMaxWidth().height(1.dp).padding(horizontal = 18.dp)) {
+                        drawLine(
+                            color = Color(0xFFEEE8F2),
+                            start = Offset(0f, 0f),
+                            end = Offset(size.width, 0f),
+                            strokeWidth = 2f * density,
+                        )
+                    }
 
-                // Ticket details
-                Column(
-                    modifier = Modifier.padding(start = 18.dp, end = 18.dp, top = 16.dp, bottom = 18.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().height(30.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
+                    // Ticket details
+                    Column(
+                        modifier = Modifier.padding(start = 18.dp, end = 18.dp, top = 16.dp, bottom = 18.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        BasicText("Fecha", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF62627A)))
-                        Box(
-                            modifier = Modifier
-                                .height(28.dp)
-                                .clip(CircleShape)
-                                .background(Color(0xFFFFF2C9))
-                                .padding(horizontal = 10.dp),
-                            contentAlignment = Alignment.Center,
+                        Row(
+                            modifier = Modifier.fillMaxWidth().height(30.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            BasicText("Vie 23 oct 2026", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF7A5700)))
+                            BasicText("Fecha", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF62627A)))
+                            Box(
+                                modifier = Modifier
+                                    .height(28.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFFFFF2C9))
+                                    .padding(horizontal = 10.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                BasicText("Vie 23 oct 2026", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF7A5700)))
+                            }
                         }
-                    }
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth().height(30.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        BasicText("Artículos", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF62627A)))
-                        BasicText("145", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF1A1A2E)))
-                    }
+                        Row(
+                            modifier = Modifier.fillMaxWidth().height(30.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            BasicText("Artículos", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF62627A)))
+                            BasicText("145", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF1A1A2E)))
+                        }
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth().height(30.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        BasicText("Anticipo pagado", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF62627A)))
-                        BasicText("RD$ 1,350", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp, color = Color(0xFF3FB59A)))
+                        Row(
+                            modifier = Modifier.fillMaxWidth().height(30.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            BasicText("Anticipo pagado", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF62627A)))
+                            BasicText("RD$ 1,350", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp, color = Color(0xFF3FB59A)))
+                        }
                     }
                 }
             }
+
+            // Ticket Notch on Left
+            Box(
+                modifier = Modifier
+                    .size(24.dp)
+                    .offset(x = (-12).dp, y = 80.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFFFAFAFC)),
+            )
+
+            // Ticket Notch on Right
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .size(24.dp)
+                    .offset(x = 12.dp, y = 80.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFFFAFAFC)),
+            )
         }
 
         // Bottom CTA buttons at bottom 36dp

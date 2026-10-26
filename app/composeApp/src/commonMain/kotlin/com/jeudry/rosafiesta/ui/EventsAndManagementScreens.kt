@@ -1006,7 +1006,12 @@ internal fun RenderEventDetailScreenS40(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .rfHeroBannerShadow(RoundedCornerShape(22.dp), isAdmin = false)
+                    .shadow(
+                        elevation = 6.dp,
+                        shape = RoundedCornerShape(22.dp),
+                        spotColor = Color(0x60463C8C),
+                        ambientColor = Color(0x20463C8C),
+                    )
                     .clip(RoundedCornerShape(22.dp))
                     .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))))
                     .clickable { onSelectScreenCode("s43") }
