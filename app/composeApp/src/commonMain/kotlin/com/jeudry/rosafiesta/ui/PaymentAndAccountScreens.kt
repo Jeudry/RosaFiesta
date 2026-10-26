@@ -24,10 +24,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.jeudry.rosafiesta.domain.CanonicalSampleData
+import com.jeudry.rosafiesta.domain.ClientEvent
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.withStyle
@@ -318,9 +321,14 @@ internal fun RenderQuoteHistoryScreenS49(
 @Composable
 internal fun RenderPaymentCheckoutScreenS50(
     onSelectScreenCode: (String) -> Unit = {},
+    viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
     var selectedMethod by remember { mutableStateOf(0) } // 0: Tarjeta, 1: Popular, 2: Banreservas, 3: Efectivo
+    val events = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
+    val selectedId = viewModel?.selectedEventId?.collectAsState()?.value ?: "evt-boda-real"
+    val event = events.firstOrNull { it.id == selectedId } ?: events.first()
+    val depositAmount = (event.totalDop * 30 / 100).coerceAtLeast(100)
 
     Box(
         modifier = Modifier
@@ -394,8 +402,8 @@ internal fun RenderPaymentCheckoutScreenS50(
                     }
 
                     Column(modifier = Modifier.weight(1f)) {
-                        BasicText("Entrega para Camila Rodríguez", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = Color(0xFF62627A)))
-                        BasicText("Jardín Botánico Santo Domingo", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF1A1A2E)))
+                        BasicText("Entrega para ${event.clientName}", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = Color(0xFF62627A)))
+                        BasicText(event.venue, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF1A1A2E)))
                     }
 
                     BasicText("Cambiar", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFFC2338F)))
@@ -481,7 +489,7 @@ internal fun RenderPaymentCheckoutScreenS50(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     RfIcon(kind = RfIconKind.USER, tint = Color(0xFF62627A), size = 18.dp)
-                    BasicText("Olivia Rhye", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF1A1A2E)))
+                    BasicText(event.clientName, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF1A1A2E)))
                 }
             }
 
@@ -499,7 +507,7 @@ internal fun RenderPaymentCheckoutScreenS50(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     RfIcon(kind = RfIconKind.WALLET, tint = Color(0xFF62627A), size = 18.dp)
-                    BasicText("Número de tarjeta", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF62627A)))
+                    BasicText("•••• •••• •••• 4242", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF1A1A2E)))
                 }
             }
 
@@ -516,7 +524,7 @@ internal fun RenderPaymentCheckoutScreenS50(
                         .padding(horizontal = 14.dp),
                     contentAlignment = Alignment.CenterStart,
                 ) {
-                    BasicText("MM/AA", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF62627A)))
+                    BasicText("12/28", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF1A1A2E)))
                 }
                 Box(
                     modifier = Modifier
@@ -529,7 +537,7 @@ internal fun RenderPaymentCheckoutScreenS50(
                         .padding(horizontal = 14.dp),
                     contentAlignment = Alignment.CenterStart,
                 ) {
-                    BasicText("CVC", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF62627A)))
+                    BasicText("•••", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF1A1A2E)))
                 }
             }
 
@@ -547,7 +555,7 @@ internal fun RenderPaymentCheckoutScreenS50(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     RfIcon(kind = RfIconKind.PHONE, tint = Color(0xFF62627A), size = 18.dp)
-                    BasicText("(809) 555-1234", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF1A1A2E)))
+                    BasicText("(809) 555-0142", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF1A1A2E)))
                 }
             }
         }
@@ -568,7 +576,11 @@ internal fun RenderPaymentCheckoutScreenS50(
                     .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
                     .clip(RoundedCornerShape(16.dp))
                     .background(RosaButtonGradient)
-                    .clickable { onSelectScreenCode("s51") }
+                    .clickable {
+                        viewModel?.submitPayment(eventId = event.id)
+                        viewModel?.soundPlayer?.playPaymentSuccess()
+                        onSelectScreenCode("s51")
+                    }
                     .padding(horizontal = 20.dp),
                 contentAlignment = Alignment.CenterStart,
             ) {
@@ -578,7 +590,7 @@ internal fun RenderPaymentCheckoutScreenS50(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     BasicText("Pagar anticipo (30%)", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White))
-                    BasicText("RD$ 1,350", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 19.sp, color = Color.White))
+                    BasicText("RD$ $depositAmount", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 19.sp, color = Color.White))
                 }
             }
         }
@@ -591,8 +603,13 @@ internal fun RenderPaymentCheckoutScreenS50(
 @Composable
 internal fun RenderPaymentSuccessScreenS51(
     onSelectScreenCode: (String) -> Unit = {},
+    viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
+    val events = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
+    val selectedId = viewModel?.selectedEventId?.collectAsState()?.value ?: "evt-boda-real"
+    val event = events.firstOrNull { it.id == selectedId } ?: events.first()
+    val depositPaid = if (event.paidDepositDop > 0) event.paidDepositDop else (event.totalDop * 30 / 100).coerceAtLeast(100)
 
     Box(
         modifier = Modifier
@@ -786,7 +803,7 @@ internal fun RenderPaymentSuccessScreenS51(
                         }
 
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            BasicText("Boda Real Rosa & Dorado", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 19.sp, lineHeight = 22.sp, color = Color(0xFF1A1A2E)))
+                            BasicText(event.title, style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 19.sp, lineHeight = 22.sp, color = Color(0xFF1A1A2E)))
                             Box(
                                 modifier = Modifier
                                     .height(24.dp)
@@ -797,7 +814,7 @@ internal fun RenderPaymentSuccessScreenS51(
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                                     Box(modifier = Modifier.size(7.dp).clip(CircleShape).background(Color(0xFFA9CC3A)))
-                                    BasicText("Cotización lista", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF4E5A12)))
+                                    BasicText("Confirmado", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF4E5A12)))
                                 }
                             }
                         }
@@ -832,7 +849,7 @@ internal fun RenderPaymentSuccessScreenS51(
                                     .padding(horizontal = 10.dp),
                                 contentAlignment = Alignment.Center,
                             ) {
-                                BasicText("Vie 23 oct 2026", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF7A5700)))
+                                BasicText(event.dateLabel, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF7A5700)))
                             }
                         }
 
@@ -842,7 +859,7 @@ internal fun RenderPaymentSuccessScreenS51(
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             BasicText("Artículos", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF62627A)))
-                            BasicText("145", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF1A1A2E)))
+                            BasicText("${event.articleCount}", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF1A1A2E)))
                         }
 
                         Row(
@@ -851,7 +868,7 @@ internal fun RenderPaymentSuccessScreenS51(
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             BasicText("Anticipo pagado", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF62627A)))
-                            BasicText("RD$ 1,350", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp, color = Color(0xFF3FB59A)))
+                            BasicText("RD$ $depositPaid", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp, color = Color(0xFF3FB59A)))
                         }
                     }
                 }

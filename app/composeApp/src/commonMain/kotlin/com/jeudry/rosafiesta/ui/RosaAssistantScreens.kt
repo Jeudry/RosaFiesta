@@ -26,10 +26,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.jeudry.rosafiesta.domain.CanonicalSampleData
+import com.jeudry.rosafiesta.domain.CatalogArticle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -225,8 +228,21 @@ private fun RosaWizardHeader(
 @Composable
 internal fun RenderMyEventDraftS25(
     onSelectScreenCode: (String) -> Unit = {},
+    viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
+    val draftQuantities = viewModel?.draftQuantities?.collectAsState()?.value ?: mapOf("art-silla-tiffany" to 80, "art-mesa-redonda" to 12)
+    val allArticles: List<CatalogArticle> = viewModel?.articles?.collectAsState()?.value ?: CanonicalSampleData.articles
+    val articlesMap: Map<String, CatalogArticle> = remember(allArticles) { allArticles.associateBy { it.id } }
+
+    val activeDraftItems: List<Pair<CatalogArticle, Int>> = remember(draftQuantities, articlesMap) {
+        draftQuantities.filter { it.value > 0 }.mapNotNull { (id, qty) ->
+            articlesMap[id]?.let { article -> Pair(article, qty) }
+        }
+    }
+
+    val totalItemsCount: Int = activeDraftItems.sumOf { it.second }
+    val totalPriceDop: Int = activeDraftItems.sumOf { (article, qty) -> article.pricePerDayDop * qty }
 
     Box(
         modifier = Modifier
@@ -290,7 +306,7 @@ internal fun RenderMyEventDraftS25(
                         ),
                     )
                     BasicText(
-                        text = "Baby Shower Sofía en Rosas",
+                        text = "Borrador de cotización",
                         style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF62627A)),
                     )
                 }
@@ -312,104 +328,117 @@ internal fun RenderMyEventDraftS25(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Card categoría "Sillas" expandida con artículos
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = false)
-                    .clip(RoundedCornerShape(22.dp))
-                    .background(Color.White)
-                    .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(22.dp)),
-            ) {
-                Column {
-                    // Header de la categoría
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { }
-                            .padding(10.dp, 10.dp, 10.dp, 12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
+            if (activeDraftItems.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 40.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        Box(
-                            contentAlignment = Alignment.Center,
+                        RfIcon(kind = RfIconKind.ORDERS, tint = Color(0xFFC2338F), size = 48.dp)
+                        BasicText("Tu carrito de evento está vacío", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A2E)))
+                        BasicText("Explora el catálogo y agrega mobiliario o decoración", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF62627A)))
+                    }
+                }
+            } else {
+                // Card contenedor de artículos del borrador
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = false)
+                        .clip(RoundedCornerShape(22.dp))
+                        .background(Color.White)
+                        .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(22.dp)),
+                ) {
+                    Column {
+                        // Header de la lista
+                        Row(
                             modifier = Modifier
-                                .size(40.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(Color(0xFFFDE6F2)),
+                                .fillMaxWidth()
+                                .padding(14.dp, 12.dp, 14.dp, 12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            RfIcon(kind = RfIconKind.ORDERS, tint = Color(0xFFC2338F), size = 20.dp)
-                        }
-                        Column(modifier = Modifier.weight(1f)) {
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(Color(0xFFFDE6F2)),
+                            ) {
+                                RfIcon(kind = RfIconKind.ORDERS, tint = Color(0xFFC2338F), size = 20.dp)
+                            }
+                            Column(modifier = Modifier.weight(1f)) {
+                                BasicText(
+                                    "Artículos seleccionados",
+                                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF1A1A2E)),
+                                )
+                                BasicText(
+                                    "${activeDraftItems.size} artículos · $totalItemsCount unidades",
+                                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF62627A)),
+                                )
+                            }
                             BasicText(
-                                "Sillas",
-                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF1A1A2E)),
-                            )
-                            BasicText(
-                                "2 artículos · 120 unidades",
-                                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF62627A)),
+                                "RD$ $totalPriceDop",
+                                style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, letterSpacing = (-0.34).sp, color = Color(0xFF1A1A2E)),
                             )
                         }
-                        BasicText(
-                            "RD$ 420",
-                            style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, letterSpacing = (-0.34).sp, color = Color(0xFF1A1A2E)),
-                        )
-                        RfIcon(kind = RfIconKind.CHEVRON_DOWN, tint = Color(0xFF62627A), size = 18.dp)
-                    }
 
-                    // Item 1
-                    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFF2F0F5)))
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Box(modifier = Modifier.size(56.dp).clip(RoundedCornerShape(14.dp))) {
-                            RfPhoto(photoKey = RfPhotoKey.SILLA_TIFFANY, contentDescription = "Silla Tiffany", cornerRadius = 14.dp, modifier = Modifier.fillMaxSize())
-                        }
-                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            BasicText("Silla Tiffany Cristal", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF1A1A2E)))
-                            BasicText("Transparente · RD$ 3.50 c/u", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF62627A)))
-                            BasicText("RD$ 280", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, letterSpacing = (-0.32).sp, color = Color(0xFF1A1A2E)))
-                        }
-                        Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        activeDraftItems.forEachIndexed { index, (article, qty) ->
+                            Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFF2F0F5)))
+                            val photoKey = when (article.id) {
+                                "art-silla-tiffany" -> RfPhotoKey.SILLA_TIFFANY
+                                "art-mesa-redonda" -> RfPhotoKey.MESA_REDONDA
+                                "art-centro-floral" -> RfPhotoKey.CENTRO_FLORAL
+                                "art-arco-rosa" -> RfPhotoKey.ARCO_ROSA
+                                "art-mesa-helados" -> RfPhotoKey.MESA_HELADOS
+                                "art-mesa-plegable" -> RfPhotoKey.MESA_PLEGABLE
+                                else -> RfPhotoKey.SILLA_TIFFANY
+                            }
+
                             Row(
-                                modifier = Modifier.clip(RoundedCornerShape(12.dp)).border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(12.dp)).height(36.dp),
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                Box(modifier = Modifier.size(32.dp, 36.dp), contentAlignment = Alignment.Center) { RfIcon(kind = RfIconKind.MINUS, tint = Color(0xFF1A1A2E), size = 16.dp) }
-                                BasicText("80", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF1A1A2E)))
-                                Box(modifier = Modifier.size(32.dp, 36.dp), contentAlignment = Alignment.Center) { RfIcon(kind = RfIconKind.PLUS, tint = Color(0xFF1A1A2E), size = 16.dp) }
+                                Box(modifier = Modifier.size(56.dp).clip(RoundedCornerShape(14.dp))) {
+                                    RfPhoto(photoKey = photoKey, contentDescription = article.name, cornerRadius = 14.dp, modifier = Modifier.fillMaxSize())
+                                }
+                                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    BasicText(article.name, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF1A1A2E)))
+                                    BasicText("${article.category} · RD$ ${article.pricePerDayDop} c/u", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF62627A)))
+                                    BasicText("RD$ ${article.pricePerDayDop * qty}", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, letterSpacing = (-0.32).sp, color = Color(0xFF1A1A2E)))
+                                }
+                                Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Row(
+                                        modifier = Modifier.clip(RoundedCornerShape(12.dp)).border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(12.dp)).height(36.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Box(
+                                            modifier = Modifier.size(32.dp, 36.dp).clickable { viewModel?.adjustDraftQuantity(article.id, -1) },
+                                            contentAlignment = Alignment.Center,
+                                        ) {
+                                            RfIcon(kind = RfIconKind.MINUS, tint = Color(0xFF1A1A2E), size = 16.dp)
+                                        }
+                                        BasicText("$qty", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF1A1A2E)))
+                                        Box(
+                                            modifier = Modifier.size(32.dp, 36.dp).clickable { viewModel?.adjustDraftQuantity(article.id, 1) },
+                                            contentAlignment = Alignment.Center,
+                                        ) {
+                                            RfIcon(kind = RfIconKind.PLUS, tint = Color(0xFF1A1A2E), size = 16.dp)
+                                        }
+                                    }
+                                    BasicText(
+                                        "Quitar",
+                                        modifier = Modifier.clickable { viewModel?.adjustDraftQuantity(article.id, -qty) },
+                                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Color(0xFF62627A)),
+                                    )
+                                }
                             }
-                            BasicText("Quitar", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Color(0xFF62627A)))
-                        }
-                    }
-
-                    // Item 2
-                    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFF2F0F5)))
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Box(modifier = Modifier.size(56.dp).clip(RoundedCornerShape(14.dp))) {
-                            RfPhoto(photoKey = RfPhotoKey.SILLA_TIFFANY, contentDescription = "Silla Tiffany Rosa", cornerRadius = 14.dp, modifier = Modifier.fillMaxSize())
-                        }
-                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            BasicText("Silla Tiffany Cristal", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF1A1A2E)))
-                            BasicText("Rosa · RD$ 3.50 c/u", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF62627A)))
-                            BasicText("RD$ 140", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, letterSpacing = (-0.32).sp, color = Color(0xFF1A1A2E)))
-                        }
-                        Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Row(
-                                modifier = Modifier.clip(RoundedCornerShape(12.dp)).border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(12.dp)).height(36.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Box(modifier = Modifier.size(32.dp, 36.dp), contentAlignment = Alignment.Center) { RfIcon(kind = RfIconKind.MINUS, tint = Color(0xFF1A1A2E), size = 16.dp) }
-                                BasicText("40", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF1A1A2E)))
-                                Box(modifier = Modifier.size(32.dp, 36.dp), contentAlignment = Alignment.Center) { RfIcon(kind = RfIconKind.PLUS, tint = Color(0xFF1A1A2E), size = 16.dp) }
-                            }
-                            BasicText("Quitar", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Color(0xFF62627A)))
                         }
                     }
                 }
@@ -423,7 +452,8 @@ internal fun RenderMyEventDraftS25(
                     .fillMaxWidth()
                     .height(52.dp)
                     .clip(RoundedCornerShape(16.dp))
-                    .border(1.5.dp, Color(0xFFE3DCE8), RoundedCornerShape(16.dp)),
+                    .border(1.5.dp, Color(0xFFE3DCE8), RoundedCornerShape(16.dp))
+                    .clickable { onSelectScreenCode("s18") },
                 contentAlignment = Alignment.Center,
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -460,11 +490,11 @@ internal fun RenderMyEventDraftS25(
                     verticalAlignment = Alignment.Bottom,
                 ) {
                     BasicText(
-                        "120 artículos · 1 categoría",
+                        "$totalItemsCount artículos · ${activeDraftItems.size} seleccionados",
                         style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF62627A)),
                     )
                     BasicText(
-                        "RD$ 420",
+                        "RD$ $totalPriceDop",
                         style = TextStyle(
                             fontFamily = typo.displayFamily,
                             fontWeight = FontWeight.ExtraBold,
@@ -481,11 +511,11 @@ internal fun RenderMyEventDraftS25(
                         .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
                         .clip(RoundedCornerShape(16.dp))
                         .background(RosaButtonGradient)
-                        .clickable { onSelectScreenCode("s26") },
+                        .clickable { onSelectScreenCode("s48") },
                     contentAlignment = Alignment.Center,
                 ) {
                     BasicText(
-                        text = "Ver detalle del evento",
+                        text = "Ver cotización oficial",
                         style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White),
                     )
                 }
