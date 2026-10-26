@@ -27,17 +27,21 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
-import com.jeudry.rosafiesta.domain.EventStatus
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -49,14 +53,10 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.vector.PathParser
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
@@ -73,7 +73,7 @@ import com.jeudry.rosafiesta.designsystem.RfPhotoKey
 import com.jeudry.rosafiesta.designsystem.RfRadialBackgroundBox
 import com.jeudry.rosafiesta.designsystem.rfCardShadow
 import com.jeudry.rosafiesta.designsystem.rfIconButtonShadow
-import com.jeudry.rosafiesta.designsystem.rfIconButtonShadow
+import com.jeudry.rosafiesta.domain.EventStatus
 
 private val PersonalButtonGradient = Brush.horizontalGradient(
     listOf(Color(0xFFFF3366), Color(0xFFE6007A)),
@@ -112,8 +112,8 @@ internal fun RenderAboutScreenS16(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                                .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp),
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
             Spacer(modifier = Modifier.height(36.dp))
@@ -335,6 +335,7 @@ internal fun RenderAboutScreenS16(
                                 .shadow(8.dp, RoundedCornerShape(999.dp), spotColor = Color(0x66865DEC), ambientColor = Color.Transparent)
                                 .clip(RoundedCornerShape(999.dp))
                                 .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))))
+                                .clickable { onSelectScreenCode("s42") }
                                 .padding(horizontal = 14.dp),
                             contentAlignment = Alignment.Center,
                         ) {
@@ -349,7 +350,7 @@ internal fun RenderAboutScreenS16(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { }
+                            .clickable { onSelectScreenCode("s42") }
                             .padding(horizontal = 14.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(14.dp),
@@ -385,7 +386,7 @@ internal fun RenderAboutScreenS16(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { }
+                            .clickable { onSelectScreenCode("s42") }
                             .padding(horizontal = 14.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(14.dp),
@@ -421,7 +422,7 @@ internal fun RenderAboutScreenS16(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { }
+                            .clickable { onSelectScreenCode("s42") }
                             .padding(horizontal = 14.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(14.dp),
@@ -569,8 +570,8 @@ internal fun RenderCompanyReviewsS17(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                                .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp),
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
             Spacer(modifier = Modifier.height(36.dp))
@@ -673,16 +674,22 @@ internal fun RenderCompanyReviewsS17(
                     modifier = Modifier
                         .height(38.dp)
                         .then(
-                            if (selectedFilter == 0) Modifier.shadow(8.dp, RoundedCornerShape(999.dp), spotColor = Color(0x73865DEC), ambientColor = Color.Transparent)
-                            else Modifier
+                            if (selectedFilter == 0) {
+                                Modifier.shadow(8.dp, RoundedCornerShape(999.dp), spotColor = Color(0x73865DEC), ambientColor = Color.Transparent)
+                            } else {
+                                Modifier
+                            },
                         )
                         .clip(RoundedCornerShape(999.dp))
                         .background(
-                            if (selectedFilter == 0) Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)))
-                            else Brush.linearGradient(listOf(Color.White, Color.White)),
+                            if (selectedFilter == 0) {
+                                Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)))
+                            } else {
+                                Brush.linearGradient(listOf(Color.White, Color.White))
+                            },
                         )
                         .then(
-                            if (selectedFilter != 0) Modifier.border(1.dp, Color(0xFFEEE9F2), RoundedCornerShape(999.dp)) else Modifier
+                            if (selectedFilter != 0) Modifier.border(1.dp, Color(0xFFEEE9F2), RoundedCornerShape(999.dp)) else Modifier,
                         )
                         .clickable { selectedFilter = 0 }
                         .padding(horizontal = 15.dp),
@@ -702,16 +709,22 @@ internal fun RenderCompanyReviewsS17(
                     modifier = Modifier
                         .height(38.dp)
                         .then(
-                            if (selectedFilter == 1) Modifier.shadow(8.dp, RoundedCornerShape(999.dp), spotColor = Color(0x73865DEC), ambientColor = Color.Transparent)
-                            else Modifier
+                            if (selectedFilter == 1) {
+                                Modifier.shadow(8.dp, RoundedCornerShape(999.dp), spotColor = Color(0x73865DEC), ambientColor = Color.Transparent)
+                            } else {
+                                Modifier
+                            },
                         )
                         .clip(RoundedCornerShape(999.dp))
                         .background(
-                            if (selectedFilter == 1) Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)))
-                            else Brush.linearGradient(listOf(Color.White, Color.White)),
+                            if (selectedFilter == 1) {
+                                Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)))
+                            } else {
+                                Brush.linearGradient(listOf(Color.White, Color.White))
+                            },
                         )
                         .then(
-                            if (selectedFilter != 1) Modifier.border(1.dp, Color(0xFFEEE9F2), RoundedCornerShape(999.dp)) else Modifier
+                            if (selectedFilter != 1) Modifier.border(1.dp, Color(0xFFEEE9F2), RoundedCornerShape(999.dp)) else Modifier,
                         )
                         .clickable { selectedFilter = 1 }
                         .padding(horizontal = 15.dp),
@@ -770,7 +783,7 @@ internal fun RenderCompanyReviewsS17(
                     .shadow(12.dp, RoundedCornerShape(16.dp), spotColor = Color(0xB3C846B4), ambientColor = Color.Transparent)
                     .clip(RoundedCornerShape(16.dp))
                     .background(Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC))))
-                    .clickable { },
+                    .clickable { onSelectScreenCode("s52") },
                 contentAlignment = Alignment.Center,
             ) {
                 Row(
@@ -1003,6 +1016,8 @@ internal fun RenderEventChatTabS41(
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
+    var draftInputS41 by remember { mutableStateOf("") }
+    var sentMessagesS41 by remember { mutableStateOf(emptyList<String>()) }
 
     Box(
         modifier = Modifier
@@ -1012,8 +1027,8 @@ internal fun RenderEventChatTabS41(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                                .verticalScroll(rememberScrollState())
-            .padding(top = 56.dp, start = 20.dp, end = 20.dp, bottom = 90.dp),
+                .verticalScroll(rememberScrollState())
+                .padding(top = 56.dp, start = 20.dp, end = 20.dp, bottom = 90.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             // Header
@@ -1068,7 +1083,8 @@ internal fun RenderEventChatTabS41(
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(Color.White)
-                        .border(1.dp, Color(0xFFF0EBF4), CircleShape),
+                        .border(1.dp, Color(0xFFF0EBF4), CircleShape)
+                        .clickable { onSelectScreenCode("s83") },
                     contentAlignment = Alignment.Center,
                 ) {
                     CustomSvgIcon(
@@ -1085,7 +1101,8 @@ internal fun RenderEventChatTabS41(
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(Color.White)
-                        .border(1.dp, Color(0xFFF0EBF4), CircleShape),
+                        .border(1.dp, Color(0xFFF0EBF4), CircleShape)
+                        .clickable { onSelectScreenCode("s83") },
                     contentAlignment = Alignment.Center,
                 ) {
                     CustomSvgIcon(
@@ -1228,6 +1245,13 @@ internal fun RenderEventChatTabS41(
                     text = "Ya revisé el presupuesto ajustado y el montaje en el Jardín Botánico nos encanta.",
                     time = "9:08 p. m.",
                 )
+
+                sentMessagesS41.forEach { messageText ->
+                    ChatMessageBubble(
+                        text = messageText,
+                        time = "Ahora",
+                    )
+                }
             }
         }
 
@@ -1265,13 +1289,26 @@ internal fun RenderEventChatTabS41(
                     .padding(horizontal = 16.dp),
                 contentAlignment = Alignment.CenterStart,
             ) {
-                BasicText(
-                    text = "Escribe un mensaje…",
-                    style = TextStyle(
+                if (draftInputS41.isEmpty()) {
+                    BasicText(
+                        text = "Escribe un mensaje…",
+                        style = TextStyle(
+                            fontFamily = typo.bodyFamily,
+                            fontSize = 15.sp,
+                            color = Color(0xFF62627A),
+                        ),
+                    )
+                }
+                BasicTextField(
+                    value = draftInputS41,
+                    onValueChange = { updatedText -> draftInputS41 = updatedText },
+                    singleLine = true,
+                    textStyle = TextStyle(
                         fontFamily = typo.bodyFamily,
                         fontSize = 15.sp,
-                        color = Color(0xFF62627A),
+                        color = Color(0xFF1A1A2E),
                     ),
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
 
@@ -1279,7 +1316,14 @@ internal fun RenderEventChatTabS41(
                 modifier = Modifier
                     .size(48.dp)
                     .clip(CircleShape)
-                    .background(Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))),
+                    .background(Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC))))
+                    .clickable {
+                        val trimmed = draftInputS41.trim()
+                        if (trimmed.isNotEmpty()) {
+                            sentMessagesS41 = sentMessagesS41 + trimmed
+                            draftInputS41 = ""
+                        }
+                    },
                 contentAlignment = Alignment.Center,
             ) {
                 CustomSvgIcon(
@@ -1297,6 +1341,8 @@ internal fun RenderEventChatS42(
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
+    var draftInputS42 by remember { mutableStateOf("") }
+    var sentMessagesS42 by remember { mutableStateOf(emptyList<String>()) }
 
     Box(
         modifier = Modifier
@@ -1307,8 +1353,8 @@ internal fun RenderEventChatS42(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                                .verticalScroll(rememberScrollState())
-            .padding(top = 126.dp, start = 16.dp, end = 16.dp, bottom = 90.dp),
+                .verticalScroll(rememberScrollState())
+                .padding(top = 126.dp, start = 16.dp, end = 16.dp, bottom = 90.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             // Event Pill Card
@@ -1383,6 +1429,13 @@ internal fun RenderEventChatS42(
                 text = "Ya revisé el presupuesto ajustado y el montaje en el Jardín Botánico nos encanta.",
                 time = "9:08 p. m.",
             )
+
+            sentMessagesS42.forEach { messageText ->
+                ChatMessageBubble(
+                    text = messageText,
+                    time = "Ahora",
+                )
+            }
         }
 
         // Top Header
@@ -1494,15 +1547,29 @@ internal fun RenderEventChatS42(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                BasicText(
-                    text = "Escribe un mensaje…",
-                    style = TextStyle(
-                        fontFamily = typo.bodyFamily,
-                        fontSize = 15.sp,
-                        color = Color(0xFF62627A),
-                    ),
-                    modifier = Modifier.weight(1f),
-                )
+                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                    if (draftInputS42.isEmpty()) {
+                        BasicText(
+                            text = "Escribe un mensaje…",
+                            style = TextStyle(
+                                fontFamily = typo.bodyFamily,
+                                fontSize = 15.sp,
+                                color = Color(0xFF62627A),
+                            ),
+                        )
+                    }
+                    BasicTextField(
+                        value = draftInputS42,
+                        onValueChange = { updatedText -> draftInputS42 = updatedText },
+                        singleLine = true,
+                        textStyle = TextStyle(
+                            fontFamily = typo.bodyFamily,
+                            fontSize = 15.sp,
+                            color = Color(0xFF1A1A2E),
+                        ),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
 
                 Box(
                     modifier = Modifier.size(38.dp),
@@ -1520,7 +1587,14 @@ internal fun RenderEventChatS42(
                 modifier = Modifier
                     .size(48.dp)
                     .clip(CircleShape)
-                    .background(Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))),
+                    .background(Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC))))
+                    .clickable {
+                        val trimmed = draftInputS42.trim()
+                        if (trimmed.isNotEmpty()) {
+                            sentMessagesS42 = sentMessagesS42 + trimmed
+                            draftInputS42 = ""
+                        }
+                    },
                 contentAlignment = Alignment.Center,
             ) {
                 CustomSvgIcon(
@@ -1541,6 +1615,7 @@ internal fun RenderFinanceDashboardS59(
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
+    var selectedFinanceTab by remember { mutableStateOf(0) }
 
     AdminPanelScaffold(activeCode = "s59", onSelectScreenCode = onSelectScreenCode) {
         Row(
@@ -1551,9 +1626,9 @@ internal fun RenderFinanceDashboardS59(
                 .padding(4.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            PanelSegTab59("Movimientos", selected = true, modifier = Modifier.weight(1f))
-            PanelSegTab59("Facturas", selected = false, modifier = Modifier.weight(1f))
-            PanelSegTab59("Proveedores", selected = false, modifier = Modifier.weight(1f))
+            PanelSegTab59("Movimientos", selected = selectedFinanceTab == 0, onClick = { selectedFinanceTab = 0 }, modifier = Modifier.weight(1f))
+            PanelSegTab59("Facturas", selected = selectedFinanceTab == 1, onClick = { selectedFinanceTab = 1 }, modifier = Modifier.weight(1f))
+            PanelSegTab59("Proveedores", selected = selectedFinanceTab == 2, onClick = { selectedFinanceTab = 2 }, modifier = Modifier.weight(1f))
         }
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Column(
@@ -1595,7 +1670,7 @@ internal fun RenderFinanceDashboardS59(
 }
 
 @Composable
-private fun PanelSegTab59(label: String, selected: Boolean, modifier: Modifier = Modifier) {
+private fun PanelSegTab59(label: String, selected: Boolean, onClick: () -> Unit = {}, modifier: Modifier = Modifier) {
     val typo = LocalRfTypography.current
 
     Box(
@@ -1610,7 +1685,7 @@ private fun PanelSegTab59(label: String, selected: Boolean, modifier: Modifier =
             )
             .clip(RoundedCornerShape(11.dp))
             .background(if (selected) Color.White else Color.Transparent)
-            .clickable { },
+            .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         BasicText(
@@ -1686,6 +1761,8 @@ private fun PanelMovementRow59(
 @Composable
 internal fun RenderInventoryCalendarS63(onSelectScreenCode: (String) -> Unit = {}) {
     val typo = LocalRfTypography.current
+    var selectedDay63 by remember { mutableStateOf(20) }
+    var currentMonthLabel by remember { mutableStateOf("Octubre 2026") }
     val days = remember {
         listOf(
             1 to Alta63, 2 to Media63, 3 to Media63, 4 to Alta63, 5 to Alta63, 6 to Alta63, 7 to Alta63,
@@ -1728,18 +1805,22 @@ internal fun RenderInventoryCalendarS63(onSelectScreenCode: (String) -> Unit = {
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Box(
-                            modifier = Modifier.size(40.dp).clip(CircleShape).clickable { },
+                            modifier = Modifier.size(40.dp).clip(CircleShape).clickable {
+                                currentMonthLabel = if (currentMonthLabel == "Octubre 2026") "Septiembre 2026" else "Octubre 2026"
+                            },
                             contentAlignment = Alignment.Center,
                         ) {
                             RfIcon(kind = RfIconKind.CHEVRON_LEFT, tint = Color(0xFF151729), size = 20.dp)
                         }
                         BasicText(
-                            "Octubre 2026",
+                            currentMonthLabel,
                             modifier = Modifier.weight(1f),
                             style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 19.sp, textAlign = TextAlign.Center, color = Color(0xFF151729)),
                         )
                         Box(
-                            modifier = Modifier.size(40.dp).clip(CircleShape).clickable { },
+                            modifier = Modifier.size(40.dp).clip(CircleShape).clickable {
+                                currentMonthLabel = if (currentMonthLabel == "Octubre 2026") "Noviembre 2026" else "Octubre 2026"
+                            },
                             contentAlignment = Alignment.Center,
                         ) {
                             RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = Color(0xFF151729), size = 20.dp)
@@ -1764,7 +1845,13 @@ internal fun RenderInventoryCalendarS63(onSelectScreenCode: (String) -> Unit = {
                                     if (day == null) {
                                         Spacer(Modifier.weight(1f))
                                     } else {
-                                        CalendarDay63(day.first, day.second, Modifier.weight(1f), selected = day.first == 20)
+                                        CalendarDay63(
+                                            day = day.first,
+                                            status = day.second,
+                                            modifier = Modifier.weight(1f),
+                                            selected = day.first == selectedDay63,
+                                            onClick = { selectedDay63 = day.first },
+                                        )
                                     }
                                 }
                                 repeat(7 - week.size) { Spacer(Modifier.weight(1f)) }
@@ -1799,8 +1886,20 @@ internal fun RenderInventoryCalendarS63(onSelectScreenCode: (String) -> Unit = {
                 RfIcon(kind = RfIconKind.BOX, tint = Color(0xFF4E6A10), size = 24.dp)
                 BasicText(
                     buildAnnotatedString {
-                        withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append("Martes 20 · Disponibilidad alta\n") }
-                        withStyle(SpanStyle(color = Color(0xFF4E6A10))) { append("Sin reservas para este día") }
+                        val availabilityLabel = when (days.firstOrNull { it.first == selectedDay63 }?.second) {
+                            Media63 -> "Disponibilidad media"
+                            Baja63 -> "Disponibilidad baja"
+                            Agotado63 -> "Agotado"
+                            else -> "Disponibilidad alta"
+                        }
+                        withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append("Día $selectedDay63 · $availabilityLabel\n") }
+                        withStyle(SpanStyle(color = Color(0xFF4E6A10))) {
+                            if (selectedDay63 == 20) {
+                                append("Sin reservas para este día")
+                            } else {
+                                append("Inventario sincronizado para el día $selectedDay63")
+                            }
+                        }
                     },
                     modifier = Modifier.weight(1f),
                     style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, lineHeight = 20.sp, color = Color(0xFF151729)),
@@ -1817,7 +1916,13 @@ private val Baja63 = Color(0xFFEA4EA9)
 private val Agotado63 = Color(0xFF3B3550)
 
 @Composable
-private fun CalendarDay63(day: Int, status: Color, modifier: Modifier = Modifier, selected: Boolean = false) {
+private fun CalendarDay63(
+    day: Int,
+    status: Color,
+    modifier: Modifier = Modifier,
+    selected: Boolean = false,
+    onClick: () -> Unit = {},
+) {
     val typo = LocalRfTypography.current
 
     Column(
@@ -1826,7 +1931,7 @@ private fun CalendarDay63(day: Int, status: Color, modifier: Modifier = Modifier
             .clip(RoundedCornerShape(12.dp))
             .background(if (selected) Color(0xFFECEBFF) else Color(0xFFFAFAFC))
             .then(if (selected) Modifier.border(2.dp, Color(0xFFD63F98), RoundedCornerShape(12.dp)) else Modifier)
-            .clickable { },
+            .clickable(onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
@@ -1851,7 +1956,7 @@ private fun CalendarLegend63(label: String, color: Color) {
 
 @Composable
 internal fun RenderLeadsPipelineS64(onSelectScreenCode: (String) -> Unit = {}) {
-    val typo = LocalRfTypography.current
+    var selectedLeadFilter by remember { mutableStateOf("Todos · 3") }
 
     LeadsScaffold(activeCode = "s64", onSelectScreenCode = onSelectScreenCode) {
         Row(
@@ -1862,46 +1967,69 @@ internal fun RenderLeadsPipelineS64(onSelectScreenCode: (String) -> Unit = {}) {
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            LeadChip64("Todos · 3", selected = true)
-            LeadChip64("Nuevos")
-            LeadChip64("Contactados")
-            LeadChip64("Calificados")
-            LeadChip64("Propuesta")
+            listOf("Todos · 3", "Nuevos", "Contactados", "Calificados", "Propuesta").forEach { filterLabel ->
+                LeadChip64(
+                    label = filterLabel,
+                    selected = selectedLeadFilter == filterLabel,
+                    onClick = { selectedLeadFilter = filterLabel },
+                )
+            }
         }
         Spacer(Modifier.height(2.dp))
-        LeadPipelineCard64(
-            name = "Mariana Almonte",
-            status = "Nuevo",
-            statusBackground = Color(0xFFDDF4F3),
-            statusColor = Color(0xFF1F8A84),
-            event = "Boda civil y recepción",
-            budget = "RD$ 3,000 – 5,000",
-            priority = "Prioridad alta",
-            priorityColor = Color(0xFF4B47D6),
-            priorityDot = Color(0xFF5B6CF0),
-        )
-        LeadPipelineCard64(
-            name = "Banco Atlántico RD",
-            status = "Propuesta",
-            statusBackground = Color(0xFFEFE8FD),
-            statusColor = Color(0xFF7A4FD8),
-            event = "Aniversario corporativo",
-            budget = "RD$ 7,000 – 12,000",
-            priority = "Urgente",
-            priorityColor = Color(0xFFB42345),
-            priorityDot = Color(0xFFB42345),
-        )
-        LeadPipelineCard64(
-            name = "Patricia & Jorge",
-            status = "Ganado",
-            statusBackground = Color(0xFFEEF6D6),
-            statusColor = Color(0xFF4E6A10),
-            event = "Boda en playa, Juan Dolio",
-            budget = "RD$ 4,000 – 6,000",
-            priority = "Prioridad media",
-            priorityColor = Color(0xFF7A5700),
-            priorityDot = Color(0xFFF7B500),
-        )
+        val shouldShowMariana = when (selectedLeadFilter) {
+            "Todos · 3", "Nuevos" -> true
+            else -> false
+        }
+        if (shouldShowMariana) {
+            LeadPipelineCard64(
+                name = "Mariana Almonte",
+                status = "Nuevo",
+                statusBackground = Color(0xFFDDF4F3),
+                statusColor = Color(0xFF1F8A84),
+                event = "Boda civil y recepción",
+                budget = "RD$ 3,000 – 5,000",
+                priority = "Prioridad alta",
+                priorityColor = Color(0xFF4B47D6),
+                priorityDot = Color(0xFF5B6CF0),
+                onClick = { onSelectScreenCode("s65") },
+            )
+        }
+        val shouldShowBanco = when (selectedLeadFilter) {
+            "Todos · 3", "Propuesta", "Contactados" -> true
+            else -> false
+        }
+        if (shouldShowBanco) {
+            LeadPipelineCard64(
+                name = "Banco Atlántico RD",
+                status = "Propuesta",
+                statusBackground = Color(0xFFEFE8FD),
+                statusColor = Color(0xFF7A4FD8),
+                event = "Aniversario corporativo",
+                budget = "RD$ 7,000 – 12,000",
+                priority = "Urgente",
+                priorityColor = Color(0xFFB42345),
+                priorityDot = Color(0xFFB42345),
+                onClick = { onSelectScreenCode("s65") },
+            )
+        }
+        val shouldShowPatricia = when (selectedLeadFilter) {
+            "Todos · 3", "Calificados" -> true
+            else -> false
+        }
+        if (shouldShowPatricia) {
+            LeadPipelineCard64(
+                name = "Patricia & Jorge",
+                status = "Ganado",
+                statusBackground = Color(0xFFEEF6D6),
+                statusColor = Color(0xFF4E6A10),
+                event = "Boda en playa, Juan Dolio",
+                budget = "RD$ 4,000 – 6,000",
+                priority = "Prioridad media",
+                priorityColor = Color(0xFF7A5700),
+                priorityDot = Color(0xFFF7B500),
+                onClick = { onSelectScreenCode("s65") },
+            )
+        }
     }
 }
 
@@ -1927,8 +2055,8 @@ private fun LeadsScaffold(
                     modifier = Modifier.weight(1f),
                     style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color(0xFF151729)),
                 )
-                ReportIconButton(RfIconKind.REFRESH) { }
-                BotAddButton72 { }
+                ReportIconButton(RfIconKind.REFRESH) { onSelectScreenCode(activeCode) }
+                BotAddButton72 { onSelectScreenCode("s65") }
             }
             Spacer(Modifier.height(12.dp))
             AdminTabRow(
@@ -1948,7 +2076,11 @@ private fun LeadsScaffold(
 }
 
 @Composable
-private fun LeadChip64(label: String, selected: Boolean = false) {
+private fun LeadChip64(
+    label: String,
+    selected: Boolean = false,
+    onClick: () -> Unit = {},
+) {
     val typo = LocalRfTypography.current
 
     Box(
@@ -1958,6 +2090,7 @@ private fun LeadChip64(label: String, selected: Boolean = false) {
             .clip(RoundedCornerShape(999.dp))
             .background(if (selected) ReportGradient else Brush.linearGradient(listOf(Color.White, Color.White)))
             .border(1.dp, if (selected) Color.Transparent else Color(0xFFE9E9F2), RoundedCornerShape(999.dp))
+            .clickable(onClick = onClick)
             .padding(horizontal = 14.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -1985,6 +2118,7 @@ private fun LeadPipelineCard64(
     priority: String,
     priorityColor: Color,
     priorityDot: Color,
+    onClick: () -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
 
@@ -1995,7 +2129,7 @@ private fun LeadPipelineCard64(
             .clip(RoundedCornerShape(22.dp))
             .background(Color.White)
             .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(22.dp))
-            .clickable { }
+            .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
@@ -2056,6 +2190,7 @@ internal fun RenderLeadsFollowupS65(onSelectScreenCode: (String) -> Unit = {}) {
 @Composable
 private fun LeadFollowupCard65(task: String, due: String) {
     val typo = LocalRfTypography.current
+    var isCompleted by remember { mutableStateOf(false) }
 
     Row(
         modifier = Modifier
@@ -2064,6 +2199,7 @@ private fun LeadFollowupCard65(task: String, due: String) {
             .clip(RoundedCornerShape(22.dp))
             .background(Color.White)
             .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(22.dp))
+            .clickable { isCompleted = !isCompleted }
             .padding(16.dp),
         horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
@@ -2071,9 +2207,15 @@ private fun LeadFollowupCard65(task: String, due: String) {
             modifier = Modifier
                 .size(28.dp)
                 .clip(CircleShape)
-                .border(2.dp, Color(0xFFCDBFCB), CircleShape)
-                .clickable { },
-        )
+                .background(if (isCompleted) Color(0xFF8DB52C) else Color.Transparent)
+                .border(2.dp, if (isCompleted) Color(0xFF8DB52C) else Color(0xFFCDBFCB), CircleShape)
+                .clickable { isCompleted = !isCompleted },
+            contentAlignment = Alignment.Center,
+        ) {
+            if (isCompleted) {
+                RfIcon(kind = RfIconKind.CHECK, tint = Color.White, size = 14.dp)
+            }
+        }
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             BasicText(
                 task,
@@ -2083,13 +2225,13 @@ private fun LeadFollowupCard65(task: String, due: String) {
                 modifier = Modifier
                     .height(24.dp)
                     .clip(RoundedCornerShape(999.dp))
-                    .background(Color(0xFFFDE3EA))
+                    .background(if (isCompleted) Color(0xFFEEF6D6) else Color(0xFFFDE3EA))
                     .padding(horizontal = 9.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(5.dp),
             ) {
-                RfIcon(kind = RfIconKind.WARNING, tint = Color(0xFFB42345), size = 13.dp)
-                BasicText(due, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFFB42345)))
+                RfIcon(kind = if (isCompleted) RfIconKind.CHECK else RfIconKind.WARNING, tint = if (isCompleted) Color(0xFF4E6A10) else Color(0xFFB42345), size = 13.dp)
+                BasicText(if (isCompleted) "Completado" else due, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = if (isCompleted) Color(0xFF4E6A10) else Color(0xFFB42345)))
             }
         }
     }
@@ -2720,8 +2862,7 @@ private fun FunnelRow66(label: String, value: String, fraction: Float, color: Co
 private fun EventRingIllustration68(size: Dp) {
     Canvas(modifier = Modifier.size(size)) {
         val scale = this.size.minDimension / 120f
-        fun circle(x: Float, y: Float, r: Float, color: Color) =
-            drawCircle(color = color, radius = r * scale, center = Offset(x * scale, y * scale))
+        fun circle(x: Float, y: Float, r: Float, color: Color) = drawCircle(color = color, radius = r * scale, center = Offset(x * scale, y * scale))
 
         drawOval(
             color = Color(0x142B1730),
@@ -2905,6 +3046,8 @@ private fun AdminTabRow(
 @Composable
 internal fun RenderReviewModerationS71(onSelectScreenCode: (String) -> Unit = {}) {
     val typo = LocalRfTypography.current
+    var selectedFilter by remember { mutableStateOf("Pendientes") }
+    var ricardoStatus by remember { mutableStateOf("PENDING") }
 
     RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
@@ -2930,25 +3073,34 @@ internal fun RenderReviewModerationS71(onSelectScreenCode: (String) -> Unit = {}
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                ReviewChip71("Pendientes", "3", selected = true)
-                ReviewChip71("Verificadas", "10")
-                ReviewChip71("Rechazadas", "1")
-                ReviewChip71("Todas", null)
+                val pendingCount = if (ricardoStatus == "PENDING") "3" else "2"
+                val verifiedCount = if (ricardoStatus == "VERIFIED") "11" else "10"
+                val rejectedCount = if (ricardoStatus == "REJECTED") "2" else "1"
+                ReviewChip71("Pendientes", pendingCount, selected = selectedFilter == "Pendientes") { selectedFilter = "Pendientes" }
+                ReviewChip71("Verificadas", verifiedCount, selected = selectedFilter == "Verificadas") { selectedFilter = "Verificadas" }
+                ReviewChip71("Rechazadas", rejectedCount, selected = selectedFilter == "Rechazadas") { selectedFilter = "Rechazadas" }
+                ReviewChip71("Todas", null, selected = selectedFilter == "Todas") { selectedFilter = "Todas" }
             }
             Spacer(Modifier.height(10.dp))
             Column(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                ReviewCard71(
-                    initial = "R",
-                    avatarBackground = Color(0xFFEFE8FD),
-                    avatarTint = Color(0xFF7A4FD8),
-                    name = "Ricardo Méndez",
-                    event = "Gala Corporativa Grupo Caribe · 13 oct",
-                    body = "¡Superó todas nuestras expectativas! El arco orgánico y las mesas imperiales lucieron espectaculares.",
-                    response = "¡Gracias, Ricardo! Fue un honor acompañarles en su gala.",
-                )
+                val isRicardoRejected = ricardoStatus == "REJECTED"
+                if (!isRicardoRejected) {
+                    ReviewCard71(
+                        initial = "R",
+                        avatarBackground = Color(0xFFEFE8FD),
+                        avatarTint = Color(0xFF7A4FD8),
+                        name = "Ricardo Méndez",
+                        event = "Gala Corporativa Grupo Caribe · 13 oct",
+                        body = "¡Superó todas nuestras expectativas! El arco orgánico y las mesas imperiales lucieron espectaculares.",
+                        response = if (ricardoStatus == "PENDING") "¡Gracias, Ricardo! Fue un honor acompañarles en su gala." else null,
+                        verified = ricardoStatus == "VERIFIED",
+                        onReject = { ricardoStatus = "REJECTED" },
+                        onVerify = { ricardoStatus = "VERIFIED" },
+                    )
+                }
                 ReviewCard71(
                     initial = "S",
                     avatarBackground = Color(0xFFECEBFF),
@@ -2965,7 +3117,12 @@ internal fun RenderReviewModerationS71(onSelectScreenCode: (String) -> Unit = {}
 }
 
 @Composable
-private fun ReviewChip71(label: String, count: String?, selected: Boolean = false) {
+private fun ReviewChip71(
+    label: String,
+    count: String?,
+    selected: Boolean = false,
+    onClick: () -> Unit = {},
+) {
     val typo = LocalRfTypography.current
 
     Row(
@@ -2975,6 +3132,7 @@ private fun ReviewChip71(label: String, count: String?, selected: Boolean = fals
             .clip(RoundedCornerShape(999.dp))
             .background(if (selected) ReportGradient else Brush.linearGradient(listOf(Color.White, Color.White)))
             .border(1.dp, if (selected) Color.Transparent else Color(0xFFE9E9F2), RoundedCornerShape(999.dp))
+            .clickable(onClick = onClick)
             .padding(horizontal = 14.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -2996,8 +3154,11 @@ private fun ReviewChip71(label: String, count: String?, selected: Boolean = fals
                     .widthIn(min = 22.dp)
                     .clip(RoundedCornerShape(999.dp))
                     .background(
-                        if (selected) Brush.linearGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0)))
-                        else Brush.linearGradient(listOf(Color(0xFFEDEDF5), Color(0xFFEDEDF5))),
+                        if (selected) {
+                            Brush.linearGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0)))
+                        } else {
+                            Brush.linearGradient(listOf(Color(0xFFEDEDF5), Color(0xFFEDEDF5)))
+                        },
                     )
                     .padding(horizontal = 6.dp),
                 contentAlignment = Alignment.Center,
@@ -3027,6 +3188,8 @@ private fun ReviewCard71(
     body: String,
     response: String? = null,
     verified: Boolean = false,
+    onReject: () -> Unit = {},
+    onVerify: () -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
 
@@ -3087,7 +3250,7 @@ private fun ReviewCard71(
                         .height(46.dp)
                         .clip(RoundedCornerShape(14.dp))
                         .border(1.5.dp, Color(0xFFF3C3CF), RoundedCornerShape(14.dp))
-                        .clickable { },
+                        .clickable(onClick = onReject),
                     contentAlignment = Alignment.Center,
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -3102,7 +3265,7 @@ private fun ReviewCard71(
                         .shadow(8.dp, RoundedCornerShape(999.dp), spotColor = Color(0x995B6CF0))
                         .clip(RoundedCornerShape(999.dp))
                         .background(ReportGradient)
-                        .clickable { },
+                        .clickable(onClick = onVerify),
                     contentAlignment = Alignment.Center,
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -3131,15 +3294,29 @@ private fun ReviewCard71(
 
 @Composable
 internal fun RenderBotQuestionsS72(onSelectScreenCode: (String) -> Unit = {}) {
+    var extraQuestions by remember { mutableStateOf(emptyList<Triple<String, String, String>>()) }
+
     BotScaffold(
         activeCode = "s72",
         onSelectScreenCode = onSelectScreenCode,
-        action = { BotAddButton72 { } },
+        action = {
+            BotAddButton72 {
+                val nextIndex = extraQuestions.size + 1
+                extraQuestions = extraQuestions + Triple(
+                    "# nueva-$nextIndex",
+                    "¿Cuál es el horario de entrega #$nextIndex?",
+                    "Coordinamos entrega e instalación 4 horas antes del inicio del evento.",
+                )
+            }
+        },
     ) {
         BotQuestionCard72("# precio", "¿Cuánto cuesta?", "Nuestros precios varían según el tipo de evento. Contáctanos para una cotización personalizada.")
         BotQuestionCard72("# disponibilidad", "¿Está disponible?", "Para verificar disponibilidad necesitamos la fecha de tu evento. ¿Cuándo es?")
         BotQuestionCard72("# alquiler", "¿Cómo funciona el alquiler?", "Incluye entrega, montaje y recogida. El período típico es de 1 a 3 días.")
         BotQuestionCard72("# boda", "¿Ofrecen servicio para bodas?", "Sí, tenemos paquetes especiales para bodas: decoración completa, mesas, sillas, iluminación y más.")
+        extraQuestions.forEach { questionTriple ->
+            BotQuestionCard72(questionTriple.first, questionTriple.second, questionTriple.third)
+        }
     }
 }
 
@@ -3249,17 +3426,23 @@ private fun BotQuestionCard72(tag: String, question: String, answer: String) {
 @Composable
 internal fun RenderBotKeywordsS73(onSelectScreenCode: (String) -> Unit = {}) {
     val typo = LocalRfTypography.current
+    var extraKeywords by remember { mutableStateOf(emptyList<Triple<String, String, String>>()) }
     val rows = listOf(
         Triple("precio", "¿Cuánto cuesta?", "1 respuesta"),
         Triple("disponibilidad", "¿Está disponible?", "1 respuesta"),
         Triple("alquiler", "¿Cómo funciona el alquiler?", "1 respuesta"),
         Triple("boda", "¿Ofrecen servicio para bodas?", "1 respuesta"),
-    )
+    ) + extraKeywords
 
     BotScaffold(
         activeCode = "s73",
         onSelectScreenCode = onSelectScreenCode,
-        action = { BotAddButton72 { } },
+        action = {
+            BotAddButton72 {
+                val nextIndex = extraKeywords.size + 1
+                extraKeywords = extraKeywords + Triple("entrega-$nextIndex", "¿Incluye transporte?", "1 respuesta")
+            }
+        },
     ) {
         BasicText(
             "Si un cliente escribe una de estas palabras, el bot responde con la pregunta vinculada.",
@@ -3284,7 +3467,7 @@ internal fun RenderBotKeywordsS73(onSelectScreenCode: (String) -> Unit = {}) {
                             }
                         }
                         .padding(horizontal = 16.dp, vertical = 14.dp)
-                        .clickable { },
+                        .clickable { onSelectScreenCode("s72") },
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
@@ -3311,10 +3494,12 @@ internal fun RenderBotKeywordsS73(onSelectScreenCode: (String) -> Unit = {}) {
 
 @Composable
 internal fun RenderBotConversationsS74(onSelectScreenCode: (String) -> Unit = {}) {
+    var valeriaResolved by remember { mutableStateOf(false) }
+
     BotScaffold(
         activeCode = "s74",
         onSelectScreenCode = onSelectScreenCode,
-        action = { ReportIconButton(RfIconKind.SEARCH) { } },
+        action = { ReportIconButton(RfIconKind.SEARCH) { onSelectScreenCode("s73") } },
     ) {
         Column(
             modifier = Modifier
@@ -3323,9 +3508,48 @@ internal fun RenderBotConversationsS74(onSelectScreenCode: (String) -> Unit = {}
                 .background(Color.White)
                 .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(22.dp)),
         ) {
-            BotConversationRow74("VS", "Valeria Santos", "8:46 a. m.", "Hola, ¿tienen disponibilidad de sillas Tiffany doradas para el 24 de octubre?", "Pendiente", Color(0xFFFFF2C9), Color(0xFF7A5700), "+1 829 555 0198", Color(0xFFECEBFF), Color(0xFF4B47D6), false)
-            BotConversationRow74("CR", "Camila Rodríguez", "11:46 a. m.", "¡Perfecto! Quisiera agendar la visita para ver el arco orgánico doble.", "Resuelta", Color(0xFFEEF6D6), Color(0xFF4E6A10), "+1 809 555 0142", Color(0xFFEFE8FD), Color(0xFF7A4FD8), true)
-            BotConversationRow74("AM", "Andrés Mejía", "Ayer", "Muchas gracias por enviarme la cotización actualizada del paquete VIP.", "Resuelta", Color(0xFFEEF6D6), Color(0xFF4E6A10), "+1 849 555 0271", Color(0xFFDDF4F3), Color(0xFF1F8A84), true)
+            BotConversationRow74(
+                initials = "VS",
+                name = "Valeria Santos",
+                time = "8:46 a. m.",
+                preview = "Hola, ¿tienen disponibilidad de sillas Tiffany doradas para el 24 de octubre?",
+                status = if (valeriaResolved) "Resuelta" else "Pendiente",
+                statusBackground = if (valeriaResolved) Color(0xFFEEF6D6) else Color(0xFFFFF2C9),
+                statusColor = if (valeriaResolved) Color(0xFF4E6A10) else Color(0xFF7A5700),
+                phone = "+1 829 555 0198",
+                avatarBackground = Color(0xFFECEBFF),
+                avatarTint = Color(0xFF4B47D6),
+                divider = false,
+                onClick = { valeriaResolved = !valeriaResolved },
+            )
+            BotConversationRow74(
+                initials = "CR",
+                name = "Camila Rodríguez",
+                time = "11:46 a. m.",
+                preview = "¡Perfecto! Quisiera agendar la visita para ver el arco orgánico doble.",
+                status = "Resuelta",
+                statusBackground = Color(0xFFEEF6D6),
+                statusColor = Color(0xFF4E6A10),
+                phone = "+1 809 555 0142",
+                avatarBackground = Color(0xFFEFE8FD),
+                avatarTint = Color(0xFF7A4FD8),
+                divider = true,
+                onClick = { onSelectScreenCode("s62") },
+            )
+            BotConversationRow74(
+                initials = "AM",
+                name = "Andrés Mejía",
+                time = "Ayer",
+                preview = "Muchas gracias por enviarme la cotización actualizada del paquete VIP.",
+                status = "Resuelta",
+                statusBackground = Color(0xFFEEF6D6),
+                statusColor = Color(0xFF4E6A10),
+                phone = "+1 849 555 0271",
+                avatarBackground = Color(0xFFDDF4F3),
+                avatarTint = Color(0xFF1F8A84),
+                divider = true,
+                onClick = { onSelectScreenCode("s62") },
+            )
         }
     }
 }
@@ -3343,6 +3567,7 @@ private fun BotConversationRow74(
     avatarBackground: Color,
     avatarTint: Color,
     divider: Boolean,
+    onClick: () -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
 
@@ -3356,7 +3581,7 @@ private fun BotConversationRow74(
                 }
             }
             .padding(horizontal = 16.dp, vertical = 14.dp)
-            .clickable { },
+            .clickable(onClick = onClick),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.Top,
     ) {
@@ -3470,14 +3695,17 @@ internal fun RenderInsurancePanelS60(onSelectScreenCode: (String) -> Unit = {}) 
                 style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, lineHeight = 19.sp, color = Color(0xFF151729)),
             )
         }
-        PolicyRow60("POL-RF-5931B")
-        PolicyRow60("POL-RF-90892")
-        PolicyRow60("POL-RF-34B92")
+        PolicyRow60("POL-RF-5931B", onClick = { onSelectScreenCode("s61") })
+        PolicyRow60("POL-RF-90892", onClick = { onSelectScreenCode("s61") })
+        PolicyRow60("POL-RF-34B92", onClick = { onSelectScreenCode("s61") })
     }
 }
 
 @Composable
-private fun PolicyRow60(code: String) {
+private fun PolicyRow60(
+    code: String,
+    onClick: () -> Unit = {},
+) {
     val typo = LocalRfTypography.current
 
     Row(
@@ -3486,7 +3714,7 @@ private fun PolicyRow60(code: String) {
             .clip(RoundedCornerShape(20.dp))
             .background(Color.White)
             .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(20.dp))
-            .clickable { }
+            .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp),
@@ -3520,23 +3748,43 @@ private fun PolicyRow60(code: String) {
 
 @Composable
 internal fun RenderAuditPanelS61(onSelectScreenCode: (String) -> Unit = {}) {
+    var selectedAuditFilter by remember { mutableStateOf("Todo") }
+
     AdminPanelScaffold(activeCode = "s61", onSelectScreenCode = onSelectScreenCode, tabScroll = 56.dp) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            AuditChip61("Todo", selected = true)
-            AuditChip61("Eventos")
-            AuditChip61("Pagos")
+            AuditChip61("Todo", selected = selectedAuditFilter == "Todo") { selectedAuditFilter = "Todo" }
+            AuditChip61("Eventos", selected = selectedAuditFilter == "Eventos") { selectedAuditFilter = "Eventos" }
+            AuditChip61("Pagos", selected = selectedAuditFilter == "Pagos") { selectedAuditFilter = "Pagos" }
         }
         Spacer(Modifier.height(2.dp))
         Column(modifier = Modifier.fillMaxWidth()) {
-            AuditTimelineRow61("19 oct · 9:05 p. m.", "Cotización ajustada y enviada", "Evento", RfIconKind.NOTE, Color(0xFFECEBFF), Color(0xFF4B47D6), isLast = false)
-            AuditTimelineRow61("18 oct · 11:05 p. m.", "Abono inicial registrado · RD$ 140", "Pago", RfIconKind.WALLET, Color(0xFFEEF6D6), Color(0xFF4E6A10), isLast = false)
-            AuditTimelineRow61("14 oct · 11:05 p. m.", "Evento finalizado e inventario recibido", "Evento", RfIconKind.CHECK, Color(0xFFEFE8FD), Color(0xFF7A4FD8), isLast = true)
+            val showEvents = when (selectedAuditFilter) {
+                "Todo", "Eventos" -> true
+                else -> false
+            }
+            val showPayments = when (selectedAuditFilter) {
+                "Todo", "Pagos" -> true
+                else -> false
+            }
+            if (showEvents) {
+                AuditTimelineRow61("19 oct · 9:05 p. m.", "Cotización ajustada y enviada", "Evento", RfIconKind.NOTE, Color(0xFFECEBFF), Color(0xFF4B47D6), isLast = false)
+            }
+            if (showPayments) {
+                AuditTimelineRow61("18 oct · 11:05 p. m.", "Abono inicial registrado · RD$ 140", "Pago", RfIconKind.WALLET, Color(0xFFEEF6D6), Color(0xFF4E6A10), isLast = !showEvents)
+            }
+            if (showEvents) {
+                AuditTimelineRow61("14 oct · 11:05 p. m.", "Evento finalizado e inventario recibido", "Evento", RfIconKind.CHECK, Color(0xFFEFE8FD), Color(0xFF7A4FD8), isLast = true)
+            }
         }
     }
 }
 
 @Composable
-private fun AuditChip61(label: String, selected: Boolean = false) {
+private fun AuditChip61(
+    label: String,
+    selected: Boolean = false,
+    onClick: () -> Unit = {},
+) {
     val typo = LocalRfTypography.current
 
     Box(
@@ -3546,6 +3794,7 @@ private fun AuditChip61(label: String, selected: Boolean = false) {
             .clip(RoundedCornerShape(999.dp))
             .background(if (selected) ReportGradient else Brush.linearGradient(listOf(Color.White, Color.White)))
             .border(1.dp, if (selected) Color.Transparent else Color(0xFFE9E9F2), RoundedCornerShape(999.dp))
+            .clickable(onClick = onClick)
             .padding(horizontal = 14.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -3640,7 +3889,7 @@ internal fun RenderClientsAnalyticsS62(onSelectScreenCode: (String) -> Unit = {}
                 BasicText("camila.rodriguez@correo.com", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF5F6377)))
             }
             Box(
-                modifier = Modifier.size(44.dp).clip(CircleShape).background(Color.White).border(1.dp, Color(0xFFECECF5), CircleShape).clickable { },
+                modifier = Modifier.size(44.dp).clip(CircleShape).background(Color.White).border(1.dp, Color(0xFFECECF5), CircleShape).clickable { onSelectScreenCode("s74") },
                 contentAlignment = Alignment.Center,
             ) {
                 RfIcon(kind = RfIconKind.WHATSAPP, tint = Color(0xFF4E6A10), size = 20.dp)
@@ -3658,7 +3907,7 @@ internal fun RenderClientsAnalyticsS62(onSelectScreenCode: (String) -> Unit = {}
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(22.dp))
                 .background(Color(0xFFFFF2C9))
-                .clickable { }
+                .clickable { onSelectScreenCode("s40") }
                 .padding(14.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp),
@@ -3686,9 +3935,9 @@ internal fun RenderClientsAnalyticsS62(onSelectScreenCode: (String) -> Unit = {}
                 .background(Color.White)
                 .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(22.dp)),
         ) {
-            ClientActionRow62("Eventos del cliente", RfIconKind.CALENDAR, Color(0xFFEFE8FD), Color(0xFF7A4FD8), badge = "3", divider = false)
-            ClientActionRow62("Pagos", RfIconKind.WALLET, Color(0xFFEEF6D6), Color(0xFF4E6A10), divider = true)
-            ClientActionRow62("Notificaciones", RfIconKind.BELL, Color(0xFFDDF4F3), Color(0xFF1F8A84), divider = true)
+            ClientActionRow62("Eventos del cliente", RfIconKind.CALENDAR, Color(0xFFEFE8FD), Color(0xFF7A4FD8), badge = "3", divider = false, onClick = { onSelectScreenCode("s37") })
+            ClientActionRow62("Pagos", RfIconKind.WALLET, Color(0xFFEEF6D6), Color(0xFF4E6A10), divider = true, onClick = { onSelectScreenCode("s59") })
+            ClientActionRow62("Notificaciones", RfIconKind.BELL, Color(0xFFDDF4F3), Color(0xFF1F8A84), divider = true, onClick = { onSelectScreenCode("s79") })
         }
     }
 }
@@ -3701,6 +3950,7 @@ private fun ClientActionRow62(
     iconTint: Color,
     badge: String? = null,
     divider: Boolean,
+    onClick: () -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
 
@@ -3714,7 +3964,7 @@ private fun ClientActionRow62(
                 }
             }
             .heightIn(min = 60.dp)
-            .clickable { }
+            .clickable(onClick = onClick)
             .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp),
@@ -3753,8 +4003,8 @@ private fun RenderGenericPersonalSubPanel(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                                .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp),
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp),
         ) {
             Spacer(modifier = Modifier.height(56.dp))
 

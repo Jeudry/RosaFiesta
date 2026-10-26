@@ -7,13 +7,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -26,12 +26,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import com.jeudry.rosafiesta.domain.EventStatus
-import com.jeudry.rosafiesta.domain.PhotoAsset
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,9 +46,6 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlin.math.PI
-import kotlin.math.cos
-import kotlin.math.sin
 import com.jeudry.rosafiesta.designsystem.LocalRfTypography
 import com.jeudry.rosafiesta.designsystem.RfIcon
 import com.jeudry.rosafiesta.designsystem.RfIconKind
@@ -62,8 +57,12 @@ import com.jeudry.rosafiesta.designsystem.rfHeroBannerShadow
 import com.jeudry.rosafiesta.designsystem.rfIconButtonShadow
 import com.jeudry.rosafiesta.designsystem.rfInputShadow
 import com.jeudry.rosafiesta.designsystem.rfPrimaryButtonShadow
-import com.jeudry.rosafiesta.designsystem.rfPrimaryButtonShadow
 import com.jeudry.rosafiesta.domain.CanonicalSampleData
+import com.jeudry.rosafiesta.domain.EventStatus
+import com.jeudry.rosafiesta.domain.PhotoAsset
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
 
 private val EventBackgroundGradient = Brush.radialGradient(
     0.0f to Color(0xFFF9E3F1),
@@ -103,8 +102,8 @@ internal fun RenderMyEventsScreenS37(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                                .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp),
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp),
         ) {
             Spacer(modifier = Modifier.height(56.dp))
 
@@ -170,12 +169,16 @@ internal fun RenderMyEventsScreenS37(
                             .fillMaxSize()
                             .clip(RoundedCornerShape(12.dp))
                             .then(
-                                if (isSelected) Modifier.shadow(
-                                    6.dp,
-                                    RoundedCornerShape(12.dp),
-                                    spotColor = Color(0x33AA46A0),
-                                    ambientColor = Color.Transparent,
-                                ) else Modifier
+                                if (isSelected) {
+                                    Modifier.shadow(
+                                        6.dp,
+                                        RoundedCornerShape(12.dp),
+                                        spotColor = Color(0x33AA46A0),
+                                        ambientColor = Color.Transparent,
+                                    )
+                                } else {
+                                    Modifier
+                                },
                             )
                             .background(if (isSelected) Color.White else Color.Transparent)
                             .clickable { selectedTab = index },
@@ -224,6 +227,7 @@ internal fun RenderMyEventsScreenS37(
                         statusColor = statusColor,
                         photoKey = photoKey,
                         showReview = ev.status == EventStatus.COMPLETED,
+                        onReviewClick = { onSelectScreenCode("s52") },
                         onClick = {
                             viewModel?.selectEvent(ev.id)
                             onSelectScreenCode("s40")
@@ -246,6 +250,7 @@ private fun MyEventRow37(
     statusColor: Color,
     photoKey: RfPhotoKey,
     showReview: Boolean = false,
+    onReviewClick: () -> Unit = {},
     onClick: () -> Unit,
 ) {
     val typo = LocalRfTypography.current
@@ -321,7 +326,7 @@ private fun MyEventRow37(
                     .clip(RoundedCornerShape(999.dp))
                     .background(Color.White)
                     .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(999.dp))
-                    .clickable { }
+                    .clickable(onClick = onReviewClick)
                     .padding(horizontal = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -483,85 +488,116 @@ internal fun RenderNewEventScreenS38(
                                         .align(Alignment.TopEnd)
                                         .offset(x = 4.dp, y = 2.dp),
                                 ) {
-                                    val w = size.width; val h = size.height
+                                    val w = size.width
+                                    val h = size.height
                                     when (card.illus) {
                                         EventTypeIllus.CUMPLE -> {
                                             // Birthday cake
-                                            drawRoundRect(color = Color(0xFFFFF6EE), topLeft = androidx.compose.ui.geometry.Offset(w*0.25f, h*0.48f), size = androidx.compose.ui.geometry.Size(w*0.50f, h*0.33f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(5f*density))
-                                            drawRect(color = Color(0xFFF9B6D3), topLeft = androidx.compose.ui.geometry.Offset(w*0.25f, h*0.68f), size = androidx.compose.ui.geometry.Size(w*0.50f, h*0.05f))
+                                            drawRoundRect(color = Color(0xFFFFF6EE), topLeft = androidx.compose.ui.geometry.Offset(w * 0.25f, h * 0.48f), size = androidx.compose.ui.geometry.Size(w * 0.50f, h * 0.33f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(5f * density))
+                                            drawRect(color = Color(0xFFF9B6D3), topLeft = androidx.compose.ui.geometry.Offset(w * 0.25f, h * 0.68f), size = androidx.compose.ui.geometry.Size(w * 0.50f, h * 0.05f))
                                             // Candles
-                                            drawRoundRect(color = Color(0xFF7650E8), topLeft = androidx.compose.ui.geometry.Offset(w*0.35f, h*0.34f), size = androidx.compose.ui.geometry.Size(w*0.04f, h*0.14f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(2f*density))
-                                            drawRoundRect(color = Color(0xFF4AA8E0), topLeft = androidx.compose.ui.geometry.Offset(w*0.48f, h*0.32f), size = androidx.compose.ui.geometry.Size(w*0.04f, h*0.17f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(2f*density))
-                                            drawRoundRect(color = Color(0xFF2FB58F), topLeft = androidx.compose.ui.geometry.Offset(w*0.61f, h*0.34f), size = androidx.compose.ui.geometry.Size(w*0.04f, h*0.14f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(2f*density))
+                                            drawRoundRect(color = Color(0xFF7650E8), topLeft = androidx.compose.ui.geometry.Offset(w * 0.35f, h * 0.34f), size = androidx.compose.ui.geometry.Size(w * 0.04f, h * 0.14f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(2f * density))
+                                            drawRoundRect(color = Color(0xFF4AA8E0), topLeft = androidx.compose.ui.geometry.Offset(w * 0.48f, h * 0.32f), size = androidx.compose.ui.geometry.Size(w * 0.04f, h * 0.17f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(2f * density))
+                                            drawRoundRect(color = Color(0xFF2FB58F), topLeft = androidx.compose.ui.geometry.Offset(w * 0.61f, h * 0.34f), size = androidx.compose.ui.geometry.Size(w * 0.04f, h * 0.14f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(2f * density))
                                             // Flames
-                                            drawCircle(color = Color(0xFFF5B53B), radius = 4f*density, center = androidx.compose.ui.geometry.Offset(w*0.37f, h*0.31f))
-                                            drawCircle(color = Color(0xFFF5B53B), radius = 4f*density, center = androidx.compose.ui.geometry.Offset(w*0.50f, h*0.29f))
-                                            drawCircle(color = Color(0xFFF5B53B), radius = 4f*density, center = androidx.compose.ui.geometry.Offset(w*0.63f, h*0.31f))
+                                            drawCircle(color = Color(0xFFF5B53B), radius = 4f * density, center = androidx.compose.ui.geometry.Offset(w * 0.37f, h * 0.31f))
+                                            drawCircle(color = Color(0xFFF5B53B), radius = 4f * density, center = androidx.compose.ui.geometry.Offset(w * 0.50f, h * 0.29f))
+                                            drawCircle(color = Color(0xFFF5B53B), radius = 4f * density, center = androidx.compose.ui.geometry.Offset(w * 0.63f, h * 0.31f))
                                         }
+
                                         EventTypeIllus.BODA -> {
                                             // Two interlocked rings
                                             val strokeW = 6.5f * density
-                                            drawCircle(color = Color(0xFFD9A441), radius = w*0.18f, center = androidx.compose.ui.geometry.Offset(w*0.40f, h*0.58f), style = androidx.compose.ui.graphics.drawscope.Stroke(width = strokeW))
-                                            drawCircle(color = Color(0xFFF0CC7A), radius = w*0.18f, center = androidx.compose.ui.geometry.Offset(w*0.60f, h*0.60f), style = androidx.compose.ui.graphics.drawscope.Stroke(width = strokeW))
+                                            drawCircle(color = Color(0xFFD9A441), radius = w * 0.18f, center = androidx.compose.ui.geometry.Offset(w * 0.40f, h * 0.58f), style = androidx.compose.ui.graphics.drawscope.Stroke(width = strokeW))
+                                            drawCircle(color = Color(0xFFF0CC7A), radius = w * 0.18f, center = androidx.compose.ui.geometry.Offset(w * 0.60f, h * 0.60f), style = androidx.compose.ui.graphics.drawscope.Stroke(width = strokeW))
                                             // Diamond
                                             val path = androidx.compose.ui.graphics.Path()
-                                            path.moveTo(w*0.35f, h*0.36f); path.lineTo(w*0.47f, h*0.30f); path.lineTo(w*0.47f, h*0.37f); path.lineTo(w*0.41f, h*0.44f); path.close()
+                                            path.moveTo(w * 0.35f, h * 0.36f)
+                                            path.lineTo(w * 0.47f, h * 0.30f)
+                                            path.lineTo(w * 0.47f, h * 0.37f)
+                                            path.lineTo(w * 0.41f, h * 0.44f)
+                                            path.close()
                                             drawPath(path, color = Color(0xFFA8D8F5))
                                         }
+
                                         EventTypeIllus.QUINCEANERA -> {
                                             // Crown with sparkles
                                             val crownColor = Color(0xFFD9A441)
                                             val crownPath = androidx.compose.ui.graphics.Path()
-                                            crownPath.moveTo(w*0.20f, h*0.75f); crownPath.lineTo(w*0.20f, h*0.50f); crownPath.lineTo(w*0.35f, h*0.62f); crownPath.lineTo(w*0.50f, h*0.40f); crownPath.lineTo(w*0.65f, h*0.62f); crownPath.lineTo(w*0.80f, h*0.50f); crownPath.lineTo(w*0.80f, h*0.75f); crownPath.close()
+                                            crownPath.moveTo(w * 0.20f, h * 0.75f)
+                                            crownPath.lineTo(w * 0.20f, h * 0.50f)
+                                            crownPath.lineTo(w * 0.35f, h * 0.62f)
+                                            crownPath.lineTo(w * 0.50f, h * 0.40f)
+                                            crownPath.lineTo(w * 0.65f, h * 0.62f)
+                                            crownPath.lineTo(w * 0.80f, h * 0.50f)
+                                            crownPath.lineTo(w * 0.80f, h * 0.75f)
+                                            crownPath.close()
                                             drawPath(crownPath, color = crownColor)
-                                            drawCircle(color = Color(0xFFEC4F97), radius = 5f*density, center = androidx.compose.ui.geometry.Offset(w*0.50f, h*0.38f))
-                                            drawCircle(color = Color(0xFF7650E8), radius = 3.5f*density, center = androidx.compose.ui.geometry.Offset(w*0.30f, h*0.58f))
-                                            drawCircle(color = Color(0xFF2FB58F), radius = 3.5f*density, center = androidx.compose.ui.geometry.Offset(w*0.70f, h*0.56f))
+                                            drawCircle(color = Color(0xFFEC4F97), radius = 5f * density, center = androidx.compose.ui.geometry.Offset(w * 0.50f, h * 0.38f))
+                                            drawCircle(color = Color(0xFF7650E8), radius = 3.5f * density, center = androidx.compose.ui.geometry.Offset(w * 0.30f, h * 0.58f))
+                                            drawCircle(color = Color(0xFF2FB58F), radius = 3.5f * density, center = androidx.compose.ui.geometry.Offset(w * 0.70f, h * 0.56f))
                                         }
+
                                         EventTypeIllus.BABY_SHOWER -> {
                                             // Clothesline with baby onesie
                                             drawPath(
                                                 path = androidx.compose.ui.graphics.Path().apply {
-                                                    moveTo(w*0.05f, h*0.25f); cubicTo(w*0.50f, h*0.38f, w*0.95f, h*0.25f, w*0.95f, h*0.25f)
+                                                    moveTo(w * 0.05f, h * 0.25f)
+                                                    cubicTo(w * 0.50f, h * 0.38f, w * 0.95f, h * 0.25f, w * 0.95f, h * 0.25f)
                                                 },
-                                                color = Color(0xFF6E5A72).copy(alpha = 0.45f), style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.5f*density)
+                                                color = Color(0xFF6E5A72).copy(alpha = 0.45f),
+                                                style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.5f * density),
                                             )
                                             // Onesie body
-                                            drawRoundRect(color = Color(0xFF9BE3C9), topLeft = androidx.compose.ui.geometry.Offset(w*0.33f, h*0.35f), size = androidx.compose.ui.geometry.Size(w*0.34f, h*0.38f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(6f*density))
+                                            drawRoundRect(color = Color(0xFF9BE3C9), topLeft = androidx.compose.ui.geometry.Offset(w * 0.33f, h * 0.35f), size = androidx.compose.ui.geometry.Size(w * 0.34f, h * 0.38f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(6f * density))
                                             // Sleeves
-                                            drawRoundRect(color = Color(0xFF9BE3C9), topLeft = androidx.compose.ui.geometry.Offset(w*0.18f, h*0.35f), size = androidx.compose.ui.geometry.Size(w*0.17f, h*0.16f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f*density))
-                                            drawRoundRect(color = Color(0xFF9BE3C9), topLeft = androidx.compose.ui.geometry.Offset(w*0.65f, h*0.35f), size = androidx.compose.ui.geometry.Size(w*0.17f, h*0.16f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f*density))
+                                            drawRoundRect(color = Color(0xFF9BE3C9), topLeft = androidx.compose.ui.geometry.Offset(w * 0.18f, h * 0.35f), size = androidx.compose.ui.geometry.Size(w * 0.17f, h * 0.16f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f * density))
+                                            drawRoundRect(color = Color(0xFF9BE3C9), topLeft = androidx.compose.ui.geometry.Offset(w * 0.65f, h * 0.35f), size = androidx.compose.ui.geometry.Size(w * 0.17f, h * 0.16f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f * density))
                                             // Star detail
-                                            drawCircle(color = Color(0xFFF5B53B), radius = 4f*density, center = androidx.compose.ui.geometry.Offset(w*0.50f, h*0.54f))
+                                            drawCircle(color = Color(0xFFF5B53B), radius = 4f * density, center = androidx.compose.ui.geometry.Offset(w * 0.50f, h * 0.54f))
                                         }
+
                                         EventTypeIllus.GRADUACION -> {
                                             // Graduation cap
                                             val capColor = Color(0xFF1A1A2E)
-                                            drawRoundRect(color = capColor, topLeft = androidx.compose.ui.geometry.Offset(w*0.20f, h*0.45f), size = androidx.compose.ui.geometry.Size(w*0.60f, h*0.14f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(3f*density))
+                                            drawRoundRect(color = capColor, topLeft = androidx.compose.ui.geometry.Offset(w * 0.20f, h * 0.45f), size = androidx.compose.ui.geometry.Size(w * 0.60f, h * 0.14f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(3f * density))
                                             val hatPath = androidx.compose.ui.graphics.Path()
-                                            hatPath.moveTo(w*0.50f, h*0.28f); hatPath.lineTo(w*0.80f, h*0.45f); hatPath.lineTo(w*0.50f, h*0.60f); hatPath.lineTo(w*0.20f, h*0.45f); hatPath.close()
+                                            hatPath.moveTo(w * 0.50f, h * 0.28f)
+                                            hatPath.lineTo(w * 0.80f, h * 0.45f)
+                                            hatPath.lineTo(w * 0.50f, h * 0.60f)
+                                            hatPath.lineTo(w * 0.20f, h * 0.45f)
+                                            hatPath.close()
                                             drawPath(hatPath, color = capColor)
                                             // Tassel
-                                            drawLine(color = Color(0xFFF5B53B), start = androidx.compose.ui.geometry.Offset(w*0.76f, h*0.45f), end = androidx.compose.ui.geometry.Offset(w*0.76f, h*0.72f), strokeWidth = 2.5f*density)
-                                            drawCircle(color = Color(0xFFF5B53B), radius = 5f*density, center = androidx.compose.ui.geometry.Offset(w*0.76f, h*0.75f))
+                                            drawLine(color = Color(0xFFF5B53B), start = androidx.compose.ui.geometry.Offset(w * 0.76f, h * 0.45f), end = androidx.compose.ui.geometry.Offset(w * 0.76f, h * 0.72f), strokeWidth = 2.5f * density)
+                                            drawCircle(color = Color(0xFFF5B53B), radius = 5f * density, center = androidx.compose.ui.geometry.Offset(w * 0.76f, h * 0.75f))
                                         }
+
                                         EventTypeIllus.CORPORATIVO -> {
                                             // Champagne glasses clinking
                                             val glassColor = Color(0xFFD9A441)
                                             // Left glass
                                             val lp = androidx.compose.ui.graphics.Path()
-                                            lp.moveTo(w*0.28f, h*0.25f); lp.lineTo(w*0.38f, h*0.25f); lp.lineTo(w*0.34f, h*0.50f); lp.lineTo(w*0.32f, h*0.50f); lp.close()
+                                            lp.moveTo(w * 0.28f, h * 0.25f)
+                                            lp.lineTo(w * 0.38f, h * 0.25f)
+                                            lp.lineTo(w * 0.34f, h * 0.50f)
+                                            lp.lineTo(w * 0.32f, h * 0.50f)
+                                            lp.close()
                                             drawPath(lp, color = glassColor)
-                                            drawLine(color = glassColor, start = androidx.compose.ui.geometry.Offset(w*0.33f, h*0.50f), end = androidx.compose.ui.geometry.Offset(w*0.33f, h*0.72f), strokeWidth = 2.5f*density)
+                                            drawLine(color = glassColor, start = androidx.compose.ui.geometry.Offset(w * 0.33f, h * 0.50f), end = androidx.compose.ui.geometry.Offset(w * 0.33f, h * 0.72f), strokeWidth = 2.5f * density)
                                             // Right glass
                                             val rp = androidx.compose.ui.graphics.Path()
-                                            rp.moveTo(w*0.62f, h*0.25f); rp.lineTo(w*0.72f, h*0.25f); rp.lineTo(w*0.68f, h*0.50f); rp.lineTo(w*0.66f, h*0.50f); rp.close()
+                                            rp.moveTo(w * 0.62f, h * 0.25f)
+                                            rp.lineTo(w * 0.72f, h * 0.25f)
+                                            rp.lineTo(w * 0.68f, h * 0.50f)
+                                            rp.lineTo(w * 0.66f, h * 0.50f)
+                                            rp.close()
                                             drawPath(rp, color = glassColor)
-                                            drawLine(color = glassColor, start = androidx.compose.ui.geometry.Offset(w*0.67f, h*0.50f), end = androidx.compose.ui.geometry.Offset(w*0.67f, h*0.72f), strokeWidth = 2.5f*density)
+                                            drawLine(color = glassColor, start = androidx.compose.ui.geometry.Offset(w * 0.67f, h * 0.50f), end = androidx.compose.ui.geometry.Offset(w * 0.67f, h * 0.72f), strokeWidth = 2.5f * density)
                                             // Bubbles
-                                            drawCircle(color = Color(0xFFF5B53B).copy(alpha = 0.6f), radius = 3f*density, center = androidx.compose.ui.geometry.Offset(w*0.32f, h*0.35f))
-                                            drawCircle(color = Color(0xFFF5B53B).copy(alpha = 0.6f), radius = 2f*density, center = androidx.compose.ui.geometry.Offset(w*0.36f, h*0.28f))
-                                            drawCircle(color = Color(0xFFF5B53B).copy(alpha = 0.6f), radius = 3f*density, center = androidx.compose.ui.geometry.Offset(w*0.68f, h*0.33f))
+                                            drawCircle(color = Color(0xFFF5B53B).copy(alpha = 0.6f), radius = 3f * density, center = androidx.compose.ui.geometry.Offset(w * 0.32f, h * 0.35f))
+                                            drawCircle(color = Color(0xFFF5B53B).copy(alpha = 0.6f), radius = 2f * density, center = androidx.compose.ui.geometry.Offset(w * 0.36f, h * 0.28f))
+                                            drawCircle(color = Color(0xFFF5B53B).copy(alpha = 0.6f), radius = 3f * density, center = androidx.compose.ui.geometry.Offset(w * 0.68f, h * 0.33f))
                                         }
                                     }
                                 }
@@ -617,8 +653,8 @@ internal fun RenderCalendarScreenS39(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                                .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp),
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp),
         ) {
             Spacer(modifier = Modifier.height(56.dp))
 
@@ -773,8 +809,8 @@ internal fun RenderEventDetailScreenS40(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                                .verticalScroll(rememberScrollState())
-            .padding(top = 54.dp, start = 20.dp, end = 20.dp, bottom = 30.dp),
+                .verticalScroll(rememberScrollState())
+                .padding(top = 54.dp, start = 20.dp, end = 20.dp, bottom = 30.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             // Header
@@ -1201,14 +1237,20 @@ private fun heartPath(center: Offset, size: Float): Path {
     val s = size * 0.1f
     path.moveTo(center.x, center.y + 9f * s)
     path.cubicTo(
-        center.x - 12f * s, center.y + 1f * s,
-        center.x - 9f * s, center.y - 10f * s,
-        center.x, center.y - 3f * s,
+        center.x - 12f * s,
+        center.y + 1f * s,
+        center.x - 9f * s,
+        center.y - 10f * s,
+        center.x,
+        center.y - 3f * s,
     )
     path.cubicTo(
-        center.x + 9f * s, center.y - 10f * s,
-        center.x + 12f * s, center.y + 1f * s,
-        center.x, center.y + 9f * s,
+        center.x + 9f * s,
+        center.y - 10f * s,
+        center.x + 12f * s,
+        center.y + 1f * s,
+        center.x,
+        center.y + 9f * s,
     )
     path.close()
     return path
@@ -1414,8 +1456,8 @@ internal fun RenderExecutionModeScreenS43(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                                        .verticalScroll(rememberScrollState())
-            .padding(start = 16.dp, end = 16.dp, top = 18.dp),
+                    .verticalScroll(rememberScrollState())
+                    .padding(start = 16.dp, end = 16.dp, top = 18.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 ExecutionTaskRow43(
@@ -1542,8 +1584,8 @@ internal fun RenderTimelineScreenS44(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                                .verticalScroll(rememberScrollState())
-            .padding(start = 20.dp, end = 20.dp, top = 56.dp, bottom = 30.dp),
+                .verticalScroll(rememberScrollState())
+                .padding(start = 20.dp, end = 20.dp, top = 56.dp, bottom = 30.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
             // Header
@@ -1738,8 +1780,8 @@ internal fun RenderTasksScreenS45(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                                .verticalScroll(rememberScrollState())
-            .padding(start = 20.dp, end = 20.dp, top = 56.dp, bottom = 30.dp),
+                .verticalScroll(rememberScrollState())
+                .padding(start = 20.dp, end = 20.dp, top = 56.dp, bottom = 30.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
             // Header
@@ -2060,8 +2102,8 @@ internal fun RenderChecklistScreenS46(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                                .verticalScroll(rememberScrollState())
-            .padding(start = 20.dp, end = 20.dp, top = 56.dp),
+                .verticalScroll(rememberScrollState())
+                .padding(start = 20.dp, end = 20.dp, top = 56.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             // Header
@@ -2304,8 +2346,8 @@ internal fun RenderGuestsScreenS47(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                                .verticalScroll(rememberScrollState())
-            .padding(start = 20.dp, end = 20.dp, top = 56.dp, bottom = 30.dp),
+                .verticalScroll(rememberScrollState())
+                .padding(start = 20.dp, end = 20.dp, top = 56.dp, bottom = 30.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             // Header

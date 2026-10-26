@@ -73,11 +73,10 @@ import com.jeudry.rosafiesta.designsystem.RosaAvatarSize
 import com.jeudry.rosafiesta.domain.CanonicalSampleData
 import com.jeudry.rosafiesta.domain.EventStatus
 
-public fun shouldShowBottomBar(code: String): Boolean =
-    code.lowercase() in setOf(
-        "a01", "a02", "a09", "a11", "a12", "a32", "a35", "a36", "a37",
-        "s01", "s02", "s14", "s15", "s18", "s23", "s24", "s37", "s80", "s89", "s90", "s91", "s92",
-    )
+public fun shouldShowBottomBar(code: String): Boolean = code.lowercase() in setOf(
+    "a01", "a02", "a09", "a11", "a12", "a32", "a35", "a36", "a37",
+    "s01", "s02", "s14", "s15", "s18", "s23", "s24", "s37", "s80", "s89", "s90", "s91", "s92",
+)
 
 @Composable
 public fun RenderAppBottomBar(
@@ -219,19 +218,19 @@ fun RenderScreenSpec(
                 "s23" -> RenderShopScreenS23(onSelectScreenCode = onSelectScreenCode)
                 "s24" -> RenderClientFavoritesScreenS24(onSelectScreenCode = onSelectScreenCode)
                 "s25" -> RenderMyEventDraftS25(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
-                "s26" -> RenderRosaEventTypeS26(onSelectScreenCode = onSelectScreenCode)
-                "s27" -> RenderRosaTutorialS27(onSelectScreenCode = onSelectScreenCode)
-                "s28" -> RenderRosaHelpS28(onSelectScreenCode = onSelectScreenCode)
-                "s29" -> RenderRosaSuggestionsS29(onSelectScreenCode = onSelectScreenCode)
-                "s30" -> RenderRosaCategoriesS30(onSelectScreenCode = onSelectScreenCode)
-                "s31" -> RenderRosaDetailsS31(onSelectScreenCode = onSelectScreenCode)
-                "s32" -> RenderRosaSummaryS32(onSelectScreenCode = onSelectScreenCode)
+                "s26" -> RenderRosaEventTypeS26(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                "s27" -> RenderRosaTutorialS27(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                "s28" -> RenderRosaHelpS28(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                "s29" -> RenderRosaSuggestionsS29(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                "s30" -> RenderRosaCategoriesS30(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                "s31" -> RenderRosaDetailsS31(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                "s32" -> RenderRosaSummaryS32(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
                 "s33" -> RenderRosaSubmittedS33(onSelectScreenCode = onSelectScreenCode)
-                "s34" -> RenderRosaChatS34(onSelectScreenCode = onSelectScreenCode)
-                "s35" -> RenderRosaVoiceS35(onSelectScreenCode = onSelectScreenCode)
-                "s36" -> RenderRosaSketchS36(onSelectScreenCode = onSelectScreenCode)
-                "s78" -> RenderRosaSketchConfirmS78(onSelectScreenCode = onSelectScreenCode)
-                "A08" -> RenderAdminRosaA08(onSelectScreenCode = onSelectScreenCode)
+                "s34" -> RenderRosaChatS34(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                "s35" -> RenderRosaVoiceS35(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                "s36" -> RenderRosaSketchS36(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                "s78" -> RenderRosaSketchConfirmS78(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                "A08" -> RenderAdminRosaA08(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
                 "s37" -> RenderMyEventsScreenS37(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
                 "s38" -> RenderNewEventScreenS38(onSelectScreenCode = onSelectScreenCode)
                 "s39" -> RenderCalendarScreenS39(onSelectScreenCode = onSelectScreenCode)

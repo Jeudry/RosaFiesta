@@ -6,9 +6,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.offset
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -17,22 +14,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.geometry.CornerRadius
-import com.jeudry.rosafiesta.designsystem.RosaAvatar
-import com.jeudry.rosafiesta.designsystem.RosaAvatarSize
-import com.jeudry.rosafiesta.designsystem.RfThemeVariant
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -49,25 +36,38 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jeudry.rosafiesta.designsystem.LocalRfTypography
-import com.jeudry.rosafiesta.designsystem.RfColors
 import com.jeudry.rosafiesta.designsystem.RfButton
 import com.jeudry.rosafiesta.designsystem.RfButtonStyle
+import com.jeudry.rosafiesta.designsystem.RfColors
+import com.jeudry.rosafiesta.designsystem.RfGradientPriceText
 import com.jeudry.rosafiesta.designsystem.RfIcon
 import com.jeudry.rosafiesta.designsystem.RfIconKind
 import com.jeudry.rosafiesta.designsystem.RfPhoto
 import com.jeudry.rosafiesta.designsystem.RfPhotoKey
-import com.jeudry.rosafiesta.designsystem.RfGradientPriceText
 import com.jeudry.rosafiesta.designsystem.RfRadialBackgroundBox
+import com.jeudry.rosafiesta.designsystem.RfThemeVariant
+import com.jeudry.rosafiesta.designsystem.RosaAvatar
+import com.jeudry.rosafiesta.designsystem.RosaAvatarSize
 import com.jeudry.rosafiesta.designsystem.rememberRfSkeletonBrush
 import com.jeudry.rosafiesta.designsystem.rfCardShadow
 import com.jeudry.rosafiesta.designsystem.rfHeroBannerShadow
@@ -91,13 +91,15 @@ internal fun RenderPersonalNotificationsS79(
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
+    var allMarkedRead by remember { mutableStateOf(false) }
+    var selectedFilterIndex by remember { mutableStateOf(0) }
 
     RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                                .verticalScroll(rememberScrollState())
-            .padding(start = 20.dp, end = 20.dp, top = 54.dp),
+                .verticalScroll(rememberScrollState())
+                .padding(start = 20.dp, end = 20.dp, top = 54.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // Header
@@ -126,15 +128,15 @@ internal fun RenderPersonalNotificationsS79(
                         style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color(0xFF1A1A2E)),
                     )
                     BasicText(
-                        text = "3 sin leer",
+                        text = if (allMarkedRead) "Al día · 0 sin leer" else "3 sin leer",
                         maxLines = 1,
                         style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF62627A)),
                     )
                 }
 
                 BasicText(
-                    text = "Marcar leídas",
-                    modifier = Modifier.clickable { },
+                    text = if (allMarkedRead) "Leídas" else "Marcar leídas",
+                    modifier = Modifier.clickable { allMarkedRead = !allMarkedRead },
                     style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFFC2338F)),
                 )
             }
@@ -142,16 +144,19 @@ internal fun RenderPersonalNotificationsS79(
             // Filter chips
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf("Todas", "Pagos", "Mis eventos", "Mensajes").forEachIndexed { index, label ->
-                    val selected = index == 0
+                    val selected = index == selectedFilterIndex
                     Box(
                         modifier = Modifier
                             .height(36.dp)
                             .clip(CircleShape)
                             .background(
-                                if (selected) Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)))
-                                else SolidColor(Color(0xFFF1EFF5))
+                                if (selected) {
+                                    Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)))
+                                } else {
+                                    SolidColor(Color(0xFFF1EFF5))
+                                },
                             )
-                            .clickable { }
+                            .clickable { selectedFilterIndex = index }
                             .padding(horizontal = 14.dp),
                         contentAlignment = Alignment.Center,
                     ) {
@@ -1089,15 +1094,16 @@ internal fun RenderAccountSettingsS86(
                 SettingsDivider86()
                 SettingsRow86("Política de privacidad", RfIconKind.SHIELD, onClick = { onSelectScreenCode("s87") })
                 SettingsDivider86()
+                var permissionsGranted by remember { mutableStateOf(true) }
                 Row(
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 54.dp).clickable { }.padding(horizontal = 16.dp),
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 54.dp).clickable { permissionsGranted = !permissionsGranted }.padding(horizontal = 16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     RfIcon(kind = RfIconKind.CAMERA, tint = Color(0xFF3B3550), size = 20.dp)
                     Column(modifier = Modifier.weight(1f)) {
                         BasicText("Permisos de la app", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF1A1A2E)))
-                        BasicText("Cámara y micrófono", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF62627A)))
+                        BasicText(if (permissionsGranted) "Cámara y micrófono" else "Solo micrófono", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF62627A)))
                     }
                     RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = Color(0xFF62627A), size = 16.dp)
                 }
@@ -1191,20 +1197,21 @@ private fun SettingsRow86(
 
 @Composable
 private fun SettingsSwitch86(checked: Boolean) {
+    var isSwitchChecked by remember { mutableStateOf(checked) }
     Box(
         modifier = Modifier
             .width(46.dp)
             .height(28.dp)
             .clip(RoundedCornerShape(999.dp))
             .background(
-                if (checked) {
+                if (isSwitchChecked) {
                     Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))
                 } else {
                     Brush.linearGradient(listOf(Color(0xFFE3DCE8), Color(0xFFE3DCE8)))
                 },
             )
-            .clickable { },
-        contentAlignment = if (checked) Alignment.CenterEnd else Alignment.CenterStart,
+            .clickable { isSwitchChecked = !isSwitchChecked },
+        contentAlignment = if (isSwitchChecked) Alignment.CenterEnd else Alignment.CenterStart,
     ) {
         Box(modifier = Modifier.padding(horizontal = 3.dp).size(22.dp).clip(CircleShape).background(Color.White).shadow(1.dp, CircleShape))
     }
@@ -1219,6 +1226,7 @@ internal fun RenderTermsS87(
 ) {
     val typo = LocalRfTypography.current
     val cardShape = RoundedCornerShape(20.dp)
+    var selectedSegmentIndex by remember { mutableStateOf(0) }
 
     RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -1227,110 +1235,120 @@ internal fun RenderTermsS87(
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
                     .padding(start = 20.dp, end = 20.dp, top = 54.dp, bottom = 108.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .rfIconButtonShadow(CircleShape, isAdmin = false)
-                        .clip(CircleShape)
-                        .background(Color.White)
-                        .clickable { onSelectScreenCode("BACK:s86") },
-                    contentAlignment = Alignment.Center,
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1A1A2E), size = 22.dp)
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .rfIconButtonShadow(CircleShape, isAdmin = false)
+                            .clip(CircleShape)
+                            .background(Color.White)
+                            .clickable { onSelectScreenCode("BACK:s86") },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1A1A2E), size = 22.dp)
+                    }
+                    BasicText(
+                        text = "Términos y privacidad",
+                        modifier = Modifier.weight(1f),
+                        style = TextStyle(
+                            fontFamily = typo.displayFamily,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 20.sp,
+                            lineHeight = 22.sp,
+                            letterSpacing = (-0.4).sp,
+                            color = Color(0xFF1A1A2E),
+                        ),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(Color(0xFFF1EFF5))
+                        .padding(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    TermsSegment87(
+                        label = "Términos",
+                        selected = selectedSegmentIndex == 0,
+                        onClick = { selectedSegmentIndex = 0 },
+                        modifier = Modifier.weight(1f),
+                    )
+                    TermsSegment87(
+                        label = "Privacidad",
+                        selected = selectedSegmentIndex == 1,
+                        onClick = { selectedSegmentIndex = 1 },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+
                 BasicText(
-                    text = "Términos y privacidad",
-                    modifier = Modifier.weight(1f),
+                    text = "Última actualización: 1 de octubre de 2026",
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF62627A)),
+                )
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .rfCardShadow(cardShape, isAdmin = false)
+                        .clip(cardShape)
+                        .background(Color.White)
+                        .padding(18.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    TermsSection87(
+                        title = "1. Reservas y cotizaciones",
+                        body = "Tu fecha queda apartada cuando Rosa Fiesta confirma la cotización y recibe el anticipo. Las cotizaciones tienen validez de 7 días.",
+                    )
+                    TermsSection87(
+                        title = "2. Pagos y anticipos",
+                        body = "El anticipo es del 30% del total. El saldo se paga a más tardar un día antes del evento.",
+                    )
+                    TermsSection87(
+                        title = "3. Cambios y cancelaciones",
+                        body = "El primer cambio de fecha es gratis, sujeto a disponibilidad. Las cancelaciones se reembolsan según los días que falten para el evento.",
+                    )
+                    TermsSection87(
+                        title = "4. Cuidado de los artículos",
+                        body = "Los artículos dañados o perdidos se cobran según la lista de precios vigente, previa revisión con fotos.",
+                    )
+                }
+
+                BasicText(
+                    text = "Texto de ejemplo para el diseño. El texto legal final lo redacta el negocio.",
+                    modifier = Modifier.fillMaxWidth(),
                     style = TextStyle(
-                        fontFamily = typo.displayFamily,
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 20.sp,
-                        lineHeight = 22.sp,
-                        letterSpacing = (-0.4).sp,
-                        color = Color(0xFF1A1A2E),
+                        fontFamily = typo.bodyFamily,
+                        fontSize = 12.sp,
+                        lineHeight = 17.sp,
+                        color = Color(0xFF62627A),
+                        textAlign = TextAlign.Center,
                     ),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
                 )
             }
 
-            Row(
+            Box(
                 modifier = Modifier
+                    .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(Color(0xFFF1EFF5))
-                    .padding(4.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    .padding(start = 20.dp, end = 20.dp, bottom = 36.dp),
             ) {
-                TermsSegment87(label = "Términos", selected = true, modifier = Modifier.weight(1f))
-                TermsSegment87(label = "Privacidad", selected = false, modifier = Modifier.weight(1f))
-            }
-
-            BasicText(
-                text = "Última actualización: 1 de octubre de 2026",
-                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF62627A)),
-            )
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .rfCardShadow(cardShape, isAdmin = false)
-                    .clip(cardShape)
-                    .background(Color.White)
-                    .padding(18.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                TermsSection87(
-                    title = "1. Reservas y cotizaciones",
-                    body = "Tu fecha queda apartada cuando Rosa Fiesta confirma la cotización y recibe el anticipo. Las cotizaciones tienen validez de 7 días.",
-                )
-                TermsSection87(
-                    title = "2. Pagos y anticipos",
-                    body = "El anticipo es del 30% del total. El saldo se paga a más tardar un día antes del evento.",
-                )
-                TermsSection87(
-                    title = "3. Cambios y cancelaciones",
-                    body = "El primer cambio de fecha es gratis, sujeto a disponibilidad. Las cancelaciones se reembolsan según los días que falten para el evento.",
-                )
-                TermsSection87(
-                    title = "4. Cuidado de los artículos",
-                    body = "Los artículos dañados o perdidos se cobran según la lista de precios vigente, previa revisión con fotos.",
+                RfButton(
+                    label = "Entendido",
+                    onClick = { onSelectScreenCode("s86") },
+                    modifier = Modifier.fillMaxWidth(),
+                    style = RfButtonStyle.PRIMARY,
                 )
             }
-
-            BasicText(
-                text = "Texto de ejemplo para el diseño. El texto legal final lo redacta el negocio.",
-                modifier = Modifier.fillMaxWidth(),
-                style = TextStyle(
-                    fontFamily = typo.bodyFamily,
-                    fontSize = 12.sp,
-                    lineHeight = 17.sp,
-                    color = Color(0xFF62627A),
-                    textAlign = TextAlign.Center,
-                ),
-            )
-        }
-
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .padding(start = 20.dp, end = 20.dp, bottom = 36.dp),
-        ) {
-            RfButton(
-                label = "Entendido",
-                onClick = { onSelectScreenCode("s86") },
-                modifier = Modifier.fillMaxWidth(),
-                style = RfButtonStyle.PRIMARY,
-            )
-        }
         }
     }
 }
@@ -1339,6 +1357,7 @@ internal fun RenderTermsS87(
 private fun TermsSegment87(
     label: String,
     selected: Boolean,
+    onClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val typo = LocalRfTypography.current
@@ -1356,7 +1375,8 @@ private fun TermsSegment87(
                 } else {
                     Modifier.background(Color.Transparent)
                 },
-            ),
+            )
+            .clickable(onClick = onClick),
     ) {
         BasicText(
             text = label,
@@ -1698,8 +1718,11 @@ private fun EmptyStateChip89(label: String, selected: Boolean, onClick: () -> Un
             .height(36.dp)
             .clip(CircleShape)
             .background(
-                if (selected) Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)))
-                else SolidColor(Color(0xFFF1EFF5))
+                if (selected) {
+                    Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)))
+                } else {
+                    SolidColor(Color(0xFFF1EFF5))
+                },
             )
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp),
@@ -2644,6 +2667,7 @@ internal fun RenderEventReviewsModalS77(
         }
     }
 }
+
 // ==============================================================================
 @Composable
 internal fun RenderCatalogFiltersModalS81(
@@ -2690,6 +2714,10 @@ internal fun RenderCatalogFiltersModalS81(
                         .background(Color(0xFFE3DCE8)),
                 )
 
+                var selectedCategory by remember { mutableStateOf("Todas") }
+                var availableOnly by remember { mutableStateOf(true) }
+                var selectedSortIndex by remember { mutableStateOf(0) }
+
                 // Header
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -2702,7 +2730,11 @@ internal fun RenderCatalogFiltersModalS81(
                     )
                     BasicText(
                         "Limpiar",
-                        modifier = Modifier.clickable { },
+                        modifier = Modifier.clickable {
+                            selectedCategory = "Todas"
+                            availableOnly = true
+                            selectedSortIndex = 0
+                        },
                         style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFFC2338F)),
                     )
                 }
@@ -2714,25 +2746,27 @@ internal fun RenderCatalogFiltersModalS81(
                         listOf("Todas", "Mobiliario", "Floral"),
                         listOf("Iluminación", "Globos", "Mantelería"),
                     )
-                    var index = 0
                     rows.forEach { rowItems ->
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            rowItems.forEach { cat ->
-                                val isSelected = index == 0
-                                index++
+                            rowItems.forEach { categoryLabel ->
+                                val isSelected = categoryLabel == selectedCategory
                                 Box(
                                     modifier = Modifier
                                         .height(36.dp)
                                         .clip(CircleShape)
                                         .background(
-                                            if (isSelected) Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)))
-                                            else SolidColor(Color(0xFFF1EFF5))
+                                            if (isSelected) {
+                                                Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)))
+                                            } else {
+                                                SolidColor(Color(0xFFF1EFF5))
+                                            },
                                         )
+                                        .clickable { selectedCategory = categoryLabel }
                                         .padding(horizontal = 14.dp),
                                     contentAlignment = Alignment.Center,
                                 ) {
                                     BasicText(
-                                        cat,
+                                        categoryLabel,
                                         style = TextStyle(
                                             fontFamily = typo.bodyFamily,
                                             fontWeight = FontWeight.SemiBold,
@@ -2852,9 +2886,16 @@ internal fun RenderCatalogFiltersModalS81(
                                 .width(46.dp)
                                 .height(28.dp)
                                 .clip(CircleShape)
-                                .background(Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC))))
+                                .background(
+                                    if (availableOnly) {
+                                        Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))
+                                    } else {
+                                        Brush.linearGradient(listOf(Color(0xFFE3DCE8), Color(0xFFE3DCE8)))
+                                    },
+                                )
+                                .clickable { availableOnly = !availableOnly }
                                 .padding(3.dp),
-                            contentAlignment = Alignment.CenterEnd,
+                            contentAlignment = if (availableOnly) Alignment.CenterEnd else Alignment.CenterStart,
                         ) {
                             Box(
                                 modifier = Modifier
@@ -2878,8 +2919,8 @@ internal fun RenderCatalogFiltersModalS81(
                             .padding(4.dp),
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
-                        listOf("Populares", "Precio ↑", "Precio ↓", "Nuevos").forEachIndexed { i, opt ->
-                            val isSel = i == 0
+                        listOf("Populares", "Precio ↑", "Precio ↓", "Nuevos").forEachIndexed { sortIndex, sortOption ->
+                            val isSel = sortIndex == selectedSortIndex
                             Box(
                                 modifier = Modifier
                                     .weight(1f)
@@ -2887,11 +2928,11 @@ internal fun RenderCatalogFiltersModalS81(
                                     .then(if (isSel) Modifier.shadow(4.dp, RoundedCornerShape(12.dp), spotColor = Color(0x33B450B4), ambientColor = Color.Transparent) else Modifier)
                                     .clip(RoundedCornerShape(12.dp))
                                     .background(if (isSel) Color.White else Color.Transparent)
-                                    .clickable { },
+                                    .clickable { selectedSortIndex = sortIndex },
                                 contentAlignment = Alignment.Center,
                             ) {
                                 BasicText(
-                                    opt,
+                                    sortOption,
                                     style = TextStyle(
                                         fontFamily = typo.bodyFamily,
                                         fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium,
@@ -2933,6 +2974,7 @@ internal fun RenderChangeDateModalS84(
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
+    var selectedDay by remember { mutableStateOf("30") }
 
     Box(
         modifier = Modifier
@@ -3045,8 +3087,8 @@ internal fun RenderChangeDateModalS84(
 
                     // Weekday headers
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
-                        listOf("L", "M", "X", "J", "V", "S", "D").forEach { d ->
-                            BasicText(d, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF62627A)))
+                        listOf("L", "M", "X", "J", "V", "S", "D").forEach { weekdayLabel ->
+                            BasicText(weekdayLabel, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF62627A)))
                         }
                     }
 
@@ -3062,35 +3104,51 @@ internal fun RenderChangeDateModalS84(
                         weeks.forEach { week ->
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
                                 week.forEach { day ->
-                                    val isPast = day.toIntOrNull() != null && day.toInt() < 20
+                                    val parsedDay = day.toIntOrNull() ?: 99
+                                    val isPast = parsedDay < 20
                                     val isCurrent = day == "23"
-                                    val isSelected = day == "30"
-                                    val hasDot = day == "24" || day == "31"
+                                    val isSelected = day == selectedDay
+                                    val hasDot = setOf("24", "31").contains(day)
+                                    val isSelectable = day.isNotEmpty()
 
                                     Box(
                                         modifier = Modifier
                                             .size(38.dp)
                                             .then(
-                                                if (isSelected) Modifier
-                                                    .shadow(8.dp, RoundedCornerShape(12.dp), spotColor = Color(0xB3865DEC), ambientColor = Color.Transparent)
-                                                    .clip(RoundedCornerShape(12.dp))
-                                                    .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))))
-                                                else if (isCurrent) Modifier.clip(RoundedCornerShape(12.dp)).border(1.5.dp, Color(0xFFE3DCE8), RoundedCornerShape(12.dp))
-                                                else Modifier.clip(RoundedCornerShape(12.dp))
+                                                if (isSelected) {
+                                                    Modifier
+                                                        .shadow(8.dp, RoundedCornerShape(12.dp), spotColor = Color(0xB3865DEC), ambientColor = Color.Transparent)
+                                                        .clip(RoundedCornerShape(12.dp))
+                                                        .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))))
+                                                } else if (isCurrent) {
+                                                    Modifier.clip(RoundedCornerShape(12.dp)).border(1.5.dp, Color(0xFFE3DCE8), RoundedCornerShape(12.dp))
+                                                } else {
+                                                    Modifier.clip(RoundedCornerShape(12.dp))
+                                                },
+                                            )
+                                            .then(
+                                                if (isSelectable) Modifier.clickable { selectedDay = day } else Modifier,
                                             ),
                                         contentAlignment = Alignment.Center,
                                     ) {
-                                        if (day.isNotEmpty()) {
+                                        if (isSelectable) {
+                                            val isBoldDay = setOf(selectedDay, "20").contains(day)
+                                            val isMutedDay = if (isPast) true else isCurrent
                                             BasicText(
                                                 day,
                                                 style = TextStyle(
                                                     fontFamily = typo.bodyFamily,
-                                                    fontWeight = if (isSelected || day == "20") FontWeight.ExtraBold else FontWeight.SemiBold,
+                                                    fontWeight = if (isBoldDay) FontWeight.ExtraBold else FontWeight.SemiBold,
                                                     fontSize = 14.sp,
-                                                    color = if (isSelected) Color.White
-                                                    else if (day == "20") Color(0xFFC2338F)
-                                                    else if (isPast || isCurrent) Color(0xFFC9C3D1)
-                                                    else Color(0xFF1A1A2E),
+                                                    color = if (isSelected) {
+                                                        Color.White
+                                                    } else if (day == "20") {
+                                                        Color(0xFFC2338F)
+                                                    } else if (isMutedDay) {
+                                                        Color(0xFFC9C3D1)
+                                                    } else {
+                                                        Color(0xFF1A1A2E)
+                                                    },
                                                 ),
                                             )
                                             if (hasDot) {
@@ -3139,7 +3197,7 @@ internal fun RenderChangeDateModalS84(
                 ) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                         RfIcon(kind = RfIconKind.CALENDAR, tint = Color(0xFF1A1A2E), size = 18.dp)
-                        BasicText("Vie 30 oct", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF1A1A2E)))
+                        BasicText("Vie $selectedDay oct", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF1A1A2E)))
                     }
                 }
                 Box(

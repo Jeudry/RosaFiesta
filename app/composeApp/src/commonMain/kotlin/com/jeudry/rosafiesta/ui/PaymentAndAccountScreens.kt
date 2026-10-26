@@ -30,11 +30,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import com.jeudry.rosafiesta.domain.CanonicalSampleData
-import com.jeudry.rosafiesta.domain.ClientEvent
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -43,16 +38,19 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jeudry.rosafiesta.designsystem.LocalRfTypography
@@ -66,6 +64,8 @@ import com.jeudry.rosafiesta.designsystem.rfHeroBannerShadow
 import com.jeudry.rosafiesta.designsystem.rfIconButtonShadow
 import com.jeudry.rosafiesta.designsystem.rfInputShadow
 import com.jeudry.rosafiesta.designsystem.rfPrimaryButtonShadow
+import com.jeudry.rosafiesta.domain.CanonicalSampleData
+import com.jeudry.rosafiesta.domain.ClientEvent
 
 private val PaymentBackgroundGradient = Brush.radialGradient(
     0.0f to Color(0xFFF9E3F1),
@@ -104,8 +104,8 @@ internal fun RenderQuoteHistoryScreenS49(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                                .verticalScroll(rememberScrollState())
-            .padding(start = 20.dp, end = 20.dp, top = 56.dp, bottom = 30.dp),
+                .verticalScroll(rememberScrollState())
+                .padding(start = 20.dp, end = 20.dp, top = 56.dp, bottom = 30.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             // Header
@@ -263,8 +263,11 @@ internal fun RenderQuoteHistoryScreenS49(
                                             .height(6.dp)
                                             .clip(RoundedCornerShape(3.dp))
                                             .background(
-                                                if (i <= item.activeSteps) item.stepColor
-                                                else Color(0xFFF1EFF5)
+                                                if (i <= item.activeSteps) {
+                                                    item.stepColor
+                                                } else {
+                                                    Color(0xFFF1EFF5)
+                                                },
                                             ),
                                     )
                                 }
@@ -434,8 +437,11 @@ internal fun RenderPaymentCheckoutScreenS50(
                                     .clip(RoundedCornerShape(16.dp))
                                     .background(Color.White)
                                     .then(
-                                        if (isSel) Modifier.border(2.dp, Color(0xFFB754CB), RoundedCornerShape(16.dp))
-                                        else Modifier.border(1.dp, Color(0xFFEEE9F2), RoundedCornerShape(16.dp))
+                                        if (isSel) {
+                                            Modifier.border(2.dp, Color(0xFFB754CB), RoundedCornerShape(16.dp))
+                                        } else {
+                                            Modifier.border(1.dp, Color(0xFFEEE9F2), RoundedCornerShape(16.dp))
+                                        },
                                     )
                                     .clickable { selectedMethod = idx }
                                     .padding(horizontal = 14.dp),
@@ -447,7 +453,13 @@ internal fun RenderPaymentCheckoutScreenS50(
                                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                                 ) {
                                     RfIcon(
-                                        kind = if (name == "Tarjeta") RfIconKind.WALLET else if (name == "Efectivo") RfIconKind.WALLET else RfIconKind.ORDERS,
+                                        kind = if (name == "Tarjeta") {
+                                            RfIconKind.WALLET
+                                        } else if (name == "Efectivo") {
+                                            RfIconKind.WALLET
+                                        } else {
+                                            RfIconKind.ORDERS
+                                        },
                                         tint = Color(0xFF1A1A2E),
                                         size = 20.dp,
                                     )
@@ -1566,6 +1578,7 @@ internal fun RenderUserProfileScreenS54(
                     }
                 }
                 ProfileDivider54()
+                var remindersEnabled by remember { mutableStateOf(true) }
                 Row(
                     modifier = Modifier.fillMaxWidth().heightIn(min = 54.dp).padding(horizontal = 16.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -1581,11 +1594,17 @@ internal fun RenderUserProfileScreenS54(
                             .width(50.dp)
                             .height(30.dp)
                             .clip(RoundedCornerShape(999.dp))
-                            .background(Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC))))
-                            .clickable { },
-                        contentAlignment = Alignment.CenterEnd,
+                            .background(
+                                if (remindersEnabled) {
+                                    Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))
+                                } else {
+                                    Brush.linearGradient(listOf(Color(0xFFE3DCE8), Color(0xFFE3DCE8)))
+                                },
+                            )
+                            .clickable { remindersEnabled = !remindersEnabled },
+                        contentAlignment = if (remindersEnabled) Alignment.CenterEnd else Alignment.CenterStart,
                     ) {
-                        Box(modifier = Modifier.padding(end = 3.dp).size(24.dp).clip(CircleShape).background(Color.White))
+                        Box(modifier = Modifier.padding(horizontal = 3.dp).size(24.dp).clip(CircleShape).background(Color.White))
                     }
                 }
                 ProfileDivider54()
@@ -1709,6 +1728,7 @@ internal fun RenderSuppliersScreenS55(
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
+    var searchQuery by remember { mutableStateOf("") }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Canvas(modifier = Modifier.fillMaxSize()) {
@@ -1762,7 +1782,7 @@ internal fun RenderSuppliersScreenS55(
                         .clickable { onSelectScreenCode("s56") },
                     contentAlignment = Alignment.Center,
                 ) {
-                    RfIcon(kind = RfIconKind.PLUS, tint = Color.White, size = 20.dp)
+                    RfIcon(kind = RfIconKind.PLUS, tint = Color(0xFFFFFFFF), size = 20.dp)
                 }
             }
             Spacer(modifier = Modifier.height(16.dp))
@@ -1779,7 +1799,18 @@ internal fun RenderSuppliersScreenS55(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 RfIcon(kind = RfIconKind.SEARCH, tint = Color(0xFF5F6377), size = 18.dp)
-                BasicText("Buscar proveedor", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF5F6377)))
+                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                    if (searchQuery.isEmpty()) {
+                        BasicText("Buscar proveedor", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF5F6377)))
+                    }
+                    BasicTextField(
+                        value = searchQuery,
+                        onValueChange = { updatedText -> searchQuery = updatedText },
+                        singleLine = true,
+                        textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF151729)),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
             }
             Spacer(modifier = Modifier.height(16.dp))
             Column(
@@ -1793,6 +1824,8 @@ internal fun RenderSuppliersScreenS55(
                     name = "Flores del Jarabacoa Premium",
                     contact = "Doña Carmen Polanco",
                     phone = "+1 809 555 2201",
+                    onEditClick = { onSelectScreenCode("s56") },
+                    onChatClick = { onSelectScreenCode("s42") },
                 )
                 SupplierCard55(
                     initial = "C",
@@ -1801,6 +1834,8 @@ internal fun RenderSuppliersScreenS55(
                     name = "Cristalería & Eventos Caribe",
                     contact = "Ing. Marcos Tavares",
                     phone = "+1 809 555 2202",
+                    onEditClick = { onSelectScreenCode("s56") },
+                    onChatClick = { onSelectScreenCode("s42") },
                 )
             }
             Spacer(modifier = Modifier.height(30.dp))
@@ -1816,6 +1851,8 @@ private fun SupplierCard55(
     name: String,
     contact: String,
     phone: String,
+    onEditClick: () -> Unit = {},
+    onChatClick: () -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
 
@@ -1843,7 +1880,7 @@ private fun SupplierCard55(
                 BasicText(contact, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF5F6377)))
             }
             Box(
-                modifier = Modifier.size(36.dp).clip(CircleShape).clickable { },
+                modifier = Modifier.size(36.dp).clip(CircleShape).clickable(onClick = onEditClick),
                 contentAlignment = Alignment.Center,
             ) {
                 RfIcon(kind = RfIconKind.MORE_VERT, tint = Color(0xFF5F6377), size = 20.dp)
@@ -1856,13 +1893,13 @@ private fun SupplierCard55(
                 style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Color(0xFF151729)),
             )
             Box(
-                modifier = Modifier.size(42.dp).clip(RoundedCornerShape(12.dp)).background(Color(0xFFEDEDF5)).clickable { },
+                modifier = Modifier.size(42.dp).clip(RoundedCornerShape(12.dp)).background(Color(0xFFEDEDF5)).clickable(onClick = onChatClick),
                 contentAlignment = Alignment.Center,
             ) {
                 RfIcon(kind = RfIconKind.PHONE, tint = Color(0xFF151729), size = 18.dp)
             }
             Box(
-                modifier = Modifier.size(42.dp).clip(RoundedCornerShape(12.dp)).background(Color(0xFFEEF6D6)).clickable { },
+                modifier = Modifier.size(42.dp).clip(RoundedCornerShape(12.dp)).background(Color(0xFFEEF6D6)).clickable(onClick = onChatClick),
                 contentAlignment = Alignment.Center,
             ) {
                 RfIcon(kind = RfIconKind.WHATSAPP, tint = Color(0xFF4E6A10), size = 18.dp)
@@ -1922,8 +1959,8 @@ internal fun RenderNewSupplierScreenS56(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                                        .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp),
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp),
             ) {
                 Spacer(modifier = Modifier.height(56.dp))
                 Row(
@@ -1977,6 +2014,7 @@ private fun AdminField56(
     required: Boolean = false,
 ) {
     val typo = LocalRfTypography.current
+    var textValue by remember { mutableStateOf("") }
 
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row {
@@ -2000,11 +2038,22 @@ private fun AdminField56(
             if (icon != null) {
                 RfIcon(kind = icon, tint = Color(0xFF5F6377), size = 18.dp)
             }
-            BasicText(
-                placeholder,
-                maxLines = 1,
-                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF5F6377)),
-            )
+            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                if (textValue.isEmpty()) {
+                    BasicText(
+                        placeholder,
+                        maxLines = 1,
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF5F6377)),
+                    )
+                }
+                BasicTextField(
+                    value = textValue,
+                    onValueChange = { updatedText -> textValue = updatedText },
+                    singleLine = true,
+                    textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF151729)),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         }
     }
 }
@@ -2012,6 +2061,7 @@ private fun AdminField56(
 @Composable
 private fun AdminNotes56() {
     val typo = LocalRfTypography.current
+    var notesValue by remember { mutableStateOf("") }
 
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         BasicText("Notas", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Color(0xFF151729)))
@@ -2025,9 +2075,17 @@ private fun AdminNotes56() {
                 .border(1.dp, Color(0xFFE3E4EF), RoundedCornerShape(14.dp))
                 .padding(start = 14.dp, end = 14.dp, top = 14.dp),
         ) {
-            BasicText(
-                "Condiciones, horarios, lo que ofrece…",
-                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF5F6377)),
+            if (notesValue.isEmpty()) {
+                BasicText(
+                    "Condiciones, horarios, lo que ofrece…",
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF5F6377)),
+                )
+            }
+            BasicTextField(
+                value = notesValue,
+                onValueChange = { updatedText -> notesValue = updatedText },
+                textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF151729)),
+                modifier = Modifier.fillMaxSize(),
             )
         }
     }
@@ -2418,6 +2476,8 @@ internal fun RenderOfficialReceiptScreenS83(
 ) {
     val typo = LocalRfTypography.current
     val profileName = viewModel?.profileName?.collectAsState()?.value ?: "Cliente Rosa Fiesta"
+    var receiptShared by remember { mutableStateOf(false) }
+    var pdfDownloaded by remember { mutableStateOf(false) }
 
     // Background: radial pink top-left + lavender top-right + #FAFAFC
     Box(
@@ -2429,8 +2489,8 @@ internal fun RenderOfficialReceiptScreenS83(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                                .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp),
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp),
         ) {
             Spacer(modifier = Modifier.height(54.dp))
 
@@ -2471,10 +2531,10 @@ internal fun RenderOfficialReceiptScreenS83(
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(Color.White)
-                        .clickable { },
+                        .clickable { receiptShared = !receiptShared },
                     contentAlignment = Alignment.Center,
                 ) {
-                    RfIcon(kind = RfIconKind.SEND, tint = Color(0xFF1A1A2E), size = 19.dp)
+                    RfIcon(kind = if (receiptShared) RfIconKind.CHECK else RfIconKind.SEND, tint = if (receiptShared) Color(0xFF4E6A10) else Color(0xFF1A1A2E), size = 19.dp)
                 }
             }
 
@@ -2634,12 +2694,12 @@ internal fun RenderOfficialReceiptScreenS83(
                     .clip(RoundedCornerShape(16.dp))
                     .background(Color.White)
                     .border(1.dp, Color(0xFFEEE9F2), RoundedCornerShape(16.dp))
-                    .clickable { },
+                    .clickable { receiptShared = !receiptShared },
                 contentAlignment = Alignment.Center,
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    RfIcon(kind = RfIconKind.SEND, tint = Color(0xFF1A1A2E), size = 18.dp)
-                    BasicText("Compartir", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF1A1A2E)))
+                    RfIcon(kind = if (receiptShared) RfIconKind.CHECK else RfIconKind.SEND, tint = if (receiptShared) Color(0xFF4E6A10) else Color(0xFF1A1A2E), size = 18.dp)
+                    BasicText(if (receiptShared) "Compartido" else "Compartir", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = if (receiptShared) Color(0xFF4E6A10) else Color(0xFF1A1A2E)))
                 }
             }
             // Descargar PDF — primary gradient
@@ -2650,12 +2710,12 @@ internal fun RenderOfficialReceiptScreenS83(
                     .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
                     .clip(RoundedCornerShape(16.dp))
                     .background(RosaButtonGradient)
-                    .clickable { },
+                    .clickable { pdfDownloaded = !pdfDownloaded },
                 contentAlignment = Alignment.Center,
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    RfIcon(kind = RfIconKind.DOWNLOAD, tint = Color.White, size = 18.dp)
-                    BasicText("Descargar PDF", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White))
+                    RfIcon(kind = if (pdfDownloaded) RfIconKind.CHECK else RfIconKind.DOWNLOAD, tint = Color.White, size = 18.dp)
+                    BasicText(if (pdfDownloaded) "PDF descargado" else "Descargar PDF", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White))
                 }
             }
         }

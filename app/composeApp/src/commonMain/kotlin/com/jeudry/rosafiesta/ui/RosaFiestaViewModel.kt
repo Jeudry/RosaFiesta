@@ -285,6 +285,11 @@ public class RosaFiestaViewModel(
             "Propuesta Rosa IA para ${_rosaGuestsCount.value} invitados (${_rosaPalette.value}): ${RosaFiestaEngine.formatDop(proposal.totalDop)}"
     }
 
+    public fun setRosaProposalMessage(message: String) {
+        soundPlayer.playRosaReply()
+        _rosaProposalMessage.value = message.trim()
+    }
+
     public fun setLoginEmail(value: String) {
         _loginEmail.value = value
         _formError.value = null

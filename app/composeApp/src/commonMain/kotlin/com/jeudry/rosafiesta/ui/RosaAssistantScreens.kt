@@ -24,6 +24,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -31,8 +32,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import com.jeudry.rosafiesta.domain.CanonicalSampleData
-import com.jeudry.rosafiesta.domain.CatalogArticle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,19 +43,16 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.graphics.PathEffect
-import kotlin.math.PI
-import kotlin.math.cos
-import kotlin.math.sin
-import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
@@ -66,9 +62,9 @@ import androidx.compose.ui.unit.sp
 import com.jeudry.rosafiesta.designsystem.LocalRfTypography
 import com.jeudry.rosafiesta.designsystem.RfIcon
 import com.jeudry.rosafiesta.designsystem.RfIconKind
-import com.jeudry.rosafiesta.designsystem.RfRadialBackgroundBox
 import com.jeudry.rosafiesta.designsystem.RfPhoto
 import com.jeudry.rosafiesta.designsystem.RfPhotoKey
+import com.jeudry.rosafiesta.designsystem.RfRadialBackgroundBox
 import com.jeudry.rosafiesta.designsystem.RosaAvatar
 import com.jeudry.rosafiesta.designsystem.RosaAvatarSize
 import com.jeudry.rosafiesta.designsystem.rfCardShadow
@@ -76,6 +72,11 @@ import com.jeudry.rosafiesta.designsystem.rfHeroBannerShadow
 import com.jeudry.rosafiesta.designsystem.rfIconButtonShadow
 import com.jeudry.rosafiesta.designsystem.rfInputShadow
 import com.jeudry.rosafiesta.designsystem.rfPrimaryButtonShadow
+import com.jeudry.rosafiesta.domain.CanonicalSampleData
+import com.jeudry.rosafiesta.domain.CatalogArticle
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
 
 // ==============================================================================
 // UTILIDADES COMPARTIDAS DE ROSA IA
@@ -271,8 +272,8 @@ internal fun RenderMyEventDraftS25(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                                .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp),
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp),
         ) {
             Spacer(modifier = Modifier.height(56.dp))
 
@@ -524,7 +525,6 @@ internal fun RenderMyEventDraftS25(
     }
 }
 
-
 // ==============================================================================
 // ==============================================================================
 // s26 · ROSA · TIPO DE EVENTO (PASO 1 DE 6)
@@ -532,30 +532,31 @@ internal fun RenderMyEventDraftS25(
 @Composable
 internal fun RenderRosaEventTypeS26(
     onSelectScreenCode: (String) -> Unit = {},
+    viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
+    val draftQuantities = viewModel?.draftQuantities?.collectAsState()?.value ?: mapOf("art-silla-tiffany" to 16)
+    val totalCartItems = draftQuantities.values.sum().coerceAtLeast(16)
+    var promptText by remember { mutableStateOf("") }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(RosaBackgroundGradient),
     ) {
-        // Decorative background stars & confetti
         Canvas(modifier = Modifier.fillMaxSize()) {
             drawCircle(color = Color(0xFFB9D84A), radius = 4.5f * density, center = Offset(318f * density, 168f * density))
             drawCircle(color = Color(0x33CFE48A), radius = 24f * density, center = Offset(40f * density, 700f * density))
         }
 
-        // Header
         RosaWizardHeader(
             step = 1,
             totalSteps = 6,
-            cartCount = 16,
+            cartCount = totalCartItems,
             onBack = { onSelectScreenCode("s18") },
             onCart = { onSelectScreenCode("s25") },
         )
 
-        // Main content
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -564,7 +565,6 @@ internal fun RenderRosaEventTypeS26(
             verticalArrangement = Arrangement.spacedBy(22.dp),
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                // Saludo Rosa
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -586,7 +586,6 @@ internal fun RenderRosaEventTypeS26(
                     }
                 }
 
-                // Título principal
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     BasicText(
                         text = "¿Qué evento quieres",
@@ -613,7 +612,6 @@ internal fun RenderRosaEventTypeS26(
                 }
             }
 
-            // 6 event types in 2 columns
             data class EventTypeItem(
                 val name: String,
                 val bg: Color,
@@ -648,95 +646,94 @@ internal fun RenderRosaEventTypeS26(
                                             Modifier.background(Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC))))
                                         } else {
                                             Modifier.background(item.bg)
-                                        }
+                                        },
                                     )
                                     .border(1.dp, Color.White.copy(alpha = 0.7f), RoundedCornerShape(20.dp))
-                                    .clickable { onSelectScreenCode("s27") }
+                                    .clickable {
+                                        viewModel?.updateRosaParameters(eventType = item.name)
+                                        viewModel?.setEventTypeInput(item.name)
+                                        onSelectScreenCode("s27")
+                                    }
                                     .padding(start = 14.dp, bottom = 12.dp, end = 14.dp),
                                 contentAlignment = Alignment.BottomStart,
                             ) {
-                                // SVG illustration at top-end
                                 Canvas(
                                     modifier = Modifier
                                         .size(88.dp)
                                         .align(Alignment.TopEnd)
                                         .offset(x = 4.dp, y = (-2).dp),
                                 ) {
-                                    val w = size.width; val h = size.height
+                                    val widthPx = size.width
+                                    val heightPx = size.height
                                     when (item.name) {
                                         "Boda" -> {
                                             val gold = Color(0xFFD9A441)
                                             val lightGold = Color(0xFFF0CC7A)
-                                            drawCircle(color = gold, radius = 17f * density, center = Offset(w * 0.45f, h * 0.65f), style = Stroke(width = 5f * density))
-                                            drawCircle(color = lightGold, radius = 17f * density, center = Offset(w * 0.65f, h * 0.67f), style = Stroke(width = 5f * density))
-                                            // Diamond
+                                            drawCircle(color = gold, radius = 17f * density, center = Offset(widthPx * 0.45f, heightPx * 0.65f), style = Stroke(width = 5f * density))
+                                            drawCircle(color = lightGold, radius = 17f * density, center = Offset(widthPx * 0.65f, heightPx * 0.67f), style = Stroke(width = 5f * density))
                                             val diamond = Path().apply {
-                                                moveTo(w * 0.40f, h * 0.42f)
-                                                lineTo(w * 0.45f, h * 0.35f)
-                                                lineTo(w * 0.50f, h * 0.42f)
-                                                lineTo(w * 0.45f, h * 0.50f)
+                                                moveTo(widthPx * 0.40f, heightPx * 0.42f)
+                                                lineTo(widthPx * 0.45f, heightPx * 0.35f)
+                                                lineTo(widthPx * 0.50f, heightPx * 0.42f)
+                                                lineTo(widthPx * 0.45f, heightPx * 0.50f)
                                                 close()
                                             }
                                             drawPath(diamond, color = Color(0xFFA8D8F5))
                                         }
+
                                         "Cumpleaños" -> {
-                                            // Cake base
-                                            drawRoundRect(color = Color(0xFFFFF6EE), topLeft = Offset(w * 0.28f, h * 0.50f), size = Size(w * 0.52f, h * 0.34f), cornerRadius = CornerRadius(5f * density))
-                                            // Pink frosting
-                                            drawRoundRect(color = Color(0xFFEC4F97), topLeft = Offset(w * 0.28f, h * 0.50f), size = Size(w * 0.52f, h * 0.12f), cornerRadius = CornerRadius(4f * density))
-                                            // Candles
-                                            drawLine(color = Color(0xFF7650E8), start = Offset(w * 0.38f, h * 0.50f), end = Offset(w * 0.38f, h * 0.36f), strokeWidth = 4f * density, cap = StrokeCap.Round)
-                                            drawLine(color = Color(0xFF4AA8E0), start = Offset(w * 0.52f, h * 0.50f), end = Offset(w * 0.52f, h * 0.32f), strokeWidth = 4f * density, cap = StrokeCap.Round)
-                                            drawLine(color = Color(0xFF2FB58F), start = Offset(w * 0.66f, h * 0.50f), end = Offset(w * 0.66f, h * 0.36f), strokeWidth = 4f * density, cap = StrokeCap.Round)
-                                            // Flames
-                                            drawCircle(color = Color(0xFFF5B53B), radius = 3.5f * density, center = Offset(w * 0.38f, h * 0.31f))
-                                            drawCircle(color = Color(0xFFF5B53B), radius = 4f * density, center = Offset(w * 0.52f, h * 0.27f))
-                                            drawCircle(color = Color(0xFFF5B53B), radius = 3.5f * density, center = Offset(w * 0.66f, h * 0.31f))
+                                            drawRoundRect(color = Color(0xFFFFF6EE), topLeft = Offset(widthPx * 0.28f, heightPx * 0.50f), size = Size(widthPx * 0.52f, heightPx * 0.34f), cornerRadius = CornerRadius(5f * density))
+                                            drawRoundRect(color = Color(0xFFEC4F97), topLeft = Offset(widthPx * 0.28f, heightPx * 0.50f), size = Size(widthPx * 0.52f, heightPx * 0.12f), cornerRadius = CornerRadius(4f * density))
+                                            drawLine(color = Color(0xFF7650E8), start = Offset(widthPx * 0.38f, heightPx * 0.50f), end = Offset(widthPx * 0.38f, heightPx * 0.36f), strokeWidth = 4f * density, cap = StrokeCap.Round)
+                                            drawLine(color = Color(0xFF4AA8E0), start = Offset(widthPx * 0.52f, heightPx * 0.50f), end = Offset(widthPx * 0.52f, heightPx * 0.32f), strokeWidth = 4f * density, cap = StrokeCap.Round)
+                                            drawLine(color = Color(0xFF2FB58F), start = Offset(widthPx * 0.66f, heightPx * 0.50f), end = Offset(widthPx * 0.66f, heightPx * 0.36f), strokeWidth = 4f * density, cap = StrokeCap.Round)
+                                            drawCircle(color = Color(0xFFF5B53B), radius = 3.5f * density, center = Offset(widthPx * 0.38f, heightPx * 0.31f))
+                                            drawCircle(color = Color(0xFFF5B53B), radius = 4f * density, center = Offset(widthPx * 0.52f, heightPx * 0.27f))
+                                            drawCircle(color = Color(0xFFF5B53B), radius = 3.5f * density, center = Offset(widthPx * 0.66f, heightPx * 0.31f))
                                         }
+
                                         "Baby shower" -> {
-                                            // Onesie body
                                             val onesie = Path().apply {
-                                                moveTo(w * 0.40f, h * 0.36f)
-                                                lineTo(w * 0.32f, h * 0.44f)
-                                                lineTo(w * 0.38f, h * 0.52f)
-                                                lineTo(w * 0.42f, h * 0.48f)
-                                                lineTo(w * 0.42f, h * 0.78f)
-                                                lineTo(w * 0.62f, h * 0.78f)
-                                                lineTo(w * 0.62f, h * 0.48f)
-                                                lineTo(w * 0.66f, h * 0.52f)
-                                                lineTo(w * 0.72f, h * 0.44f)
-                                                lineTo(w * 0.64f, h * 0.36f)
+                                                moveTo(widthPx * 0.40f, heightPx * 0.36f)
+                                                lineTo(widthPx * 0.32f, heightPx * 0.44f)
+                                                lineTo(widthPx * 0.38f, heightPx * 0.52f)
+                                                lineTo(widthPx * 0.42f, heightPx * 0.48f)
+                                                lineTo(widthPx * 0.42f, heightPx * 0.78f)
+                                                lineTo(widthPx * 0.62f, heightPx * 0.78f)
+                                                lineTo(widthPx * 0.62f, heightPx * 0.48f)
+                                                lineTo(widthPx * 0.66f, heightPx * 0.52f)
+                                                lineTo(widthPx * 0.72f, heightPx * 0.44f)
+                                                lineTo(widthPx * 0.64f, heightPx * 0.36f)
                                                 close()
                                             }
                                             drawPath(onesie, color = Color(0xFFA8D8F5))
-                                            // Star center
-                                            drawCircle(color = Color(0xFFF5B53B), radius = 5f * density, center = Offset(w * 0.52f, h * 0.55f))
+                                            drawCircle(color = Color(0xFFF5B53B), radius = 5f * density, center = Offset(widthPx * 0.52f, heightPx * 0.55f))
                                         }
+
                                         "Gender reveal" -> {
-                                            // Pink balloon
-                                            drawOval(color = Color(0xFFF9B6D3), topLeft = Offset(w * 0.26f, h * 0.30f), size = Size(w * 0.32f, h * 0.38f))
-                                            // Blue balloon
-                                            drawOval(color = Color(0xFFA8D8F5), topLeft = Offset(w * 0.52f, h * 0.34f), size = Size(w * 0.32f, h * 0.38f))
+                                            drawOval(color = Color(0xFFF9B6D3), topLeft = Offset(widthPx * 0.26f, heightPx * 0.30f), size = Size(widthPx * 0.32f, heightPx * 0.38f))
+                                            drawOval(color = Color(0xFFA8D8F5), topLeft = Offset(widthPx * 0.52f, heightPx * 0.34f), size = Size(widthPx * 0.32f, heightPx * 0.38f))
                                         }
+
                                         "Corporativo" -> {
                                             val glassColor = Color(0xFFD9A441)
-                                            drawLine(color = glassColor, start = Offset(w * 0.38f, h * 0.40f), end = Offset(w * 0.38f, h * 0.76f), strokeWidth = 2.5f * density)
-                                            drawLine(color = glassColor, start = Offset(w * 0.30f, h * 0.76f), end = Offset(w * 0.46f, h * 0.76f), strokeWidth = 2.5f * density)
-                                            drawLine(color = glassColor, start = Offset(w * 0.62f, h * 0.40f), end = Offset(w * 0.62f, h * 0.76f), strokeWidth = 2.5f * density)
-                                            drawLine(color = glassColor, start = Offset(w * 0.54f, h * 0.76f), end = Offset(w * 0.70f, h * 0.76f), strokeWidth = 2.5f * density)
-                                            drawCircle(color = Color(0xFFF5B53B), radius = 3f * density, center = Offset(w * 0.50f, h * 0.30f))
+                                            drawLine(color = glassColor, start = Offset(widthPx * 0.38f, heightPx * 0.40f), end = Offset(widthPx * 0.38f, heightPx * 0.76f), strokeWidth = 2.5f * density)
+                                            drawLine(color = glassColor, start = Offset(widthPx * 0.30f, heightPx * 0.76f), end = Offset(widthPx * 0.46f, heightPx * 0.76f), strokeWidth = 2.5f * density)
+                                            drawLine(color = glassColor, start = Offset(widthPx * 0.62f, heightPx * 0.40f), end = Offset(widthPx * 0.62f, heightPx * 0.76f), strokeWidth = 2.5f * density)
+                                            drawLine(color = glassColor, start = Offset(widthPx * 0.54f, heightPx * 0.76f), end = Offset(widthPx * 0.70f, heightPx * 0.76f), strokeWidth = 2.5f * density)
+                                            drawCircle(color = Color(0xFFF5B53B), radius = 3f * density, center = Offset(widthPx * 0.50f, heightPx * 0.30f))
                                         }
+
                                         "Otro" -> {
-                                            // Starburst
                                             val star = Path().apply {
-                                                moveTo(w * 0.50f, h * 0.28f)
-                                                lineTo(w * 0.58f, h * 0.48f)
-                                                lineTo(w * 0.78f, h * 0.52f)
-                                                lineTo(w * 0.58f, h * 0.56f)
-                                                lineTo(w * 0.50f, h * 0.76f)
-                                                lineTo(w * 0.42f, h * 0.56f)
-                                                lineTo(w * 0.22f, h * 0.52f)
-                                                lineTo(w * 0.42f, h * 0.48f)
+                                                moveTo(widthPx * 0.50f, heightPx * 0.28f)
+                                                lineTo(widthPx * 0.58f, heightPx * 0.48f)
+                                                lineTo(widthPx * 0.78f, heightPx * 0.52f)
+                                                lineTo(widthPx * 0.58f, heightPx * 0.56f)
+                                                lineTo(widthPx * 0.50f, heightPx * 0.76f)
+                                                lineTo(widthPx * 0.42f, heightPx * 0.56f)
+                                                lineTo(widthPx * 0.22f, heightPx * 0.52f)
+                                                lineTo(widthPx * 0.42f, heightPx * 0.48f)
                                                 close()
                                             }
                                             drawPath(star, color = Color.White.copy(alpha = 0.85f))
@@ -778,23 +775,51 @@ internal fun RenderRosaEventTypeS26(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                BasicText(
-                    text = "Escríbele a Rosa o habla…",
-                    style = TextStyle(
-                        fontFamily = typo.bodyFamily,
-                        fontSize = 15.sp,
-                        color = Color(0xFF62627A),
-                    ),
-                    modifier = Modifier.weight(1f),
-                )
+                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                    if (promptText.isEmpty()) {
+                        BasicText(
+                            text = "Escríbele a Rosa o habla…",
+                            style = TextStyle(
+                                fontFamily = typo.bodyFamily,
+                                fontSize = 15.sp,
+                                color = Color(0xFF62627A),
+                            ),
+                        )
+                    }
+                    BasicTextField(
+                        value = promptText,
+                        onValueChange = { updatedText -> promptText = updatedText },
+                        singleLine = true,
+                        textStyle = TextStyle(
+                            fontFamily = typo.bodyFamily,
+                            fontSize = 15.sp,
+                            color = Color(0xFF1A1A2E),
+                        ),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+                val hasPromptText = promptText.isNotBlank()
                 Box(
                     modifier = Modifier
                         .size(46.dp)
                         .clip(CircleShape)
-                        .background(Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))),
+                        .background(Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC))))
+                        .clickable {
+                            if (hasPromptText) {
+                                viewModel?.setRosaProposalMessage(promptText)
+                                promptText = ""
+                                onSelectScreenCode("s27")
+                            } else {
+                                onSelectScreenCode("s34")
+                            }
+                        },
                     contentAlignment = Alignment.Center,
                 ) {
-                    RfIcon(kind = RfIconKind.MIC, tint = Color.White, size = 22.dp)
+                    RfIcon(
+                        kind = if (hasPromptText) RfIconKind.SEND else RfIconKind.MIC,
+                        tint = Color.White,
+                        size = 22.dp,
+                    )
                 }
             }
         }
@@ -807,10 +832,12 @@ internal fun RenderRosaEventTypeS26(
 @Composable
 internal fun RenderRosaTutorialS27(
     onSelectScreenCode: (String) -> Unit = {},
+    viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
+    val selectedEventType = viewModel?.eventTypeInput?.collectAsState()?.value ?: "Boda"
+    var promptText by remember { mutableStateOf("") }
 
-    // Gradiente del botón primario (rosa → violeta → índigo)
     val pillGradient = Brush.linearGradient(
         listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)),
     )
@@ -823,20 +850,17 @@ internal fun RenderRosaTutorialS27(
             .fillMaxSize()
             .background(RosaBackgroundGradient),
     ) {
-        // ── Contenido principal ──────────────────────────────────────────────
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState()),
         ) {
-            // Header: Paso 1 de 6
             RosaWizardHeader(
                 step = 1,
                 onBack = { onSelectScreenCode("s26") },
                 onCart = { onSelectScreenCode("s25") },
             )
 
-            // Gap entre header y contenido (top=128dp → header ~108dp → gap≈20dp)
             Spacer(modifier = Modifier.height(20.dp))
 
             Column(
@@ -845,7 +869,6 @@ internal fun RenderRosaTutorialS27(
                     .padding(horizontal = 20.dp),
                 verticalArrangement = Arrangement.spacedBy(22.dp),
             ) {
-                // 1. Pill "Boda" alineado a la derecha (burbuja de usuario)
                 Box(modifier = Modifier.fillMaxWidth()) {
                     Box(
                         modifier = Modifier
@@ -867,7 +890,7 @@ internal fun RenderRosaTutorialS27(
                         ) {
                             RfIcon(kind = RfIconKind.RING, tint = Color.White, size = 18.dp)
                             BasicText(
-                                text = "Boda",
+                                text = selectedEventType,
                                 style = TextStyle(
                                     fontFamily = typo.bodyFamily,
                                     fontWeight = FontWeight.Bold,
@@ -879,11 +902,10 @@ internal fun RenderRosaTutorialS27(
                     }
                 }
 
-                // 2. Avatar + Título "¡Una boda! Me encanta."
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     RosaAvatar(size = RosaAvatarSize.MEDIUM, forceAdminPalette = false)
                     BasicText(
-                        text = "¡Una boda! Me encanta.",
+                        text = "¡Una ${selectedEventType.lowercase()}! Me encanta.",
                         style = TextStyle(
                             fontFamily = typo.displayFamily,
                             fontWeight = FontWeight.ExtraBold,
@@ -894,7 +916,6 @@ internal fun RenderRosaTutorialS27(
                     )
                 }
 
-                // 3. Card "Antes de empezar"
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -904,7 +925,6 @@ internal fun RenderRosaTutorialS27(
                         .padding(20.dp),
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                        // Label uppercase
                         BasicText(
                             text = "ANTES DE EMPEZAR",
                             style = TextStyle(
@@ -915,7 +935,6 @@ internal fun RenderRosaTutorialS27(
                                 color = Color(0xFF7A4FD8),
                             ),
                         )
-                        // Body con negritas
                         BasicText(
                             text = buildAnnotatedString {
                                 append("Cuando quieras darme más detalles, ")
@@ -931,7 +950,6 @@ internal fun RenderRosaTutorialS27(
                                 color = Color(0xFF1A1A2E),
                             ),
                         )
-                        // Botón "Entendido" alineado a la izquierda
                         Box(
                             modifier = Modifier
                                 .align(Alignment.Start)
@@ -956,12 +974,10 @@ internal fun RenderRosaTutorialS27(
                     }
                 }
 
-                // Espacio final antes del input pill (el input es absolute)
                 Spacer(modifier = Modifier.height(140.dp))
             }
         }
 
-        // ── Flecha dashed decorativa (posición absoluta derecha) ─────────────
         Canvas(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
@@ -974,13 +990,15 @@ internal fun RenderRosaTutorialS27(
                 floatArrayOf(6f * scaleX, 7f * scaleX),
             )
             val strokeColor = Color(0xFF865DEC)
-            // Curva principal
             val curvePath = Path().apply {
                 moveTo(20f * scaleX, 10f * scaleY)
                 cubicTo(
-                    70f * scaleX, 30f * scaleY,
-                    110f * scaleX, 80f * scaleY,
-                    106f * scaleX, 150f * scaleY,
+                    70f * scaleX,
+                    30f * scaleY,
+                    110f * scaleX,
+                    80f * scaleY,
+                    106f * scaleX,
+                    150f * scaleY,
                 )
             }
             drawPath(
@@ -992,7 +1010,6 @@ internal fun RenderRosaTutorialS27(
                     pathEffect = dashEffect,
                 ),
             )
-            // Punta de flecha
             val arrowPath = Path().apply {
                 moveTo(94f * scaleX, 140f * scaleY)
                 lineTo(106f * scaleX, 158f * scaleY)
@@ -1008,7 +1025,6 @@ internal fun RenderRosaTutorialS27(
             )
         }
 
-        // ── Input pill inferior (posición absoluta) ──────────────────────────
         Row(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -1023,46 +1039,69 @@ internal fun RenderRosaTutorialS27(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            BasicText(
-                text = "Escríbele a Rosa o habla…",
-                modifier = Modifier.weight(1f),
-                style = TextStyle(
-                    fontFamily = typo.bodyFamily,
-                    fontSize = 15.sp,
-                    color = Color(0xFF9E9AB5),
-                ),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            // Botón mic con doble halo pulsante
+            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                if (promptText.isEmpty()) {
+                    BasicText(
+                        text = "Escríbele a Rosa o habla…",
+                        style = TextStyle(
+                            fontFamily = typo.bodyFamily,
+                            fontSize = 15.sp,
+                            color = Color(0xFF9E9AB5),
+                        ),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                BasicTextField(
+                    value = promptText,
+                    onValueChange = { updatedText -> promptText = updatedText },
+                    singleLine = true,
+                    textStyle = TextStyle(
+                        fontFamily = typo.bodyFamily,
+                        fontSize = 15.sp,
+                        color = Color(0xFF1A1A2E),
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            val hasPromptText = promptText.isNotBlank()
             Box(
                 modifier = Modifier.size(46.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                // Halo exterior (radio 12dp → opacidad 8%)
                 Box(
                     modifier = Modifier
                         .size(46.dp + 24.dp)
                         .clip(CircleShape)
                         .background(Color(0xFFEA4EA9).copy(alpha = 0.08f)),
                 )
-                // Halo interior (radio 6dp → opacidad 16%)
                 Box(
                     modifier = Modifier
                         .size(46.dp + 12.dp)
                         .clip(CircleShape)
                         .background(Color(0xFFEA4EA9).copy(alpha = 0.16f)),
                 )
-                // Botón mic
                 Box(
                     modifier = Modifier
                         .size(46.dp)
                         .clip(CircleShape)
                         .background(micGradient)
-                        .clickable { onSelectScreenCode("s35") },
+                        .clickable {
+                            if (hasPromptText) {
+                                viewModel?.setRosaProposalMessage(promptText)
+                                promptText = ""
+                                onSelectScreenCode("s28")
+                            } else {
+                                onSelectScreenCode("s35")
+                            }
+                        },
                     contentAlignment = Alignment.Center,
                 ) {
-                    RfIcon(kind = RfIconKind.MIC, tint = Color.White, size = 22.dp)
+                    RfIcon(
+                        kind = if (hasPromptText) RfIconKind.SEND else RfIconKind.MIC,
+                        tint = Color.White,
+                        size = 22.dp,
+                    )
                 }
             }
         }
@@ -1075,8 +1114,11 @@ internal fun RenderRosaTutorialS27(
 @Composable
 internal fun RenderRosaHelpS28(
     onSelectScreenCode: (String) -> Unit = {},
+    viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
+    val selectedEventType = viewModel?.eventTypeInput?.collectAsState()?.value ?: "Boda"
+    var promptText by remember { mutableStateOf("") }
 
     Box(
         modifier = Modifier
@@ -1092,7 +1134,6 @@ internal fun RenderRosaHelpS28(
                 ),
             ),
     ) {
-        // Header
         Row(
             modifier = Modifier
                 .align(Alignment.TopCenter)
@@ -1186,7 +1227,6 @@ internal fun RenderRosaHelpS28(
             }
         }
 
-        // Conversation bubble + Rosa heading
         Column(
             modifier = Modifier
                 .align(Alignment.TopStart)
@@ -1208,7 +1248,7 @@ internal fun RenderRosaHelpS28(
                 ) {
                     RfIcon(kind = RfIconKind.RING, tint = Color.White, size = 18.dp)
                     BasicText(
-                        text = "Boda",
+                        text = selectedEventType,
                         style = TextStyle(
                             fontFamily = typo.bodyFamily,
                             fontSize = 15.sp,
@@ -1233,7 +1273,7 @@ internal fun RenderRosaHelpS28(
                     ),
                 )
                 BasicText(
-                    text = "Te recomiendo según tu boda. Puedes cambiar todo después.",
+                    text = "Te recomiendo según tu ${selectedEventType.lowercase()}. Puedes cambiar todo después.",
                     style = TextStyle(
                         fontFamily = typo.bodyFamily,
                         fontSize = 16.sp,
@@ -1244,7 +1284,6 @@ internal fun RenderRosaHelpS28(
             }
         }
 
-        // Options Buttons
         Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -1252,7 +1291,6 @@ internal fun RenderRosaHelpS28(
                 .padding(start = 20.dp, end = 20.dp, bottom = 116.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            // Option 1
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1279,7 +1317,6 @@ internal fun RenderRosaHelpS28(
                 RfIcon(kind = RfIconKind.ARROW_RIGHT, tint = Color.White, size = 20.dp)
             }
 
-            // Option 2
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1306,7 +1343,6 @@ internal fun RenderRosaHelpS28(
             }
         }
 
-        // Bottom Input Bar
         Row(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -1320,23 +1356,51 @@ internal fun RenderRosaHelpS28(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            BasicText(
-                text = "Escríbele a Rosa o habla…",
-                style = TextStyle(
-                    fontFamily = typo.bodyFamily,
-                    fontSize = 15.sp,
-                    color = Color(0xFF62627A),
-                ),
-                modifier = Modifier.weight(1f),
-            )
+            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                if (promptText.isEmpty()) {
+                    BasicText(
+                        text = "Escríbele a Rosa o habla…",
+                        style = TextStyle(
+                            fontFamily = typo.bodyFamily,
+                            fontSize = 15.sp,
+                            color = Color(0xFF62627A),
+                        ),
+                    )
+                }
+                BasicTextField(
+                    value = promptText,
+                    onValueChange = { updatedText -> promptText = updatedText },
+                    singleLine = true,
+                    textStyle = TextStyle(
+                        fontFamily = typo.bodyFamily,
+                        fontSize = 15.sp,
+                        color = Color(0xFF1A1A2E),
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            val hasPromptText = promptText.isNotBlank()
             Box(
                 modifier = Modifier
                     .size(46.dp)
                     .clip(CircleShape)
-                    .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)))),
+                    .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))))
+                    .clickable {
+                        if (hasPromptText) {
+                            viewModel?.setRosaProposalMessage(promptText)
+                            promptText = ""
+                            onSelectScreenCode("s29")
+                        } else {
+                            onSelectScreenCode("s35")
+                        }
+                    },
                 contentAlignment = Alignment.Center,
             ) {
-                RfIcon(kind = RfIconKind.MIC, tint = Color.White, size = 22.dp)
+                RfIcon(
+                    kind = if (hasPromptText) RfIconKind.SEND else RfIconKind.MIC,
+                    tint = Color.White,
+                    size = 22.dp,
+                )
             }
         }
     }
@@ -1345,11 +1409,42 @@ internal fun RenderRosaHelpS28(
 // ==============================================================================
 // s29 · ROSA · SUGERENCIAS DE PAQUETES (PASO 3 DE 6)
 // ==============================================================================
+private data class RosaSuggestedArticleUi(
+    val articleId: String,
+    val title: String,
+    val subtitle: String,
+    val priceDop: Int,
+    val photoKey: RfPhotoKey,
+    val photoBg: Color,
+)
+
 @Composable
 internal fun RenderRosaSuggestionsS29(
     onSelectScreenCode: (String) -> Unit = {},
+    viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
+    val selectedEventType = viewModel?.eventTypeInput?.collectAsState()?.value ?: "Boda"
+    var suggestionBatch by remember { mutableStateOf(0) }
+    var addedArticleIds by remember { mutableStateOf(setOf("art-centro-floral")) }
+    var promptText by remember { mutableStateOf("") }
+
+    val primarySuggestions = remember {
+        listOf(
+            RosaSuggestedArticleUi("art-centro-floral", "Centro de mesa floral", "Flores naturales, base de madera", 35, RfPhotoKey.CENTRO_FLORAL, Color(0xFFFFF2C9)),
+            RosaSuggestedArticleUi("art-mesa-helados", "Mesa dulce temática", "Decoración completa para dulces", 150, RfPhotoKey.MESA_HELADOS, Color(0xFFEEF6D6)),
+            RosaSuggestedArticleUi("art-arco-rosa", "Arco de globos", "Rosa y nude, para la entrada", 95, RfPhotoKey.ARCO_ROSA, Color(0xFFFDE6F2)),
+        )
+    }
+    val alternateSuggestions = remember {
+        listOf(
+            RosaSuggestedArticleUi("art-silla-tiffany", "Silla Tiffany Cristal", "Acabado transparente de lujo", 8, RfPhotoKey.SILLA_TIFFANY, Color(0xFFEFE8FD)),
+            RosaSuggestedArticleUi("art-mesa-redonda", "Mesa redonda 10p", "Madera sólida para banquete", 25, RfPhotoKey.MESA_REDONDA, Color(0xFFDDF4F3)),
+            RosaSuggestedArticleUi("art-mesa-plegable", "Mesa de apoyo", "Ideal para estación de bebidas", 15, RfPhotoKey.MESA_PLEGABLE, Color(0xFFFFF2C9)),
+        )
+    }
+    val displayedSuggestions = if (suggestionBatch % 2 == 0) primarySuggestions else alternateSuggestions
+    val totalCartBadge = 16 + addedArticleIds.size
 
     Box(
         modifier = Modifier
@@ -1364,7 +1459,7 @@ internal fun RenderRosaSuggestionsS29(
         ) {
             RosaWizardHeader(
                 step = 3,
-                cartCount = 17,
+                cartCount = totalCartBadge,
                 onBack = { onSelectScreenCode("s28") },
                 onCart = { onSelectScreenCode("s25") },
             )
@@ -1377,15 +1472,14 @@ internal fun RenderRosaSuggestionsS29(
                     .padding(horizontal = 20.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                // Rosa Avatar
                 Box(
                     modifier = Modifier
                         .size(40.dp)
                         .clip(CircleShape)
                         .background(
                             Brush.linearGradient(
-                                listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))
-                            )
+                                listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)),
+                            ),
                         ),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -1393,7 +1487,7 @@ internal fun RenderRosaSuggestionsS29(
                 }
 
                 BasicText(
-                    text = "Para tu boda te recomiendo estos artículos",
+                    text = "Para tu ${selectedEventType.lowercase()} te recomiendo estos artículos",
                     style = TextStyle(
                         fontFamily = typo.displayFamily,
                         fontWeight = FontWeight.ExtraBold,
@@ -1407,7 +1501,6 @@ internal fun RenderRosaSuggestionsS29(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Horizontal card row
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1415,143 +1508,91 @@ internal fun RenderRosaSuggestionsS29(
                     .padding(horizontal = 20.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                // Card 1: Centro de mesa floral
-                Box(
-                    modifier = Modifier
-                        .width(208.dp)
-                        .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = false)
-                        .clip(RoundedCornerShape(22.dp))
-                        .background(Color.White),
-                ) {
-                    Column {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(150.dp)
-                                .background(Color(0xFFFFF2C9)),
-                        ) {
-                            RfPhoto(photoKey = RfPhotoKey.CENTRO_FLORAL, contentDescription = "Centro floral", cornerRadius = 0.dp, modifier = Modifier.fillMaxSize())
-                        }
-                        Column(
-                            modifier = Modifier.padding(14.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp),
-                        ) {
-                            BasicText("Centro de mesa floral", maxLines = 1, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF1A1A2E)))
-                            BasicText("Flores naturales, base de madera", maxLines = 1, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF62627A)))
-                            Spacer(Modifier.height(6.dp))
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically,
+                displayedSuggestions.forEach { suggestion ->
+                    val isAdded = suggestion.articleId in addedArticleIds
+                    Box(
+                        modifier = Modifier
+                            .width(208.dp)
+                            .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = false)
+                            .clip(RoundedCornerShape(22.dp))
+                            .background(Color.White),
+                    ) {
+                        Column {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(150.dp)
+                                    .background(suggestion.photoBg),
                             ) {
-                                BasicText("RD$ 35", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 19.sp, color = Color(0xFF1A1A2E)))
-                                Row(
-                                    modifier = Modifier
-                                        .height(36.dp)
-                                        .clip(CircleShape)
-                                        .background(Color(0xFFEEF6D6))
-                                        .padding(horizontal = 12.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    RfIcon(kind = RfIconKind.CHECK, tint = Color(0xFF4E6A10), size = 16.dp)
-                                    BasicText("Agregado", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF4E6A10)))
-                                }
+                                RfPhoto(
+                                    photoKey = suggestion.photoKey,
+                                    contentDescription = suggestion.title,
+                                    cornerRadius = 0.dp,
+                                    modifier = Modifier.fillMaxSize(),
+                                )
                             }
-                        }
-                    }
-                }
-
-                // Card 2: Mesa dulce temática
-                Box(
-                    modifier = Modifier
-                        .width(208.dp)
-                        .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = false)
-                        .clip(RoundedCornerShape(22.dp))
-                        .background(Color.White),
-                ) {
-                    Column {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(150.dp)
-                                .background(Color(0xFFEEF6D6)),
-                        ) {
-                            RfPhoto(photoKey = RfPhotoKey.MESA_HELADOS, contentDescription = "Mesa dulce", cornerRadius = 0.dp, modifier = Modifier.fillMaxSize())
-                        }
-                        Column(
-                            modifier = Modifier.padding(14.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp),
-                        ) {
-                            BasicText("Mesa dulce temática", maxLines = 1, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF1A1A2E)))
-                            BasicText("Decoración completa para dulces", maxLines = 1, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF62627A)))
-                            Spacer(Modifier.height(6.dp))
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically,
+                            Column(
+                                modifier = Modifier.padding(14.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp),
                             ) {
-                                BasicText("RD$ 150", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 19.sp, color = Color(0xFF1A1A2E)))
+                                BasicText(
+                                    text = suggestion.title,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF1A1A2E)),
+                                )
+                                BasicText(
+                                    text = suggestion.subtitle,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF62627A)),
+                                )
+                                Spacer(Modifier.height(6.dp))
                                 Row(
-                                    modifier = Modifier
-                                        .height(36.dp)
-                                        .shadow(8.dp, CircleShape, spotColor = Color(0xB3865DEC))
-                                        .clip(CircleShape)
-                                        .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))))
-                                        .padding(horizontal = 14.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
-                                    RfIcon(kind = RfIconKind.PLUS, tint = Color.White, size = 16.dp)
-                                    BasicText("Agregar", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White))
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Card 3: Arco de globos
-                Box(
-                    modifier = Modifier
-                        .width(208.dp)
-                        .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = false)
-                        .clip(RoundedCornerShape(22.dp))
-                        .background(Color.White),
-                ) {
-                    Column {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(150.dp)
-                                .background(Color(0xFFFDE6F2)),
-                        ) {
-                            RfPhoto(photoKey = RfPhotoKey.ARCO_ROSA, contentDescription = "Arco de globos", cornerRadius = 0.dp, modifier = Modifier.fillMaxSize())
-                        }
-                        Column(
-                            modifier = Modifier.padding(14.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp),
-                        ) {
-                            BasicText("Arco de globos", maxLines = 1, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF1A1A2E)))
-                            BasicText("Rosa y nude, para la entrada", maxLines = 1, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF62627A)))
-                            Spacer(Modifier.height(6.dp))
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                BasicText("RD$ 95", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 19.sp, color = Color(0xFF1A1A2E)))
-                                Row(
-                                    modifier = Modifier
-                                        .height(36.dp)
-                                        .shadow(8.dp, CircleShape, spotColor = Color(0xB3865DEC))
-                                        .clip(CircleShape)
-                                        .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))))
-                                        .padding(horizontal = 14.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    RfIcon(kind = RfIconKind.PLUS, tint = Color.White, size = 16.dp)
-                                    BasicText("Agregar", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White))
+                                    BasicText(
+                                        text = "RD$ ${suggestion.priceDop}",
+                                        style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 19.sp, color = Color(0xFF1A1A2E)),
+                                    )
+                                    if (isAdded) {
+                                        Row(
+                                            modifier = Modifier
+                                                .height(36.dp)
+                                                .clip(CircleShape)
+                                                .background(Color(0xFFEEF6D6))
+                                                .clickable {
+                                                    addedArticleIds = addedArticleIds - suggestion.articleId
+                                                    viewModel?.adjustDraftQuantity(suggestion.articleId, -1)
+                                                }
+                                                .padding(horizontal = 12.dp),
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                        ) {
+                                            RfIcon(kind = RfIconKind.CHECK, tint = Color(0xFF4E6A10), size = 16.dp)
+                                            BasicText("Agregado", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF4E6A10)))
+                                        }
+                                    } else {
+                                        Row(
+                                            modifier = Modifier
+                                                .height(36.dp)
+                                                .shadow(8.dp, CircleShape, spotColor = Color(0xB3865DEC))
+                                                .clip(CircleShape)
+                                                .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))))
+                                                .clickable {
+                                                    addedArticleIds = addedArticleIds + suggestion.articleId
+                                                    viewModel?.adjustDraftQuantity(suggestion.articleId, 1)
+                                                }
+                                                .padding(horizontal = 14.dp),
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                        ) {
+                                            RfIcon(kind = RfIconKind.PLUS, tint = Color.White, size = 16.dp)
+                                            BasicText("Agregar", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White))
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -1560,7 +1601,6 @@ internal fun RenderRosaSuggestionsS29(
             }
         }
 
-        // Bottom action buttons (top of bottom bar)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -1575,7 +1615,7 @@ internal fun RenderRosaSuggestionsS29(
                     .rfCardShadow(RoundedCornerShape(16.dp), isAdmin = false)
                     .clip(RoundedCornerShape(16.dp))
                     .background(Color.White)
-                    .clickable { /* refresh suggestions */ },
+                    .clickable { suggestionBatch += 1 },
                 contentAlignment = Alignment.Center,
             ) {
                 BasicText(
@@ -1600,7 +1640,6 @@ internal fun RenderRosaSuggestionsS29(
             }
         }
 
-        // Bottom input pill
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -1618,20 +1657,43 @@ internal fun RenderRosaSuggestionsS29(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                BasicText(
-                    text = "Pide algo distinto…",
-                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF62627A)),
-                )
+                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                    if (promptText.isEmpty()) {
+                        BasicText(
+                            text = "Pide algo distinto…",
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF62627A)),
+                        )
+                    }
+                    BasicTextField(
+                        value = promptText,
+                        onValueChange = { updatedText -> promptText = updatedText },
+                        singleLine = true,
+                        textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF1A1A2E)),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+                val hasPromptText = promptText.isNotBlank()
                 Box(
                     modifier = Modifier
                         .size(46.dp)
                         .shadow(8.dp, CircleShape, spotColor = Color(0xB3865DEC))
                         .clip(CircleShape)
                         .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))))
-                        .clickable { onSelectScreenCode("s35") },
+                        .clickable {
+                            if (hasPromptText) {
+                                suggestionBatch += 1
+                                promptText = ""
+                            } else {
+                                onSelectScreenCode("s35")
+                            }
+                        },
                     contentAlignment = Alignment.Center,
                 ) {
-                    RfIcon(kind = RfIconKind.MIC, tint = Color.White, size = 22.dp)
+                    RfIcon(
+                        kind = if (hasPromptText) RfIconKind.SEND else RfIconKind.MIC,
+                        tint = Color.White,
+                        size = 22.dp,
+                    )
                 }
             }
         }
@@ -1641,11 +1703,42 @@ internal fun RenderRosaSuggestionsS29(
 // ==============================================================================
 // s30 · ROSA · CATEGORÍAS (PASO 4 DE 6)
 // ==============================================================================
+private data class RosaCategoryReviewSpec(
+    val title: String,
+    val defaultSubtitle: String?,
+    val iconKind: RfIconKind,
+    val iconBg: Color,
+    val iconTint: Color,
+    val articleId: String,
+)
+
 @Composable
 internal fun RenderRosaCategoriesS30(
     onSelectScreenCode: (String) -> Unit = {},
+    viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
+    var chosenCategories by remember { mutableStateOf(setOf("Sillas", "Mesas")) }
+    var omittedCategories by remember { mutableStateOf(emptySet<String>()) }
+    var showExtraIdeas by remember { mutableStateOf(false) }
+    var promptText by remember { mutableStateOf("") }
+
+    val baseCategories = remember {
+        listOf(
+            RosaCategoryReviewSpec("Sillas", "2 elegidas", RfIconKind.STORE, Color(0xFFFFF2C9), Color(0xFF7A5700), "art-silla-tiffany"),
+            RosaCategoryReviewSpec("Mesas", "1 elegida", RfIconKind.BOX, Color(0xFFEEF6D6), Color(0xFF4E6A10), "art-mesa-redonda"),
+            RosaCategoryReviewSpec("Iluminación", null, RfIconKind.LIGHTBULB, Color(0xFFDDF4F3), Color(0xFF1F8A84), "art-arco-rosa"),
+            RosaCategoryReviewSpec("Mantelería", null, RfIconKind.GRID, Color(0xFFEFE8FD), Color(0xFF7A4FD8), "art-mesa-plegable"),
+            RosaCategoryReviewSpec("Centros de mesa", null, RfIconKind.SPARK, Color(0xFFFDE6F2), Color(0xFFC2338F), "art-centro-floral"),
+        )
+    }
+    val extraCategories = remember {
+        listOf(
+            RosaCategoryReviewSpec("Estación de dulces", null, RfIconKind.CAKE, Color(0xFFFFF2C9), Color(0xFF7A5700), "art-mesa-helados"),
+        )
+    }
+    val displayedCategories = if (showExtraIdeas) baseCategories + extraCategories else baseCategories
+    val badgeCount = 15 + chosenCategories.size
 
     Box(
         modifier = Modifier
@@ -1661,7 +1754,6 @@ internal fun RenderRosaCategoriesS30(
                 ),
             ),
     ) {
-        // Header
         Row(
             modifier = Modifier
                 .align(Alignment.TopCenter)
@@ -1744,7 +1836,7 @@ internal fun RenderRosaCategoriesS30(
                     contentAlignment = Alignment.Center,
                 ) {
                     BasicText(
-                        text = "17",
+                        text = "$badgeCount",
                         style = TextStyle(
                             fontSize = 11.sp,
                             fontWeight = FontWeight.ExtraBold,
@@ -1755,7 +1847,6 @@ internal fun RenderRosaCategoriesS30(
             }
         }
 
-        // Content
         Column(
             modifier = Modifier
                 .align(Alignment.TopStart)
@@ -1778,7 +1869,6 @@ internal fun RenderRosaCategoriesS30(
                 )
             }
 
-            // Categories list card
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1786,63 +1876,42 @@ internal fun RenderRosaCategoriesS30(
                     .background(Color.White)
                     .padding(vertical = 6.dp),
             ) {
-                // Sillas
-                CategoryReviewRow(
-                    title = "Sillas",
-                    subtitle = "2 elegidas",
-                    iconKind = RfIconKind.STORE,
-                    iconBg = Color(0xFFFFF2C9),
-                    iconTint = Color(0xFF7A5700),
-                    isChosen = true,
-                )
-                Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFF2F0F5)))
-
-                // Mesas
-                CategoryReviewRow(
-                    title = "Mesas",
-                    subtitle = "1 elegida",
-                    iconKind = RfIconKind.BOX,
-                    iconBg = Color(0xFFEEF6D6),
-                    iconTint = Color(0xFF4E6A10),
-                    isChosen = true,
-                )
-                Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFF2F0F5)))
-
-                // Iluminación
-                CategoryReviewRow(
-                    title = "Iluminación",
-                    subtitle = null,
-                    iconKind = RfIconKind.LIGHTBULB,
-                    iconBg = Color(0xFFDDF4F3),
-                    iconTint = Color(0xFF1F8A84),
-                    isChosen = false,
-                )
-                Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFF2F0F5)))
-
-                // Mantelería
-                CategoryReviewRow(
-                    title = "Mantelería",
-                    subtitle = null,
-                    iconKind = RfIconKind.GRID,
-                    iconBg = Color(0xFFEFE8FD),
-                    iconTint = Color(0xFF7A4FD8),
-                    isChosen = false,
-                )
-                Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFF2F0F5)))
-
-                // Centros de mesa
-                CategoryReviewRow(
-                    title = "Centros de mesa",
-                    subtitle = null,
-                    iconKind = RfIconKind.SPARK,
-                    iconBg = Color(0xFFFDE6F2),
-                    iconTint = Color(0xFFC2338F),
-                    isChosen = false,
-                )
+                displayedCategories.forEachIndexed { index, category ->
+                    if (index > 0) {
+                        Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFF2F0F5)))
+                    }
+                    val isChosen = category.title in chosenCategories
+                    val isOmitted = category.title in omittedCategories
+                    val resolvedSubtitle = when {
+                        isChosen -> category.defaultSubtitle ?: "1 elegida"
+                        isOmitted -> "Omitida"
+                        else -> null
+                    }
+                    CategoryReviewRow(
+                        title = category.title,
+                        subtitle = resolvedSubtitle,
+                        iconKind = category.iconKind,
+                        iconBg = category.iconBg,
+                        iconTint = category.iconTint,
+                        isChosen = isChosen,
+                        isOmitted = isOmitted,
+                        onOmit = {
+                            omittedCategories = omittedCategories + category.title
+                            chosenCategories = chosenCategories - category.title
+                        },
+                        onChoose = {
+                            chosenCategories = chosenCategories + category.title
+                            omittedCategories = omittedCategories - category.title
+                            viewModel?.adjustDraftQuantity(category.articleId, 1)
+                        },
+                        onToggleChosen = {
+                            chosenCategories = chosenCategories - category.title
+                        },
+                    )
+                }
             }
         }
 
-        // Bottom CTA Buttons
         Row(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -1857,11 +1926,14 @@ internal fun RenderRosaCategoriesS30(
                     .rfCardShadow(RoundedCornerShape(16.dp), isAdmin = false)
                     .clip(RoundedCornerShape(16.dp))
                     .background(Color.White)
-                    .clickable { },
+                    .clickable {
+                        showExtraIdeas = !showExtraIdeas
+                        omittedCategories = emptySet()
+                    },
                 contentAlignment = Alignment.Center,
             ) {
                 BasicText(
-                    text = "Más ideas",
+                    text = if (showExtraIdeas) "Ver menos" else "Más ideas",
                     style = TextStyle(
                         fontFamily = typo.bodyFamily,
                         fontSize = 16.sp,
@@ -1893,7 +1965,6 @@ internal fun RenderRosaCategoriesS30(
             }
         }
 
-        // Bottom Input Bar
         Row(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -1907,23 +1978,50 @@ internal fun RenderRosaCategoriesS30(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            BasicText(
-                text = "Escríbele a Rosa o habla…",
-                style = TextStyle(
-                    fontFamily = typo.bodyFamily,
-                    fontSize = 15.sp,
-                    color = Color(0xFF62627A),
-                ),
-                modifier = Modifier.weight(1f),
-            )
+            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                if (promptText.isEmpty()) {
+                    BasicText(
+                        text = "Escríbele a Rosa o habla…",
+                        style = TextStyle(
+                            fontFamily = typo.bodyFamily,
+                            fontSize = 15.sp,
+                            color = Color(0xFF62627A),
+                        ),
+                    )
+                }
+                BasicTextField(
+                    value = promptText,
+                    onValueChange = { updatedText -> promptText = updatedText },
+                    singleLine = true,
+                    textStyle = TextStyle(
+                        fontFamily = typo.bodyFamily,
+                        fontSize = 15.sp,
+                        color = Color(0xFF1A1A2E),
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            val hasPromptText = promptText.isNotBlank()
             Box(
                 modifier = Modifier
                     .size(46.dp)
                     .clip(CircleShape)
-                    .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)))),
+                    .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))))
+                    .clickable {
+                        if (hasPromptText) {
+                            showExtraIdeas = true
+                            promptText = ""
+                        } else {
+                            onSelectScreenCode("s35")
+                        }
+                    },
                 contentAlignment = Alignment.Center,
             ) {
-                RfIcon(kind = RfIconKind.MIC, tint = Color.White, size = 22.dp)
+                RfIcon(
+                    kind = if (hasPromptText) RfIconKind.SEND else RfIconKind.MIC,
+                    tint = Color.White,
+                    size = 22.dp,
+                )
             }
         }
     }
@@ -1937,6 +2035,10 @@ private fun CategoryReviewRow(
     iconBg: Color,
     iconTint: Color,
     isChosen: Boolean,
+    isOmitted: Boolean = false,
+    onOmit: () -> Unit = {},
+    onChoose: () -> Unit = {},
+    onToggleChosen: () -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
     Row(
@@ -1973,25 +2075,34 @@ private fun CategoryReviewRow(
                         fontFamily = typo.bodyFamily,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF4E6A10),
+                        color = if (isOmitted) Color(0xFF62627A) else Color(0xFF4E6A10),
                     ),
                 )
             }
         }
 
         if (isChosen) {
-            RfIcon(kind = RfIconKind.CHECK, tint = Color(0xFF8DB52C), size = 24.dp)
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(CircleShape)
+                    .clickable(onClick = onToggleChosen),
+                contentAlignment = Alignment.Center,
+            ) {
+                RfIcon(kind = RfIconKind.CHECK, tint = Color(0xFF8DB52C), size = 24.dp)
+            }
         } else {
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 Box(
                     modifier = Modifier
                         .height(36.dp)
-                        .clickable { }
+                        .clip(CircleShape)
+                        .clickable(onClick = onOmit)
                         .padding(horizontal = 10.dp),
                     contentAlignment = Alignment.Center,
                 ) {
                     BasicText(
-                        text = "Omitir",
+                        text = if (isOmitted) "Omitida" else "Omitir",
                         style = TextStyle(
                             fontFamily = typo.bodyFamily,
                             fontSize = 14.sp,
@@ -2006,7 +2117,7 @@ private fun CategoryReviewRow(
                         .height(36.dp)
                         .clip(CircleShape)
                         .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))))
-                        .clickable { }
+                        .clickable(onClick = onChoose)
                         .padding(horizontal = 14.dp),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -2031,15 +2142,23 @@ private fun CategoryReviewRow(
 @Composable
 internal fun RenderRosaDetailsS31(
     onSelectScreenCode: (String) -> Unit = {},
+    viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
+    var dateValue by remember { mutableStateOf("") }
+    var guestsValue by remember { mutableStateOf("") }
+    var venueValue by remember { mutableStateOf("") }
+    var ideaValue by remember { mutableStateOf("") }
+    var promptText by remember { mutableStateOf("") }
+
+    val presetDates = remember { listOf("Sábado 14 de noviembre", "Sábado 21 de noviembre", "Viernes 4 de diciembre") }
+    var datePresetIndex by remember { mutableStateOf(0) }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(RosaBackgroundGradient),
     ) {
-        // Header
         RosaWizardHeader(
             step = 5,
             cartCount = 17,
@@ -2047,7 +2166,6 @@ internal fun RenderRosaDetailsS31(
             onCart = { onSelectScreenCode("s25") },
         )
 
-        // Main content
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -2055,7 +2173,6 @@ internal fun RenderRosaDetailsS31(
                 .padding(top = 128.dp, start = 20.dp, end = 20.dp, bottom = 180.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
-            // Rosa Avatar + Title
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 RosaAvatar(size = RosaAvatarSize.MEDIUM, customSize = 40.dp)
                 BasicText(
@@ -2071,7 +2188,6 @@ internal fun RenderRosaDetailsS31(
                 )
             }
 
-            // Form card
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -2084,20 +2200,37 @@ internal fun RenderRosaDetailsS31(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(58.dp)
-                        .clickable { }
+                        .clickable {
+                            val selectedDate = presetDates[datePresetIndex % presetDates.size]
+                            datePresetIndex += 1
+                            dateValue = selectedDate
+                            viewModel?.setEventDateInput(selectedDate)
+                        }
                         .padding(horizontal = 16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     RfIcon(kind = RfIconKind.CALENDAR, tint = Color(0xFF62627A), size = 20.dp)
-                    BasicText(
-                        text = "Fecha del evento",
-                        modifier = Modifier.weight(1f),
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF62627A)),
-                    )
+                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                        if (dateValue.isEmpty()) {
+                            BasicText(
+                                text = "Fecha del evento",
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF62627A)),
+                            )
+                        }
+                        BasicTextField(
+                            value = dateValue,
+                            onValueChange = { updatedDate ->
+                                dateValue = updatedDate
+                                viewModel?.setEventDateInput(updatedDate)
+                            },
+                            singleLine = true,
+                            textStyle = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = Color(0xFF1A1A2E)),
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
                     RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = Color(0xFF62627A), size = 18.dp)
                 }
-                // Divider
                 Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFF2F0F5)))
                 // Row 2: Personas
                 Row(
@@ -2109,12 +2242,25 @@ internal fun RenderRosaDetailsS31(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     RfIcon(kind = RfIconKind.USER, tint = Color(0xFF62627A), size = 20.dp)
-                    BasicText(
-                        text = "¿Cuántas personas?",
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF62627A)),
-                    )
+                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                        if (guestsValue.isEmpty()) {
+                            BasicText(
+                                text = "¿Cuántas personas?",
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF62627A)),
+                            )
+                        }
+                        BasicTextField(
+                            value = guestsValue,
+                            onValueChange = { updatedGuests ->
+                                guestsValue = updatedGuests
+                                viewModel?.setEventGuestsInput(updatedGuests)
+                            },
+                            singleLine = true,
+                            textStyle = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = Color(0xFF1A1A2E)),
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
                 }
-                // Divider
                 Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFF2F0F5)))
                 // Row 3: Lugar
                 Row(
@@ -2126,12 +2272,25 @@ internal fun RenderRosaDetailsS31(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     RfIcon(kind = RfIconKind.LOCATION, tint = Color(0xFF62627A), size = 20.dp)
-                    BasicText(
-                        text = "¿Dónde será?",
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF62627A)),
-                    )
+                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                        if (venueValue.isEmpty()) {
+                            BasicText(
+                                text = "¿Dónde será?",
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF62627A)),
+                            )
+                        }
+                        BasicTextField(
+                            value = venueValue,
+                            onValueChange = { updatedVenue ->
+                                venueValue = updatedVenue
+                                viewModel?.setEventVenueInput(updatedVenue)
+                            },
+                            singleLine = true,
+                            textStyle = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = Color(0xFF1A1A2E)),
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
                 }
-                // Divider
                 Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFF2F0F5)))
                 // Row 4: Idea (textarea)
                 Row(
@@ -2143,10 +2302,23 @@ internal fun RenderRosaDetailsS31(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     RfIcon(kind = RfIconKind.EDIT, tint = Color(0xFF62627A), size = 20.dp)
-                    BasicText(
-                        text = "Cuéntame tu idea (opcional)",
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF62627A)),
-                    )
+                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.TopStart) {
+                        if (ideaValue.isEmpty()) {
+                            BasicText(
+                                text = "Cuéntame tu idea (opcional)",
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF62627A)),
+                            )
+                        }
+                        BasicTextField(
+                            value = ideaValue,
+                            onValueChange = { updatedIdea ->
+                                ideaValue = updatedIdea
+                                viewModel?.setRosaProposalMessage(updatedIdea)
+                            },
+                            textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF1A1A2E)),
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
                 }
             }
 
@@ -2161,7 +2333,6 @@ internal fun RenderRosaDetailsS31(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                // Grid sketch icon
                 Canvas(
                     modifier = Modifier
                         .size(56.dp)
@@ -2170,15 +2341,13 @@ internal fun RenderRosaDetailsS31(
                 ) {
                     val gridColor = Color(0xFFEFE8FA)
                     val step = size.width / 4f
-                    for (i in 1..3) {
-                        drawLine(gridColor, start = androidx.compose.ui.geometry.Offset(i * step, 0f), end = androidx.compose.ui.geometry.Offset(i * step, size.height), strokeWidth = 1.dp.toPx())
-                        drawLine(gridColor, start = androidx.compose.ui.geometry.Offset(0f, i * step), end = androidx.compose.ui.geometry.Offset(size.width, i * step), strokeWidth = 1.dp.toPx())
+                    for (gridLineIndex in 1..3) {
+                        drawLine(gridColor, start = androidx.compose.ui.geometry.Offset(gridLineIndex * step, 0f), end = androidx.compose.ui.geometry.Offset(gridLineIndex * step, size.height), strokeWidth = 1.dp.toPx())
+                        drawLine(gridColor, start = androidx.compose.ui.geometry.Offset(0f, gridLineIndex * step), end = androidx.compose.ui.geometry.Offset(size.width, gridLineIndex * step), strokeWidth = 1.dp.toPx())
                     }
                     val strokePx = 2.dp.toPx()
-                    // Two circles (tables)
                     drawCircle(color = Color(0xFFEA4EA9), radius = 6.dp.toPx(), center = androidx.compose.ui.geometry.Offset(size.width * 0.3f, size.height * 0.32f), style = androidx.compose.ui.graphics.drawscope.Stroke(strokePx))
                     drawCircle(color = Color(0xFFEA4EA9), radius = 6.dp.toPx(), center = androidx.compose.ui.geometry.Offset(size.width * 0.68f, size.height * 0.32f), style = androidx.compose.ui.graphics.drawscope.Stroke(strokePx))
-                    // Rectangle (stage)
                     drawRoundRect(color = Color(0xFF865DEC), topLeft = androidx.compose.ui.geometry.Offset(size.width * 0.21f, size.height * 0.61f), size = androidx.compose.ui.geometry.Size(size.width * 0.57f, size.height * 0.18f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(2.dp.toPx()), style = androidx.compose.ui.graphics.drawscope.Stroke(strokePx))
                 }
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -2189,7 +2358,6 @@ internal fun RenderRosaDetailsS31(
             }
         }
 
-        // Bottom dual action buttons
         Row(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -2223,7 +2391,6 @@ internal fun RenderRosaDetailsS31(
             }
         }
 
-        // Bottom input pill
         Row(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -2238,41 +2405,72 @@ internal fun RenderRosaDetailsS31(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            BasicText(
-                text = "O díctale los detalles a Rosa…",
-                modifier = Modifier.weight(1f),
-                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF62627A)),
-            )
+            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                if (promptText.isEmpty()) {
+                    BasicText(
+                        text = "O díctale los detalles a Rosa…",
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF62627A)),
+                    )
+                }
+                BasicTextField(
+                    value = promptText,
+                    onValueChange = { updatedText -> promptText = updatedText },
+                    singleLine = true,
+                    textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF1A1A2E)),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            val hasPromptText = promptText.isNotBlank()
             Box(
                 modifier = Modifier
                     .size(46.dp)
                     .clip(CircleShape)
                     .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))))
-                    .clickable { onSelectScreenCode("s35") },
+                    .clickable {
+                        if (hasPromptText) {
+                            ideaValue = promptText
+                            viewModel?.setRosaProposalMessage(promptText)
+                            promptText = ""
+                        } else {
+                            onSelectScreenCode("s35")
+                        }
+                    },
                 contentAlignment = Alignment.Center,
             ) {
-                RfIcon(kind = RfIconKind.MIC, tint = Color.White, size = 22.dp)
+                RfIcon(
+                    kind = if (hasPromptText) RfIconKind.SEND else RfIconKind.MIC,
+                    tint = Color.White,
+                    size = 22.dp,
+                )
             }
         }
     }
 }
 
 // ==============================================================================
-// ==============================================================================
 // s32 · ROSA · RESUMEN (PASO 6 DE 6)
 // ==============================================================================
 @Composable
 internal fun RenderRosaSummaryS32(
     onSelectScreenCode: (String) -> Unit = {},
+    viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
+    val eventType = viewModel?.eventTypeInput?.collectAsState()?.value?.ifBlank { "Boda" } ?: "Boda"
+    val eventDate = viewModel?.eventDateInput?.collectAsState()?.value.orEmpty()
+    val eventVenue = viewModel?.eventVenueInput?.collectAsState()?.value.orEmpty()
+    val draftQuantities = viewModel?.draftQuantities?.collectAsState()?.value ?: mapOf("art-silla-tiffany" to 148, "art-mesa-redonda" to 12)
+    val totalArticlesCount = draftQuantities.values.sum().let { sum -> if (sum > 0) sum else 160 }
+    val isDefaultDate = eventDate == "14 Nov 2026"
+    val hasConfirmedDate = if (eventDate.isBlank()) false else !isDefaultDate
+    val isDefaultVenue = eventVenue == "Jardín Los Rosales"
+    val hasConfirmedVenue = if (eventVenue.isBlank()) false else !isDefaultVenue
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(RosaBackgroundGradient),
     ) {
-        // Header
         RosaWizardHeader(
             step = 6,
             totalSteps = 6,
@@ -2281,7 +2479,6 @@ internal fun RenderRosaSummaryS32(
             onCart = { onSelectScreenCode("s25") },
         )
 
-        // Main content
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -2303,7 +2500,6 @@ internal fun RenderRosaSummaryS32(
                 )
             }
 
-            // Summary Card
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -2313,10 +2509,11 @@ internal fun RenderRosaSummaryS32(
                     .padding(vertical = 4.dp),
             ) {
                 Column {
-                    // Row 1: Evento · Boda
+                    // Row 1: Evento
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .clickable { onSelectScreenCode("s26") }
                             .padding(horizontal = 16.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -2336,17 +2533,18 @@ internal fun RenderRosaSummaryS32(
                             modifier = Modifier.weight(1f),
                         )
                         BasicText(
-                            text = "Boda",
+                            text = eventType,
                             style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF1A1A2E)),
                         )
                     }
 
                     Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFF2F0F5)))
 
-                    // Row 2: Fecha · Por confirmar
+                    // Row 2: Fecha
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .clickable { onSelectScreenCode("s31") }
                             .padding(horizontal = 16.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -2365,27 +2563,35 @@ internal fun RenderRosaSummaryS32(
                             style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF62627A)),
                             modifier = Modifier.weight(1f),
                         )
-                        Box(
-                            modifier = Modifier
-                                .height(24.dp)
-                                .clip(CircleShape)
-                                .background(Color(0xFFFFF2C9))
-                                .padding(horizontal = 9.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
+                        if (hasConfirmedDate) {
                             BasicText(
-                                text = "Por confirmar",
-                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF7A5700)),
+                                text = eventDate,
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF1A1A2E)),
                             )
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .height(24.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFFFFF2C9))
+                                    .padding(horizontal = 9.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                BasicText(
+                                    text = "Por confirmar",
+                                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF7A5700)),
+                                )
+                            }
                         }
                     }
 
                     Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFF2F0F5)))
 
-                    // Row 3: Ubicación · Por confirmar
+                    // Row 3: Ubicación
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .clickable { onSelectScreenCode("s31") }
                             .padding(horizontal = 16.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -2404,24 +2610,31 @@ internal fun RenderRosaSummaryS32(
                             style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF62627A)),
                             modifier = Modifier.weight(1f),
                         )
-                        Box(
-                            modifier = Modifier
-                                .height(24.dp)
-                                .clip(CircleShape)
-                                .background(Color(0xFFFFF2C9))
-                                .padding(horizontal = 9.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
+                        if (hasConfirmedVenue) {
                             BasicText(
-                                text = "Por confirmar",
-                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF7A5700)),
+                                text = eventVenue,
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF1A1A2E)),
                             )
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .height(24.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFFFFF2C9))
+                                    .padding(horizontal = 9.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                BasicText(
+                                    text = "Por confirmar",
+                                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF7A5700)),
+                                )
+                            }
                         }
                     }
 
                     Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFF2F0F5)))
 
-                    // Row 4: Artículos · 160
+                    // Row 4: Artículos
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -2445,7 +2658,7 @@ internal fun RenderRosaSummaryS32(
                             modifier = Modifier.weight(1f),
                         )
                         BasicText(
-                            text = "160",
+                            text = "$totalArticlesCount",
                             style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF1A1A2E)),
                         )
                         RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = Color(0xFF62627A), size = 18.dp)
@@ -2453,7 +2666,6 @@ internal fun RenderRosaSummaryS32(
                 }
             }
 
-            // Info hint
             Row(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.Top,
@@ -2473,7 +2685,6 @@ internal fun RenderRosaSummaryS32(
             }
         }
 
-        // Bottom CTAs
         Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -2488,7 +2699,10 @@ internal fun RenderRosaSummaryS32(
                     .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
                     .clip(RoundedCornerShape(16.dp))
                     .background(RosaButtonGradient)
-                    .clickable { onSelectScreenCode("s33") },
+                    .clickable {
+                        viewModel?.submitQuickClientEvent()
+                        onSelectScreenCode("s33")
+                    },
                 contentAlignment = Alignment.Center,
             ) {
                 BasicText(
@@ -2668,71 +2882,71 @@ internal fun RenderRosaSubmittedS33(
                     .background(Color.White)
                     .padding(20.dp),
             ) {
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                BasicText(
-                    text = "Qué sigue",
-                    style = TextStyle(
-                        fontFamily = typo.bodyFamily,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 12.sp,
-                        letterSpacing = 1.sp,
-                        color = Color(0xFF62627A),
-                    ),
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    BasicText(
+                        text = "Qué sigue",
+                        style = TextStyle(
+                            fontFamily = typo.bodyFamily,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp,
+                            letterSpacing = 1.sp,
+                            color = Color(0xFF62627A),
+                        ),
+                    )
 
-                val steps = listOf(
-                    Triple("1", "Revisamos tu evento", "El equipo de Rosa Fiesta ya lo tiene"),
-                    Triple("2", "Recibes tu cotización", "Por correo y WhatsApp"),
-                    Triple("3", "Apruebas y reservas", "Desde la app, en un toque"),
-                )
+                    val steps = listOf(
+                        Triple("1", "Revisamos tu evento", "El equipo de Rosa Fiesta ya lo tiene"),
+                        Triple("2", "Recibes tu cotización", "Por correo y WhatsApp"),
+                        Triple("3", "Apruebas y reservas", "Desde la app, en un toque"),
+                    )
 
-                steps.forEach { (num, title, desc) ->
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(14.dp),
-                        verticalAlignment = Alignment.Top,
-                    ) {
-                        // Step 1 has glow ring via border
-                        if (num == "1") {
-                            Box(
-                                modifier = Modifier
-                                    .size(38.dp)
-                                    .border(5.dp, Color(0xFFEFE8FD), CircleShape),
-                                contentAlignment = Alignment.Center,
-                            ) {
+                    steps.forEach { (num, title, desc) ->
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(14.dp),
+                            verticalAlignment = Alignment.Top,
+                        ) {
+                            // Step 1 has glow ring via border
+                            if (num == "1") {
+                                Box(
+                                    modifier = Modifier
+                                        .size(38.dp)
+                                        .border(5.dp, Color(0xFFEFE8FD), CircleShape),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(28.dp)
+                                            .clip(CircleShape)
+                                            .background(Color(0xFF865DEC)),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        BasicText(
+                                            text = num,
+                                            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.ExtraBold, fontSize = 13.sp, color = Color.White),
+                                        )
+                                    }
+                                }
+                            } else {
                                 Box(
                                     modifier = Modifier
                                         .size(28.dp)
                                         .clip(CircleShape)
-                                        .background(Color(0xFF865DEC)),
+                                        .background(Color(0xFFF1EFF5)),
                                     contentAlignment = Alignment.Center,
                                 ) {
                                     BasicText(
                                         text = num,
-                                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.ExtraBold, fontSize = 13.sp, color = Color.White),
+                                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.ExtraBold, fontSize = 13.sp, color = Color(0xFF62627A)),
                                     )
                                 }
                             }
-                        } else {
-                            Box(
-                                modifier = Modifier
-                                    .size(28.dp)
-                                    .clip(CircleShape)
-                                    .background(Color(0xFFF1EFF5)),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                BasicText(
-                                    text = num,
-                                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.ExtraBold, fontSize = 13.sp, color = Color(0xFF62627A)),
-                                )
+                            Column {
+                                BasicText(text = title, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A2E), fontSize = 15.sp))
+                                BasicText(text = desc, style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFF62627A), fontSize = 13.sp))
                             }
-                        }
-                        Column {
-                            BasicText(text = title, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A2E), fontSize = 15.sp))
-                            BasicText(text = desc, style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFF62627A), fontSize = 13.sp))
                         }
                     }
                 }
-            }
             }
         }
 
@@ -2775,41 +2989,41 @@ internal fun RenderRosaSubmittedS33(
     }
 }
 
-
 // ==============================================================================
 // s34 · ROSA · MODO CHAT
 // ==============================================================================
 @Composable
 internal fun RenderRosaChatS34(
     onSelectScreenCode: (String) -> Unit = {},
+    viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
+    var chatMessageText by remember {
+        mutableStateOf("Queremos algo íntimo en un jardín, con flores blancas y rosadas")
+    }
+    var attachedReference by remember { mutableStateOf<String?>(null) }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(RosaBackgroundGradient),
     ) {
-        // Base screen: s26 (event type selection)
-        RenderRosaEventTypeS26(onSelectScreenCode = onSelectScreenCode)
+        RenderRosaEventTypeS26(onSelectScreenCode = onSelectScreenCode, viewModel = viewModel)
 
-        // Semi-transparent scrim / overlay is NOT present in design HTML,
-        // but bottom sheet sits directly at the bottom with height 300dp
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter)
-                .height(300.dp)
+                .height(312.dp)
                 .shadow(24.dp, RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp), spotColor = Color(0x73AA46A0))
                 .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
                 .background(Color.White)
-                .padding(top = 12.dp, start = 20.dp, end = 20.dp, bottom = 34.dp),
+                .padding(top = 12.dp, start = 20.dp, end = 20.dp, bottom = 30.dp),
         ) {
             Column(
                 modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                // Grab handle
                 Box(
                     modifier = Modifier
                         .align(Alignment.CenterHorizontally)
@@ -2819,7 +3033,6 @@ internal fun RenderRosaChatS34(
                         .background(Color(0xFFE3DCE8)),
                 )
 
-                // Chips row
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -2827,11 +3040,25 @@ internal fun RenderRosaChatS34(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     listOf("Es para 120 personas", "En un jardín", "Rosa y dorado").forEach { chipText ->
+                        val isChipIncluded = chatMessageText.contains(chipText, ignoreCase = true)
                         Box(
                             modifier = Modifier
                                 .height(38.dp)
                                 .clip(CircleShape)
-                                .background(Color(0xFFF3F0FA))
+                                .background(if (isChipIncluded) Color(0xFFFDE6F2) else Color(0xFFF3F0FA))
+                                .clickable {
+                                    chatMessageText = if (chatMessageText.isBlank()) {
+                                        chipText
+                                    } else {
+                                        "$chatMessageText · $chipText"
+                                    }
+                                    if (chipText.contains("120")) {
+                                        viewModel?.setEventGuestsInput("120")
+                                    }
+                                    if (chipText.contains("jardín", ignoreCase = true)) {
+                                        viewModel?.setEventVenueInput("Jardín Los Rosales")
+                                    }
+                                }
                                 .padding(horizontal = 14.dp),
                             contentAlignment = Alignment.Center,
                         ) {
@@ -2841,47 +3068,81 @@ internal fun RenderRosaChatS34(
                                     fontFamily = typo.bodyFamily,
                                     fontWeight = FontWeight.SemiBold,
                                     fontSize = 14.sp,
-                                    color = Color(0xFF3B3550),
+                                    color = if (isChipIncluded) Color(0xFFC2338F) else Color(0xFF3B3550),
                                 ),
                             )
                         }
                     }
                 }
 
-                // Text message
+                if (attachedReference != null) {
+                    Row(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color(0xFFEFE8FD))
+                            .clickable { attachedReference = null }
+                            .padding(horizontal = 10.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        RfIcon(kind = RfIconKind.SPARKLE, tint = Color(0xFF7A4FD8), size = 14.dp)
+                        BasicText(
+                            text = "$attachedReference (toca para quitar)",
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = Color(0xFF7A4FD8)),
+                        )
+                    }
+                }
+
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f),
                 ) {
-                    BasicText(
-                        text = "Queremos algo íntimo en un jardín, con flores blancas y rosadas",
-                        style = TextStyle(
+                    if (chatMessageText.isEmpty()) {
+                        BasicText(
+                            text = "Cuéntale a Rosa cómo imaginas tu evento…",
+                            style = TextStyle(
+                                fontFamily = typo.bodyFamily,
+                                fontSize = 18.sp,
+                                lineHeight = 26.sp,
+                                color = Color(0xFF9E9AB5),
+                            ),
+                        )
+                    }
+                    BasicTextField(
+                        value = chatMessageText,
+                        onValueChange = { updatedText -> chatMessageText = updatedText },
+                        textStyle = TextStyle(
                             fontFamily = typo.bodyFamily,
                             fontSize = 18.sp,
                             lineHeight = 26.sp,
                             color = Color(0xFF1A1A2E),
                         ),
+                        modifier = Modifier.fillMaxSize(),
                     )
                 }
 
-                // Bottom actions
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    // Image attachment icon
                     Box(
                         modifier = Modifier
                             .size(44.dp)
                             .clip(RoundedCornerShape(14.dp))
-                            .clickable { },
+                            .background(if (attachedReference != null) Color(0xFFFDE6F2) else Color.Transparent)
+                            .clickable {
+                                attachedReference = if (attachedReference == null) "Inspiración jardín.jpg" else null
+                            },
                         contentAlignment = Alignment.Center,
                     ) {
-                        RfIcon(kind = RfIconKind.SHARE, tint = Color(0xFF62627A), size = 22.dp)
+                        RfIcon(
+                            kind = RfIconKind.SHARE,
+                            tint = if (attachedReference != null) Color(0xFFC2338F) else Color(0xFF62627A),
+                            size = 22.dp,
+                        )
                     }
 
-                    // Mic icon
                     Box(
                         modifier = Modifier
                             .size(44.dp)
@@ -2894,11 +3155,13 @@ internal fun RenderRosaChatS34(
 
                     Spacer(modifier = Modifier.weight(1f))
 
-                    // Descartar text
                     Box(
                         modifier = Modifier
                             .height(44.dp)
-                            .clickable { onSelectScreenCode("s26") }
+                            .clickable {
+                                chatMessageText = ""
+                                onSelectScreenCode("s26")
+                            }
                             .padding(horizontal = 14.dp),
                         contentAlignment = Alignment.Center,
                     ) {
@@ -2913,7 +3176,6 @@ internal fun RenderRosaChatS34(
                         )
                     }
 
-                    // Send circular button
                     Box(
                         modifier = Modifier
                             .size(52.dp)
@@ -2921,10 +3183,13 @@ internal fun RenderRosaChatS34(
                             .clip(CircleShape)
                             .background(
                                 Brush.horizontalGradient(
-                                    listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC))
-                                )
+                                    listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC)),
+                                ),
                             )
-                            .clickable { onSelectScreenCode("s29") },
+                            .clickable {
+                                viewModel?.setRosaProposalMessage(chatMessageText)
+                                onSelectScreenCode("s29")
+                            },
                         contentAlignment = Alignment.Center,
                     ) {
                         RfIcon(kind = RfIconKind.SEND, tint = Color.White, size = 22.dp)
@@ -2941,15 +3206,25 @@ internal fun RenderRosaChatS34(
 @Composable
 internal fun RenderRosaVoiceS35(
     onSelectScreenCode: (String) -> Unit = {},
+    viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
+    val voiceTranscripts = remember {
+        listOf(
+            "Una boda en un jardín para unas 120 personas en blanco y dorado",
+            "Cumpleaños infantil para 60 invitados con arco de globos y mesa de dulces",
+            "Cena corporativa para 150 personas con sillas Tiffany y centros florales",
+        )
+    }
+    var transcriptIndex by remember { mutableStateOf(0) }
+    var isListening by remember { mutableStateOf(true) }
+    val activeTranscript = voiceTranscripts[transcriptIndex % voiceTranscripts.size]
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(RosaBackgroundGradient),
     ) {
-        // Header
         Row(
             modifier = Modifier
                 .align(Alignment.TopCenter)
@@ -2983,7 +3258,6 @@ internal fun RenderRosaVoiceS35(
                 .padding(top = 150.dp, bottom = 140.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            // Rosa Avatar with concentric halos (top=150dp, centered)
             Box(
                 modifier = Modifier
                     .size(240.dp)
@@ -2998,7 +3272,6 @@ internal fun RenderRosaVoiceS35(
                         .background(Color.White.copy(alpha = 0.7f)),
                     contentAlignment = Alignment.Center,
                 ) {
-                    // 124dp Rosa Avatar (headset icon)
                     RosaAvatar(
                         size = RosaAvatarSize.LARGE,
                         customSize = 124.dp,
@@ -3009,14 +3282,12 @@ internal fun RenderRosaVoiceS35(
 
             Spacer(modifier = Modifier.height(40.dp))
 
-            // Text block (top=430dp)
             Column(
                 modifier = Modifier
                     .padding(horizontal = 28.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                // "Te escucho..." indicator
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -3025,16 +3296,15 @@ internal fun RenderRosaVoiceS35(
                         modifier = Modifier
                             .size(8.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFFEA4EA9)),
+                            .background(if (isListening) Color(0xFFEA4EA9) else Color(0xFF2FB58F)),
                     )
                     BasicText(
-                        text = "Te escucho…",
+                        text = if (isListening) "Te escucho…" else "Transcripción lista",
                         style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFFC2338F)),
                     )
                 }
-                // Transcription text
                 BasicText(
-                    text = "Una boda en un jardín para unas ",
+                    text = activeTranscript,
                     style = TextStyle(
                         fontFamily = typo.displayFamily,
                         fontWeight = FontWeight.Bold,
@@ -3046,9 +3316,8 @@ internal fun RenderRosaVoiceS35(
                 )
             }
 
-            Spacer(modifier = Modifier.height(100.dp))
+            Spacer(modifier = Modifier.height(76.dp))
 
-            // Multicolor audio bars (top=620dp)
             Row(
                 horizontalArrangement = Arrangement.spacedBy(5.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -3068,11 +3337,15 @@ internal fun RenderRosaVoiceS35(
                     Pair(16.dp, Color(0xFFB9D84A)),
                     Pair(8.dp, Color(0xFF865DEC)),
                 )
-                bars.forEach { (h, color) ->
+                bars.forEachIndexed { index, (barHeight, color) ->
+                    val isOddTranscript = transcriptIndex % 2 == 1
+                    val isEvenBar = index % 2 == 0
+                    val shouldBoostHeight = if (isOddTranscript) isEvenBar else false
+                    val adjustedHeight = if (shouldBoostHeight) barHeight + 8.dp else barHeight
                     Box(
                         modifier = Modifier
                             .width(6.dp)
-                            .height(h)
+                            .height(adjustedHeight)
                             .clip(RoundedCornerShape(3.dp))
                             .background(color),
                     )
@@ -3080,7 +3353,6 @@ internal fun RenderRosaVoiceS35(
             }
         }
 
-        // Bottom 3 control buttons (bottom=44dp)
         Row(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -3088,30 +3360,30 @@ internal fun RenderRosaVoiceS35(
             horizontalArrangement = Arrangement.spacedBy(28.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            // Keyboard button (52dp)
             Box(
                 modifier = Modifier
                     .size(52.dp)
                     .rfIconButtonShadow(CircleShape, isAdmin = false)
                     .clip(CircleShape)
                     .background(Color.White)
-                    .clickable { onSelectScreenCode("s27") },
+                    .clickable { onSelectScreenCode("s34") },
                 contentAlignment = Alignment.Center,
             ) {
                 RfIcon(kind = RfIconKind.GRID, tint = Color(0xFF1A1A2E), size = 22.dp)
             }
 
-            // Stop button (76dp, gradient with white square)
             Box(
                 modifier = Modifier
                     .size(76.dp)
                     .shadow(16.dp, CircleShape, spotColor = Color(0xFF9646C8), ambientColor = Color(0x4D9646C8))
                     .clip(CircleShape)
                     .background(Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC))))
-                    .clickable { onSelectScreenCode("s28") },
+                    .clickable {
+                        viewModel?.setRosaProposalMessage(activeTranscript)
+                        onSelectScreenCode("s28")
+                    },
                 contentAlignment = Alignment.Center,
             ) {
-                // White halo ring
                 Box(
                     modifier = Modifier
                         .size(68.dp)
@@ -3136,14 +3408,17 @@ internal fun RenderRosaVoiceS35(
                 }
             }
 
-            // Replay button (52dp)
             Box(
                 modifier = Modifier
                     .size(52.dp)
                     .rfIconButtonShadow(CircleShape, isAdmin = false)
                     .clip(CircleShape)
                     .background(Color.White)
-                    .clickable { /* restart */ },
+                    .clickable {
+                        transcriptIndex += 1
+                        isListening = true
+                        viewModel?.setRosaProposalMessage(voiceTranscripts[transcriptIndex % voiceTranscripts.size])
+                    },
                 contentAlignment = Alignment.Center,
             ) {
                 RfIcon(kind = RfIconKind.REFRESH, tint = Color(0xFF1A1A2E), size = 22.dp)
@@ -3158,305 +3433,367 @@ internal fun RenderRosaVoiceS35(
 @Composable
 internal fun RenderRosaSketchS36(
     onSelectScreenCode: (String) -> Unit = {},
+    viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
+    val swatchColors = remember {
+        listOf(
+            Color(0xFFEA4EA9),
+            Color(0xFF865DEC),
+            Color(0xFF8DB52C),
+            Color(0xFFF7B500),
+            Color(0xFF1FBDC0),
+            Color(0xFF1A1A2E),
+        )
+    }
+    var selectedSwatchIndex by remember { mutableStateOf(0) }
+    var selectedToolIndex by remember { mutableStateOf(1) }
+    var tableCount by remember { mutableStateOf(6) }
+    var showChairsAroundTables by remember { mutableStateOf(false) }
+    var showVipZoneLabel by remember { mutableStateOf(false) }
+    val activeTableColor = swatchColors[selectedSwatchIndex]
 
     RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         Box(modifier = Modifier.fillMaxSize()) {
-
-        // Header: X | "Boceto del espacio" + "Vista desde arriba" | undo | trash
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 54.dp, start = 16.dp, end = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            // X close button
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .rfIconButtonShadow(CircleShape, isAdmin = false)
-                    .clip(CircleShape)
-                    .background(Color.White)
-                    .clickable { onSelectScreenCode("s32") },
-                contentAlignment = Alignment.Center,
-            ) {
-                RfIcon(kind = RfIconKind.CLOSE, tint = Color(0xFF1A1A2E), size = 22.dp)
-            }
-
-            // Title block (flex:1)
-            Column(modifier = Modifier.weight(1f)) {
-                BasicText(
-                    text = "Boceto del espacio",
-                    style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 19.sp, lineHeight = (19 * 1.1f).sp, color = Color(0xFF1A1A2E)),
-                )
-                BasicText(
-                    text = "Vista desde arriba",
-                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF62627A)),
-                )
-            }
-
-            // Undo button
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .rfIconButtonShadow(CircleShape, isAdmin = false)
-                    .clip(CircleShape)
-                    .background(Color.White)
-                    .clickable { },
-                contentAlignment = Alignment.Center,
-            ) {
-                RfIcon(kind = RfIconKind.UNDO, tint = Color(0xFF1A1A2E), size = 20.dp)
-            }
-
-            // Trash button
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .rfIconButtonShadow(CircleShape, isAdmin = false)
-                    .clip(CircleShape)
-                    .background(Color.White)
-                    .clickable { },
-                contentAlignment = Alignment.Center,
-            ) {
-                RfIcon(kind = RfIconKind.DELETE, tint = Color(0xFF1A1A2E), size = 20.dp)
-            }
-        }
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(top = 118.dp, bottom = 120.dp),
-        ) {
-            // Rosa tip banner — top=118dp, lavender pill #EFE8FD
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color(0xFFEFE8FD))
-                    .padding(horizontal = 12.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
+                    .padding(top = 54.dp, start = 16.dp, end = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                RosaAvatar(size = RosaAvatarSize.MINI)
-                BasicText(
-                    text = "Dibuja tu espacio y te propongo ejemplos en 3D.",
-                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, lineHeight = (14 * 1.35f).sp, color = Color(0xFF1A1A2E)),
-                )
-            }
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // Canvas card — top=186dp, height=400dp
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .height(400.dp)
-                    .shadow(elevation = 0.dp, shape = RoundedCornerShape(24.dp))
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(Color.White)
-                    .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(24.dp)),
-            ) {
-                Canvas(modifier = Modifier.fillMaxSize()) {
-                    val w = size.width
-                    val h = size.height
-                    // Scale from SVG viewBox 358×400
-                    val sx = w / 358f
-                    val sy = h / 400f
-
-                    // Tarima rect (stroke #865DEC): coords from SVG path M18 20L340 20L340 70L18 70Z (approx)
-                    val stageLeft = 18f * sx
-                    val stageTop = 20f * sy
-                    val stageW = (340f - 18f) * sx
-                    val stageH = (70f - 20f) * sy
-                    drawRoundRect(
-                        color = Color(0xFF865DEC),
-                        topLeft = Offset(stageLeft, stageTop),
-                        size = androidx.compose.ui.geometry.Size(stageW, stageH),
-                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(10f * sx),
-                        style = Stroke(3f * sx),
-                    )
-
-                    // 6 mesas redondas (stroke #EA4EA9)
-                    val tableR = 24f * sx
-                    val tableCenters = listOf(
-                        Offset(70f * sx, 176f * sy),
-                        Offset(288f * sx, 176f * sy),
-                        Offset(70f * sx, 268f * sy),
-                        Offset(288f * sx, 268f * sy),
-                        Offset(70f * sx, 360f * sy),
-                        Offset(288f * sx, 360f * sy),
-                    )
-                    tableCenters.forEach { c ->
-                        drawCircle(Color(0xFFEA4EA9), radius = tableR, center = c, style = Stroke(3f * sx))
-                    }
-
-                    // Pista de baile — dashed green rect #8DB52C
-                    val danceLeft = 128f * sx
-                    val danceTop = 250f * sy
-                    val danceRight = 230f * sx
-                    val danceBottom = 340f * sy
-                    val danceP = Path().apply {
-                        moveTo(danceLeft, danceTop)
-                        lineTo(danceRight, danceTop)
-                        lineTo(danceRight, danceBottom)
-                        lineTo(danceLeft, danceBottom)
-                        close()
-                    }
-                    drawPath(
-                        danceP,
-                        color = Color(0xFF8DB52C),
-                        style = Stroke(2.6f * sx, pathEffect = PathEffect.dashPathEffect(floatArrayOf(7f * sx, 7f * sx))),
-                    )
-
-                    // Entrada arrow M150 428L179 404L208 428M179 404V436 (approx scaled)
-                    val arrowPath = Path().apply {
-                        moveTo(150f * sx, 375f * sy)
-                        lineTo(179f * sx, 352f * sy)
-                        lineTo(208f * sx, 375f * sy)
-                        moveTo(179f * sx, 352f * sy)
-                        lineTo(179f * sx, 390f * sy)
-                    }
-                    drawPath(arrowPath, color = Color(0xFF1A1A2E), style = Stroke(2.6f * sx, cap = StrokeCap.Round, join = StrokeJoin.Round))
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Color swatches row — top=598dp
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 28.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                // Rosa (selected: ring)
                 Box(
                     modifier = Modifier
-                        .size(32.dp)
-                        .border(2.dp, Color.White, CircleShape)
-                        .padding(2.dp)
-                        .border(2.dp, Color(0xFF1A1A2E), CircleShape)
-                        .padding(2.dp)
+                        .size(44.dp)
+                        .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
-                        .background(Color(0xFFEA4EA9)),
-                )
-                Box(modifier = Modifier.size(32.dp).clip(CircleShape).background(Color(0xFF865DEC)))
-                Box(modifier = Modifier.size(32.dp).clip(CircleShape).background(Color(0xFF8DB52C)))
-                Box(modifier = Modifier.size(32.dp).clip(CircleShape).background(Color(0xFFF7B500)))
-                Box(modifier = Modifier.size(32.dp).clip(CircleShape).background(Color(0xFF1FBDC0)))
-                Box(modifier = Modifier.size(32.dp).clip(CircleShape).background(Color(0xFF1A1A2E)))
+                        .background(Color.White)
+                        .clickable { onSelectScreenCode("s32") },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    RfIcon(kind = RfIconKind.CLOSE, tint = Color(0xFF1A1A2E), size = 22.dp)
+                }
+
+                Column(modifier = Modifier.weight(1f)) {
+                    BasicText(
+                        text = "Boceto del espacio",
+                        style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 19.sp, lineHeight = (19 * 1.1f).sp, color = Color(0xFF1A1A2E)),
+                    )
+                    BasicText(
+                        text = "Vista desde arriba · $tableCount mesas",
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF62627A)),
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .rfIconButtonShadow(CircleShape, isAdmin = false)
+                        .clip(CircleShape)
+                        .background(Color.White)
+                        .clickable {
+                            if (tableCount > 2) {
+                                tableCount -= 1
+                            }
+                        },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    RfIcon(kind = RfIconKind.UNDO, tint = Color(0xFF1A1A2E), size = 20.dp)
+                }
+
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .rfIconButtonShadow(CircleShape, isAdmin = false)
+                        .clip(CircleShape)
+                        .background(Color.White)
+                        .clickable {
+                            tableCount = 4
+                            showChairsAroundTables = false
+                            showVipZoneLabel = false
+                        },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    RfIcon(kind = RfIconKind.DELETE, tint = Color(0xFF1A1A2E), size = 20.dp)
+                }
             }
 
-            Spacer(modifier = Modifier.height(18.dp))
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(top = 118.dp, bottom = 120.dp),
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color(0xFFEFE8FD))
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    RosaAvatar(size = RosaAvatarSize.MINI)
+                    BasicText(
+                        text = "Dibuja tu espacio y te propongo ejemplos en 3D.",
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, lineHeight = (14 * 1.35f).sp, color = Color(0xFF1A1A2E)),
+                    )
+                }
 
-            // Toolbar — top=648dp, white pill with 7 tools
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .height(400.dp)
+                        .shadow(elevation = 0.dp, shape = RoundedCornerShape(24.dp))
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(Color.White)
+                        .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(24.dp))
+                        .clickable {
+                            if (tableCount < 8) {
+                                tableCount += 1
+                            } else {
+                                tableCount = 6
+                            }
+                        },
+                ) {
+                    Canvas(modifier = Modifier.fillMaxSize()) {
+                        val widthPx = size.width
+                        val heightPx = size.height
+                        val scaleX = widthPx / 358f
+                        val scaleY = heightPx / 400f
+
+                        val stageLeft = 18f * scaleX
+                        val stageTop = 20f * scaleY
+                        val stageW = (340f - 18f) * scaleX
+                        val stageH = (70f - 20f) * scaleY
+                        drawRoundRect(
+                            color = Color(0xFF865DEC),
+                            topLeft = Offset(stageLeft, stageTop),
+                            size = androidx.compose.ui.geometry.Size(stageW, stageH),
+                            cornerRadius = androidx.compose.ui.geometry.CornerRadius(10f * scaleX),
+                            style = Stroke(3f * scaleX),
+                        )
+
+                        val tableR = 24f * scaleX
+                        val allTableCenters = listOf(
+                            Offset(70f * scaleX, 176f * scaleY),
+                            Offset(288f * scaleX, 176f * scaleY),
+                            Offset(70f * scaleX, 268f * scaleY),
+                            Offset(288f * scaleX, 268f * scaleY),
+                            Offset(70f * scaleX, 360f * scaleY),
+                            Offset(288f * scaleX, 360f * scaleY),
+                            Offset(145f * scaleX, 176f * scaleY),
+                            Offset(215f * scaleX, 176f * scaleY),
+                        )
+                        allTableCenters.take(tableCount).forEach { centerOffset ->
+                            drawCircle(activeTableColor, radius = tableR, center = centerOffset, style = Stroke(3f * scaleX))
+                            if (showChairsAroundTables) {
+                                drawCircle(activeTableColor.copy(alpha = 0.45f), radius = 4f * scaleX, center = Offset(centerOffset.x - tableR - 6f * scaleX, centerOffset.y))
+                                drawCircle(activeTableColor.copy(alpha = 0.45f), radius = 4f * scaleX, center = Offset(centerOffset.x + tableR + 6f * scaleX, centerOffset.y))
+                                drawCircle(activeTableColor.copy(alpha = 0.45f), radius = 4f * scaleX, center = Offset(centerOffset.x, centerOffset.y - tableR - 6f * scaleY))
+                                drawCircle(activeTableColor.copy(alpha = 0.45f), radius = 4f * scaleX, center = Offset(centerOffset.x, centerOffset.y + tableR + 6f * scaleY))
+                            }
+                        }
+
+                        val danceLeft = 128f * scaleX
+                        val danceTop = 250f * scaleY
+                        val danceRight = 230f * scaleX
+                        val danceBottom = 340f * scaleY
+                        val danceP = Path().apply {
+                            moveTo(danceLeft, danceTop)
+                            lineTo(danceRight, danceTop)
+                            lineTo(danceRight, danceBottom)
+                            lineTo(danceLeft, danceBottom)
+                            close()
+                        }
+                        drawPath(
+                            danceP,
+                            color = Color(0xFF8DB52C),
+                            style = Stroke(2.6f * scaleX, pathEffect = PathEffect.dashPathEffect(floatArrayOf(7f * scaleX, 7f * scaleX))),
+                        )
+
+                        val arrowPath = Path().apply {
+                            moveTo(150f * scaleX, 375f * scaleY)
+                            lineTo(179f * scaleX, 352f * scaleY)
+                            lineTo(208f * scaleX, 375f * scaleY)
+                            moveTo(179f * scaleX, 352f * scaleY)
+                            lineTo(179f * scaleX, 390f * scaleY)
+                        }
+                        drawPath(arrowPath, color = Color(0xFF1A1A2E), style = Stroke(2.6f * scaleX, cap = StrokeCap.Round, join = StrokeJoin.Round))
+                    }
+
+                    if (showVipZoneLabel) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopCenter)
+                                .padding(top = 86.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Color(0xFFFDE6F2))
+                                .padding(horizontal = 10.dp, vertical = 4.dp),
+                        ) {
+                            BasicText(
+                                text = "Zona VIP · Novios",
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFFC2338F)),
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 28.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    swatchColors.forEachIndexed { index, swatchColor ->
+                        val isSelected = index == selectedSwatchIndex
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .then(
+                                    if (isSelected) {
+                                        Modifier
+                                            .border(2.dp, Color.White, CircleShape)
+                                            .padding(2.dp)
+                                            .border(2.dp, Color(0xFF1A1A2E), CircleShape)
+                                            .padding(2.dp)
+                                    } else {
+                                        Modifier
+                                    },
+                                )
+                                .clip(CircleShape)
+                                .background(swatchColor)
+                                .clickable { selectedSwatchIndex = index },
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .shadow(
+                            elevation = 8.dp,
+                            shape = RoundedCornerShape(18.dp),
+                            spotColor = Color(0x73B450B4),
+                            ambientColor = Color(0x23B450B4),
+                        )
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(Color.White)
+                        .border(1.dp, Color(0xFFF0EBF4), RoundedCornerShape(18.dp))
+                        .padding(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(0.dp),
+                ) {
+                    val toolButtonModifier: (Int, () -> Unit) -> Modifier = { toolIdx, extraAction ->
+                        Modifier
+                            .weight(1f)
+                            .height(44.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .then(
+                                if (selectedToolIndex == toolIdx) {
+                                    Modifier.background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))))
+                                } else {
+                                    Modifier
+                                },
+                            )
+                            .clickable {
+                                selectedToolIndex = toolIdx
+                                extraAction()
+                            }
+                    }
+
+                    Box(modifier = toolButtonModifier(0) {}, contentAlignment = Alignment.Center) {
+                        RfIcon(kind = RfIconKind.MOVE, tint = if (selectedToolIndex == 0) Color.White else Color(0xFF62627A), size = 20.dp)
+                    }
+                    Box(modifier = toolButtonModifier(1) {}, contentAlignment = Alignment.Center) {
+                        RfIcon(kind = RfIconKind.EDIT, tint = if (selectedToolIndex == 1) Color.White else Color(0xFF62627A), size = 20.dp)
+                    }
+                    Box(
+                        modifier = toolButtonModifier(2) {
+                            if (tableCount < 8) tableCount += 1
+                        },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        RfIcon(kind = RfIconKind.CIRCLE, tint = if (selectedToolIndex == 2) Color.White else Color(0xFF62627A), size = 20.dp)
+                    }
+                    Box(
+                        modifier = toolButtonModifier(3) {
+                            tableCount = if (tableCount < 8) tableCount + 1 else 6
+                        },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        RfIcon(kind = RfIconKind.TABLE, tint = if (selectedToolIndex == 3) Color.White else Color(0xFF62627A), size = 20.dp)
+                    }
+                    Box(
+                        modifier = toolButtonModifier(4) {
+                            showChairsAroundTables = !showChairsAroundTables
+                        },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        RfIcon(kind = RfIconKind.CHAIR, tint = if (selectedToolIndex == 4) Color.White else Color(0xFF62627A), size = 20.dp)
+                    }
+                    Box(
+                        modifier = toolButtonModifier(5) {
+                            showVipZoneLabel = !showVipZoneLabel
+                        },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        BasicText(
+                            text = "Aa",
+                            style = TextStyle(
+                                fontFamily = typo.displayFamily,
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 17.sp,
+                                color = if (selectedToolIndex == 5) Color.White else Color(0xFF62627A),
+                            ),
+                        )
+                    }
+                    Box(
+                        modifier = toolButtonModifier(6) {
+                            if (tableCount < 8) tableCount += 1
+                        },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        RfIcon(kind = RfIconKind.REDO, tint = if (selectedToolIndex == 6) Color.White else Color(0xFF62627A), size = 20.dp)
+                    }
+                }
+            }
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .shadow(
-                        elevation = 8.dp,
-                        shape = RoundedCornerShape(18.dp),
-                        spotColor = Color(0x73B450B4),
-                        ambientColor = Color(0x23B450B4),
-                    )
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(Color.White)
-                    .border(1.dp, Color(0xFFF0EBF4), RoundedCornerShape(18.dp))
-                    .padding(4.dp),
-                horizontalArrangement = Arrangement.spacedBy(0.dp),
+                    .align(Alignment.BottomCenter)
+                    .padding(horizontal = 16.dp, vertical = 40.dp)
+                    .height(56.dp)
+                    .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(RosaButtonGradient)
+                    .clickable {
+                        viewModel?.adjustDraftQuantity("art-mesa-redonda", tableCount - 6)
+                        onSelectScreenCode("s78")
+                    },
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                // Move tool
-                Box(
-                    modifier = Modifier.weight(1f).height(44.dp).clip(RoundedCornerShape(14.dp)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    RfIcon(kind = RfIconKind.MOVE, tint = Color(0xFF62627A), size = 20.dp)
-                }
-                // Pencil (active — gradient)
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(44.dp)
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)))),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    RfIcon(kind = RfIconKind.EDIT, tint = Color.White, size = 20.dp)
-                }
-                // Circle
-                Box(
-                    modifier = Modifier.weight(1f).height(44.dp).clip(RoundedCornerShape(14.dp)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    RfIcon(kind = RfIconKind.CIRCLE, tint = Color(0xFF62627A), size = 20.dp)
-                }
-                // Table
-                Box(
-                    modifier = Modifier.weight(1f).height(44.dp).clip(RoundedCornerShape(14.dp)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    RfIcon(kind = RfIconKind.TABLE, tint = Color(0xFF62627A), size = 20.dp)
-                }
-                // Chair
-                Box(
-                    modifier = Modifier.weight(1f).height(44.dp).clip(RoundedCornerShape(14.dp)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    RfIcon(kind = RfIconKind.CHAIR, tint = Color(0xFF62627A), size = 20.dp)
-                }
-                // Aa text
-                Box(
-                    modifier = Modifier.weight(1f).height(44.dp).clip(RoundedCornerShape(14.dp)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    BasicText(
-                        text = "Aa",
-                        style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, color = Color(0xFF62627A)),
-                    )
-                }
-                // Redo
-                Box(
-                    modifier = Modifier.weight(1f).height(44.dp).clip(RoundedCornerShape(14.dp)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    RfIcon(kind = RfIconKind.REDO, tint = Color(0xFF62627A), size = 20.dp)
-                }
+                BasicText(
+                    text = "Revisar boceto",
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = Color.White),
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                RfIcon(kind = RfIconKind.ARROW_RIGHT, tint = Color.White, size = 20.dp)
             }
-        }
-
-        // CTA — bottom=40dp
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.BottomCenter)
-                .padding(horizontal = 16.dp, vertical = 40.dp)
-                .height(56.dp)
-                .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
-                .clip(RoundedCornerShape(16.dp))
-                .background(RosaButtonGradient)
-                .clickable { onSelectScreenCode("s78") },
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            BasicText(
-                text = "Revisar boceto",
-                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = Color.White),
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            RfIcon(kind = RfIconKind.ARROW_RIGHT, tint = Color.White, size = 20.dp)
-        }
         }
     }
 }
-
-
 
 @Composable
 private fun SketchChip78(dotColor: Color, label: String) {
@@ -3498,12 +3835,12 @@ private fun BoxScope.SketchLabel78(label: String, yOffset: Dp) {
 
 private fun starPath(cx: Float, cy: Float, outer: Float, inner: Float): Path {
     val path = Path()
-    for (i in 0 until 10) {
-        val radius = if (i % 2 == 0) outer else inner
-        val angle = (-90.0 + i * 36.0) * PI / 180.0
+    for (pointIndex in 0 until 10) {
+        val radius = if (pointIndex % 2 == 0) outer else inner
+        val angle = (-90.0 + pointIndex * 36.0) * PI / 180.0
         val x = cx + (radius * cos(angle)).toFloat()
         val y = cy + (radius * sin(angle)).toFloat()
-        if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
+        if (pointIndex == 0) path.moveTo(x, y) else path.lineTo(x, y)
     }
     path.close()
     return path
@@ -3515,11 +3852,11 @@ private fun starPath(cx: Float, cy: Float, outer: Float, inner: Float): Path {
 @Composable
 internal fun RenderRosaSketchConfirmS78(
     onSelectScreenCode: (String) -> Unit = {},
+    viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
 
     RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
-        // Header
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -3552,7 +3889,6 @@ internal fun RenderRosaSketchConfirmS78(
             }
         }
 
-        // Main content
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -3560,7 +3896,6 @@ internal fun RenderRosaSketchConfirmS78(
                 .padding(top = 114.dp, start = 16.dp, end = 16.dp, bottom = 120.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            // Sketch preview card
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -3571,7 +3906,6 @@ internal fun RenderRosaSketchConfirmS78(
                     .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(24.dp)),
                 contentAlignment = Alignment.Center,
             ) {
-                // Sketch Canvas
                 Canvas(
                     modifier = Modifier
                         .size(width = 184.dp, height = 226.dp),
@@ -3579,7 +3913,6 @@ internal fun RenderRosaSketchConfirmS78(
                     val scaleX = size.width / 358f
                     val scaleY = size.height / 440f
 
-                    // Grid pattern dots/lines
                     val gridStepX = 22f * scaleX
                     val gridStepY = 22f * scaleY
                     for (colIndex in 0..20) {
@@ -3595,7 +3928,6 @@ internal fun RenderRosaSketchConfirmS78(
                         }
                     }
 
-                    // Tarima rect at top
                     drawRoundRect(
                         color = Color(0xFF865DEC),
                         topLeft = Offset(70f * scaleX, 36f * scaleY),
@@ -3604,7 +3936,6 @@ internal fun RenderRosaSketchConfirmS78(
                         style = Stroke(width = 3f * scaleX),
                     )
 
-                    // 6 tables (circles)
                     val tableRadius = 26f * scaleX
                     val tables = listOf(
                         Offset(134f * scaleX, 190f * scaleY),
@@ -3623,7 +3954,6 @@ internal fun RenderRosaSketchConfirmS78(
                         )
                     }
 
-                    // Pista de baile (dashed rect)
                     drawRoundRect(
                         color = Color(0xFF8DB52C),
                         topLeft = Offset(128f * scaleX, 250f * scaleY),
@@ -3635,7 +3965,6 @@ internal fun RenderRosaSketchConfirmS78(
                         ),
                     )
 
-                    // Entrada arrow
                     drawLine(
                         color = Color(0xFF1A1A2E),
                         start = Offset(179f * scaleX, 436f * scaleY),
@@ -3659,12 +3988,10 @@ internal fun RenderRosaSketchConfirmS78(
                     )
                 }
 
-                // Sketch labels
                 SketchLabel78(label = "Tarima", yOffset = (-91).dp)
                 SketchLabel78(label = "Pista", yOffset = 29.dp)
                 SketchLabel78(label = "Entrada", yOffset = 79.dp)
 
-                // Edit button top-right
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
@@ -3683,7 +4010,6 @@ internal fun RenderRosaSketchConfirmS78(
                 }
             }
 
-            // Lo que dibujaste chips
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 BasicText(
                     text = "LO QUE DIBUJASTE",
@@ -3701,7 +4027,6 @@ internal fun RenderRosaSketchConfirmS78(
                 }
             }
 
-            // Rosa IA Assistant Card
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -3753,7 +4078,6 @@ internal fun RenderRosaSketchConfirmS78(
                         }
                     }
 
-                    // Button Ayúdame con IA
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
@@ -3761,7 +4085,10 @@ internal fun RenderRosaSketchConfirmS78(
                             .height(46.dp)
                             .clip(RoundedCornerShape(999.dp))
                             .background(Color.White)
-                            .clickable { onSelectScreenCode("s32") },
+                            .clickable {
+                                viewModel?.adjustDraftQuantity("art-silla-tiffany", 60)
+                                onSelectScreenCode("s32")
+                            },
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             RfIcon(kind = RfIconKind.SPARKLE, tint = Color(0xFFA23FB8), size = 18.dp)
@@ -3775,7 +4102,6 @@ internal fun RenderRosaSketchConfirmS78(
             }
         }
 
-        // Bottom CTAs
         Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -3821,255 +4147,373 @@ internal fun RenderRosaSketchConfirmS78(
 // ==============================================================================
 // A08 · ADMIN · ROSA IA
 // ==============================================================================
+private data class AdminRosaChatTurn(
+    val userText: String,
+    val rosaReply: String,
+)
+
 @Composable
 internal fun RenderAdminRosaA08(
     onSelectScreenCode: (String) -> Unit = {},
+    viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
+    val clientCycle = remember { listOf("Camila Rodríguez", "Laura Peña", "Eventos Corporativos SD") }
+    val dateCycle = remember {
+        listOf(
+            "Sáb 14 nov" to "14 de noviembre",
+            "Sáb 21 nov" to "21 de noviembre",
+            "Vie 4 dic" to "4 de diciembre",
+        )
+    }
+
+    var assignedClient by remember { mutableStateOf<String?>(null) }
+    var clientCycleIndex by remember { mutableStateOf(0) }
+    var dateCycleIndex by remember { mutableStateOf(0) }
+    var includeLighting by remember { mutableStateOf(false) }
+    var guestCount by remember { mutableStateOf(120) }
+    var promptText by remember { mutableStateOf("") }
+    var extraChatTurns by remember { mutableStateOf(emptyList<AdminRosaChatTurn>()) }
+
+    val currentShortDate = dateCycle[dateCycleIndex % dateCycle.size].first
+    val currentLongDate = dateCycle[dateCycleIndex % dateCycle.size].second
+    val chairCount = guestCount
+    val tableCount = (guestCount / 10).coerceAtLeast(1)
+    val baseEstimateDop = chairCount * 8 + tableCount * 20 + 95
+    val totalEstimateDop = if (includeLighting) baseEstimateDop + 180 else baseEstimateDop
+    val formattedEstimate = if (totalEstimateDop >= 1000) {
+        val thousands = totalEstimateDop / 1000
+        val remainder = (totalEstimateDop % 1000).toString().padStart(3, '0')
+        "RD$ $thousands,$remainder"
+    } else {
+        "RD$ $totalEstimateDop"
+    }
+
+    val handleUserCommand: (String) -> Unit = { rawCommand ->
+        val trimmed = rawCommand.trim()
+        if (trimmed.isNotEmpty()) {
+            val lower = trimmed.lowercase()
+            val mentionsClient = listOf("cliente", "camila", "laura", "asignar").any { keyword -> lower.contains(keyword) }
+            val mentionsLighting = listOf("ilumin", "luz", "luces", "guirnalda").any { keyword -> lower.contains(keyword) }
+            val mentionsDate = listOf("fecha", "nov", "dic", "sáb", "viernes").any { keyword -> lower.contains(keyword) }
+            val mentionsGuests = listOf("invitado", "persona", "80", "150").any { keyword -> lower.contains(keyword) }
+
+            val replyText = when {
+                mentionsClient -> {
+                    val chosenClient = clientCycle[clientCycleIndex % clientCycle.size]
+                    clientCycleIndex += 1
+                    assignedClient = chosenClient
+                    "Listo, asigné este borrador a $chosenClient y vinculé su historial."
+                }
+
+                mentionsLighting -> {
+                    includeLighting = !includeLighting
+                    if (includeLighting) {
+                        "Agregué 4 sets de Guirnalda LED cálida (+RD$ 180) al borrador. Nuevo estimado: RD$ ${totalEstimateDop + 180}."
+                    } else {
+                        "Quité la iluminación adicional del borrador."
+                    }
+                }
+
+                mentionsDate -> {
+                    dateCycleIndex += 1
+                    val nextDate = dateCycle[dateCycleIndex % dateCycle.size]
+                    viewModel?.setEventDateInput(nextDate.first)
+                    "Actualicé la fecha del evento al ${nextDate.second} y verifiqué disponibilidad completa en almacén."
+                }
+
+                mentionsGuests -> {
+                    guestCount = if (guestCount == 120) 150 else 120
+                    viewModel?.setEventGuestsInput(guestCount.toString())
+                    "Ajusté el borrador para $guestCount invitados ($guestCount sillas Tiffany y ${guestCount / 10} mesas redondas)."
+                }
+
+                else -> {
+                    "Perfecto, tomé nota de \"$trimmed\" y actualicé las observaciones del borrador de boda."
+                }
+            }
+            viewModel?.setRosaProposalMessage(trimmed)
+            extraChatTurns = extraChatTurns + AdminRosaChatTurn(userText = trimmed, rosaReply = replyText)
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize().background(AdminRosaBackgroundGradient)) {
-        // Header
-        Row(
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .fillMaxWidth()
-                .padding(top = 54.dp, start = 16.dp, end = 16.dp)
-                .height(44.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Box(
+        Column(modifier = Modifier.fillMaxSize()) {
+            // Header
+            Row(
                 modifier = Modifier
-                    .size(44.dp)
-                    .rfIconButtonShadow(CircleShape, isAdmin = true)
-                    .clip(CircleShape)
-                    .background(Color.White)
-                    .border(1.dp, Color(0xFFECECF5), CircleShape)
-                    .clickable { onSelectScreenCode("BACK:A01") },
-                contentAlignment = Alignment.Center,
+                    .fillMaxWidth()
+                    .padding(top = 54.dp, start = 16.dp, end = 16.dp, bottom = 10.dp)
+                    .height(44.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF151729), size = 22.dp)
-            }
-
-            RosaAvatar(size = RosaAvatarSize.MEDIUM, customSize = 40.dp, forceAdminPalette = true)
-
-            Column(modifier = Modifier.weight(1f)) {
-                BasicText(
-                    text = "Rosa",
-                    style = TextStyle(fontFamily = typo.displayFamily, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729), lineHeight = 20.sp),
-                )
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .rfIconButtonShadow(CircleShape, isAdmin = true)
+                        .clip(CircleShape)
+                        .background(Color.White)
+                        .border(1.dp, Color(0xFFECECF5), CircleShape)
+                        .clickable { onSelectScreenCode("BACK:A01") },
+                    contentAlignment = Alignment.Center,
                 ) {
-                    BasicText("Asistente", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = Color(0xFF5F6377)))
-                    Box(
-                        modifier = Modifier
-                            .height(20.dp)
-                            .background(Color(0xFFECEBFF), CircleShape)
-                            .padding(horizontal = 7.dp),
-                        contentAlignment = Alignment.Center,
+                    RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF151729), size = 22.dp)
+                }
+
+                RosaAvatar(size = RosaAvatarSize.MEDIUM, customSize = 40.dp, forceAdminPalette = true)
+
+                Column(modifier = Modifier.weight(1f)) {
+                    BasicText(
+                        text = "Rosa",
+                        style = TextStyle(fontFamily = typo.displayFamily, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729), lineHeight = 20.sp),
+                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
-                        BasicText("Admin", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 11.sp, fontWeight = FontWeight.Medium, color = Color(0xFF4B47D6)))
+                        BasicText("Asistente", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = Color(0xFF5F6377)))
+                        Box(
+                            modifier = Modifier
+                                .height(20.dp)
+                                .background(Color(0xFFECEBFF), CircleShape)
+                                .padding(horizontal = 7.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            BasicText("Admin", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 11.sp, fontWeight = FontWeight.Medium, color = Color(0xFF4B47D6)))
+                        }
                     }
                 }
             }
-        }
 
-        // Message stack (scrollable)
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                                .verticalScroll(rememberScrollState())
-            .padding(top = 118.dp, bottom = 150.dp, start = 16.dp, end = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            // User bubble
-            Box(
-                modifier = Modifier
-                    .align(Alignment.End)
-                    .widthIn(max = 290.dp)
-                    .shadow(12.dp, RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 20.dp, bottomEnd = 6.dp), spotColor = Color(0xFA5B6CF0), ambientColor = Color(0x705B6CF0))
-                    .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 20.dp, bottomEnd = 6.dp))
-                    .background(Brush.linearGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0))))
-                    .padding(horizontal = 14.dp, vertical = 12.dp),
-            ) {
-                BasicText(
-                    text = "Arma una boda para 120 personas el sábado 14 de noviembre en un jardín, blanco y dorado.",
-                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color.White, lineHeight = 21.sp),
-                )
-            }
-
-            // Rosa proposal
+            // Message stack (scrollable, occupies weight(1f) so it never overlaps bottom chips/input)
             Column(
-                modifier = Modifier.widthIn(max = 330.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                // Bubble with bold date
+                // User bubble
                 Box(
                     modifier = Modifier
-                        .shadow(10.dp, RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 6.dp, bottomEnd = 20.dp), spotColor = Color(0xC04650B4), ambientColor = Color(0x504650B4))
-                        .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 6.dp, bottomEnd = 20.dp))
-                        .background(Color.White)
-                        .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 6.dp, bottomEnd = 20.dp))
+                        .align(Alignment.End)
+                        .widthIn(max = 290.dp)
+                        .shadow(12.dp, RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 20.dp, bottomEnd = 6.dp), spotColor = Color(0xFA5B6CF0), ambientColor = Color(0x705B6CF0))
+                        .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 20.dp, bottomEnd = 6.dp))
+                        .background(Brush.linearGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0))))
                         .padding(horizontal = 14.dp, vertical = 12.dp),
                 ) {
-                    val bubbleText = buildAnnotatedString {
-                        append("Listo. Revisé el inventario para el ")
-                        withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
-                            append("14 de noviembre")
-                        }
-                        append(" y te armé este borrador:")
-                    }
                     BasicText(
-                        text = bubbleText,
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF151729), lineHeight = 21.sp),
+                        text = "Arma una boda para 120 personas el sábado 14 de noviembre en un jardín, blanco y dorado.",
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color.White, lineHeight = 21.sp),
                     )
                 }
 
-                // Card proposal
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = true)
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(Color.White)
-                        .border(1.dp, Color(0xFFE9E9F2), RoundedCornerShape(20.dp)),
+                // Rosa proposal
+                Column(
+                    modifier = Modifier.widthIn(max = 330.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Column {
-                        // Header
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(Color(0xFFF7F6FF))
-                                .padding(horizontal = 14.dp, vertical = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            ) {
-                                RfIcon(kind = RfIconKind.RING, tint = Color(0xFF2E324A), size = 16.dp)
-                                BasicText("Boda · Sáb 14 nov", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2E324A)))
+                    Box(
+                        modifier = Modifier
+                            .shadow(10.dp, RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 6.dp, bottomEnd = 20.dp), spotColor = Color(0xC04650B4), ambientColor = Color(0x504650B4))
+                            .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 6.dp, bottomEnd = 20.dp))
+                            .background(Color.White)
+                            .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 6.dp, bottomEnd = 20.dp))
+                            .padding(horizontal = 14.dp, vertical = 12.dp),
+                    ) {
+                        val bubbleText = buildAnnotatedString {
+                            append("Listo. Revisé el inventario para el ")
+                            withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                                append(currentLongDate)
                             }
-                            Box(
-                                modifier = Modifier
-                                    .height(24.dp)
-                                    .background(Color(0xFFECEBFF), CircleShape)
-                                    .padding(horizontal = 9.dp),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                BasicText("120 invitados", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = Color(0xFF4B47D6)))
-                            }
+                            append(" y te armé este borrador:")
                         }
-
-                        // Items with typography weights matching official HTML
-                        val proposalItems = listOf(
-                            Triple(RfPhotoKey.SILLA_TIFFANY, "Silla Tiffany Cristal" to "120", "Disponible" to (Color(0xFFEEF6D6) to Color(0xFF4E6A10))),
-                            Triple(RfPhotoKey.MESA_REDONDA, "Mesa redonda" to "12", "Disponible" to (Color(0xFFEEF6D6) to Color(0xFF4E6A10))),
-                            Triple(RfPhotoKey.CENTRO_FLORAL, "Centro de mesa floral" to "12", "Disponible" to (Color(0xFFEEF6D6) to Color(0xFF4E6A10))),
-                            Triple(RfPhotoKey.ARCO_ROSA, "Arco de globos rosa" to "1", "Queda 1" to (Color(0xFFFFF2C9) to Color(0xFF7A5700))),
+                        BasicText(
+                            text = bubbleText,
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF151729), lineHeight = 21.sp),
                         )
+                    }
 
-                        proposalItems.forEach { (photo, itemData, tagInfo) ->
-                            Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFF0F0F6)))
+                    // Card proposal
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = true)
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(Color.White)
+                            .border(1.dp, Color(0xFFE9E9F2), RoundedCornerShape(20.dp)),
+                    ) {
+                        Column {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 14.dp, vertical = 9.dp),
+                                    .background(Color(0xFFF7F6FF))
+                                    .padding(horizontal = 14.dp, vertical = 12.dp),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .clip(RoundedCornerShape(10.dp)),
-                                ) {
-                                    RfPhoto(photoKey = photo, contentDescription = itemData.first, modifier = Modifier.fillMaxSize())
-                                }
-                                val itemTitle = buildAnnotatedString {
-                                    append(itemData.first)
-                                    append(" ")
-                                    withStyle(SpanStyle(fontWeight = FontWeight.Medium, color = Color(0xFF5F6377))) {
-                                        append("× ${itemData.second}")
-                                    }
-                                }
-                                BasicText(
-                                    text = itemTitle,
-                                    modifier = Modifier.weight(1f),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2E324A)),
-                                )
-                                Box(
-                                    modifier = Modifier
-                                        .height(22.dp)
-                                        .background(tagInfo.second.first, CircleShape)
-                                        .padding(horizontal = 8.dp),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    BasicText(tagInfo.first, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 11.sp, fontWeight = FontWeight.Medium, color = tagInfo.second.second))
-                                }
-                            }
-                        }
-
-                        // Footer
-                        Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFF0F0F6)))
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(start = 14.dp, end = 14.dp, top = 10.dp, bottom = 14.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp),
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.Bottom,
                                 horizontalArrangement = Arrangement.SpaceBetween,
                             ) {
-                                BasicText("Estimado", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF5F6377)))
-                                BasicText("RD$ 1,295", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729)))
-                            }
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(42.dp)
-                                        .rfPrimaryButtonShadow(RoundedCornerShape(12.dp), isAdmin = true)
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(Brush.linearGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0))))
-                                        .clickable { onSelectScreenCode("A07") },
-                                    contentAlignment = Alignment.Center,
-                                ) {
+                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                                     ) {
-                                        RfIcon(kind = RfIconKind.CHECK, tint = Color.White, size = 16.dp)
-                                        BasicText("Usar borrador", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White))
+                                        RfIcon(kind = RfIconKind.RING, tint = Color(0xFF2E324A), size = 16.dp)
+                                        BasicText(
+                                            text = "Boda · $currentShortDate",
+                                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2E324A)),
+                                        )
+                                    }
+                                    if (assignedClient != null) {
+                                        BasicText(
+                                            text = "Cliente: $assignedClient",
+                                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF4B47D6)),
+                                        )
                                     }
                                 }
-
                                 Box(
                                     modifier = Modifier
-                                        .weight(1f)
-                                        .height(42.dp)
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(Color.White)
-                                        .border(1.dp, Color(0xFFE3E4EF), RoundedCornerShape(12.dp))
-                                        .clickable { onSelectScreenCode("A06") },
+                                        .height(24.dp)
+                                        .background(Color(0xFFECEBFF), CircleShape)
+                                        .clickable {
+                                            guestCount = if (guestCount == 120) 150 else 120
+                                        }
+                                        .padding(horizontal = 9.dp),
                                     contentAlignment = Alignment.Center,
                                 ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    BasicText(
+                                        text = "$guestCount invitados",
+                                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = Color(0xFF4B47D6)),
+                                    )
+                                }
+                            }
+
+                            val baseProposalItems = listOf(
+                                Triple(RfPhotoKey.SILLA_TIFFANY, "Silla Tiffany Cristal" to "$chairCount", "Disponible" to (Color(0xFFEEF6D6) to Color(0xFF4E6A10))),
+                                Triple(RfPhotoKey.MESA_REDONDA, "Mesa redonda" to "$tableCount", "Disponible" to (Color(0xFFEEF6D6) to Color(0xFF4E6A10))),
+                                Triple(RfPhotoKey.CENTRO_FLORAL, "Centro de mesa floral" to "$tableCount", "Disponible" to (Color(0xFFEEF6D6) to Color(0xFF4E6A10))),
+                                Triple(RfPhotoKey.ARCO_ROSA, "Arco de globos rosa" to "1", "Queda 1" to (Color(0xFFFFF2C9) to Color(0xFF7A5700))),
+                            )
+                            val proposalItems = if (includeLighting) {
+                                baseProposalItems + Triple(
+                                    RfPhotoKey.BODA,
+                                    "Guirnalda luces LED" to "4",
+                                    "Agregado" to (Color(0xFFECEBFF) to Color(0xFF4B47D6)),
+                                )
+                            } else {
+                                baseProposalItems
+                            }
+
+                            proposalItems.forEach { (photo, itemData, tagInfo) ->
+                                Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFF0F0F6)))
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 14.dp, vertical = 9.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .clip(RoundedCornerShape(10.dp)),
                                     ) {
-                                        RfIcon(kind = RfIconKind.EDIT, tint = Color(0xFF151729), size = 16.dp)
-                                        BasicText("Ajustar", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF151729)))
+                                        RfPhoto(photoKey = photo, contentDescription = itemData.first, modifier = Modifier.fillMaxSize())
+                                    }
+                                    val itemTitle = buildAnnotatedString {
+                                        append(itemData.first)
+                                        append(" ")
+                                        withStyle(SpanStyle(fontWeight = FontWeight.Medium, color = Color(0xFF5F6377))) {
+                                            append("× ${itemData.second}")
+                                        }
+                                    }
+                                    BasicText(
+                                        text = itemTitle,
+                                        modifier = Modifier.weight(1f),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2E324A)),
+                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .height(22.dp)
+                                            .background(tagInfo.second.first, CircleShape)
+                                            .padding(horizontal = 8.dp),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        BasicText(tagInfo.first, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 11.sp, fontWeight = FontWeight.Medium, color = tagInfo.second.second))
+                                    }
+                                }
+                            }
+
+                            Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFF0F0F6)))
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(start = 14.dp, end = 14.dp, top = 10.dp, bottom = 14.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp),
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.Bottom,
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                ) {
+                                    BasicText("Estimado", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF5F6377)))
+                                    BasicText(formattedEstimate, style = TextStyle(fontFamily = typo.displayFamily, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729)))
+                                }
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(42.dp)
+                                            .rfPrimaryButtonShadow(RoundedCornerShape(12.dp), isAdmin = true)
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(Brush.linearGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0))))
+                                            .clickable {
+                                                viewModel?.setEventTypeInput("Boda")
+                                                viewModel?.setEventDateInput(currentShortDate)
+                                                viewModel?.setEventGuestsInput(guestCount.toString())
+                                                onSelectScreenCode("A07")
+                                            },
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                        ) {
+                                            RfIcon(kind = RfIconKind.CHECK, tint = Color.White, size = 16.dp)
+                                            BasicText("Usar borrador", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White))
+                                        }
+                                    }
+
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(42.dp)
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(Color.White)
+                                            .border(1.dp, Color(0xFFE3E4EF), RoundedCornerShape(12.dp))
+                                            .clickable {
+                                                viewModel?.setEventTypeInput("Boda")
+                                                viewModel?.setEventDateInput(currentShortDate)
+                                                viewModel?.setEventGuestsInput(guestCount.toString())
+                                                onSelectScreenCode("A06")
+                                            },
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                        ) {
+                                            RfIcon(kind = RfIconKind.EDIT, tint = Color(0xFF151729), size = 16.dp)
+                                            BasicText("Ajustar", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF151729)))
+                                        }
                                     }
                                 }
                             }
@@ -4077,99 +4521,177 @@ internal fun RenderAdminRosaA08(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
-            }
+                // Additional interactive turns
+                extraChatTurns.forEach { turn ->
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.End)
+                            .widthIn(max = 290.dp)
+                            .shadow(8.dp, RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 20.dp, bottomEnd = 6.dp), spotColor = Color(0x805B6CF0))
+                            .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 20.dp, bottomEnd = 6.dp))
+                            .background(Brush.linearGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0))))
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                    ) {
+                        BasicText(
+                            text = turn.userText,
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color.White, lineHeight = 20.sp),
+                        )
+                    }
 
-            Spacer(modifier = Modifier.height(20.dp))
-        }
-
-        // Chips at bottom: 104dp
-        Row(
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .fillMaxWidth()
-                .padding(start = 16.dp, end = 16.dp, bottom = 104.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Box(
-                modifier = Modifier
-                    .height(36.dp)
-                    .shadow(6.dp, CircleShape, spotColor = Color(0x804650B4), ambientColor = Color(0x304650B4))
-                    .clip(CircleShape)
-                    .background(Color.White)
-                    .border(1.dp, Color(0xFFE9E9F2), CircleShape)
-                    .padding(horizontal = 14.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    RfIcon(kind = RfIconKind.USER, tint = Color(0xFF151729), size = 16.dp)
-                    BasicText("Asignar a un cliente", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF151729)))
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.Start)
+                            .widthIn(max = 310.dp)
+                            .shadow(8.dp, RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 6.dp, bottomEnd = 20.dp), spotColor = Color(0x604650B4))
+                            .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 6.dp, bottomEnd = 20.dp))
+                            .background(Color.White)
+                            .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 6.dp, bottomEnd = 20.dp))
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                    ) {
+                        BasicText(
+                            text = turn.rosaReply,
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF151729), lineHeight = 20.sp),
+                        )
+                    }
                 }
             }
 
-            Box(
+            // Docked bottom area: horizontally scrollable chips + interactive input bar
+            Column(
                 modifier = Modifier
-                    .height(36.dp)
-                    .shadow(6.dp, CircleShape, spotColor = Color(0x804650B4), ambientColor = Color(0x304650B4))
-                    .clip(CircleShape)
-                    .background(Color.White)
-                    .border(1.dp, Color(0xFFE9E9F2), CircleShape)
-                    .padding(horizontal = 14.dp),
-                contentAlignment = Alignment.Center,
+                    .fillMaxWidth()
+                    .padding(top = 4.dp, bottom = 28.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    RfIcon(kind = RfIconKind.LIGHTBULB, tint = Color(0xFF151729), size = 16.dp)
-                    BasicText("Agregar iluminación", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF151729)))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    val hasClientAssigned = assignedClient != null
+                    Box(
+                        modifier = Modifier
+                            .height(36.dp)
+                            .shadow(6.dp, CircleShape, spotColor = Color(0x804650B4), ambientColor = Color(0x304650B4))
+                            .clip(CircleShape)
+                            .background(if (hasClientAssigned) Color(0xFFECEBFF) else Color.White)
+                            .border(1.dp, if (hasClientAssigned) Color(0xFF5B6CF0) else Color(0xFFE9E9F2), CircleShape)
+                            .clickable {
+                                handleUserCommand("Asignar a un cliente")
+                            }
+                            .padding(horizontal = 14.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            RfIcon(kind = RfIconKind.USER, tint = if (hasClientAssigned) Color(0xFF4B47D6) else Color(0xFF151729), size = 16.dp)
+                            BasicText(
+                                text = assignedClient ?: "Asignar a un cliente",
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = if (hasClientAssigned) Color(0xFF4B47D6) else Color(0xFF151729)),
+                            )
+                        }
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .height(36.dp)
+                            .shadow(6.dp, CircleShape, spotColor = Color(0x804650B4), ambientColor = Color(0x304650B4))
+                            .clip(CircleShape)
+                            .background(if (includeLighting) Color(0xFFECEBFF) else Color.White)
+                            .border(1.dp, if (includeLighting) Color(0xFF5B6CF0) else Color(0xFFE9E9F2), CircleShape)
+                            .clickable {
+                                handleUserCommand("Agregar iluminación")
+                            }
+                            .padding(horizontal = 14.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            RfIcon(kind = RfIconKind.LIGHTBULB, tint = if (includeLighting) Color(0xFF4B47D6) else Color(0xFF151729), size = 16.dp)
+                            BasicText(
+                                text = if (includeLighting) "Iluminación agregada" else "Agregar iluminación",
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = if (includeLighting) Color(0xFF4B47D6) else Color(0xFF151729)),
+                            )
+                        }
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .height(36.dp)
+                            .shadow(6.dp, CircleShape, spotColor = Color(0x804650B4), ambientColor = Color(0x304650B4))
+                            .clip(CircleShape)
+                            .background(Color.White)
+                            .border(1.dp, Color(0xFFE9E9F2), CircleShape)
+                            .clickable {
+                                handleUserCommand("Cambiar fecha")
+                            }
+                            .padding(horizontal = 14.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        BasicText(
+                            text = "Cambiar fecha ($currentShortDate)",
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF151729)),
+                        )
+                    }
                 }
-            }
-
-            Box(
-                modifier = Modifier
-                    .height(36.dp)
-                    .shadow(6.dp, CircleShape, spotColor = Color(0x804650B4), ambientColor = Color(0x304650B4))
-                    .clip(CircleShape)
-                    .background(Color.White)
-                    .border(1.dp, Color(0xFFE9E9F2), CircleShape)
-                    .padding(horizontal = 14.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                BasicText("Cambiar fecha", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF151729)))
-            }
-        }
-
-        // Bottom Input at bottom: 34dp
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .padding(start = 16.dp, end = 16.dp, bottom = 34.dp)
-                .height(58.dp)
-                .shadow(14.dp, CircleShape, spotColor = Color(0xC04650B4), ambientColor = Color(0x504650B4))
-                .clip(CircleShape)
-                .background(Color.White)
-                .border(1.dp, Color(0xFFE3E4EF), CircleShape)
-                .padding(start = 20.dp, end = 6.dp),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxSize(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                BasicText(
-                    text = "Pídele algo más a Rosa…",
-                    modifier = Modifier.weight(1f),
-                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF5F6377)),
-                )
 
                 Box(
                     modifier = Modifier
-                        .size(46.dp)
-                        .shadow(10.dp, CircleShape, spotColor = Color(0xFA5B6CF0), ambientColor = Color(0x705B6CF0))
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .height(58.dp)
+                        .shadow(14.dp, CircleShape, spotColor = Color(0xC04650B4), ambientColor = Color(0x504650B4))
                         .clip(CircleShape)
-                        .background(Brush.linearGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0)))),
-                    contentAlignment = Alignment.Center,
+                        .background(Color.White)
+                        .border(1.dp, Color(0xFFE3E4EF), CircleShape)
+                        .padding(start = 20.dp, end = 6.dp),
                 ) {
-                    RfIcon(kind = RfIconKind.MIC, tint = Color.White, size = 22.dp)
+                    Row(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                            if (promptText.isEmpty()) {
+                                BasicText(
+                                    text = "Pídele algo más a Rosa…",
+                                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF5F6377)),
+                                )
+                            }
+                            BasicTextField(
+                                value = promptText,
+                                onValueChange = { updatedText -> promptText = updatedText },
+                                singleLine = true,
+                                textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF151729)),
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
+
+                        val hasPromptText = promptText.isNotBlank()
+                        Box(
+                            modifier = Modifier
+                                .size(46.dp)
+                                .shadow(10.dp, CircleShape, spotColor = Color(0xFA5B6CF0), ambientColor = Color(0x705B6CF0))
+                                .clip(CircleShape)
+                                .background(Brush.linearGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0))))
+                                .clickable {
+                                    if (hasPromptText) {
+                                        val submitted = promptText
+                                        promptText = ""
+                                        handleUserCommand(submitted)
+                                    } else {
+                                        handleUserCommand("Asignar a Camila Rodríguez y agregar iluminación cálida")
+                                    }
+                                },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            RfIcon(
+                                kind = if (hasPromptText) RfIconKind.SEND else RfIconKind.MIC,
+                                tint = Color.White,
+                                size = 22.dp,
+                            )
+                        }
+                    }
                 }
             }
         }

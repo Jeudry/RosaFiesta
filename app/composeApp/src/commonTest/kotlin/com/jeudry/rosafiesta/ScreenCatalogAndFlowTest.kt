@@ -2,6 +2,7 @@ package com.jeudry.rosafiesta
 
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.jeudry.rosafiesta.core.engine.AppView
@@ -205,5 +206,32 @@ class ScreenCatalogAndFlowTest {
         viewModel.setChatInput("Todo listo para el montaje en Jardín Botánico")
         viewModel.submitChatMessage("Camila")
         assertTrue(viewModel.chatMessages.value.last().contains("Todo listo para el montaje"))
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun `pantalla A08 Rosa Asistente Admin ejecuta chips rapidos y actualiza el borrador de propuesta`() = runComposeUiTest {
+        val koin = org.koin.dsl.koinApplication {
+            modules(com.jeudry.rosafiesta.di.appModule)
+        }.koin
+        val viewModel = koin.get<com.jeudry.rosafiesta.ui.RosaFiestaViewModel>()
+
+        setContent {
+            RosaFiestaApp(
+                initialAppView = AppView.ADMIN,
+                initialScreenCode = "A08",
+                viewModel = viewModel,
+            )
+        }
+
+        onNodeWithTag("screen-A08").assertExists()
+        onNodeWithText("RD$ 1,295").assertExists()
+
+        onNodeWithText("Agregar iluminación").performClick()
+        onNodeWithText("RD$ 1,475").assertExists()
+        assertEquals("Agregar iluminación", viewModel.rosaProposalMessage.value)
+
+        onNodeWithText("Asignar a un cliente").performClick()
+        onNodeWithText("Cliente: Camila Rodríguez").assertExists()
     }
 }

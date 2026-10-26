@@ -23,6 +23,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -30,7 +31,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import com.jeudry.rosafiesta.domain.EventStatus
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -69,6 +69,7 @@ import com.jeudry.rosafiesta.designsystem.rfIconButtonShadow
 import com.jeudry.rosafiesta.designsystem.rfInputShadow
 import com.jeudry.rosafiesta.designsystem.rfPrimaryButtonShadow
 import com.jeudry.rosafiesta.domain.CanonicalSampleData
+import com.jeudry.rosafiesta.domain.EventStatus
 
 private val AdminBackgroundGradient = Brush.radialGradient(
     0.0f to Color(0xFFE6E7FF),
@@ -633,6 +634,8 @@ internal fun RenderAdminRequestsA02(
             }
         }
 
+        var selectedRequestTab by remember { mutableStateOf(0) }
+        val requestTabs = listOf("Nuevas · 2", "En revisión · 1", "Enviadas")
         // Segments
         Row(
             modifier = Modifier
@@ -641,32 +644,35 @@ internal fun RenderAdminRequestsA02(
                 .padding(4.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(38.dp)
-                    .shadow(4.dp, RoundedCornerShape(12.dp), spotColor = Color(0x334650B4), ambientColor = Color.Transparent)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(Color.White),
-                contentAlignment = Alignment.Center,
-            ) {
-                BasicText("Nuevas · 2", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.Normal, color = Color(0xFF2E324A)))
-            }
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(38.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                BasicText("En revisión · 1", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.Normal, color = Color(0xFF5F6377)))
-            }
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(38.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                BasicText("Enviadas", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.Normal, color = Color(0xFF5F6377)))
+            requestTabs.forEachIndexed { tabIndex, tabTitle ->
+                val isSelectedTab = selectedRequestTab == tabIndex
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(38.dp)
+                        .then(
+                            if (isSelectedTab) {
+                                Modifier
+                                    .shadow(4.dp, RoundedCornerShape(12.dp), spotColor = Color(0x334650B4), ambientColor = Color.Transparent)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(Color.White)
+                            } else {
+                                Modifier.clip(RoundedCornerShape(12.dp))
+                            },
+                        )
+                        .clickable { selectedRequestTab = tabIndex },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    BasicText(
+                        tabTitle,
+                        style = TextStyle(
+                            fontFamily = typo.bodyFamily,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Normal,
+                            color = if (isSelectedTab) Color(0xFF2E324A) else Color(0xFF5F6377),
+                        ),
+                    )
+                }
             }
         }
 
@@ -746,7 +752,8 @@ internal fun RenderAdminRequestsA02(
                             .size(40.dp)
                             .clip(CircleShape)
                             .background(Color(0xFFEEF6D6))
-                            .border(1.dp, Color(0xFFE0EDBF), CircleShape),
+                            .border(1.dp, Color(0xFFE0EDBF), CircleShape)
+                            .clickable { onSelectScreenCode("A15") },
                         contentAlignment = Alignment.Center,
                     ) {
                         RfIcon(kind = RfIconKind.WHATSAPP, tint = Color(0xFF4E6A10), size = 18.dp)
@@ -850,7 +857,8 @@ internal fun RenderAdminRequestsA02(
                             .size(40.dp)
                             .clip(CircleShape)
                             .background(Color(0xFFEEF6D6))
-                            .border(1.dp, Color(0xFFE0EDBF), CircleShape),
+                            .border(1.dp, Color(0xFFE0EDBF), CircleShape)
+                            .clickable { onSelectScreenCode("A15") },
                         contentAlignment = Alignment.Center,
                     ) {
                         RfIcon(kind = RfIconKind.WHATSAPP, tint = Color(0xFF4E6A10), size = 18.dp)
@@ -901,6 +909,7 @@ internal fun RenderAdminQuoteBuilderA03(
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
+    var articleQuantities by remember { mutableStateOf(listOf(1, 1, 40)) }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -980,7 +989,8 @@ internal fun RenderAdminQuoteBuilderA03(
                             .rfIconButtonShadow(CircleShape, isAdmin = true)
                             .clip(CircleShape)
                             .background(Color.White)
-                            .border(1.dp, Color(0xFFECECF5), CircleShape),
+                            .border(1.dp, Color(0xFFECECF5), CircleShape)
+                            .clickable { onSelectScreenCode("A15") },
                         contentAlignment = Alignment.Center,
                     ) {
                         RfIcon(kind = RfIconKind.WHATSAPP, tint = Color(0xFF4E6A10), size = 20.dp)
@@ -1006,9 +1016,9 @@ internal fun RenderAdminQuoteBuilderA03(
             ) {
                 Column {
                     val quoteArticles = listOf(
-                        Triple(RfPhotoKey.ARCO_ROSA, "Arco de globos rosa", "RD$ 95" to ("Disponible" to 1)),
-                        Triple(RfPhotoKey.MESA_HELADOS, "Mesa dulce temática", "RD$ 150" to ("1 libre de 2" to 1)),
-                        Triple(RfPhotoKey.SILLA_TIFFANY, "Silla Tiffany Cristal", "RD$ 4" to ("80 libres" to 40)),
+                        Triple(RfPhotoKey.ARCO_ROSA, "Arco de globos rosa", "RD$ 95" to ("Disponible" to articleQuantities[0])),
+                        Triple(RfPhotoKey.MESA_HELADOS, "Mesa dulce temática", "RD$ 150" to ("1 libre de 2" to articleQuantities[1])),
+                        Triple(RfPhotoKey.SILLA_TIFFANY, "Silla Tiffany Cristal", "RD$ 4" to ("80 libres" to articleQuantities[2])),
                     )
 
                     quoteArticles.forEachIndexed { index, (photo, title, meta) ->
@@ -1075,7 +1085,14 @@ internal fun RenderAdminQuoteBuilderA03(
                                 horizontalArrangement = Arrangement.spacedBy(2.dp),
                             ) {
                                 Box(
-                                    modifier = Modifier.size(28.dp).clip(CircleShape),
+                                    modifier = Modifier
+                                        .size(28.dp)
+                                        .clip(CircleShape)
+                                        .clickable {
+                                            val updatedList = articleQuantities.toMutableList()
+                                            updatedList[index] = (updatedList[index] - 1).coerceAtLeast(1)
+                                            articleQuantities = updatedList
+                                        },
                                     contentAlignment = Alignment.Center,
                                 ) {
                                     RfIcon(kind = RfIconKind.MINUS, tint = Color(0xFF5B6CF0), size = 14.dp)
@@ -1086,7 +1103,14 @@ internal fun RenderAdminQuoteBuilderA03(
                                     style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2E324A)),
                                 )
                                 Box(
-                                    modifier = Modifier.size(28.dp).clip(CircleShape),
+                                    modifier = Modifier
+                                        .size(28.dp)
+                                        .clip(CircleShape)
+                                        .clickable {
+                                            val updatedList = articleQuantities.toMutableList()
+                                            updatedList[index] = updatedList[index] + 1
+                                            articleQuantities = updatedList
+                                        },
                                     contentAlignment = Alignment.Center,
                                 ) {
                                     RfIcon(kind = RfIconKind.PLUS, tint = Color(0xFF5B6CF0), size = 14.dp)
@@ -1863,8 +1887,8 @@ internal fun RenderAdminPaymentsA20(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                                .verticalScroll(rememberScrollState())
-            .padding(top = 54.dp, start = 20.dp, end = 20.dp),
+                .verticalScroll(rememberScrollState())
+                .padding(top = 54.dp, start = 20.dp, end = 20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // Header
@@ -1933,25 +1957,29 @@ internal fun RenderAdminPaymentsA20(
                     .background(Color(0xFFEDEDF5))
                     .padding(4.dp),
             ) {
+                var selectedPaymentTab by remember { mutableStateOf(0) }
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     Box(
                         modifier = Modifier
                             .weight(1f)
                             .height(38.dp)
                             .clip(RoundedCornerShape(12.dp))
-                            .background(Color.White),
+                            .background(if (selectedPaymentTab == 0) Color.White else Color.Transparent)
+                            .clickable { selectedPaymentTab = 0 },
                         contentAlignment = Alignment.Center,
                     ) {
-                        BasicText("Por cobrar · 3", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.Normal, color = Color(0xFF2E324A)))
+                        BasicText("Por cobrar · 3", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.Normal, color = if (selectedPaymentTab == 0) Color(0xFF2E324A) else Color(0xFF5F6377)))
                     }
                     Box(
                         modifier = Modifier
                             .weight(1f)
                             .height(38.dp)
-                            .clip(RoundedCornerShape(12.dp)),
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(if (selectedPaymentTab == 1) Color.White else Color.Transparent)
+                            .clickable { selectedPaymentTab = 1 },
                         contentAlignment = Alignment.Center,
                     ) {
-                        BasicText("Recibidos", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.Normal, color = Color(0xFF5F6377)))
+                        BasicText("Recibidos", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.Normal, color = if (selectedPaymentTab == 1) Color(0xFF2E324A) else Color(0xFF5F6377)))
                     }
                 }
             }
@@ -1966,6 +1994,7 @@ internal fun RenderAdminPaymentsA20(
                     .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(20.dp)),
             ) {
                 Column {
+                    var remindedIndices by remember { mutableStateOf(emptySet<Int>()) }
                     val pending = listOf(
                         Triple("C" to Color(0xFFFDE6F2) to Color(0xFFC2338F), "Boda Real · Camila R." to ("Vence el jue 22 oct" to Color(0xFFB42345)), "RD$ 3,150"),
                         Triple("C" to Color(0xFFFDE6F2) to Color(0xFFC2338F), "Quinceañera · Camila R." to ("Vence el vie 30 oct" to Color(0xFF7A5700)), "RD$ 4,340"),
@@ -1973,6 +2002,7 @@ internal fun RenderAdminPaymentsA20(
                     )
 
                     pending.forEachIndexed { idx, (avatar, info, amount) ->
+                        val isReminded = idx in remindedIndices
                         if (idx > 0) {
                             Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFF0F0F6)))
                         }
@@ -2001,12 +2031,17 @@ internal fun RenderAdminPaymentsA20(
                             Column(horizontalAlignment = Alignment.End) {
                                 BasicText(amount, style = TextStyle(fontFamily = typo.displayFamily, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF151729)))
                                 Row(
-                                    modifier = Modifier.clickable {},
+                                    modifier = Modifier.clickable {
+                                        remindedIndices = if (isReminded) remindedIndices - idx else remindedIndices + idx
+                                    },
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                                 ) {
-                                    RfIcon(kind = RfIconKind.WHATSAPP, tint = Color(0xFF4B47D6), size = 13.dp)
-                                    BasicText("Recordar", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = Color(0xFF4B47D6)))
+                                    RfIcon(kind = if (isReminded) RfIconKind.CHECK else RfIconKind.WHATSAPP, tint = if (isReminded) Color(0xFF4E6A10) else Color(0xFF4B47D6), size = 13.dp)
+                                    BasicText(
+                                        if (isReminded) "Recordado" else "Recordar",
+                                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = if (isReminded) Color(0xFF4E6A10) else Color(0xFF4B47D6)),
+                                    )
                                 }
                             }
                         }
@@ -2338,8 +2373,8 @@ internal fun RenderAdminEventDetailA13(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                                .verticalScroll(rememberScrollState())
-            .padding(top = 54.dp, start = 20.dp, end = 20.dp),
+                .verticalScroll(rememberScrollState())
+                .padding(top = 54.dp, start = 20.dp, end = 20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // Header
@@ -2972,6 +3007,9 @@ internal fun RenderAdminTasksA17(
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
+    var selectedMemberChip by remember { mutableStateOf("Todos") }
+    var taskOneCompleted by remember { mutableStateOf(true) }
+    var taskTwoCompleted by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -3020,7 +3058,7 @@ internal fun RenderAdminTasksA17(
                     .shadow(8.dp, CircleShape, spotColor = Color(0x665B6CF0), ambientColor = Color.Transparent)
                     .clip(CircleShape)
                     .background(Brush.linearGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0))))
-                    .clickable { /* Nueva tarea */ },
+                    .clickable { taskTwoCompleted = !taskTwoCompleted },
                 contentAlignment = Alignment.Center,
             ) {
                 RfIcon(kind = RfIconKind.PLUS, tint = Color.White, size = 22.dp)
@@ -3034,16 +3072,23 @@ internal fun RenderAdminTasksA17(
                 .offset(y = (-2).dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            // Chip Todos (selected)
+            val isAllSelected = selectedMemberChip == "Todos"
             Box(
                 modifier = Modifier
                     .height(36.dp)
                     .clip(CircleShape)
-                    .background(Brush.linearGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0))))
+                    .then(
+                        if (isAllSelected) {
+                            Modifier.background(Brush.linearGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0))))
+                        } else {
+                            Modifier.background(Color.White).border(1.dp, Color(0xFFE9E9F2), CircleShape)
+                        },
+                    )
+                    .clickable { selectedMemberChip = "Todos" }
                     .padding(horizontal = 14.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                BasicText("Todos", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color.White))
+                BasicText("Todos", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = if (isAllSelected) FontWeight.SemiBold else FontWeight.Normal, color = if (isAllSelected) Color.White else Color(0xFF2E324A)))
             }
 
             val members = listOf(
@@ -3054,12 +3099,19 @@ internal fun RenderAdminTasksA17(
             )
 
             members.forEach { (initial, name, colors) ->
+                val isMemberSelected = selectedMemberChip == name
                 Box(
                     modifier = Modifier
                         .height(36.dp)
                         .clip(CircleShape)
-                        .background(Color.White)
-                        .border(1.dp, Color(0xFFE9E9F2), CircleShape)
+                        .then(
+                            if (isMemberSelected) {
+                                Modifier.background(Brush.linearGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0))))
+                            } else {
+                                Modifier.background(Color.White).border(1.dp, Color(0xFFE9E9F2), CircleShape)
+                            },
+                        )
+                        .clickable { selectedMemberChip = name }
                         .padding(start = 5.dp, end = 14.dp),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -3076,7 +3128,7 @@ internal fun RenderAdminTasksA17(
                         ) {
                             BasicText(initial, style = TextStyle(fontFamily = typo.displayFamily, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = colors.second))
                         }
-                        BasicText(name, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.Normal, color = Color(0xFF2E324A)))
+                        BasicText(name, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = if (isMemberSelected) FontWeight.SemiBold else FontWeight.Normal, color = if (isMemberSelected) Color.White else Color(0xFF2E324A)))
                     }
                 }
             }
@@ -3103,21 +3155,30 @@ internal fun RenderAdminTasksA17(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .clickable { taskOneCompleted = !taskOneCompleted }
                         .padding(horizontal = 14.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(26.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFF8DB52C)),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        RfIcon(kind = RfIconKind.CHECK, tint = Color.White, size = 14.dp)
+                    if (taskOneCompleted) {
+                        Box(
+                            modifier = Modifier
+                                .size(26.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF8DB52C)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            RfIcon(kind = RfIconKind.CHECK, tint = Color.White, size = 14.dp)
+                        }
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .size(26.dp)
+                                .border(2.dp, Color(0xFFC9CAE6), CircleShape),
+                        )
                     }
                     Column(modifier = Modifier.weight(1f)) {
-                        BasicText("Confirmar paleta floral", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF5F6377), textDecoration = TextDecoration.LineThrough))
+                        BasicText("Confirmar paleta floral", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = if (taskOneCompleted) Color(0xFF5F6377) else Color(0xFF2E324A), textDecoration = if (taskOneCompleted) TextDecoration.LineThrough else TextDecoration.None))
                         BasicText("10:00 a. m.", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.Normal, color = Color(0xFF5F6377)))
                     }
                     Box(
@@ -3137,17 +3198,30 @@ internal fun RenderAdminTasksA17(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .clickable { taskTwoCompleted = !taskTwoCompleted }
                         .padding(horizontal = 14.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(26.dp)
-                            .border(2.dp, Color(0xFFC9CAE6), CircleShape),
-                    )
+                    if (taskTwoCompleted) {
+                        Box(
+                            modifier = Modifier
+                                .size(26.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF8DB52C)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            RfIcon(kind = RfIconKind.CHECK, tint = Color.White, size = 14.dp)
+                        }
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .size(26.dp)
+                                .border(2.dp, Color(0xFFC9CAE6), CircleShape),
+                        )
+                    }
                     Column(modifier = Modifier.weight(1f)) {
-                        BasicText("Recordar pago restante a Camila", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = Color(0xFF2E324A)))
+                        BasicText("Recordar pago restante a Camila", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = if (taskTwoCompleted) Color(0xFF5F6377) else Color(0xFF2E324A), textDecoration = if (taskTwoCompleted) TextDecoration.LineThrough else TextDecoration.None))
                         BasicText("5:00 p. m. · RD$ 3,150", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.Normal, color = Color(0xFF5F6377)))
                     }
                     Box(
@@ -4505,8 +4579,8 @@ internal fun RenderAdminPackageEditA25(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                                .verticalScroll(rememberScrollState())
-            .padding(top = 54.dp, start = 20.dp, end = 20.dp),
+                .verticalScroll(rememberScrollState())
+                .padding(top = 54.dp, start = 20.dp, end = 20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // Header
@@ -4548,6 +4622,7 @@ internal fun RenderAdminPackageEditA25(
                     RfPhoto(photoKey = RfPhotoKey.BODA, contentDescription = "Bodas Rosa", modifier = Modifier.fillMaxSize())
                 }
 
+                var packageName by remember { mutableStateOf("Bodas Rosa") }
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     BasicText("Nombre", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = Color(0xFF3A3D52)))
                     Box(
@@ -4560,7 +4635,13 @@ internal fun RenderAdminPackageEditA25(
                             .padding(horizontal = 14.dp),
                         contentAlignment = Alignment.CenterStart,
                     ) {
-                        BasicText("Bodas Rosa", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, fontWeight = FontWeight.Normal, color = Color(0xFF2E324A)))
+                        BasicTextField(
+                            value = packageName,
+                            onValueChange = { updatedText -> packageName = updatedText },
+                            singleLine = true,
+                            textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, fontWeight = FontWeight.Normal, color = Color(0xFF2E324A)),
+                            modifier = Modifier.fillMaxWidth(),
+                        )
                     }
                 }
             }
@@ -4576,12 +4657,13 @@ internal fun RenderAdminPackageEditA25(
                     .background(Color.White)
                     .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(20.dp)),
             ) {
+                var packageQuantities by remember { mutableStateOf(listOf(1, 10, 120, 3)) }
                 Column {
                     val packageItems = listOf(
-                        Triple(RfPhotoKey.ARCO_ROSA, "Arco de globos rosa", "RD$ 95 c/u" to "1"),
-                        Triple(RfPhotoKey.CENTRO_FLORAL, "Centro de mesa floral", "RD$ 35 c/u" to "10"),
-                        Triple(RfPhotoKey.SILLA_TIFFANY, "Silla Tiffany Cristal", "RD$ 4 c/u" to "120"),
-                        Triple(RfPhotoKey.MESA_REDONDA, "Mesa redonda", "RD$ 25 c/u" to "3"),
+                        Triple(RfPhotoKey.ARCO_ROSA, "Arco de globos rosa", "RD$ 95 c/u" to packageQuantities[0]),
+                        Triple(RfPhotoKey.CENTRO_FLORAL, "Centro de mesa floral", "RD$ 35 c/u" to packageQuantities[1]),
+                        Triple(RfPhotoKey.SILLA_TIFFANY, "Silla Tiffany Cristal", "RD$ 4 c/u" to packageQuantities[2]),
+                        Triple(RfPhotoKey.MESA_REDONDA, "Mesa redonda", "RD$ 25 c/u" to packageQuantities[3]),
                     )
 
                     packageItems.forEachIndexed { idx, (photo, name, info) ->
@@ -4617,15 +4699,35 @@ internal fun RenderAdminPackageEditA25(
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                                    Box(modifier = Modifier.size(28.dp), contentAlignment = Alignment.Center) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(28.dp)
+                                            .clip(CircleShape)
+                                            .clickable {
+                                                val updatedList = packageQuantities.toMutableList()
+                                                updatedList[idx] = (updatedList[idx] - 1).coerceAtLeast(1)
+                                                packageQuantities = updatedList
+                                            },
+                                        contentAlignment = Alignment.Center,
+                                    ) {
                                         BasicText("−", style = TextStyle(fontSize = 16.sp, color = Color(0xFF5B6CF0), fontWeight = FontWeight.Normal))
                                     }
                                     BasicText(
-                                        info.second,
+                                        "${info.second}",
                                         modifier = Modifier.widthIn(min = 28.dp),
                                         style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.Normal, color = Color(0xFF2E324A), textAlign = androidx.compose.ui.text.style.TextAlign.Center),
                                     )
-                                    Box(modifier = Modifier.size(28.dp), contentAlignment = Alignment.Center) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(28.dp)
+                                            .clip(CircleShape)
+                                            .clickable {
+                                                val updatedList = packageQuantities.toMutableList()
+                                                updatedList[idx] = updatedList[idx] + 1
+                                                packageQuantities = updatedList
+                                            },
+                                        contentAlignment = Alignment.Center,
+                                    ) {
                                         BasicText("+", style = TextStyle(fontSize = 16.sp, color = Color(0xFF5B6CF0), fontWeight = FontWeight.Normal))
                                     }
                                 }
@@ -4639,7 +4741,7 @@ internal fun RenderAdminPackageEditA25(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(44.dp)
-                            .clickable {},
+                            .clickable { onSelectScreenCode("A09") },
                         contentAlignment = Alignment.Center,
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -4735,6 +4837,8 @@ internal fun RenderAdminClientsA26(
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
+    var searchQuery by remember { mutableStateOf("") }
+    var selectedFilterIndex by remember { mutableStateOf(0) }
 
     Column(
         modifier = Modifier
@@ -4791,45 +4895,53 @@ internal fun RenderAdminClientsA26(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             RfIcon(kind = RfIconKind.SEARCH, tint = Color(0xFF5F6377), size = 18.dp)
-            BasicText("Buscar por nombre o teléfono", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF5F6377)))
+            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                if (searchQuery.isEmpty()) {
+                    BasicText("Buscar por nombre o teléfono", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF5F6377)))
+                }
+                BasicTextField(
+                    value = searchQuery,
+                    onValueChange = { updatedText -> searchQuery = updatedText },
+                    singleLine = true,
+                    textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF2E324A)),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         }
 
         // Chips
+        val filterChips = listOf("Todos · 4", "Con evento próximo · 2", "Empresas · 1")
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Box(
-                modifier = Modifier
-                    .height(36.dp)
-                    .clip(CircleShape)
-                    .background(Brush.linearGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0))))
-                    .padding(horizontal = 14.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                BasicText("Todos · 4", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color.White))
-            }
-            Box(
-                modifier = Modifier
-                    .height(36.dp)
-                    .clip(CircleShape)
-                    .background(Color.White)
-                    .border(1.dp, Color(0xFFE9E9F2), CircleShape)
-                    .padding(horizontal = 14.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                BasicText("Con evento próximo · 2", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.Normal, color = Color(0xFF2E324A)))
-            }
-            Box(
-                modifier = Modifier
-                    .height(36.dp)
-                    .clip(CircleShape)
-                    .background(Color.White)
-                    .border(1.dp, Color(0xFFE9E9F2), CircleShape)
-                    .padding(horizontal = 14.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                BasicText("Empresas · 1", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.Normal, color = Color(0xFF2E324A)))
+            filterChips.forEachIndexed { chipIndex, chipLabel ->
+                val isSelected = selectedFilterIndex == chipIndex
+                Box(
+                    modifier = Modifier
+                        .height(36.dp)
+                        .clip(CircleShape)
+                        .then(
+                            if (isSelected) {
+                                Modifier.background(Brush.linearGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0))))
+                            } else {
+                                Modifier.background(Color.White).border(1.dp, Color(0xFFE9E9F2), CircleShape)
+                            },
+                        )
+                        .clickable { selectedFilterIndex = chipIndex }
+                        .padding(horizontal = 14.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    BasicText(
+                        chipLabel,
+                        style = TextStyle(
+                            fontFamily = typo.bodyFamily,
+                            fontSize = 14.sp,
+                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                            color = if (isSelected) Color.White else Color(0xFF2E324A),
+                        ),
+                    )
+                }
             }
         }
 
@@ -4908,8 +5020,8 @@ internal fun RenderAdminClientProfileA27(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                                .verticalScroll(rememberScrollState())
-            .padding(top = 54.dp, start = 20.dp, end = 20.dp),
+                .verticalScroll(rememberScrollState())
+                .padding(top = 54.dp, start = 20.dp, end = 20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // Header
@@ -4943,7 +5055,8 @@ internal fun RenderAdminClientProfileA27(
                         .rfIconButtonShadow(CircleShape, isAdmin = true)
                         .clip(CircleShape)
                         .background(Color.White)
-                        .border(1.dp, Color(0xFFECECF5), CircleShape),
+                        .border(1.dp, Color(0xFFECECF5), CircleShape)
+                        .clickable { onSelectScreenCode("A05") },
                     contentAlignment = Alignment.Center,
                 ) {
                     RfIcon(kind = RfIconKind.EDIT, tint = Color(0xFF151729), size = 20.dp)
@@ -4982,7 +5095,7 @@ internal fun RenderAdminClientProfileA27(
                         .clip(RoundedCornerShape(20.dp))
                         .background(Color.White)
                         .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(20.dp))
-                        .clickable {},
+                        .clickable { onSelectScreenCode("A15") },
                     contentAlignment = Alignment.Center,
                 ) {
                     Column(
@@ -5002,7 +5115,7 @@ internal fun RenderAdminClientProfileA27(
                         .clip(RoundedCornerShape(20.dp))
                         .background(Color.White)
                         .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(20.dp))
-                        .clickable {},
+                        .clickable { onSelectScreenCode("A15") },
                     contentAlignment = Alignment.Center,
                 ) {
                     Column(
