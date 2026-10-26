@@ -60,11 +60,12 @@ import org.koin.dsl.koinApplication
  */
 @Composable
 public fun PersonalApp(
-    initialScreenCode: String = "s14",
+    initialScreenCode: String = "p00",
 ) {
     RosaFiestaApp(
         initialAppView = AppView.PERSONAL,
         initialScreenCode = initialScreenCode,
+        showDevHeader = false,
     )
 }
 
@@ -73,11 +74,12 @@ public fun PersonalApp(
  */
 @Composable
 public fun AdminApp(
-    initialScreenCode: String = "A01",
+    initialScreenCode: String = "A00",
 ) {
     RosaFiestaApp(
         initialAppView = AppView.ADMIN,
         initialScreenCode = initialScreenCode,
+        showDevHeader = false,
     )
 }
 
@@ -91,7 +93,7 @@ public fun AdminApp(
 public fun RosaFiestaApp(
     initialAppView: AppView = AppView.PERSONAL,
     initialScreenCode: String = if (initialAppView == AppView.ADMIN) "A01" else "s14",
-    showDevHeader: Boolean = true,
+    showDevHeader: Boolean = false,
     viewModel: RosaFiestaViewModel = remember {
         koinApplication { modules(appModule) }.koin.get()
     },

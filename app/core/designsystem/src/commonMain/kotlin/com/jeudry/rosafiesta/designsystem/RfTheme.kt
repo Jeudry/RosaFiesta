@@ -1,11 +1,25 @@
 package com.jeudry.rosafiesta.designsystem
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.IndicationNodeFactory
+import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.interaction.HoverInteraction
+import androidx.compose.foundation.interaction.InteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.ContentDrawScope
+import androidx.compose.ui.graphics.drawscope.withTransform
+import androidx.compose.ui.node.DelegatableNode
+import androidx.compose.ui.node.DrawModifierNode
+import kotlinx.coroutines.launch
 
 /**
  * Variante visual activa: App Personal clara (`s14`), App Personal oscura (`s15`) o App Administrativa (`theme.admin`).
@@ -122,6 +136,68 @@ public val LocalRfPalette: androidx.compose.runtime.ProvidableCompositionLocal<R
     staticCompositionLocalOf { paletteForVariant(RfThemeVariant.PERSONAL) }
 
 /**
+ * Indicación táctil contextual para todos los elementos interactivos de RosaFiesta.
+ * Elimina el recuadro gris rectangular por defecto de Compose y aplica un efecto elástico suave
+ * de escala alrededor del centro del propio elemento (respetando círculos, píldoras, tarjetas e iconos).
+ */
+private object RfContextualIndication : IndicationNodeFactory {
+    override fun create(interactionSource: InteractionSource): DelegatableNode =
+        RfContextualIndicationNode(interactionSource)
+
+    override fun hashCode(): Int = -1948271635
+
+    override fun equals(other: Any?): Boolean = other === this
+}
+
+private class RfContextualIndicationNode(
+    private val interactionSource: InteractionSource,
+) : Modifier.Node(), DrawModifierNode {
+    private val scale = Animatable(1f)
+
+    override fun onAttach() {
+        coroutineScope.launch {
+            var isPressed = false
+            var isHovered = false
+            interactionSource.interactions.collect { interaction ->
+                when (interaction) {
+                    is PressInteraction.Press -> isPressed = true
+                    is PressInteraction.Release, is PressInteraction.Cancel -> isPressed = false
+                    is HoverInteraction.Enter -> isHovered = true
+                    is HoverInteraction.Exit -> isHovered = false
+                }
+                val targetScale = when {
+                    isPressed -> 0.955f
+                    isHovered -> 1.025f
+                    else -> 1f
+                }
+                launch {
+                    scale.animateTo(
+                        targetValue = targetScale,
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessMediumLow,
+                        ),
+                    )
+                }
+            }
+        }
+    }
+
+    override fun ContentDrawScope.draw() {
+        val currentScale = scale.value
+        if (currentScale != 1f) {
+            withTransform({
+                scale(scaleX = currentScale, scaleY = currentScale, pivot = center)
+            }) {
+                this@draw.drawContent()
+            }
+        } else {
+            drawContent()
+        }
+    }
+}
+
+/**
  * Proveedor raíz del sistema de diseño de RosaFiesta.
  */
 @Composable
@@ -134,6 +210,7 @@ public fun RfTheme(
     CompositionLocalProvider(
         LocalRfPalette provides palette,
         LocalRfTypography provides typography,
+        LocalIndication provides RfContextualIndication,
         content = content,
     )
 }

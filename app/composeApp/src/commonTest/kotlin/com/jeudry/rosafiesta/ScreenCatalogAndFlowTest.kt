@@ -88,7 +88,11 @@ class ScreenCatalogAndFlowTest {
     @Test
     fun `navega entre App Personal y App Administrativa y ejecuta el cambio de vista A30`() = runComposeUiTest {
         setContent {
-            RosaFiestaApp(initialAppView = AppView.PERSONAL, initialScreenCode = "s14")
+            RosaFiestaApp(
+                initialAppView = AppView.PERSONAL,
+                initialScreenCode = "s14",
+                showDevHeader = true,
+            )
         }
 
         onNodeWithTag("screen-s14").assertExists()
@@ -99,6 +103,17 @@ class ScreenCatalogAndFlowTest {
 
         // Abrir el panel de desarrollo con las 133 pantallas
         onNodeWithTag("open-dev-panel").performClick()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun `PersonalApp y AdminApp se ejecutan como dos aplicaciones independientes sin cabecera unificada`() = runComposeUiTest {
+        setContent {
+            PersonalApp(initialScreenCode = "s14")
+        }
+        onNodeWithTag("screen-s14").assertExists()
+        onNodeWithTag("switch-admin").assertDoesNotExist()
+        onNodeWithTag("open-dev-panel").assertDoesNotExist()
     }
 
     @Test

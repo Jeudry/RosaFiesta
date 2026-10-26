@@ -92,3 +92,11 @@ compose.desktop {
         }
     }
 }
+
+tasks.register<JavaExec>("runAdmin") {
+    group = "compose desktop"
+    description = "Runs the standalone RosaFiesta Admin desktop application"
+    mainClass.set("com.jeudry.rosafiesta.AdminMainKt")
+    val jvmCompilation = kotlin.jvm().compilations.getByName("main")
+    classpath(jvmCompilation.output.allOutputs, jvmCompilation.runtimeDependencyFiles)
+}

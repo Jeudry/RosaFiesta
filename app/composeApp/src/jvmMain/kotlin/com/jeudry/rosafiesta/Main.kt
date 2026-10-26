@@ -4,19 +4,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
-import com.jeudry.rosafiesta.core.engine.AppView
 
-/** Punto de entrada de escritorio (macOS, Windows y Linux). */
+/** Punto de entrada de escritorio para la App Personal de RosaFiesta (Clientes). */
 fun main() = application {
     Window(
         onCloseRequest = ::exitApplication,
-        title = "RosaFiesta · Gestión Inteligente de Eventos",
-        state = rememberWindowState(width = 1280.dp, height = 820.dp),
+        title = "RosaFiesta",
+        state = rememberWindowState(width = 410.dp, height = 860.dp),
     ) {
-        RosaFiestaApp(
-            initialAppView = AppView.PERSONAL,
-            initialScreenCode = "p00",
-            showDevHeader = true,
-        )
+        PersonalApp(initialScreenCode = "p00")
     }
 }
