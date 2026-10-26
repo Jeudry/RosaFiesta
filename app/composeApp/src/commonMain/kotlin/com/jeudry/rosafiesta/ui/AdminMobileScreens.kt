@@ -1294,6 +1294,11 @@ internal fun RenderAdminInventoryA09(
             }
         }
 
+        val articles = viewModel?.articles?.collectAsState()?.value ?: CanonicalSampleData.articles
+        val disponiblesCount = articles.count { it.availableOct23 > 5 }
+        val reservadosCount = articles.count { it.totalStock - it.availableOct23 > 0 }
+        val stockBajoCount = articles.count { it.availableOct23 in 1..5 || it.totalStock <= 5 }
+
         // 3 Stat Boxes
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -1307,7 +1312,7 @@ internal fun RenderAdminInventoryA09(
                     .padding(horizontal = 12.dp, vertical = 10.dp),
             ) {
                 Column {
-                    BasicText("12", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF3F560C)))
+                    BasicText(disponiblesCount.toString(), style = TextStyle(fontFamily = typo.displayFamily, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF3F560C)))
                     BasicText("Disponibles", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF4E6A10)))
                 }
             }
@@ -1320,7 +1325,7 @@ internal fun RenderAdminInventoryA09(
                     .padding(horizontal = 12.dp, vertical = 10.dp),
             ) {
                 Column {
-                    BasicText("2", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF4B47D6)))
+                    BasicText(reservadosCount.toString(), style = TextStyle(fontFamily = typo.displayFamily, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF4B47D6)))
                     BasicText("Reservados hoy", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF4B47D6)))
                 }
             }
@@ -1333,7 +1338,7 @@ internal fun RenderAdminInventoryA09(
                     .padding(horizontal = 12.dp, vertical = 10.dp),
             ) {
                 Column {
-                    BasicText("1", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFFDC2B48)))
+                    BasicText(stockBajoCount.toString(), style = TextStyle(fontFamily = typo.displayFamily, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFFDC2B48)))
                     BasicText("Stock bajo", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.Normal, color = Color(0xFFDC2B48)))
                 }
             }
@@ -1349,22 +1354,23 @@ internal fun RenderAdminInventoryA09(
                 .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(20.dp)),
         ) {
             Column {
-                val inventoryItems = listOf(
-                    Triple(RfPhotoKey.SILLA_TIFFANY, "Silla Tiffany Cristal", "120 unid. · RD$ 4/día") to ("Activo" to (Color(0xFFEEF6D6) to Color(0xFF4E6A10))),
-                    Triple(RfPhotoKey.MESA_REDONDA, "Mesa redonda", "12 unid. · RD$ 25/día") to ("Activo" to (Color(0xFFEEF6D6) to Color(0xFF4E6A10))),
-                    Triple(RfPhotoKey.CENTRO_FLORAL, "Centro de mesa floral", "20 unid. · RD$ 35/día") to ("Activo" to (Color(0xFFEEF6D6) to Color(0xFF4E6A10))),
-                    Triple(RfPhotoKey.ARCO_ROSA, "Arco de globos rosa", "3 unid. · RD$ 95/día") to ("Activo" to (Color(0xFFEEF6D6) to Color(0xFF4E6A10))),
-                    Triple(RfPhotoKey.MESA_HELADOS, "Mesa dulce temática", "2 unid. · RD$ 150/día") to ("Stock bajo" to (Color(0xFFFDE3EA) to Color(0xFFDC2B48))),
-                )
-
-                inventoryItems.forEachIndexed { index, (item, tagInfo) ->
+                articles.forEachIndexed { index, article ->
                     if (index > 0) {
                         Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFF0F0F6)))
                     }
+                    val photoKey = RfPhotoKey.entries.firstOrNull { it.assetKey == article.photo.key || it.name.equals(article.photo.key, ignoreCase = true) } ?: RfPhotoKey.SILLA_TIFFANY
+                    val isStockBajo = article.availableOct23 in 1..5 || article.totalStock <= 5
+                    val tagText = if (isStockBajo) "Stock bajo" else "Activo"
+                    val tagBg = if (isStockBajo) Color(0xFFFDE3EA) else Color(0xFFEEF6D6)
+                    val tagColor = if (isStockBajo) Color(0xFFDC2B48) else Color(0xFF4E6A10)
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { onSelectScreenCode("A23") }
+                            .clickable {
+                                viewModel?.soundPlayer?.playTap()
+                                viewModel?.selectArticle(article.id)
+                                onSelectScreenCode("A23")
+                            }
                             .padding(horizontal = 12.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -1374,25 +1380,25 @@ internal fun RenderAdminInventoryA09(
                                 .size(54.dp)
                                 .clip(RoundedCornerShape(12.dp)),
                         ) {
-                            RfPhoto(photoKey = item.first, contentDescription = item.second, modifier = Modifier.fillMaxSize())
+                            RfPhoto(photoKey = photoKey, contentDescription = article.name, modifier = Modifier.fillMaxSize())
                         }
 
                         Column(
                             modifier = Modifier.weight(1f),
                             verticalArrangement = Arrangement.spacedBy(3.dp),
                         ) {
-                            BasicText(item.second, maxLines = 1, overflow = TextOverflow.Ellipsis, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = Color(0xFF2E324A)))
-                            BasicText(item.third, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = Color(0xFF5F6377)))
+                            BasicText(article.name, maxLines = 1, overflow = TextOverflow.Ellipsis, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = Color(0xFF2E324A)))
+                            BasicText("${article.totalStock} unid. · RD$ ${article.pricePerDayDop}/día", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = Color(0xFF5F6377)))
                         }
 
                         Box(
                             modifier = Modifier
                                 .height(24.dp)
-                                .background(tagInfo.second.first, CircleShape)
+                                .background(tagBg, CircleShape)
                                 .padding(horizontal = 9.dp),
                             contentAlignment = Alignment.Center,
                         ) {
-                            BasicText(tagInfo.first, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = tagInfo.second.second))
+                            BasicText(tagText, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = tagColor))
                         }
                     }
                 }
@@ -3765,8 +3771,13 @@ internal fun RenderAdminCloseoutA19(
 @Composable
 internal fun RenderAdminNewArticleA10(
     onSelectScreenCode: (String) -> Unit = {},
+    viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
+    val articleName = viewModel?.newArticleName?.collectAsState()?.value ?: "Mesa plegable 1.8 m"
+    val articleCat = viewModel?.newArticleCategory?.collectAsState()?.value ?: "Mobiliario"
+    val articlePrice = viewModel?.newArticlePrice?.collectAsState()?.value ?: "20"
+    val articleStock = viewModel?.newArticleStock?.collectAsState()?.value ?: "30"
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -3869,7 +3880,7 @@ internal fun RenderAdminNewArticleA10(
                         .padding(horizontal = 14.dp),
                     contentAlignment = Alignment.CenterStart,
                 ) {
-                    BasicText("Mesa plegable 1.8 m", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, fontWeight = FontWeight.Normal, color = Color(0xFF2E324A)))
+                    BasicText(articleName, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, fontWeight = FontWeight.Normal, color = Color(0xFF2E324A)))
                 }
             }
 
@@ -3880,33 +3891,34 @@ internal fun RenderAdminNewArticleA10(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .height(36.dp)
-                            .shadow(6.dp, CircleShape, spotColor = Color(0xC05B6CF0), ambientColor = Color(0x405B6CF0))
-                            .clip(CircleShape)
-                            .background(Brush.linearGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0))))
-                            .padding(horizontal = 14.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            RfIcon(kind = RfIconKind.BOX, tint = Color.White, size = 16.dp)
-                            BasicText("Mobiliario", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color.White))
-                        }
-                    }
-
-                    listOf("Floral", "Globos", "Iluminación").forEach { cat ->
+                    val categories = listOf("Mobiliario", "Floral", "Globos", "Iluminación")
+                    categories.forEach { cat ->
+                        val isSelected = cat.equals(articleCat, ignoreCase = true)
                         Box(
                             modifier = Modifier
                                 .height(36.dp)
-                                .shadow(4.dp, CircleShape, spotColor = Color(0x604650B4), ambientColor = Color(0x204650B4))
+                                .shadow(if (isSelected) 6.dp else 4.dp, CircleShape, spotColor = if (isSelected) Color(0xC05B6CF0) else Color(0x604650B4), ambientColor = if (isSelected) Color(0x405B6CF0) else Color(0x204650B4))
                                 .clip(CircleShape)
-                                .background(Color.White)
-                                .border(1.dp, Color(0xFFE9E9F2), CircleShape)
+                                .background(if (isSelected) Brush.linearGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0))) else Brush.linearGradient(listOf(Color.White, Color.White)))
+                                .then(if (!isSelected) Modifier.border(1.dp, Color(0xFFE9E9F2), CircleShape) else Modifier)
+                                .clickable { viewModel?.setNewArticleCategory(cat) }
                                 .padding(horizontal = 14.dp),
                             contentAlignment = Alignment.Center,
                         ) {
-                            BasicText(cat, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.Normal, color = Color(0xFF2E324A)))
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                if (isSelected && cat == "Mobiliario") {
+                                    RfIcon(kind = RfIconKind.BOX, tint = Color.White, size = 16.dp)
+                                }
+                                BasicText(
+                                    cat,
+                                    style = TextStyle(
+                                        fontFamily = typo.bodyFamily,
+                                        fontSize = 14.sp,
+                                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                        color = if (isSelected) Color.White else Color(0xFF2E324A),
+                                    ),
+                                )
+                            }
                         }
                     }
                 }
@@ -3932,7 +3944,7 @@ internal fun RenderAdminNewArticleA10(
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             BasicText("RD$", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, fontWeight = FontWeight.Normal, color = Color(0xFF2E324A)))
-                            BasicText("20", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, fontWeight = FontWeight.Normal, color = Color(0xFF2E324A)))
+                            BasicText(articlePrice, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, fontWeight = FontWeight.Normal, color = Color(0xFF2E324A)))
                         }
                     }
                 }
@@ -3955,7 +3967,7 @@ internal fun RenderAdminNewArticleA10(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween,
                         ) {
-                            BasicText("30", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2E324A)))
+                            BasicText(articleStock, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2E324A)))
                             BasicText("unid.", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF5F6377)))
                         }
                     }
@@ -4034,7 +4046,10 @@ internal fun RenderAdminNewArticleA10(
                     .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = true)
                     .clip(RoundedCornerShape(16.dp))
                     .background(Brush.linearGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0))))
-                    .clickable { onSelectScreenCode("A09") },
+                    .clickable {
+                        viewModel?.submitNewArticle()
+                        onSelectScreenCode("A09")
+                    },
                 contentAlignment = Alignment.Center,
             ) {
                 BasicText("Guardar artículo", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White))
@@ -4049,8 +4064,22 @@ internal fun RenderAdminNewArticleA10(
 @Composable
 internal fun RenderAdminArticleDetailA23(
     onSelectScreenCode: (String) -> Unit = {},
+    viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
+    val articleId = viewModel?.selectedArticleId?.collectAsState()?.value ?: "art-silla-tiffany"
+    val allArticles = viewModel?.articles?.collectAsState()?.value ?: CanonicalSampleData.articles
+    val article = allArticles.firstOrNull { it.id == articleId } ?: allArticles.first()
+
+    val photoKey = when (article.id) {
+        "art-silla-tiffany" -> RfPhotoKey.SILLA_TIFFANY
+        "art-mesa-redonda" -> RfPhotoKey.MESA_REDONDA
+        "art-centro-floral" -> RfPhotoKey.CENTRO_FLORAL
+        "art-arco-rosa" -> RfPhotoKey.ARCO_ROSA
+        "art-mesa-helados" -> RfPhotoKey.MESA_HELADOS
+        "art-mesa-plegable" -> RfPhotoKey.MESA_PLEGABLE
+        else -> RfPhotoKey.SILLA_TIFFANY
+    }
 
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -4061,7 +4090,7 @@ internal fun RenderAdminArticleDetailA23(
                 .fillMaxWidth()
                 .height(250.dp),
         ) {
-            RfPhoto(photoKey = RfPhotoKey.SILLA_TIFFANY, contentDescription = "Silla Tiffany Cristal", modifier = Modifier.fillMaxSize())
+            RfPhoto(photoKey = photoKey, contentDescription = article.name, modifier = Modifier.fillMaxSize())
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -4121,12 +4150,12 @@ internal fun RenderAdminArticleDetailA23(
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        BasicText("Silla Tiffany Cristal", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E324A)))
-                        BasicText("Mobiliario · Visible en el catálogo", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF5F6377)))
+                        BasicText(article.name, style = TextStyle(fontFamily = typo.displayFamily, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E324A)))
+                        BasicText("${article.category} · Visible en el catálogo", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF5F6377)))
                     }
 
                     Column(horizontalAlignment = Alignment.End) {
-                        BasicText("RD$ 4", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729)))
+                        BasicText("RD$ ${article.pricePerDayDop}", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729)))
                         BasicText("por día", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = Color(0xFF5F6377)))
                     }
                 }
@@ -4143,7 +4172,7 @@ internal fun RenderAdminArticleDetailA23(
                             .padding(horizontal = 12.dp, vertical = 10.dp),
                     ) {
                         Column {
-                            BasicText("120", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729)))
+                            BasicText("${article.totalStock}", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729)))
                             BasicText("En total", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = Color(0xFF5F6377)))
                         }
                     }
@@ -4158,7 +4187,7 @@ internal fun RenderAdminArticleDetailA23(
                             .padding(horizontal = 12.dp, vertical = 10.dp),
                     ) {
                         Column {
-                            BasicText("116", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF4E6A10)))
+                            BasicText("${article.availableOct23}", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF4E6A10)))
                             BasicText("En buen estado", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = Color(0xFF5F6377)))
                         }
                     }
@@ -4173,8 +4202,9 @@ internal fun RenderAdminArticleDetailA23(
                             .padding(horizontal = 12.dp, vertical = 10.dp),
                     ) {
                         Column {
-                            BasicText("4", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF7A5700)))
-                            BasicText("En reparación", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = Color(0xFF5F6377)))
+                            val reserved = (article.totalStock - article.availableOct23).coerceAtLeast(0)
+                            BasicText("$reserved", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF7A5700)))
+                            BasicText("En reserva", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = Color(0xFF5F6377)))
                         }
                     }
                 }

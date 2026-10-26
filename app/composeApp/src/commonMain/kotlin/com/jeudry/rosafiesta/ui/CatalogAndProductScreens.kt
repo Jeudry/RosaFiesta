@@ -22,12 +22,16 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.text.style.TextOverflow
+import com.jeudry.rosafiesta.domain.CanonicalSampleData
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.ui.Alignment
@@ -68,17 +72,35 @@ import com.jeudry.rosafiesta.designsystem.rfPrimaryButtonShadow
 
 @Composable
 internal fun RenderPersonalCatalogS18(
+    viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit,
 ) {
     val typo = LocalRfTypography.current
-    var selectedCategory by remember { mutableStateOf("Todas · 15") }
+    val articlesState = viewModel?.articles?.collectAsState()?.value ?: CanonicalSampleData.articles
+    val draftQuantitiesState = viewModel?.draftQuantities?.collectAsState()?.value ?: emptyMap()
+    val totalDraftCount = draftQuantitiesState.values.sum()
+    val vmCategory = viewModel?.selectedCategory?.collectAsState()?.value ?: "Todas"
+
+    var selectedCategory by remember(vmCategory) { mutableStateOf(if (vmCategory in listOf("Todas", "Iluminación", "Floral", "Globos", "Mobiliario", "Mesa dulce")) vmCategory else "Todas") }
+    var searchQuery by remember { mutableStateOf("") }
+
+    val filteredArticles = remember(articlesState, selectedCategory, searchQuery) {
+        articlesState.filter { art ->
+            val matchesCategory = selectedCategory.startsWith("Todas") ||
+                art.category.equals(selectedCategory, ignoreCase = true)
+            val matchesSearch = searchQuery.isBlank() ||
+                art.name.contains(searchQuery, ignoreCase = true) ||
+                art.description.contains(searchQuery, ignoreCase = true)
+            matchesCategory && matchesSearch
+        }
+    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(top = 54.dp, start = 20.dp, end = 20.dp),
     ) {
-        // Cabecera: Título + Botón Cuadrícula + Botón Mi Evento con badge 16
+        // Cabecera: Título + Botón Cuadrícula + Botón Mi Evento con badge dinámico
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -106,7 +128,7 @@ internal fun RenderPersonalCatalogS18(
                 Box(
                     modifier = Modifier
                         .size(44.dp)
-                        .clickable { onSelectScreenCode("s37") },
+                        .clickable { onSelectScreenCode("s25") },
                 ) {
                     Box(
                         contentAlignment = Alignment.Center,
@@ -119,7 +141,7 @@ internal fun RenderPersonalCatalogS18(
                     ) {
                         RfIcon(kind = RfIconKind.PARTY, tint = Color(0xFF151729), size = 20.dp)
                     }
-                    // Badge 16
+                    // Badge dinámico según artículos en borrador
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
@@ -129,7 +151,10 @@ internal fun RenderPersonalCatalogS18(
                             .clip(CircleShape)
                             .background(Color(0xFFFFD45C)),
                     ) {
-                        BasicText("16", style = typo.sectionCap.copy(fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF2E1A47)))
+                        BasicText(
+                            text = if (totalDraftCount > 0) totalDraftCount.toString() else "16",
+                            style = typo.sectionCap.copy(fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF2E1A47)),
+                        )
                     }
                 }
             }
@@ -137,7 +162,7 @@ internal fun RenderPersonalCatalogS18(
 
         Spacer(Modifier.height(14.dp))
 
-        // Campo de búsqueda con voz
+        // Campo de búsqueda interactivo con voz
         Box(
             contentAlignment = Alignment.CenterStart,
             modifier = Modifier
@@ -154,9 +179,27 @@ internal fun RenderPersonalCatalogS18(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.weight(1f),
+                ) {
                     RfIcon(kind = RfIconKind.SEARCH, tint = Color(0xFF5F6377), size = 20.dp)
-                    BasicText("Buscar sillas, mesas, flores…", style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF5F6377)))
+                    Box(modifier = Modifier.weight(1f)) {
+                        if (searchQuery.isEmpty()) {
+                            BasicText("Buscar sillas, mesas, flores…", style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF5F6377)))
+                        }
+                        BasicTextField(
+                            value = searchQuery,
+                            onValueChange = {
+                                searchQuery = it
+                                viewModel?.setSearchQuery(it)
+                            },
+                            textStyle = typo.body.copy(fontSize = 15.sp, color = Color(0xFF151729)),
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                        )
+                    }
                 }
                 Box(
                     contentAlignment = Alignment.Center,
@@ -173,16 +216,17 @@ internal fun RenderPersonalCatalogS18(
 
         Spacer(Modifier.height(12.dp))
 
-        // Chips de categoría
+        // Chips de categoría interactivos
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier
                 .fillMaxWidth()
                 .horizontalScroll(rememberScrollState()),
         ) {
-            val categories = listOf("Todas · 15", "Iluminación", "Floral", "Globos", "Mobiliario")
+            val categories = listOf("Todas · ${articlesState.size}", "Iluminación", "Floral", "Globos", "Mobiliario", "Mesa dulce")
             categories.forEach { cat ->
-                val isSelected = cat == selectedCategory
+                val catClean = if (cat.startsWith("Todas")) "Todas" else cat
+                val isSelected = selectedCategory == catClean || (selectedCategory.startsWith("Todas") && catClean == "Todas")
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
@@ -196,7 +240,11 @@ internal fun RenderPersonalCatalogS18(
                             },
                         )
                         .border(1.dp, if (isSelected) Color.Transparent else Color(0xFFE9E9F2), RoundedCornerShape(999.dp))
-                        .clickable { selectedCategory = cat }
+                        .clickable {
+                            viewModel?.soundPlayer?.playTap()
+                            selectedCategory = catClean
+                            viewModel?.setSelectedCategory(catClean)
+                        }
                         .padding(horizontal = 14.dp),
                 ) {
                     BasicText(
@@ -235,55 +283,50 @@ internal fun RenderPersonalCatalogS18(
 
         Spacer(Modifier.height(16.dp))
 
-        // Cuadrícula 2 columnas de productos
+        // Cuadrícula dinámica 2 columnas de productos
         Column(
             verticalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.verticalScroll(rememberScrollState()),
         ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                PersonalProductCard(
-                    title = "Silla Tiffany Cristal",
-                    desc = "Acrílica transparente",
-                    price = "4",
-                    photoKey = RfPhotoKey.SILLA_TIFFANY,
-                    bg = Color(0xFFEFE8FD),
-                    useGradientPrice = true,
-                    onOpenDetail = { onSelectScreenCode("s19") },
-                    modifier = Modifier.weight(1f),
-                )
-                PersonalProductCard(
-                    title = "Mesa dulce temática",
-                    desc = "Decoración completa para dulces",
-                    price = "150",
-                    photoKey = RfPhotoKey.MESA_HELADOS,
-                    bg = Color(0xFFEEF6D6),
-                    useGradientPrice = true,
-                    onOpenDetail = { onSelectScreenCode("s19") },
-                    modifier = Modifier.weight(1f),
-                )
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                PersonalProductCard(
-                    title = "Arco de globos",
-                    desc = "Rosa y nude, para la entrada",
-                    price = "95",
-                    photoKey = RfPhotoKey.ARCO_ROSA,
-                    bg = Color(0xFFFDE6F2),
-                    useGradientPrice = true,
-                    onOpenDetail = { onSelectScreenCode("s19") },
-                    modifier = Modifier.weight(1f),
-                )
-                PersonalProductCard(
-                    title = "Centro de mesa floral",
-                    desc = "Flores naturales, base de madera",
-                    price = "35",
-                    photoKey = RfPhotoKey.CENTRO_FLORAL,
-                    bg = Color(0xFFFFF2C9),
-                    badge = "Nuevo",
-                    useGradientPrice = true,
-                    onOpenDetail = { onSelectScreenCode("s19") },
-                    modifier = Modifier.weight(1f),
-                )
+            filteredArticles.chunked(2).forEach { rowPair ->
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                    val first = rowPair[0]
+                    val firstPhoto = RfPhotoKey.entries.firstOrNull { it.assetKey == first.photo.key || it.name.equals(first.photo.key, ignoreCase = true) } ?: RfPhotoKey.SILLA_TIFFANY
+                    PersonalProductCard(
+                        title = first.name,
+                        desc = first.description,
+                        price = first.pricePerDayDop.toString(),
+                        photoKey = firstPhoto,
+                        bg = Color(0xFFEFE8FD),
+                        useGradientPrice = true,
+                        onOpenDetail = {
+                            viewModel?.soundPlayer?.playTap()
+                            viewModel?.selectArticle(first.id)
+                            onSelectScreenCode("s19")
+                        },
+                        modifier = Modifier.weight(1f),
+                    )
+                    if (rowPair.size > 1) {
+                        val second = rowPair[1]
+                        val secondPhoto = RfPhotoKey.entries.firstOrNull { it.assetKey == second.photo.key || it.name.equals(second.photo.key, ignoreCase = true) } ?: RfPhotoKey.SILLA_TIFFANY
+                        PersonalProductCard(
+                            title = second.name,
+                            desc = second.description,
+                            price = second.pricePerDayDop.toString(),
+                            photoKey = secondPhoto,
+                            bg = Color(0xFFEEF6D6),
+                            useGradientPrice = true,
+                            onOpenDetail = {
+                                viewModel?.soundPlayer?.playTap()
+                                viewModel?.selectArticle(second.id)
+                                onSelectScreenCode("s19")
+                            },
+                            modifier = Modifier.weight(1f),
+                        )
+                    } else {
+                        Spacer(Modifier.weight(1f))
+                    }
+                }
             }
             Spacer(Modifier.height(84.dp))
         }
@@ -413,12 +456,21 @@ private fun PersonalProductCard(
 
 @Composable
 internal fun RenderProductDetailS19(
+    viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit,
 ) {
     val typo = LocalRfTypography.current
-    var count by remember { mutableStateOf(80) }
+    val selectedArticleId = viewModel?.selectedArticleId?.collectAsState()?.value ?: "art-silla-tiffany"
+    val articlesState = viewModel?.articles?.collectAsState()?.value ?: CanonicalSampleData.articles
+    val currentArticle = articlesState.firstOrNull { it.id == selectedArticleId } ?: articlesState.first()
+    val draftQuantities = viewModel?.draftQuantities?.collectAsState()?.value ?: emptyMap()
+    val initialCount = (draftQuantities[currentArticle.id] ?: 80).coerceAtLeast(1)
+
+    var count by remember(currentArticle.id) { mutableStateOf(initialCount) }
     var selectedColor by remember { mutableStateOf("Transparente") }
     var selectedTab by remember { mutableStateOf("Descripción") }
+
+    val articlePhoto = RfPhotoKey.entries.firstOrNull { it.assetKey == currentArticle.photo.key || it.name.equals(currentArticle.photo.key, ignoreCase = true) } ?: RfPhotoKey.SILLA_TIFFANY
 
     Box(
         modifier = Modifier
@@ -432,8 +484,8 @@ internal fun RenderProductDetailS19(
                 .height(430.dp),
         ) {
             RfPhoto(
-                photoKey = RfPhotoKey.SILLA_TIFFANY,
-                contentDescription = "Silla Tiffany Cristal",
+                photoKey = articlePhoto,
+                contentDescription = currentArticle.name,
                 cornerRadius = 0.dp,
                 modifier = Modifier.fillMaxSize(),
             )
@@ -483,7 +535,11 @@ internal fun RenderProductDetailS19(
                             .size(44.dp)
                             .rfIconButtonShadow(CircleShape, isAdmin = false)
                             .clip(CircleShape)
-                            .background(Color.White),
+                            .background(Color.White)
+                            .clickable {
+                                viewModel?.soundPlayer?.playTap()
+                                viewModel?.toggleFavorite(currentArticle.id)
+                            },
                     ) {
                         RfIcon(kind = RfIconKind.HEART, tint = Color(0xFFEA4EA9), filled = true, size = 20.dp)
                     }
@@ -502,7 +558,7 @@ internal fun RenderProductDetailS19(
                     .padding(6.dp),
             ) {
                 Box(modifier = Modifier.size(50.dp).clip(RoundedCornerShape(12.dp)).border(2.5.dp, Color(0xFFEA4EA9), RoundedCornerShape(12.dp))) {
-                    RfPhoto(photoKey = RfPhotoKey.SILLA_TIFFANY, contentDescription = "View 1", cornerRadius = 12.dp, modifier = Modifier.fillMaxSize())
+                    RfPhoto(photoKey = articlePhoto, contentDescription = "View 1", cornerRadius = 12.dp, modifier = Modifier.fillMaxSize())
                 }
                 Box(modifier = Modifier.size(50.dp).clip(RoundedCornerShape(12.dp))) {
                     RfPhoto(photoKey = RfPhotoKey.MESA_REDONDA, contentDescription = "View 2", cornerRadius = 12.dp, modifier = Modifier.fillMaxSize())
@@ -536,7 +592,7 @@ internal fun RenderProductDetailS19(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        BasicText("Silla Tiffany Cristal", style = typo.heroTitle.copy(fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729)))
+                        BasicText(currentArticle.name, style = typo.heroTitle.copy(fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729)))
                         Spacer(Modifier.height(6.dp))
                         // Chip valoración 5.0
                         Box(
@@ -554,7 +610,7 @@ internal fun RenderProductDetailS19(
 
                     Column(horizontalAlignment = Alignment.End) {
                         RfGradientPriceText(
-                            text = "RD$ 4",
+                            text = "RD$ ${currentArticle.pricePerDayDop}",
                             style = typo.heroTitle.copy(fontSize = 28.sp, fontWeight = FontWeight.ExtraBold),
                         )
                         BasicText("por unidad / día", style = typo.secondary.copy(fontSize = 12.sp, color = Color(0xFF62627A)))
@@ -630,7 +686,7 @@ internal fun RenderProductDetailS19(
                 }
 
                 BasicText(
-                    text = "Silla de acrílico transparente de alta resistencia para bodas y recepciones. Acabado brillante impecable con soporte hasta 150 kg.",
+                    text = currentArticle.description,
                     style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF5F6377), lineHeight = 22.sp),
                 )
             }
@@ -664,7 +720,7 @@ internal fun RenderProductDetailS19(
                             contentAlignment = Alignment.Center,
                             modifier = Modifier
                                 .size(44.dp)
-                                .clickable { if (count > 1) count -= 10 },
+                                .clickable { if (count > 1) count = (count - 10).coerceAtLeast(1) },
                         ) {
                             BasicText("-", style = typo.heroTitle.copy(fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color(0xFF865DEC)))
                         }
@@ -684,7 +740,7 @@ internal fun RenderProductDetailS19(
                     }
                 }
 
-                // Botón primario
+                // Botón primario dinámico
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
@@ -693,12 +749,17 @@ internal fun RenderProductDetailS19(
                         .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
                         .clip(RoundedCornerShape(16.dp))
                         .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))))
-                        .clickable { onSelectScreenCode("s37") },
+                        .clickable {
+                            val delta = count - (draftQuantities[currentArticle.id] ?: 0)
+                            viewModel?.adjustDraftQuantity(currentArticle.id, delta)
+                            viewModel?.soundPlayer?.playCartAdd()
+                            onSelectScreenCode("s25")
+                        },
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         RfIcon(kind = RfIconKind.SPARKLE, tint = Color.White, size = 20.dp)
                         BasicText(
-                            text = "Agregar · RD$ ${count * 4}",
+                            text = "Agregar · RD$ ${count * currentArticle.pricePerDayDop}",
                             style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White),
                         )
                     }
@@ -714,6 +775,7 @@ internal fun RenderProductDetailS19(
 
 @Composable
 internal fun RenderCategoriesScreenS20(
+    viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit,
 ) {
     val typo = LocalRfTypography.current
@@ -764,23 +826,55 @@ internal fun RenderCategoriesScreenS20(
                 }
             }
 
-            // Grid 2x4 — order matches design: Iluminación/Floral, Globos/Mantelería, Mesa dulce/Letreros, Mobiliario/Decoración
+            // Grid 2x4 — conectado reactivamente al ViewModel
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                    CategoryGridCard("Iluminación", Color(0xFFDDF4F3), CategoryIllustration.ILUMINACION, Modifier.weight(1f)) { onSelectScreenCode("s18") }
-                    CategoryGridCard("Floral", Color(0xFFFDE6F2), CategoryIllustration.FLORAL, Modifier.weight(1f)) { onSelectScreenCode("s18") }
+                    CategoryGridCard("Iluminación", Color(0xFFDDF4F3), CategoryIllustration.ILUMINACION, Modifier.weight(1f)) {
+                        viewModel?.setSelectedCategory("Iluminación")
+                        viewModel?.soundPlayer?.playTap()
+                        onSelectScreenCode("s18")
+                    }
+                    CategoryGridCard("Floral", Color(0xFFFDE6F2), CategoryIllustration.FLORAL, Modifier.weight(1f)) {
+                        viewModel?.setSelectedCategory("Floral")
+                        viewModel?.soundPlayer?.playTap()
+                        onSelectScreenCode("s18")
+                    }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                    CategoryGridCard("Globos", Color(0xFFFFF2C9), CategoryIllustration.GLOBOS, Modifier.weight(1f)) { onSelectScreenCode("s23") }
-                    CategoryGridCard("Mantelería", Color(0xFFEFE8FD), CategoryIllustration.MANTELERIA, Modifier.weight(1f)) { onSelectScreenCode("s18") }
+                    CategoryGridCard("Globos", Color(0xFFFFF2C9), CategoryIllustration.GLOBOS, Modifier.weight(1f)) {
+                        viewModel?.setSelectedCategory("Globos")
+                        viewModel?.soundPlayer?.playTap()
+                        onSelectScreenCode("s18")
+                    }
+                    CategoryGridCard("Mantelería", Color(0xFFEFE8FD), CategoryIllustration.MANTELERIA, Modifier.weight(1f)) {
+                        viewModel?.setSelectedCategory("Mantelería")
+                        viewModel?.soundPlayer?.playTap()
+                        onSelectScreenCode("s18")
+                    }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                    CategoryGridCard("Mesa dulce", Color(0xFFEEF6D6), CategoryIllustration.MESA_DULCE, Modifier.weight(1f)) { onSelectScreenCode("s18") }
-                    CategoryGridCard("Letreros", Color(0xFF1E1A2E), CategoryIllustration.LETREROS, Modifier.weight(1f), titleColor = Color(0xFFFFFFFF)) { onSelectScreenCode("s18") }
+                    CategoryGridCard("Mesa dulce", Color(0xFFEEF6D6), CategoryIllustration.MESA_DULCE, Modifier.weight(1f)) {
+                        viewModel?.setSelectedCategory("Mesa dulce")
+                        viewModel?.soundPlayer?.playTap()
+                        onSelectScreenCode("s18")
+                    }
+                    CategoryGridCard("Letreros", Color(0xFF1E1A2E), CategoryIllustration.LETREROS, Modifier.weight(1f), titleColor = Color(0xFFFFFFFF)) {
+                        viewModel?.setSelectedCategory("Letreros")
+                        viewModel?.soundPlayer?.playTap()
+                        onSelectScreenCode("s18")
+                    }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                    CategoryGridCard("Mobiliario", Color(0xFFFFF2C9), CategoryIllustration.MOBILIARIO, Modifier.weight(1f)) { onSelectScreenCode("s18") }
-                    CategoryGridCard("Decoración", Color(0xFFFDE6F2), CategoryIllustration.DECORACION, Modifier.weight(1f)) { onSelectScreenCode("s18") }
+                    CategoryGridCard("Mobiliario", Color(0xFFFFF2C9), CategoryIllustration.MOBILIARIO, Modifier.weight(1f)) {
+                        viewModel?.setSelectedCategory("Mobiliario")
+                        viewModel?.soundPlayer?.playTap()
+                        onSelectScreenCode("s18")
+                    }
+                    CategoryGridCard("Decoración", Color(0xFFFDE6F2), CategoryIllustration.DECORACION, Modifier.weight(1f)) {
+                        viewModel?.setSelectedCategory("Decoración")
+                        viewModel?.soundPlayer?.playTap()
+                        onSelectScreenCode("s18")
+                    }
                 }
             }
 
