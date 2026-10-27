@@ -4020,7 +4020,8 @@ internal fun RenderGuestCatalogS01(
 ) {
     val typo = LocalRfTypography.current
     var selectedCategory by remember { mutableStateOf("Todas") }
-    var searchQuery by remember { mutableStateOf("") }
+    val vmSearchQuery = viewModel?.searchQuery?.collectAsState()?.value ?: ""
+    var searchQuery by remember(vmSearchQuery) { mutableStateOf(vmSearchQuery) }
     val isInlineVoiceListening = viewModel?.isVoiceListening?.collectAsState()?.value ?: false
     val voiceOrigin = viewModel?.voiceInputOrigin?.collectAsState()?.value ?: VoiceInputOrigin.NONE
     val isSearchMicActive = if (isInlineVoiceListening) voiceOrigin == VoiceInputOrigin.SEARCH else false
@@ -4160,9 +4161,6 @@ internal fun RenderGuestCatalogS01(
                 onApplyVoiceQuery = { spokenQuery ->
                     searchQuery = spokenQuery
                     viewModel?.setSearchQuery(spokenQuery)
-                },
-                onOpenFullScreenVoice = {
-                    onSelectScreenCode("s35")
                 },
                 modifier = Modifier.padding(top = 10.dp),
             )

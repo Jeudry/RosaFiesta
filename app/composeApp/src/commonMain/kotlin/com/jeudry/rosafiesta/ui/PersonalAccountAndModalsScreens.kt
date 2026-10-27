@@ -558,9 +558,6 @@ internal fun RenderPersonalSearchS80(
                     localQuery = spokenQuery
                     viewModel?.setSearchQuery(spokenQuery)
                 },
-                onOpenFullScreenVoice = {
-                    onSelectScreenCode("s35")
-                },
             )
 
             if (localQuery.isBlank()) {

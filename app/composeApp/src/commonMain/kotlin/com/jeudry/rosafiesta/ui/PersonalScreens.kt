@@ -873,9 +873,6 @@ internal fun RenderPersonalHomeScreen(
                 homeQuery = spokenQuery
                 viewModel?.setSearchQuery(spokenQuery)
             },
-            onOpenFullScreenVoice = {
-                onSelectScreenCode("s35")
-            },
             modifier = Modifier.padding(horizontal = 20.dp),
         )
 

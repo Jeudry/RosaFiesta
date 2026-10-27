@@ -3527,19 +3527,19 @@ internal fun RenderRosaVoiceS35(
 internal fun InlineVoiceSearchBanner(
     viewModel: RosaFiestaViewModel?,
     onApplyVoiceQuery: (String) -> Unit,
-    onOpenFullScreenVoice: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val typo = LocalRfTypography.current
     val isListening = viewModel?.isVoiceListening?.collectAsState()?.value ?: false
+    val isTranscribing = viewModel?.isVoiceTranscribing?.collectAsState()?.value ?: false
     val voiceOrigin = viewModel?.voiceInputOrigin?.collectAsState()?.value ?: VoiceInputOrigin.NONE
     val isSearchOrigin = voiceOrigin == VoiceInputOrigin.SEARCH
-    val shouldShowBanner = if (isListening) isSearchOrigin else false
+    val isVoiceBusy = listOf(isListening, isTranscribing).any { active -> active }
+    val shouldShowBanner = if (isVoiceBusy) isSearchOrigin else false
     if (!shouldShowBanner) {
         return
     }
     val liveAmplitude = viewModel?.voiceAmplitude?.collectAsState()?.value ?: 0.28f
-    val hasHardwareMic = viewModel?.hasHardwareMicrophone?.collectAsState()?.value ?: true
     val spokenPhrases = remember {
         listOf(
             "Silla Tiffany",
@@ -3573,12 +3573,12 @@ internal fun InlineVoiceSearchBanner(
                     modifier = Modifier
                         .size(10.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFFEA4EA9)),
+                        .background(if (isTranscribing) Color(0xFF865DEC) else Color(0xFFEA4EA9)),
                 )
-                val statusText = if (hasHardwareMic) {
-                    "Escuchando micrófono… di qué artículo buscas"
+                val statusText = if (isTranscribing) {
+                    "Reconociendo tu voz…"
                 } else {
-                    "Dictado rápido de catálogo activo"
+                    "Escuchando… habla y haz una pausa para buscar"
                 }
                 BasicText(
                     text = statusText,
@@ -3643,38 +3643,6 @@ internal fun InlineVoiceSearchBanner(
                     )
                 }
             }
-        }
-
-        Row(
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            BasicText(
-                text = "Abrir modo voz completo →",
-                style = TextStyle(
-                    fontFamily = typo.bodyFamily,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 12.sp,
-                    color = Color(0xFF865DEC),
-                ),
-                modifier = Modifier.clickable {
-                    viewModel?.startVoiceInput(VoiceInputOrigin.SEARCH)
-                    onOpenFullScreenVoice()
-                },
-            )
-            BasicText(
-                text = "Detener",
-                style = TextStyle(
-                    fontFamily = typo.bodyFamily,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 12.sp,
-                    color = Color(0xFF62627A),
-                ),
-                modifier = Modifier.clickable {
-                    viewModel?.stopVoiceInput()
-                },
-            )
         }
     }
 }

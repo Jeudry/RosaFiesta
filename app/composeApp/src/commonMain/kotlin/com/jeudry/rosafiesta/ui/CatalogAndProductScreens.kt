@@ -237,9 +237,6 @@ internal fun RenderPersonalCatalogS18(
                 searchQuery = spokenQuery
                 viewModel?.setSearchQuery(spokenQuery)
             },
-            onOpenFullScreenVoice = {
-                onSelectScreenCode("s35")
-            },
             modifier = Modifier.padding(top = 10.dp),
         )
 

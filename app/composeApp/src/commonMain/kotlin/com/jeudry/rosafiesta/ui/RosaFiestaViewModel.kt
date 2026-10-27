@@ -122,6 +122,7 @@ public class RosaFiestaViewModel(
     public val voiceInputOrigin: StateFlow<VoiceInputOrigin> = _voiceInputOrigin.asStateFlow()
 
     public val isVoiceListening: StateFlow<Boolean> = voiceInputMonitor.isListening
+    public val isVoiceTranscribing: StateFlow<Boolean> = voiceInputMonitor.isTranscribing
     public val voiceAmplitude: StateFlow<Float> = voiceInputMonitor.amplitudeLevel
     public val hasHardwareMicrophone: StateFlow<Boolean> = voiceInputMonitor.hasHardwareMicrophone
 
@@ -388,12 +389,19 @@ public class RosaFiestaViewModel(
         if (cleanInitial.isNotEmpty()) {
             _voiceTranscript.value = cleanInitial
         } else if (origin == VoiceInputOrigin.SEARCH) {
-            val currentSearch = _searchQuery.value.trim()
-            _voiceTranscript.value = if (currentSearch.isNotEmpty()) currentSearch else "Silla Tiffany"
+            _voiceTranscript.value = _searchQuery.value.trim()
         } else if (_voiceTranscript.value.isBlank()) {
             _voiceTranscript.value = "Una boda en un jardín para unas 120 personas en blanco y dorado"
         }
-        voiceInputMonitor.startListening()
+        voiceInputMonitor.startListening { recognizedText ->
+            val cleanRecognized = recognizedText.trim()
+            if (cleanRecognized.isNotEmpty()) {
+                _voiceTranscript.value = cleanRecognized
+                if (_voiceInputOrigin.value == VoiceInputOrigin.SEARCH) {
+                    _searchQuery.value = cleanRecognized
+                }
+            }
+        }
     }
 
     public fun stopVoiceInput() {
