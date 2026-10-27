@@ -55,6 +55,7 @@ public class DefaultRosaFiestaRepository : RosaFiestaRepository {
     override val currentUserEmail: StateFlow<String> = _currentUserEmail.asStateFlow()
 
     private val userAccountsState = MutableStateFlow(JwtAuthManager.defaultSeedAccounts)
+    override val registeredAccounts: StateFlow<List<RegisteredUserAccount>> = userAccountsState.asStateFlow()
 
     private val _currentAuthenticatedUser = MutableStateFlow<RegisteredUserAccount?>(
         JwtAuthManager.defaultSeedAccounts.firstOrNull(),

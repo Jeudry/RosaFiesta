@@ -20,6 +20,7 @@ public interface RosaFiestaRepository {
     public val currentUserEmail: StateFlow<String>
     public val currentSessionJwt: StateFlow<String?>
     public val currentAuthenticatedUser: StateFlow<RegisteredUserAccount?>
+    public val registeredAccounts: StateFlow<List<RegisteredUserAccount>>
     public val favorites: StateFlow<Set<String>>
     public val staffMembers: StateFlow<List<StaffMember>>
     public val chatMessages: StateFlow<List<String>>

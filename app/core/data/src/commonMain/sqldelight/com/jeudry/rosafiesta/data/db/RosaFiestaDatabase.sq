@@ -1,4 +1,4 @@
-CREATE TABLE LocalArticleEntity (
+CREATE TABLE IF NOT EXISTS LocalArticleEntity (
     id TEXT NOT NULL PRIMARY KEY,
     code TEXT NOT NULL,
     name TEXT NOT NULL,
@@ -10,7 +10,7 @@ CREATE TABLE LocalArticleEntity (
     photoKey TEXT NOT NULL
 );
 
-CREATE TABLE LocalChecklistStepEntity (
+CREATE TABLE IF NOT EXISTS LocalChecklistStepEntity (
     id TEXT NOT NULL PRIMARY KEY,
     stageLabel TEXT NOT NULL,
     title TEXT NOT NULL,
@@ -19,7 +19,7 @@ CREATE TABLE LocalChecklistStepEntity (
     timeLabel TEXT NOT NULL
 );
 
-CREATE TABLE LocalOfflineMutationEntity (
+CREATE TABLE IF NOT EXISTS LocalOfflineMutationEntity (
     id TEXT NOT NULL PRIMARY KEY,
     actionLabel TEXT NOT NULL,
     entityCode TEXT NOT NULL,
@@ -27,7 +27,7 @@ CREATE TABLE LocalOfflineMutationEntity (
     synced INTEGER NOT NULL DEFAULT 0
 );
 
-CREATE TABLE eventEntity (
+CREATE TABLE IF NOT EXISTS eventEntity (
     id TEXT NOT NULL PRIMARY KEY,
     code TEXT NOT NULL,
     title TEXT NOT NULL,
@@ -51,7 +51,7 @@ CREATE TABLE eventEntity (
     sortOrder INTEGER NOT NULL DEFAULT 0
 );
 
-CREATE TABLE paymentEntity (
+CREATE TABLE IF NOT EXISTS paymentEntity (
     id TEXT NOT NULL PRIMARY KEY,
     receiptNumber TEXT NOT NULL,
     eventId TEXT NOT NULL,
@@ -66,11 +66,11 @@ CREATE TABLE paymentEntity (
     sortOrder INTEGER NOT NULL DEFAULT 0
 );
 
-CREATE TABLE favoriteEntity (
+CREATE TABLE IF NOT EXISTS favoriteEntity (
     articleId TEXT NOT NULL PRIMARY KEY
 );
 
-CREATE TABLE staffPermissionEntity (
+CREATE TABLE IF NOT EXISTS staffPermissionEntity (
     id TEXT NOT NULL PRIMARY KEY,
     name TEXT NOT NULL,
     roleLabel TEXT NOT NULL,
@@ -81,12 +81,12 @@ CREATE TABLE staffPermissionEntity (
     sortOrder INTEGER NOT NULL DEFAULT 0
 );
 
-CREATE TABLE chatMessageEntity (
+CREATE TABLE IF NOT EXISTS chatMessageEntity (
     id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     formattedMessage TEXT NOT NULL
 );
 
-CREATE TABLE userAccountEntity (
+CREATE TABLE IF NOT EXISTS userAccountEntity (
     id TEXT NOT NULL PRIMARY KEY,
     username TEXT NOT NULL,
     email TEXT NOT NULL,

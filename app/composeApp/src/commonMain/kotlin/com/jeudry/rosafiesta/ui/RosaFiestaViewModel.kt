@@ -46,6 +46,7 @@ public class RosaFiestaViewModel(
     public val currentUserEmail: StateFlow<String> = repository.currentUserEmail
     public val currentSessionJwt: StateFlow<String?> = repository.currentSessionJwt
     public val currentAuthenticatedUser: StateFlow<RegisteredUserAccount?> = repository.currentAuthenticatedUser
+    public val registeredAccounts: StateFlow<List<RegisteredUserAccount>> = repository.registeredAccounts
     public val favorites: StateFlow<Set<String>> = repository.favorites
     public val staffMembers: StateFlow<List<StaffMember>> = repository.staffMembers
     public val chatMessages: StateFlow<List<String>> = repository.chatMessages
@@ -273,6 +274,10 @@ public class RosaFiestaViewModel(
 
     public fun clearFormError() {
         _formError.value = null
+    }
+
+    public fun clearFormFeedback() {
+        _formFeedback.value = null
     }
 
     public fun selectEvent(eventId: String) {
@@ -656,10 +661,21 @@ public class RosaFiestaViewModel(
             }
             soundPlayer.playPaymentSuccess()
             _formError.value = null
-            _formFeedback.value = "Cuenta creada para ${_profileName.value}"
+            _formFeedback.value = "Cuenta registrada en SQLite y sesión JWT HS256 activa para @${_profileUsername.value}"
             return true
         } finally {
             _isSubmitting.value = false
+        }
+    }
+
+    public fun logoutSession() {
+        soundPlayer.playTap()
+        _loginPassword.value = ""
+        _formError.value = null
+        _formFeedback.value = "Sesión cerrada. Tu cuenta sigue guardada en SQLite."
+        securityScope.launch {
+            secureStorage.remove(SecureStorage.KEY_ACCESS_TOKEN)
+            secureStorage.remove(SecureStorage.KEY_USER_ROLE)
         }
     }
 

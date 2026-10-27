@@ -1998,7 +1998,81 @@ internal fun RenderLoginScreenS07(
                 BasicText("Ingresar", style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White))
             }
 
-            Spacer(Modifier.height(24.dp))
+            val registeredAccounts = viewModel?.registeredAccounts?.collectAsState()?.value.orEmpty()
+            if (registeredAccounts.isNotEmpty()) {
+                Spacer(Modifier.height(14.dp))
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color(0xFFF8F4FC))
+                        .border(1.dp, Color(0xFFEAE2F3), RoundedCornerShape(16.dp))
+                        .padding(12.dp),
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        BasicText(
+                            text = "Cuentas en SQLite (${registeredAccounts.size})",
+                            style = typo.caption.copy(fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF3B3550)),
+                        )
+                        BasicText(
+                            text = "Toca para probar login",
+                            style = typo.caption.copy(fontSize = 11.5.sp, color = Color(0xFF7A4FD8)),
+                        )
+                    }
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                    ) {
+                        val seedIds = setOf("usr-camila", "usr-maria", "usr-yuli", "usr-pedro", "usr-laura", "usr-ana")
+                        val sortedAccounts = registeredAccounts.sortedBy { account -> account.id in seedIds }
+                        sortedAccounts.forEach { account ->
+                            val isCustomRegistered = account.id !in seedIds
+                            val chipBg = if (isCustomRegistered) Color(0xFFFDE6F2) else Color.White
+                            val chipBorder = if (isCustomRegistered) Color(0xFFE04FAF) else Color(0xFFE2DAE9)
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier
+                                    .height(32.dp)
+                                    .clip(RoundedCornerShape(999.dp))
+                                    .background(chipBg)
+                                    .border(1.dp, chipBorder, RoundedCornerShape(999.dp))
+                                    .clickable {
+                                        email = account.username
+                                        viewModel?.setLoginEmail(account.username)
+                                        if (!isCustomRegistered) {
+                                            password = "rosa2026"
+                                            viewModel?.setLoginPassword("rosa2026")
+                                        } else {
+                                            password = ""
+                                            viewModel?.setLoginPassword("")
+                                        }
+                                        viewModel?.clearFormError()
+                                    }
+                                    .padding(horizontal = 12.dp),
+                            ) {
+                                val badgePrefix = if (isCustomRegistered) "★ @" else "@"
+                                BasicText(
+                                    text = "$badgePrefix${account.username} · ${account.fullName.substringBefore(" ")}",
+                                    style = typo.caption.copy(
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = if (isCustomRegistered) Color(0xFFC2338F) else Color(0xFF3B3550),
+                                    ),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(18.dp))
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,

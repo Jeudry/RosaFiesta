@@ -51,6 +51,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import com.jeudry.rosafiesta.designsystem.LocalRfTypography
 import com.jeudry.rosafiesta.designsystem.RfGradientPriceText
 import com.jeudry.rosafiesta.designsystem.RfIcon
@@ -489,145 +490,154 @@ internal fun RenderProductDetailS19(
     var selectedColor by remember { mutableStateOf("Transparente") }
     var selectedTab by remember { mutableStateOf("Descripción") }
 
-    val articlePhoto = RfPhotoKey.entries.firstOrNull { it.assetKey == currentArticle.photo.key || it.name.equals(currentArticle.photo.key, ignoreCase = true) } ?: RfPhotoKey.SILLA_TIFFANY
+    val primaryPhoto = RfPhotoKey.entries.firstOrNull { entry ->
+        val matchesAsset = entry.assetKey == currentArticle.photo.key
+        val matchesName = entry.name.equals(currentArticle.photo.key, ignoreCase = true)
+        matchesAsset || matchesName
+    } ?: RfPhotoKey.SILLA_TIFFANY
+    val galleryPhotos = remember(primaryPhoto) {
+        listOf(primaryPhoto, RfPhotoKey.MESA_REDONDA, RfPhotoKey.CENTRO_FLORAL)
+    }
+    var selectedPhotoIndex by remember(currentArticle.id) { mutableStateOf(0) }
+    val activeHeroPhoto = galleryPhotos.getOrElse(selectedPhotoIndex) { primaryPhoto }
+    val sheetScrollState = rememberScrollState()
+    val parallaxOffsetDp = (-sheetScrollState.value / 6).dp
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFFFAFAFC)),
     ) {
-        // Foto de portada (alto 430dp)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(430.dp),
+                .height(410.dp)
+                .offset(y = parallaxOffsetDp),
         ) {
             RfPhoto(
-                photoKey = articlePhoto,
+                photoKey = activeHeroPhoto,
                 contentDescription = currentArticle.name,
                 cornerRadius = 0.dp,
                 modifier = Modifier.fillMaxSize(),
             )
-
-            // Scrim superior para botones
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(120.dp)
+                    .height(110.dp)
                     .background(Brush.verticalGradient(listOf(Color(0x501A1A2E), Color.Transparent))),
             )
-
-            // Botones superiores: Volver, Compartir, Favorito
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 16.dp, start = 20.dp, end = 20.dp),
-            ) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .size(44.dp)
-                        .rfIconButtonShadow(CircleShape, isAdmin = false)
-                        .clip(CircleShape)
-                        .background(Color.White)
-                        .clickable { onSelectScreenCode("BACK:s18") },
-                ) {
-                    RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF151729), size = 20.dp)
-                }
-
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .size(44.dp)
-                            .rfIconButtonShadow(CircleShape, isAdmin = false)
-                            .clip(CircleShape)
-                            .background(Color.White),
-                    ) {
-                        RfIcon(kind = RfIconKind.SHARE, tint = Color(0xFF151729), size = 20.dp)
-                    }
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .size(44.dp)
-                            .rfIconButtonShadow(CircleShape, isAdmin = false)
-                            .clip(CircleShape)
-                            .background(Color.White)
-                            .clickable {
-                                viewModel?.soundPlayer?.playTap()
-                                viewModel?.toggleFavorite(currentArticle.id)
-                            },
-                    ) {
-                        RfIcon(kind = RfIconKind.HEART, tint = Color(0xFFEA4EA9), filled = true, size = 20.dp)
-                    }
-                }
-            }
-
-            // Tira de miniaturas flotante (bottom 54dp)
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(start = 20.dp, bottom = 44.dp)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(Color(0x6628283C))
-                    .padding(6.dp),
-            ) {
-                Box(modifier = Modifier.size(50.dp).clip(RoundedCornerShape(12.dp)).border(2.5.dp, Color(0xFFEA4EA9), RoundedCornerShape(12.dp))) {
-                    RfPhoto(photoKey = articlePhoto, contentDescription = "View 1", cornerRadius = 12.dp, modifier = Modifier.fillMaxSize())
-                }
-                Box(modifier = Modifier.size(50.dp).clip(RoundedCornerShape(12.dp))) {
-                    RfPhoto(photoKey = RfPhotoKey.MESA_REDONDA, contentDescription = "View 2", cornerRadius = 12.dp, modifier = Modifier.fillMaxSize())
-                }
-                Box(modifier = Modifier.size(50.dp).clip(RoundedCornerShape(12.dp))) {
-                    RfPhoto(photoKey = RfPhotoKey.CENTRO_FLORAL, contentDescription = "View 3", cornerRadius = 12.dp, modifier = Modifier.fillMaxSize())
-                }
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier.size(50.dp).clip(RoundedCornerShape(12.dp)).background(Color.White),
-                ) {
-                    BasicText("+3", style = typo.body.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF62627A)))
-                }
-            }
         }
 
-        // Hoja blanca con detalles (top = 400dp)
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 400.dp)
-                .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
-                .background(Color.White),
+                .verticalScroll(sheetScrollState),
         ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(316.dp),
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(start = 20.dp, bottom = 14.dp)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(Color(0x6628283C))
+                        .padding(6.dp),
+                ) {
+                    galleryPhotos.forEachIndexed { photoIndex, galleryKey ->
+                        val isSelectedPhoto = photoIndex == selectedPhotoIndex
+                        Box(
+                            modifier = Modifier
+                                .size(50.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .then(
+                                    if (isSelectedPhoto) {
+                                        Modifier.border(2.5.dp, Color(0xFFEA4EA9), RoundedCornerShape(12.dp))
+                                    } else {
+                                        Modifier
+                                    },
+                                )
+                                .clickable { selectedPhotoIndex = photoIndex },
+                        ) {
+                            RfPhoto(
+                                photoKey = galleryKey,
+                                contentDescription = "Vista ${photoIndex + 1}",
+                                cornerRadius = 12.dp,
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                        }
+                    }
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(50.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color.White)
+                            .clickable { selectedPhotoIndex = (selectedPhotoIndex + 1) % galleryPhotos.size },
+                    ) {
+                        BasicText("+3", style = typo.body.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF62627A)))
+                    }
+                }
+            }
+
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 110.dp),
+                    .fillMaxWidth()
+                    .shadow(18.dp, RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp), spotColor = Color(0x331A1A2E))
+                    .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
+                    .background(Color.White)
+                    .padding(start = 24.dp, end = 24.dp, top = 12.dp, bottom = 116.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                // Título y Precio
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .width(42.dp)
+                        .height(5.dp)
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(Color(0xFFE3DCE8)),
+                )
+
                 Row(
                     verticalAlignment = Alignment.Top,
                     horizontalArrangement = Arrangement.SpaceBetween,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        BasicText(currentArticle.name, style = typo.heroTitle.copy(fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729)))
+                        BasicText(
+                            currentArticle.name,
+                            style = typo.heroTitle.copy(fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729)),
+                        )
                         Spacer(Modifier.height(6.dp))
-                        // Chip valoración 5.0
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(999.dp))
-                                .background(Color(0xFFFFF2C9))
-                                .padding(horizontal = 10.dp, vertical = 4.dp),
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                BasicText("★ 5.0", style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF7A5700)))
-                                BasicText("1 reseña", style = typo.secondary.copy(fontSize = 13.sp, color = Color(0xFF7A5700)))
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(999.dp))
+                                    .background(Color(0xFFFFF2C9))
+                                    .padding(horizontal = 10.dp, vertical = 4.dp),
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    BasicText("★ 5.0", style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF7A5700)))
+                                    BasicText("12 reseñas", style = typo.secondary.copy(fontSize = 13.sp, color = Color(0xFF7A5700)))
+                                }
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(999.dp))
+                                    .background(Color(0xFFEEF6D6))
+                                    .padding(horizontal = 10.dp, vertical = 4.dp),
+                            ) {
+                                BasicText(
+                                    "${currentArticle.availableOct23} disp. 23 oct",
+                                    style = typo.secondary.copy(fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF4E6A10)),
+                                )
                             }
                         }
                     }
@@ -641,7 +651,6 @@ internal fun RenderProductDetailS19(
                     }
                 }
 
-                // Selector de color
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row {
                         BasicText("Color: ", style = typo.body.copy(fontSize = 14.sp, color = Color(0xFF5F6377)))
@@ -649,9 +658,9 @@ internal fun RenderProductDetailS19(
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         val colors = listOf("Transparente" to Color(0xFF7C5CF0), "Rosa" to Color(0xFFEA4EA9), "Verde" to Color(0xFFA9CC3A), "Dorado" to Color(0xFFF0B92E))
-                        colors.forEach { (name, col) ->
-                            val isSel = name == selectedColor
-                            val isSelectedTransparent = if (isSel) name == "Transparente" else false
+                        colors.forEach { (colorName, colorValue) ->
+                            val isSel = colorName == selectedColor
+                            val isSelectedTransparent = if (isSel) colorName == "Transparente" else false
                             val gradDiag = Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)))
                             Box(
                                 contentAlignment = Alignment.Center,
@@ -662,13 +671,13 @@ internal fun RenderProductDetailS19(
                                         if (isSelectedTransparent) {
                                             gradDiag
                                         } else if (isSel) {
-                                            SolidColor(col)
+                                            SolidColor(colorValue)
                                         } else {
                                             SolidColor(Color.White)
                                         },
                                     )
-                                    .border(2.5.dp, col, CircleShape)
-                                    .clickable { selectedColor = name },
+                                    .border(2.5.dp, colorValue, CircleShape)
+                                    .clickable { selectedColor = colorName },
                             ) {
                                 if (isSel) {
                                     RfIcon(kind = RfIconKind.CHECK, tint = Color.White, size = 18.dp)
@@ -678,7 +687,6 @@ internal fun RenderProductDetailS19(
                     }
                 }
 
-                // Control segmentado
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -688,8 +696,8 @@ internal fun RenderProductDetailS19(
                 ) {
                     Row(modifier = Modifier.fillMaxWidth()) {
                         val tabs = listOf("Descripción", "Detalles", "Reseñas")
-                        tabs.forEach { t ->
-                            val isSel = t == selectedTab
+                        tabs.forEach { tabName ->
+                            val isSel = tabName == selectedTab
                             Box(
                                 contentAlignment = Alignment.Center,
                                 modifier = Modifier
@@ -703,10 +711,10 @@ internal fun RenderProductDetailS19(
                                             SolidColor(Color.Transparent)
                                         },
                                     )
-                                    .clickable { selectedTab = t },
+                                    .clickable { selectedTab = tabName },
                             ) {
                                 BasicText(
-                                    text = t,
+                                    text = tabName,
                                     style = typo.body.copy(
                                         fontSize = 14.sp,
                                         fontWeight = if (isSel) FontWeight.Medium else FontWeight.Normal,
@@ -718,18 +726,141 @@ internal fun RenderProductDetailS19(
                     }
                 }
 
-                BasicText(
-                    text = currentArticle.description,
-                    style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF5F6377), lineHeight = 22.sp),
-                )
+                when (selectedTab) {
+                    "Detalles" -> {
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            listOf(
+                                "Código de catálogo" to currentArticle.code,
+                                "Categoría" to currentArticle.category,
+                                "Stock total en almacén" to "${currentArticle.totalStock} unidades",
+                                "Disponibles para el 23 oct" to "${currentArticle.availableOct23} unidades",
+                                "Material y acabado" to "Resina reforzada UV · Cojín impermeable incluido",
+                                "Dimensiones" to "92 cm alto × 40 cm ancho × 42 cm fondo",
+                                "Incluye montaje" to "Sí, transporte e instalación por el equipo Rosa Fiesta",
+                            ).forEach { (specLabel, specValue) ->
+                                Row(
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(Color(0xFFF9F7FC))
+                                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                                ) {
+                                    BasicText(specLabel, style = typo.body.copy(fontSize = 13.5.sp, color = Color(0xFF62627A)))
+                                    BasicText(specValue, style = typo.body.copy(fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF151729)))
+                                }
+                            }
+                        }
+                    }
+
+                    "Reseñas" -> {
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            listOf(
+                                Triple("Camila Rodríguez", "★★★★★ · Boda Real", "Llegaron impecables y con los cojines blancos nuevos. El montaje estuvo listo 2 horas antes."),
+                                Triple("Valentina Mejía", "★★★★★ · Quinceañera", "El acabado $selectedColor se vio espectacular con la iluminación cálida del salón."),
+                                Triple("Laura Peña", "★★★★★ · Evento Corporativo", "Muy cómodas y resistentes, pedimos 120 unidades y todas estaban en perfecto estado."),
+                            ).forEach { (authorName, ratingMeta, reviewComment) ->
+                                Column(
+                                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(14.dp))
+                                        .background(Color(0xFFF9F7FC))
+                                        .border(1.dp, Color(0xFFEEE9F5), RoundedCornerShape(14.dp))
+                                        .padding(14.dp),
+                                ) {
+                                    Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                                        BasicText(authorName, style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF151729)))
+                                        BasicText(ratingMeta, style = typo.caption.copy(fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF7A5700)))
+                                    }
+                                    BasicText(reviewComment, style = typo.body.copy(fontSize = 13.5.sp, color = Color(0xFF5F6377), lineHeight = 19.sp))
+                                }
+                            }
+                        }
+                    }
+
+                    else -> {
+                        BasicText(
+                            text = currentArticle.description,
+                            style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF5F6377), lineHeight = 22.sp),
+                        )
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(Color(0xFFF9F7FC))
+                                .border(1.dp, Color(0xFFEEE9F5), RoundedCornerShape(16.dp))
+                                .padding(14.dp),
+                        ) {
+                            BasicText(
+                                "Especificaciones destacadas",
+                                style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF151729)),
+                            )
+                            BasicText(
+                                "• Acabado seleccionado: $selectedColor (${currentArticle.code})\n• Cojín acolchado blanco marfil desmontable e impermeable\n• Limpieza y desinfección certificada antes de cada entrega\n• Garantía de reposición inmediata incluida en tu reserva",
+                                style = typo.body.copy(fontSize = 13.5.sp, color = Color(0xFF5F6377), lineHeight = 20.sp),
+                            )
+                        }
+                    }
+                }
             }
         }
 
-        // Barra inferior fija con stepper y botón de agregar
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.TopCenter)
+                .zIndex(2f)
+                .padding(top = 16.dp, start = 20.dp, end = 20.dp),
+        ) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(44.dp)
+                    .rfIconButtonShadow(CircleShape, isAdmin = false)
+                    .clip(CircleShape)
+                    .background(Color.White)
+                    .clickable { onSelectScreenCode("BACK:s18") },
+            ) {
+                RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF151729), size = 20.dp)
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(44.dp)
+                        .rfIconButtonShadow(CircleShape, isAdmin = false)
+                        .clip(CircleShape)
+                        .background(Color.White),
+                ) {
+                    RfIcon(kind = RfIconKind.SHARE, tint = Color(0xFF151729), size = 20.dp)
+                }
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(44.dp)
+                        .rfIconButtonShadow(CircleShape, isAdmin = false)
+                        .clip(CircleShape)
+                        .background(Color.White)
+                        .clickable {
+                            viewModel?.soundPlayer?.playTap()
+                            viewModel?.toggleFavorite(currentArticle.id)
+                        },
+                ) {
+                    RfIcon(kind = RfIconKind.HEART, tint = Color(0xFFEA4EA9), filled = true, size = 20.dp)
+                }
+            }
+        }
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter)
+                .zIndex(2f)
                 .background(Color.White)
                 .border(1.dp, Color(0xFFF0EBF4))
                 .padding(horizontal = 20.dp, vertical = 18.dp),
