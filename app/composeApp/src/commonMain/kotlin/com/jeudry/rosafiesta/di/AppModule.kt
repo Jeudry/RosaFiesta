@@ -6,9 +6,11 @@ import com.jeudry.rosafiesta.data.SqlRosaFiestaRepository
 import com.jeudry.rosafiesta.data.createDefaultSqlDriverOrNull
 import com.jeudry.rosafiesta.data.createPlatformSecureStorage
 import com.jeudry.rosafiesta.data.createPlatformSoundPlayer
+import com.jeudry.rosafiesta.data.createPlatformVoiceInputMonitor
 import com.jeudry.rosafiesta.domain.RosaFiestaRepository
 import com.jeudry.rosafiesta.domain.security.SecureStorage
 import com.jeudry.rosafiesta.domain.sound.SoundPlayer
+import com.jeudry.rosafiesta.domain.sound.VoiceInputMonitor
 import com.jeudry.rosafiesta.ui.RosaFiestaViewModel
 import org.koin.core.module.Module
 import org.koin.dsl.module
@@ -21,6 +23,7 @@ public val appModule: Module
         single { RosaFiestaApiClient(baseUrl = "http://localhost:8788") }
         single<SoundPlayer> { createPlatformSoundPlayer() }
         single<SecureStorage> { createPlatformSecureStorage() }
+        single<VoiceInputMonitor> { createPlatformVoiceInputMonitor() }
         single<RosaFiestaRepository> {
             val driver = createDefaultSqlDriverOrNull()
             if (driver != null) {
@@ -29,5 +32,12 @@ public val appModule: Module
                 DefaultRosaFiestaRepository()
             }
         }
-        factory { RosaFiestaViewModel(repository = get(), soundPlayer = get(), secureStorage = get()) }
+        factory {
+            RosaFiestaViewModel(
+                repository = get(),
+                soundPlayer = get(),
+                secureStorage = get(),
+                voiceInputMonitor = get(),
+            )
+        }
     }

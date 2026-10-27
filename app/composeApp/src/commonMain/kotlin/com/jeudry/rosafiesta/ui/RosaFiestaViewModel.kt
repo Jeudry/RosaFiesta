@@ -17,7 +17,9 @@ import com.jeudry.rosafiesta.domain.security.RegisteredUserAccount
 import com.jeudry.rosafiesta.domain.security.SecureStorage
 import com.jeudry.rosafiesta.domain.security.SensitiveDataRedactor
 import com.jeudry.rosafiesta.domain.sound.NoOpSoundPlayer
+import com.jeudry.rosafiesta.domain.sound.NoOpVoiceInputMonitor
 import com.jeudry.rosafiesta.domain.sound.SoundPlayer
+import com.jeudry.rosafiesta.domain.sound.VoiceInputMonitor
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -28,6 +30,15 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
+ * Origin context from which voice input capture is initiated.
+ */
+public enum class VoiceInputOrigin {
+    NONE,
+    SEARCH,
+    ROSA_WIZARD,
+}
+
+/**
  * ViewModel multiplataforma compartido para `PersonalApp` y `AdminApp`.
  * Mantiene el estado reactivo de formularios, filtros, Rosa IA, sonidos CC0, almacenamiento seguro y operaciones de negocio.
  */
@@ -35,6 +46,7 @@ public class RosaFiestaViewModel(
     private val repository: RosaFiestaRepository,
     public val soundPlayer: SoundPlayer = NoOpSoundPlayer(),
     private val secureStorage: SecureStorage = InMemorySecureStorage(),
+    public val voiceInputMonitor: VoiceInputMonitor = NoOpVoiceInputMonitor(),
 ) : ViewModel() {
     public val articles: StateFlow<List<CatalogArticle>> = repository.articles
     public val events: StateFlow<List<ClientEvent>> = repository.events
@@ -105,6 +117,16 @@ public class RosaFiestaViewModel(
 
     private val _rosaProposalMessage = MutableStateFlow("")
     public val rosaProposalMessage: StateFlow<String> = _rosaProposalMessage.asStateFlow()
+
+    private val _voiceInputOrigin = MutableStateFlow(VoiceInputOrigin.NONE)
+    public val voiceInputOrigin: StateFlow<VoiceInputOrigin> = _voiceInputOrigin.asStateFlow()
+
+    public val isVoiceListening: StateFlow<Boolean> = voiceInputMonitor.isListening
+    public val voiceAmplitude: StateFlow<Float> = voiceInputMonitor.amplitudeLevel
+    public val hasHardwareMicrophone: StateFlow<Boolean> = voiceInputMonitor.hasHardwareMicrophone
+
+    private val _voiceTranscript = MutableStateFlow("")
+    public val voiceTranscript: StateFlow<String> = _voiceTranscript.asStateFlow()
 
     // Formularios interactivos (Auth, Eventos, Pagos, Catálogo, Perfil, Soporte, Config)
     private val _loginEmail = MutableStateFlow("")
@@ -357,6 +379,44 @@ public class RosaFiestaViewModel(
     public fun setRosaProposalMessage(message: String) {
         soundPlayer.playRosaReply()
         _rosaProposalMessage.value = message.trim()
+    }
+
+    public fun startVoiceInput(origin: VoiceInputOrigin, initialText: String = "") {
+        soundPlayer.playTap()
+        _voiceInputOrigin.value = origin
+        val cleanInitial = initialText.trim()
+        if (cleanInitial.isNotEmpty()) {
+            _voiceTranscript.value = cleanInitial
+        } else if (origin == VoiceInputOrigin.SEARCH) {
+            val currentSearch = _searchQuery.value.trim()
+            _voiceTranscript.value = if (currentSearch.isNotEmpty()) currentSearch else "Silla Tiffany"
+        } else if (_voiceTranscript.value.isBlank()) {
+            _voiceTranscript.value = "Una boda en un jardín para unas 120 personas en blanco y dorado"
+        }
+        voiceInputMonitor.startListening()
+    }
+
+    public fun stopVoiceInput() {
+        soundPlayer.playTap()
+        voiceInputMonitor.stopListening()
+    }
+
+    public fun setVoiceTranscript(transcript: String) {
+        _voiceTranscript.value = transcript
+        if (_voiceInputOrigin.value == VoiceInputOrigin.SEARCH) {
+            _searchQuery.value = transcript
+        }
+    }
+
+    public fun toggleInlineVoiceSearch() {
+        val currentlyListening = isVoiceListening.value
+        val isSearchOrigin = _voiceInputOrigin.value == VoiceInputOrigin.SEARCH
+        val shouldStop = if (currentlyListening) isSearchOrigin else false
+        if (shouldStop) {
+            stopVoiceInput()
+        } else {
+            startVoiceInput(VoiceInputOrigin.SEARCH, _searchQuery.value)
+        }
     }
 
     public fun setLoginEmail(value: String) {

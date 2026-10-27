@@ -86,7 +86,12 @@ internal fun RenderPersonalCatalogS18(
     var selectedCategory by remember(vmCategory) {
         mutableStateOf(if (vmCategory in validCategories) vmCategory else "Todas")
     }
-    var searchQuery by remember { mutableStateOf("") }
+    val vmQuery = viewModel?.searchQuery?.collectAsState()?.value ?: ""
+    var searchQuery by remember(vmQuery) { mutableStateOf(vmQuery) }
+    val favoritesSet = viewModel?.favorites?.collectAsState()?.value ?: setOf("art-silla-tiffany", "art-mesa-redonda")
+    val isInlineVoiceListening = viewModel?.isVoiceListening?.collectAsState()?.value ?: false
+    val voiceOrigin = viewModel?.voiceInputOrigin?.collectAsState()?.value ?: VoiceInputOrigin.NONE
+    val isSearchMicActive = if (isInlineVoiceListening) voiceOrigin == VoiceInputOrigin.SEARCH else false
 
     val filteredArticles = remember(articlesState, selectedCategory, searchQuery) {
         articlesState.filter { article ->
@@ -209,13 +214,34 @@ internal fun RenderPersonalCatalogS18(
                     modifier = Modifier
                         .size(40.dp)
                         .clip(RoundedCornerShape(12.dp))
-                        .background(Color(0xFFF5EAF9))
-                        .clickable { onSelectScreenCode("s35") },
+                        .background(
+                            if (isSearchMicActive) {
+                                Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))
+                            } else {
+                                SolidColor(Color(0xFFF5EAF9))
+                            },
+                        )
+                        .clickable {
+                            viewModel?.toggleInlineVoiceSearch()
+                        },
                 ) {
-                    RfIcon(kind = RfIconKind.MIC, tint = Color(0xFFB54BD6), size = 20.dp)
+                    val micTint = if (isSearchMicActive) Color.White else Color(0xFFB54BD6)
+                    RfIcon(kind = RfIconKind.MIC, tint = micTint, size = 20.dp)
                 }
             }
         }
+
+        InlineVoiceSearchBanner(
+            viewModel = viewModel,
+            onApplyVoiceQuery = { spokenQuery ->
+                searchQuery = spokenQuery
+                viewModel?.setSearchQuery(spokenQuery)
+            },
+            onOpenFullScreenVoice = {
+                onSelectScreenCode("s35")
+            },
+            modifier = Modifier.padding(top = 10.dp),
+        )
 
         Spacer(Modifier.height(12.dp))
 
@@ -304,6 +330,7 @@ internal fun RenderPersonalCatalogS18(
                         price = first.pricePerDayDop.toString(),
                         photoKey = firstPhoto,
                         bg = Color(0xFFEFE8FD),
+                        initialFavorite = favoritesSet.contains(first.id),
                         useGradientPrice = true,
                         onOpenDetail = {
                             viewModel?.soundPlayer?.playTap()
@@ -313,6 +340,10 @@ internal fun RenderPersonalCatalogS18(
                         onAddClick = {
                             viewModel?.soundPlayer?.playTap()
                             viewModel?.adjustDraftQuantity(first.id, 1)
+                        },
+                        onToggleFavorite = {
+                            viewModel?.soundPlayer?.playTap()
+                            viewModel?.toggleFavorite(first.id)
                         },
                         modifier = Modifier.weight(1f),
                     )
@@ -329,6 +360,7 @@ internal fun RenderPersonalCatalogS18(
                             price = second.pricePerDayDop.toString(),
                             photoKey = secondPhoto,
                             bg = Color(0xFFEEF6D6),
+                            initialFavorite = favoritesSet.contains(second.id),
                             useGradientPrice = true,
                             onOpenDetail = {
                                 viewModel?.soundPlayer?.playTap()
@@ -338,6 +370,10 @@ internal fun RenderPersonalCatalogS18(
                             onAddClick = {
                                 viewModel?.soundPlayer?.playTap()
                                 viewModel?.adjustDraftQuantity(second.id, 1)
+                            },
+                            onToggleFavorite = {
+                                viewModel?.soundPlayer?.playTap()
+                                viewModel?.toggleFavorite(second.id)
                             },
                             modifier = Modifier.weight(1f),
                         )
@@ -363,10 +399,11 @@ private fun PersonalProductCard(
     useGradientPrice: Boolean = false,
     onOpenDetail: () -> Unit,
     onAddClick: () -> Unit = onOpenDetail,
+    onToggleFavorite: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val typo = LocalRfTypography.current
-    var isFavorite by remember { mutableStateOf(initialFavorite) }
+    var isFavorite by remember(initialFavorite) { mutableStateOf(initialFavorite) }
 
     Box(
         modifier = modifier
@@ -411,7 +448,10 @@ private fun PersonalProductCard(
                         .size(36.dp)
                         .clip(RoundedCornerShape(12.dp))
                         .background(Color.White)
-                        .clickable { isFavorite = !isFavorite },
+                        .clickable {
+                            isFavorite = !isFavorite
+                            onToggleFavorite?.invoke()
+                        },
                 ) {
                     RfIcon(
                         kind = RfIconKind.HEART,
@@ -1301,6 +1341,7 @@ private fun CategoryGridCard(
 @Composable
 internal fun RenderPackagesScreenS21(
     onSelectScreenCode: (String) -> Unit,
+    viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
 
@@ -1318,10 +1359,22 @@ internal fun RenderPackagesScreenS21(
         Spacer(Modifier.height(18.dp))
 
         Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.verticalScroll(rememberScrollState())) {
-            PackageSummaryCard("Bodas Rosa", "Paquete romántico completo para bodas, con arco floral y centros de mesa.", "RD$ 850", "Ahorra 15%", RfPhotoKey.BODA, Color(0xFFFDE6F2)) { onSelectScreenCode("s22") }
-            PackageSummaryCard("Quinceañera Premium", "Paquete de lujo para quinceañeras con arco floral.", "RD$ 1,200", "Ahorra 12%", RfPhotoKey.QUINCEANERA, Color(0xFFEFE8FD)) { onSelectScreenCode("s22") }
-            PackageSummaryCard("Cumpleaños Infantil", "Kit completo para fiestas infantiles: globos, banner y más.", "RD$ 450", "Ahorra 10%", RfPhotoKey.CUMPLE_INFANTIL, Color(0xFFEEF6D6)) { onSelectScreenCode("s22") }
-            PackageSummaryCard("Evento Corporativo", "Solución profesional para eventos empresariales.", "RD$ 600", "Ahorra 8%", RfPhotoKey.CORPORATIVO, Color(0xFFFFF2C9)) { onSelectScreenCode("s22") }
+            PackageSummaryCard("Bodas Rosa", "Paquete romántico completo para bodas, con arco floral y centros de mesa.", "RD$ 850", "Ahorra 15%", RfPhotoKey.BODA, Color(0xFFFDE6F2)) {
+                viewModel?.selectPackage("pkg-boda-real")
+                onSelectScreenCode("s22")
+            }
+            PackageSummaryCard("Quinceañera Premium", "Paquete de lujo para quinceañeras con arco floral.", "RD$ 1,200", "Ahorra 12%", RfPhotoKey.QUINCEANERA, Color(0xFFEFE8FD)) {
+                viewModel?.selectPackage("pkg-quince")
+                onSelectScreenCode("s22")
+            }
+            PackageSummaryCard("Cumpleaños Infantil", "Kit completo para fiestas infantiles: globos, banner y más.", "RD$ 450", "Ahorra 10%", RfPhotoKey.CUMPLE_INFANTIL, Color(0xFFEEF6D6)) {
+                viewModel?.selectPackage("pkg-infantil")
+                onSelectScreenCode("s22")
+            }
+            PackageSummaryCard("Evento Corporativo", "Solución profesional para eventos empresariales.", "RD$ 600", "Ahorra 8%", RfPhotoKey.CORPORATIVO, Color(0xFFFFF2C9)) {
+                viewModel?.selectPackage("pkg-corporativo")
+                onSelectScreenCode("s22")
+            }
             Spacer(Modifier.height(84.dp))
         }
     }
@@ -1378,6 +1431,25 @@ private fun PackageSummaryCard(
     }
 }
 
+private data class PackageLineItemConfig(
+    val articleId: String,
+    val title: String,
+    val unitPriceDop: Int,
+    val defaultQuantity: Int,
+    val photoKey: RfPhotoKey,
+    val bg: Color,
+)
+
+private data class PackageCatalogDetailSpec(
+    val id: String,
+    val title: String,
+    val description: String,
+    val discountPercent: Int,
+    val coverPhoto: RfPhotoKey,
+    val coverBg: Color,
+    val items: List<PackageLineItemConfig>,
+)
+
 // ==============================================================================
 // s22 · DETALLE DE PAQUETE
 // ==============================================================================
@@ -1385,8 +1457,88 @@ private fun PackageSummaryCard(
 @Composable
 internal fun RenderPackageDetailScreenS22(
     onSelectScreenCode: (String) -> Unit,
+    viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
+    val selectedPkgId = viewModel?.selectedPackageId?.collectAsState()?.value ?: "pkg-boda-real"
+    val packageSpecs = remember {
+        listOf(
+            PackageCatalogDetailSpec(
+                id = "pkg-boda-real",
+                title = "Bodas Rosa",
+                description = "Paquete romántico completo para bodas. Incluye arco de globos, centros de mesa florales, sillas Tiffany y mesas redondas, con 15% de descuento.",
+                discountPercent = 15,
+                coverPhoto = RfPhotoKey.BODA,
+                coverBg = Color(0xFFFDE6F2),
+                items = listOf(
+                    PackageLineItemConfig("art-arco-rosa", "Arco de globos rosa", 95, 1, RfPhotoKey.ARCO_ROSA, Color(0xFFFDE6F2)),
+                    PackageLineItemConfig("art-centro-floral", "Centro de mesa floral", 35, 10, RfPhotoKey.CENTRO_FLORAL, Color(0xFFFFF2C9)),
+                    PackageLineItemConfig("art-silla-tiffany", "Silla Tiffany Cristal", 4, 120, RfPhotoKey.SILLA_TIFFANY, Color(0xFFEFE8FD)),
+                    PackageLineItemConfig("art-mesa-redonda", "Mesa redonda", 25, 3, RfPhotoKey.MESA_REDONDA, Color(0xFFEEF6D6)),
+                ),
+            ),
+            PackageCatalogDetailSpec(
+                id = "pkg-quince",
+                title = "Quinceañera Premium",
+                description = "Paquete de lujo para quinceañeras con arco floral, estación dulce, sillas Tiffany y mesas redondas con 12% de descuento.",
+                discountPercent = 12,
+                coverPhoto = RfPhotoKey.QUINCEANERA,
+                coverBg = Color(0xFFEFE8FD),
+                items = listOf(
+                    PackageLineItemConfig("art-arco-rosa", "Arco de globos rosa", 95, 2, RfPhotoKey.ARCO_ROSA, Color(0xFFFDE6F2)),
+                    PackageLineItemConfig("art-mesa-helados", "Estación mesa dulce", 150, 1, RfPhotoKey.MESA_HELADOS, Color(0xFFEEF6D6)),
+                    PackageLineItemConfig("art-centro-floral", "Centro de mesa floral", 35, 12, RfPhotoKey.CENTRO_FLORAL, Color(0xFFFFF2C9)),
+                    PackageLineItemConfig("art-silla-tiffany", "Silla Tiffany Cristal", 4, 150, RfPhotoKey.SILLA_TIFFANY, Color(0xFFEFE8FD)),
+                ),
+            ),
+            PackageCatalogDetailSpec(
+                id = "pkg-infantil",
+                title = "Cumpleaños Infantil",
+                description = "Kit completo para fiestas infantiles: arco orgánico de globos, carrito de helados, sillas y mesas plegables con 10% de descuento.",
+                discountPercent = 10,
+                coverPhoto = RfPhotoKey.CUMPLE_INFANTIL,
+                coverBg = Color(0xFFEEF6D6),
+                items = listOf(
+                    PackageLineItemConfig("art-arco-rosa", "Arco de globos rosa", 95, 1, RfPhotoKey.ARCO_ROSA, Color(0xFFFDE6F2)),
+                    PackageLineItemConfig("art-mesa-helados", "Mesa de helados", 150, 1, RfPhotoKey.MESA_HELADOS, Color(0xFFEEF6D6)),
+                    PackageLineItemConfig("art-mesa-plegable", "Mesa plegable", 18, 6, RfPhotoKey.MESA_PLEGABLE, Color(0xFFFFF2C9)),
+                    PackageLineItemConfig("art-silla-tiffany", "Silla Tiffany Cristal", 4, 40, RfPhotoKey.SILLA_TIFFANY, Color(0xFFEFE8FD)),
+                ),
+            ),
+            PackageCatalogDetailSpec(
+                id = "pkg-corporativo",
+                title = "Evento Corporativo",
+                description = "Solución profesional para eventos empresariales con mobiliario ejecutivo, centros florales sobrios y 8% de descuento.",
+                discountPercent = 8,
+                coverPhoto = RfPhotoKey.CORPORATIVO,
+                coverBg = Color(0xFFFFF2C9),
+                items = listOf(
+                    PackageLineItemConfig("art-mesa-redonda", "Mesa redonda", 25, 10, RfPhotoKey.MESA_REDONDA, Color(0xFFEEF6D6)),
+                    PackageLineItemConfig("art-silla-tiffany", "Silla Tiffany Cristal", 4, 80, RfPhotoKey.SILLA_TIFFANY, Color(0xFFEFE8FD)),
+                    PackageLineItemConfig("art-centro-floral", "Centro de mesa floral", 35, 4, RfPhotoKey.CENTRO_FLORAL, Color(0xFFFFF2C9)),
+                ),
+            ),
+        )
+    }
+    val currentPkg = packageSpecs.firstOrNull { spec -> spec.id == selectedPkgId } ?: packageSpecs.first()
+    var itemQuantities by remember(currentPkg.id) {
+        mutableStateOf(currentPkg.items.associate { item -> item.articleId to item.defaultQuantity })
+    }
+    var checkedItems by remember(currentPkg.id) {
+        mutableStateOf(currentPkg.items.map { item -> item.articleId }.toSet())
+    }
+
+    val totalSelectedItemsCount = currentPkg.items.sumOf { item ->
+        val isChecked = checkedItems.contains(item.articleId)
+        val qty = itemQuantities[item.articleId] ?: item.defaultQuantity
+        if (isChecked) qty else 0
+    }
+    val subtotalDop = currentPkg.items.sumOf { item ->
+        val isChecked = checkedItems.contains(item.articleId)
+        val qty = itemQuantities[item.articleId] ?: item.defaultQuantity
+        if (isChecked) qty * item.unitPriceDop else 0
+    }
+    val discountedTotalDop = ((subtotalDop * (100 - currentPkg.discountPercent)) / 100.0).toInt()
 
     Box(
         modifier = Modifier
@@ -1398,16 +1550,15 @@ internal fun RenderPackageDetailScreenS22(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState()),
         ) {
-            // Foto de portada (300dp)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(300.dp)
-                    .background(Color(0xFFFDE6F2)),
+                    .background(currentPkg.coverBg),
             ) {
                 RfPhoto(
-                    photoKey = RfPhotoKey.BODA,
-                    contentDescription = "Bodas Rosa",
+                    photoKey = currentPkg.coverPhoto,
+                    contentDescription = currentPkg.title,
                     cornerRadius = 0.dp,
                     alignment = androidx.compose.ui.BiasAlignment(0f, -0.4f),
                     modifier = Modifier.fillMaxSize(),
@@ -1443,7 +1594,7 @@ internal fun RenderPackageDetailScreenS22(
                         .background(Color(0xFFEEF6D6))
                         .padding(horizontal = 9.dp, vertical = 3.dp),
                 ) {
-                    BasicText("Ahorra 15%", style = typo.sectionCap.copy(fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF4E6A10)))
+                    BasicText("Ahorra ${currentPkg.discountPercent}%", style = typo.sectionCap.copy(fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF4E6A10)))
                 }
                 Spacer(Modifier.height(6.dp))
                 Row(
@@ -1451,15 +1602,15 @@ internal fun RenderPackageDetailScreenS22(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    BasicText("Bodas Rosa", style = typo.heroTitle.copy(fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729)))
+                    BasicText(currentPkg.title, style = typo.heroTitle.copy(fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729)))
                     Row(verticalAlignment = Alignment.Bottom) {
                         BasicText("desde ", style = typo.secondary.copy(fontSize = 14.sp, color = Color(0xFF5F6377)))
-                        BasicText("RD$ 850", style = typo.heroTitle.copy(fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFFC2338F)))
+                        BasicText("RD$ $discountedTotalDop", style = typo.heroTitle.copy(fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFFC2338F)))
                     }
                 }
                 Spacer(Modifier.height(8.dp))
                 BasicText(
-                    text = "Paquete romántico completo para bodas. Incluye arco de globos, centros de mesa florales, sillas Tiffany y mesas redondas, con 15% de descuento.",
+                    text = currentPkg.description,
                     style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF5F6377), lineHeight = 22.sp),
                 )
 
@@ -1475,19 +1626,44 @@ internal fun RenderPackageDetailScreenS22(
                 }
                 Spacer(Modifier.height(10.dp))
 
-                PackageItemRow("Arco de globos rosa", "RD$ 95 / día", "1", RfPhotoKey.ARCO_ROSA, Color(0xFFFDE6F2))
-                Spacer(Modifier.height(8.dp))
-                PackageItemRow("Centro de mesa floral", "RD$ 35 / día", "10", RfPhotoKey.CENTRO_FLORAL, Color(0xFFFFF2C9))
-                Spacer(Modifier.height(8.dp))
-                PackageItemRow("Silla Tiffany Cristal", "RD$ 4 / día", "120", RfPhotoKey.SILLA_TIFFANY, Color(0xFFEFE8FD))
-                Spacer(Modifier.height(8.dp))
-                PackageItemRow("Mesa redonda", "RD$ 25 / día", "3", RfPhotoKey.MESA_REDONDA, Color(0xFFEEF6D6))
+                currentPkg.items.forEachIndexed { itemIndex, lineItem ->
+                    val currentQty = itemQuantities[lineItem.articleId] ?: lineItem.defaultQuantity
+                    val isChecked = checkedItems.contains(lineItem.articleId)
+                    PackageItemRow(
+                        title = lineItem.title,
+                        price = "RD$ ${lineItem.unitPriceDop} / día",
+                        qty = currentQty.toString(),
+                        photoKey = lineItem.photoKey,
+                        bg = lineItem.bg,
+                        isChecked = isChecked,
+                        onToggleCheck = {
+                            checkedItems = if (isChecked) {
+                                checkedItems - lineItem.articleId
+                            } else {
+                                checkedItems + lineItem.articleId
+                            }
+                        },
+                        onDecrease = {
+                            val nextQty = (currentQty - 1).coerceAtLeast(1)
+                            itemQuantities = itemQuantities + (lineItem.articleId to nextQty)
+                        },
+                        onIncrease = {
+                            val nextQty = currentQty + 1
+                            itemQuantities = itemQuantities + (lineItem.articleId to nextQty)
+                            if (!isChecked) {
+                                checkedItems = checkedItems + lineItem.articleId
+                            }
+                        },
+                    )
+                    if (itemIndex < currentPkg.items.lastIndex) {
+                        Spacer(Modifier.height(8.dp))
+                    }
+                }
 
                 Spacer(Modifier.height(90.dp))
             }
         }
 
-        // Botón inferior con precio + CTA
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -1505,11 +1681,11 @@ internal fun RenderPackageDetailScreenS22(
                 Column(modifier = Modifier.wrapContentWidth()) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         BasicText(
-                            text = "134 artículos · ",
+                            text = "$totalSelectedItemsCount artículos · ",
                             style = typo.secondary.copy(fontSize = 12.sp, color = Color(0xFF62627A)),
                         )
                         BasicText(
-                            text = "RD$ 1,000",
+                            text = "RD$ $subtotalDop",
                             style = typo.secondary.copy(
                                 fontSize = 12.sp,
                                 color = Color(0xFF62627A),
@@ -1518,7 +1694,7 @@ internal fun RenderPackageDetailScreenS22(
                         )
                     }
                     BasicText(
-                        text = "RD$ 850",
+                        text = "RD$ $discountedTotalDop",
                         style = TextStyle(
                             fontFamily = typo.displayFamily,
                             fontWeight = FontWeight.ExtraBold,
@@ -1535,7 +1711,16 @@ internal fun RenderPackageDetailScreenS22(
                         .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
                         .clip(RoundedCornerShape(16.dp))
                         .background(Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC))))
-                        .clickable { onSelectScreenCode("s37") },
+                        .clickable {
+                            currentPkg.items.forEach { item ->
+                                val isChecked = checkedItems.contains(item.articleId)
+                                val qty = itemQuantities[item.articleId] ?: item.defaultQuantity
+                                if (isChecked) {
+                                    viewModel?.adjustDraftQuantity(item.articleId, qty)
+                                }
+                            }
+                            onSelectScreenCode("s25")
+                        },
                 ) {
                     BasicText("Agregar al evento", style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White))
                 }
@@ -1551,6 +1736,10 @@ private fun PackageItemRow(
     qty: String,
     photoKey: RfPhotoKey,
     bg: Color,
+    isChecked: Boolean = true,
+    onToggleCheck: () -> Unit = {},
+    onDecrease: () -> Unit = {},
+    onIncrease: () -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
     Box(
@@ -1568,9 +1757,18 @@ private fun PackageItemRow(
                 modifier = Modifier
                     .size(24.dp)
                     .clip(RoundedCornerShape(7.dp))
-                    .background(Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))),
+                    .background(
+                        if (isChecked) {
+                            Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))
+                        } else {
+                            SolidColor(Color(0xFFF1EFF5))
+                        },
+                    )
+                    .clickable(onClick = onToggleCheck),
             ) {
-                RfIcon(kind = RfIconKind.CHECK, tint = Color.White, size = 16.dp)
+                if (isChecked) {
+                    RfIcon(kind = RfIconKind.CHECK, tint = Color.White, size = 16.dp)
+                }
             }
 
             Box(modifier = Modifier.size(48.dp).clip(RoundedCornerShape(12.dp)).background(bg)) {
@@ -1582,7 +1780,6 @@ private fun PackageItemRow(
                 BasicText(price, style = typo.secondary.copy(fontSize = 13.sp, color = Color(0xFF5F6377)))
             }
 
-            // Stepper
             Row(
                 modifier = Modifier
                     .clip(RoundedCornerShape(12.dp))
@@ -1590,11 +1787,21 @@ private fun PackageItemRow(
                     .height(36.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Box(modifier = Modifier.size(32.dp, 36.dp), contentAlignment = Alignment.Center) {
+                Box(
+                    modifier = Modifier
+                        .size(32.dp, 36.dp)
+                        .clickable(onClick = onDecrease),
+                    contentAlignment = Alignment.Center,
+                ) {
                     RfIcon(kind = RfIconKind.MINUS, tint = Color(0xFF1A1A2E), size = 16.dp)
                 }
                 BasicText(qty, style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A2E)))
-                Box(modifier = Modifier.size(32.dp, 36.dp), contentAlignment = Alignment.Center) {
+                Box(
+                    modifier = Modifier
+                        .size(32.dp, 36.dp)
+                        .clickable(onClick = onIncrease),
+                    contentAlignment = Alignment.Center,
+                ) {
                     RfIcon(kind = RfIconKind.PLUS, tint = Color(0xFF1A1A2E), size = 16.dp)
                 }
             }
@@ -1619,11 +1826,15 @@ private data class BalloonShopItemSpec(
 @Composable
 internal fun RenderShopScreenS23(
     onSelectScreenCode: (String) -> Unit,
+    viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
     val gradDiag = Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)))
     var selectedFilter by remember { mutableStateOf("Todos") }
-    var cartCount by remember { mutableStateOf(3) }
+    val draftQuantities = viewModel?.draftQuantities?.collectAsState()?.value ?: emptyMap()
+    val vmCartTotal = draftQuantities.values.sum()
+    var localAddedCount by remember { mutableStateOf(0) }
+    val cartCount = if (vmCartTotal > 0) vmCartTotal + localAddedCount else 3 + localAddedCount
 
     val allBalloonItems = remember {
         listOf(
@@ -1645,14 +1856,14 @@ internal fun RenderShopScreenS23(
             ),
             BalloonShopItemSpec(
                 title = "Bouquet tricolor",
-                price = "RD$ [precio]",
+                price = "RD$ 12.50",
                 bg = Color(0xFFDDF4F3),
                 category = "Bouquets",
                 illustration = { BalloonTricolorIllustration(modifier = Modifier.size(108.dp)) },
             ),
             BalloonShopItemSpec(
                 title = "Arco orgánico",
-                price = "RD$ [precio]",
+                price = "RD$ 45.00",
                 bg = Color(0xFFEEF6D6),
                 category = "Látex",
                 illustration = { BalloonArchShopIllustration(modifier = Modifier.size(108.dp)) },
@@ -1882,7 +2093,10 @@ internal fun RenderShopScreenS23(
                         isFavorite = first.initialFavorite,
                         hasOfferBadge = first.hasOfferBadge,
                         illustration = first.illustration,
-                        onAddClick = { cartCount += 1 },
+                        onAddClick = {
+                            localAddedCount += 1
+                            viewModel?.adjustDraftQuantity("art-arco-rosa", 1)
+                        },
                         modifier = Modifier.weight(1f),
                     )
                     if (rowPair.size > 1) {
@@ -1894,7 +2108,10 @@ internal fun RenderShopScreenS23(
                             isFavorite = second.initialFavorite,
                             hasOfferBadge = second.hasOfferBadge,
                             illustration = second.illustration,
-                            onAddClick = { cartCount += 1 },
+                            onAddClick = {
+                                localAddedCount += 1
+                                viewModel?.adjustDraftQuantity("art-arco-rosa", 1)
+                            },
                             modifier = Modifier.weight(1f),
                         )
                     } else {
@@ -2171,8 +2388,19 @@ private fun TiendaBalloonProductCard(
 @Composable
 internal fun RenderClientFavoritesScreenS24(
     onSelectScreenCode: (String) -> Unit,
+    viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
+    val allArticles = viewModel?.articles?.collectAsState()?.value ?: CanonicalSampleData.articles
+    val favoriteIds = viewModel?.favorites?.collectAsState()?.value ?: setOf("art-silla-tiffany", "art-mesa-redonda")
+    val favoriteArticles = remember(allArticles, favoriteIds) {
+        val matched = allArticles.filter { article -> favoriteIds.contains(article.id) }
+        if (matched.isNotEmpty()) {
+            matched
+        } else {
+            allArticles.take(2)
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -2182,38 +2410,75 @@ internal fun RenderClientFavoritesScreenS24(
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             BasicText("Favoritos", style = typo.heroTitle.copy(fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF1A1A2E)))
-            BasicText("2 artículos guardados", style = typo.secondary.copy(fontSize = 15.sp, color = Color(0xFF62627A)))
+            BasicText("${favoriteArticles.size} artículos guardados", style = typo.secondary.copy(fontSize = 15.sp, color = Color(0xFF62627A)))
         }
 
         Spacer(Modifier.height(18.dp))
 
-        // Grid 2 columnas de favoritos
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-            PersonalProductCard(
-                title = "Silla Tiffany Cristal",
-                desc = "Acrílico transparente, elegante",
-                price = "4",
-                photoKey = RfPhotoKey.SILLA_TIFFANY,
-                bg = Color(0xFFDDF4F3),
-                initialFavorite = true,
-                onOpenDetail = { onSelectScreenCode("s19") },
-                modifier = Modifier.weight(1f),
-            )
-            PersonalProductCard(
-                title = "Mesa redonda",
-                desc = "Para 8 a 10 invitados",
-                price = "25",
-                photoKey = RfPhotoKey.MESA_REDONDA,
-                bg = Color(0xFFFFF2C9),
-                initialFavorite = true,
-                onOpenDetail = { onSelectScreenCode("s19") },
-                modifier = Modifier.weight(1f),
-            )
+        favoriteArticles.chunked(2).forEachIndexed { rowIdx, pair ->
+            if (rowIdx > 0) {
+                Spacer(Modifier.height(12.dp))
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                val first = pair[0]
+                val firstPhoto = RfPhotoKey.entries.firstOrNull { entry ->
+                    val matchesAsset = entry.assetKey == first.photo.key
+                    val matchesName = entry.name.equals(first.photo.key, ignoreCase = true)
+                    listOf(matchesAsset, matchesName).any { matched -> matched }
+                } ?: RfPhotoKey.SILLA_TIFFANY
+                PersonalProductCard(
+                    title = first.name,
+                    desc = first.description,
+                    price = first.pricePerDayDop.toString(),
+                    photoKey = firstPhoto,
+                    bg = Color(0xFFDDF4F3),
+                    initialFavorite = true,
+                    onOpenDetail = {
+                        viewModel?.selectArticle(first.id)
+                        onSelectScreenCode("s19")
+                    },
+                    onAddClick = {
+                        viewModel?.adjustDraftQuantity(first.id, 1)
+                    },
+                    onToggleFavorite = {
+                        viewModel?.toggleFavorite(first.id)
+                    },
+                    modifier = Modifier.weight(1f),
+                )
+                if (pair.size > 1) {
+                    val second = pair[1]
+                    val secondPhoto = RfPhotoKey.entries.firstOrNull { entry ->
+                        val matchesAsset = entry.assetKey == second.photo.key
+                        val matchesName = entry.name.equals(second.photo.key, ignoreCase = true)
+                        listOf(matchesAsset, matchesName).any { matched -> matched }
+                    } ?: RfPhotoKey.MESA_REDONDA
+                    PersonalProductCard(
+                        title = second.name,
+                        desc = second.description,
+                        price = second.pricePerDayDop.toString(),
+                        photoKey = secondPhoto,
+                        bg = Color(0xFFFFF2C9),
+                        initialFavorite = true,
+                        onOpenDetail = {
+                            viewModel?.selectArticle(second.id)
+                            onSelectScreenCode("s19")
+                        },
+                        onAddClick = {
+                            viewModel?.adjustDraftQuantity(second.id, 1)
+                        },
+                        onToggleFavorite = {
+                            viewModel?.toggleFavorite(second.id)
+                        },
+                        modifier = Modifier.weight(1f),
+                    )
+                } else {
+                    Spacer(Modifier.weight(1f))
+                }
+            }
         }
 
         Spacer(Modifier.height(20.dp))
 
-        // Tarjeta de asistencia de Rosa IA
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -2227,7 +2492,7 @@ internal fun RenderClientFavoritesScreenS24(
                     RosaAvatar(size = RosaAvatarSize.MEDIUM)
                     Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         BasicText("¿Los agrego a tu boda?", style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A2E)))
-                        BasicText("Los dos artículos quedarían en “Boda Real Rosa & Dorado”.", style = typo.secondary.copy(fontSize = 14.sp, lineHeight = 20.sp, color = Color(0xFF62627A)))
+                        BasicText("Los artículos seleccionados quedarían en “Boda Real Rosa & Dorado”.", style = typo.secondary.copy(fontSize = 14.sp, lineHeight = 20.sp, color = Color(0xFF62627A)))
                     }
                 }
 
@@ -2240,7 +2505,12 @@ internal fun RenderClientFavoritesScreenS24(
                             .rfPrimaryButtonShadow(RoundedCornerShape(999.dp), isAdmin = false)
                             .clip(RoundedCornerShape(999.dp))
                             .background(Brush.horizontalGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))))
-                            .clickable { onSelectScreenCode("s37") },
+                            .clickable {
+                                favoriteArticles.forEach { favArticle ->
+                                    viewModel?.adjustDraftQuantity(favArticle.id, 1)
+                                }
+                                onSelectScreenCode("s25")
+                            },
                     ) {
                         BasicText("Agregar ambos", style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.White))
                     }

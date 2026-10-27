@@ -793,7 +793,8 @@ internal fun RenderRosaEventTypeS26(
                     promptText = ""
                     onSelectScreenCode("s27")
                 } else {
-                    onSelectScreenCode("s34")
+                    viewModel?.startVoiceInput(VoiceInputOrigin.ROSA_WIZARD)
+                    onSelectScreenCode("s35")
                 }
             }
             Row(
@@ -3139,7 +3140,10 @@ internal fun RenderRosaChatS34(
                         modifier = Modifier
                             .size(44.dp)
                             .clip(RoundedCornerShape(14.dp))
-                            .clickable { onSelectScreenCode("s35") },
+                            .clickable {
+                                viewModel?.startVoiceInput(VoiceInputOrigin.ROSA_WIZARD)
+                                onSelectScreenCode("s35")
+                            },
                         contentAlignment = Alignment.Center,
                     ) {
                         RfIcon(kind = RfIconKind.MIC, tint = Color(0xFF62627A), size = 22.dp)
@@ -3198,16 +3202,56 @@ internal fun RenderRosaVoiceS35(
     viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
-    val voiceTranscripts = remember {
-        listOf(
-            "Una boda en un jardín para unas 120 personas en blanco y dorado",
-            "Cumpleaños infantil para 60 invitados con arco de globos y mesa de dulces",
-            "Cena corporativa para 150 personas con sillas Tiffany y centros florales",
-        )
+    val voiceOrigin = viewModel?.voiceInputOrigin?.collectAsState()?.value ?: VoiceInputOrigin.ROSA_WIZARD
+    val isSearchMode = voiceOrigin == VoiceInputOrigin.SEARCH
+    val vmListening = viewModel?.isVoiceListening?.collectAsState()?.value ?: true
+    val liveAmplitude = viewModel?.voiceAmplitude?.collectAsState()?.value ?: 0.35f
+    val hasHardwareMic = viewModel?.hasHardwareMicrophone?.collectAsState()?.value ?: false
+    val vmTranscript = viewModel?.voiceTranscript?.collectAsState()?.value.orEmpty()
+
+    val voiceSuggestions = remember(isSearchMode) {
+        if (isSearchMode) {
+            listOf(
+                "Silla Tiffany",
+                "Arco de globos",
+                "Mesa redonda",
+                "Centro floral",
+                "Mesa de helados",
+            )
+        } else {
+            listOf(
+                "Una boda en un jardín para unas 120 personas en blanco y dorado",
+                "Cumpleaños infantil para 60 invitados con arco de globos y mesa de dulces",
+                "Cena corporativa para 150 personas con sillas Tiffany y centros florales",
+            )
+        }
     }
     var transcriptIndex by remember { mutableStateOf(0) }
-    var isListening by remember { mutableStateOf(true) }
-    val activeTranscript = voiceTranscripts[transcriptIndex % voiceTranscripts.size]
+    var editableTranscript by remember(vmTranscript) {
+        val defaultText = voiceSuggestions.first()
+        mutableStateOf(vmTranscript.ifBlank { defaultText })
+    }
+
+    LaunchedEffect(Unit) {
+        val isUnsetOrigin = voiceOrigin == VoiceInputOrigin.NONE
+        val resolvedOrigin = if (isUnsetOrigin) VoiceInputOrigin.ROSA_WIZARD else voiceOrigin
+        viewModel?.startVoiceInput(resolvedOrigin, editableTranscript)
+    }
+
+    val confirmVoiceAction = {
+        viewModel?.stopVoiceInput()
+        val finalTranscript = editableTranscript.trim()
+        if (isSearchMode) {
+            viewModel?.setSearchQuery(finalTranscript)
+            onSelectScreenCode("s80")
+        } else {
+            if (finalTranscript.isNotEmpty()) {
+                applyNaturalLanguageEventPrompt(finalTranscript, viewModel)
+            }
+            viewModel?.setRosaProposalMessage(finalTranscript)
+            onSelectScreenCode("s28")
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -3230,13 +3274,17 @@ internal fun RenderRosaVoiceS35(
                     .rfIconButtonShadow(CircleShape, isAdmin = false)
                     .clip(CircleShape)
                     .background(Color.White)
-                    .clickable { onSelectScreenCode("s34") },
+                    .clickable {
+                        viewModel?.stopVoiceInput()
+                        val fallbackScreen = if (isSearchMode) "BACK:s14" else "BACK:s26"
+                        onSelectScreenCode(fallbackScreen)
+                    },
                 contentAlignment = Alignment.Center,
             ) {
                 RfIcon(kind = RfIconKind.CLOSE, tint = Color(0xFF1A1A2E), size = 22.dp)
             }
             BasicText(
-                text = "Paso 1 de 6 · Tipo de evento",
+                text = if (isSearchMode) "Búsqueda por voz · Catálogo" else "Paso 1 de 6 · Tipo de evento",
                 style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, color = Color(0xFF5A5672), fontSize = 13.sp),
             )
             Spacer(modifier = Modifier.size(44.dp))
@@ -3250,9 +3298,10 @@ internal fun RenderRosaVoiceS35(
                 .padding(top = 24.dp, bottom = 20.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
+            val pulseScale = (liveAmplitude * 24f).dp
             Box(
                 modifier = Modifier
-                    .size(240.dp)
+                    .size(240.dp + pulseScale)
                     .clip(CircleShape)
                     .background(Color.White.copy(alpha = 0.45f)),
                 contentAlignment = Alignment.Center,
@@ -3272,13 +3321,13 @@ internal fun RenderRosaVoiceS35(
                 }
             }
 
-            Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
             Column(
                 modifier = Modifier
                     .padding(horizontal = 28.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(14.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -3288,27 +3337,76 @@ internal fun RenderRosaVoiceS35(
                         modifier = Modifier
                             .size(8.dp)
                             .clip(CircleShape)
-                            .background(if (isListening) Color(0xFFEA4EA9) else Color(0xFF2FB58F)),
+                            .background(if (vmListening) Color(0xFFEA4EA9) else Color(0xFF2FB58F)),
                     )
+                    val statusLabel = if (vmListening) {
+                        if (hasHardwareMic) "Te escucho (micrófono activo)…" else "Te escucho…"
+                    } else {
+                        "Transcripción lista"
+                    }
                     BasicText(
-                        text = if (isListening) "Te escucho…" else "Transcripción lista",
+                        text = statusLabel,
                         style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFFC2338F)),
                     )
                 }
-                BasicText(
-                    text = activeTranscript,
-                    style = TextStyle(
+
+                BasicTextField(
+                    value = editableTranscript,
+                    onValueChange = { updatedText ->
+                        editableTranscript = updatedText
+                        viewModel?.setVoiceTranscript(updatedText)
+                    },
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = { confirmVoiceAction() }),
+                    textStyle = TextStyle(
                         fontFamily = typo.displayFamily,
                         fontWeight = FontWeight.Bold,
                         fontSize = 24.sp,
                         lineHeight = 30.sp,
                         color = Color(0xFF1A1A2E),
+                        textAlign = TextAlign.Center,
                     ),
+                    cursorBrush = SolidColor(Color(0xFFC2338F)),
                     modifier = Modifier.fillMaxWidth(),
                 )
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    voiceSuggestions.forEach { suggestion ->
+                        val isCurrentSuggestion = editableTranscript.equals(suggestion, ignoreCase = true)
+                        Box(
+                            modifier = Modifier
+                                .height(32.dp)
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(if (isCurrentSuggestion) Color(0xFFEA4EA9) else Color.White.copy(alpha = 0.85f))
+                                .clickable {
+                                    editableTranscript = suggestion
+                                    viewModel?.setVoiceTranscript(suggestion)
+                                }
+                                .padding(horizontal = 12.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            BasicText(
+                                text = suggestion,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                style = TextStyle(
+                                    fontFamily = typo.bodyFamily,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 12.sp,
+                                    color = if (isCurrentSuggestion) Color.White else Color(0xFF3B3550),
+                                ),
+                            )
+                        }
+                    }
+                }
             }
 
-            Spacer(modifier = Modifier.height(76.dp))
+            Spacer(modifier = Modifier.height(48.dp))
 
             Row(
                 horizontalArrangement = Arrangement.spacedBy(5.dp),
@@ -3330,10 +3428,13 @@ internal fun RenderRosaVoiceS35(
                     Pair(8.dp, Color(0xFF865DEC)),
                 )
                 bars.forEachIndexed { index, (barHeight, color) ->
-                    val isOddTranscript = transcriptIndex % 2 == 1
-                    val isEvenBar = index % 2 == 0
-                    val shouldBoostHeight = if (isOddTranscript) isEvenBar else false
-                    val adjustedHeight = if (shouldBoostHeight) barHeight + 8.dp else barHeight
+                    val waveFactor = if (vmListening) {
+                        val offsetWave = sin((index * 0.7) + (liveAmplitude * 6.0)).toFloat()
+                        (0.65f + (liveAmplitude * 0.85f) + (offsetWave * 0.25f)).coerceIn(0.35f, 1.55f)
+                    } else {
+                        0.45f
+                    }
+                    val adjustedHeight = (barHeight.value * waveFactor).coerceIn(8f, 72f).dp
                     Box(
                         modifier = Modifier
                             .width(6.dp)
@@ -3358,7 +3459,11 @@ internal fun RenderRosaVoiceS35(
                     .rfIconButtonShadow(CircleShape, isAdmin = false)
                     .clip(CircleShape)
                     .background(Color.White)
-                    .clickable { onSelectScreenCode("s34") },
+                    .clickable {
+                        viewModel?.stopVoiceInput()
+                        val targetKeyboardScreen = if (isSearchMode) "s80" else "s34"
+                        onSelectScreenCode(targetKeyboardScreen)
+                    },
                 contentAlignment = Alignment.Center,
             ) {
                 RfIcon(kind = RfIconKind.GRID, tint = Color(0xFF1A1A2E), size = 22.dp)
@@ -3370,10 +3475,7 @@ internal fun RenderRosaVoiceS35(
                     .shadow(16.dp, CircleShape, spotColor = Color(0xFF9646C8), ambientColor = Color(0x4D9646C8))
                     .clip(CircleShape)
                     .background(Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC))))
-                    .clickable {
-                        viewModel?.setRosaProposalMessage(activeTranscript)
-                        onSelectScreenCode("s28")
-                    },
+                    .clickable { confirmVoiceAction() },
                 contentAlignment = Alignment.Center,
             ) {
                 Box(
@@ -3408,13 +3510,171 @@ internal fun RenderRosaVoiceS35(
                     .background(Color.White)
                     .clickable {
                         transcriptIndex += 1
-                        isListening = true
-                        viewModel?.setRosaProposalMessage(voiceTranscripts[transcriptIndex % voiceTranscripts.size])
+                        val nextTranscript = voiceSuggestions[transcriptIndex % voiceSuggestions.size]
+                        editableTranscript = nextTranscript
+                        val nextOrigin = if (isSearchMode) VoiceInputOrigin.SEARCH else VoiceInputOrigin.ROSA_WIZARD
+                        viewModel?.startVoiceInput(nextOrigin, nextTranscript)
                     },
                 contentAlignment = Alignment.Center,
             ) {
                 RfIcon(kind = RfIconKind.REFRESH, tint = Color(0xFF1A1A2E), size = 22.dp)
             }
+        }
+    }
+}
+
+@Composable
+internal fun InlineVoiceSearchBanner(
+    viewModel: RosaFiestaViewModel?,
+    onApplyVoiceQuery: (String) -> Unit,
+    onOpenFullScreenVoice: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val typo = LocalRfTypography.current
+    val isListening = viewModel?.isVoiceListening?.collectAsState()?.value ?: false
+    val voiceOrigin = viewModel?.voiceInputOrigin?.collectAsState()?.value ?: VoiceInputOrigin.NONE
+    val isSearchOrigin = voiceOrigin == VoiceInputOrigin.SEARCH
+    val shouldShowBanner = if (isListening) isSearchOrigin else false
+    if (!shouldShowBanner) {
+        return
+    }
+    val liveAmplitude = viewModel?.voiceAmplitude?.collectAsState()?.value ?: 0.28f
+    val hasHardwareMic = viewModel?.hasHardwareMicrophone?.collectAsState()?.value ?: true
+    val spokenPhrases = remember {
+        listOf(
+            "Silla Tiffany",
+            "Mesa redonda",
+            "Arco orgánico",
+            "Centro floral",
+            "Mesa de helados",
+        )
+    }
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .rfCardShadow(RoundedCornerShape(18.dp), isAdmin = false)
+            .clip(RoundedCornerShape(18.dp))
+            .background(Color.White)
+            .border(1.5.dp, Color(0xFFEA4EA9), RoundedCornerShape(18.dp))
+            .padding(14.dp),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(10.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFEA4EA9)),
+                )
+                val statusText = if (hasHardwareMic) {
+                    "Escuchando micrófono… di qué artículo buscas"
+                } else {
+                    "Dictado rápido de catálogo activo"
+                }
+                BasicText(
+                    text = statusText,
+                    style = TextStyle(
+                        fontFamily = typo.bodyFamily,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp,
+                        color = Color(0xFF1A1A2E),
+                    ),
+                )
+            }
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(3.dp),
+                modifier = Modifier.height(22.dp),
+            ) {
+                val baseHeights = listOf(8f, 14f, 20f, 12f, 22f, 16f, 10f)
+                baseHeights.forEachIndexed { index, baseDp ->
+                    val waveDelta = sin((index * 0.8) + (liveAmplitude * 6.0)).toFloat()
+                    val scaleFactor = (0.6f + (liveAmplitude * 0.8f) + (waveDelta * 0.25f)).coerceIn(0.35f, 1.35f)
+                    val barHeight = (baseDp * scaleFactor).coerceIn(6f, 22f).dp
+                    Box(
+                        modifier = Modifier
+                            .width(4.dp)
+                            .height(barHeight)
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(if (index % 2 == 0) Color(0xFFEA4EA9) else Color(0xFF865DEC)),
+                    )
+                }
+            }
+        }
+
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+        ) {
+            spokenPhrases.forEach { phrase ->
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .height(32.dp)
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(Color(0xFFFDE6F2))
+                        .clickable {
+                            viewModel?.setVoiceTranscript(phrase)
+                            viewModel?.stopVoiceInput()
+                            onApplyVoiceQuery(phrase)
+                        }
+                        .padding(horizontal = 12.dp),
+                ) {
+                    BasicText(
+                        text = "“$phrase”",
+                        style = TextStyle(
+                            fontFamily = typo.bodyFamily,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 12.sp,
+                            color = Color(0xFFC2338F),
+                        ),
+                    )
+                }
+            }
+        }
+
+        Row(
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            BasicText(
+                text = "Abrir modo voz completo →",
+                style = TextStyle(
+                    fontFamily = typo.bodyFamily,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 12.sp,
+                    color = Color(0xFF865DEC),
+                ),
+                modifier = Modifier.clickable {
+                    viewModel?.startVoiceInput(VoiceInputOrigin.SEARCH)
+                    onOpenFullScreenVoice()
+                },
+            )
+            BasicText(
+                text = "Detener",
+                style = TextStyle(
+                    fontFamily = typo.bodyFamily,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 12.sp,
+                    color = Color(0xFF62627A),
+                ),
+                modifier = Modifier.clickable {
+                    viewModel?.stopVoiceInput()
+                },
+            )
         }
     }
 }

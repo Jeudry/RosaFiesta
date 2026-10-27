@@ -15,7 +15,24 @@ public actual class DriverFactory(
     }
 }
 
+internal fun isRunningInAutomatedTest(): Boolean {
+    val stackFrames = Thread.currentThread().stackTrace
+    return stackFrames.any { frame ->
+        val className = frame.className
+        val isJunitFrame = className.startsWith("org.junit.")
+        val isGradleTestWorker = className.startsWith("org.gradle.api.internal.tasks.testing.")
+        if (isJunitFrame) {
+            true
+        } else {
+            isGradleTestWorker
+        }
+    }
+}
+
 public actual fun createDefaultSqlDriverOrNull(): SqlDriver? = runCatching {
+    if (isRunningInAutomatedTest()) {
+        return@runCatching DriverFactory(url = JdbcSqliteDriver.IN_MEMORY).createDriver()
+    }
     val homeDir = System.getProperty("user.home").orEmpty().ifBlank { "." }
     val appDir = File(homeDir, ".rosafiesta")
     if (!appDir.exists()) {

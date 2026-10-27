@@ -4016,10 +4016,14 @@ private data class GuestCatalogItem(
 @Composable
 internal fun RenderGuestCatalogS01(
     onSelectScreenCode: (String) -> Unit,
+    viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
     var selectedCategory by remember { mutableStateOf("Todas") }
     var searchQuery by remember { mutableStateOf("") }
+    val isInlineVoiceListening = viewModel?.isVoiceListening?.collectAsState()?.value ?: false
+    val voiceOrigin = viewModel?.voiceInputOrigin?.collectAsState()?.value ?: VoiceInputOrigin.NONE
+    val isSearchMicActive = if (isInlineVoiceListening) voiceOrigin == VoiceInputOrigin.SEARCH else false
     val allGuestProducts = remember {
         listOf(
             GuestCatalogItem("Silla Tiffany Cristal", "Acrílica transparente", "RD$ 4", "Mobiliario", RfPhotoKey.SILLA_TIFFANY, Color(0xFFEFE8FD)),
@@ -4083,7 +4087,7 @@ internal fun RenderGuestCatalogS01(
                         .clip(CircleShape)
                         .background(Color.White)
                         .border(1.dp, Color(0xFFF0EBF4), CircleShape)
-                        .clickable { onSelectScreenCode("s75") },
+                        .clickable { onSelectScreenCode("s81") },
                 ) {
                     RfIcon(kind = RfIconKind.FILTER, tint = Color(0xFF1A1A2E), size = 22.dp)
                 }
@@ -4134,13 +4138,34 @@ internal fun RenderGuestCatalogS01(
                         modifier = Modifier
                             .size(42.dp)
                             .clip(RoundedCornerShape(12.dp))
-                            .background(Color(0xFFFDE6F2))
-                            .clickable { onSelectScreenCode("s75") },
+                            .background(
+                                if (isSearchMicActive) {
+                                    Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))
+                                } else {
+                                    SolidColor(Color(0xFFFDE6F2))
+                                },
+                            )
+                            .clickable {
+                                viewModel?.toggleInlineVoiceSearch()
+                            },
                     ) {
-                        RfIcon(kind = RfIconKind.MIC, tint = Color(0xFFC2338F), size = 20.dp)
+                        val micTint = if (isSearchMicActive) Color.White else Color(0xFFC2338F)
+                        RfIcon(kind = RfIconKind.MIC, tint = micTint, size = 20.dp)
                     }
                 }
             }
+
+            InlineVoiceSearchBanner(
+                viewModel = viewModel,
+                onApplyVoiceQuery = { spokenQuery ->
+                    searchQuery = spokenQuery
+                    viewModel?.setSearchQuery(spokenQuery)
+                },
+                onOpenFullScreenVoice = {
+                    onSelectScreenCode("s35")
+                },
+                modifier = Modifier.padding(top = 10.dp),
+            )
 
             Spacer(Modifier.height(16.dp))
 

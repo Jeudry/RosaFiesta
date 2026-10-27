@@ -359,9 +359,11 @@ private enum class EventTypeIllus { CUMPLE, BODA, QUINCEANERA, BABY_SHOWER, GRAD
 @Composable
 internal fun RenderNewEventScreenS38(
     onSelectScreenCode: (String) -> Unit = {},
+    viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
-    var selectedType by remember { mutableStateOf("Boda") }
+    val initialType = viewModel?.rosaEventType?.collectAsState()?.value ?: "Boda"
+    var selectedType by remember(initialType) { mutableStateOf(initialType) }
 
     Box(
         modifier = Modifier
@@ -624,7 +626,11 @@ internal fun RenderNewEventScreenS38(
                 .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
                 .clip(RoundedCornerShape(16.dp))
                 .background(RosaButtonGradient)
-                .clickable { onSelectScreenCode("s26") },
+                .clickable {
+                    viewModel?.setEventTypeInput(selectedType)
+                    viewModel?.updateRosaParameters(eventType = selectedType)
+                    onSelectScreenCode("s28")
+                },
             contentAlignment = Alignment.Center,
         ) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -644,8 +650,11 @@ internal fun RenderNewEventScreenS38(
 @Composable
 internal fun RenderCalendarScreenS39(
     onSelectScreenCode: (String) -> Unit = {},
+    viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
+    val eventsState = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
+    var selectedDayNum by remember { mutableStateOf(23) }
 
     Box(
         modifier = Modifier
@@ -733,20 +742,37 @@ internal fun RenderCalendarScreenS39(
                             for (col in 1..7) {
                                 val dayNum = row * 7 + col - 3
                                 if (dayNum in 1..31) {
-                                    val isEventDay = dayNum in setOf(23, 28)
+                                    val isEventDay = dayNum in setOf(12, 23, 28)
+                                    val isSelectedDay = dayNum == selectedDayNum
+                                    val highlightDay = if (isSelectedDay) true else isEventDay
                                     Box(
                                         modifier = Modifier
                                             .size(32.dp)
                                             .clip(CircleShape)
-                                            .background(if (isEventDay) Color(0xFFEA4EA9) else Color.Transparent),
+                                            .background(
+                                                if (isSelectedDay) {
+                                                    Color(0xFFEA4EA9)
+                                                } else if (isEventDay) {
+                                                    Color(0xFFFDE6F2)
+                                                } else {
+                                                    Color.Transparent
+                                                },
+                                            )
+                                            .clickable { selectedDayNum = dayNum },
                                         contentAlignment = Alignment.Center,
                                     ) {
                                         BasicText(
                                             text = "$dayNum",
                                             style = TextStyle(
                                                 fontFamily = typo.bodyFamily,
-                                                fontWeight = if (isEventDay) FontWeight.Bold else FontWeight.Normal,
-                                                color = if (isEventDay) Color.White else Color(0xFF1A1A2E),
+                                                fontWeight = if (highlightDay) FontWeight.Bold else FontWeight.Normal,
+                                                color = if (isSelectedDay) {
+                                                    Color.White
+                                                } else if (isEventDay) {
+                                                    Color(0xFFC2338F)
+                                                } else {
+                                                    Color(0xFF1A1A2E)
+                                                },
                                                 fontSize = 13.sp,
                                             ),
                                         )
@@ -762,33 +788,41 @@ internal fun RenderCalendarScreenS39(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            BasicText("Eventos de este mes:", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A2E), fontSize = 15.sp))
+            BasicText("Eventos programados (${eventsState.size}):", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A2E), fontSize = 15.sp))
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Evento seleccionado
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color.White)
-                    .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(16.dp))
-                    .clickable { onSelectScreenCode("s40") }
-                    .padding(14.dp),
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+            eventsState.forEachIndexed { idx, event ->
+                if (idx > 0) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color.White)
+                        .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(16.dp))
+                        .clickable {
+                            viewModel?.selectEvent(event.id)
+                            onSelectScreenCode("s40")
+                        }
+                        .padding(14.dp),
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(10.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFFEA4EA9)),
-                    )
-                    Column {
-                        BasicText("Viernes 23 Octubre", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A2E), fontSize = 14.sp))
-                        BasicText("Boda Real Rosa & Dorado · Jardín Botánico", style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFF62627A), fontSize = 13.sp))
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(10.dp)
+                                .clip(CircleShape)
+                                .background(if (idx == 0) Color(0xFFEA4EA9) else Color(0xFF865DEC)),
+                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            BasicText(event.dateLabel, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A2E), fontSize = 14.sp))
+                            BasicText("${event.title} · ${event.venue}", style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFF62627A), fontSize = 13.sp))
+                        }
+                        RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = Color(0xFF62627A), size = 18.dp)
                     }
                 }
             }
@@ -804,8 +838,27 @@ internal fun RenderCalendarScreenS39(
 @Composable
 internal fun RenderEventDetailScreenS40(
     onSelectScreenCode: (String) -> Unit = {},
+    viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
+    val eventsState = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
+    val selectedEventId = viewModel?.selectedEventId?.collectAsState()?.value
+    val activeEvent = eventsState.firstOrNull { event -> event.id == selectedEventId } ?: eventsState.firstOrNull()
+    val eventTitle = activeEvent?.title ?: "Boda Real Rosa & Dorado"
+    val eventSubtitle = if (activeEvent != null) {
+        "${activeEvent.dateLabel} · ${activeEvent.venue}"
+    } else {
+        "Vie 23 oct · Jardín Botánico"
+    }
+    val daysUntil = (activeEvent?.daysUntilEvent ?: 3).coerceAtLeast(0)
+    val daysFormatted = daysUntil.toString().padStart(2, '0')
+    val checklistSteps = viewModel?.checklist?.collectAsState()?.value ?: CanonicalSampleData.bodaChecklist
+    val completedStepsCount = checklistSteps.count { step -> step.completed }
+    val totalStepsCount = checklistSteps.size.coerceAtLeast(1)
+    val paidDop = activeEvent?.paidDepositDop ?: 1350
+    val totalDop = (activeEvent?.totalDop ?: 4500).coerceAtLeast(1)
+    val paidFraction = (paidDop.toFloat() / totalDop.toFloat()).coerceIn(0f, 1f)
+    val paidPercent = (paidFraction * 100).toInt()
 
     RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -836,7 +889,7 @@ internal fun RenderEventDetailScreenS40(
 
                 Column(modifier = Modifier.weight(1f)) {
                     BasicText(
-                        text = "Boda Real Rosa & Dorado",
+                        text = eventTitle,
                         style = TextStyle(
                             fontFamily = typo.displayFamily,
                             fontWeight = FontWeight.ExtraBold,
@@ -846,7 +899,7 @@ internal fun RenderEventDetailScreenS40(
                         maxLines = 1,
                     )
                     BasicText(
-                        text = "Vie 23 oct · Jardín Botánico",
+                        text = eventSubtitle,
                         style = TextStyle(
                             fontFamily = typo.bodyFamily,
                             fontSize = 13.sp,
@@ -1029,7 +1082,7 @@ internal fun RenderEventDetailScreenS40(
                     )
                     Spacer(Modifier.height(2.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
-                        CountdownUnit(value = "03", label = "días", color = Color(0xFFEB4F9E))
+                        CountdownUnit(value = daysFormatted, label = "días", color = Color(0xFFEB4F9E))
                         CountdownUnit(value = "07", label = "horas", color = Color(0xFFF2894A))
                         CountdownUnit(value = "53", label = "min", color = Color(0xFFE8B53A))
                     }
@@ -1097,7 +1150,7 @@ internal fun RenderEventDetailScreenS40(
                 // Tareas
                 ActionMenuRow(
                     title = "Tareas",
-                    subtitle = "2 de 4 completadas",
+                    subtitle = "$completedStepsCount de $totalStepsCount completadas",
                     icon = RfIconKind.CHECKLIST,
                     iconBg = Color(0xFFDDF4F3),
                     iconTint = Color(0xFF2E9C96),
@@ -1162,7 +1215,7 @@ internal fun RenderEventDetailScreenS40(
                         contentAlignment = Alignment.Center,
                     ) {
                         BasicText(
-                            text = "30% pagado",
+                            text = "$paidPercent% pagado",
                             style = TextStyle(
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
@@ -1172,7 +1225,6 @@ internal fun RenderEventDetailScreenS40(
                     }
                 }
 
-                // Progress Bar
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -1182,7 +1234,7 @@ internal fun RenderEventDetailScreenS40(
                 ) {
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth(0.30f)
+                            .fillMaxWidth(paidFraction)
                             .fillMaxHeight()
                             .clip(RoundedCornerShape(4.dp))
                             .background(Brush.horizontalGradient(listOf(Color(0xFFCFE48A), Color(0xFFA9CC3A)))),
@@ -1195,11 +1247,11 @@ internal fun RenderEventDetailScreenS40(
                 ) {
                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         BasicText("Pagado", style = TextStyle(fontSize = 14.sp, color = Color(0xFF62627A)))
-                        BasicText("RD$ 1,350", style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF5E7A12)))
+                        BasicText("RD$ $paidDop", style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF5E7A12)))
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         BasicText("Total", style = TextStyle(fontSize = 14.sp, color = Color(0xFF62627A)))
-                        BasicText("RD$ 4,500", style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A2E)))
+                        BasicText("RD$ $totalDop", style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A2E)))
                     }
                 }
             }
@@ -1347,14 +1399,20 @@ private fun ActionMenuRow(
 @Composable
 internal fun RenderExecutionModeScreenS43(
     onSelectScreenCode: (String) -> Unit = {},
+    viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
-    var task1Done by remember { mutableStateOf(true) }
-    var task2Done by remember { mutableStateOf(true) }
-    var task3Done by remember { mutableStateOf(false) }
-    var task4Done by remember { mutableStateOf(false) }
-    val completedBase = listOf(task1Done, task2Done, task3Done, task4Done).count { isDone -> isDone } + 1
-    val progressFraction = (completedBase.toFloat() / 8f).coerceIn(0f, 1f)
+    val checklistSteps = viewModel?.checklist?.collectAsState()?.value ?: CanonicalSampleData.bodaChecklist
+    val eventsState = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
+    val selectedEventId = viewModel?.selectedEventId?.collectAsState()?.value
+    val activeEvent = eventsState.firstOrNull { event -> event.id == selectedEventId } ?: eventsState.firstOrNull()
+    val eventTitle = activeEvent?.title ?: "Boda Real Rosa & Dorado"
+    var localDoneIds by remember(checklistSteps) {
+        mutableStateOf(checklistSteps.filter { step -> step.completed }.map { step -> step.id }.toSet())
+    }
+    val totalCount = checklistSteps.size.coerceAtLeast(1)
+    val completedBase = localDoneIds.size
+    val progressFraction = (completedBase.toFloat() / totalCount.toFloat()).coerceIn(0f, 1f)
     val progressPercent = (progressFraction * 100).toInt()
 
     Box(
@@ -1455,7 +1513,7 @@ internal fun RenderExecutionModeScreenS43(
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             BasicText(
-                                text = "Boda Real Rosa & Dorado · $completedBase de 8 tareas",
+                                text = "$eventTitle · $completedBase de $totalCount tareas",
                                 style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFFF6EAFB), fontSize = 14.sp),
                             )
                         }
@@ -1470,30 +1528,22 @@ internal fun RenderExecutionModeScreenS43(
                     .padding(start = 16.dp, end = 16.dp, top = 18.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                ExecutionTaskRow43(
-                    title = "Confirmar paleta floral blanco y rosa pastel",
-                    subtitle = "Revisión final con la florista principal",
-                    completed = task1Done,
-                    onClick = { task1Done = !task1Done },
-                )
-                ExecutionTaskRow43(
-                    title = "Aprobar plano de mesas imperial y sillas Tiffany",
-                    subtitle = "Distribución para 120 invitados en el jardín central",
-                    completed = task2Done,
-                    onClick = { task2Done = !task2Done },
-                )
-                ExecutionTaskRow43(
-                    title = "Realizar pago inicial de reserva (30%)",
-                    subtitle = "Transferencia o tarjeta desde el portal Rosa Fiesta",
-                    completed = task3Done,
-                    onClick = { task3Done = !task3Done },
-                )
-                ExecutionTaskRow43(
-                    title = "Inspección técnica de iluminación exterior",
-                    subtitle = "Coordinar generador y guirnaldas cálidas",
-                    completed = task4Done,
-                    onClick = { task4Done = !task4Done },
-                )
+                checklistSteps.forEach { step ->
+                    val isCompleted = localDoneIds.contains(step.id)
+                    ExecutionTaskRow43(
+                        title = step.title,
+                        subtitle = "${step.stageLabel} · ${step.completedBy} (${step.timeLabel})",
+                        completed = isCompleted,
+                        onClick = {
+                            localDoneIds = if (isCompleted) {
+                                localDoneIds - step.id
+                            } else {
+                                localDoneIds + step.id
+                            }
+                            viewModel?.toggleChecklistStep(step.id)
+                        },
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(20.dp))
             }

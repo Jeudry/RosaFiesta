@@ -838,21 +838,46 @@ internal fun RenderPersonalHomeScreen(
                     RfIcon(kind = RfIconKind.CLOSE, tint = chipText, size = 14.dp)
                 }
             }
+            val isInlineVoiceListening = viewModel?.isVoiceListening?.collectAsState()?.value ?: false
+            val voiceOrigin = viewModel?.voiceInputOrigin?.collectAsState()?.value ?: VoiceInputOrigin.NONE
+            val isSearchMicActive = if (isInlineVoiceListening) voiceOrigin == VoiceInputOrigin.SEARCH else false
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .size(40.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(chipBg)
+                    .background(
+                        if (isSearchMicActive) {
+                            Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))
+                        } else {
+                            SolidColor(chipBg)
+                        },
+                    )
                     .clickable {
-                        val targetScreen = if (homeQuery.isNotBlank()) "s80" else "s35"
-                        onSelectScreenCode(targetScreen)
+                        if (homeQuery.isNotBlank()) {
+                            onSelectScreenCode("s80")
+                        } else {
+                            viewModel?.toggleInlineVoiceSearch()
+                        }
                     },
             ) {
                 val trailingIcon = if (homeQuery.isNotBlank()) RfIconKind.FILTER else RfIconKind.MIC
-                RfIcon(kind = trailingIcon, tint = chipText, size = 20.dp)
+                val trailingIconTint = if (isSearchMicActive) Color.White else chipText
+                RfIcon(kind = trailingIcon, tint = trailingIconTint, size = 20.dp)
             }
         }
+
+        InlineVoiceSearchBanner(
+            viewModel = viewModel,
+            onApplyVoiceQuery = { spokenQuery ->
+                homeQuery = spokenQuery
+                viewModel?.setSearchQuery(spokenQuery)
+            },
+            onOpenFullScreenVoice = {
+                onSelectScreenCode("s35")
+            },
+            modifier = Modifier.padding(horizontal = 20.dp),
+        )
 
         if (homeQuery.isNotBlank()) {
             Column(
@@ -890,7 +915,7 @@ internal fun RenderPersonalHomeScreen(
                         val resolvedPhoto = RfPhotoKey.entries.firstOrNull { entry ->
                             val matchesAsset = entry.assetKey == article.photo.key
                             val matchesEnumName = entry.name.equals(article.photo.key, ignoreCase = true)
-                            matchesAsset || matchesEnumName
+                            listOf(matchesAsset, matchesEnumName).any { matched -> matched }
                         } ?: RfPhotoKey.MESA_REDONDA
                         Row(
                             verticalAlignment = Alignment.CenterVertically,

@@ -83,6 +83,7 @@ private val RosaButtonGradient = Brush.horizontalGradient(
 // s49 · HISTORIAL DE COTIZACIONES
 // ==============================================================================
 private data class QuoteHistoryItem49(
+    val eventId: String,
     val title: String,
     val dateLocation: String,
     val tagText: String,
@@ -98,8 +99,10 @@ private data class QuoteHistoryItem49(
 @Composable
 internal fun RenderQuoteHistoryScreenS49(
     onSelectScreenCode: (String) -> Unit = {},
+    viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
+    val eventsState = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
 
     RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -109,7 +112,6 @@ internal fun RenderQuoteHistoryScreenS49(
                 .padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 30.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -139,44 +141,53 @@ internal fun RenderQuoteHistoryScreenS49(
                 )
             }
 
-            val quotes = listOf(
+            val quotes = eventsState.mapIndexed { index, event ->
+                val isCompleted = event.statusLabel.contains("Completad", ignoreCase = true)
+                val isConfirmed = event.statusLabel.contains("Confirmad", ignoreCase = true)
+                val tagText = when {
+                    isCompleted -> "Completada"
+                    isConfirmed -> "Confirmada"
+                    else -> "Revisada"
+                }
+                val tagBg = when {
+                    isCompleted -> Color(0xFFEFE8FD)
+                    isConfirmed -> Color(0xFFEEF6D6)
+                    else -> Color(0xFFFFF2C9)
+                }
+                val tagTextCol = when {
+                    isCompleted -> Color(0xFF7A4FD8)
+                    isConfirmed -> Color(0xFF4E6A10)
+                    else -> Color(0xFF7A5700)
+                }
+                val activeSteps = when {
+                    isCompleted -> 5
+                    isConfirmed -> 3
+                    else -> 2
+                }
+                val stepColor = when {
+                    isCompleted -> Color(0xFF865DEC)
+                    isConfirmed -> Color(0xFF8DB52C)
+                    else -> Color(0xFFF7B500)
+                }
+                val guestCount = when (index) {
+                    0 -> 120
+                    1 -> 150
+                    else -> 200
+                }
                 QuoteHistoryItem49(
-                    title = "Boda Real Rosa & Dorado",
-                    dateLocation = "Vie 23 oct · Jardín Botánico",
-                    tagText = "Revisada",
-                    tagBg = Color(0xFFFFF2C9),
-                    tagTextCol = Color(0xFF7A5700),
-                    stepText = "Paso 2 de 5 · Revisada",
-                    activeSteps = 2,
-                    stepColor = Color(0xFFF7B500),
-                    guests = "120 invitados",
-                    price = "RD$ 4,500",
-                ),
-                QuoteHistoryItem49(
-                    title = "Quinceañera Valentina Crystal",
-                    dateLocation = "Lun 2 nov · Hotel El Embajador",
-                    tagText = "Confirmada",
-                    tagBg = Color(0xFFEEF6D6),
-                    tagTextCol = Color(0xFF4E6A10),
-                    stepText = "Paso 3 de 5 · Confirmada",
-                    activeSteps = 3,
-                    stepColor = Color(0xFF8DB52C),
-                    guests = "150 invitados",
-                    price = "RD$ 6,200",
-                ),
-                QuoteHistoryItem49(
-                    title = "Gala Corporativa Grupo Caribe",
-                    dateLocation = "Lun 12 oct · JW Marriott BlueMall",
-                    tagText = "Completada",
-                    tagBg = Color(0xFFEFE8FD),
-                    tagTextCol = Color(0xFF7A4FD8),
-                    stepText = "Paso 5 de 5 · Completada",
-                    activeSteps = 5,
-                    stepColor = Color(0xFF865DEC),
-                    guests = "200 invitados",
-                    price = "RD$ 8,500",
-                ),
-            )
+                    eventId = event.id,
+                    title = event.title,
+                    dateLocation = "${event.dateLabel} · ${event.venue}",
+                    tagText = tagText,
+                    tagBg = tagBg,
+                    tagTextCol = tagTextCol,
+                    stepText = "Paso $activeSteps de 5 · $tagText",
+                    activeSteps = activeSteps,
+                    stepColor = stepColor,
+                    guests = "$guestCount invitados",
+                    price = "RD$ ${event.totalDop}",
+                )
+            }
 
             quotes.forEach { item ->
                 Box(
@@ -191,7 +202,10 @@ internal fun RenderQuoteHistoryScreenS49(
                         .clip(RoundedCornerShape(22.dp))
                         .background(Color.White)
                         .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(22.dp))
-                        .clickable { onSelectScreenCode("s48") }
+                        .clickable {
+                            viewModel?.selectEvent(item.eventId)
+                            onSelectScreenCode("s48")
+                        }
                         .padding(horizontal = 18.dp, vertical = 16.dp),
                 ) {
                     Column(

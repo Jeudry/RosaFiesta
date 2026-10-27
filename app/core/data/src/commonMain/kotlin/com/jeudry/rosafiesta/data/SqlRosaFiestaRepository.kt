@@ -303,16 +303,24 @@ public class SqlRosaFiestaRepository(
                             }
                             val defaultSalt = JwtAuthManager.generateDeterministicSalt("${remote.email}:$resolvedUsername")
                             val defaultHash = JwtAuthManager.hashPassword("rosa2026", defaultSalt)
+                            val existingRole = existing?.role.orEmpty()
+                            val normalizedEmail = remote.email.trim().lowercase()
+                            val resolvedRole = when {
+                                existingRole.isNotEmpty() -> existingRole
+                                normalizedEmail == "yuli@rosafiesta.do" -> "staff_yuli"
+                                remote.role.trim().isNotEmpty() -> remote.role.trim()
+                                else -> "client"
+                            }
                             queries.upsertUserAccount(
                                 id = existing?.id ?: remote.id,
                                 username = existing?.username?.ifEmpty { resolvedUsername } ?: resolvedUsername,
-                                email = remote.email.trim().lowercase(),
+                                email = normalizedEmail,
                                 fullName = remote.fullName.trim().ifEmpty { resolvedUsername },
                                 passwordHash = existing?.passwordHash ?: defaultHash,
                                 salt = existing?.salt ?: defaultSalt,
                                 birthDate = remote.birthDate.trim().ifEmpty { existing?.birthDate.orEmpty() },
                                 phone = remote.phone.trim().ifEmpty { existing?.phone.orEmpty() },
-                                role = remote.role.trim().ifEmpty { existing?.role ?: "client" },
+                                role = resolvedRole,
                             )
                         }
                     }

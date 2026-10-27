@@ -330,4 +330,32 @@ class ScreenCatalogAndFlowTest {
         assertEquals("A12", adminNav.currentCode)
         assertFalse(adminNav.canGoBack)
     }
+
+    @Test
+    fun `RosaFiestaViewModel alterna busqueda por voz en linea y distingue entre origen de buscador y Rosa IA`() {
+        val koin = org.koin.dsl.koinApplication {
+            modules(com.jeudry.rosafiesta.di.appModule)
+        }.koin
+        val viewModel = koin.get<com.jeudry.rosafiesta.ui.RosaFiestaViewModel>()
+
+        assertEquals(com.jeudry.rosafiesta.ui.VoiceInputOrigin.NONE, viewModel.voiceInputOrigin.value)
+        assertFalse(viewModel.isVoiceListening.value)
+
+        viewModel.toggleInlineVoiceSearch()
+        assertEquals(com.jeudry.rosafiesta.ui.VoiceInputOrigin.SEARCH, viewModel.voiceInputOrigin.value)
+        assertTrue(viewModel.isVoiceListening.value)
+
+        viewModel.setVoiceTranscript("Silla Tiffany dorada")
+        assertEquals("Silla Tiffany dorada", viewModel.voiceTranscript.value)
+
+        viewModel.toggleInlineVoiceSearch()
+        assertFalse(viewModel.isVoiceListening.value)
+
+        viewModel.startVoiceInput(com.jeudry.rosafiesta.ui.VoiceInputOrigin.ROSA_WIZARD)
+        assertEquals(com.jeudry.rosafiesta.ui.VoiceInputOrigin.ROSA_WIZARD, viewModel.voiceInputOrigin.value)
+        assertTrue(viewModel.isVoiceListening.value)
+
+        viewModel.stopVoiceInput()
+        assertFalse(viewModel.isVoiceListening.value)
+    }
 }

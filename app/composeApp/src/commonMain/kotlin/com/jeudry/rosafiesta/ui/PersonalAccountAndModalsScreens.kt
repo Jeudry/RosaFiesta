@@ -372,6 +372,9 @@ internal fun RenderPersonalSearchS80(
     val onlyAvailable = viewModel?.onlyAvailableFilter?.collectAsState()?.value ?: true
     val sortOrder = viewModel?.searchSortOrder?.collectAsState()?.value ?: "Populares"
     val allArticles = viewModel?.articles?.collectAsState()?.value ?: com.jeudry.rosafiesta.domain.CanonicalSampleData.articles
+    val isInlineVoiceListening = viewModel?.isVoiceListening?.collectAsState()?.value ?: false
+    val voiceOrigin = viewModel?.voiceInputOrigin?.collectAsState()?.value ?: VoiceInputOrigin.NONE
+    val isSearchMicActive = if (isInlineVoiceListening) voiceOrigin == VoiceInputOrigin.SEARCH else false
 
     val filteredArticles = remember(localQuery, selectedCategory, maxPriceFilter, onlyAvailable, sortOrder, allArticles) {
         val trimmedQuery = localQuery.trim()
@@ -383,9 +386,7 @@ internal fun RenderPersonalSearchS80(
                 val byCategory = article.category.contains(trimmedQuery, ignoreCase = true)
                 val byCode = article.code.contains(trimmedQuery, ignoreCase = true)
                 val byDesc = article.description.contains(trimmedQuery, ignoreCase = true)
-                val matchesNameOrCategory = byName || byCategory
-                val matchesCodeOrDesc = byCode || byDesc
-                matchesNameOrCategory || matchesCodeOrDesc
+                listOf(byName, byCategory, byCode, byDesc).any { matched -> matched }
             }
             val matchesCategory = if (selectedCategory == "Todas") {
                 true
@@ -398,9 +399,7 @@ internal fun RenderPersonalSearchS80(
             } else {
                 true
             }
-            val matchesQueryAndCategory = matchesQuery && matchesCategory
-            val matchesPriceAndStock = matchesPrice && matchesStock
-            matchesQueryAndCategory && matchesPriceAndStock
+            listOf(matchesQuery, matchesCategory, matchesPrice, matchesStock).all { matched -> matched }
         }
         when (sortOrder) {
             "Precio ↑" -> matchingList.sortedBy { article -> article.pricePerDayDop }
@@ -492,6 +491,26 @@ internal fun RenderPersonalSearchS80(
                         ) {
                             RfIcon(kind = RfIconKind.CLOSE, tint = Color(0xFF62627A), size = 14.dp)
                         }
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .size(34.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(
+                                    if (isSearchMicActive) {
+                                        Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))
+                                    } else {
+                                        SolidColor(Color(0xFFF5EAF9))
+                                    },
+                                )
+                                .clickable {
+                                    viewModel?.toggleInlineVoiceSearch()
+                                },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            val micTint = if (isSearchMicActive) Color.White else Color(0xFFB54BD6)
+                            RfIcon(kind = RfIconKind.MIC, tint = micTint, size = 18.dp)
+                        }
                     }
                 }
 
@@ -532,6 +551,17 @@ internal fun RenderPersonalSearchS80(
                     }
                 }
             }
+
+            InlineVoiceSearchBanner(
+                viewModel = viewModel,
+                onApplyVoiceQuery = { spokenQuery ->
+                    localQuery = spokenQuery
+                    viewModel?.setSearchQuery(spokenQuery)
+                },
+                onOpenFullScreenVoice = {
+                    onSelectScreenCode("s35")
+                },
+            )
 
             if (localQuery.isBlank()) {
                 Row(
@@ -2377,6 +2407,7 @@ internal fun RenderGuestAuthModalS75(
 @Composable
 internal fun RenderPlanningModalS76(
     onSelectScreenCode: (String) -> Unit = {},
+    viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
 
@@ -2385,9 +2416,9 @@ internal fun RenderPlanningModalS76(
             .fillMaxSize()
             .background(Color(0xFFFAFAFC)),
     ) {
-        // Background personal home (s14)
         RenderPersonalHomeScreen(
             spec = ScreenCatalog.findByCode("s14"),
+            viewModel = viewModel,
             onSelectScreenCode = onSelectScreenCode,
         )
 
@@ -2566,7 +2597,10 @@ internal fun RenderPlanningModalS76(
                         .clip(RoundedCornerShape(20.dp))
                         .background(Color.White)
                         .border(1.dp, Color(0xFFEEE9F2), RoundedCornerShape(20.dp))
-                        .clickable { onSelectScreenCode("s78") }
+                        .clickable {
+                            viewModel?.startVoiceInput(VoiceInputOrigin.ROSA_WIZARD)
+                            onSelectScreenCode("s35")
+                        }
                         .padding(14.dp),
                 ) {
                     Box(
@@ -3178,9 +3212,14 @@ internal fun RenderCatalogFiltersModalS81(
 @Composable
 internal fun RenderChangeDateModalS84(
     onSelectScreenCode: (String) -> Unit = {},
+    viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
     var selectedDay by remember { mutableStateOf("30") }
+    val eventsState = viewModel?.events?.collectAsState()?.value ?: com.jeudry.rosafiesta.domain.CanonicalSampleData.events
+    val selectedEventId = viewModel?.selectedEventId?.collectAsState()?.value
+    val activeEvent = eventsState.firstOrNull { event -> event.id == selectedEventId } ?: eventsState.firstOrNull()
+    val eventTitle = activeEvent?.title ?: "Boda Real Rosa & Dorado"
 
     Box(
         modifier = Modifier
@@ -3217,7 +3256,7 @@ internal fun RenderChangeDateModalS84(
                 }
                 Column(modifier = Modifier.weight(1f)) {
                     BasicText("Cambiar o cancelar", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color(0xFF1A1A2E)))
-                    BasicText("Boda Real Rosa & Dorado", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF62627A)))
+                    BasicText(eventTitle, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF62627A)))
                 }
             }
 
@@ -3462,7 +3501,11 @@ internal fun RenderChangeDateModalS84(
                     .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
                     .clip(RoundedCornerShape(16.dp))
                     .background(RosaButtonGradient)
-                    .clickable { onSelectScreenCode("s40") },
+                    .clickable {
+                        viewModel?.setDateChangeInput("Vie $selectedDay oct")
+                        viewModel?.submitDateChange()
+                        onSelectScreenCode("s40")
+                    },
                 contentAlignment = Alignment.Center,
             ) {
                 BasicText(
@@ -3480,8 +3523,21 @@ internal fun RenderChangeDateModalS84(
 @Composable
 internal fun RenderCancelEventModalS85(
     onSelectScreenCode: (String) -> Unit = {},
+    viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
+    val eventsState = viewModel?.events?.collectAsState()?.value ?: com.jeudry.rosafiesta.domain.CanonicalSampleData.events
+    val selectedEventId = viewModel?.selectedEventId?.collectAsState()?.value
+    val activeEvent = eventsState.firstOrNull { event -> event.id == selectedEventId } ?: eventsState.firstOrNull()
+    val eventHeaderSubtitle = if (activeEvent != null) {
+        "${activeEvent.title} · ${activeEvent.dateLabel}"
+    } else {
+        "Quinceañera Valentina Crystal · Lun 2 nov"
+    }
+    val paidDepositDop = activeEvent?.paidDepositDop ?: 1860
+    val feeDop = (paidDepositDop * 10) / 100
+    val refundDop = (paidDepositDop - feeDop).coerceAtLeast(0)
+    var selectedReason by remember { mutableStateOf("Cambio de planes") }
 
     Box(
         modifier = Modifier
@@ -3518,7 +3574,7 @@ internal fun RenderCancelEventModalS85(
                 }
                 Column(modifier = Modifier.weight(1f)) {
                     BasicText("Cambiar o cancelar", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color(0xFF1A1A2E)))
-                    BasicText("Quinceañera Valentina Crystal · Lun 2 nov", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF62627A)))
+                    BasicText(eventHeaderSubtitle, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF62627A)))
                 }
             }
 
@@ -3610,7 +3666,7 @@ internal fun RenderCancelEventModalS85(
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
                         BasicText("Anticipo pagado", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF62627A)))
-                        BasicText("RD$ 1,860", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Color(0xFF1A1A2E)))
+                        BasicText("RD$ $paidDepositDop", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Color(0xFF1A1A2E)))
                     }
                     Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFF2F0F5)))
                     Row(
@@ -3618,7 +3674,7 @@ internal fun RenderCancelEventModalS85(
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
                         BasicText("Cargo de gestión (10%)", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF62627A)))
-                        BasicText("− RD$ 186", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Color(0xFF1A1A2E)))
+                        BasicText("− RD$ $feeDop", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Color(0xFF1A1A2E)))
                     }
                     Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFF2F0F5)))
                     Row(
@@ -3627,25 +3683,43 @@ internal fun RenderCancelEventModalS85(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         BasicText("Te devolvemos", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF1A1A2E)))
-                        BasicText("RD$ 1,674", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp, color = Color(0xFF4E6A10)))
+                        BasicText("RD$ $refundDop", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp, color = Color(0xFF4E6A10)))
                     }
                 }
             }
 
-            // ¿Por qué cancelas?
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 BasicText("¿Por qué cancelas?", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF3B3550)))
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.height(38.dp)) {
-                    Box(modifier = Modifier.size(20.dp).border(6.dp, Color(0xFFC2338F), CircleShape))
-                    BasicText("Cambio de planes", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.5.sp, color = Color(0xFF1A1A2E)))
-                }
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.height(38.dp)) {
-                    Box(modifier = Modifier.size(20.dp).border(2.dp, Color(0xFFE3DCE8), CircleShape))
-                    BasicText("El presupuesto no me alcanza", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.5.sp, color = Color(0xFF1A1A2E)))
-                }
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.height(38.dp)) {
-                    Box(modifier = Modifier.size(20.dp).border(2.dp, Color(0xFFE3DCE8), CircleShape))
-                    BasicText("Encontré otra opción", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.5.sp, color = Color(0xFF1A1A2E)))
+                val cancelReasons = listOf("Cambio de planes", "El presupuesto no me alcanza", "Encontré otra opción")
+                cancelReasons.forEach { reason ->
+                    val isReasonSelected = selectedReason == reason
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(38.dp)
+                            .clickable { selectedReason = reason },
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(20.dp)
+                                .border(
+                                    if (isReasonSelected) 6.dp else 2.dp,
+                                    if (isReasonSelected) Color(0xFFC2338F) else Color(0xFFE3DCE8),
+                                    CircleShape,
+                                ),
+                        )
+                        BasicText(
+                            reason,
+                            style = TextStyle(
+                                fontFamily = typo.bodyFamily,
+                                fontWeight = if (isReasonSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                fontSize = 14.5.sp,
+                                color = Color(0xFF1A1A2E),
+                            ),
+                        )
+                    }
                 }
             }
 
@@ -3686,7 +3760,10 @@ internal fun RenderCancelEventModalS85(
                     .shadow(12.dp, RoundedCornerShape(16.dp), spotColor = Color(0x99B42345))
                     .clip(RoundedCornerShape(16.dp))
                     .background(Color(0xFFB42345))
-                    .clickable { onSelectScreenCode("s40") },
+                    .clickable {
+                        viewModel?.submitCancelEvent()
+                        onSelectScreenCode("s37")
+                    },
                 contentAlignment = Alignment.Center,
             ) {
                 BasicText("Cancelar evento", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White))
@@ -3841,6 +3918,7 @@ internal fun RenderPersonalOfflineStateS91(
 @Composable
 internal fun RenderPersonalSuccessStateS92(
     onSelectScreenCode: (String) -> Unit = {},
+    viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
 
@@ -3849,8 +3927,7 @@ internal fun RenderPersonalSuccessStateS92(
             .fillMaxSize()
             .background(Color(0xFFFAFAFC)),
     ) {
-        // Base screen: Catálogo (s18)
-        RenderPersonalCatalogS18(onSelectScreenCode = onSelectScreenCode)
+        RenderPersonalCatalogS18(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
 
         // Floating Toast overlay above bottom bar
         Box(

@@ -9,9 +9,11 @@ import android.security.keystore.KeyProperties
 import android.util.Base64
 import com.jeudry.rosafiesta.domain.security.InMemorySecureStorage
 import com.jeudry.rosafiesta.domain.security.SecureStorage
+import com.jeudry.rosafiesta.domain.sound.NoOpVoiceInputMonitor
 import com.jeudry.rosafiesta.domain.sound.PcmSoundSynthesizer
 import com.jeudry.rosafiesta.domain.sound.SoundEffect
 import com.jeudry.rosafiesta.domain.sound.SoundPlayer
+import com.jeudry.rosafiesta.domain.sound.VoiceInputMonitor
 import java.security.KeyStore
 import java.util.concurrent.Executors
 import javax.crypto.Cipher
@@ -120,3 +122,5 @@ public actual fun createPlatformSecureStorage(): SecureStorage {
     val context = currentAndroidContext() ?: return InMemorySecureStorage()
     return AndroidKeystoreSecureStorage(context)
 }
+
+public actual fun createPlatformVoiceInputMonitor(): VoiceInputMonitor = NoOpVoiceInputMonitor()

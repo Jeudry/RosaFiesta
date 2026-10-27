@@ -3,9 +3,11 @@
 package com.jeudry.rosafiesta.data
 
 import com.jeudry.rosafiesta.domain.security.SecureStorage
+import com.jeudry.rosafiesta.domain.sound.NoOpVoiceInputMonitor
 import com.jeudry.rosafiesta.domain.sound.PcmSoundSynthesizer
 import com.jeudry.rosafiesta.domain.sound.SoundEffect
 import com.jeudry.rosafiesta.domain.sound.SoundPlayer
+import com.jeudry.rosafiesta.domain.sound.VoiceInputMonitor
 import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.usePinned
 import platform.AVFAudio.AVAudioPlayer
@@ -77,3 +79,5 @@ internal class IosSecureStorage : SecureStorage {
 public actual fun createPlatformSoundPlayer(): SoundPlayer = IosSoundPlayer()
 
 public actual fun createPlatformSecureStorage(): SecureStorage = IosSecureStorage()
+
+public actual fun createPlatformVoiceInputMonitor(): VoiceInputMonitor = NoOpVoiceInputMonitor()
