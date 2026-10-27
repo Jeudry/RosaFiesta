@@ -1,4 +1,4 @@
-// Package httpapi publica los endpoints de autenticación, cambio de vista (`A30`), clientes (`A26`/`A27`) y equipo (`A28`).
+// Package httpapi publica los endpoints de autenticación, registro, cambio de vista (`A30`), clientes (`A26`/`A27`) y equipo (`A28`).
 package httpapi
 
 import (
@@ -21,8 +21,28 @@ type Module struct {
 // LoginInput es el cuerpo de `/v1/auth/login` (`s07`).
 type LoginInput struct {
 	Body struct {
-		Email    string `json:"email" doc:"Correo electrónico del usuario."`
+		Email    string `json:"email" doc:"Correo electrónico o username del usuario."`
 		Password string `json:"password" doc:"Contraseña de la cuenta."`
+	}
+}
+
+// RegisterInput es el cuerpo de `/v1/auth/register` (`s08`).
+type RegisterInput struct {
+	Body struct {
+		Username  string `json:"username" doc:"Nombre de usuario de la cuenta."`
+		FullName  string `json:"fullName" doc:"Nombre completo del cliente."`
+		Email     string `json:"email" doc:"Correo electrónico del cliente."`
+		Password  string `json:"password" doc:"Contraseña de la cuenta (mínimo 6 caracteres)."`
+		BirthDate string `json:"birthDate,omitempty" doc:"Fecha de nacimiento (DD/MM/AAAA)."`
+		Phone     string `json:"phone,omitempty" doc:"Teléfono de contacto."`
+	}
+}
+
+// ResetPasswordInput es el cuerpo de `/v1/auth/reset-password` (`s10`).
+type ResetPasswordInput struct {
+	Body struct {
+		Identifier  string `json:"identifier" doc:"Correo electrónico o username de la cuenta."`
+		NewPassword string `json:"newPassword" doc:"Nueva contraseña (mínimo 6 caracteres)."`
 	}
 }
 
@@ -31,6 +51,13 @@ type LoginOutput struct {
 	Body struct {
 		AccessToken string      `json:"accessToken" doc:"Token Bearer para llamadas autenticadas."`
 		User        domain.User `json:"user" doc:"Datos del usuario y vista activa."`
+	}
+}
+
+// RegisteredUsersOutput devuelve la lista de cuentas registradas en PostgreSQL.
+type RegisteredUsersOutput struct {
+	Body struct {
+		Users []domain.User `json:"users" doc:"Cuentas registradas en PostgreSQL."`
 	}
 }
 
@@ -72,6 +99,8 @@ type DeleteAccountOutput struct {
 // Register registra las operaciones HTTP del módulo identity.
 func (m Module) Register(api huma.API) {
 	m.registerLoginAndSwitchRoutes(api)
+	m.registerRegistrationRoutes(api)
+	m.registerSessionRoutes(api)
 	m.registerDeleteAccountRoute(api)
 	m.registerAdminRoutes(api)
 }
@@ -126,6 +155,118 @@ func (m Module) registerLoginAndSwitchRoutes(api huma.API) {
 		out.Body.User = user
 		return out, nil
 	})
+}
+
+func (m Module) registerRegistrationRoutes(api huma.API) {
+	huma.Register(api, huma.Operation{
+		OperationID: "auth-register",
+		Method:      http.MethodPost,
+		Path:        "/v1/auth/register",
+		Summary:     "Registra una cuenta nueva en PostgreSQL y emite su JWT (s08)",
+		Tags:        []string{"Identity"},
+	}, func(ctx context.Context, in *RegisterInput) (*LoginOutput, error) {
+		cmd := identityapp.RegisterCommand{
+			Username:  in.Body.Username,
+			FullName:  in.Body.FullName,
+			Email:     in.Body.Email,
+			Password:  in.Body.Password,
+			BirthDate: in.Body.BirthDate,
+			Phone:     in.Body.Phone,
+		}
+		user, token, err := m.Service.Register(ctx, cmd)
+		if err != nil {
+			return nil, mapRegistrationError(err, in.Body.Email)
+		}
+		out := &LoginOutput{}
+		out.Body.AccessToken = token
+		out.Body.User = user
+		return out, nil
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "auth-reset-password",
+		Method:      http.MethodPost,
+		Path:        "/v1/auth/reset-password",
+		Summary:     "Actualiza la contraseña de una cuenta en PostgreSQL (s10)",
+		Tags:        []string{"Identity"},
+	}, func(ctx context.Context, in *ResetPasswordInput) (*LoginOutput, error) {
+		user, token, err := m.Service.ResetPassword(ctx, in.Body.Identifier, in.Body.NewPassword)
+		if err != nil {
+			return nil, platformhttp.NewAPIError(
+				http.StatusBadRequest,
+				"AUTH_PASSWORD_RESET_FAILED",
+				err.Error(),
+				"POST /v1/auth/reset-password",
+				"ResetUserPasswordBcrypt",
+				err.Error(),
+			)
+		}
+		out := &LoginOutput{}
+		out.Body.AccessToken = token
+		out.Body.User = user
+		return out, nil
+	})
+}
+
+func (m Module) registerSessionRoutes(api huma.API) {
+	huma.Register(api, huma.Operation{
+		OperationID: "auth-me",
+		Method:      http.MethodGet,
+		Path:        "/v1/auth/me",
+		Summary:     "Devuelve el usuario autenticado por su token Bearer",
+		Tags:        []string{"Identity"},
+		Security:    platformhttp.Secured(),
+		Middlewares: huma.Middlewares{platformhttp.RequireAuth(api, m.Service)},
+	}, func(ctx context.Context, _ *struct{}) (*SwitchViewOutput, error) {
+		userID, _ := platformhttp.UserID(ctx)
+		user, err := m.Service.CurrentUser(ctx, userID)
+		if err != nil {
+			return nil, platformhttp.NewAPIError(
+				http.StatusUnauthorized,
+				"AUTH_INVALID_TOKEN",
+				"session user not found",
+				"GET /v1/auth/me",
+				"ResolveSessionUser",
+				err.Error(),
+			)
+		}
+		out := &SwitchViewOutput{}
+		out.Body.User = user
+		return out, nil
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "auth-list-users",
+		Method:      http.MethodGet,
+		Path:        "/v1/auth/users",
+		Summary:     "Lista las cuentas registradas en PostgreSQL",
+		Tags:        []string{"Identity"},
+	}, func(ctx context.Context, _ *struct{}) (*RegisteredUsersOutput, error) {
+		out := &RegisteredUsersOutput{}
+		out.Body.Users = m.Service.ListRegisteredUsers(ctx)
+		return out, nil
+	})
+}
+
+func mapRegistrationError(err error, email string) *platformhttp.APIError {
+	if errors.Is(err, domain.ErrEmailAlreadyRegistered) {
+		return platformhttp.NewAPIError(
+			http.StatusConflict,
+			"AUTH_EMAIL_TAKEN",
+			"email already registered",
+			"POST /v1/auth/register",
+			"UniqueEmailConstraint",
+			"el correo ya está registrado: "+email,
+		)
+	}
+	return platformhttp.NewAPIError(
+		http.StatusBadRequest,
+		"AUTH_INVALID_REGISTRATION",
+		err.Error(),
+		"POST /v1/auth/register",
+		"ValidateRegistrationInput",
+		err.Error(),
+	)
 }
 
 func (m Module) registerDeleteAccountRoute(api huma.API) {

@@ -42,7 +42,7 @@ func (q *Queries) GetSessionByToken(ctx context.Context, tokenHash string) (Sess
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, full_name, email, phone, password_hash, role, permissions, created_at
+SELECT id, full_name, email, phone, password_hash, role, permissions, created_at, username, birth_date
 FROM users
 WHERE email = $1
 `
@@ -59,12 +59,14 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.Role,
 		&i.Permissions,
 		&i.CreatedAt,
+		&i.Username,
+		&i.BirthDate,
 	)
 	return i, err
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, full_name, email, phone, password_hash, role, permissions, created_at
+SELECT id, full_name, email, phone, password_hash, role, permissions, created_at, username, birth_date
 FROM users
 WHERE id = $1
 `
@@ -81,8 +83,63 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 		&i.Role,
 		&i.Permissions,
 		&i.CreatedAt,
+		&i.Username,
+		&i.BirthDate,
 	)
 	return i, err
+}
+
+const listAllUsers = `-- name: ListAllUsers :many
+SELECT id, full_name, email, phone, password_hash, role, permissions, created_at, username, birth_date
+FROM users
+ORDER BY created_at ASC
+`
+
+func (q *Queries) ListAllUsers(ctx context.Context) ([]User, error) {
+	rows, err := q.db.Query(ctx, listAllUsers)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []User
+	for rows.Next() {
+		var i User
+		if err := rows.Scan(
+			&i.ID,
+			&i.FullName,
+			&i.Email,
+			&i.Phone,
+			&i.PasswordHash,
+			&i.Role,
+			&i.Permissions,
+			&i.CreatedAt,
+			&i.Username,
+			&i.BirthDate,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const updateUserPasswordByEmail = `-- name: UpdateUserPasswordByEmail :exec
+UPDATE users
+SET password_hash = $2
+WHERE email = $1
+`
+
+type UpdateUserPasswordByEmailParams struct {
+	Email        string
+	PasswordHash string
+}
+
+func (q *Queries) UpdateUserPasswordByEmail(ctx context.Context, arg UpdateUserPasswordByEmailParams) error {
+	_, err := q.db.Exec(ctx, updateUserPasswordByEmail, arg.Email, arg.PasswordHash)
+	return err
 }
 
 const updateUserSessionsView = `-- name: UpdateUserSessionsView :exec
@@ -129,14 +186,17 @@ func (q *Queries) UpsertSession(ctx context.Context, arg UpsertSessionParams) er
 }
 
 const upsertUser = `-- name: UpsertUser :exec
-INSERT INTO users (id, full_name, email, phone, password_hash, role, permissions, created_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+INSERT INTO users (id, full_name, email, phone, password_hash, role, permissions, created_at, username, birth_date)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 ON CONFLICT (id) DO UPDATE SET
     full_name = EXCLUDED.full_name,
     email = EXCLUDED.email,
     phone = EXCLUDED.phone,
+    password_hash = EXCLUDED.password_hash,
     role = EXCLUDED.role,
-    permissions = EXCLUDED.permissions
+    permissions = EXCLUDED.permissions,
+    username = EXCLUDED.username,
+    birth_date = EXCLUDED.birth_date
 `
 
 type UpsertUserParams struct {
@@ -148,6 +208,8 @@ type UpsertUserParams struct {
 	Role         string
 	Permissions  string
 	CreatedAt    time.Time
+	Username     string
+	BirthDate    string
 }
 
 func (q *Queries) UpsertUser(ctx context.Context, arg UpsertUserParams) error {
@@ -160,6 +222,8 @@ func (q *Queries) UpsertUser(ctx context.Context, arg UpsertUserParams) error {
 		arg.Role,
 		arg.Permissions,
 		arg.CreatedAt,
+		arg.Username,
+		arg.BirthDate,
 	)
 	return err
 }

@@ -40,6 +40,8 @@ public interface RosaFiestaRepository {
         phone: String = "",
     ): AuthOutcome
     public fun resetUserPassword(identifier: String, newPassword: String): AuthOutcome
+    public fun restoreSessionFromJwt(accessToken: String): RegisteredUserAccount?
+    public fun clearSession()
     public fun switchRole(role: String)
     public fun toggleFavorite(articleId: String)
     public fun toggleStaffPaymentAccess(staffName: String)

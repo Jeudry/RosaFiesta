@@ -288,7 +288,17 @@ public fun RosaFiestaApp(
                         },
                         onPrimaryAction = {
                             viewModel.soundPlayer.playTap()
-                            navigator.advanceFlow()
+                            val currentUser = viewModel.currentAuthenticatedUser.value
+                            val isSplashScreen = navigator.currentCode == "p00"
+                            val hasCustomUser = currentUser != null
+                            val isNotDefaultSeed = currentUser?.id != "usr-camila"
+                            val isCustomSession = hasCustomUser && isNotDefaultSeed
+                            val shouldSkipOnboarding = isSplashScreen && isCustomSession
+                            if (shouldSkipOnboarding) {
+                                navigator.navigateTo("s14")
+                            } else {
+                                navigator.advanceFlow()
+                            }
                         },
                     )
                 }

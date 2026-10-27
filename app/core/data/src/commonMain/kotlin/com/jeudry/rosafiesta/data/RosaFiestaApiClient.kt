@@ -35,13 +35,15 @@ public data class DeleteAccountOutputDto(
 @Serializable
 public data class UserDto(
     public val id: String,
+    public val username: String = "",
     public val fullName: String,
     public val email: String,
-    public val phone: String,
+    public val phone: String = "",
+    public val birthDate: String = "",
     public val role: String,
     public val permissions: List<String>? = null,
-    public val activeView: String,
-    public val createdAt: String,
+    public val activeView: String = "personal",
+    public val createdAt: String = "",
 )
 
 @Serializable
@@ -51,9 +53,30 @@ public data class LoginInputDto(
 )
 
 @Serializable
+public data class RegisterInputDto(
+    public val username: String,
+    public val fullName: String,
+    public val email: String,
+    public val password: String,
+    public val birthDate: String = "",
+    public val phone: String = "",
+)
+
+@Serializable
+public data class ResetPasswordInputDto(
+    public val identifier: String,
+    public val newPassword: String,
+)
+
+@Serializable
 public data class LoginOutputDto(
     public val accessToken: String,
     public val user: UserDto,
+)
+
+@Serializable
+public data class RegisteredUsersOutputDto(
+    public val users: List<UserDto>? = null,
 )
 
 @Serializable
@@ -497,6 +520,30 @@ public class RosaFiestaApiClient(
             contentType(ContentType.Application.Json)
             setBody(input)
         }.body()
+    }
+
+    public suspend fun register(input: RegisterInputDto): LoginOutputDto = withContext(ioDispatcher) {
+        httpClient.post("$baseUrl/v1/auth/register") {
+            contentType(ContentType.Application.Json)
+            setBody(input)
+        }.body()
+    }
+
+    public suspend fun resetPassword(input: ResetPasswordInputDto): LoginOutputDto = withContext(ioDispatcher) {
+        httpClient.post("$baseUrl/v1/auth/reset-password") {
+            contentType(ContentType.Application.Json)
+            setBody(input)
+        }.body()
+    }
+
+    public suspend fun fetchCurrentUser(bearerToken: String): SwitchViewOutputDto = withContext(ioDispatcher) {
+        httpClient.get("$baseUrl/v1/auth/me") {
+            header(HttpHeaders.Authorization, "Bearer $bearerToken")
+        }.body()
+    }
+
+    public suspend fun listRegisteredUsers(): RegisteredUsersOutputDto = withContext(ioDispatcher) {
+        httpClient.get("$baseUrl/v1/auth/users").body()
     }
 
     public suspend fun switchView(bearerToken: String, targetView: String): SwitchViewOutputDto = withContext(ioDispatcher) {

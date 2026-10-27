@@ -1,21 +1,34 @@
 -- name: UpsertUser :exec
-INSERT INTO users (id, full_name, email, phone, password_hash, role, permissions, created_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+INSERT INTO users (id, full_name, email, phone, password_hash, role, permissions, created_at, username, birth_date)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 ON CONFLICT (id) DO UPDATE SET
     full_name = EXCLUDED.full_name,
     email = EXCLUDED.email,
     phone = EXCLUDED.phone,
+    password_hash = EXCLUDED.password_hash,
     role = EXCLUDED.role,
-    permissions = EXCLUDED.permissions;
+    permissions = EXCLUDED.permissions,
+    username = EXCLUDED.username,
+    birth_date = EXCLUDED.birth_date;
 
 -- name: GetUserByID :one
-SELECT id, full_name, email, phone, password_hash, role, permissions, created_at
+SELECT id, full_name, email, phone, password_hash, role, permissions, created_at, username, birth_date
 FROM users
 WHERE id = $1;
 
 -- name: GetUserByEmail :one
-SELECT id, full_name, email, phone, password_hash, role, permissions, created_at
+SELECT id, full_name, email, phone, password_hash, role, permissions, created_at, username, birth_date
 FROM users
+WHERE email = $1;
+
+-- name: ListAllUsers :many
+SELECT id, full_name, email, phone, password_hash, role, permissions, created_at, username, birth_date
+FROM users
+ORDER BY created_at ASC;
+
+-- name: UpdateUserPasswordByEmail :exec
+UPDATE users
+SET password_hash = $2
 WHERE email = $1;
 
 -- name: DeleteUserByID :exec

@@ -1617,7 +1617,7 @@ internal fun RenderUserProfileScreenS54(
             }
 
             Spacer(Modifier.height(14.dp))
-            ProfileCaption54("SEGURIDAD · JWT HS256 Y BASE DE DATOS SQLITE")
+            ProfileCaption54("SEGURIDAD · JWT HS256 Y POSTGRESQL (:8788)")
             Spacer(Modifier.height(8.dp))
             Column(
                 modifier = Modifier
@@ -1649,7 +1649,7 @@ internal fun RenderUserProfileScreenS54(
                     }
                 }
                 ProfileDivider54()
-                ProfileRow54("ID en SQLite (~/.rosafiesta)", RfIconKind.LOCK) {
+                ProfileRow54("PostgreSQL (:5433) + SQLite", RfIconKind.LOCK) {
                     BasicText(
                         text = "${authenticatedUser?.id ?: "usr-activo"} · ${registeredAccounts.size} cuentas",
                         style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Color(0xFF3B3550)),

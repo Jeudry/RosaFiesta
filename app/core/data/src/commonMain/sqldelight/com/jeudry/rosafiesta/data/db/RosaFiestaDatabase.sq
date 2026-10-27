@@ -98,6 +98,12 @@ CREATE TABLE IF NOT EXISTS userAccountEntity (
     role TEXT NOT NULL DEFAULT 'client'
 );
 
+CREATE TABLE IF NOT EXISTS activeSessionEntity (
+    slot INTEGER NOT NULL PRIMARY KEY,
+    userId TEXT NOT NULL,
+    accessToken TEXT NOT NULL
+);
+
 selectAllArticles:
 SELECT * FROM LocalArticleEntity ORDER BY code ASC;
 
@@ -213,3 +219,13 @@ updateUserAccountPassword:
 UPDATE userAccountEntity
 SET passwordHash = ?, salt = ?
 WHERE id = ?;
+
+selectActiveSession:
+SELECT userId, accessToken FROM activeSessionEntity WHERE slot = 1;
+
+upsertActiveSession:
+INSERT OR REPLACE INTO activeSessionEntity(slot, userId, accessToken)
+VALUES (1, ?, ?);
+
+clearActiveSession:
+DELETE FROM activeSessionEntity WHERE slot = 1;

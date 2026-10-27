@@ -2016,7 +2016,7 @@ internal fun RenderLoginScreenS07(
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         BasicText(
-                            text = "Cuentas en SQLite (${registeredAccounts.size})",
+                            text = "Cuentas en PostgreSQL + SQLite (${registeredAccounts.size})",
                             style = typo.caption.copy(fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF3B3550)),
                         )
                         BasicText(

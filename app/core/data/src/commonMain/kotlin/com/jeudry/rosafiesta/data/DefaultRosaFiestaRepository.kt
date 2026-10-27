@@ -264,6 +264,40 @@ public class DefaultRosaFiestaRepository : RosaFiestaRepository {
         return AuthOutcome.authenticated(accessToken = token, account = updatedAccount)
     }
 
+    override fun restoreSessionFromJwt(accessToken: String): RegisteredUserAccount? {
+        val claims = JwtAuthManager.verifyAccessToken(accessToken) ?: return null
+        val existingAccount = findAccountByIdentifier(userAccountsState.value, claims.email)
+            ?: findAccountByIdentifier(userAccountsState.value, claims.username)
+        val resolvedAccount = if (existingAccount != null) {
+            existingAccount
+        } else {
+            val defaultSalt = JwtAuthManager.generateDeterministicSalt("${claims.email}:${claims.username}")
+            val defaultHash = JwtAuthManager.hashPassword("rosa2026", defaultSalt)
+            val reconstructed = RegisteredUserAccount(
+                id = claims.subjectId,
+                username = claims.username.ifEmpty { claims.email.substringBefore("@") },
+                email = claims.email,
+                fullName = claims.fullName.ifEmpty { claims.username },
+                passwordHash = defaultHash,
+                salt = defaultSalt,
+                birthDate = claims.birthDate,
+                phone = "809-555-0142",
+                role = claims.role,
+            )
+            userAccountsState.update { accounts -> accounts + reconstructed }
+            reconstructed
+        }
+        _currentAuthenticatedUser.value = resolvedAccount
+        _currentSessionJwt.value = accessToken.trim()
+        _currentUserEmail.value = resolvedAccount.email
+        _activeRole.value = resolvedAccount.role
+        return resolvedAccount
+    }
+
+    override fun clearSession() {
+        _currentSessionJwt.value = null
+    }
+
     private fun findAccountByIdentifier(
         accounts: List<RegisteredUserAccount>,
         rawIdentifier: String,

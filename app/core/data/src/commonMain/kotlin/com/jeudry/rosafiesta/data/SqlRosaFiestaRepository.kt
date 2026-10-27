@@ -100,6 +100,8 @@ public class SqlRosaFiestaRepository(
 
     init {
         seedInitialDataSynchronouslyIfEmpty()
+        restorePersistedSessionFromSql()
+        syncUsersFromBackendAsync()
     }
 
     private fun seedInitialDataSynchronouslyIfEmpty() {
@@ -261,6 +263,62 @@ public class SqlRosaFiestaRepository(
         }
         if (loadedUsers.isNotEmpty()) {
             userAccountsState.value = loadedUsers
+        }
+    }
+
+    private fun restorePersistedSessionFromSql() {
+        val activeSession = runCatching {
+            queries.selectActiveSession().executeAsOneOrNull()
+        }.getOrNull() ?: return
+        val restored = restoreSessionFromJwt(activeSession.accessToken)
+        if (restored != null) {
+            return
+        }
+        val matchedByUserId = userAccountsState.value.firstOrNull { account ->
+            account.id == activeSession.userId
+        }
+        if (matchedByUserId != null) {
+            _currentAuthenticatedUser.value = matchedByUserId
+            _currentSessionJwt.value = activeSession.accessToken
+            _currentUserEmail.value = matchedByUserId.email
+            _activeRole.value = matchedByUserId.role
+        }
+    }
+
+    private fun syncUsersFromBackendAsync() {
+        val client = apiClient ?: return
+        scope.launch {
+            runCatching {
+                val response = client.listRegisteredUsers()
+                val remoteUsers = response.users.orEmpty()
+                if (remoteUsers.isEmpty()) return@runCatching
+                sqlMutex.withLock {
+                    database.transaction {
+                        remoteUsers.forEach { remote ->
+                            val existing = queries.selectAllUserAccounts().executeAsList().firstOrNull { row ->
+                                row.email.equals(remote.email, ignoreCase = true)
+                            }
+                            val resolvedUsername = remote.username.trim().ifEmpty {
+                                remote.email.substringBefore("@")
+                            }
+                            val defaultSalt = JwtAuthManager.generateDeterministicSalt("${remote.email}:$resolvedUsername")
+                            val defaultHash = JwtAuthManager.hashPassword("rosa2026", defaultSalt)
+                            queries.upsertUserAccount(
+                                id = existing?.id ?: remote.id,
+                                username = existing?.username?.ifEmpty { resolvedUsername } ?: resolvedUsername,
+                                email = remote.email.trim().lowercase(),
+                                fullName = remote.fullName.trim().ifEmpty { resolvedUsername },
+                                passwordHash = existing?.passwordHash ?: defaultHash,
+                                salt = existing?.salt ?: defaultSalt,
+                                birthDate = remote.birthDate.trim().ifEmpty { existing?.birthDate.orEmpty() },
+                                phone = remote.phone.trim().ifEmpty { existing?.phone.orEmpty() },
+                                role = remote.role.trim().ifEmpty { existing?.role ?: "client" },
+                            )
+                        }
+                    }
+                    reloadUserAccountsFromSql()
+                }
+            }
         }
     }
 
@@ -812,7 +870,45 @@ public class SqlRosaFiestaRepository(
         _currentSessionJwt.value = token
         _currentUserEmail.value = matchedAccount.email
         _activeRole.value = matchedAccount.role
+        persistActiveSessionAndSyncLoginAsync(matchedAccount, cleanPass, token)
         return AuthOutcome.authenticated(accessToken = token, account = matchedAccount)
+    }
+
+    private fun persistActiveSessionAndSyncLoginAsync(
+        account: RegisteredUserAccount,
+        rawPassword: String,
+        localToken: String,
+    ) {
+        scope.launch {
+            sqlMutex.withLock {
+                queries.upsertActiveSession(
+                    userId = account.id,
+                    accessToken = localToken,
+                )
+            }
+            val client = apiClient ?: return@launch
+            runCatching {
+                client.login(
+                    LoginInputDto(
+                        email = account.email,
+                        password = rawPassword,
+                    ),
+                )
+            }.onFailure {
+                runCatching {
+                    client.register(
+                        RegisterInputDto(
+                            username = account.username,
+                            fullName = account.fullName,
+                            email = account.email,
+                            password = rawPassword,
+                            birthDate = account.birthDate,
+                            phone = account.phone,
+                        ),
+                    )
+                }
+            }
+        }
     }
 
     override fun registerUser(
@@ -886,6 +982,11 @@ public class SqlRosaFiestaRepository(
             role = resolvedRole,
         )
         userAccountsState.update { accounts -> accounts + newAccount }
+        val token = JwtAuthManager.issueAccessToken(newAccount)
+        _currentAuthenticatedUser.value = newAccount
+        _currentSessionJwt.value = token
+        _currentUserEmail.value = newAccount.email
+        _activeRole.value = newAccount.role
         scope.launch {
             sqlMutex.withLock {
                 queries.upsertUserAccount(
@@ -899,14 +1000,25 @@ public class SqlRosaFiestaRepository(
                     phone = newAccount.phone,
                     role = newAccount.role,
                 )
+                queries.upsertActiveSession(
+                    userId = newAccount.id,
+                    accessToken = token,
+                )
                 reloadUserAccountsFromSql()
             }
+            runCatching {
+                apiClient?.register(
+                    RegisterInputDto(
+                        username = newAccount.username,
+                        fullName = newAccount.fullName,
+                        email = newAccount.email,
+                        password = cleanPassword,
+                        birthDate = newAccount.birthDate,
+                        phone = newAccount.phone,
+                    ),
+                )
+            }
         }
-        val token = JwtAuthManager.issueAccessToken(newAccount)
-        _currentAuthenticatedUser.value = newAccount
-        _currentSessionJwt.value = token
-        _currentUserEmail.value = newAccount.email
-        _activeRole.value = newAccount.role
         return AuthOutcome.authenticated(accessToken = token, account = newAccount)
     }
 
@@ -938,6 +1050,9 @@ public class SqlRosaFiestaRepository(
                 if (account.id == updatedAccount.id) updatedAccount else account
             }
         }
+        val token = JwtAuthManager.issueAccessToken(updatedAccount)
+        _currentAuthenticatedUser.value = updatedAccount
+        _currentSessionJwt.value = token
         scope.launch {
             sqlMutex.withLock {
                 queries.updateUserAccountPassword(
@@ -945,13 +1060,102 @@ public class SqlRosaFiestaRepository(
                     salt = updatedAccount.salt,
                     id = updatedAccount.id,
                 )
+                queries.upsertActiveSession(
+                    userId = updatedAccount.id,
+                    accessToken = token,
+                )
                 reloadUserAccountsFromSql()
             }
+            runCatching {
+                apiClient?.resetPassword(
+                    ResetPasswordInputDto(
+                        identifier = updatedAccount.email,
+                        newPassword = cleanPassword,
+                    ),
+                )
+            }
         }
-        val token = JwtAuthManager.issueAccessToken(updatedAccount)
-        _currentAuthenticatedUser.value = updatedAccount
-        _currentSessionJwt.value = token
         return AuthOutcome.authenticated(accessToken = token, account = updatedAccount)
+    }
+
+    override fun restoreSessionFromJwt(accessToken: String): RegisteredUserAccount? {
+        val cleanToken = accessToken.trim()
+        val claims = JwtAuthManager.verifyAccessToken(cleanToken) ?: return null
+        val existingAccount = findAccountByIdentifier(userAccountsState.value, claims.email)
+            ?: findAccountByIdentifier(userAccountsState.value, claims.username)
+        val resolvedAccount = if (existingAccount != null) {
+            existingAccount
+        } else {
+            val defaultSalt = JwtAuthManager.generateDeterministicSalt("${claims.email}:${claims.username}")
+            val defaultHash = JwtAuthManager.hashPassword("rosa2026", defaultSalt)
+            val reconstructed = RegisteredUserAccount(
+                id = claims.subjectId,
+                username = claims.username.ifEmpty { claims.email.substringBefore("@") },
+                email = claims.email,
+                fullName = claims.fullName.ifEmpty { claims.username },
+                passwordHash = defaultHash,
+                salt = defaultSalt,
+                birthDate = claims.birthDate,
+                phone = "809-555-0142",
+                role = claims.role,
+            )
+            userAccountsState.update { accounts -> accounts + reconstructed }
+            scope.launch {
+                sqlMutex.withLock {
+                    queries.upsertUserAccount(
+                        id = reconstructed.id,
+                        username = reconstructed.username,
+                        email = reconstructed.email,
+                        fullName = reconstructed.fullName,
+                        passwordHash = reconstructed.passwordHash,
+                        salt = reconstructed.salt,
+                        birthDate = reconstructed.birthDate,
+                        phone = reconstructed.phone,
+                        role = reconstructed.role,
+                    )
+                    queries.upsertActiveSession(
+                        userId = reconstructed.id,
+                        accessToken = cleanToken,
+                    )
+                    reloadUserAccountsFromSql()
+                }
+                runCatching {
+                    apiClient?.register(
+                        RegisterInputDto(
+                            username = reconstructed.username,
+                            fullName = reconstructed.fullName,
+                            email = reconstructed.email,
+                            password = "rosa2026",
+                            birthDate = reconstructed.birthDate,
+                            phone = reconstructed.phone,
+                        ),
+                    )
+                }
+            }
+            reconstructed
+        }
+        _currentAuthenticatedUser.value = resolvedAccount
+        _currentSessionJwt.value = cleanToken
+        _currentUserEmail.value = resolvedAccount.email
+        _activeRole.value = resolvedAccount.role
+        scope.launch {
+            sqlMutex.withLock {
+                queries.upsertActiveSession(
+                    userId = resolvedAccount.id,
+                    accessToken = cleanToken,
+                )
+            }
+        }
+        return resolvedAccount
+    }
+
+    override fun clearSession() {
+        _currentSessionJwt.value = null
+        scope.launch {
+            sqlMutex.withLock {
+                queries.clearActiveSession()
+            }
+        }
     }
 
     private fun findAccountByIdentifier(

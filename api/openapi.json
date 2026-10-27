@@ -979,7 +979,7 @@
             "type": "string"
           },
           "email": {
-            "description": "Correo electrónico del usuario.",
+            "description": "Correo electrónico o username del usuario.",
             "type": "string"
           },
           "password": {
@@ -1467,6 +1467,51 @@
         ],
         "type": "object"
       },
+      "RegisterInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/RegisterInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "birthDate": {
+            "description": "Fecha de nacimiento (DD/MM/AAAA).",
+            "type": "string"
+          },
+          "email": {
+            "description": "Correo electrónico del cliente.",
+            "type": "string"
+          },
+          "fullName": {
+            "description": "Nombre completo del cliente.",
+            "type": "string"
+          },
+          "password": {
+            "description": "Contraseña de la cuenta (mínimo 6 caracteres).",
+            "type": "string"
+          },
+          "phone": {
+            "description": "Teléfono de contacto.",
+            "type": "string"
+          },
+          "username": {
+            "description": "Nombre de usuario de la cuenta.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "username",
+          "fullName",
+          "email",
+          "password"
+        ],
+        "type": "object"
+      },
       "RegisterPaymentInputBody": {
         "additionalProperties": false,
         "properties": {
@@ -1514,6 +1559,34 @@
           "method",
           "kind",
           "referenceCode"
+        ],
+        "type": "object"
+      },
+      "RegisteredUsersOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/RegisteredUsersOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "users": {
+            "description": "Cuentas registradas en PostgreSQL.",
+            "items": {
+              "$ref": "#/components/schemas/User"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "users"
         ],
         "type": "object"
       },
@@ -1584,6 +1657,33 @@
         },
         "required": [
           "report"
+        ],
+        "type": "object"
+      },
+      "ResetPasswordInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/ResetPasswordInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "identifier": {
+            "description": "Correo electrónico o username de la cuenta.",
+            "type": "string"
+          },
+          "newPassword": {
+            "description": "Nueva contraseña (mínimo 6 caracteres).",
+            "type": "string"
+          }
+        },
+        "required": [
+          "identifier",
+          "newPassword"
         ],
         "type": "object"
       },
@@ -1967,6 +2067,9 @@
           "activeView": {
             "type": "string"
           },
+          "birthDate": {
+            "type": "string"
+          },
           "createdAt": {
             "format": "date-time",
             "type": "string"
@@ -1994,13 +2097,18 @@
           },
           "role": {
             "type": "string"
+          },
+          "username": {
+            "type": "string"
           }
         },
         "required": [
           "id",
+          "username",
           "fullName",
           "email",
           "phone",
+          "birthDate",
           "role",
           "permissions",
           "activeView",
@@ -2194,6 +2302,124 @@
         ]
       }
     },
+    "/v1/auth/me": {
+      "get": {
+        "operationId": "auth-me",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SwitchViewOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Devuelve el usuario autenticado por su token Bearer",
+        "tags": [
+          "Identity"
+        ]
+      }
+    },
+    "/v1/auth/register": {
+      "post": {
+        "operationId": "auth-register",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Registra una cuenta nueva en PostgreSQL y emite su JWT (s08)",
+        "tags": [
+          "Identity"
+        ]
+      }
+    },
+    "/v1/auth/reset-password": {
+      "post": {
+        "operationId": "auth-reset-password",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Actualiza la contraseña de una cuenta en PostgreSQL (s10)",
+        "tags": [
+          "Identity"
+        ]
+      }
+    },
     "/v1/auth/switch-view": {
       "post": {
         "operationId": "auth-switch-view",
@@ -2235,6 +2461,37 @@
           }
         ],
         "summary": "Permite a un admin entrar como cliente o volver a negocio (A30)",
+        "tags": [
+          "Identity"
+        ]
+      }
+    },
+    "/v1/auth/users": {
+      "get": {
+        "operationId": "auth-list-users",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisteredUsersOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Lista las cuentas registradas en PostgreSQL",
         "tags": [
           "Identity"
         ]

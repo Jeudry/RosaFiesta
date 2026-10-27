@@ -101,16 +101,16 @@ func canonicalSeedUsers(now time.Time) []seedUser {
 		{
 			sessionKey: "rf-token-camila",
 			user: identitydomain.User{
-				ID: uuid.MustParse("11111111-1111-1111-1111-111111111111"), FullName: "Camila Rodríguez",
-				Email: "camila@rosafiesta.do", Phone: "809-555-0142", Role: identitydomain.RoleClient,
+				ID: uuid.MustParse("11111111-1111-1111-1111-111111111111"), Username: "camila", FullName: "Camila Rodríguez",
+				Email: "camila@rosafiesta.do", Phone: "809-555-0142", BirthDate: "15/08/1998", Role: identitydomain.RoleClient,
 				ActiveView: identitydomain.ViewPersonal, CreatedAt: now,
 			},
 		},
 		{
 			sessionKey: "rf-token-maria",
 			user: identitydomain.User{
-				ID: uuid.MustParse("22222222-2222-2222-2222-222222222222"), FullName: "María (Dueña)",
-				Email: "maria@rosafiesta.do", Phone: "809-555-0100", Role: identitydomain.RoleAdmin,
+				ID: uuid.MustParse("22222222-2222-2222-2222-222222222222"), Username: "maria", FullName: "María (Dueña)",
+				Email: "maria@rosafiesta.do", Phone: "809-555-0100", BirthDate: "12/04/1990", Role: identitydomain.RoleAdmin,
 				Permissions: []string{"eventos", "decoracion", "tareas", "inventario", "pagos", "reembolsos", "reportes", "ajustes"},
 				ActiveView:  identitydomain.ViewAdmin, CreatedAt: now,
 			},
@@ -118,8 +118,8 @@ func canonicalSeedUsers(now time.Time) []seedUser {
 		{
 			sessionKey: "rf-token-yuli",
 			user: identitydomain.User{
-				ID: uuid.MustParse("33333333-3333-3333-3333-333333333333"), FullName: "Yuli",
-				Email: "yuli@rosafiesta.do", Phone: "809-555-0102", Role: identitydomain.RoleStaff,
+				ID: uuid.MustParse("33333333-3333-3333-3333-333333333333"), Username: "yuli", FullName: "Yuli",
+				Email: "yuli@rosafiesta.do", Phone: "809-555-0102", BirthDate: "22/09/1996", Role: identitydomain.RoleStaff,
 				Permissions: []string{"decoracion", "tareas"},
 				ActiveView:  identitydomain.ViewAdmin, CreatedAt: now,
 			},

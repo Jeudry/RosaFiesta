@@ -150,4 +150,6 @@ type User struct {
 	Role         string
 	Permissions  string
 	CreatedAt    time.Time
+	Username     string
+	BirthDate    string
 }

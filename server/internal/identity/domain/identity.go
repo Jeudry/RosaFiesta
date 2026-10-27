@@ -49,9 +49,11 @@ var (
 // User representa una cuenta registrada en RosaFiesta.
 type User struct {
 	ID           uuid.UUID `json:"id"`
+	Username     string    `json:"username"`
 	FullName     string    `json:"fullName"`
 	Email        string    `json:"email"`
 	Phone        string    `json:"phone"`
+	BirthDate    string    `json:"birthDate"`
 	Role         Role      `json:"role"`
 	Permissions  []string  `json:"permissions"`
 	ActiveView   AppView   `json:"activeView"`

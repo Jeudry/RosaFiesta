@@ -252,6 +252,38 @@ public class RosaFiestaViewModel(
     private val _isSubmitting = MutableStateFlow(false)
     public val isSubmitting: StateFlow<Boolean> = _isSubmitting.asStateFlow()
 
+    init {
+        restorePersistedAccountOnStartup()
+    }
+
+    private fun restorePersistedAccountOnStartup() {
+        val currentRepoUser = repository.currentAuthenticatedUser.value
+        if (currentRepoUser != null) {
+            applyProfileFieldsFromAccount(currentRepoUser)
+        }
+        securityScope.launch {
+            val savedToken = secureStorage.get(SecureStorage.KEY_ACCESS_TOKEN)
+            if (!savedToken.isNullOrBlank()) {
+                val restoredAccount = repository.restoreSessionFromJwt(savedToken)
+                if (restoredAccount != null) {
+                    applyProfileFieldsFromAccount(restoredAccount)
+                }
+            }
+        }
+    }
+
+    private fun applyProfileFieldsFromAccount(account: RegisteredUserAccount) {
+        _profileName.value = account.fullName
+        _profileEmail.value = account.email
+        _profileUsername.value = account.username
+        if (account.birthDate.isNotEmpty()) {
+            _profileBirthDate.value = account.birthDate
+        }
+        if (account.phone.isNotEmpty()) {
+            _profilePhone.value = account.phone
+        }
+    }
+
     public fun setSearchQuery(value: String) {
         _searchQuery.value = value
     }
@@ -661,7 +693,7 @@ public class RosaFiestaViewModel(
             }
             soundPlayer.playPaymentSuccess()
             _formError.value = null
-            _formFeedback.value = "Cuenta registrada en SQLite y sesión JWT HS256 activa para @${_profileUsername.value}"
+            _formFeedback.value = "Cuenta registrada en PostgreSQL + SQLite y sesión JWT HS256 activa para @${_profileUsername.value}"
             return true
         } finally {
             _isSubmitting.value = false
@@ -672,7 +704,8 @@ public class RosaFiestaViewModel(
         soundPlayer.playTap()
         _loginPassword.value = ""
         _formError.value = null
-        _formFeedback.value = "Sesión cerrada. Tu cuenta sigue guardada en SQLite."
+        _formFeedback.value = "Sesión cerrada. Tu cuenta sigue guardada en PostgreSQL y SQLite."
+        repository.clearSession()
         securityScope.launch {
             secureStorage.remove(SecureStorage.KEY_ACCESS_TOKEN)
             secureStorage.remove(SecureStorage.KEY_USER_ROLE)
@@ -723,15 +756,7 @@ public class RosaFiestaViewModel(
         account: RegisteredUserAccount,
         accessToken: String?,
     ) {
-        _profileName.value = account.fullName
-        _profileEmail.value = account.email
-        _profileUsername.value = account.username
-        if (account.birthDate.isNotEmpty()) {
-            _profileBirthDate.value = account.birthDate
-        }
-        if (account.phone.isNotEmpty()) {
-            _profilePhone.value = account.phone
-        }
+        applyProfileFieldsFromAccount(account)
         if (!accessToken.isNullOrBlank()) {
             securityScope.launch {
                 secureStorage.put(SecureStorage.KEY_ACCESS_TOKEN, accessToken)
