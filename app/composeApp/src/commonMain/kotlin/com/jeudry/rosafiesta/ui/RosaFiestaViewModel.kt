@@ -693,7 +693,7 @@ public class RosaFiestaViewModel(
             }
             soundPlayer.playPaymentSuccess()
             _formError.value = null
-            _formFeedback.value = "Cuenta registrada en PostgreSQL + SQLite y sesión JWT HS256 activa para @${_profileUsername.value}"
+            _formFeedback.value = "Cuenta creada correctamente."
             return true
         } finally {
             _isSubmitting.value = false
@@ -704,7 +704,7 @@ public class RosaFiestaViewModel(
         soundPlayer.playTap()
         _loginPassword.value = ""
         _formError.value = null
-        _formFeedback.value = "Sesión cerrada. Tu cuenta sigue guardada en PostgreSQL y SQLite."
+        _formFeedback.value = "Sesión cerrada correctamente."
         repository.clearSession()
         securityScope.launch {
             secureStorage.remove(SecureStorage.KEY_ACCESS_TOKEN)

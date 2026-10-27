@@ -606,9 +606,6 @@ internal fun RenderPersonalHomeScreen(
     val isDark = spec.variant == RfThemeVariant.PERSONAL_DARK
     val typo = LocalRfTypography.current
     val fullName = viewModel?.profileName?.collectAsState()?.value ?: "Invitado Rosa Fiesta"
-    val profileUsername = viewModel?.profileUsername?.collectAsState()?.value ?: "camila"
-    val sessionJwt = viewModel?.currentSessionJwt?.collectAsState()?.value
-    val formFeedback = viewModel?.formFeedback?.collectAsState()?.value
     val firstName = fullName.substringBefore(" ").ifBlank { "Invitado" }
     val avatarInitial = firstName.firstOrNull()?.uppercaseChar()?.toString() ?: "R"
     val textColor = if (isDark) Color(0xFFF2F0F8) else Color(0xFF1A1A2E)
@@ -712,28 +709,10 @@ internal fun RenderPersonalHomeScreen(
                     .weight(1f)
                     .clickable { onSelectScreenCode("s54") },
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    BasicText(
-                        text = "Hola de nuevo",
-                        style = typo.caption.copy(fontSize = 13.sp, color = mutedColor),
-                    )
-                    if (!sessionJwt.isNullOrBlank()) {
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(999.dp))
-                                .background(Color(0xFFEEF6D6))
-                                .padding(horizontal = 7.dp, vertical = 2.dp),
-                        ) {
-                            BasicText(
-                                text = "@$profileUsername · JWT",
-                                style = typo.caption.copy(fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF4E6A10)),
-                            )
-                        }
-                    }
-                }
+                BasicText(
+                    text = "Hola de nuevo",
+                    style = typo.caption.copy(fontSize = 13.sp, color = mutedColor),
+                )
                 BasicText(
                     text = firstName,
                     style = typo.rootTabTitle.copy(
@@ -797,42 +776,6 @@ internal fun RenderPersonalHomeScreen(
                             color = Color(0xFF2E1A47),
                         ),
                     )
-                }
-            }
-        }
-
-        if (!formFeedback.isNullOrBlank()) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                modifier = Modifier
-                    .padding(horizontal = 20.dp)
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(Color(0xFFEEF6D6))
-                    .border(1.dp, Color(0xFFCDE298), RoundedCornerShape(14.dp))
-                    .clickable { onSelectScreenCode("s54") }
-                    .padding(horizontal = 14.dp, vertical = 10.dp),
-            ) {
-                RfIcon(kind = RfIconKind.SHIELD, tint = Color(0xFF4E6A10), size = 18.dp)
-                Column(modifier = Modifier.weight(1f)) {
-                    BasicText(
-                        text = formFeedback,
-                        style = typo.caption.copy(fontSize = 12.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2F4506)),
-                    )
-                    BasicText(
-                        text = "Toca para inspeccionar tu token JWT HS256 y cuenta en SQLite →",
-                        style = typo.caption.copy(fontSize = 11.5.sp, color = Color(0xFF4E6A10)),
-                    )
-                }
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .size(24.dp)
-                        .clip(CircleShape)
-                        .clickable { viewModel.clearFormFeedback() },
-                ) {
-                    RfIcon(kind = RfIconKind.CLOSE, tint = Color(0xFF4E6A10), size = 14.dp)
                 }
             }
         }

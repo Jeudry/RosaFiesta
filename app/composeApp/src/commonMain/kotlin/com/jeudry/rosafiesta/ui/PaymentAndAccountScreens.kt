@@ -1436,10 +1436,6 @@ internal fun RenderUserProfileScreenS54(
     val profilePhone = viewModel?.profilePhone?.collectAsState()?.value ?: "809-555-0142"
     val profileUsername = viewModel?.profileUsername?.collectAsState()?.value ?: profileEmail.substringBefore("@")
     val profileBirthDate = viewModel?.profileBirthDate?.collectAsState()?.value ?: ""
-    val sessionJwt = viewModel?.currentSessionJwt?.collectAsState()?.value
-    val authenticatedUser = viewModel?.currentAuthenticatedUser?.collectAsState()?.value
-    val registeredAccounts = viewModel?.registeredAccounts?.collectAsState()?.value.orEmpty()
-    var showJwtInspector by remember { mutableStateOf(true) }
     var isEditing by remember { mutableStateOf(false) }
     val initials = profileName
         .split(" ")
@@ -1611,76 +1607,6 @@ internal fun RenderUserProfileScreenS54(
                         BasicText(
                             profileUsername.ifBlank { profileEmail.substringBefore("@") },
                             style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF62627A)),
-                        )
-                    }
-                }
-            }
-
-            Spacer(Modifier.height(14.dp))
-            ProfileCaption54("SEGURIDAD · JWT HS256 Y POSTGRESQL (:8788)")
-            Spacer(Modifier.height(8.dp))
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(Color.White)
-                    .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(20.dp)),
-            ) {
-                ProfileRow54(
-                    label = "Estado de sesión",
-                    icon = RfIconKind.SHIELD,
-                    onClick = { showJwtInspector = !showJwtInspector },
-                ) {
-                    val hasToken = !sessionJwt.isNullOrBlank()
-                    val statusLabel = if (hasToken) "JWT HS256 Verificado" else "Sin token activo"
-                    val statusBg = if (hasToken) Color(0xFFEEF6D6) else Color(0xFFFFF2C9)
-                    val statusFg = if (hasToken) Color(0xFF4E6A10) else Color(0xFF7A5700)
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(999.dp))
-                            .background(statusBg)
-                            .padding(horizontal = 10.dp, vertical = 4.dp),
-                    ) {
-                        BasicText(
-                            text = statusLabel,
-                            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = statusFg),
-                        )
-                    }
-                }
-                ProfileDivider54()
-                ProfileRow54("PostgreSQL (:5433) + SQLite", RfIconKind.LOCK) {
-                    BasicText(
-                        text = "${authenticatedUser?.id ?: "usr-activo"} · ${registeredAccounts.size} cuentas",
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Color(0xFF3B3550)),
-                    )
-                }
-                if (showJwtInspector) {
-                    ProfileDivider54()
-                    val verifiedClaims = remember(sessionJwt) {
-                        sessionJwt?.let { rawToken ->
-                            com.jeudry.rosafiesta.domain.security.JwtAuthManager.verifyAccessToken(rawToken)
-                        }
-                    }
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(Color(0xFFF9F7FC))
-                            .padding(14.dp),
-                    ) {
-                        BasicText(
-                            text = "Claims firmados en el token JWT (RFC 7519):",
-                            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.5.sp, color = Color(0xFF1A1A2E)),
-                        )
-                        BasicText(
-                            text = "• sub: ${verifiedClaims?.subjectId ?: authenticatedUser?.id ?: "-"}\n" +
-                                "• username: @${verifiedClaims?.username ?: profileUsername}\n" +
-                                "• email: ${verifiedClaims?.email ?: profileEmail}\n" +
-                                "• role: ${verifiedClaims?.role ?: authenticatedUser?.role ?: "client"}\n" +
-                                "• pwd_hash: HMAC-SHA256 (${authenticatedUser?.passwordHash?.take(16) ?: "64-rounds"}...)\n" +
-                                "• token: ${sessionJwt?.take(44) ?: "No emitido"}...",
-                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, lineHeight = 18.sp, color = Color(0xFF5F6377)),
                         )
                     }
                 }
