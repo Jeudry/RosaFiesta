@@ -23,6 +23,7 @@ import com.jeudry.rosafiesta.domain.security.AuthOutcome
 import com.jeudry.rosafiesta.domain.security.JwtAuthManager
 import com.jeudry.rosafiesta.domain.security.RegisteredUserAccount
 import com.jeudry.rosafiesta.domain.security.SensitiveDataRedactor
+import com.jeudry.rosafiesta.domain.validation.InputValidator
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -848,11 +849,18 @@ public class SqlRosaFiestaRepository(
     override fun authenticateUser(identifier: String, password: String): AuthOutcome {
         val cleanIdentifier = identifier.trim().lowercase()
         val cleanPass = password.trim()
-        val isMissingCredentials = cleanIdentifier.isEmpty() || cleanPass.length < 4
-        if (isMissingCredentials) {
+        val identifierError = InputValidator.validateLoginIdentifier(cleanIdentifier)
+        if (identifierError != null) {
             return AuthOutcome.failure(
                 errorCode = "AUTH_INVALID_CREDENTIALS",
-                errorMessage = SensitiveDataRedactor.translateBusinessError("AUTH_INVALID_CREDENTIALS", null),
+                errorMessage = identifierError,
+            )
+        }
+        val passwordError = InputValidator.validatePassword(cleanPass)
+        if (passwordError != null) {
+            return AuthOutcome.failure(
+                errorCode = "AUTH_INVALID_CREDENTIALS",
+                errorMessage = passwordError,
             )
         }
         val matchedAccount = findAccountByIdentifier(userAccountsState.value, cleanIdentifier)
@@ -936,23 +944,42 @@ public class SqlRosaFiestaRepository(
         val cleanBirthDate = birthDate.trim()
         val cleanPhone = phone.trim()
 
-        val hasEmailAt = cleanEmail.contains("@")
-        val hasEmailDomainDot = cleanEmail.substringAfter("@").contains(".")
-        val validEmailFormat = hasEmailAt && hasEmailDomainDot
         val fullName = listOf(cleanFirst, cleanLast).filter { part -> part.isNotEmpty() }.joinToString(" ")
         val resolvedUsername = cleanUsername.ifEmpty { cleanEmail.substringBefore("@") }
 
-        val missingCoreFields = fullName.isEmpty() || resolvedUsername.length < 2 || !validEmailFormat
-        if (missingCoreFields) {
+        val fullNameError = InputValidator.validateFullName(fullName)
+        if (fullNameError != null) {
             return AuthOutcome.failure(
                 errorCode = "AUTH_MISSING_FIELDS",
-                errorMessage = SensitiveDataRedactor.translateBusinessError("AUTH_MISSING_FIELDS", null),
+                errorMessage = fullNameError,
             )
         }
-        if (cleanPassword.length < 6) {
+        val usernameError = InputValidator.validateUsername(resolvedUsername)
+        if (usernameError != null) {
+            return AuthOutcome.failure(
+                errorCode = "AUTH_MISSING_FIELDS",
+                errorMessage = usernameError,
+            )
+        }
+        val emailError = InputValidator.validateEmail(cleanEmail)
+        if (emailError != null) {
+            return AuthOutcome.failure(
+                errorCode = "AUTH_MISSING_FIELDS",
+                errorMessage = emailError,
+            )
+        }
+        val birthDateError = InputValidator.validateBirthDate(cleanBirthDate, isRequired = false)
+        if (birthDateError != null) {
+            return AuthOutcome.failure(
+                errorCode = "AUTH_MISSING_FIELDS",
+                errorMessage = birthDateError,
+            )
+        }
+        val passwordError = InputValidator.validatePassword(cleanPassword)
+        if (passwordError != null) {
             return AuthOutcome.failure(
                 errorCode = "AUTH_WEAK_PASSWORD",
-                errorMessage = SensitiveDataRedactor.translateBusinessError("AUTH_WEAK_PASSWORD", null),
+                errorMessage = passwordError,
             )
         }
         val existingAccounts = userAccountsState.value
@@ -1033,13 +1060,21 @@ public class SqlRosaFiestaRepository(
     override fun resetUserPassword(identifier: String, newPassword: String): AuthOutcome {
         val cleanIdentifier = identifier.trim().lowercase()
         val cleanPassword = newPassword.trim()
-        if (cleanPassword.length < 6) {
+        val passwordError = InputValidator.validatePassword(cleanPassword)
+        if (passwordError != null) {
             return AuthOutcome.failure(
                 errorCode = "AUTH_WEAK_PASSWORD",
-                errorMessage = SensitiveDataRedactor.translateBusinessError("AUTH_WEAK_PASSWORD", null),
+                errorMessage = passwordError,
             )
         }
         val targetIdentifier = cleanIdentifier.ifEmpty { _currentUserEmail.value }
+        val identifierError = InputValidator.validateLoginIdentifier(targetIdentifier)
+        if (identifierError != null) {
+            return AuthOutcome.failure(
+                errorCode = "AUTH_ACCOUNT_NOT_FOUND",
+                errorMessage = identifierError,
+            )
+        }
         val existingAccount = findAccountByIdentifier(userAccountsState.value, targetIdentifier)
         if (existingAccount == null) {
             return AuthOutcome.failure(
@@ -1081,6 +1116,112 @@ public class SqlRosaFiestaRepository(
                         newPassword = cleanPassword,
                     ),
                 )
+            }
+        }
+        return AuthOutcome.authenticated(accessToken = token, account = updatedAccount)
+    }
+
+    override fun updateUserProfile(
+        fullName: String,
+        email: String,
+        phone: String,
+        birthDate: String,
+        username: String,
+    ): AuthOutcome {
+        val cleanName = fullName.trim()
+        val cleanEmail = email.trim().lowercase()
+        val cleanPhone = phone.trim()
+        val cleanBirthDate = birthDate.trim()
+        val cleanUsername = username.trim().lowercase()
+
+        val nameError = InputValidator.validateFullName(cleanName)
+        if (nameError != null) {
+            return AuthOutcome.failure(errorCode = "PROFILE_INVALID_NAME", errorMessage = nameError)
+        }
+        val emailError = InputValidator.validateEmail(cleanEmail)
+        if (emailError != null) {
+            return AuthOutcome.failure(errorCode = "PROFILE_INVALID_EMAIL", errorMessage = emailError)
+        }
+        val phoneError = InputValidator.validatePhone(cleanPhone)
+        if (phoneError != null) {
+            return AuthOutcome.failure(errorCode = "PROFILE_INVALID_PHONE", errorMessage = phoneError)
+        }
+        val birthDateError = InputValidator.validateBirthDate(cleanBirthDate, isRequired = true)
+        if (birthDateError != null) {
+            return AuthOutcome.failure(errorCode = "PROFILE_INVALID_BIRTH_DATE", errorMessage = birthDateError)
+        }
+        val usernameError = InputValidator.validateUsername(cleanUsername)
+        if (usernameError != null) {
+            return AuthOutcome.failure(errorCode = "PROFILE_INVALID_USERNAME", errorMessage = usernameError)
+        }
+
+        val currentAccount = _currentAuthenticatedUser.value
+            ?: findAccountByIdentifier(userAccountsState.value, _currentUserEmail.value)
+            ?: JwtAuthManager.defaultSeedAccounts.first()
+
+        val allAccounts = userAccountsState.value
+        val emailOccupiedByOther = allAccounts.any { account ->
+            val isDifferentAccount = account.id != currentAccount.id
+            val sameEmail = account.email.equals(cleanEmail, ignoreCase = true)
+            if (isDifferentAccount) sameEmail else false
+        }
+        if (emailOccupiedByOther) {
+            return AuthOutcome.failure(
+                errorCode = "AUTH_EMAIL_TAKEN",
+                errorMessage = SensitiveDataRedactor.translateBusinessError("AUTH_EMAIL_TAKEN", null),
+            )
+        }
+        val usernameOccupiedByOther = allAccounts.any { account ->
+            val isDifferentAccount = account.id != currentAccount.id
+            val sameUsername = account.username.equals(cleanUsername, ignoreCase = true)
+            if (isDifferentAccount) sameUsername else false
+        }
+        if (usernameOccupiedByOther) {
+            return AuthOutcome.failure(
+                errorCode = "AUTH_USERNAME_TAKEN",
+                errorMessage = SensitiveDataRedactor.translateBusinessError("AUTH_USERNAME_TAKEN", null),
+            )
+        }
+
+        val updatedAccount = currentAccount.copy(
+            fullName = cleanName,
+            email = cleanEmail,
+            phone = cleanPhone,
+            birthDate = cleanBirthDate,
+            username = cleanUsername,
+        )
+        userAccountsState.update { accounts ->
+            val hadExisting = accounts.any { account -> account.id == updatedAccount.id }
+            if (hadExisting) {
+                accounts.map { account ->
+                    if (account.id == updatedAccount.id) updatedAccount else account
+                }
+            } else {
+                accounts + updatedAccount
+            }
+        }
+        val token = JwtAuthManager.issueAccessToken(updatedAccount)
+        _currentAuthenticatedUser.value = updatedAccount
+        _currentSessionJwt.value = token
+        _currentUserEmail.value = updatedAccount.email
+        scope.launch {
+            sqlMutex.withLock {
+                queries.upsertUserAccount(
+                    id = updatedAccount.id,
+                    username = updatedAccount.username,
+                    email = updatedAccount.email,
+                    fullName = updatedAccount.fullName,
+                    passwordHash = updatedAccount.passwordHash,
+                    salt = updatedAccount.salt,
+                    birthDate = updatedAccount.birthDate,
+                    phone = updatedAccount.phone,
+                    role = updatedAccount.role,
+                )
+                queries.upsertActiveSession(
+                    userId = updatedAccount.id,
+                    accessToken = token,
+                )
+                reloadUserAccountsFromSql()
             }
         }
         return AuthOutcome.authenticated(accessToken = token, account = updatedAccount)

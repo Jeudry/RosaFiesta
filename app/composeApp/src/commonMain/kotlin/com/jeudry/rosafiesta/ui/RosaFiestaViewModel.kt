@@ -20,6 +20,7 @@ import com.jeudry.rosafiesta.domain.sound.NoOpSoundPlayer
 import com.jeudry.rosafiesta.domain.sound.NoOpVoiceInputMonitor
 import com.jeudry.rosafiesta.domain.sound.SoundPlayer
 import com.jeudry.rosafiesta.domain.sound.VoiceInputMonitor
+import com.jeudry.rosafiesta.domain.validation.InputValidator
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -700,6 +701,18 @@ public class RosaFiestaViewModel(
         if (_isSubmitting.value) return false
         _isSubmitting.value = true
         try {
+            val identifierError = InputValidator.validateLoginIdentifier(_loginEmail.value)
+            if (identifierError != null) {
+                soundPlayer.playAlertError()
+                _formError.value = identifierError
+                return false
+            }
+            val passwordError = InputValidator.validatePassword(_loginPassword.value)
+            if (passwordError != null) {
+                soundPlayer.playAlertError()
+                _formError.value = passwordError
+                return false
+            }
             val outcome = repository.authenticateUser(_loginEmail.value, _loginPassword.value)
             if (!outcome.success) {
                 soundPlayer.playAlertError()
@@ -735,6 +748,42 @@ public class RosaFiestaViewModel(
         if (_isSubmitting.value) return false
         _isSubmitting.value = true
         try {
+            val firstNameError = InputValidator.validatePersonNamePart(firstName, "El nombre")
+            if (firstNameError != null) {
+                soundPlayer.playAlertError()
+                _formError.value = firstNameError
+                return false
+            }
+            val lastNameError = InputValidator.validatePersonNamePart(lastName, "El apellido")
+            if (lastNameError != null) {
+                soundPlayer.playAlertError()
+                _formError.value = lastNameError
+                return false
+            }
+            val usernameError = InputValidator.validateUsername(username)
+            if (usernameError != null) {
+                soundPlayer.playAlertError()
+                _formError.value = usernameError
+                return false
+            }
+            val emailError = InputValidator.validateEmail(email)
+            if (emailError != null) {
+                soundPlayer.playAlertError()
+                _formError.value = emailError
+                return false
+            }
+            val birthDateError = InputValidator.validateBirthDate(birthDate, isRequired = true)
+            if (birthDateError != null) {
+                soundPlayer.playAlertError()
+                _formError.value = birthDateError
+                return false
+            }
+            val passwordError = InputValidator.validatePassword(password)
+            if (passwordError != null) {
+                soundPlayer.playAlertError()
+                _formError.value = passwordError
+                return false
+            }
             if (!acceptedTerms) {
                 soundPlayer.playAlertError()
                 _formError.value = SensitiveDataRedactor.translateBusinessError("AUTH_TERMS_REQUIRED", null)
@@ -790,9 +839,10 @@ public class RosaFiestaViewModel(
         try {
             val cleanPass = newPassword.trim()
             val cleanConfirm = confirmPassword.trim()
-            if (cleanPass.length < 6) {
+            val passwordError = InputValidator.validatePassword(cleanPass)
+            if (passwordError != null) {
                 soundPlayer.playAlertError()
-                _formError.value = SensitiveDataRedactor.translateBusinessError("AUTH_WEAK_PASSWORD", null)
+                _formError.value = passwordError
                 return false
             }
             if (cleanPass != cleanConfirm) {
@@ -988,15 +1038,79 @@ public class RosaFiestaViewModel(
         return true
     }
 
-    public fun saveProfile(): Boolean {
-        val name = _profileName.value.trim()
-        val email = _profileEmail.value.trim()
-        if (name.isEmpty() || !email.contains("@")) {
-            _formError.value = "Nombre y correo válido son obligatorios."
+    public fun saveProfile(
+        draftName: String = _profileName.value,
+        draftEmail: String = _profileEmail.value,
+        draftPhone: String = _profilePhone.value,
+        draftBirthDate: String = _profileBirthDate.value,
+        draftUsername: String = _profileUsername.value,
+    ): Boolean {
+        val cleanName = draftName.trim()
+        val cleanEmail = draftEmail.trim().lowercase()
+        val cleanPhone = draftPhone.trim()
+        val cleanBirthDate = draftBirthDate.trim()
+        val cleanUsername = draftUsername.trim().lowercase()
+
+        val nameError = InputValidator.validateFullName(cleanName)
+        if (nameError != null) {
+            soundPlayer.playAlertError()
+            _formError.value = nameError
             return false
         }
+        val emailError = InputValidator.validateEmail(cleanEmail)
+        if (emailError != null) {
+            soundPlayer.playAlertError()
+            _formError.value = emailError
+            return false
+        }
+        val phoneError = InputValidator.validatePhone(cleanPhone)
+        if (phoneError != null) {
+            soundPlayer.playAlertError()
+            _formError.value = phoneError
+            return false
+        }
+        val birthDateError = InputValidator.validateBirthDate(cleanBirthDate, isRequired = true)
+        if (birthDateError != null) {
+            soundPlayer.playAlertError()
+            _formError.value = birthDateError
+            return false
+        }
+        val usernameError = InputValidator.validateUsername(cleanUsername)
+        if (usernameError != null) {
+            soundPlayer.playAlertError()
+            _formError.value = usernameError
+            return false
+        }
+
+        val outcome = repository.updateUserProfile(
+            fullName = cleanName,
+            email = cleanEmail,
+            phone = cleanPhone,
+            birthDate = cleanBirthDate,
+            username = cleanUsername,
+        )
+        val isUnsupportedFallback = outcome.errorCode == "PROFILE_UPDATE_UNSUPPORTED"
+        val isRepositoryRejected = !outcome.success
+        val shouldFailFromRepo = if (isRepositoryRejected) !isUnsupportedFallback else false
+        if (shouldFailFromRepo) {
+            soundPlayer.playAlertError()
+            _formError.value = outcome.errorMessage ?: "No se pudo guardar el perfil."
+            return false
+        }
+
+        val updatedAccount = outcome.account
+        if (updatedAccount != null) {
+            applyAuthenticatedAccount(updatedAccount, outcome.accessToken)
+        } else {
+            _profileName.value = cleanName
+            _profileEmail.value = cleanEmail
+            _profilePhone.value = cleanPhone
+            _profileBirthDate.value = cleanBirthDate
+            _profileUsername.value = cleanUsername
+        }
+        soundPlayer.playPaymentSuccess()
         _formError.value = null
-        _formFeedback.value = "Perfil actualizado para $name."
+        _formFeedback.value = "Perfil actualizado para $cleanName."
         return true
     }
 

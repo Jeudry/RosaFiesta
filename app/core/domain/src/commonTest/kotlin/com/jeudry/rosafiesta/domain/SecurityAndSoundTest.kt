@@ -7,6 +7,7 @@ import com.jeudry.rosafiesta.domain.security.SensitiveDataRedactor
 import com.jeudry.rosafiesta.domain.sound.NoOpSoundPlayer
 import com.jeudry.rosafiesta.domain.sound.PcmSoundSynthesizer
 import com.jeudry.rosafiesta.domain.sound.SoundEffect
+import com.jeudry.rosafiesta.domain.validation.InputValidator
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -86,5 +87,33 @@ class SecurityAndSoundTest {
 
         val tamperedToken = token.dropLast(2) + "AA"
         assertNull(JwtAuthManager.verifyAccessToken(tamperedToken))
+    }
+
+    @Test
+    fun `verifica que InputValidator valide formato longitud minima y maxima en correo nombre telefono fecha y usuario`() {
+        assertNotNull(InputValidator.validateEmail("jeudry"))
+        assertNotNull(InputValidator.validateEmail("a@b"))
+        assertNotNull(InputValidator.validateEmail("usuario@dominio"))
+        assertNull(InputValidator.validateEmail("yuli@rosafiesta.do"))
+
+        assertNotNull(InputValidator.validateFullName("J"))
+        assertNotNull(InputValidator.validateFullName("Jeudry123"))
+        assertNull(InputValidator.validateFullName("Jeudry Rosario"))
+
+        assertNotNull(InputValidator.validateUsername("ab"))
+        assertNotNull(InputValidator.validateUsername("usuario con espacios"))
+        assertNull(InputValidator.validateUsername("yuli_rf.96"))
+
+        assertNotNull(InputValidator.validatePhone("809-555"))
+        assertNotNull(InputValidator.validatePhone("809-ABC-0102"))
+        assertNull(InputValidator.validatePhone("809-555-0102"))
+
+        assertNotNull(InputValidator.validateBirthDate("1996-09-22"))
+        assertNotNull(InputValidator.validateBirthDate("31/02/1996"))
+        assertNotNull(InputValidator.validateBirthDate("22/09/2023"))
+        assertNull(InputValidator.validateBirthDate("22/09/1996"))
+
+        assertNotNull(InputValidator.validatePassword("12345"))
+        assertNull(InputValidator.validatePassword("rosa2026"))
     }
 }

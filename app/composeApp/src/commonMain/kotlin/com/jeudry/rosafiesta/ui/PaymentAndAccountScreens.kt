@@ -55,6 +55,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import com.jeudry.rosafiesta.designsystem.LocalRfTypography
+import com.jeudry.rosafiesta.designsystem.RfColors
 import com.jeudry.rosafiesta.designsystem.RfIcon
 import com.jeudry.rosafiesta.designsystem.RfIconKind
 import com.jeudry.rosafiesta.designsystem.RfPhoto
@@ -63,6 +64,7 @@ import com.jeudry.rosafiesta.designsystem.RfRadialBackgroundBox
 import com.jeudry.rosafiesta.designsystem.rfCardShadow
 import com.jeudry.rosafiesta.designsystem.rfHeroBannerShadow
 import com.jeudry.rosafiesta.designsystem.rfIconButtonShadow
+import com.jeudry.rosafiesta.domain.validation.InputValidator
 import com.jeudry.rosafiesta.designsystem.rfInputShadow
 import com.jeudry.rosafiesta.designsystem.rfPrimaryButtonShadow
 import com.jeudry.rosafiesta.domain.CanonicalSampleData
@@ -1450,8 +1452,27 @@ internal fun RenderUserProfileScreenS54(
     val profilePhone = viewModel?.profilePhone?.collectAsState()?.value ?: "809-555-0142"
     val profileUsername = viewModel?.profileUsername?.collectAsState()?.value ?: profileEmail.substringBefore("@")
     val profileBirthDate = viewModel?.profileBirthDate?.collectAsState()?.value ?: ""
+    val formError = viewModel?.formError?.collectAsState()?.value
+    val formFeedback = viewModel?.formFeedback?.collectAsState()?.value
+
     var isEditing by remember { mutableStateOf(false) }
-    val initials = profileName
+    var draftName by remember(profileName) { mutableStateOf(profileName) }
+    var draftEmail by remember(profileEmail) { mutableStateOf(profileEmail) }
+    var draftPhone by remember(profilePhone) { mutableStateOf(profilePhone) }
+    var draftBirthDate by remember(profileBirthDate) { mutableStateOf(profileBirthDate.ifBlank { "22/09/1996" }) }
+    var draftUsername by remember(profileUsername, profileEmail) {
+        mutableStateOf(profileUsername.ifBlank { profileEmail.substringBefore("@") })
+    }
+    var localProfileError by remember { mutableStateOf<String?>(null) }
+
+    val liveNameError = if (isEditing) InputValidator.validateFullName(draftName) else null
+    val liveEmailError = if (isEditing) InputValidator.validateEmail(draftEmail) else null
+    val livePhoneError = if (isEditing) InputValidator.validatePhone(draftPhone) else null
+    val liveBirthDateError = if (isEditing) InputValidator.validateBirthDate(draftBirthDate, isRequired = true) else null
+    val liveUsernameError = if (isEditing) InputValidator.validateUsername(draftUsername) else null
+
+    val displayedNameForInitials = if (isEditing) draftName else profileName
+    val initials = displayedNameForInitials
         .split(" ")
         .mapNotNull { word -> word.firstOrNull()?.uppercaseChar()?.toString() }
         .take(2)
@@ -1464,7 +1485,7 @@ internal fun RenderUserProfileScreenS54(
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Box(
                     modifier = Modifier
@@ -1472,16 +1493,46 @@ internal fun RenderUserProfileScreenS54(
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(Color.White)
-                        .clickable { onSelectScreenCode("BACK:s14") },
+                        .clickable {
+                            viewModel?.clearFormError()
+                            onSelectScreenCode("BACK:s14")
+                        },
                     contentAlignment = Alignment.Center,
                 ) {
                     RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1A1A2E), size = 22.dp)
                 }
                 BasicText(
-                    text = "Mi perfil",
+                    text = if (isEditing) "Editar perfil" else "Mi perfil",
                     modifier = Modifier.weight(1f),
                     style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color(0xFF1A1A2E)),
                 )
+                if (isEditing) {
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .rfIconButtonShadow(CircleShape, isAdmin = false)
+                            .clip(CircleShape)
+                            .background(Color.White)
+                            .border(1.dp, Color(0xFFECE6F2), CircleShape)
+                            .clickable {
+                                draftName = profileName
+                                draftEmail = profileEmail
+                                draftPhone = profilePhone
+                                draftBirthDate = profileBirthDate.ifBlank { "22/09/1996" }
+                                draftUsername = profileUsername.ifBlank { profileEmail.substringBefore("@") }
+                                localProfileError = null
+                                viewModel?.clearFormError()
+                                isEditing = false
+                            },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        RfIcon(
+                            kind = RfIconKind.CLOSE,
+                            tint = Color(0xFF62627A),
+                            size = 18.dp,
+                        )
+                    }
+                }
                 Box(
                     modifier = Modifier
                         .size(44.dp)
@@ -1489,10 +1540,40 @@ internal fun RenderUserProfileScreenS54(
                         .clip(CircleShape)
                         .background(if (isEditing) Color(0xFFFDE6F2) else Color.White)
                         .clickable {
-                            if (isEditing) {
-                                viewModel?.saveProfile()
+                            if (!isEditing) {
+                                draftName = profileName
+                                draftEmail = profileEmail
+                                draftPhone = profilePhone
+                                draftBirthDate = profileBirthDate.ifBlank { "22/09/1996" }
+                                draftUsername = profileUsername.ifBlank { profileEmail.substringBefore("@") }
+                                localProfileError = null
+                                viewModel?.clearFormError()
+                                isEditing = true
+                            } else {
+                                val firstValidationError = liveNameError
+                                    ?: liveEmailError
+                                    ?: livePhoneError
+                                    ?: liveBirthDateError
+                                    ?: liveUsernameError
+                                if (firstValidationError != null) {
+                                    localProfileError = firstValidationError
+                                    viewModel?.soundPlayer?.playAlertError()
+                                } else {
+                                    val savedOk = viewModel?.saveProfile(
+                                        draftName = draftName,
+                                        draftEmail = draftEmail,
+                                        draftPhone = draftPhone,
+                                        draftBirthDate = draftBirthDate,
+                                        draftUsername = draftUsername,
+                                    ) ?: true
+                                    if (savedOk) {
+                                        localProfileError = null
+                                        isEditing = false
+                                    } else {
+                                        localProfileError = viewModel.formError.value
+                                    }
+                                }
                             }
-                            isEditing = !isEditing
                         },
                     contentAlignment = Alignment.Center,
                 ) {
@@ -1503,11 +1584,61 @@ internal fun RenderUserProfileScreenS54(
                     )
                 }
             }
+
+            val activeErrorBanner = localProfileError ?: formError
+            if (!activeErrorBanner.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(10.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(Color(0xFFFFEDF1))
+                        .border(1.dp, RfColors.Error.copy(alpha = 0.45f), RoundedCornerShape(14.dp))
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                ) {
+                    BasicText(
+                        text = activeErrorBanner,
+                        style = TextStyle(
+                            fontFamily = typo.bodyFamily,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 13.sp,
+                            color = RfColors.Error,
+                        ),
+                    )
+                }
+            } else {
+                val hasSuccessFeedback = !formFeedback.isNullOrBlank()
+                val showSuccessBanner = if (hasSuccessFeedback) !isEditing else false
+                if (showSuccessBanner) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(Color(0xFFEEF6D6))
+                            .border(1.dp, Color(0xFF4E6A10).copy(alpha = 0.35f), RoundedCornerShape(14.dp))
+                            .padding(horizontal = 14.dp, vertical = 9.dp),
+                    ) {
+                        BasicText(
+                            text = formFeedback.orEmpty(),
+                            style = TextStyle(
+                                fontFamily = typo.bodyFamily,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 13.sp,
+                                color = Color(0xFF4E6A10),
+                            ),
+                        )
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.height(14.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(top = 4.dp, bottom = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
+                verticalAlignment = if (isEditing) Alignment.Top else Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 Box(
@@ -1529,24 +1660,36 @@ internal fun RenderUserProfileScreenS54(
                         }
                     }
                 }
-                Column(modifier = Modifier.weight(1f)) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(if (isEditing) 8.dp else 2.dp),
+                ) {
                     if (isEditing) {
-                        BasicTextField(
-                            value = profileName,
-                            onValueChange = { nextName -> viewModel?.setProfileName(nextName) },
-                            singleLine = true,
-                            textStyle = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp, lineHeight = 24.sp, color = Color(0xFF1A1A2E)),
-                            cursorBrush = SolidColor(Color(0xFFC2338F)),
-                            modifier = Modifier.fillMaxWidth(),
+                        ProfileHeaderEditableField54(
+                            label = "Nombre completo (2–60)",
+                            value = draftName,
+                            placeholder = "Ej. Camila Rodríguez",
+                            errorText = liveNameError,
+                            maxLength = InputValidator.MAX_FULL_NAME_LENGTH,
+                            isTitleStyle = true,
+                            onValueChange = { nextName ->
+                                draftName = nextName.take(InputValidator.MAX_FULL_NAME_LENGTH)
+                                localProfileError = null
+                                viewModel?.clearFormError()
+                            },
                         )
-                        Spacer(Modifier.height(4.dp))
-                        BasicTextField(
-                            value = profileEmail,
-                            onValueChange = { nextEmail -> viewModel?.setProfileEmail(nextEmail) },
-                            singleLine = true,
-                            textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF62627A)),
-                            cursorBrush = SolidColor(Color(0xFFC2338F)),
-                            modifier = Modifier.fillMaxWidth(),
+                        ProfileHeaderEditableField54(
+                            label = "Correo electrónico",
+                            value = draftEmail,
+                            placeholder = "usuario@dominio.com",
+                            errorText = liveEmailError,
+                            maxLength = InputValidator.MAX_EMAIL_LENGTH,
+                            isTitleStyle = false,
+                            onValueChange = { nextEmail ->
+                                draftEmail = nextEmail.take(InputValidator.MAX_EMAIL_LENGTH)
+                                localProfileError = null
+                                viewModel?.clearFormError()
+                            },
                         )
                     } else {
                         BasicText(
@@ -1561,7 +1704,7 @@ internal fun RenderUserProfileScreenS54(
                 }
             }
 
-            ProfileCaption54("DATOS")
+            ProfileCaption54(if (isEditing) "DATOS (HAZ CLIC EN CADA CAMPO PARA EDITAR)" else "DATOS")
             Spacer(Modifier.height(8.dp))
             Column(
                 modifier = Modifier
@@ -1573,31 +1716,37 @@ internal fun RenderUserProfileScreenS54(
             ) {
                 ProfileRow54("Teléfono", RfIconKind.PHONE) {
                     if (isEditing) {
-                        BasicTextField(
-                            value = profilePhone,
-                            onValueChange = { nextPhone -> viewModel?.setProfilePhone(nextPhone) },
-                            singleLine = true,
-                            textStyle = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFFC2338F), textAlign = TextAlign.End),
-                            cursorBrush = SolidColor(Color(0xFFC2338F)),
+                        ProfileInlineInputBox54(
+                            value = draftPhone,
+                            placeholder = "809-555-0102",
+                            hasError = livePhoneError != null,
+                            onValueChange = { nextPhone ->
+                                draftPhone = nextPhone.take(InputValidator.MAX_PHONE_LENGTH)
+                                localProfileError = null
+                                viewModel?.clearFormError()
+                            },
                         )
                     } else {
                         BasicText(profilePhone, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFFC2338F)))
                     }
                 }
+                if (isEditing) {
+                    ProfileInlineFieldHelper54(
+                        errorText = livePhoneError,
+                        hintText = "Formato: 10 a 15 dígitos (ej. 809-555-0102)",
+                    )
+                }
                 ProfileDivider54()
                 ProfileRow54("Cumpleaños", RfIconKind.CAKE) {
                     if (isEditing) {
-                        BasicTextField(
-                            value = profileBirthDate,
-                            onValueChange = { nextBirth -> viewModel?.setProfileBirthDate(nextBirth) },
-                            singleLine = true,
-                            textStyle = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFFC2338F), textAlign = TextAlign.End),
-                            cursorBrush = SolidColor(Color(0xFFC2338F)),
-                            decorationBox = { innerTextField ->
-                                if (profileBirthDate.isEmpty()) {
-                                    BasicText("DD/MM/AAAA", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF9A98AD)))
-                                }
-                                innerTextField()
+                        ProfileInlineInputBox54(
+                            value = draftBirthDate,
+                            placeholder = "DD/MM/AAAA",
+                            hasError = liveBirthDateError != null,
+                            onValueChange = { nextBirth ->
+                                draftBirthDate = nextBirth.take(InputValidator.MAX_BIRTH_DATE_LENGTH)
+                                localProfileError = null
+                                viewModel?.clearFormError()
                             },
                         )
                     } else {
@@ -1607,15 +1756,24 @@ internal fun RenderUserProfileScreenS54(
                         )
                     }
                 }
+                if (isEditing) {
+                    ProfileInlineFieldHelper54(
+                        errorText = liveBirthDateError,
+                        hintText = "Formato obligatorio: DD/MM/AAAA (1925–2010)",
+                    )
+                }
                 ProfileDivider54()
                 ProfileRow54("Usuario", RfIconKind.USER) {
                     if (isEditing) {
-                        BasicTextField(
-                            value = profileUsername,
-                            onValueChange = { nextUsername -> viewModel?.setProfileUsername(nextUsername) },
-                            singleLine = true,
-                            textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF1A1A2E), textAlign = TextAlign.End),
-                            cursorBrush = SolidColor(Color(0xFFC2338F)),
+                        ProfileInlineInputBox54(
+                            value = draftUsername,
+                            placeholder = "usuario",
+                            hasError = liveUsernameError != null,
+                            onValueChange = { nextUsername ->
+                                draftUsername = nextUsername.take(InputValidator.MAX_USERNAME_LENGTH)
+                                localProfileError = null
+                                viewModel?.clearFormError()
+                            },
                         )
                     } else {
                         BasicText(
@@ -1623,6 +1781,12 @@ internal fun RenderUserProfileScreenS54(
                             style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF62627A)),
                         )
                     }
+                }
+                if (isEditing) {
+                    ProfileInlineFieldHelper54(
+                        errorText = liveUsernameError,
+                        hintText = "3 a 24 caracteres (letras, números, ., -, _)",
+                    )
                 }
             }
 
@@ -1783,6 +1947,185 @@ private fun ProfileRow54(
         )
         trailing()
     }
+}
+
+@Composable
+private fun ProfileHeaderEditableField54(
+    label: String,
+    value: String,
+    placeholder: String,
+    errorText: String?,
+    maxLength: Int,
+    isTitleStyle: Boolean,
+    onValueChange: (String) -> Unit,
+) {
+    val typo = LocalRfTypography.current
+    val hasError = errorText != null
+    val borderColor = if (hasError) RfColors.Error else Color(0xFFD6B9E8)
+    val bgColor = if (hasError) Color(0xFFFFF7F9) else Color.White
+
+    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            BasicText(
+                text = label,
+                style = TextStyle(
+                    fontFamily = typo.bodyFamily,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (hasError) RfColors.Error else Color(0xFF7B5799),
+                ),
+            )
+            BasicText(
+                text = "${value.length}/$maxLength",
+                style = TextStyle(
+                    fontFamily = typo.bodyFamily,
+                    fontSize = 10.5.sp,
+                    color = Color(0xFF8C869E),
+                ),
+            )
+        }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(38.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(bgColor)
+                .border(1.4.dp, borderColor, RoundedCornerShape(10.dp))
+                .padding(horizontal = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Box(
+                modifier = Modifier.weight(1f),
+                contentAlignment = Alignment.CenterStart,
+            ) {
+                if (value.isEmpty()) {
+                    BasicText(
+                        text = placeholder,
+                        style = TextStyle(
+                            fontFamily = typo.bodyFamily,
+                            fontSize = if (isTitleStyle) 15.sp else 13.5.sp,
+                            color = Color(0xFF9A98AD),
+                        ),
+                    )
+                }
+                BasicTextField(
+                    value = value,
+                    onValueChange = onValueChange,
+                    singleLine = true,
+                    textStyle = TextStyle(
+                        fontFamily = if (isTitleStyle) typo.displayFamily else typo.bodyFamily,
+                        fontWeight = if (isTitleStyle) FontWeight.Bold else FontWeight.Medium,
+                        fontSize = if (isTitleStyle) 15.5.sp else 13.5.sp,
+                        color = Color(0xFF1A1A2E),
+                    ),
+                    cursorBrush = SolidColor(Color(0xFFC2338F)),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            RfIcon(
+                kind = RfIconKind.EDIT,
+                tint = if (hasError) RfColors.Error else Color(0xFFC2338F),
+                size = 14.dp,
+            )
+        }
+        if (errorText != null) {
+            BasicText(
+                text = errorText,
+                style = TextStyle(
+                    fontFamily = typo.bodyFamily,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = RfColors.Error,
+                ),
+            )
+        }
+    }
+}
+
+@Composable
+private fun ProfileInlineInputBox54(
+    value: String,
+    placeholder: String,
+    hasError: Boolean,
+    onValueChange: (String) -> Unit,
+) {
+    val typo = LocalRfTypography.current
+    val borderColor = if (hasError) RfColors.Error else Color(0xFFD6B9E8)
+    val bgColor = if (hasError) Color(0xFFFFF5F7) else Color(0xFFFAF6FC)
+
+    Row(
+        modifier = Modifier
+            .width(184.dp)
+            .height(38.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(bgColor)
+            .border(1.4.dp, borderColor, RoundedCornerShape(10.dp))
+            .padding(horizontal = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Box(
+            modifier = Modifier.weight(1f),
+            contentAlignment = Alignment.CenterStart,
+        ) {
+            if (value.isEmpty()) {
+                BasicText(
+                    text = placeholder,
+                    style = TextStyle(
+                        fontFamily = typo.bodyFamily,
+                        fontSize = 13.5.sp,
+                        color = Color(0xFF9A98AD),
+                    ),
+                )
+            }
+            BasicTextField(
+                value = value,
+                onValueChange = onValueChange,
+                singleLine = true,
+                textStyle = TextStyle(
+                    fontFamily = typo.bodyFamily,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 13.5.sp,
+                    color = Color(0xFF1A1A2E),
+                ),
+                cursorBrush = SolidColor(Color(0xFFC2338F)),
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        RfIcon(
+            kind = RfIconKind.EDIT,
+            tint = if (hasError) RfColors.Error else Color(0xFFC2338F),
+            size = 13.dp,
+        )
+    }
+}
+
+@Composable
+private fun ProfileInlineFieldHelper54(
+    errorText: String?,
+    hintText: String,
+) {
+    val typo = LocalRfTypography.current
+    val displayColor = if (errorText != null) RfColors.Error else Color(0xFF8A849E)
+    val displayWeight = if (errorText != null) FontWeight.SemiBold else FontWeight.Normal
+
+    BasicText(
+        text = errorText ?: hintText,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 48.dp, end = 16.dp, bottom = 8.dp),
+        style = TextStyle(
+            fontFamily = typo.bodyFamily,
+            fontSize = 11.sp,
+            fontWeight = displayWeight,
+            color = displayColor,
+        ),
+    )
 }
 
 // ==============================================================================

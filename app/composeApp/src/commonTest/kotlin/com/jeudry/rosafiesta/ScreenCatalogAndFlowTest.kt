@@ -358,4 +358,47 @@ class ScreenCatalogAndFlowTest {
         viewModel.stopVoiceInput()
         assertFalse(viewModel.isVoiceListening.value)
     }
+
+    @Test
+    fun `RosaFiestaViewModel rechaza datos invalidos al editar perfil sin corromper el estado activo`() {
+        val koin = org.koin.dsl.koinApplication {
+            modules(com.jeudry.rosafiesta.di.appModule)
+        }.koin
+        val viewModel = koin.get<com.jeudry.rosafiesta.ui.RosaFiestaViewModel>()
+
+        val originalEmail = viewModel.profileEmail.value
+        val rejectedInvalidEmail = viewModel.saveProfile(
+            draftName = "Jeudry",
+            draftEmail = "jeudry",
+            draftPhone = "809-555-0102",
+            draftBirthDate = "22/09/1996",
+            draftUsername = "yuli",
+        )
+        assertFalse(rejectedInvalidEmail)
+        assertEquals(originalEmail, viewModel.profileEmail.value)
+        assertTrue(viewModel.formError.value != null)
+
+        val rejectedShortPhone = viewModel.saveProfile(
+            draftName = "Jeudry",
+            draftEmail = "jeudry@rosafiesta.do",
+            draftPhone = "809",
+            draftBirthDate = "22/09/1996",
+            draftUsername = "jeudry",
+        )
+        assertFalse(rejectedShortPhone)
+
+        val savedValidProfile = viewModel.saveProfile(
+            draftName = "Jeudry Rosario",
+            draftEmail = "jeudry@rosafiesta.do",
+            draftPhone = "809-555-0199",
+            draftBirthDate = "22/09/1996",
+            draftUsername = "jeudry_rf",
+        )
+        assertTrue(savedValidProfile)
+        assertEquals("Jeudry Rosario", viewModel.profileName.value)
+        assertEquals("jeudry@rosafiesta.do", viewModel.profileEmail.value)
+        assertEquals("809-555-0199", viewModel.profilePhone.value)
+        assertEquals("22/09/1996", viewModel.profileBirthDate.value)
+        assertEquals("jeudry_rf", viewModel.profileUsername.value)
+    }
 }

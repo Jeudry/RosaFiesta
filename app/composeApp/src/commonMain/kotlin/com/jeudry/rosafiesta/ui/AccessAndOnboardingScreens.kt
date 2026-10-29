@@ -98,6 +98,7 @@ import com.jeudry.rosafiesta.designsystem.rfHeroBannerShadow
 import com.jeudry.rosafiesta.designsystem.rfIconButtonShadow
 import com.jeudry.rosafiesta.designsystem.rfInputShadow
 import com.jeudry.rosafiesta.designsystem.rfPrimaryButtonShadow
+import com.jeudry.rosafiesta.domain.validation.InputValidator
 import kotlinx.coroutines.delay
 import androidx.compose.ui.graphics.drawscope.rotate as drawScopeRotate
 
@@ -1744,7 +1745,15 @@ internal fun RenderLoginScreenS07(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
+    var hasAttemptedLogin by remember { mutableStateOf(false) }
+    var localLoginError by remember { mutableStateOf<String?>(null) }
     val formError = viewModel?.formError?.collectAsState()?.value
+
+    val shouldValidateEmail = if (hasAttemptedLogin) true else email.isNotEmpty()
+    val emailFieldError = if (shouldValidateEmail) InputValidator.validateLoginIdentifier(email) else null
+    val shouldValidatePassword = if (hasAttemptedLogin) true else password.isNotEmpty()
+    val passwordFieldError = if (shouldValidatePassword) InputValidator.validatePassword(password) else null
+
     LaunchedEffect(Unit) {
         viewModel?.clearFormError()
     }
@@ -1852,6 +1861,8 @@ internal fun RenderLoginScreenS07(
         ) {
             BasicText("Correo o usuario", style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A2E)))
             Spacer(Modifier.height(8.dp))
+            val emailBorderColor = if (emailFieldError != null) RfColors.Error else Color(0xFFE8E1EE)
+            val emailBorderWidth = if (emailFieldError != null) 1.5.dp else 1.dp
             Box(
                 contentAlignment = Alignment.CenterStart,
                 modifier = Modifier
@@ -1860,7 +1871,7 @@ internal fun RenderLoginScreenS07(
                     .rfInputShadow(RoundedCornerShape(16.dp))
                     .clip(RoundedCornerShape(16.dp))
                     .background(Color.White)
-                    .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(16.dp))
+                    .border(emailBorderWidth, emailBorderColor, RoundedCornerShape(16.dp))
                     .padding(horizontal = 16.dp),
             ) {
                 Row(
@@ -1868,12 +1879,18 @@ internal fun RenderLoginScreenS07(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    RfIcon(kind = RfIconKind.MAIL, tint = Color(0xFF62627A), size = 20.dp)
+                    RfIcon(
+                        kind = RfIconKind.MAIL,
+                        tint = if (emailFieldError != null) RfColors.Error else Color(0xFF62627A),
+                        size = 20.dp,
+                    )
                     BasicTextField(
                         value = email,
                         onValueChange = { nextValue ->
-                            email = nextValue
-                            viewModel?.setLoginEmail(nextValue)
+                            val cappedEmail = nextValue.take(InputValidator.MAX_EMAIL_LENGTH)
+                            email = cappedEmail
+                            localLoginError = null
+                            viewModel?.setLoginEmail(cappedEmail)
                         },
                         singleLine = true,
                         textStyle = typo.body.copy(fontSize = 15.sp, color = Color(0xFF1A1A2E)),
@@ -1891,8 +1908,15 @@ internal fun RenderLoginScreenS07(
                     )
                 }
             }
+            if (emailFieldError != null) {
+                Spacer(Modifier.height(4.dp))
+                BasicText(
+                    text = emailFieldError,
+                    style = typo.caption.copy(fontSize = 12.sp, color = RfColors.Error, fontWeight = FontWeight.SemiBold),
+                )
+            }
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(14.dp))
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -1907,6 +1931,8 @@ internal fun RenderLoginScreenS07(
                 )
             }
             Spacer(Modifier.height(8.dp))
+            val passwordBorderColor = if (passwordFieldError != null) RfColors.Error else Color(0xFFE8E1EE)
+            val passwordBorderWidth = if (passwordFieldError != null) 1.5.dp else 1.dp
             Box(
                 contentAlignment = Alignment.CenterStart,
                 modifier = Modifier
@@ -1915,7 +1941,7 @@ internal fun RenderLoginScreenS07(
                     .rfInputShadow(RoundedCornerShape(16.dp))
                     .clip(RoundedCornerShape(16.dp))
                     .background(Color.White)
-                    .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(16.dp))
+                    .border(passwordBorderWidth, passwordBorderColor, RoundedCornerShape(16.dp))
                     .padding(start = 16.dp, end = 6.dp),
             ) {
                 Row(
@@ -1924,7 +1950,11 @@ internal fun RenderLoginScreenS07(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.weight(1f)) {
-                        RfIcon(kind = RfIconKind.LOCK, tint = Color(0xFF62627A), size = 20.dp)
+                        RfIcon(
+                            kind = RfIconKind.LOCK,
+                            tint = if (passwordFieldError != null) RfColors.Error else Color(0xFF62627A),
+                            size = 20.dp,
+                        )
                         val loginPasswordVisualTransformation = if (showPassword) {
                             VisualTransformation.None
                         } else {
@@ -1933,8 +1963,10 @@ internal fun RenderLoginScreenS07(
                         BasicTextField(
                             value = password,
                             onValueChange = { nextPassword ->
-                                password = nextPassword
-                                viewModel?.setLoginPassword(nextPassword)
+                                val cappedPassword = nextPassword.take(InputValidator.MAX_PASSWORD_LENGTH)
+                                password = cappedPassword
+                                localLoginError = null
+                                viewModel?.setLoginPassword(cappedPassword)
                             },
                             singleLine = true,
                             visualTransformation = loginPasswordVisualTransformation,
@@ -1945,7 +1977,7 @@ internal fun RenderLoginScreenS07(
                                 Box(contentAlignment = Alignment.CenterStart) {
                                     if (password.isEmpty()) {
                                         BasicText(
-                                            text = "Ingresa tu contraseña",
+                                            text = "Ingresa tu contraseña (6 a 64 caracteres)",
                                             style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF9A98AD)),
                                         )
                                     }
@@ -1964,13 +1996,30 @@ internal fun RenderLoginScreenS07(
                     }
                 }
             }
-
-            if (!formError.isNullOrBlank()) {
-                Spacer(Modifier.height(6.dp))
+            if (passwordFieldError != null) {
+                Spacer(Modifier.height(4.dp))
                 BasicText(
-                    text = formError,
-                    style = typo.caption.copy(fontSize = 12.5.sp, color = RfColors.Error, fontWeight = FontWeight.SemiBold),
+                    text = passwordFieldError,
+                    style = typo.caption.copy(fontSize = 12.sp, color = RfColors.Error, fontWeight = FontWeight.SemiBold),
                 )
+            }
+
+            val displayedLoginError = localLoginError ?: formError
+            if (!displayedLoginError.isNullOrBlank()) {
+                Spacer(Modifier.height(8.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color(0xFFFFEDF1))
+                        .border(1.dp, RfColors.Error.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                ) {
+                    BasicText(
+                        text = displayedLoginError,
+                        style = typo.caption.copy(fontSize = 12.5.sp, color = RfColors.Error, fontWeight = FontWeight.SemiBold),
+                    )
+                }
             }
 
             Spacer(Modifier.height(20.dp))
@@ -1986,12 +2035,22 @@ internal fun RenderLoginScreenS07(
                         Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC))),
                     )
                     .clickable {
+                        hasAttemptedLogin = true
                         val trimmedIdentifier = email.trim()
-                        viewModel?.setLoginEmail(trimmedIdentifier)
-                        viewModel?.setLoginPassword(password)
-                        val success = viewModel?.submitLogin() ?: true
-                        if (success) {
-                            onSelectScreenCode("s14")
+                        val checkIdError = InputValidator.validateLoginIdentifier(trimmedIdentifier)
+                        val checkPassError = InputValidator.validatePassword(password)
+                        val firstError = checkIdError ?: checkPassError
+                        if (firstError != null) {
+                            localLoginError = firstError
+                            viewModel?.soundPlayer?.playAlertError()
+                        } else {
+                            localLoginError = null
+                            viewModel?.setLoginEmail(trimmedIdentifier)
+                            viewModel?.setLoginPassword(password)
+                            val success = viewModel?.submitLogin() ?: true
+                            if (success) {
+                                onSelectScreenCode("s14")
+                            }
                         }
                     },
             ) {
@@ -2023,9 +2082,9 @@ internal fun RenderLoginScreenS07(
                         .background(Color.White)
                         .border(1.dp, Color(0xFFEEE9F2), RoundedCornerShape(16.dp))
                         .clickable {
-                            if (email.isNotBlank()) {
-                                viewModel?.applyUserIdentityFromLogin(email)
-                            }
+                            val isTypedEmailValid = InputValidator.validateLoginIdentifier(email) == null
+                            val resolvedIdentity = if (isTypedEmailValid) email.trim() else "camila@rosafiesta.do"
+                            viewModel?.applyUserIdentityFromLogin(resolvedIdentity)
                             onSelectScreenCode("s14")
                         },
                 ) {
@@ -2041,9 +2100,9 @@ internal fun RenderLoginScreenS07(
                         .background(Color.White)
                         .border(1.dp, Color(0xFFEEE9F2), RoundedCornerShape(16.dp))
                         .clickable {
-                            if (email.isNotBlank()) {
-                                viewModel?.applyUserIdentityFromLogin(email)
-                            }
+                            val isTypedEmailValid = InputValidator.validateLoginIdentifier(email) == null
+                            val resolvedIdentity = if (isTypedEmailValid) email.trim() else "camila@rosafiesta.do"
+                            viewModel?.applyUserIdentityFromLogin(resolvedIdentity)
                             onSelectScreenCode("s14")
                         },
                 ) {
@@ -2338,7 +2397,23 @@ internal fun RenderRegisterScreenS08(
     var birthDate by remember { mutableStateOf("") }
     var showBirthDatePicker by remember { mutableStateOf(false) }
     var acceptedTerms by remember { mutableStateOf(true) }
+    var hasAttemptedRegister by remember { mutableStateOf(false) }
+    var localRegisterError by remember { mutableStateOf<String?>(null) }
     val formError = viewModel?.formError?.collectAsState()?.value
+
+    val shouldCheckFirst = if (hasAttemptedRegister) true else firstName.isNotEmpty()
+    val firstNameError = if (shouldCheckFirst) InputValidator.validatePersonNamePart(firstName, "El nombre") else null
+    val shouldCheckLast = if (hasAttemptedRegister) true else lastName.isNotEmpty()
+    val lastNameError = if (shouldCheckLast) InputValidator.validatePersonNamePart(lastName, "El apellido") else null
+    val shouldCheckUser = if (hasAttemptedRegister) true else username.isNotEmpty()
+    val usernameError = if (shouldCheckUser) InputValidator.validateUsername(username) else null
+    val shouldCheckPass = if (hasAttemptedRegister) true else password.isNotEmpty()
+    val passwordError = if (shouldCheckPass) InputValidator.validatePassword(password) else null
+    val shouldCheckEmail = if (hasAttemptedRegister) true else email.isNotEmpty()
+    val emailError = if (shouldCheckEmail) InputValidator.validateEmail(email) else null
+    val shouldCheckBirth = if (hasAttemptedRegister) true else birthDate.isNotEmpty()
+    val birthDateError = if (shouldCheckBirth) InputValidator.validateBirthDate(birthDate, isRequired = true) else null
+
     LaunchedEffect(Unit) {
         viewModel?.clearFormError()
     }
@@ -2419,6 +2494,8 @@ internal fun RenderRegisterScreenS08(
                 .padding(top = 96.dp, start = 24.dp, end = 24.dp, bottom = 20.dp),
         ) {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                val firstBorderColor = if (firstNameError != null) RfColors.Error else Color(0xFFE8E1EE)
+                val firstBorderWidth = if (firstNameError != null) 1.5.dp else 1.dp
                 Box(
                     contentAlignment = Alignment.CenterStart,
                     modifier = Modifier
@@ -2427,13 +2504,14 @@ internal fun RenderRegisterScreenS08(
                         .rfInputShadow(RoundedCornerShape(16.dp))
                         .clip(RoundedCornerShape(16.dp))
                         .background(Color.White)
-                        .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(16.dp))
+                        .border(firstBorderWidth, firstBorderColor, RoundedCornerShape(16.dp))
                         .padding(horizontal = 16.dp),
                 ) {
                     BasicTextField(
                         value = firstName,
                         onValueChange = { nextFirstName ->
-                            firstName = nextFirstName
+                            firstName = nextFirstName.take(InputValidator.MAX_PERSON_NAME_LENGTH)
+                            localRegisterError = null
                             viewModel?.clearFormError()
                         },
                         singleLine = true,
@@ -2442,12 +2520,14 @@ internal fun RenderRegisterScreenS08(
                         modifier = Modifier.fillMaxWidth(),
                         decorationBox = { inner ->
                             if (firstName.isEmpty()) {
-                                BasicText("Nombre", style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF62627A)))
+                                BasicText("Nombre (2–40)", style = typo.body.copy(fontSize = 14.5.sp, color = Color(0xFF62627A)))
                             }
                             inner()
                         },
                     )
                 }
+                val lastBorderColor = if (lastNameError != null) RfColors.Error else Color(0xFFE8E1EE)
+                val lastBorderWidth = if (lastNameError != null) 1.5.dp else 1.dp
                 Box(
                     contentAlignment = Alignment.CenterStart,
                     modifier = Modifier
@@ -2456,13 +2536,14 @@ internal fun RenderRegisterScreenS08(
                         .rfInputShadow(RoundedCornerShape(16.dp))
                         .clip(RoundedCornerShape(16.dp))
                         .background(Color.White)
-                        .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(16.dp))
+                        .border(lastBorderWidth, lastBorderColor, RoundedCornerShape(16.dp))
                         .padding(horizontal = 16.dp),
                 ) {
                     BasicTextField(
                         value = lastName,
                         onValueChange = { nextLastName ->
-                            lastName = nextLastName
+                            lastName = nextLastName.take(InputValidator.MAX_PERSON_NAME_LENGTH)
+                            localRegisterError = null
                             viewModel?.clearFormError()
                         },
                         singleLine = true,
@@ -2471,17 +2552,27 @@ internal fun RenderRegisterScreenS08(
                         modifier = Modifier.fillMaxWidth(),
                         decorationBox = { inner ->
                             if (lastName.isEmpty()) {
-                                BasicText("Apellido", style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF62627A)))
+                                BasicText("Apellido (2–40)", style = typo.body.copy(fontSize = 14.5.sp, color = Color(0xFF62627A)))
                             }
                             inner()
                         },
                     )
                 }
             }
+            val nameRowError = firstNameError ?: lastNameError
+            if (nameRowError != null) {
+                Spacer(Modifier.height(4.dp))
+                BasicText(
+                    text = nameRowError,
+                    style = typo.caption.copy(fontSize = 11.5.sp, color = RfColors.Error, fontWeight = FontWeight.SemiBold),
+                )
+            }
 
             Spacer(Modifier.height(10.dp))
 
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                val userBorderColor = if (usernameError != null) RfColors.Error else Color(0xFFE8E1EE)
+                val userBorderWidth = if (usernameError != null) 1.5.dp else 1.dp
                 Box(
                     contentAlignment = Alignment.CenterStart,
                     modifier = Modifier
@@ -2490,7 +2581,7 @@ internal fun RenderRegisterScreenS08(
                         .rfInputShadow(RoundedCornerShape(16.dp))
                         .clip(RoundedCornerShape(16.dp))
                         .background(Color.White)
-                        .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(16.dp))
+                        .border(userBorderWidth, userBorderColor, RoundedCornerShape(16.dp))
                         .padding(horizontal = 12.dp),
                 ) {
                     Row(
@@ -2498,11 +2589,16 @@ internal fun RenderRegisterScreenS08(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        RfIcon(kind = RfIconKind.USER, tint = Color(0xFF62627A), size = 18.dp)
+                        RfIcon(
+                            kind = RfIconKind.USER,
+                            tint = if (usernameError != null) RfColors.Error else Color(0xFF62627A),
+                            size = 18.dp,
+                        )
                         BasicTextField(
                             value = username,
                             onValueChange = { nextUsername ->
-                                username = nextUsername
+                                username = nextUsername.take(InputValidator.MAX_USERNAME_LENGTH)
+                                localRegisterError = null
                                 viewModel?.clearFormError()
                             },
                             singleLine = true,
@@ -2512,7 +2608,7 @@ internal fun RenderRegisterScreenS08(
                             decorationBox = { inner ->
                                 if (username.isEmpty()) {
                                     BasicText(
-                                        "Usuario",
+                                        "Usuario (3–24)",
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
                                         style = typo.body.copy(fontSize = 14.sp, color = Color(0xFF62627A)),
@@ -2524,6 +2620,8 @@ internal fun RenderRegisterScreenS08(
                     }
                 }
 
+                val passBorderColor = if (passwordError != null) RfColors.Error else Color(0xFFE8E1EE)
+                val passBorderWidth = if (passwordError != null) 1.5.dp else 1.dp
                 Box(
                     contentAlignment = Alignment.CenterStart,
                     modifier = Modifier
@@ -2532,7 +2630,7 @@ internal fun RenderRegisterScreenS08(
                         .rfInputShadow(RoundedCornerShape(16.dp))
                         .clip(RoundedCornerShape(16.dp))
                         .background(Color.White)
-                        .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(16.dp))
+                        .border(passBorderWidth, passBorderColor, RoundedCornerShape(16.dp))
                         .padding(start = 12.dp, end = 4.dp),
                 ) {
                     Row(
@@ -2545,7 +2643,11 @@ internal fun RenderRegisterScreenS08(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             modifier = Modifier.weight(1f),
                         ) {
-                            RfIcon(kind = RfIconKind.LOCK, tint = Color(0xFF62627A), size = 18.dp)
+                            RfIcon(
+                                kind = RfIconKind.LOCK,
+                                tint = if (passwordError != null) RfColors.Error else Color(0xFF62627A),
+                                size = 18.dp,
+                            )
                             val registerPasswordVisualTransformation = if (showPassword) {
                                 VisualTransformation.None
                             } else {
@@ -2554,7 +2656,8 @@ internal fun RenderRegisterScreenS08(
                             BasicTextField(
                                 value = password,
                                 onValueChange = { nextPassword ->
-                                    password = nextPassword
+                                    password = nextPassword.take(InputValidator.MAX_PASSWORD_LENGTH)
+                                    localRegisterError = null
                                     viewModel?.clearFormError()
                                 },
                                 singleLine = true,
@@ -2566,7 +2669,7 @@ internal fun RenderRegisterScreenS08(
                                     Box(contentAlignment = Alignment.CenterStart) {
                                         if (password.isEmpty()) {
                                             BasicText(
-                                                "Contraseña",
+                                                "Clave (6–64)",
                                                 maxLines = 1,
                                                 overflow = TextOverflow.Ellipsis,
                                                 style = typo.body.copy(fontSize = 14.sp, color = Color(0xFF62627A)),
@@ -2588,9 +2691,19 @@ internal fun RenderRegisterScreenS08(
                     }
                 }
             }
+            val credentialsRowError = usernameError ?: passwordError
+            if (credentialsRowError != null) {
+                Spacer(Modifier.height(4.dp))
+                BasicText(
+                    text = credentialsRowError,
+                    style = typo.caption.copy(fontSize = 11.5.sp, color = RfColors.Error, fontWeight = FontWeight.SemiBold),
+                )
+            }
 
             Spacer(Modifier.height(10.dp))
 
+            val emailBorderColor = if (emailError != null) RfColors.Error else Color(0xFFE8E1EE)
+            val emailBorderWidth = if (emailError != null) 1.5.dp else 1.dp
             Box(
                 contentAlignment = Alignment.CenterStart,
                 modifier = Modifier
@@ -2599,15 +2712,20 @@ internal fun RenderRegisterScreenS08(
                     .rfInputShadow(RoundedCornerShape(16.dp))
                     .clip(RoundedCornerShape(16.dp))
                     .background(Color.White)
-                    .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(16.dp))
+                    .border(emailBorderWidth, emailBorderColor, RoundedCornerShape(16.dp))
                     .padding(horizontal = 16.dp),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    RfIcon(kind = RfIconKind.MAIL, tint = Color(0xFF62627A), size = 20.dp)
+                    RfIcon(
+                        kind = RfIconKind.MAIL,
+                        tint = if (emailError != null) RfColors.Error else Color(0xFF62627A),
+                        size = 20.dp,
+                    )
                     BasicTextField(
                         value = email,
                         onValueChange = { nextEmail ->
-                            email = nextEmail
+                            email = nextEmail.take(InputValidator.MAX_EMAIL_LENGTH)
+                            localRegisterError = null
                             viewModel?.clearFormError()
                         },
                         singleLine = true,
@@ -2616,16 +2734,25 @@ internal fun RenderRegisterScreenS08(
                         modifier = Modifier.fillMaxWidth(),
                         decorationBox = { inner ->
                             if (email.isEmpty()) {
-                                BasicText("Correo electrónico", style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF62627A)))
+                                BasicText("Correo electrónico (ej. usuario@dominio.com)", style = typo.body.copy(fontSize = 14.5.sp, color = Color(0xFF62627A)))
                             }
                             inner()
                         },
                     )
                 }
             }
+            if (emailError != null) {
+                Spacer(Modifier.height(4.dp))
+                BasicText(
+                    text = emailError,
+                    style = typo.caption.copy(fontSize = 11.5.sp, color = RfColors.Error, fontWeight = FontWeight.SemiBold),
+                )
+            }
 
             Spacer(Modifier.height(10.dp))
 
+            val birthBorderColor = if (birthDateError != null) RfColors.Error else Color(0xFFE8E1EE)
+            val birthBorderWidth = if (birthDateError != null) 1.5.dp else 1.dp
             Box(
                 contentAlignment = Alignment.CenterStart,
                 modifier = Modifier
@@ -2634,26 +2761,60 @@ internal fun RenderRegisterScreenS08(
                     .rfInputShadow(RoundedCornerShape(16.dp))
                     .clip(RoundedCornerShape(16.dp))
                     .background(Color.White)
-                    .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(16.dp))
-                    .clickable { showBirthDatePicker = true }
-                    .padding(horizontal = 16.dp),
+                    .border(birthBorderWidth, birthBorderColor, RoundedCornerShape(16.dp))
+                    .padding(start = 16.dp, end = 8.dp),
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    RfIcon(kind = RfIconKind.CALENDAR, tint = Color(0xFF62627A), size = 20.dp)
-                    val hasBirthDateValue = birthDate.isNotEmpty()
-                    val birthDateLabel = if (hasBirthDateValue) birthDate else "Fecha de nacimiento (DD/MM/AAAA)"
-                    val birthDateTextColor = if (hasBirthDateValue) Color(0xFF1A1A2E) else Color(0xFF62627A)
-                    BasicText(
-                        text = birthDateLabel,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        style = typo.body.copy(fontSize = 15.sp, color = birthDateTextColor),
+                    RfIcon(
+                        kind = RfIconKind.CALENDAR,
+                        tint = if (birthDateError != null) RfColors.Error else Color(0xFF62627A),
+                        size = 20.dp,
                     )
+                    BasicTextField(
+                        value = birthDate,
+                        onValueChange = { nextBirthDate ->
+                            birthDate = nextBirthDate.take(InputValidator.MAX_BIRTH_DATE_LENGTH)
+                            localRegisterError = null
+                            viewModel?.clearFormError()
+                        },
+                        singleLine = true,
+                        textStyle = typo.body.copy(fontSize = 15.sp, color = Color(0xFF1A1A2E)),
+                        cursorBrush = SolidColor(Color(0xFFD63F98)),
+                        modifier = Modifier.weight(1f),
+                        decorationBox = { inner ->
+                            if (birthDate.isEmpty()) {
+                                BasicText(
+                                    text = "Fecha de nacimiento (DD/MM/AAAA)",
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    style = typo.body.copy(fontSize = 14.5.sp, color = Color(0xFF62627A)),
+                                )
+                            }
+                            inner()
+                        },
+                    )
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFF8F2FC))
+                            .clickable { showBirthDatePicker = true },
+                    ) {
+                        RfIcon(kind = RfIconKind.CALENDAR, tint = Color(0xFFC2338F), size = 16.dp)
+                    }
                 }
+            }
+            if (birthDateError != null) {
+                Spacer(Modifier.height(4.dp))
+                BasicText(
+                    text = birthDateError,
+                    style = typo.caption.copy(fontSize = 11.5.sp, color = RfColors.Error, fontWeight = FontWeight.SemiBold),
+                )
             }
 
             Spacer(Modifier.height(8.dp))
@@ -2664,7 +2825,10 @@ internal fun RenderRegisterScreenS08(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(start = 2.dp, top = 8.dp)
-                    .clickable { acceptedTerms = !acceptedTerms },
+                    .clickable {
+                        acceptedTerms = !acceptedTerms
+                        localRegisterError = null
+                    },
             ) {
                 Box(
                     contentAlignment = Alignment.Center,
@@ -2685,12 +2849,22 @@ internal fun RenderRegisterScreenS08(
                 }
             }
 
-            if (!formError.isNullOrBlank()) {
+            val displayedRegError = localRegisterError ?: formError
+            if (!displayedRegError.isNullOrBlank()) {
                 Spacer(Modifier.height(8.dp))
-                BasicText(
-                    text = formError,
-                    style = typo.caption.copy(fontSize = 12.5.sp, color = RfColors.Error, fontWeight = FontWeight.SemiBold),
-                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color(0xFFFFEDF1))
+                        .border(1.dp, RfColors.Error.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                ) {
+                    BasicText(
+                        text = displayedRegError,
+                        style = typo.caption.copy(fontSize = 12.5.sp, color = RfColors.Error, fontWeight = FontWeight.SemiBold),
+                    )
+                }
             }
 
             Spacer(Modifier.height(14.dp))
@@ -2704,17 +2878,38 @@ internal fun RenderRegisterScreenS08(
                     .clip(RoundedCornerShape(16.dp))
                     .background(Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC))))
                     .clickable {
-                        val registered = viewModel?.submitRegistration(
-                            firstName = firstName,
-                            lastName = lastName,
-                            username = username,
-                            email = email,
-                            password = password,
-                            birthDate = birthDate,
-                            acceptedTerms = acceptedTerms,
-                        ) ?: true
-                        if (registered) {
-                            onSelectScreenCode("s14")
+                        hasAttemptedRegister = true
+                        val checkFirstError = InputValidator.validatePersonNamePart(firstName, "El nombre")
+                        val checkLastError = InputValidator.validatePersonNamePart(lastName, "El apellido")
+                        val checkUserError = InputValidator.validateUsername(username)
+                        val checkPassError = InputValidator.validatePassword(password)
+                        val checkEmailError = InputValidator.validateEmail(email)
+                        val checkBirthError = InputValidator.validateBirthDate(birthDate, isRequired = true)
+                        val termsError = if (!acceptedTerms) "Debes aceptar los Términos y condiciones para continuar." else null
+                        val firstValidationError = checkFirstError
+                            ?: checkLastError
+                            ?: checkUserError
+                            ?: checkPassError
+                            ?: checkEmailError
+                            ?: checkBirthError
+                            ?: termsError
+                        if (firstValidationError != null) {
+                            localRegisterError = firstValidationError
+                            viewModel?.soundPlayer?.playAlertError()
+                        } else {
+                            localRegisterError = null
+                            val registered = viewModel?.submitRegistration(
+                                firstName = firstName,
+                                lastName = lastName,
+                                username = username,
+                                email = email,
+                                password = password,
+                                birthDate = birthDate,
+                                acceptedTerms = acceptedTerms,
+                            ) ?: true
+                            if (registered) {
+                                onSelectScreenCode("s14")
+                            }
                         }
                     },
             ) {
@@ -3171,13 +3366,16 @@ internal fun RenderRecoveryAndConfirmationScreens(
     var confirmPassword by remember { mutableStateOf("") }
     var showNewPassword by remember { mutableStateOf(false) }
     var showConfirmPassword by remember { mutableStateOf(false) }
+    var recoveryEmailError by remember { mutableStateOf<String?>(null) }
     val formError = viewModel?.formError?.collectAsState()?.value
     LaunchedEffect(spec.code) {
+        recoveryEmailError = null
         viewModel?.clearFormError()
     }
 
     when (spec.code) {
         "s09" -> {
+            val liveRecError = if (recoveryEmail.isNotEmpty()) InputValidator.validateEmail(recoveryEmail) else recoveryEmailError
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -3253,6 +3451,8 @@ internal fun RenderRecoveryAndConfirmationScreens(
                 ) {
                     BasicText("Correo electrónico", style = typo.fieldLabel.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A2E)))
                     Spacer(Modifier.height(8.dp))
+                    val recBorderColor = if (liveRecError != null) RfColors.Error else Color(0xFFE8E1EE)
+                    val recBorderWidth = if (liveRecError != null) 1.5.dp else 1.dp
                     Box(
                         contentAlignment = Alignment.CenterStart,
                         modifier = Modifier
@@ -3261,14 +3461,21 @@ internal fun RenderRecoveryAndConfirmationScreens(
                             .rfInputShadow(RoundedCornerShape(16.dp))
                             .clip(RoundedCornerShape(16.dp))
                             .background(Color.White)
-                            .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(16.dp))
+                            .border(recBorderWidth, recBorderColor, RoundedCornerShape(16.dp))
                             .padding(horizontal = 16.dp),
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            RfIcon(kind = RfIconKind.MAIL, tint = Color(0xFF62627A), size = 20.dp)
+                            RfIcon(
+                                kind = RfIconKind.MAIL,
+                                tint = if (liveRecError != null) RfColors.Error else Color(0xFF62627A),
+                                size = 20.dp,
+                            )
                             BasicTextField(
                                 value = recoveryEmail,
-                                onValueChange = { nextEmail -> recoveryEmail = nextEmail },
+                                onValueChange = { nextEmail ->
+                                    recoveryEmail = nextEmail.take(InputValidator.MAX_EMAIL_LENGTH)
+                                    recoveryEmailError = null
+                                },
                                 singleLine = true,
                                 textStyle = typo.body.copy(fontSize = 15.sp, color = Color(0xFF1A1A2E)),
                                 cursorBrush = SolidColor(Color(0xFFD63F98)),
@@ -3281,6 +3488,13 @@ internal fun RenderRecoveryAndConfirmationScreens(
                                 },
                             )
                         }
+                    }
+                    if (liveRecError != null) {
+                        Spacer(Modifier.height(6.dp))
+                        BasicText(
+                            text = liveRecError,
+                            style = typo.caption.copy(fontSize = 12.sp, color = RfColors.Error, fontWeight = FontWeight.SemiBold),
+                        )
                     }
 
                     Spacer(Modifier.height(20.dp))
@@ -3295,11 +3509,16 @@ internal fun RenderRecoveryAndConfirmationScreens(
                             .background(Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC))))
                             .clickable {
                                 val trimmedRec = recoveryEmail.trim()
-                                if (trimmedRec.isNotEmpty()) {
+                                val emailValidation = InputValidator.validateEmail(trimmedRec)
+                                if (emailValidation != null) {
+                                    recoveryEmailError = emailValidation
+                                    viewModel?.soundPlayer?.playAlertError()
+                                } else {
+                                    recoveryEmailError = null
                                     viewModel?.setLoginEmail(trimmedRec)
                                     viewModel?.applyUserIdentityFromLogin(trimmedRec)
+                                    onSelectScreenCode("s10")
                                 }
-                                onSelectScreenCode("s10")
                             },
                     ) {
                         BasicText("Enviar enlace", style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White))
@@ -3432,7 +3651,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                                 BasicTextField(
                                     value = newPassword,
                                     onValueChange = { nextPass ->
-                                        newPassword = nextPass
+                                        newPassword = nextPass.take(InputValidator.MAX_PASSWORD_LENGTH)
                                         viewModel?.clearFormError()
                                     },
                                     singleLine = true,
@@ -3563,7 +3782,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                                 BasicTextField(
                                     value = confirmPassword,
                                     onValueChange = { nextPass ->
-                                        confirmPassword = nextPass
+                                        confirmPassword = nextPass.take(InputValidator.MAX_PASSWORD_LENGTH)
                                         viewModel?.clearFormError()
                                     },
                                     singleLine = true,
