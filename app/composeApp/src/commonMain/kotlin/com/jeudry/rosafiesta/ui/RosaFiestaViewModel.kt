@@ -59,6 +59,20 @@ public data class DirectChatMessageUiModel(
     public val isFromClient: Boolean,
 )
 
+public data class AdminOnboardingSummary(
+    public val activeEventsCount: Int,
+    public val leadEventTitle: String,
+    public val leadEventDate: String,
+    public val leadEventGuests: Int,
+    public val leadEventVenue: String,
+    public val leadEventItemsCount: Int,
+    public val primaryArticleTitle: String,
+    public val primaryArticleAvailableStock: Int,
+    public val monthlyIncomeDop: Int,
+    public val depositPendingDop: Int,
+    public val totalArticlesInCatalog: Int,
+)
+
 /**
  * ViewModel multiplataforma compartido para `PersonalApp` y `AdminApp`.
  * Mantiene el estado reactivo de formularios, filtros, Rosa IA, sonidos CC0, almacenamiento seguro y operaciones de negocio.
@@ -1320,5 +1334,39 @@ public class RosaFiestaViewModel(
         _formError.value = null
         _formFeedback.value = "Reglas guardadas: anticipo $dep% · envío base RD$ $deliv."
         return true
+    }
+
+    public fun getAdminOnboardingSummary(): AdminOnboardingSummary {
+        val currentEvents = events.value
+        val leadEvent = currentEvents.firstOrNull { eventItem -> eventItem.id == "evt-boda-real" }
+            ?: currentEvents.firstOrNull()
+        val currentArticles = articles.value
+        val primaryChair = currentArticles.firstOrNull { articleItem -> articleItem.id == "art-silla-tiffany" }
+            ?: currentArticles.firstOrNull()
+        val currentMetrics = metrics.value
+        val calculatedIncome = if (currentMetrics.octoberRevenueDop > 0) {
+            currentMetrics.octoberRevenueDop
+        } else {
+            12450
+        }
+        val calculatedDepositPending = if (currentMetrics.accountsReceivableDop > 0) {
+            currentMetrics.accountsReceivableDop
+        } else {
+            4500
+        }
+
+        return AdminOnboardingSummary(
+            activeEventsCount = currentEvents.size.coerceAtLeast(3),
+            leadEventTitle = leadEvent?.title ?: "Boda Real Rosa & Dorado",
+            leadEventDate = leadEvent?.dateLabel ?: "Vie 23 oct",
+            leadEventGuests = leadEvent?.guests ?: 120,
+            leadEventVenue = leadEvent?.venue ?: "Jardín Botánico",
+            leadEventItemsCount = leadEvent?.items?.sumOf { item -> item.quantity } ?: 145,
+            primaryArticleTitle = primaryChair?.name ?: "Sillas Tiffany doradas",
+            primaryArticleAvailableStock = primaryChair?.totalStock ?: 200,
+            monthlyIncomeDop = calculatedIncome,
+            depositPendingDop = calculatedDepositPending,
+            totalArticlesInCatalog = currentArticles.size.coerceAtLeast(12),
+        )
     }
 }

@@ -2273,11 +2273,27 @@ internal fun RenderAdminNotificationsA29(
 // ==============================================================================
 @Composable
 internal fun RenderAdminEntryChoiceA30(
+    viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
     var step by remember { mutableStateOf(1) }
     var rememberChoice by remember { mutableStateOf(true) }
+    val onboardingSummary = remember(viewModel) {
+        viewModel?.getAdminOnboardingSummary() ?: AdminOnboardingSummary(
+            activeEventsCount = 3,
+            leadEventTitle = "Boda Real Rosa & Dorado",
+            leadEventDate = "Vie 23 oct",
+            leadEventGuests = 120,
+            leadEventVenue = "Jardín Botánico",
+            leadEventItemsCount = 145,
+            primaryArticleTitle = "Sillas Tiffany doradas",
+            primaryArticleAvailableStock = 200,
+            monthlyIncomeDop = 12450,
+            depositPendingDop = 4500,
+            totalArticlesInCatalog = 12,
+        )
+    }
 
     Box(
         modifier = Modifier
@@ -2316,6 +2332,7 @@ internal fun RenderAdminEntryChoiceA30(
                 val activeOnboardingStep = step.coerceIn(1, 3)
                 RenderAdminOnboardingStep(
                     step = activeOnboardingStep,
+                    summary = onboardingSummary,
                     onSelectStep = { nextStep -> step = nextStep },
                     onSkip = { step = 4 },
                 )
@@ -2347,7 +2364,7 @@ internal fun RenderAdminEntryChoiceA30(
                         modifier = Modifier
                             .fillMaxSize()
                             .verticalScroll(rememberScrollState())
-                            .padding(top = 72.dp, start = 20.dp, end = 20.dp, bottom = 84.dp),
+                            .padding(top = 96.dp, start = 20.dp, end = 20.dp, bottom = 84.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Column(
@@ -2363,7 +2380,7 @@ internal fun RenderAdminEntryChoiceA30(
 
                             BasicText("Hola, María", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 26.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E324A)))
                             BasicText(
-                                text = "Tu cuenta tiene acceso de administración.\n¿Cómo quieres entrar?",
+                                text = "Tu cuenta tiene acceso de administración. ¿Cómo quieres entrar?",
                                 style = TextStyle(
                                     fontFamily = typo.bodyFamily,
                                     fontSize = 15.sp,
@@ -2530,6 +2547,7 @@ internal fun RenderAdminEntryChoiceA30(
 @Composable
 private fun RenderAdminOnboardingStep(
     step: Int,
+    summary: AdminOnboardingSummary,
     onSelectStep: (Int) -> Unit,
     onSkip: () -> Unit,
 ) {
@@ -2625,14 +2643,14 @@ private fun RenderAdminOnboardingStep(
                 else -> Color(0xFF1F8A84)
             }
             val stepTitle = when (animatedStep) {
-                1 -> "Controla cada evento de principio a fin"
-                2 -> "Cotiza en segundos con stock real"
-                else -> "Tu inventario y tus cobros al día"
+                1 -> "Control de eventos en tiempo real"
+                2 -> "Cotizaciones automáticas con stock real"
+                else -> "Inventario y cobros al día"
             }
             val stepSubtitle = when (animatedStep) {
-                1 -> "Revisa solicitudes nuevas, asigna tareas de montaje a tu equipo y sigue cada entrega en tiempo real."
-                2 -> "Pídele a Rosa IA un borrador para cualquier fecha: verifica tu inventario disponible y redacta la propuesta al instante."
-                else -> "Consulta disponibilidad por fecha sin sobrevender, registra transferencias del 30 % de anticipo y emite recibos."
+                1 -> "${summary.activeEventsCount} eventos activos · Próximo: ${summary.leadEventTitle} (${summary.leadEventDate})"
+                2 -> "Rosa IA valida stock libre de ${summary.primaryArticleTitle} y calcula anticipo del 30 % al instante"
+                else -> "RD$ ${summary.monthlyIncomeDop} en ingresos · ${summary.totalArticlesInCatalog} artículos controlados · RD$ ${summary.depositPendingDop} por cobrar"
             }
 
             Column(
@@ -2645,7 +2663,7 @@ private fun RenderAdminOnboardingStep(
                         .fillMaxWidth()
                         .padding(horizontal = 20.dp),
                 ) {
-                    AdminOnboardingIllustrationCard(step = animatedStep)
+                    AdminOnboardingIllustrationCard(step = animatedStep, summary = summary)
                 }
 
                 Spacer(modifier = Modifier.height(18.dp))
@@ -2672,10 +2690,10 @@ private fun RenderAdminOnboardingStep(
                         text = stepTitle,
                         style = TextStyle(
                             fontFamily = typo.displayFamily,
-                            fontSize = 28.sp,
+                            fontSize = 26.sp,
                             fontWeight = FontWeight.ExtraBold,
                             color = Color(0xFF151729),
-                            lineHeight = 33.sp,
+                            lineHeight = 31.sp,
                         ),
                     )
 
@@ -2685,9 +2703,10 @@ private fun RenderAdminOnboardingStep(
                         text = stepSubtitle,
                         style = TextStyle(
                             fontFamily = typo.bodyFamily,
-                            fontSize = 15.5.sp,
+                            fontSize = 14.5.sp,
+                            fontWeight = FontWeight.Medium,
                             color = Color(0xFF5F6377),
-                            lineHeight = 23.sp,
+                            lineHeight = 22.sp,
                         ),
                     )
                 }
@@ -2821,7 +2840,10 @@ private fun buildAdminOnboardingStepTransition(isAdvancing: Boolean): ContentTra
 }
 
 @Composable
-private fun AdminOnboardingIllustrationCard(step: Int) {
+private fun AdminOnboardingIllustrationCard(
+    step: Int,
+    summary: AdminOnboardingSummary,
+) {
     val typo = LocalRfTypography.current
     Box(
         modifier = Modifier
@@ -2864,7 +2886,7 @@ private fun AdminOnboardingIllustrationCard(step: Int) {
                     ) {
                         RfPhoto(
                             photoKey = RfPhotoKey.BODA,
-                            contentDescription = "Montaje Boda Real",
+                            contentDescription = summary.leadEventTitle,
                             cornerRadius = 20.dp,
                             modifier = Modifier.fillMaxSize(),
                         )
@@ -2889,7 +2911,7 @@ private fun AdminOnboardingIllustrationCard(step: Int) {
                         ) {
                             RfIcon(kind = RfIconKind.SPARK, tint = Color(0xFF2E1A47), size = 12.dp)
                             BasicText(
-                                "4 montajes esta semana",
+                                "${summary.activeEventsCount} eventos activos",
                                 style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 11.5.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF2E1A47)),
                             )
                         }
@@ -2903,11 +2925,11 @@ private fun AdminOnboardingIllustrationCard(step: Int) {
                         ) {
                             Column {
                                 BasicText(
-                                    "Boda Real Rosa & Dorado",
+                                    summary.leadEventTitle,
                                     style = TextStyle(fontFamily = typo.displayFamily, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = Color.White),
                                 )
                                 BasicText(
-                                    "Vie 23 oct · Jardín Botánico · 145 pzas",
+                                    "${summary.leadEventDate} · ${summary.leadEventVenue} · ${summary.leadEventItemsCount} pzas",
                                     style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = Color(0xFFE3E4EF)),
                                 )
                             }
@@ -2918,7 +2940,7 @@ private fun AdminOnboardingIllustrationCard(step: Int) {
                                     .padding(horizontal = 9.dp, vertical = 4.dp),
                             ) {
                                 BasicText(
-                                    "98% a tiempo",
+                                    "Confirmado",
                                     style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF2E3A08)),
                                 )
                             }
@@ -2929,7 +2951,7 @@ private fun AdminOnboardingIllustrationCard(step: Int) {
                         day = "02",
                         month = "NOV",
                         title = "Quinceañera Valentina Crystal",
-                        subtitle = "Hotel Embajador · Equipo Pedro y Yuli",
+                        subtitle = "Hotel Embajador · 85 invitados",
                         badge = "Confirmado",
                         badgeBg = Color(0xFFEEF6D6),
                         badgeTint = Color(0xFF4E6A10),
@@ -2938,7 +2960,7 @@ private fun AdminOnboardingIllustrationCard(step: Int) {
                         day = "07",
                         month = "NOV",
                         title = "Cumpleaños de Mateo",
-                        subtitle = "Laura Peña · Solicitud recibida hoy",
+                        subtitle = "Laura Peña · En revisión",
                         badge = "Por cotizar",
                         badgeBg = Color(0xFFFFF2C9),
                         badgeTint = Color(0xFF7A5700),
@@ -2962,36 +2984,23 @@ private fun AdminOnboardingIllustrationCard(step: Int) {
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                             modifier = Modifier.fillMaxWidth(),
                         ) {
-                            Box(contentAlignment = Alignment.Center, modifier = Modifier.size(64.dp)) {
+                            Box(contentAlignment = Alignment.Center, modifier = Modifier.size(56.dp)) {
                                 Box(
                                     modifier = Modifier
-                                        .size(64.dp)
+                                        .size(56.dp)
                                         .clip(CircleShape)
                                         .background(Color.White.copy(alpha = 0.14f)),
                                 )
-                                RosaAvatar(size = RosaAvatarSize.MEDIUM, customSize = 52.dp, forceAdminPalette = true)
+                                RosaAvatar(size = RosaAvatarSize.MEDIUM, customSize = 46.dp, forceAdminPalette = true)
                             }
-                            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                ) {
-                                    BasicText(
-                                        text = "Rosa IA · Copiloto Admin",
-                                        style = TextStyle(fontFamily = typo.displayFamily, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = Color.White),
-                                    )
-                                    Box(
-                                        modifier = Modifier
-                                            .clip(CircleShape)
-                                            .background(Color(0xFF2FB8C8))
-                                            .padding(horizontal = 7.dp, vertical = 2.dp),
-                                    ) {
-                                        BasicText("PRO", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, color = Color.White))
-                                    }
-                                }
+                            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                                 BasicText(
-                                    text = "“Arma boda para 120 inv. el 23 oct con sillas Tiffany y arco floral”",
-                                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.5.sp, color = Color(0xFFDCDDF8), lineHeight = 17.sp),
+                                    text = "Rosa IA · Copiloto Administrativo",
+                                    style = TextStyle(fontFamily = typo.displayFamily, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = Color.White),
+                                )
+                                BasicText(
+                                    text = "Verifica disponibilidad en tiempo real y cotiza sin errores.",
+                                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = Color(0xFFDCDDF8), lineHeight = 16.sp),
                                 )
                             }
                         }
@@ -3012,13 +3021,13 @@ private fun AdminOnboardingIllustrationCard(step: Int) {
                         ) {
                             RfPhoto(
                                 photoKey = RfPhotoKey.SILLA_TIFFANY,
-                                contentDescription = "Silla Tiffany",
+                                contentDescription = summary.primaryArticleTitle,
                                 cornerRadius = 10.dp,
                                 modifier = Modifier.size(42.dp),
                             )
                             Column(modifier = Modifier.weight(1f)) {
-                                BasicText("120 Sillas Tiffany + 15 Mesas", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF151729)))
-                                BasicText("Stock verificado para el 23 oct", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = Color(0xFF5F6377)))
+                                BasicText(summary.primaryArticleTitle, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF151729)))
+                                BasicText("${summary.primaryArticleAvailableStock} unidades en catálogo", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = Color(0xFF5F6377)))
                             }
                             Box(
                                 modifier = Modifier
@@ -3026,7 +3035,7 @@ private fun AdminOnboardingIllustrationCard(step: Int) {
                                     .background(Color(0xFFEEF6D6))
                                     .padding(horizontal = 8.dp, vertical = 4.dp),
                             ) {
-                                BasicText("Stock libre", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF4E6A10)))
+                                BasicText("Disponible", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF4E6A10)))
                             }
                         }
                         Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFECECF5)))
@@ -3035,8 +3044,8 @@ private fun AdminOnboardingIllustrationCard(step: Int) {
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            BasicText("Propuesta lista (anticipo 30 %)", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.5.sp, color = Color(0xFF5F6377)))
-                            BasicText("RD$ 4,500", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF4B47D6)))
+                            BasicText("Anticipo sugerido (30 %)", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.5.sp, color = Color(0xFF5F6377)))
+                            BasicText("RD$ ${summary.depositPendingDop}", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF4B47D6)))
                         }
                     }
                 }
@@ -3056,8 +3065,8 @@ private fun AdminOnboardingIllustrationCard(step: Int) {
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Column {
-                                    BasicText("Ingresos de octubre", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.5.sp, color = Color(0xFFE9EEFF)))
-                                    BasicText("RD$ 12,450", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, color = Color.White))
+                                    BasicText("Ingresos registrados", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.5.sp, color = Color(0xFFE9EEFF)))
+                                    BasicText("RD$ ${summary.monthlyIncomeDop}", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = Color.White))
                                 }
                                 Box(
                                     modifier = Modifier
@@ -3065,7 +3074,7 @@ private fun AdminOnboardingIllustrationCard(step: Int) {
                                         .background(Color(0xFFFFD45C))
                                         .padding(horizontal = 10.dp, vertical = 4.dp),
                                 ) {
-                                    BasicText("+18 % vs sep", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 11.5.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF2E1A47)))
+                                    BasicText("Al día", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 11.5.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF2E1A47)))
                                 }
                             }
                             Row(
@@ -3089,20 +3098,20 @@ private fun AdminOnboardingIllustrationCard(step: Int) {
                     }
 
                     AdminOnboardingEventMiniRow(
-                        day = "18",
-                        month = "OCT",
-                        title = "Anticipo 30 % · Camila Rodríguez",
-                        subtitle = "Transferencia Banreservas · Recibo #184",
-                        badge = "RD$ 1,350",
+                        day = "30%",
+                        month = "PAGO",
+                        title = "Anticipo de reserva garantizado",
+                        subtitle = "Transferencia o tarjeta por banco",
+                        badge = "RD$ ${summary.depositPendingDop}",
                         badgeBg = Color(0xFFEEF6D6),
                         badgeTint = Color(0xFF4E6A10),
                     )
                     AdminOnboardingEventMiniRow(
-                        day = "86",
+                        day = "${summary.totalArticlesInCatalog}",
                         month = "SKU",
-                        title = "358 piezas controladas en vivo",
-                        subtitle = "Alertas de mantenimiento y calendario",
-                        badge = "92 % uso",
+                        title = "${summary.totalArticlesInCatalog} artículos en catálogo",
+                        subtitle = "Control de disponibilidad y mantenimiento",
+                        badge = "En orden",
                         badgeBg = Color(0xFFDDF4F3),
                         badgeTint = Color(0xFF1F8A84),
                     )

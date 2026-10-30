@@ -285,7 +285,7 @@ fun RenderScreenSpec(
                 "A15" -> RenderAdminChatConversationA15(onSelectScreenCode = onSelectScreenCode)
                 "A22" -> RenderAdminQuotesA22(onSelectScreenCode = onSelectScreenCode)
                 "A29" -> RenderAdminNotificationsA29(onSelectScreenCode = onSelectScreenCode)
-                "A30" -> RenderAdminEntryChoiceA30(onSelectScreenCode = onSelectScreenCode)
+                "A30" -> RenderAdminEntryChoiceA30(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
                 "A31" -> RenderAdminSettingsA31(onSelectScreenCode = onSelectScreenCode)
                 "A32" -> RenderAdminCancellationsA32(onSelectScreenCode = onSelectScreenCode)
                 "A33" -> RenderAdminRefundA33(onSelectScreenCode = onSelectScreenCode)

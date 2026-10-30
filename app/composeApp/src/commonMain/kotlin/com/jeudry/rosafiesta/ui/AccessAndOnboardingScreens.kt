@@ -296,28 +296,14 @@ internal fun RenderAdminSplashA00(onPrimaryAction: () -> Unit) {
             .clickable(onClick = onPrimaryAction),
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
-            val s = this.size.width / 390f
-            scale(s, s, Offset.Zero) {
-                drawCircle(Color.White.copy(alpha = 0.08f), radius = 130f, center = Offset(330f, 130f))
-                drawCircle(Color.White.copy(alpha = 0.06f), radius = 140f, center = Offset(55f, 710f))
-                drawCircle(
-                    color = Color.White.copy(alpha = 0.10f),
-                    radius = 128f,
-                    center = Offset(195f, 340f),
-                    style = Stroke(width = 1.5f),
-                )
-                drawCircle(
-                    color = Color(0xFF2FB8C8).copy(alpha = 0.25f),
-                    radius = 152f,
-                    center = Offset(195f, 340f),
-                    style = Stroke(width = 1.2f),
-                )
+            val scaleFactor = this.size.width / 390f
+            scale(scaleFactor, scaleFactor, Offset.Zero) {
+                drawCircle(Color.White.copy(alpha = 0.07f), radius = 110f, center = Offset(320f, 140f))
+                drawCircle(Color.White.copy(alpha = 0.06f), radius = 120f, center = Offset(60f, 720f))
                 drawLine(Color.White.copy(alpha = 0.08f), start = Offset(0f, 640f), end = Offset(390f, 640f))
                 drawLine(Color.White.copy(alpha = 0.06f), start = Offset(0f, 680f), end = Offset(390f, 680f))
-                drawSvgStar(center = Offset(305f, 235f), scale = 1.05f, color = Color(0xFFFFD45C))
-                drawSvgStar(center = Offset(82f, 430f), scale = 0.75f, color = Color(0xFFB9D84A))
-                drawCircle(Color(0xFFD6EA8C), radius = 4.5f, center = Offset(84f, 250f))
-                drawCircle(Color(0xFFFFD45C), radius = 3.5f, center = Offset(312f, 455f))
+                drawSvgStar(center = Offset(300f, 250f), scale = 0.9f, color = Color(0xFFFFD45C))
+                drawCircle(Color(0xFFD6EA8C), radius = 4f, center = Offset(84f, 250f))
             }
         }
 
@@ -325,22 +311,26 @@ internal fun RenderAdminSplashA00(onPrimaryAction: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
                 .fillMaxWidth()
-                .align(Alignment.Center),
+                .padding(top = 290.dp),
         ) {
             Box(
                 contentAlignment = Alignment.Center,
-                modifier = Modifier.size(188.dp),
+                modifier = Modifier
+                    .size(136.dp)
+                    .drawBehind {
+                        drawCircle(
+                            color = Color.White.copy(alpha = 0.07f),
+                            radius = size.width / 2f + 26.dp.toPx(),
+                        )
+                        drawCircle(
+                            color = Color.White.copy(alpha = 0.14f),
+                            radius = size.width / 2f + 12.dp.toPx(),
+                        )
+                    }
+                    .shadow(elevation = 24.dp, shape = CircleShape, spotColor = Color(0x8C141E5A))
+                    .clip(CircleShape)
+                    .background(Color.White),
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(188.dp)
-                        .background(Color.White.copy(alpha = 0.07f), CircleShape),
-                )
-                Box(
-                    modifier = Modifier
-                        .size(160.dp)
-                        .background(Color.White.copy(alpha = 0.14f), CircleShape),
-                )
                 RfLogo(customSize = 136.dp, insetPadding = false)
             }
 
@@ -355,7 +345,7 @@ internal fun RenderAdminSplashA00(onPrimaryAction: () -> Unit) {
                 ),
             )
 
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(12.dp))
 
             Box(
                 contentAlignment = Alignment.Center,
@@ -377,7 +367,7 @@ internal fun RenderAdminSplashA00(onPrimaryAction: () -> Unit) {
             }
         }
 
-        // Barra de progreso inferior (y = 762dp)
+        // Barra de progreso inferior fiel a HTML (y = 762dp)
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
