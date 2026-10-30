@@ -52,7 +52,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import com.jeudry.rosafiesta.designsystem.LocalRfPalette
 import com.jeudry.rosafiesta.designsystem.LocalRfTypography
+import com.jeudry.rosafiesta.designsystem.RfThemeState
 import com.jeudry.rosafiesta.designsystem.RfGradientPriceText
 import com.jeudry.rosafiesta.designsystem.RfIcon
 import com.jeudry.rosafiesta.designsystem.RfIconKind
@@ -128,7 +130,7 @@ internal fun RenderPersonalCatalogS18(
                         .size(44.dp)
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
-                        .background(Color.White)
+                        .background(RfThemeState.currentPalette.surface)
                         .border(1.dp, Color(0xFFECECF5), CircleShape)
                         .clickable { onSelectScreenCode("s20") },
                 ) {
@@ -146,7 +148,7 @@ internal fun RenderPersonalCatalogS18(
                             .fillMaxSize()
                             .rfIconButtonShadow(CircleShape, isAdmin = false)
                             .clip(CircleShape)
-                            .background(Color.White)
+                            .background(RfThemeState.currentPalette.surface)
                             .border(1.dp, Color(0xFFECECF5), CircleShape),
                     ) {
                         RfIcon(kind = RfIconKind.PARTY, tint = Color(0xFF151729), size = 20.dp)
@@ -178,8 +180,8 @@ internal fun RenderPersonalCatalogS18(
                 .height(52.dp)
                 .rfInputShadow(RoundedCornerShape(16.dp), isAdmin = false)
                 .clip(RoundedCornerShape(16.dp))
-                .background(Color.White)
-                .border(1.dp, Color(0xFFF0EBF4), RoundedCornerShape(16.dp))
+                .background(RfThemeState.currentPalette.surface)
+                .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(16.dp))
                 .padding(start = 16.dp, end = 6.dp),
         ) {
             Row(
@@ -263,7 +265,7 @@ internal fun RenderPersonalCatalogS18(
                             if (isSelected) {
                                 Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)))
                             } else {
-                                SolidColor(Color(0xFFF1EFF5))
+                                SolidColor(RfThemeState.currentPalette.chipBg)
                             },
                         )
                         .border(1.dp, if (isSelected) Color.Transparent else Color(0xFFE9E9F2), RoundedCornerShape(999.dp))
@@ -400,14 +402,15 @@ private fun PersonalProductCard(
     modifier: Modifier = Modifier,
 ) {
     val typo = LocalRfTypography.current
-    var isFavorite by remember(initialFavorite) { mutableStateOf(initialFavorite) }
+    val palette = LocalRfPalette.current
+    var isFavorite by remember(title, initialFavorite) { mutableStateOf(initialFavorite) }
 
     Box(
         modifier = modifier
             .rfCardShadow(RoundedCornerShape(20.dp))
             .clip(RoundedCornerShape(20.dp))
-            .background(Color.White)
-            .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(20.dp))
+            .background(palette.surface)
+            .border(1.dp, palette.line, RoundedCornerShape(20.dp))
             .clickable(onClick = onOpenDetail),
     ) {
         Column {
@@ -444,7 +447,7 @@ private fun PersonalProductCard(
                         .padding(8.dp)
                         .size(36.dp)
                         .clip(RoundedCornerShape(12.dp))
-                        .background(Color.White)
+                        .background(RfThemeState.currentPalette.surface)
                         .clickable {
                             isFavorite = !isFavorite
                             onToggleFavorite?.invoke()
@@ -460,9 +463,9 @@ private fun PersonalProductCard(
             }
 
             Column(modifier = Modifier.padding(start = 14.dp, end = 12.dp, top = 12.dp, bottom = 12.dp)) {
-                BasicText(title, maxLines = 1, style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A2E)))
+                BasicText(title, maxLines = 1, style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = RfThemeState.currentPalette.ink))
                 Spacer(Modifier.height(3.dp))
-                BasicText(desc, maxLines = 1, style = typo.secondary.copy(fontSize = 13.sp, color = Color(0xFF62627A)))
+                BasicText(desc, maxLines = 1, style = typo.secondary.copy(fontSize = 13.sp, color = RfThemeState.currentPalette.muted))
                 Spacer(Modifier.height(8.dp))
 
                 Row(
@@ -481,10 +484,10 @@ private fun PersonalProductCard(
                                 style = typo.heroTitle.copy(
                                     fontSize = 19.sp,
                                     fontWeight = FontWeight.ExtraBold,
-                                    color = Color(0xFF1A1A2E),
+                                    color = RfThemeState.currentPalette.ink,
                                 ),
                             )
-                            BasicText(" /día", style = typo.secondary.copy(fontSize = 12.sp, color = Color(0xFF62627A)))
+                            BasicText(" /día", style = typo.secondary.copy(fontSize = 12.sp, color = RfThemeState.currentPalette.muted))
                         }
                     }
 
@@ -543,7 +546,7 @@ internal fun RenderProductDetailS19(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFFAFAFC)),
+            .background(RfThemeState.currentPalette.bg),
     ) {
         Box(
             modifier = Modifier
@@ -613,10 +616,10 @@ internal fun RenderProductDetailS19(
                         modifier = Modifier
                             .size(50.dp)
                             .clip(RoundedCornerShape(12.dp))
-                            .background(Color.White)
+                            .background(RfThemeState.currentPalette.surface)
                             .clickable { selectedPhotoIndex = (selectedPhotoIndex + 1) % galleryPhotos.size },
                     ) {
-                        BasicText("+3", style = typo.body.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF62627A)))
+                        BasicText("+3", style = typo.body.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = RfThemeState.currentPalette.muted))
                     }
                 }
             }
@@ -626,7 +629,7 @@ internal fun RenderProductDetailS19(
                     .fillMaxWidth()
                     .shadow(18.dp, RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp), spotColor = Color(0x331A1A2E))
                     .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
-                    .background(Color.White)
+                    .background(RfThemeState.currentPalette.surface)
                     .padding(start = 24.dp, end = 24.dp, top = 12.dp, bottom = 116.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
@@ -684,7 +687,7 @@ internal fun RenderProductDetailS19(
                             text = "RD$ ${currentArticle.pricePerDayDop}",
                             style = typo.heroTitle.copy(fontSize = 28.sp, fontWeight = FontWeight.ExtraBold),
                         )
-                        BasicText("por unidad / día", style = typo.secondary.copy(fontSize = 12.sp, color = Color(0xFF62627A)))
+                        BasicText("por unidad / día", style = typo.secondary.copy(fontSize = 12.sp, color = RfThemeState.currentPalette.muted))
                     }
                 }
 
@@ -728,7 +731,7 @@ internal fun RenderProductDetailS19(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(16.dp))
-                        .background(Color(0xFFF3F2F7))
+                        .background(RfThemeState.currentPalette.chipBg)
                         .padding(4.dp),
                 ) {
                     Row(modifier = Modifier.fillMaxWidth()) {
@@ -783,7 +786,7 @@ internal fun RenderProductDetailS19(
                                         .background(Color(0xFFF9F7FC))
                                         .padding(horizontal = 14.dp, vertical = 10.dp),
                                 ) {
-                                    BasicText(specLabel, style = typo.body.copy(fontSize = 13.5.sp, color = Color(0xFF62627A)))
+                                    BasicText(specLabel, style = typo.body.copy(fontSize = 13.5.sp, color = RfThemeState.currentPalette.muted))
                                     BasicText(specValue, style = typo.body.copy(fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF151729)))
                                 }
                             }
@@ -859,7 +862,7 @@ internal fun RenderProductDetailS19(
                     .size(44.dp)
                     .rfIconButtonShadow(CircleShape, isAdmin = false)
                     .clip(CircleShape)
-                    .background(Color.White)
+                    .background(RfThemeState.currentPalette.surface)
                     .clickable { onSelectScreenCode("BACK:s18") },
             ) {
                 RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF151729), size = 20.dp)
@@ -872,23 +875,30 @@ internal fun RenderProductDetailS19(
                         .size(44.dp)
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
-                        .background(Color.White),
+                        .background(RfThemeState.currentPalette.surface),
                 ) {
                     RfIcon(kind = RfIconKind.SHARE, tint = Color(0xFF151729), size = 20.dp)
                 }
+                val favoritesSet = viewModel?.favorites?.collectAsState()?.value
+                val isArticleFavorite = favoritesSet?.contains(currentArticle.id) ?: true
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
                         .size(44.dp)
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
-                        .background(Color.White)
+                        .background(RfThemeState.currentPalette.surface)
                         .clickable {
                             viewModel?.soundPlayer?.playTap()
                             viewModel?.toggleFavorite(currentArticle.id)
                         },
                 ) {
-                    RfIcon(kind = RfIconKind.HEART, tint = Color(0xFFEA4EA9), filled = true, size = 20.dp)
+                    RfIcon(
+                        kind = RfIconKind.HEART,
+                        tint = if (isArticleFavorite) Color(0xFFEA4EA9) else Color(0xFF151729),
+                        filled = isArticleFavorite,
+                        size = 20.dp,
+                    )
                 }
             }
         }
@@ -898,8 +908,8 @@ internal fun RenderProductDetailS19(
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter)
                 .zIndex(2f)
-                .background(Color.White)
-                .border(1.dp, Color(0xFFF0EBF4))
+                .background(RfThemeState.currentPalette.surface)
+                .border(1.dp, RfThemeState.currentPalette.line)
                 .padding(horizontal = 20.dp, vertical = 18.dp),
         ) {
             Row(
@@ -913,7 +923,7 @@ internal fun RenderProductDetailS19(
                     modifier = Modifier
                         .height(56.dp)
                         .clip(RoundedCornerShape(16.dp))
-                        .background(Color(0xFFF3F2F7))
+                        .background(RfThemeState.currentPalette.chipBg)
                         .padding(horizontal = 4.dp),
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -984,11 +994,11 @@ internal fun RenderCategoriesScreenS20(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFFAFAFC)),
+            .background(RfThemeState.currentPalette.bg),
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
-            drawRect(Brush.radialGradient(colors = listOf(Color(0xFFF9E3F1), Color(0x00F9E3F1)), center = Offset(0f, 0f), radius = size.width * 0.9f))
-            drawRect(Brush.radialGradient(colors = listOf(Color(0xFFEEE7FB), Color(0x00EEE7FB)), center = Offset(size.width, 0f), radius = size.width * 0.8f))
+            drawRect(Brush.radialGradient(colors = listOf(RfThemeState.currentPalette.radialPrimary, RfThemeState.currentPalette.radialPrimary.copy(alpha = 0f)), center = Offset(0f, 0f), radius = size.width * 0.9f))
+            drawRect(Brush.radialGradient(colors = listOf(RfThemeState.currentPalette.radialSecondary, RfThemeState.currentPalette.radialSecondary.copy(alpha = 0f)), center = Offset(size.width, 0f), radius = size.width * 0.8f))
         }
 
         Column(
@@ -1010,19 +1020,19 @@ internal fun RenderCategoriesScreenS20(
                         .size(44.dp)
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
-                        .background(Color.White)
+                        .background(RfThemeState.currentPalette.surface)
                         .clickable { onSelectScreenCode("BACK:s18") },
                 ) {
-                    RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1A1A2E), size = 22.dp)
+                    RfIcon(kind = RfIconKind.BACK, tint = RfThemeState.currentPalette.ink, size = 22.dp)
                 }
                 Column {
                     BasicText(
                         "Categorías",
-                        style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 24.sp, letterSpacing = (-0.48).sp, color = Color(0xFF1A1A2E)),
+                        style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 24.sp, letterSpacing = (-0.48).sp, color = RfThemeState.currentPalette.ink),
                     )
                     BasicText(
                         "Explora el catálogo por tipo de artículo",
-                        style = typo.secondary.copy(fontSize = 14.sp, color = Color(0xFF62627A)),
+                        style = typo.secondary.copy(fontSize = 14.sp, color = RfThemeState.currentPalette.muted),
                     )
                 }
             }
@@ -1349,8 +1359,8 @@ internal fun RenderPackagesScreenS21(
             .padding(top = 16.dp, start = 20.dp, end = 20.dp, bottom = 116.dp),
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            BasicText("Paquetes", style = typo.heroTitle.copy(fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF1A1A2E)))
-            BasicText("Colecciones temáticas, listas para tu evento", style = typo.secondary.copy(fontSize = 14.sp, color = Color(0xFF62627A)))
+            BasicText("Paquetes", style = typo.heroTitle.copy(fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = RfThemeState.currentPalette.ink))
+            BasicText("Colecciones temáticas, listas para tu evento", style = typo.secondary.copy(fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
         }
 
         Spacer(Modifier.height(18.dp))
@@ -1393,8 +1403,8 @@ private fun PackageSummaryCard(
             .fillMaxWidth()
             .rfCardShadow(RoundedCornerShape(20.dp))
             .clip(RoundedCornerShape(20.dp))
-            .background(Color.White)
-            .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(20.dp))
+            .background(RfThemeState.currentPalette.surface)
+            .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(20.dp))
             .clickable(onClick = onClick)
             .padding(10.dp),
     ) {
@@ -1417,10 +1427,10 @@ private fun PackageSummaryCard(
                 ) {
                     BasicText(discountBadge, style = typo.sectionCap.copy(fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF4E6A10)))
                 }
-                BasicText(title, style = typo.heroTitle.copy(fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF1A1A2E)))
-                BasicText(desc, maxLines = 2, style = typo.secondary.copy(fontSize = 13.sp, lineHeight = 18.2.sp, color = Color(0xFF62627A)))
+                BasicText(title, style = typo.heroTitle.copy(fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = RfThemeState.currentPalette.ink))
+                BasicText(desc, maxLines = 2, style = typo.secondary.copy(fontSize = 13.sp, lineHeight = 18.2.sp, color = RfThemeState.currentPalette.muted))
                 Row(verticalAlignment = Alignment.Bottom, modifier = Modifier.padding(top = 2.dp)) {
-                    BasicText("desde ", style = typo.secondary.copy(fontSize = 13.sp, color = Color(0xFF62627A)))
+                    BasicText("desde ", style = typo.secondary.copy(fontSize = 13.sp, color = RfThemeState.currentPalette.muted))
                     BasicText(price, style = typo.heroTitle.copy(fontSize = 17.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFFC2338F)))
                 }
             }
@@ -1540,7 +1550,7 @@ internal fun RenderPackageDetailScreenS22(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFFAFAFC)),
+            .background(RfThemeState.currentPalette.bg),
     ) {
         Column(
             modifier = Modifier
@@ -1577,7 +1587,7 @@ internal fun RenderPackageDetailScreenS22(
                         .size(44.dp)
                         .rfIconButtonShadow(RoundedCornerShape(14.dp), isAdmin = false)
                         .clip(RoundedCornerShape(14.dp))
-                        .background(Color.White)
+                        .background(RfThemeState.currentPalette.surface)
                         .clickable { onSelectScreenCode("BACK:s21") },
                 ) {
                     RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF151729), size = 20.dp)
@@ -1619,7 +1629,7 @@ internal fun RenderPackageDetailScreenS22(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     BasicText("Incluye", style = typo.heroTitle.copy(fontSize = 19.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729)))
-                    BasicText("Desmarca lo que no quieras", style = typo.secondary.copy(fontSize = 13.sp, color = Color(0xFF62627A)))
+                    BasicText("Desmarca lo que no quieras", style = typo.secondary.copy(fontSize = 13.sp, color = RfThemeState.currentPalette.muted))
                 }
                 Spacer(Modifier.height(10.dp))
 
@@ -1665,8 +1675,8 @@ internal fun RenderPackageDetailScreenS22(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter)
-                .background(Color.White)
-                .border(1.dp, Color(0xFFF2EDF5)),
+                .background(RfThemeState.currentPalette.surface)
+                .border(1.dp, RfThemeState.currentPalette.line),
         ) {
             Row(
                 modifier = Modifier
@@ -1679,13 +1689,13 @@ internal fun RenderPackageDetailScreenS22(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         BasicText(
                             text = "$totalSelectedItemsCount artículos · ",
-                            style = typo.secondary.copy(fontSize = 12.sp, color = Color(0xFF62627A)),
+                            style = typo.secondary.copy(fontSize = 12.sp, color = RfThemeState.currentPalette.muted),
                         )
                         BasicText(
                             text = "RD$ $subtotalDop",
                             style = typo.secondary.copy(
                                 fontSize = 12.sp,
-                                color = Color(0xFF62627A),
+                                color = RfThemeState.currentPalette.muted,
                                 textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough,
                             ),
                         )
@@ -1696,7 +1706,7 @@ internal fun RenderPackageDetailScreenS22(
                             fontFamily = typo.displayFamily,
                             fontWeight = FontWeight.ExtraBold,
                             fontSize = 22.sp,
-                            color = Color(0xFF1A1A2E),
+                            color = RfThemeState.currentPalette.ink,
                         ),
                     )
                 }
@@ -1744,8 +1754,8 @@ private fun PackageItemRow(
             .fillMaxWidth()
             .rfCardShadow(RoundedCornerShape(18.dp), isAdmin = false)
             .clip(RoundedCornerShape(18.dp))
-            .background(Color.White)
-            .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(18.dp))
+            .background(RfThemeState.currentPalette.surface)
+            .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(18.dp))
             .padding(10.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -1758,7 +1768,7 @@ private fun PackageItemRow(
                         if (isChecked) {
                             Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))
                         } else {
-                            SolidColor(Color(0xFFF1EFF5))
+                            SolidColor(RfThemeState.currentPalette.chipBg)
                         },
                     )
                     .clickable(onClick = onToggleCheck),
@@ -1780,7 +1790,7 @@ private fun PackageItemRow(
             Row(
                 modifier = Modifier
                     .clip(RoundedCornerShape(12.dp))
-                    .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(12.dp))
+                    .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(12.dp))
                     .height(36.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -1790,16 +1800,16 @@ private fun PackageItemRow(
                         .clickable(onClick = onDecrease),
                     contentAlignment = Alignment.Center,
                 ) {
-                    RfIcon(kind = RfIconKind.MINUS, tint = Color(0xFF1A1A2E), size = 16.dp)
+                    RfIcon(kind = RfIconKind.MINUS, tint = RfThemeState.currentPalette.ink, size = 16.dp)
                 }
-                BasicText(qty, style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A2E)))
+                BasicText(qty, style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = RfThemeState.currentPalette.ink))
                 Box(
                     modifier = Modifier
                         .size(32.dp, 36.dp)
                         .clickable(onClick = onIncrease),
                     contentAlignment = Alignment.Center,
                 ) {
-                    RfIcon(kind = RfIconKind.PLUS, tint = Color(0xFF1A1A2E), size = 16.dp)
+                    RfIcon(kind = RfIconKind.PLUS, tint = RfThemeState.currentPalette.ink, size = 16.dp)
                 }
             }
         }
@@ -1879,19 +1889,19 @@ internal fun RenderShopScreenS23(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFFAFAFC)),
+            .background(RfThemeState.currentPalette.bg),
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             drawRect(
                 Brush.radialGradient(
-                    colors = listOf(Color(0xFFF9E3F1), Color(0x00F9E3F1)),
+                    colors = listOf(RfThemeState.currentPalette.radialPrimary, RfThemeState.currentPalette.radialPrimary.copy(alpha = 0f)),
                     center = Offset(0f, 0f),
                     radius = size.width * 0.9f,
                 ),
             )
             drawRect(
                 Brush.radialGradient(
-                    colors = listOf(Color(0xFFEEE7FB), Color(0x00EEE7FB)),
+                    colors = listOf(RfThemeState.currentPalette.radialSecondary, RfThemeState.currentPalette.radialSecondary.copy(alpha = 0f)),
                     center = Offset(size.width, 0f),
                     radius = size.width * 0.8f,
                 ),
@@ -1911,7 +1921,7 @@ internal fun RenderShopScreenS23(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    BasicText("Tienda", style = typo.secondary.copy(fontSize = 13.sp, color = Color(0xFF62627A)))
+                    BasicText("Tienda", style = typo.secondary.copy(fontSize = 13.sp, color = RfThemeState.currentPalette.muted))
                     BasicText(
                         "Globos",
                         style = TextStyle(
@@ -1919,7 +1929,7 @@ internal fun RenderShopScreenS23(
                             fontWeight = FontWeight.ExtraBold,
                             fontSize = 26.sp,
                             letterSpacing = (-0.52).sp,
-                            color = Color(0xFF1A1A2E),
+                            color = RfThemeState.currentPalette.ink,
                         ),
                     )
                 }
@@ -1929,10 +1939,10 @@ internal fun RenderShopScreenS23(
                         .size(44.dp)
                         .shadow(8.dp, CircleShape, spotColor = Color(0x33B450B4))
                         .clip(CircleShape)
-                        .background(Color.White)
+                        .background(RfThemeState.currentPalette.surface)
                         .clickable { onSelectScreenCode("s80") },
                 ) {
-                    RfIcon(kind = RfIconKind.SEARCH, tint = Color(0xFF1A1A2E), size = 20.dp)
+                    RfIcon(kind = RfIconKind.SEARCH, tint = RfThemeState.currentPalette.ink, size = 20.dp)
                 }
                 Box(
                     contentAlignment = Alignment.Center,
@@ -1978,7 +1988,7 @@ internal fun RenderShopScreenS23(
                             )
                             .clip(RoundedCornerShape(999.dp))
                             .background(if (isSelected) gradDiag else SolidColor(Color.White))
-                            .border(1.dp, if (isSelected) Color.Transparent else Color(0xFFEEE9F2), RoundedCornerShape(999.dp))
+                            .border(1.dp, if (isSelected) Color.Transparent else RfThemeState.currentPalette.line, RoundedCornerShape(999.dp))
                             .clickable { selectedFilter = label }
                             .padding(horizontal = 15.dp),
                     ) {
@@ -2024,7 +2034,7 @@ internal fun RenderShopScreenS23(
                     ) {
                         Box(
                             contentAlignment = Alignment.Center,
-                            modifier = Modifier.height(24.dp).clip(RoundedCornerShape(999.dp)).background(Color.White).padding(horizontal = 9.dp),
+                            modifier = Modifier.height(24.dp).clip(RoundedCornerShape(999.dp)).background(RfThemeState.currentPalette.surface).padding(horizontal = 9.dp),
                         ) {
                             BasicText("Nuevo", style = typo.sectionCap.copy(fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF7A4FD8)))
                         }
@@ -2036,7 +2046,7 @@ internal fun RenderShopScreenS23(
                                 fontSize = 21.sp,
                                 letterSpacing = (-0.42).sp,
                                 lineHeight = 22.sp,
-                                color = Color(0xFF1A1A2E),
+                                color = RfThemeState.currentPalette.ink,
                             ),
                         )
                     }
@@ -2067,7 +2077,7 @@ internal fun RenderShopScreenS23(
                         fontWeight = FontWeight.ExtraBold,
                         fontSize = 20.sp,
                         letterSpacing = (-0.40).sp,
-                        color = Color(0xFF1A1A2E),
+                        color = RfThemeState.currentPalette.ink,
                     ),
                 )
                 BasicText(
@@ -2284,15 +2294,16 @@ private fun TiendaBalloonProductCard(
     modifier: Modifier = Modifier,
 ) {
     val typo = LocalRfTypography.current
+    val palette = LocalRfPalette.current
     val gradDiag = Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)))
-    var favoriteState by remember { mutableStateOf(isFavorite) }
+    var favoriteState by remember(title, isFavorite) { mutableStateOf(isFavorite) }
 
     Box(
         modifier = modifier
             .rfCardShadow(RoundedCornerShape(20.dp))
             .clip(RoundedCornerShape(20.dp))
-            .background(Color.White)
-            .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(20.dp)),
+            .background(palette.surface)
+            .border(1.dp, palette.line, RoundedCornerShape(20.dp)),
     ) {
         Column {
             Box(
@@ -2349,7 +2360,7 @@ private fun TiendaBalloonProductCard(
                             fontFamily = typo.bodyFamily,
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF1A1A2E),
+                            color = RfThemeState.currentPalette.ink,
                         ),
                         maxLines = 1,
                     )
@@ -2359,7 +2370,7 @@ private fun TiendaBalloonProductCard(
                             fontFamily = typo.displayFamily,
                             fontSize = 17.sp,
                             fontWeight = FontWeight.ExtraBold,
-                            color = Color(0xFF1A1A2E),
+                            color = RfThemeState.currentPalette.ink,
                         ),
                     )
                 }
@@ -2388,14 +2399,18 @@ internal fun RenderClientFavoritesScreenS24(
     viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
+    val palette = LocalRfPalette.current
     val allArticles = viewModel?.articles?.collectAsState()?.value ?: CanonicalSampleData.articles
     val favoriteIds = viewModel?.favorites?.collectAsState()?.value ?: setOf("art-silla-tiffany", "art-mesa-redonda")
-    val favoriteArticles = remember(allArticles, favoriteIds) {
+    val favoriteArticles = remember(allArticles, favoriteIds, viewModel) {
         val matched = allArticles.filter { article -> favoriteIds.contains(article.id) }
+        val shouldUseFallback = viewModel == null
         if (matched.isNotEmpty()) {
             matched
-        } else {
+        } else if (shouldUseFallback) {
             allArticles.take(2)
+        } else {
+            emptyList()
         }
     }
 
@@ -2406,11 +2421,50 @@ internal fun RenderClientFavoritesScreenS24(
             .padding(top = 16.dp, start = 20.dp, end = 20.dp, bottom = 116.dp),
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            BasicText("Favoritos", style = typo.heroTitle.copy(fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF1A1A2E)))
-            BasicText("${favoriteArticles.size} artículos guardados", style = typo.secondary.copy(fontSize = 15.sp, color = Color(0xFF62627A)))
+            BasicText("Favoritos", style = typo.heroTitle.copy(fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, color = palette.ink))
+            BasicText("${favoriteArticles.size} artículos guardados", style = typo.secondary.copy(fontSize = 15.sp, color = palette.muted))
         }
 
         Spacer(Modifier.height(18.dp))
+
+        if (favoriteArticles.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(palette.surface)
+                    .border(1.dp, palette.line, RoundedCornerShape(20.dp))
+                    .padding(24.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    RfIcon(kind = RfIconKind.HEART, tint = Color(0xFFEA4EA9), filled = false, size = 32.dp)
+                    BasicText(
+                        "Aún no tienes favoritos guardados",
+                        style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = palette.ink),
+                    )
+                    BasicText(
+                        "Explora el catálogo y toca el corazón en los artículos que te gusten.",
+                        style = typo.secondary.copy(fontSize = 14.sp, color = palette.muted),
+                    )
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .padding(top = 6.dp)
+                            .height(44.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF865DEC))))
+                            .clickable { onSelectScreenCode("s18") }
+                            .padding(horizontal = 20.dp),
+                    ) {
+                        BasicText("Explorar catálogo", style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White))
+                    }
+                }
+            }
+        }
 
         favoriteArticles.chunked(2).forEachIndexed { rowIdx, pair ->
             if (rowIdx > 0) {
@@ -2423,25 +2477,28 @@ internal fun RenderClientFavoritesScreenS24(
                     val matchesName = entry.name.equals(first.photo.key, ignoreCase = true)
                     listOf(matchesAsset, matchesName).any { matched -> matched }
                 } ?: RfPhotoKey.SILLA_TIFFANY
-                PersonalProductCard(
-                    title = first.name,
-                    desc = first.description,
-                    price = first.pricePerDayDop.toString(),
-                    photoKey = firstPhoto,
-                    bg = Color(0xFFDDF4F3),
-                    initialFavorite = true,
-                    onOpenDetail = {
-                        viewModel?.selectArticle(first.id)
-                        onSelectScreenCode("s19")
-                    },
-                    onAddClick = {
-                        viewModel?.adjustDraftQuantity(first.id, 1)
-                    },
-                    onToggleFavorite = {
-                        viewModel?.toggleFavorite(first.id)
-                    },
-                    modifier = Modifier.weight(1f),
-                )
+                val isFirstFav = favoriteIds.contains(first.id)
+                androidx.compose.runtime.key(first.id) {
+                    PersonalProductCard(
+                        title = first.name,
+                        desc = first.description,
+                        price = first.pricePerDayDop.toString(),
+                        photoKey = firstPhoto,
+                        bg = Color(0xFFDDF4F3),
+                        initialFavorite = isFirstFav,
+                        onOpenDetail = {
+                            viewModel?.selectArticle(first.id)
+                            onSelectScreenCode("s19")
+                        },
+                        onAddClick = {
+                            viewModel?.adjustDraftQuantity(first.id, 1)
+                        },
+                        onToggleFavorite = {
+                            viewModel?.toggleFavorite(first.id)
+                        },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
                 if (pair.size > 1) {
                     val second = pair[1]
                     val secondPhoto = RfPhotoKey.entries.firstOrNull { entry ->
@@ -2449,25 +2506,28 @@ internal fun RenderClientFavoritesScreenS24(
                         val matchesName = entry.name.equals(second.photo.key, ignoreCase = true)
                         listOf(matchesAsset, matchesName).any { matched -> matched }
                     } ?: RfPhotoKey.MESA_REDONDA
-                    PersonalProductCard(
-                        title = second.name,
-                        desc = second.description,
-                        price = second.pricePerDayDop.toString(),
-                        photoKey = secondPhoto,
-                        bg = Color(0xFFFFF2C9),
-                        initialFavorite = true,
-                        onOpenDetail = {
-                            viewModel?.selectArticle(second.id)
-                            onSelectScreenCode("s19")
-                        },
-                        onAddClick = {
-                            viewModel?.adjustDraftQuantity(second.id, 1)
-                        },
-                        onToggleFavorite = {
-                            viewModel?.toggleFavorite(second.id)
-                        },
-                        modifier = Modifier.weight(1f),
-                    )
+                    val isSecondFav = favoriteIds.contains(second.id)
+                    androidx.compose.runtime.key(second.id) {
+                        PersonalProductCard(
+                            title = second.name,
+                            desc = second.description,
+                            price = second.pricePerDayDop.toString(),
+                            photoKey = secondPhoto,
+                            bg = Color(0xFFFFF2C9),
+                            initialFavorite = isSecondFav,
+                            onOpenDetail = {
+                                viewModel?.selectArticle(second.id)
+                                onSelectScreenCode("s19")
+                            },
+                            onAddClick = {
+                                viewModel?.adjustDraftQuantity(second.id, 1)
+                            },
+                            onToggleFavorite = {
+                                viewModel?.toggleFavorite(second.id)
+                            },
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
                 } else {
                     Spacer(Modifier.weight(1f))
                 }
@@ -2488,8 +2548,8 @@ internal fun RenderClientFavoritesScreenS24(
                 Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     RosaAvatar(size = RosaAvatarSize.MEDIUM)
                     Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        BasicText("¿Los agrego a tu boda?", style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A2E)))
-                        BasicText("Los artículos seleccionados quedarían en “Boda Real Rosa & Dorado”.", style = typo.secondary.copy(fontSize = 14.sp, lineHeight = 20.sp, color = Color(0xFF62627A)))
+                        BasicText("¿Los agrego a tu boda?", style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = RfThemeState.currentPalette.ink))
+                        BasicText("Los artículos seleccionados quedarían en “Boda Real Rosa & Dorado”.", style = typo.secondary.copy(fontSize = 14.sp, lineHeight = 20.sp, color = RfThemeState.currentPalette.muted))
                     }
                 }
 
@@ -2518,11 +2578,11 @@ internal fun RenderClientFavoritesScreenS24(
                             .height(46.dp)
                             .rfCardShadow(RoundedCornerShape(14.dp), isAdmin = false)
                             .clip(RoundedCornerShape(14.dp))
-                            .background(Color.White)
+                            .background(RfThemeState.currentPalette.surface)
                             .clickable { onSelectScreenCode("s37") }
                             .padding(horizontal = 16.dp),
                     ) {
-                        BasicText("Elegir evento", style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A2E)))
+                        BasicText("Elegir evento", style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = RfThemeState.currentPalette.ink))
                     }
                 }
             }

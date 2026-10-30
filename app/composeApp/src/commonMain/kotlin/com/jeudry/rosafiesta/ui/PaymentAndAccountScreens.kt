@@ -53,8 +53,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.jeudry.rosafiesta.designsystem.LocalRfPalette
 import androidx.compose.ui.zIndex
 import com.jeudry.rosafiesta.designsystem.LocalRfTypography
+import com.jeudry.rosafiesta.designsystem.RfThemeState
 import com.jeudry.rosafiesta.designsystem.RfColors
 import com.jeudry.rosafiesta.designsystem.RfIcon
 import com.jeudry.rosafiesta.designsystem.RfIconKind
@@ -71,8 +73,8 @@ import com.jeudry.rosafiesta.domain.CanonicalSampleData
 import com.jeudry.rosafiesta.domain.ClientEvent
 
 private val PaymentBackgroundGradient = Brush.radialGradient(
-    0.0f to Color(0xFFF9E3F1),
-    0.6f to Color(0x00F9E3F1),
+    0.0f to RfThemeState.currentPalette.radialPrimary,
+    0.6f to RfThemeState.currentPalette.radialPrimary.copy(alpha = 0f),
     center = Offset(0f, 0f),
     radius = 450f,
 )
@@ -124,12 +126,12 @@ internal fun RenderQuoteHistoryScreenS49(
                         .size(44.dp)
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
-                        .background(Color.White)
-                        .border(1.dp, Color(0xFFF0EBF4), CircleShape)
+                        .background(RfThemeState.currentPalette.surface)
+                        .border(1.dp, RfThemeState.currentPalette.line, CircleShape)
                         .clickable { onSelectScreenCode("BACK:s37") },
                     contentAlignment = Alignment.Center,
                 ) {
-                    RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1A1A2E), size = 22.dp)
+                    RfIcon(kind = RfIconKind.BACK, tint = RfThemeState.currentPalette.ink, size = 22.dp)
                 }
 
                 BasicText(
@@ -138,7 +140,7 @@ internal fun RenderQuoteHistoryScreenS49(
                         fontFamily = typo.displayFamily,
                         fontWeight = FontWeight.ExtraBold,
                         fontSize = 20.sp,
-                        color = Color(0xFF1A1A2E),
+                        color = RfThemeState.currentPalette.ink,
                     ),
                 )
             }
@@ -202,8 +204,8 @@ internal fun RenderQuoteHistoryScreenS49(
                             ambientColor = Color(0x15505078),
                         )
                         .clip(RoundedCornerShape(22.dp))
-                        .background(Color.White)
-                        .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(22.dp))
+                        .background(RfThemeState.currentPalette.surface)
+                        .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(22.dp))
                         .clickable {
                             viewModel?.selectEvent(item.eventId)
                             onSelectScreenCode("s48")
@@ -232,7 +234,7 @@ internal fun RenderQuoteHistoryScreenS49(
                                         fontFamily = typo.bodyFamily,
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 16.sp,
-                                        color = Color(0xFF1A1A2E),
+                                        color = RfThemeState.currentPalette.ink,
                                     ),
                                 )
                                 BasicText(
@@ -240,7 +242,7 @@ internal fun RenderQuoteHistoryScreenS49(
                                     style = TextStyle(
                                         fontFamily = typo.bodyFamily,
                                         fontSize = 13.sp,
-                                        color = Color(0xFF62627A),
+                                        color = RfThemeState.currentPalette.muted,
                                     ),
                                 )
                             }
@@ -283,7 +285,7 @@ internal fun RenderQuoteHistoryScreenS49(
                                                 if (i <= item.activeSteps) {
                                                     item.stepColor
                                                 } else {
-                                                    Color(0xFFF1EFF5)
+                                                    RfThemeState.currentPalette.chipBg
                                                 },
                                             ),
                                     )
@@ -295,7 +297,7 @@ internal fun RenderQuoteHistoryScreenS49(
                                     fontFamily = typo.bodyFamily,
                                     fontWeight = FontWeight.SemiBold,
                                     fontSize = 12.sp,
-                                    color = Color(0xFF62627A),
+                                    color = RfThemeState.currentPalette.muted,
                                 ),
                             )
                         }
@@ -310,13 +312,13 @@ internal fun RenderQuoteHistoryScreenS49(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                             ) {
-                                RfIcon(kind = RfIconKind.GUESTS, tint = Color(0xFF62627A), size = 16.dp)
+                                RfIcon(kind = RfIconKind.GUESTS, tint = RfThemeState.currentPalette.muted, size = 16.dp)
                                 BasicText(
                                     text = item.guests,
                                     style = TextStyle(
                                         fontFamily = typo.bodyFamily,
                                         fontSize = 14.sp,
-                                        color = Color(0xFF62627A),
+                                        color = RfThemeState.currentPalette.muted,
                                     ),
                                 )
                             }
@@ -326,7 +328,7 @@ internal fun RenderQuoteHistoryScreenS49(
                                     fontFamily = typo.displayFamily,
                                     fontWeight = FontWeight.ExtraBold,
                                     fontSize = 17.sp,
-                                    color = Color(0xFF1A1A2E),
+                                    color = RfThemeState.currentPalette.ink,
                                 ),
                             )
                         }
@@ -360,11 +362,11 @@ internal fun RenderPaymentCheckoutScreenS50(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFFAFAFC)),
+            .background(RfThemeState.currentPalette.bg),
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
-            drawRect(Brush.radialGradient(colors = listOf(Color(0xFFF9E3F1), Color(0x00F9E3F1)), center = Offset(0f, 0f), radius = size.width * 0.9f))
-            drawRect(Brush.radialGradient(colors = listOf(Color(0xFFEEE7FB), Color(0x00EEE7FB)), center = Offset(size.width, 0f), radius = size.width * 0.8f))
+            drawRect(Brush.radialGradient(colors = listOf(RfThemeState.currentPalette.radialPrimary, RfThemeState.currentPalette.radialPrimary.copy(alpha = 0f)), center = Offset(0f, 0f), radius = size.width * 0.9f))
+            drawRect(Brush.radialGradient(colors = listOf(RfThemeState.currentPalette.radialSecondary, RfThemeState.currentPalette.radialSecondary.copy(alpha = 0f)), center = Offset(size.width, 0f), radius = size.width * 0.8f))
         }
 
         Column(
@@ -385,22 +387,22 @@ internal fun RenderPaymentCheckoutScreenS50(
                         .size(44.dp)
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
-                        .background(Color.White)
+                        .background(RfThemeState.currentPalette.surface)
                         .clickable { onSelectScreenCode("BACK:s48") },
                     contentAlignment = Alignment.Center,
                 ) {
-                    RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1A1A2E), size = 22.dp)
+                    RfIcon(kind = RfIconKind.BACK, tint = RfThemeState.currentPalette.ink, size = 22.dp)
                 }
 
                 BasicText(
                     text = "Pago",
-                    style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color(0xFF1A1A2E)),
+                    style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = RfThemeState.currentPalette.ink),
                     modifier = Modifier.weight(1f),
                 )
 
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    RfIcon(kind = RfIconKind.SHIELD, tint = Color(0xFF62627A), size = 14.dp)
-                    BasicText("Pago seguro", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF62627A)))
+                    RfIcon(kind = RfIconKind.SHIELD, tint = RfThemeState.currentPalette.muted, size = 14.dp)
+                    BasicText("Pago seguro", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = RfThemeState.currentPalette.muted))
                 }
             }
 
@@ -410,8 +412,8 @@ internal fun RenderPaymentCheckoutScreenS50(
                     .fillMaxWidth()
                     .rfCardShadow(RoundedCornerShape(18.dp), isAdmin = false)
                     .clip(RoundedCornerShape(18.dp))
-                    .background(Color.White)
-                    .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(18.dp))
+                    .background(RfThemeState.currentPalette.surface)
+                    .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(18.dp))
                     .padding(horizontal = 14.dp, vertical = 12.dp),
             ) {
                 Row(
@@ -430,8 +432,8 @@ internal fun RenderPaymentCheckoutScreenS50(
                     }
 
                     Column(modifier = Modifier.weight(1f)) {
-                        BasicText("Entrega para ${event.clientName}", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = Color(0xFF62627A)))
-                        BasicText(event.venue, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF1A1A2E)))
+                        BasicText("Entrega para ${event.clientName}", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = RfThemeState.currentPalette.muted))
+                        BasicText(event.venue, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = RfThemeState.currentPalette.ink))
                     }
 
                     BasicText(
@@ -443,7 +445,7 @@ internal fun RenderPaymentCheckoutScreenS50(
             }
 
             // Payment methods title
-            BasicText("Método de pago", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF1A1A2E)))
+            BasicText("Método de pago", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = RfThemeState.currentPalette.ink))
 
             // 2x2 Payment methods grid
             val methods = listOf("Tarjeta", "Banco Popular", "Banreservas", "Efectivo")
@@ -461,12 +463,12 @@ internal fun RenderPaymentCheckoutScreenS50(
                                     .weight(1f)
                                     .height(62.dp)
                                     .clip(RoundedCornerShape(16.dp))
-                                    .background(Color.White)
+                                    .background(RfThemeState.currentPalette.surface)
                                     .then(
                                         if (isSel) {
                                             Modifier.border(2.dp, Color(0xFFB754CB), RoundedCornerShape(16.dp))
                                         } else {
-                                            Modifier.border(1.dp, Color(0xFFEEE9F2), RoundedCornerShape(16.dp))
+                                            Modifier.border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(16.dp))
                                         },
                                     )
                                     .clickable { selectedMethod = idx }
@@ -486,12 +488,12 @@ internal fun RenderPaymentCheckoutScreenS50(
                                         } else {
                                             RfIconKind.ORDERS
                                         },
-                                        tint = Color(0xFF1A1A2E),
+                                        tint = RfThemeState.currentPalette.ink,
                                         size = 20.dp,
                                     )
                                     BasicText(
                                         text = name,
-                                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Color(0xFF1A1A2E)),
+                                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = RfThemeState.currentPalette.ink),
                                         modifier = Modifier.weight(1f),
                                     )
                                     if (isSel) {
@@ -514,7 +516,7 @@ internal fun RenderPaymentCheckoutScreenS50(
             }
 
             // Card details title
-            BasicText("Datos de la tarjeta", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF1A1A2E)))
+            BasicText("Datos de la tarjeta", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = RfThemeState.currentPalette.ink))
 
             // Name on card
             Box(
@@ -523,18 +525,18 @@ internal fun RenderPaymentCheckoutScreenS50(
                     .height(52.dp)
                     .rfInputShadow(RoundedCornerShape(14.dp), isAdmin = false)
                     .clip(RoundedCornerShape(14.dp))
-                    .background(Color.White)
-                    .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(14.dp))
+                    .background(RfThemeState.currentPalette.surface)
+                    .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(14.dp))
                     .padding(horizontal = 14.dp),
                 contentAlignment = Alignment.CenterStart,
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    RfIcon(kind = RfIconKind.USER, tint = Color(0xFF62627A), size = 18.dp)
+                    RfIcon(kind = RfIconKind.USER, tint = RfThemeState.currentPalette.muted, size = 18.dp)
                     BasicTextField(
                         value = cardHolderName,
                         onValueChange = { updatedName -> cardHolderName = updatedName },
                         singleLine = true,
-                        textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF1A1A2E)),
+                        textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = RfThemeState.currentPalette.ink),
                         cursorBrush = SolidColor(Color(0xFFC2338F)),
                         modifier = Modifier.fillMaxWidth(),
                     )
@@ -548,18 +550,18 @@ internal fun RenderPaymentCheckoutScreenS50(
                     .height(52.dp)
                     .rfInputShadow(RoundedCornerShape(14.dp), isAdmin = false)
                     .clip(RoundedCornerShape(14.dp))
-                    .background(Color.White)
-                    .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(14.dp))
+                    .background(RfThemeState.currentPalette.surface)
+                    .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(14.dp))
                     .padding(horizontal = 14.dp),
                 contentAlignment = Alignment.CenterStart,
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    RfIcon(kind = RfIconKind.WALLET, tint = Color(0xFF62627A), size = 18.dp)
+                    RfIcon(kind = RfIconKind.WALLET, tint = RfThemeState.currentPalette.muted, size = 18.dp)
                     BasicTextField(
                         value = cardNumberText,
                         onValueChange = { updatedCard -> cardNumberText = updatedCard },
                         singleLine = true,
-                        textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF1A1A2E)),
+                        textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = RfThemeState.currentPalette.ink),
                         cursorBrush = SolidColor(Color(0xFFC2338F)),
                         modifier = Modifier.fillMaxWidth(),
                     )
@@ -574,8 +576,8 @@ internal fun RenderPaymentCheckoutScreenS50(
                         .height(52.dp)
                         .rfInputShadow(RoundedCornerShape(14.dp), isAdmin = false)
                         .clip(RoundedCornerShape(14.dp))
-                        .background(Color.White)
-                        .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(14.dp))
+                        .background(RfThemeState.currentPalette.surface)
+                        .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(14.dp))
                         .padding(horizontal = 14.dp),
                     contentAlignment = Alignment.CenterStart,
                 ) {
@@ -583,7 +585,7 @@ internal fun RenderPaymentCheckoutScreenS50(
                         value = cardExpiryText,
                         onValueChange = { updatedExpiry -> cardExpiryText = updatedExpiry },
                         singleLine = true,
-                        textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF1A1A2E)),
+                        textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = RfThemeState.currentPalette.ink),
                         cursorBrush = SolidColor(Color(0xFFC2338F)),
                         modifier = Modifier.fillMaxWidth(),
                     )
@@ -594,8 +596,8 @@ internal fun RenderPaymentCheckoutScreenS50(
                         .height(52.dp)
                         .rfInputShadow(RoundedCornerShape(14.dp), isAdmin = false)
                         .clip(RoundedCornerShape(14.dp))
-                        .background(Color.White)
-                        .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(14.dp))
+                        .background(RfThemeState.currentPalette.surface)
+                        .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(14.dp))
                         .padding(horizontal = 14.dp),
                     contentAlignment = Alignment.CenterStart,
                 ) {
@@ -603,7 +605,7 @@ internal fun RenderPaymentCheckoutScreenS50(
                         value = cardCvcText,
                         onValueChange = { updatedCvc -> cardCvcText = updatedCvc },
                         singleLine = true,
-                        textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF1A1A2E)),
+                        textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = RfThemeState.currentPalette.ink),
                         cursorBrush = SolidColor(Color(0xFFC2338F)),
                         modifier = Modifier.fillMaxWidth(),
                     )
@@ -617,18 +619,18 @@ internal fun RenderPaymentCheckoutScreenS50(
                     .height(52.dp)
                     .rfInputShadow(RoundedCornerShape(14.dp), isAdmin = false)
                     .clip(RoundedCornerShape(14.dp))
-                    .background(Color.White)
-                    .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(14.dp))
+                    .background(RfThemeState.currentPalette.surface)
+                    .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(14.dp))
                     .padding(horizontal = 14.dp),
                 contentAlignment = Alignment.CenterStart,
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    RfIcon(kind = RfIconKind.PHONE, tint = Color(0xFF62627A), size = 18.dp)
+                    RfIcon(kind = RfIconKind.PHONE, tint = RfThemeState.currentPalette.muted, size = 18.dp)
                     BasicTextField(
                         value = contactPhoneText,
                         onValueChange = { updatedPhone -> contactPhoneText = updatedPhone },
                         singleLine = true,
-                        textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF1A1A2E)),
+                        textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = RfThemeState.currentPalette.ink),
                         cursorBrush = SolidColor(Color(0xFFC2338F)),
                         modifier = Modifier.fillMaxWidth(),
                     )
@@ -641,8 +643,8 @@ internal fun RenderPaymentCheckoutScreenS50(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .background(Color.White)
-                .border(1.dp, Color(0xFFF2EDF5))
+                .background(RfThemeState.currentPalette.surface)
+                .border(1.dp, RfThemeState.currentPalette.line)
                 .padding(start = 20.dp, end = 20.dp, top = 14.dp, bottom = 34.dp),
         ) {
             Box(
@@ -690,7 +692,7 @@ internal fun RenderPaymentSuccessScreenS51(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFFAFAFC)),
+            .background(RfThemeState.currentPalette.bg),
     ) {
         // Decorative background garland & shapes
         Canvas(modifier = Modifier.fillMaxSize()) {
@@ -704,7 +706,7 @@ internal fun RenderPaymentSuccessScreenS51(
             }
             drawPath(
                 wirePath,
-                color = Color(0xFF1A1A2E).copy(alpha = 0.18f),
+                color = RfThemeState.currentPalette.ink.copy(alpha = 0.18f),
                 style = Stroke(width = 1.2f * density),
             )
 
@@ -822,7 +824,7 @@ internal fun RenderPaymentSuccessScreenS51(
                     ),
                 )
 
-                BasicText("Todo listo para el 23 de octubre.", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF62627A)))
+                BasicText("Todo listo para el 23 de octubre.", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = RfThemeState.currentPalette.muted))
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -844,7 +846,7 @@ internal fun RenderPaymentSuccessScreenS51(
                             ambientColor = Color(0x20C850AA),
                         )
                         .clip(RoundedCornerShape(24.dp))
-                        .background(Color.White),
+                        .background(RfThemeState.currentPalette.surface),
                 ) {
                     Column {
                         // Card header
@@ -885,7 +887,7 @@ internal fun RenderPaymentSuccessScreenS51(
                             }
 
                             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                BasicText(event.title, style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 19.sp, lineHeight = 22.sp, color = Color(0xFF1A1A2E)))
+                                BasicText(event.title, style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 19.sp, lineHeight = 22.sp, color = RfThemeState.currentPalette.ink))
                                 Box(
                                     modifier = Modifier
                                         .height(24.dp)
@@ -922,7 +924,7 @@ internal fun RenderPaymentSuccessScreenS51(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                BasicText("Fecha", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF62627A)))
+                                BasicText("Fecha", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = RfThemeState.currentPalette.muted))
                                 Box(
                                     modifier = Modifier
                                         .height(28.dp)
@@ -940,8 +942,8 @@ internal fun RenderPaymentSuccessScreenS51(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                BasicText("Artículos", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF62627A)))
-                                BasicText("${event.articleCount}", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF1A1A2E)))
+                                BasicText("Artículos", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = RfThemeState.currentPalette.muted))
+                                BasicText("${event.articleCount}", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = RfThemeState.currentPalette.ink))
                             }
 
                             Row(
@@ -949,7 +951,7 @@ internal fun RenderPaymentSuccessScreenS51(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                BasicText("Anticipo pagado", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF62627A)))
+                                BasicText("Anticipo pagado", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = RfThemeState.currentPalette.muted))
                                 BasicText("RD$ $depositPaid", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp, color = Color(0xFF3FB59A)))
                             }
                         }
@@ -962,7 +964,7 @@ internal fun RenderPaymentSuccessScreenS51(
                         .size(24.dp)
                         .offset(x = (-12).dp, y = 80.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFFFAFAFC)),
+                        .background(RfThemeState.currentPalette.bg),
                 )
 
                 // Ticket Notch on Right
@@ -972,7 +974,7 @@ internal fun RenderPaymentSuccessScreenS51(
                         .size(24.dp)
                         .offset(x = 12.dp, y = 80.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFFFAFAFC)),
+                        .background(RfThemeState.currentPalette.bg),
                 )
             }
         }
@@ -981,7 +983,7 @@ internal fun RenderPaymentSuccessScreenS51(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .zIndex(2f)
-                .background(Color(0xFFFAFAFC))
+                .background(RfThemeState.currentPalette.bg)
                 .padding(top = 10.dp, start = 20.dp, end = 20.dp, bottom = 18.dp)
                 .fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -1008,14 +1010,14 @@ internal fun RenderPaymentSuccessScreenS51(
                         .weight(1f)
                         .height(50.dp)
                         .clip(RoundedCornerShape(16.dp))
-                        .background(Color.White)
+                        .background(RfThemeState.currentPalette.surface)
                         .border(1.dp, Color(0xFFECE6F0), RoundedCornerShape(16.dp))
                         .clickable { onSelectScreenCode("s40") },
                     contentAlignment = Alignment.Center,
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        RfIcon(kind = RfIconKind.SHARE, tint = Color(0xFF1A1A2E), size = 18.dp)
-                        BasicText("Compartir", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF1A1A2E)))
+                        RfIcon(kind = RfIconKind.SHARE, tint = RfThemeState.currentPalette.ink, size = 18.dp)
+                        BasicText("Compartir", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = RfThemeState.currentPalette.ink))
                     }
                 }
 
@@ -1024,11 +1026,11 @@ internal fun RenderPaymentSuccessScreenS51(
                         .weight(1f)
                         .height(50.dp)
                         .clip(RoundedCornerShape(16.dp))
-                        .background(Color(0xFFF1EFF5))
+                        .background(RfThemeState.currentPalette.chipBg)
                         .clickable { onSelectScreenCode("s18") },
                     contentAlignment = Alignment.Center,
                 ) {
-                    BasicText("Ir al catálogo", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF1A1A2E)))
+                    BasicText("Ir al catálogo", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = RfThemeState.currentPalette.ink))
                 }
             }
         }
@@ -1047,11 +1049,11 @@ internal fun RenderPostEventReviewScreenS52(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFFAFAFC)),
+            .background(RfThemeState.currentPalette.bg),
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
-            drawRect(Brush.radialGradient(colors = listOf(Color(0xFFF9E3F1), Color(0x00F9E3F1)), center = Offset(0f, 0f), radius = size.width * 0.9f))
-            drawRect(Brush.radialGradient(colors = listOf(Color(0xFFEEE7FB), Color(0x00EEE7FB)), center = Offset(size.width, 0f), radius = size.width * 0.8f))
+            drawRect(Brush.radialGradient(colors = listOf(RfThemeState.currentPalette.radialPrimary, RfThemeState.currentPalette.radialPrimary.copy(alpha = 0f)), center = Offset(0f, 0f), radius = size.width * 0.9f))
+            drawRect(Brush.radialGradient(colors = listOf(RfThemeState.currentPalette.radialSecondary, RfThemeState.currentPalette.radialSecondary.copy(alpha = 0f)), center = Offset(size.width, 0f), radius = size.width * 0.8f))
         }
 
         Column(
@@ -1072,21 +1074,21 @@ internal fun RenderPostEventReviewScreenS52(
                         .size(44.dp)
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
-                        .background(Color.White)
+                        .background(RfThemeState.currentPalette.surface)
                         .clickable { onSelectScreenCode("BACK:s40") },
                     contentAlignment = Alignment.Center,
                 ) {
-                    RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1A1A2E), size = 22.dp)
+                    RfIcon(kind = RfIconKind.BACK, tint = RfThemeState.currentPalette.ink, size = 22.dp)
                 }
 
                 Column(modifier = Modifier.weight(1f)) {
                     BasicText(
                         text = "Así salió tu evento",
-                        style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, lineHeight = 22.sp, color = Color(0xFF1A1A2E)),
+                        style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, lineHeight = 22.sp, color = RfThemeState.currentPalette.ink),
                     )
                     BasicText(
                         text = "Gala Corporativa Grupo Caribe · 12 oct",
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF62627A)),
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = RfThemeState.currentPalette.muted),
                     )
                 }
             }
@@ -1119,8 +1121,8 @@ internal fun RenderPostEventReviewScreenS52(
 
                     Column {
                         BasicText("Puntualidad", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF7A4FD8)))
-                        BasicText("100%", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 44.sp, lineHeight = 44.sp, color = Color(0xFF1A1A2E)))
-                        BasicText("Todo llegó a tiempo", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF62627A)))
+                        BasicText("100%", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 44.sp, lineHeight = 44.sp, color = RfThemeState.currentPalette.ink))
+                        BasicText("Todo llegó a tiempo", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = RfThemeState.currentPalette.muted))
                     }
                 }
             }
@@ -1130,25 +1132,25 @@ internal fun RenderPostEventReviewScreenS52(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(22.dp))
-                    .background(Color.White)
-                    .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(22.dp))
+                    .background(RfThemeState.currentPalette.surface)
+                    .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(22.dp))
                     .padding(horizontal = 18.dp, vertical = 16.dp),
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                    BasicText("Presupuesto", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF1A1A2E)))
+                    BasicText("Presupuesto", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = RfThemeState.currentPalette.ink))
 
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            BasicText("Estimado", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF62627A)))
-                            BasicText("RD$ 8,500", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF1A1A2E)))
+                            BasicText("Estimado", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
+                            BasicText("RD$ 8,500", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = RfThemeState.currentPalette.ink))
                         }
                         Box(modifier = Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(5.dp)).background(Color(0xFFE6DEEA)))
                     }
 
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            BasicText("Real", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF62627A)))
-                            BasicText("RD$ 8,535", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF1A1A2E)))
+                            BasicText("Real", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
+                            BasicText("RD$ 8,535", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = RfThemeState.currentPalette.ink))
                         }
                         Box(modifier = Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(5.dp)).background(Color(0xFF8DB52C)))
                     }
@@ -1177,8 +1179,8 @@ internal fun RenderPostEventReviewScreenS52(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(22.dp))
-                    .background(Color.White)
-                    .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(22.dp))
+                    .background(RfThemeState.currentPalette.surface)
+                    .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(22.dp))
                     .padding(vertical = 4.dp),
             ) {
                 Column {
@@ -1187,17 +1189,17 @@ internal fun RenderPostEventReviewScreenS52(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        BasicText("Tareas completadas", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = Color(0xFF1A1A2E)))
-                        BasicText("Sin tareas", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF62627A)))
+                        BasicText("Tareas completadas", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = RfThemeState.currentPalette.ink))
+                        BasicText("Sin tareas", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
                     }
-                    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFF2F0F5)))
+                    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(RfThemeState.currentPalette.lineSoft))
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 14.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        BasicText("Cronograma ejecutado", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = Color(0xFF1A1A2E)))
-                        BasicText("Sin actividades", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF62627A)))
+                        BasicText("Cronograma ejecutado", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = RfThemeState.currentPalette.ink))
+                        BasicText("Sin actividades", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
                     }
                 }
             }
@@ -1250,16 +1252,16 @@ internal fun RenderMyReservationsScreenS53(
                         .size(44.dp)
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
-                        .background(Color.White)
+                        .background(RfThemeState.currentPalette.surface)
                         .clickable { onSelectScreenCode("BACK:s54") },
                     contentAlignment = Alignment.Center,
                 ) {
-                    RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1A1A2E), size = 22.dp)
+                    RfIcon(kind = RfIconKind.BACK, tint = RfThemeState.currentPalette.ink, size = 22.dp)
                 }
                 BasicText(
                     text = "Mis reservas",
                     modifier = Modifier.weight(1f),
-                    style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color(0xFF1A1A2E)),
+                    style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = RfThemeState.currentPalette.ink),
                 )
             }
             Spacer(modifier = Modifier.height(14.dp))
@@ -1268,7 +1270,7 @@ internal fun RenderMyReservationsScreenS53(
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp)
                     .clip(RoundedCornerShape(16.dp))
-                    .background(Color(0xFFF1EFF5))
+                    .background(RfThemeState.currentPalette.chipBg)
                     .padding(4.dp),
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
@@ -1336,7 +1338,7 @@ internal fun RenderMyReservationsScreenS53(
                         title = "Baby Shower Sofía en Rosas",
                         meta = "Lun 9 nov · Terraza Cava Alta, Piantini",
                         tag = "Borrador",
-                        tagBackground = Color(0xFFF1EFF5),
+                        tagBackground = RfThemeState.currentPalette.chipBg,
                         tagColor = Color(0xFF62627A),
                         photoKey = RfPhotoKey.BABY_SHOWER,
                         paid = "RD$ 555",
@@ -1373,7 +1375,7 @@ private fun ReservationCard53(
             .fillMaxWidth()
             .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = false)
             .clip(RoundedCornerShape(22.dp))
-            .background(Color.White)
+            .background(RfThemeState.currentPalette.surface)
             .clickable(onClick = onClick)
             .padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -1385,13 +1387,13 @@ private fun ReservationCard53(
                     title,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF1A1A2E)),
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = RfThemeState.currentPalette.ink),
                 )
                 BasicText(
                     meta,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF62627A)),
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = RfThemeState.currentPalette.muted),
                 )
                 Box(
                     modifier = Modifier
@@ -1410,22 +1412,22 @@ private fun ReservationCard53(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(14.dp))
-                .background(Color(0xFFFAFAFC))
+                .background(RfThemeState.currentPalette.bg)
                 .padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 BasicText(
                     buildAnnotatedString {
-                        withStyle(SpanStyle(color = Color(0xFF62627A))) { append("Pagado ") }
-                        withStyle(SpanStyle(color = Color(0xFF1A1A2E), fontWeight = FontWeight.Bold)) { append(paid) }
+                        withStyle(SpanStyle(color = RfThemeState.currentPalette.muted)) { append("Pagado ") }
+                        withStyle(SpanStyle(color = RfThemeState.currentPalette.ink, fontWeight = FontWeight.Bold)) { append(paid) }
                     },
                     style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp),
                 )
                 BasicText(
                     buildAnnotatedString {
-                        withStyle(SpanStyle(color = Color(0xFF62627A))) { append("de ") }
-                        withStyle(SpanStyle(color = Color(0xFF1A1A2E), fontWeight = FontWeight.Bold)) { append(total) }
+                        withStyle(SpanStyle(color = RfThemeState.currentPalette.muted)) { append("de ") }
+                        withStyle(SpanStyle(color = RfThemeState.currentPalette.ink, fontWeight = FontWeight.Bold)) { append(total) }
                     },
                     style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp),
                 )
@@ -1433,7 +1435,7 @@ private fun ReservationCard53(
             Box(modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)).background(Color(0xFFEADFE7))) {
                 Box(modifier = Modifier.fillMaxWidth(progress).height(6.dp).clip(RoundedCornerShape(3.dp)).background(Color(0xFF8DB52C)))
             }
-            BasicText(remaining, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = Color(0xFF62627A)))
+            BasicText(remaining, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = RfThemeState.currentPalette.muted))
         }
     }
 }
@@ -1447,11 +1449,14 @@ internal fun RenderUserProfileScreenS54(
     viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
+    val palette = LocalRfPalette.current
     val profileName = viewModel?.profileName?.collectAsState()?.value ?: "Invitado Rosa Fiesta"
     val profileEmail = viewModel?.profileEmail?.collectAsState()?.value ?: "cliente@rosafiesta.do"
     val profilePhone = viewModel?.profilePhone?.collectAsState()?.value ?: "809-555-0142"
     val profileUsername = viewModel?.profileUsername?.collectAsState()?.value ?: profileEmail.substringBefore("@")
     val profileBirthDate = viewModel?.profileBirthDate?.collectAsState()?.value ?: ""
+    val profileAvatarKey = viewModel?.profileAvatarKey?.collectAsState()?.value
+    val isDarkThemeActive = viewModel?.isDarkTheme?.collectAsState()?.value ?: palette.isDark
     val formError = viewModel?.formError?.collectAsState()?.value
     val formFeedback = viewModel?.formFeedback?.collectAsState()?.value
 
@@ -1463,6 +1468,9 @@ internal fun RenderUserProfileScreenS54(
     var draftUsername by remember(profileUsername, profileEmail) {
         mutableStateOf(profileUsername.ifBlank { profileEmail.substringBefore("@") })
     }
+    var draftAvatarKey by remember(profileAvatarKey) { mutableStateOf(profileAvatarKey) }
+    var showBirthDateCalendar by remember { mutableStateOf(false) }
+    var showPhotoPickerModal by remember { mutableStateOf(false) }
     var localProfileError by remember { mutableStateOf<String?>(null) }
 
     val liveNameError = if (isEditing) InputValidator.validateFullName(draftName) else null
@@ -1492,19 +1500,20 @@ internal fun RenderUserProfileScreenS54(
                         .size(44.dp)
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
-                        .background(Color.White)
+                        .background(palette.surface)
+                        .border(1.dp, palette.line, CircleShape)
                         .clickable {
                             viewModel?.clearFormError()
                             onSelectScreenCode("BACK:s14")
                         },
                     contentAlignment = Alignment.Center,
                 ) {
-                    RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1A1A2E), size = 22.dp)
+                    RfIcon(kind = RfIconKind.BACK, tint = palette.ink, size = 22.dp)
                 }
                 BasicText(
                     text = if (isEditing) "Editar perfil" else "Mi perfil",
                     modifier = Modifier.weight(1f),
-                    style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color(0xFF1A1A2E)),
+                    style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = palette.ink),
                 )
                 if (isEditing) {
                     Box(
@@ -1512,14 +1521,15 @@ internal fun RenderUserProfileScreenS54(
                             .size(44.dp)
                             .rfIconButtonShadow(CircleShape, isAdmin = false)
                             .clip(CircleShape)
-                            .background(Color.White)
-                            .border(1.dp, Color(0xFFECE6F2), CircleShape)
+                            .background(palette.surface)
+                            .border(1.dp, palette.line, CircleShape)
                             .clickable {
                                 draftName = profileName
                                 draftEmail = profileEmail
                                 draftPhone = profilePhone
                                 draftBirthDate = profileBirthDate.ifBlank { "22/09/1996" }
                                 draftUsername = profileUsername.ifBlank { profileEmail.substringBefore("@") }
+                                draftAvatarKey = profileAvatarKey
                                 localProfileError = null
                                 viewModel?.clearFormError()
                                 isEditing = false
@@ -1528,7 +1538,7 @@ internal fun RenderUserProfileScreenS54(
                     ) {
                         RfIcon(
                             kind = RfIconKind.CLOSE,
-                            tint = Color(0xFF62627A),
+                            tint = palette.muted,
                             size = 18.dp,
                         )
                     }
@@ -1538,7 +1548,8 @@ internal fun RenderUserProfileScreenS54(
                         .size(44.dp)
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
-                        .background(if (isEditing) Color(0xFFFDE6F2) else Color.White)
+                        .background(if (isEditing) Color(0xFFFDE6F2) else palette.surface)
+                        .border(1.dp, palette.line, CircleShape)
                         .clickable {
                             if (!isEditing) {
                                 draftName = profileName
@@ -1546,6 +1557,7 @@ internal fun RenderUserProfileScreenS54(
                                 draftPhone = profilePhone
                                 draftBirthDate = profileBirthDate.ifBlank { "22/09/1996" }
                                 draftUsername = profileUsername.ifBlank { profileEmail.substringBefore("@") }
+                                draftAvatarKey = profileAvatarKey
                                 localProfileError = null
                                 viewModel?.clearFormError()
                                 isEditing = true
@@ -1565,6 +1577,7 @@ internal fun RenderUserProfileScreenS54(
                                         draftPhone = draftPhone,
                                         draftBirthDate = draftBirthDate,
                                         draftUsername = draftUsername,
+                                        draftAvatarKey = draftAvatarKey,
                                     ) ?: true
                                     if (savedOk) {
                                         localProfileError = null
@@ -1579,7 +1592,7 @@ internal fun RenderUserProfileScreenS54(
                 ) {
                     RfIcon(
                         kind = if (isEditing) RfIconKind.CHECK else RfIconKind.EDIT,
-                        tint = if (isEditing) Color(0xFFC2338F) else Color(0xFF1A1A2E),
+                        tint = if (isEditing) Color(0xFFC2338F) else palette.ink,
                         size = 20.dp,
                     )
                 }
@@ -1641,25 +1654,13 @@ internal fun RenderUserProfileScreenS54(
                 verticalAlignment = if (isEditing) Alignment.Top else Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                Box(
-                    modifier = Modifier.size(84.dp).clip(CircleShape).background(Color(0xFFF9B6D3)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Box(
-                        modifier = Modifier.size(80.dp).clip(CircleShape).background(Color(0xFFFAFAFC)),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Box(
-                            modifier = Modifier.size(76.dp).clip(CircleShape).background(Color(0xFFFDE6F2)),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            BasicText(
-                                initials,
-                                style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 28.sp, color = Color(0xFFC2338F)),
-                            )
-                        }
-                    }
-                }
+                RfEditableProfileAvatar(
+                    initials = initials,
+                    avatarKey = if (isEditing) draftAvatarKey else profileAvatarKey,
+                    size = 84.dp,
+                    isEditing = isEditing,
+                    onClickEditPhoto = { showPhotoPickerModal = true },
+                )
                 Column(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(if (isEditing) 8.dp else 2.dp),
@@ -1694,11 +1695,11 @@ internal fun RenderUserProfileScreenS54(
                     } else {
                         BasicText(
                             profileName,
-                            style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp, lineHeight = 24.sp, color = Color(0xFF1A1A2E)),
+                            style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp, lineHeight = 24.sp, color = palette.ink),
                         )
                         BasicText(
                             profileEmail,
-                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF62627A)),
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = palette.muted),
                         )
                     }
                 }
@@ -1711,8 +1712,8 @@ internal fun RenderUserProfileScreenS54(
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp)
                     .clip(RoundedCornerShape(20.dp))
-                    .background(Color.White)
-                    .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(20.dp)),
+                    .background(palette.surface)
+                    .border(1.dp, palette.line, RoundedCornerShape(20.dp)),
             ) {
                 ProfileRow54("Teléfono", RfIconKind.PHONE) {
                     if (isEditing) {
@@ -1737,17 +1738,28 @@ internal fun RenderUserProfileScreenS54(
                     )
                 }
                 ProfileDivider54()
-                ProfileRow54("Cumpleaños", RfIconKind.CAKE) {
+                ProfileRow54(
+                    label = "Cumpleaños",
+                    icon = RfIconKind.CAKE,
+                    onClick = if (isEditing) {
+                        { showBirthDateCalendar = true }
+                    } else {
+                        null
+                    },
+                ) {
                     if (isEditing) {
-                        ProfileInlineInputBox54(
+                        RfMaskedDateField(
                             value = draftBirthDate,
                             placeholder = "DD/MM/AAAA",
                             hasError = liveBirthDateError != null,
-                            onValueChange = { nextBirth ->
-                                draftBirthDate = nextBirth.take(InputValidator.MAX_BIRTH_DATE_LENGTH)
+                            compactInline = true,
+                            modifier = Modifier.width(184.dp),
+                            onValueChange = { formattedBirthDate ->
+                                draftBirthDate = formattedBirthDate.take(InputValidator.MAX_BIRTH_DATE_LENGTH)
                                 localProfileError = null
                                 viewModel?.clearFormError()
                             },
+                            onOpenCalendar = { showBirthDateCalendar = true },
                         )
                     } else {
                         BasicText(
@@ -1759,7 +1771,7 @@ internal fun RenderUserProfileScreenS54(
                 if (isEditing) {
                     ProfileInlineFieldHelper54(
                         errorText = liveBirthDateError,
-                        hintText = "Formato obligatorio: DD/MM/AAAA (1925–2010)",
+                        hintText = "Máscara automática DD/MM/AAAA o toca el icono de calendario",
                     )
                 }
                 ProfileDivider54()
@@ -1778,7 +1790,7 @@ internal fun RenderUserProfileScreenS54(
                     } else {
                         BasicText(
                             profileUsername.ifBlank { profileEmail.substringBefore("@") },
-                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF62627A)),
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = palette.muted),
                         )
                     }
                 }
@@ -1798,13 +1810,13 @@ internal fun RenderUserProfileScreenS54(
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp)
                     .clip(RoundedCornerShape(20.dp))
-                    .background(Color.White)
-                    .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(20.dp)),
+                    .background(palette.surface)
+                    .border(1.dp, palette.line, RoundedCornerShape(20.dp)),
             ) {
                 ProfileRow54("Idioma", RfIconKind.GLOBE) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        BasicText("Español", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF62627A)))
-                        RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = Color(0xFF62627A), size = 16.dp)
+                        BasicText("Español", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = palette.muted))
+                        RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = palette.muted, size = 16.dp)
                     }
                 }
                 ProfileDivider54()
@@ -1814,10 +1826,10 @@ internal fun RenderUserProfileScreenS54(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    RfIcon(kind = RfIconKind.BELL, tint = Color(0xFF1A1A2E), size = 20.dp)
+                    RfIcon(kind = RfIconKind.BELL, tint = palette.ink, size = 20.dp)
                     Column(modifier = Modifier.weight(1f)) {
-                        BasicText("Recordatorios", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF1A1A2E)))
-                        BasicText("Antes y después de cada evento", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF62627A)))
+                        BasicText("Recordatorios", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = palette.ink))
+                        BasicText("Antes y después de cada evento", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = palette.muted))
                     }
                     Box(
                         modifier = Modifier
@@ -1834,35 +1846,70 @@ internal fun RenderUserProfileScreenS54(
                             .clickable { remindersEnabled = !remindersEnabled },
                         contentAlignment = if (remindersEnabled) Alignment.CenterEnd else Alignment.CenterStart,
                     ) {
-                        Box(modifier = Modifier.padding(horizontal = 3.dp).size(24.dp).clip(CircleShape).background(Color.White))
+                        Box(modifier = Modifier.padding(horizontal = 3.dp).size(24.dp).clip(CircleShape).background(RfThemeState.currentPalette.surface))
                     }
                 }
                 ProfileDivider54()
                 ProfileRow54("Tema", RfIconKind.MOON) {
+                    val lightSelected = !isDarkThemeActive
+                    val darkSelected = isDarkThemeActive
                     Row(
-                        modifier = Modifier.clip(RoundedCornerShape(10.dp)).background(Color(0xFFF1EFF5)).padding(3.dp),
+                        modifier = Modifier.clip(RoundedCornerShape(10.dp)).background(palette.chipBg).padding(3.dp),
                         horizontalArrangement = Arrangement.spacedBy(2.dp),
                     ) {
                         Box(
                             modifier = Modifier
                                 .height(30.dp)
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(Color.White)
-                                .clickable { onSelectScreenCode("s14") }
+                                .background(
+                                    if (lightSelected) {
+                                        Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))
+                                    } else {
+                                        SolidColor(Color.Transparent)
+                                    },
+                                )
+                                .clickable {
+                                    viewModel?.setDarkTheme(false)
+                                }
                                 .padding(horizontal = 10.dp),
                             contentAlignment = Alignment.Center,
                         ) {
-                            BasicText("Claro", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF1A1A2E)))
+                            BasicText(
+                                "Claro",
+                                style = TextStyle(
+                                    fontFamily = typo.bodyFamily,
+                                    fontWeight = if (lightSelected) FontWeight.Bold else FontWeight.SemiBold,
+                                    fontSize = 13.sp,
+                                    color = if (lightSelected) Color.White else palette.muted,
+                                ),
+                            )
                         }
                         Box(
                             modifier = Modifier
                                 .height(30.dp)
                                 .clip(RoundedCornerShape(8.dp))
-                                .clickable { onSelectScreenCode("s15") }
+                                .background(
+                                    if (darkSelected) {
+                                        Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))
+                                    } else {
+                                        SolidColor(Color.Transparent)
+                                    },
+                                )
+                                .clickable {
+                                    viewModel?.setDarkTheme(true)
+                                }
                                 .padding(horizontal = 10.dp),
                             contentAlignment = Alignment.Center,
                         ) {
-                            BasicText("Oscuro", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Color(0xFF62627A)))
+                            BasicText(
+                                "Oscuro",
+                                style = TextStyle(
+                                    fontFamily = typo.bodyFamily,
+                                    fontWeight = if (darkSelected) FontWeight.Bold else FontWeight.SemiBold,
+                                    fontSize = 13.sp,
+                                    color = if (darkSelected) Color.White else palette.muted,
+                                ),
+                            )
                         }
                     }
                 }
@@ -1874,19 +1921,19 @@ internal fun RenderUserProfileScreenS54(
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp)
                     .clip(RoundedCornerShape(20.dp))
-                    .background(Color.White)
-                    .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(20.dp)),
+                    .background(palette.surface)
+                    .border(1.dp, palette.line, RoundedCornerShape(20.dp)),
             ) {
                 ProfileRow54("Mis pagos y recibos", RfIconKind.RECEIPT, onClick = { onSelectScreenCode("s82") }) {
-                    RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = Color(0xFF62627A), size = 16.dp)
+                    RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = palette.muted, size = 16.dp)
                 }
                 ProfileDivider54()
                 ProfileRow54("Ajustes y privacidad", RfIconKind.FILTER, onClick = { onSelectScreenCode("s86") }) {
-                    RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = Color(0xFF62627A), size = 16.dp)
+                    RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = palette.muted, size = 16.dp)
                 }
                 ProfileDivider54()
                 ProfileRow54("Acerca de Rosa Fiesta", RfIconKind.INFO, onClick = { onSelectScreenCode("s16") }) {
-                    RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = Color(0xFF62627A), size = 16.dp)
+                    RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = palette.muted, size = 16.dp)
                 }
                 ProfileDivider54()
                 ProfileRow54(
@@ -1901,30 +1948,65 @@ internal fun RenderUserProfileScreenS54(
             }
             Spacer(modifier = Modifier.height(30.dp))
         }
+
+        if (showBirthDateCalendar) {
+            RfInteractiveCalendarModal(
+                title = "Cumpleaños",
+                subtitle = "Selecciona tu día, mes y año de nacimiento",
+                currentDateText = draftBirthDate,
+                minYear = InputValidator.MIN_BIRTH_YEAR,
+                maxYear = InputValidator.MAX_BIRTH_YEAR,
+                defaultYear = 1996,
+                quickYears = listOf(1985, 1990, 1995, 1996, 2000, 2004, 2008),
+                isAdmin = false,
+                onSelectDate = { selectedDate ->
+                    draftBirthDate = selectedDate
+                    localProfileError = null
+                    viewModel?.clearFormError()
+                    showBirthDateCalendar = false
+                },
+                onDismiss = { showBirthDateCalendar = false },
+            )
+        }
+
+        if (showPhotoPickerModal) {
+            RfProfilePhotoPickerModal(
+                initials = initials,
+                currentAvatarKey = if (isEditing) draftAvatarKey else profileAvatarKey,
+                onSelectAvatarKey = { chosenKey ->
+                    draftAvatarKey = chosenKey
+                    viewModel?.setProfileAvatarKey(chosenKey)
+                    showPhotoPickerModal = false
+                },
+                onDismiss = { showPhotoPickerModal = false },
+            )
+        }
     }
 }
 
 @Composable
 private fun ProfileCaption54(label: String) {
     val typo = LocalRfTypography.current
+    val palette = LocalRfPalette.current
 
     BasicText(
         label,
         modifier = Modifier.padding(horizontal = 20.dp),
-        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, letterSpacing = 1.sp, color = Color(0xFF62627A)),
+        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, letterSpacing = 1.sp, color = palette.muted),
     )
 }
 
 @Composable
 private fun ProfileDivider54() {
-    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFF2F0F5)))
+    val palette = LocalRfPalette.current
+    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(palette.line))
 }
 
 @Composable
 private fun ProfileRow54(
     label: String,
     icon: RfIconKind,
-    labelColor: Color = Color(0xFF1A1A2E),
+    labelColor: Color = LocalRfPalette.current.ink,
     onClick: (() -> Unit)? = null,
     trailing: @Composable () -> Unit,
 ) {
@@ -1960,9 +2042,14 @@ private fun ProfileHeaderEditableField54(
     onValueChange: (String) -> Unit,
 ) {
     val typo = LocalRfTypography.current
+    val palette = LocalRfPalette.current
     val hasError = errorText != null
     val borderColor = if (hasError) RfColors.Error else Color(0xFFD6B9E8)
-    val bgColor = if (hasError) Color(0xFFFFF7F9) else Color.White
+    val bgColor = if (hasError) {
+        if (palette.isDark) Color(0xFF3A1D28) else Color(0xFFFFF7F9)
+    } else {
+        palette.surface
+    }
 
     Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
         Row(
@@ -1976,7 +2063,7 @@ private fun ProfileHeaderEditableField54(
                     fontFamily = typo.bodyFamily,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
-                    color = if (hasError) RfColors.Error else Color(0xFF7B5799),
+                    color = if (hasError) RfColors.Error else Color(0xFF945AE1),
                 ),
             )
             BasicText(
@@ -1984,7 +2071,7 @@ private fun ProfileHeaderEditableField54(
                 style = TextStyle(
                     fontFamily = typo.bodyFamily,
                     fontSize = 10.5.sp,
-                    color = Color(0xFF8C869E),
+                    color = palette.muted,
                 ),
             )
         }
@@ -2009,7 +2096,7 @@ private fun ProfileHeaderEditableField54(
                         style = TextStyle(
                             fontFamily = typo.bodyFamily,
                             fontSize = if (isTitleStyle) 15.sp else 13.5.sp,
-                            color = Color(0xFF9A98AD),
+                            color = palette.muted,
                         ),
                     )
                 }
@@ -2021,7 +2108,7 @@ private fun ProfileHeaderEditableField54(
                         fontFamily = if (isTitleStyle) typo.displayFamily else typo.bodyFamily,
                         fontWeight = if (isTitleStyle) FontWeight.Bold else FontWeight.Medium,
                         fontSize = if (isTitleStyle) 15.5.sp else 13.5.sp,
-                        color = Color(0xFF1A1A2E),
+                        color = palette.ink,
                     ),
                     cursorBrush = SolidColor(Color(0xFFC2338F)),
                     modifier = Modifier.fillMaxWidth(),
@@ -2055,8 +2142,15 @@ private fun ProfileInlineInputBox54(
     onValueChange: (String) -> Unit,
 ) {
     val typo = LocalRfTypography.current
+    val palette = LocalRfPalette.current
     val borderColor = if (hasError) RfColors.Error else Color(0xFFD6B9E8)
-    val bgColor = if (hasError) Color(0xFFFFF5F7) else Color(0xFFFAF6FC)
+    val bgColor = if (hasError) {
+        if (palette.isDark) Color(0xFF3A1D28) else Color(0xFFFFF5F7)
+    } else if (palette.isDark) {
+        Color(0xFF26243D)
+    } else {
+        RfThemeState.currentPalette.bg
+    }
 
     Row(
         modifier = Modifier
@@ -2079,7 +2173,7 @@ private fun ProfileInlineInputBox54(
                     style = TextStyle(
                         fontFamily = typo.bodyFamily,
                         fontSize = 13.5.sp,
-                        color = Color(0xFF9A98AD),
+                        color = palette.muted,
                     ),
                 )
             }
@@ -2091,7 +2185,7 @@ private fun ProfileInlineInputBox54(
                     fontFamily = typo.bodyFamily,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 13.5.sp,
-                    color = Color(0xFF1A1A2E),
+                    color = palette.ink,
                 ),
                 cursorBrush = SolidColor(Color(0xFFC2338F)),
                 modifier = Modifier.fillMaxWidth(),
@@ -2111,7 +2205,8 @@ private fun ProfileInlineFieldHelper54(
     hintText: String,
 ) {
     val typo = LocalRfTypography.current
-    val displayColor = if (errorText != null) RfColors.Error else Color(0xFF8A849E)
+    val palette = LocalRfPalette.current
+    val displayColor = if (errorText != null) RfColors.Error else palette.muted
     val displayWeight = if (errorText != null) FontWeight.SemiBold else FontWeight.Normal
 
     BasicText(
@@ -2168,7 +2263,7 @@ internal fun RenderSuppliersScreenS55(
                         .size(44.dp)
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
-                        .background(Color.White)
+                        .background(RfThemeState.currentPalette.surface)
                         .clickable { onSelectScreenCode("BACK:A12") },
                     contentAlignment = Alignment.Center,
                 ) {
@@ -2200,7 +2295,7 @@ internal fun RenderSuppliersScreenS55(
                     .padding(horizontal = 20.dp)
                     .height(48.dp)
                     .clip(RoundedCornerShape(14.dp))
-                    .background(Color.White)
+                    .background(RfThemeState.currentPalette.surface)
                     .border(1.dp, Color(0xFFE3E4EF), RoundedCornerShape(14.dp))
                     .padding(horizontal = 14.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -2283,7 +2378,7 @@ private fun SupplierCard55(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(22.dp))
-            .background(Color.White)
+            .background(RfThemeState.currentPalette.surface)
             .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(22.dp))
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
@@ -2345,7 +2440,7 @@ private fun AdminPanelIconButton(icon: RfIconKind, onClick: () -> Unit) {
             .size(44.dp)
             .rfIconButtonShadow(CircleShape, isAdmin = true)
             .clip(CircleShape)
-            .background(Color.White)
+            .background(RfThemeState.currentPalette.surface)
             .border(1.dp, Color(0xFFECECF5), CircleShape)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
@@ -2364,7 +2459,7 @@ private fun AdminPanelCard(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(22.dp))
-            .background(Color.White)
+            .background(RfThemeState.currentPalette.surface)
             .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(22.dp))
             .padding(contentPadding),
         content = content,
@@ -2452,7 +2547,7 @@ private fun AdminField56(
                 .height(50.dp)
                 .shadow(8.dp, RoundedCornerShape(14.dp), spotColor = Color(0x224650B4))
                 .clip(RoundedCornerShape(14.dp))
-                .background(Color.White)
+                .background(RfThemeState.currentPalette.surface)
                 .border(1.dp, Color(0xFFE3E4EF), RoundedCornerShape(14.dp))
                 .padding(horizontal = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -2494,7 +2589,7 @@ private fun AdminNotes56() {
                 .height(110.dp)
                 .shadow(8.dp, RoundedCornerShape(14.dp), spotColor = Color(0x224650B4))
                 .clip(RoundedCornerShape(14.dp))
-                .background(Color.White)
+                .background(RfThemeState.currentPalette.surface)
                 .border(1.dp, Color(0xFFE3E4EF), RoundedCornerShape(14.dp))
                 .padding(start = 14.dp, end = 14.dp, top = 14.dp),
         ) {
@@ -2545,7 +2640,7 @@ internal fun RenderSpendingAnalyticsScreenS57(
                     modifier = Modifier
                         .height(40.dp)
                         .clip(RoundedCornerShape(12.dp))
-                        .background(Color.White)
+                        .background(RfThemeState.currentPalette.surface)
                         .border(1.dp, Color(0xFFE9E9F2), RoundedCornerShape(12.dp))
                         .padding(horizontal = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -2576,7 +2671,7 @@ internal fun RenderSpendingAnalyticsScreenS57(
                         modifier = Modifier
                             .weight(1f)
                             .clip(RoundedCornerShape(22.dp))
-                            .background(Color.White)
+                            .background(RfThemeState.currentPalette.surface)
                             .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(22.dp))
                             .padding(16.dp),
                     ) {
@@ -2753,7 +2848,7 @@ internal fun RenderFinancialDashboardScreenS58(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(22.dp))
-                        .background(Color.White)
+                        .background(RfThemeState.currentPalette.surface)
                         .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(22.dp)),
                 ) {
                     PanelSummaryRow58(
@@ -2909,7 +3004,7 @@ internal fun RenderOfficialReceiptScreenS83(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFFAFAFC)),
+            .background(RfThemeState.currentPalette.bg),
     ) {
         // Content
         Column(
@@ -2931,22 +3026,22 @@ internal fun RenderOfficialReceiptScreenS83(
                         .size(44.dp)
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
-                        .background(Color.White)
+                        .background(RfThemeState.currentPalette.surface)
                         .clickable { onSelectScreenCode("BACK:s51") },
                     contentAlignment = Alignment.Center,
                 ) {
-                    RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1A1A2E), size = 22.dp)
+                    RfIcon(kind = RfIconKind.BACK, tint = RfThemeState.currentPalette.ink, size = 22.dp)
                 }
                 Column(modifier = Modifier.weight(1f)) {
                     BasicText(
                         text = "Recibo",
-                        style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, lineHeight = (20 * 1.1f).sp, color = Color(0xFF1A1A2E)),
+                        style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, lineHeight = (20 * 1.1f).sp, color = RfThemeState.currentPalette.ink),
                         overflow = TextOverflow.Ellipsis,
                         maxLines = 1,
                     )
                     BasicText(
                         text = "No. RF-2026-0412",
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF62627A)),
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = RfThemeState.currentPalette.muted),
                         overflow = TextOverflow.Ellipsis,
                         maxLines = 1,
                     )
@@ -2956,7 +3051,7 @@ internal fun RenderOfficialReceiptScreenS83(
                         .size(44.dp)
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
-                        .background(Color.White)
+                        .background(RfThemeState.currentPalette.surface)
                         .clickable { receiptShared = !receiptShared },
                     contentAlignment = Alignment.Center,
                 ) {
@@ -2972,7 +3067,7 @@ internal fun RenderOfficialReceiptScreenS83(
                     .fillMaxWidth()
                     .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
                     .clip(RoundedCornerShape(20.dp))
-                    .background(Color.White)
+                    .background(RfThemeState.currentPalette.surface)
                     .padding(horizontal = 18.dp, vertical = 20.dp),
             ) {
                 Column(
@@ -2985,7 +3080,7 @@ internal fun RenderOfficialReceiptScreenS83(
                             .size(56.dp)
                             .shadow(elevation = 4.dp, shape = CircleShape, spotColor = Color(0x24B450B4))
                             .clip(CircleShape)
-                            .background(Color.White)
+                            .background(RfThemeState.currentPalette.surface)
                             .border(1.dp, Color(0x25EA4EA9), CircleShape),
                         contentAlignment = Alignment.Center,
                     ) {
@@ -3027,14 +3122,14 @@ internal fun RenderOfficialReceiptScreenS83(
                     // Amount
                     BasicText(
                         text = "RD$ 1,350",
-                        style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 34.sp, lineHeight = 34.sp, color = Color(0xFF1A1A2E)),
+                        style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 34.sp, lineHeight = 34.sp, color = RfThemeState.currentPalette.ink),
                     )
 
                     Spacer(modifier = Modifier.height(6.dp))
 
                     BasicText(
                         text = "Anticipo (30%) · Boda Real Rosa & Dorado",
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF62627A), textAlign = TextAlign.Center),
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.muted, textAlign = TextAlign.Center),
                     )
 
                     Spacer(modifier = Modifier.height(14.dp))
@@ -3067,11 +3162,11 @@ internal fun RenderOfficialReceiptScreenS83(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(vertical = 10.dp)
-                                .then(if (idx > 0) Modifier.border(width = 1.dp, color = Color(0xFFF2F0F5), shape = RoundedCornerShape(0.dp)).padding(top = 1.dp) else Modifier),
+                                .then(if (idx > 0) Modifier.border(width = 1.dp, color = RfThemeState.currentPalette.lineSoft, shape = RoundedCornerShape(0.dp)).padding(top = 1.dp) else Modifier),
                             horizontalArrangement = Arrangement.SpaceBetween,
                         ) {
-                            BasicText(label, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF62627A)))
-                            BasicText(value, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF1A1A2E)), modifier = Modifier.padding(start = 12.dp))
+                            BasicText(label, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
+                            BasicText(value, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = RfThemeState.currentPalette.ink), modifier = Modifier.padding(start = 12.dp))
                         }
                     }
 
@@ -3082,7 +3177,7 @@ internal fun RenderOfficialReceiptScreenS83(
                             .padding(vertical = 10.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
-                        BasicText("Saldo pendiente", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF62627A)))
+                        BasicText("Saldo pendiente", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
                         BasicText(
                             text = "RD$ 3,150",
                             style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, color = Color(0xFF7A5700)),
@@ -3096,7 +3191,7 @@ internal fun RenderOfficialReceiptScreenS83(
             // Footer legal text
             BasicText(
                 text = "Rosa Fiesta · RNC 1-31-00000-0 · Santo Domingo\nEste recibo no sustituye una factura con NCF.",
-                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.5f.sp, color = Color(0xFF62627A), textAlign = TextAlign.Center, lineHeight = (12.5f * 1.45f).sp),
+                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.5f.sp, color = RfThemeState.currentPalette.muted, textAlign = TextAlign.Center, lineHeight = (12.5f * 1.45f).sp),
                 modifier = Modifier.fillMaxWidth(),
             )
 
@@ -3118,8 +3213,8 @@ internal fun RenderOfficialReceiptScreenS83(
                     .height(54.dp)
                     .rfIconButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
                     .clip(RoundedCornerShape(16.dp))
-                    .background(Color.White)
-                    .border(1.dp, Color(0xFFEEE9F2), RoundedCornerShape(16.dp))
+                    .background(RfThemeState.currentPalette.surface)
+                    .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(16.dp))
                     .clickable { receiptShared = !receiptShared },
                 contentAlignment = Alignment.Center,
             ) {

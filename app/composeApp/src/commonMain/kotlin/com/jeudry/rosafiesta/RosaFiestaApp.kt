@@ -28,6 +28,8 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -133,8 +135,12 @@ public fun RosaFiestaApp(
     val isNotPreviewingPersonal = !navigator.adminPreviewingPersonal
     val isNotPersonalScreenInAdminApp = !isPersonalScreenInAdminApp
     val shouldUseAdminTheme = isAdminActive && isNotPreviewingPersonal && isNotPersonalScreenInAdminApp
+    val isDarkThemeEnabled by viewModel.isDarkTheme.collectAsState()
+    val usePersonalDark = isDarkThemeEnabled && isNonAdminVariant
     val themeVariant = if (shouldUseAdminTheme) {
         RfThemeVariant.ADMIN
+    } else if (usePersonalDark) {
+        RfThemeVariant.PERSONAL_DARK
     } else {
         spec.variant
     }

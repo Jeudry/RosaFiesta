@@ -393,6 +393,7 @@ class ScreenCatalogAndFlowTest {
             draftPhone = "809-555-0199",
             draftBirthDate = "22/09/1996",
             draftUsername = "jeudry_rf",
+            draftAvatarKey = "BODA",
         )
         assertTrue(savedValidProfile)
         assertEquals("Jeudry Rosario", viewModel.profileName.value)
@@ -400,5 +401,24 @@ class ScreenCatalogAndFlowTest {
         assertEquals("809-555-0199", viewModel.profilePhone.value)
         assertEquals("22/09/1996", viewModel.profileBirthDate.value)
         assertEquals("jeudry_rf", viewModel.profileUsername.value)
+        assertEquals("BODA", viewModel.profileAvatarKey.value)
+
+        assertEquals("22/", com.jeudry.rosafiesta.ui.formatDateDigitsWithSlashes("2", "22"))
+        assertEquals("22/09/", com.jeudry.rosafiesta.ui.formatDateDigitsWithSlashes("22/0", "22/09"))
+        assertEquals("22/09/1996", com.jeudry.rosafiesta.ui.formatDateDigitsWithSlashes("", "22091996"))
+
+        assertEquals("5.0", viewModel.companyAverageRatingFormatted())
+        viewModel.submitCompanyReview("Excelente montaje y atención", 5)
+        assertEquals(3, viewModel.companyReviews.value.size)
+        assertEquals("5.0", viewModel.companyAverageRatingFormatted())
+
+        val initialChatCount = viewModel.directChatMessages.value.size
+        viewModel.sendDirectChatMessage("Quiero cotizar sillas Tiffany")
+        assertEquals(initialChatCount + 2, viewModel.directChatMessages.value.size)
+
+        viewModel.setDarkTheme(true)
+        assertTrue(viewModel.isDarkTheme.value)
+        viewModel.setDarkTheme(false)
+        assertFalse(viewModel.isDarkTheme.value)
     }
 }

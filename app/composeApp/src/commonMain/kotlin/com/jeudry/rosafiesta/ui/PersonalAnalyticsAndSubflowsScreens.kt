@@ -50,6 +50,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -66,7 +67,9 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.jeudry.rosafiesta.designsystem.LocalRfPalette
 import com.jeudry.rosafiesta.designsystem.LocalRfTypography
+import com.jeudry.rosafiesta.designsystem.RfThemeState
 import com.jeudry.rosafiesta.designsystem.RfIcon
 import com.jeudry.rosafiesta.designsystem.RfIconKind
 import com.jeudry.rosafiesta.designsystem.RfLogo
@@ -88,28 +91,36 @@ private val PersonalButtonGradient = Brush.horizontalGradient(
 @Composable
 internal fun RenderAboutScreenS16(
     onSelectScreenCode: (String) -> Unit = {},
+    viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
+    val palette = LocalRfPalette.current
+    val reviewsState = viewModel?.companyReviews?.collectAsState()?.value
+    val avgRatingText = remember(reviewsState) {
+        viewModel?.companyAverageRatingFormatted() ?: "5.0"
+    }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFFAFAFC))
+            .background(palette.bg)
             .drawBehind {
-                drawRect(
-                    brush = Brush.radialGradient(
-                        colors = listOf(Color(0xFFF9E3F1), Color(0x00F9E3F1)),
-                        center = Offset(0f, 0f),
-                        radius = size.width * 1.1f,
-                    ),
-                )
-                drawRect(
-                    brush = Brush.radialGradient(
-                        colors = listOf(Color(0xFFEEE7FB), Color(0x00EEE7FB)),
-                        center = Offset(size.width, size.height * 0.15f),
-                        radius = size.width * 0.8f,
-                    ),
-                )
+                if (!palette.isDark) {
+                    drawRect(
+                        brush = Brush.radialGradient(
+                            colors = listOf(RfThemeState.currentPalette.radialPrimary, RfThemeState.currentPalette.radialPrimary.copy(alpha = 0f)),
+                            center = Offset(0f, 0f),
+                            radius = size.width * 1.1f,
+                        ),
+                    )
+                    drawRect(
+                        brush = Brush.radialGradient(
+                            colors = listOf(RfThemeState.currentPalette.radialSecondary, RfThemeState.currentPalette.radialSecondary.copy(alpha = 0f)),
+                            center = Offset(size.width, size.height * 0.15f),
+                            radius = size.width * 0.8f,
+                        ),
+                    )
+                }
             },
     ) {
         Column(
@@ -132,12 +143,12 @@ internal fun RenderAboutScreenS16(
                         .size(44.dp)
                         .rfIconButtonShadow(CircleShape)
                         .clip(CircleShape)
-                        .background(Color.White)
-                        .border(1.dp, Color(0xFFF0EBF4), CircleShape)
+                        .background(RfThemeState.currentPalette.surface)
+                        .border(1.dp, RfThemeState.currentPalette.line, CircleShape)
                         .clickable { onSelectScreenCode("BACK:s14") },
                     contentAlignment = Alignment.Center,
                 ) {
-                    RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1A1A2E), size = 22.dp)
+                    RfIcon(kind = RfIconKind.BACK, tint = RfThemeState.currentPalette.ink, size = 22.dp)
                 }
 
                 BasicText(
@@ -147,7 +158,7 @@ internal fun RenderAboutScreenS16(
                         fontWeight = FontWeight.ExtraBold,
                         fontSize = 20.sp,
                         letterSpacing = (-0.4).sp,
-                        color = Color(0xFF1A1A2E),
+                        color = RfThemeState.currentPalette.ink,
                     ),
                 )
             }
@@ -162,7 +173,7 @@ internal fun RenderAboutScreenS16(
                     modifier = Modifier
                         .size(84.dp)
                         .clip(CircleShape)
-                        .background(Color.White)
+                        .background(RfThemeState.currentPalette.surface)
                         .border(1.dp, Color(0x24EA4EA9), CircleShape),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -184,12 +195,12 @@ internal fun RenderAboutScreenS16(
                             fontSize = 28.sp,
                             letterSpacing = (-0.56).sp,
                             lineHeight = 28.sp,
-                            color = Color(0xFF1A1A2E),
+                            color = RfThemeState.currentPalette.ink,
                         ),
                     )
                     BasicText(
                         text = "Decoración y planificación de eventos",
-                        style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF62627A)),
+                        style = typo.body.copy(fontSize = 15.sp, color = RfThemeState.currentPalette.muted),
                     )
                 }
             }
@@ -200,8 +211,8 @@ internal fun RenderAboutScreenS16(
                     .fillMaxWidth()
                     .rfCardShadow(RoundedCornerShape(22.dp))
                     .clip(RoundedCornerShape(22.dp))
-                    .background(Color.White)
-                    .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(22.dp))
+                    .background(RfThemeState.currentPalette.surface)
+                    .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(22.dp))
                     .clickable { onSelectScreenCode("s17") }
                     .padding(vertical = 16.dp),
             ) {
@@ -217,17 +228,17 @@ internal fun RenderAboutScreenS16(
                                 fontWeight = FontWeight.ExtraBold,
                                 fontSize = 26.sp,
                                 letterSpacing = (-0.52).sp,
-                                color = Color(0xFF1A1A2E),
+                                color = RfThemeState.currentPalette.ink,
                             ),
                         )
-                        BasicText("eventos", style = typo.body.copy(fontSize = 13.sp, color = Color(0xFF62627A)))
+                        BasicText("eventos", style = typo.body.copy(fontSize = 13.sp, color = RfThemeState.currentPalette.muted))
                     }
 
                     Box(
                         modifier = Modifier
                             .width(1.dp)
                             .height(44.dp)
-                            .background(Color(0xFFF2EDF5)),
+                            .background(RfThemeState.currentPalette.line),
                     )
 
                     Column(
@@ -241,17 +252,17 @@ internal fun RenderAboutScreenS16(
                                 fontWeight = FontWeight.ExtraBold,
                                 fontSize = 26.sp,
                                 letterSpacing = (-0.52).sp,
-                                color = Color(0xFF1A1A2E),
+                                color = RfThemeState.currentPalette.ink,
                             ),
                         )
-                        BasicText("años", style = typo.body.copy(fontSize = 13.sp, color = Color(0xFF62627A)))
+                        BasicText("años", style = typo.body.copy(fontSize = 13.sp, color = RfThemeState.currentPalette.muted))
                     }
 
                     Box(
                         modifier = Modifier
                             .width(1.dp)
                             .height(44.dp)
-                            .background(Color(0xFFF2EDF5)),
+                            .background(RfThemeState.currentPalette.line),
                     )
 
                     Column(
@@ -263,13 +274,13 @@ internal fun RenderAboutScreenS16(
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
                             BasicText(
-                                "4.9",
+                                avgRatingText,
                                 style = TextStyle(
                                     fontFamily = typo.displayFamily,
                                     fontWeight = FontWeight.ExtraBold,
                                     fontSize = 26.sp,
                                     letterSpacing = (-0.52).sp,
-                                    color = Color(0xFF1A1A2E),
+                                    color = palette.ink,
                                 ),
                             )
                             CustomSvgIcon(
@@ -279,7 +290,7 @@ internal fun RenderAboutScreenS16(
                                 filled = true,
                             )
                         }
-                        BasicText("calificación", style = typo.body.copy(fontSize = 13.sp, color = Color(0xFF62627A)))
+                        BasicText("calificación", style = typo.body.copy(fontSize = 13.sp, color = palette.muted))
                     }
                 }
             }
@@ -290,8 +301,8 @@ internal fun RenderAboutScreenS16(
                     .fillMaxWidth()
                     .rfCardShadow(RoundedCornerShape(22.dp))
                     .clip(RoundedCornerShape(22.dp))
-                    .background(Color.White)
-                    .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(22.dp))
+                    .background(RfThemeState.currentPalette.surface)
+                    .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(22.dp))
                     .padding(vertical = 6.dp),
             ) {
                 Column {
@@ -302,7 +313,7 @@ internal fun RenderAboutScreenS16(
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 1.sp,
-                            color = Color(0xFF62627A),
+                            color = RfThemeState.currentPalette.muted,
                         ),
                         modifier = Modifier.padding(start = 18.dp, top = 12.dp, bottom = 4.dp),
                     )
@@ -329,8 +340,8 @@ internal fun RenderAboutScreenS16(
                             )
                         }
                         Column(modifier = Modifier.weight(1f)) {
-                            BasicText("Teléfono", style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A2E)))
-                            BasicText("+1 (829) 942-4971", style = typo.body.copy(fontSize = 14.sp, color = Color(0xFF62627A)))
+                            BasicText("Teléfono", style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = RfThemeState.currentPalette.ink))
+                            BasicText("+1 (829) 942-4971", style = typo.body.copy(fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
                         }
                         Box(
                             modifier = Modifier
@@ -347,7 +358,7 @@ internal fun RenderAboutScreenS16(
                     }
 
                     // Divider
-                    Box(Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFF2F0F5)))
+                    Box(Modifier.fillMaxWidth().height(1.dp).background(RfThemeState.currentPalette.lineSoft))
 
                     // WhatsApp row
                     Row(
@@ -372,18 +383,18 @@ internal fun RenderAboutScreenS16(
                             )
                         }
                         Column(modifier = Modifier.weight(1f)) {
-                            BasicText("WhatsApp", style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A2E)))
-                            BasicText("Escríbele a María", style = typo.body.copy(fontSize = 14.sp, color = Color(0xFF62627A)))
+                            BasicText("WhatsApp", style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = RfThemeState.currentPalette.ink))
+                            BasicText("Escríbele a María", style = typo.body.copy(fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
                         }
                         CustomSvgIcon(
                             pathData = "M9 18l6-6-6-6",
                             size = 20.dp,
-                            tint = Color(0xFF62627A),
+                            tint = RfThemeState.currentPalette.muted,
                         )
                     }
 
                     // Divider
-                    Box(Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFF2F0F5)))
+                    Box(Modifier.fillMaxWidth().height(1.dp).background(RfThemeState.currentPalette.lineSoft))
 
                     // Instagram row
                     Row(
@@ -408,18 +419,18 @@ internal fun RenderAboutScreenS16(
                             )
                         }
                         Column(modifier = Modifier.weight(1f)) {
-                            BasicText("Instagram", style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A2E)))
-                            BasicText("Mira nuestros montajes", style = typo.body.copy(fontSize = 14.sp, color = Color(0xFF62627A)))
+                            BasicText("Instagram", style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = RfThemeState.currentPalette.ink))
+                            BasicText("Mira nuestros montajes", style = typo.body.copy(fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
                         }
                         CustomSvgIcon(
                             pathData = "M9 18l6-6-6-6",
                             size = 20.dp,
-                            tint = Color(0xFF62627A),
+                            tint = RfThemeState.currentPalette.muted,
                         )
                     }
 
                     // Divider
-                    Box(Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFF2F0F5)))
+                    Box(Modifier.fillMaxWidth().height(1.dp).background(RfThemeState.currentPalette.lineSoft))
 
                     // Facebook row
                     Row(
@@ -444,13 +455,13 @@ internal fun RenderAboutScreenS16(
                             )
                         }
                         Column(modifier = Modifier.weight(1f)) {
-                            BasicText("Facebook", style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A2E)))
-                            BasicText("Únete a la comunidad", style = typo.body.copy(fontSize = 14.sp, color = Color(0xFF62627A)))
+                            BasicText("Facebook", style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = RfThemeState.currentPalette.ink))
+                            BasicText("Únete a la comunidad", style = typo.body.copy(fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
                         }
                         CustomSvgIcon(
                             pathData = "M9 18l6-6-6-6",
                             size = 20.dp,
-                            tint = Color(0xFF62627A),
+                            tint = RfThemeState.currentPalette.muted,
                         )
                     }
                 }
@@ -462,8 +473,8 @@ internal fun RenderAboutScreenS16(
                     .fillMaxWidth()
                     .rfCardShadow(RoundedCornerShape(22.dp))
                     .clip(RoundedCornerShape(22.dp))
-                    .background(Color.White)
-                    .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(22.dp)),
+                    .background(RfThemeState.currentPalette.surface)
+                    .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(22.dp)),
             ) {
                 Column {
                     // Map Canvas
@@ -478,19 +489,19 @@ internal fun RenderAboutScreenS16(
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
                         Column {
-                            BasicText("Santo Domingo, R.D.", style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A2E)))
-                            BasicText("[Dirección del local]", style = typo.body.copy(fontSize = 13.sp, color = Color(0xFF62627A)))
+                            BasicText("Santo Domingo, R.D.", style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = RfThemeState.currentPalette.ink))
+                            BasicText("[Dirección del local]", style = typo.body.copy(fontSize = 13.sp, color = RfThemeState.currentPalette.muted))
                         }
                         Box(
                             modifier = Modifier
                                 .height(38.dp)
                                 .clip(RoundedCornerShape(999.dp))
-                                .background(Color.White)
-                                .border(1.dp, Color(0xFFE8E1EE), RoundedCornerShape(999.dp))
+                                .background(RfThemeState.currentPalette.surface)
+                                .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(999.dp))
                                 .padding(horizontal = 14.dp),
                             contentAlignment = Alignment.Center,
                         ) {
-                            BasicText("Cómo llegar", style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A2E)))
+                            BasicText("Cómo llegar", style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = RfThemeState.currentPalette.ink))
                         }
                     }
                 }
@@ -545,29 +556,73 @@ private fun MapIllustrationS16(modifier: Modifier = Modifier) {
 @Composable
 internal fun RenderCompanyReviewsS17(
     onSelectScreenCode: (String) -> Unit = {},
+    viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
-    var selectedFilter by remember { mutableStateOf(0) } // 0 = Todas, 1 = Verificadas
+    val palette = LocalRfPalette.current
+    var selectedFilter by remember { mutableStateOf(0) }
+    var showWriteReviewModal by remember { mutableStateOf(false) }
+    var draftStars by remember { mutableStateOf(5) }
+    var draftComment by remember { mutableStateOf("") }
+
+    val reviews = viewModel?.companyReviews?.collectAsState()?.value ?: listOf(
+        CompanyReviewUiModel(
+            id = "rev-1",
+            author = "Cliente",
+            initial = "C",
+            dateLabel = "Hoy",
+            rating = 5,
+            comment = "El montaje de nuestra boda superó todas las expectativas. Las sillas Tiffany y el arco floral quedaron de revista.",
+            isVerified = true,
+            avatarBgHex = 0xFFFDE6F2,
+            avatarInkHex = 0xFFC2338F,
+        ),
+        CompanyReviewUiModel(
+            id = "rev-2",
+            author = "Cliente",
+            initial = "C",
+            dateLabel = "Hoy",
+            rating = 5,
+            comment = "Puntualidad impecable y atención personalizada con Rosa IA. ¡Recomendados 100%!",
+            isVerified = true,
+            avatarBgHex = 0xFFEFE8FD,
+            avatarInkHex = 0xFF7A4FD8,
+        ),
+    )
+    val avgRatingText = remember(reviews) {
+        viewModel?.companyAverageRatingFormatted() ?: "5.0"
+    }
+    val verifiedCount = remember(reviews) { reviews.count { item -> item.isVerified } }
+    val filteredReviews = remember(reviews, selectedFilter) {
+        if (selectedFilter == 1) {
+            reviews.filter { item -> item.isVerified }
+        } else {
+            reviews
+        }
+    }
+    val totalCount = reviews.size.coerceAtLeast(1)
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFFAFAFC))
+            .background(palette.bg)
             .drawBehind {
-                drawRect(
-                    brush = Brush.radialGradient(
-                        colors = listOf(Color(0xFFF9E3F1), Color(0x00F9E3F1)),
-                        center = Offset(0f, 0f),
-                        radius = size.width * 1.1f,
-                    ),
-                )
-                drawRect(
-                    brush = Brush.radialGradient(
-                        colors = listOf(Color(0xFFEEE7FB), Color(0x00EEE7FB)),
-                        center = Offset(size.width, size.height * 0.15f),
-                        radius = size.width * 0.8f,
-                    ),
-                )
+                if (!palette.isDark) {
+                    drawRect(
+                        brush = Brush.radialGradient(
+                            colors = listOf(RfThemeState.currentPalette.radialPrimary, RfThemeState.currentPalette.radialPrimary.copy(alpha = 0f)),
+                            center = Offset(0f, 0f),
+                            radius = size.width * 1.1f,
+                        ),
+                    )
+                    drawRect(
+                        brush = Brush.radialGradient(
+                            colors = listOf(RfThemeState.currentPalette.radialSecondary, RfThemeState.currentPalette.radialSecondary.copy(alpha = 0f)),
+                            center = Offset(size.width, size.height * 0.15f),
+                            radius = size.width * 0.8f,
+                        ),
+                    )
+                }
             },
     ) {
         Column(
@@ -579,7 +634,6 @@ internal fun RenderCompanyReviewsS17(
         ) {
             Spacer(modifier = Modifier.height(36.dp))
 
-            // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -590,12 +644,12 @@ internal fun RenderCompanyReviewsS17(
                         .size(44.dp)
                         .rfIconButtonShadow(CircleShape)
                         .clip(CircleShape)
-                        .background(Color.White)
-                        .border(1.dp, Color(0xFFF0EBF4), CircleShape)
+                        .background(palette.surface)
+                        .border(1.dp, palette.line, CircleShape)
                         .clickable { onSelectScreenCode("BACK:s16") },
                     contentAlignment = Alignment.Center,
                 ) {
-                    RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1A1A2E), size = 22.dp)
+                    RfIcon(kind = RfIconKind.BACK, tint = palette.ink, size = 22.dp)
                 }
 
                 BasicText(
@@ -605,19 +659,18 @@ internal fun RenderCompanyReviewsS17(
                         fontWeight = FontWeight.ExtraBold,
                         fontSize = 20.sp,
                         letterSpacing = (-0.4).sp,
-                        color = Color(0xFF1A1A2E),
+                        color = palette.ink,
                     ),
                 )
             }
 
-            // Big Rating Card (5.0 + Stars + Breakdown bars)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .rfCardShadow(RoundedCornerShape(22.dp))
                     .clip(RoundedCornerShape(22.dp))
-                    .background(Color.White)
-                    .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(22.dp))
+                    .background(palette.surface)
+                    .border(1.dp, palette.line, RoundedCornerShape(22.dp))
                     .padding(18.dp),
             ) {
                 Row(
@@ -625,20 +678,19 @@ internal fun RenderCompanyReviewsS17(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(20.dp),
                 ) {
-                    // Left column: 5.0 + 5 stars + count
                     Column(
                         horizontalAlignment = Alignment.Start,
                         verticalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
                         BasicText(
-                            text = "5.0",
+                            text = avgRatingText,
                             style = TextStyle(
                                 fontFamily = typo.displayFamily,
                                 fontWeight = FontWeight.ExtraBold,
                                 fontSize = 48.sp,
                                 letterSpacing = (-1).sp,
                                 lineHeight = 44.sp,
-                                color = Color(0xFF1A1A2E),
+                                color = palette.ink,
                             ),
                         )
                         Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -652,26 +704,24 @@ internal fun RenderCompanyReviewsS17(
                             }
                         }
                         BasicText(
-                            text = "2 reseñas",
-                            style = typo.body.copy(fontSize = 13.sp, color = Color(0xFF62627A)),
+                            text = "${reviews.size} reseñas",
+                            style = typo.body.copy(fontSize = 13.sp, color = palette.muted),
                         )
                     }
 
-                    // Right column: Breakdown bars 5..1
                     Column(
                         modifier = Modifier.weight(1f),
                         verticalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
-                        RatingBarRow(star = "5", progress = 1.0f)
-                        RatingBarRow(star = "4", progress = 0.0f)
-                        RatingBarRow(star = "3", progress = 0.0f)
-                        RatingBarRow(star = "2", progress = 0.0f)
-                        RatingBarRow(star = "1", progress = 0.0f)
+                        for (starLevel in 5 downTo 1) {
+                            val starCount = reviews.count { item -> item.rating == starLevel }
+                            val progress = starCount.toFloat() / totalCount.toFloat()
+                            RatingBarRow(star = starLevel.toString(), progress = progress)
+                        }
                     }
                 }
             }
 
-            // Filter chips ("Todas", "Verificadas · 0")
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Box(
                     modifier = Modifier
@@ -688,22 +738,22 @@ internal fun RenderCompanyReviewsS17(
                             if (selectedFilter == 0) {
                                 Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)))
                             } else {
-                                Brush.linearGradient(listOf(Color.White, Color.White))
+                                Brush.linearGradient(listOf(palette.surface, palette.surface))
                             },
                         )
                         .then(
-                            if (selectedFilter != 0) Modifier.border(1.dp, Color(0xFFEEE9F2), RoundedCornerShape(999.dp)) else Modifier,
+                            if (selectedFilter != 0) Modifier.border(1.dp, palette.line, RoundedCornerShape(999.dp)) else Modifier,
                         )
                         .clickable { selectedFilter = 0 }
                         .padding(horizontal = 15.dp),
                     contentAlignment = Alignment.Center,
                 ) {
                     BasicText(
-                        "Todas",
+                        "Todas · ${reviews.size}",
                         style = typo.body.copy(
                             fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = if (selectedFilter == 0) Color.White else Color(0xFF1A1A2E),
+                            color = if (selectedFilter == 0) Color.White else palette.ink,
                         ),
                     )
                 }
@@ -723,58 +773,49 @@ internal fun RenderCompanyReviewsS17(
                             if (selectedFilter == 1) {
                                 Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)))
                             } else {
-                                Brush.linearGradient(listOf(Color.White, Color.White))
+                                Brush.linearGradient(listOf(palette.surface, palette.surface))
                             },
                         )
                         .then(
-                            if (selectedFilter != 1) Modifier.border(1.dp, Color(0xFFEEE9F2), RoundedCornerShape(999.dp)) else Modifier,
+                            if (selectedFilter != 1) Modifier.border(1.dp, palette.line, RoundedCornerShape(999.dp)) else Modifier,
                         )
                         .clickable { selectedFilter = 1 }
                         .padding(horizontal = 15.dp),
                     contentAlignment = Alignment.Center,
                 ) {
                     BasicText(
-                        "Verificadas · 0",
+                        "Verificadas · $verifiedCount",
                         style = typo.body.copy(
                             fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = if (selectedFilter == 1) Color.White else Color(0xFF1A1A2E),
+                            color = if (selectedFilter == 1) Color.White else palette.ink,
                         ),
                     )
                 }
             }
 
-            // Review Card 1 (Cliente / Boda)
-            ReviewCardItem(
-                avatarBg = Color(0xFFFDE6F2),
-                avatarTextColor = Color(0xFFC2338F),
-                initial = "C",
-                author = "Cliente",
-                date = "Hoy",
-                comment = "El montaje de nuestra boda superó todas las expectativas. Las sillas Tiffany y el arco floral quedaron de revista.",
-            )
-
-            // Review Card 2 (Cliente / Rosa IA)
-            ReviewCardItem(
-                avatarBg = Color(0xFFEFE8FD),
-                avatarTextColor = Color(0xFF7A4FD8),
-                initial = "C",
-                author = "Cliente",
-                date = "Hoy",
-                comment = "Puntualidad impecable y atención personalizada con Rosa IA. ¡Recomendados 100%!",
-            )
+            filteredReviews.forEach { reviewItem ->
+                ReviewCardItem(
+                    avatarBg = Color(reviewItem.avatarBgHex),
+                    avatarTextColor = Color(reviewItem.avatarInkHex),
+                    initial = reviewItem.initial,
+                    author = reviewItem.author,
+                    date = reviewItem.dateLabel,
+                    comment = reviewItem.comment,
+                    rating = reviewItem.rating,
+                )
+            }
 
             Spacer(modifier = Modifier.height(100.dp))
         }
 
-        // Floating Bottom Action Button "Escribir una reseña"
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter)
                 .background(
                     Brush.verticalGradient(
-                        colors = listOf(Color(0x00FAFAFC), Color(0xFFFAFAFC), Color(0xFFFAFAFC)),
+                        colors = listOf(Color.Transparent, palette.bg, palette.bg),
                     ),
                 )
                 .padding(start = 20.dp, end = 20.dp, bottom = 36.dp, top = 16.dp),
@@ -786,7 +827,7 @@ internal fun RenderCompanyReviewsS17(
                     .shadow(12.dp, RoundedCornerShape(16.dp), spotColor = Color(0xB3C846B4), ambientColor = Color.Transparent)
                     .clip(RoundedCornerShape(16.dp))
                     .background(Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC))))
-                    .clickable { onSelectScreenCode("s52") },
+                    .clickable { showWriteReviewModal = true },
                 contentAlignment = Alignment.Center,
             ) {
                 Row(
@@ -805,6 +846,118 @@ internal fun RenderCompanyReviewsS17(
                 }
             }
         }
+
+        if (showWriteReviewModal) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0x88141024))
+                    .clickable { showWriteReviewModal = false },
+                contentAlignment = Alignment.BottomCenter,
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
+                        .background(palette.surface)
+                        .clickable(enabled = false) {}
+                        .padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 34.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        BasicText(
+                            "Califica tu experiencia",
+                            style = TextStyle(fontFamily = typo.displayFamily, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = palette.ink),
+                        )
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(palette.chipBg)
+                                .clickable { showWriteReviewModal = false },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            RfIcon(kind = RfIconKind.CLOSE, tint = palette.ink, size = 18.dp)
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        for (starValue in 1..5) {
+                            val isStarSelected = starValue <= draftStars
+                            Box(
+                                modifier = Modifier
+                                    .size(44.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(if (isStarSelected) Color(0xFFFFF2C9) else palette.chipBg)
+                                    .clickable { draftStars = starValue },
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                CustomSvgIcon(
+                                    pathData = "M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z",
+                                    size = 24.dp,
+                                    tint = if (isStarSelected) Color(0xFFF7B500) else palette.muted,
+                                    filled = isStarSelected,
+                                )
+                            }
+                        }
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(92.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(palette.chipBg)
+                            .border(1.dp, palette.line, RoundedCornerShape(16.dp))
+                            .padding(14.dp),
+                    ) {
+                        if (draftComment.isEmpty()) {
+                            BasicText(
+                                "Cuéntanos cómo quedó tu montaje o atención con Rosa Fiesta…",
+                                style = typo.body.copy(fontSize = 14.sp, color = palette.muted),
+                            )
+                        }
+                        BasicTextField(
+                            value = draftComment,
+                            onValueChange = { updated -> draftComment = updated },
+                            textStyle = typo.body.copy(fontSize = 14.5.sp, color = palette.ink),
+                            cursorBrush = SolidColor(Color(0xFFD63F98)),
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC))))
+                            .clickable {
+                                val textToPublish = draftComment.trim().ifEmpty {
+                                    "Excelente servicio y mobiliario impecable en nuestro evento."
+                                }
+                                viewModel?.submitCompanyReview(comment = textToPublish, rating = draftStars)
+                                draftComment = ""
+                                draftStars = 5
+                                showWriteReviewModal = false
+                            },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        BasicText(
+                            "Publicar reseña ($draftStars ★)",
+                            style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.White),
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -816,13 +969,13 @@ private fun RatingBarRow(star: String, progress: Float) {
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         modifier = Modifier.fillMaxWidth(),
     ) {
-        BasicText(star, style = typo.body.copy(fontSize = 12.sp, color = Color(0xFF62627A)), modifier = Modifier.width(8.dp))
+        BasicText(star, style = typo.body.copy(fontSize = 12.sp, color = RfThemeState.currentPalette.muted), modifier = Modifier.width(8.dp))
         Box(
             modifier = Modifier
                 .weight(1f)
                 .height(6.dp)
                 .clip(RoundedCornerShape(3.dp))
-                .background(Color(0xFFF1EFF5)),
+                .background(RfThemeState.currentPalette.chipBg),
         ) {
             if (progress > 0f) {
                 Box(
@@ -845,15 +998,17 @@ private fun ReviewCardItem(
     author: String,
     date: String,
     comment: String,
+    rating: Int = 5,
 ) {
     val typo = LocalRfTypography.current
+    val palette = LocalRfPalette.current
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .rfCardShadow(RoundedCornerShape(22.dp))
             .clip(RoundedCornerShape(22.dp))
-            .background(Color.White)
-            .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(22.dp))
+            .background(palette.surface)
+            .border(1.dp, palette.line, RoundedCornerShape(22.dp))
             .padding(16.dp),
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -881,9 +1036,9 @@ private fun ReviewCardItem(
                 }
 
                 Column(modifier = Modifier.weight(1f)) {
-                    BasicText(author, style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A2E)))
+                    BasicText(author, style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = palette.ink))
                     Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                        repeat(5) {
+                        repeat(rating.coerceIn(1, 5)) {
                             CustomSvgIcon(
                                 pathData = "M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z",
                                 size = 13.dp,
@@ -894,12 +1049,12 @@ private fun ReviewCardItem(
                     }
                 }
 
-                BasicText(date, style = typo.body.copy(fontSize = 13.sp, color = Color(0xFF62627A)))
+                BasicText(date, style = typo.body.copy(fontSize = 13.sp, color = palette.muted))
             }
 
             BasicText(
                 comment,
-                style = typo.body.copy(fontSize = 15.sp, lineHeight = 22.sp, color = Color(0xFF1A1A2E)),
+                style = typo.body.copy(fontSize = 15.sp, lineHeight = 22.sp, color = palette.ink),
             )
         }
     }
@@ -946,7 +1101,7 @@ private fun ChatDateBadge(
     Box(
         modifier = modifier
             .clip(CircleShape)
-            .background(Color(0xFFF1EFF5))
+            .background(RfThemeState.currentPalette.chipBg)
             .padding(horizontal = 10.dp, vertical = 4.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -955,7 +1110,7 @@ private fun ChatDateBadge(
             style = TextStyle(
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF62627A),
+                color = RfThemeState.currentPalette.muted,
             ),
         )
     }
@@ -1015,24 +1170,138 @@ private fun ChatMessageBubble(
 }
 
 @Composable
-internal fun RenderEventChatTabS41(
-    onSelectScreenCode: (String) -> Unit = {},
+private fun ChatMariaIncomingBubble(
+    author: String,
+    text: String,
+    time: String,
+    modifier: Modifier = Modifier,
 ) {
     val typo = LocalRfTypography.current
+    val palette = LocalRfPalette.current
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 2.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.Bottom,
+    ) {
+        RfLogo(customSize = 28.dp, insetPadding = false)
+        Box(
+            modifier = Modifier
+                .widthIn(max = 275.dp)
+                .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 6.dp, bottomEnd = 20.dp))
+                .background(palette.surface)
+                .border(1.dp, palette.line, RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 6.dp, bottomEnd = 20.dp))
+                .padding(start = 14.dp, end = 14.dp, top = 10.dp, bottom = 8.dp),
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                BasicText(
+                    text = author,
+                    style = TextStyle(
+                        fontFamily = typo.bodyFamily,
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFD63F98),
+                    ),
+                )
+                BasicText(
+                    text = text,
+                    style = TextStyle(
+                        fontFamily = typo.bodyFamily,
+                        fontSize = 14.5.sp,
+                        lineHeight = 20.sp,
+                        color = palette.ink,
+                    ),
+                )
+                BasicText(
+                    text = time,
+                    style = TextStyle(
+                        fontFamily = typo.bodyFamily,
+                        fontSize = 11.sp,
+                        color = palette.muted,
+                    ),
+                    modifier = Modifier.align(Alignment.End),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+internal fun RenderEventChatTabS41(
+    onSelectScreenCode: (String) -> Unit = {},
+    viewModel: RosaFiestaViewModel? = null,
+) {
+    val typo = LocalRfTypography.current
+    val palette = LocalRfPalette.current
     var draftInputS41 by remember { mutableStateOf("") }
-    var sentMessagesS41 by remember { mutableStateOf(emptyList<String>()) }
+    var localFallbackMessages by remember {
+        mutableStateOf(
+            listOf(
+                DirectChatMessageUiModel(
+                    id = "loc-1",
+                    senderName = "María · Rosa Fiesta",
+                    text = "¡Hola! Soy María de Rosa Fiesta 🌸 Estoy conectada para ayudarte con la cotización, el mobiliario o cualquier detalle de tu evento.",
+                    timeLabel = "7:35 p. m.",
+                    isFromClient = false,
+                ),
+                DirectChatMessageUiModel(
+                    id = "loc-2",
+                    senderName = "Cliente",
+                    text = "¡Hola equipo Rosa Fiesta! ¿Podemos incluir 20 sillas Chiavari doradas adicionales para el área del brindis?",
+                    timeLabel = "7:38 p. m.",
+                    isFromClient = true,
+                ),
+                DirectChatMessageUiModel(
+                    id = "loc-3",
+                    senderName = "María · Rosa Fiesta",
+                    text = "¡Claro que sí! Tenemos disponibilidad inmediata y las acabo de reservar en tu lista del Jardín Botánico ✨",
+                    timeLabel = "7:40 p. m.",
+                    isFromClient = false,
+                ),
+            ),
+        )
+    }
+    val vmMessages = viewModel?.directChatMessages?.collectAsState()?.value
+    val activeMessages = vmMessages ?: localFallbackMessages
     val scrollState = rememberScrollState()
+
+    val sendChatText: (String) -> Unit = { rawText ->
+        val trimmed = rawText.trim()
+        if (trimmed.isNotEmpty()) {
+            if (viewModel != null) {
+                viewModel.sendDirectChatMessage(trimmed)
+            } else {
+                localFallbackMessages = localFallbackMessages + listOf(
+                    DirectChatMessageUiModel(
+                        id = "loc-${localFallbackMessages.size + 1}",
+                        senderName = "Cliente",
+                        text = trimmed,
+                        timeLabel = "Ahora",
+                        isFromClient = true,
+                    ),
+                    DirectChatMessageUiModel(
+                        id = "loc-${localFallbackMessages.size + 2}",
+                        senderName = "María · Rosa Fiesta",
+                        text = "¡Recibido, muchas gracias! Ya lo anoté en tu expediente de evento 🌸",
+                        timeLabel = "Ahora",
+                        isFromClient = false,
+                    ),
+                )
+            }
+        }
+    }
 
     val submitMessageS41 = {
         val trimmed = draftInputS41.trim()
         if (trimmed.isNotEmpty()) {
-            sentMessagesS41 = sentMessagesS41 + trimmed
+            sendChatText(trimmed)
             draftInputS41 = ""
         }
     }
 
-    LaunchedEffect(sentMessagesS41.size) {
-        if (sentMessagesS41.isNotEmpty()) {
+    LaunchedEffect(activeMessages.size) {
+        if (activeMessages.isNotEmpty()) {
             scrollState.animateScrollTo(scrollState.maxValue)
         }
     }
@@ -1040,13 +1309,13 @@ internal fun RenderEventChatTabS41(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFFAFAFC)),
+            .background(palette.bg),
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(scrollState)
-                .padding(top = 16.dp, start = 20.dp, end = 20.dp, bottom = 90.dp),
+                .padding(top = 16.dp, start = 20.dp, end = 20.dp, bottom = 136.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Row(
@@ -1059,15 +1328,15 @@ internal fun RenderEventChatTabS41(
                         .size(44.dp)
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
-                        .background(Color.White)
-                        .border(1.dp, Color(0xFFF0EBF4), CircleShape)
-                        .clickable { onSelectScreenCode("s40") },
+                        .background(palette.surface)
+                        .border(1.dp, palette.line, CircleShape)
+                        .clickable { onSelectScreenCode("BACK:s40") },
                     contentAlignment = Alignment.Center,
                 ) {
                     CustomSvgIcon(
                         pathData = "M19 12H5M11 18l-6-6 6-6",
                         size = 22.dp,
-                        tint = Color(0xFF1A1A2E),
+                        tint = palette.ink,
                     )
                 }
 
@@ -1078,7 +1347,7 @@ internal fun RenderEventChatTabS41(
                             fontFamily = typo.displayFamily,
                             fontWeight = FontWeight.ExtraBold,
                             fontSize = 19.sp,
-                            color = Color(0xFF1A1A2E),
+                            color = palette.ink,
                         ),
                         maxLines = 1,
                     )
@@ -1087,7 +1356,7 @@ internal fun RenderEventChatTabS41(
                         style = TextStyle(
                             fontFamily = typo.bodyFamily,
                             fontSize = 13.sp,
-                            color = Color(0xFF62627A),
+                            color = palette.muted,
                         ),
                         maxLines = 1,
                     )
@@ -1098,15 +1367,15 @@ internal fun RenderEventChatTabS41(
                         .size(44.dp)
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
-                        .background(Color.White)
-                        .border(1.dp, Color(0xFFF0EBF4), CircleShape)
+                        .background(palette.surface)
+                        .border(1.dp, palette.line, CircleShape)
                         .clickable { onSelectScreenCode("s83") },
                     contentAlignment = Alignment.Center,
                 ) {
                     CustomSvgIcon(
                         pathData = "M12 4v11M7 10.5l5 5 5-5M5 20h14",
                         size = 20.dp,
-                        tint = Color(0xFF1A1A2E),
+                        tint = palette.ink,
                     )
                 }
 
@@ -1115,15 +1384,15 @@ internal fun RenderEventChatTabS41(
                         .size(44.dp)
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
-                        .background(Color.White)
-                        .border(1.dp, Color(0xFFF0EBF4), CircleShape)
+                        .background(palette.surface)
+                        .border(1.dp, palette.line, CircleShape)
                         .clickable { onSelectScreenCode("s83") },
                     contentAlignment = Alignment.Center,
                 ) {
                     CustomSvgIcon(
                         pathData = "M15 6a3 3 0 1 0 6 0a3 3 0 1 0 -6 0M3 12a3 3 0 1 0 6 0a3 3 0 1 0 -6 0M15 18a3 3 0 1 0 6 0a3 3 0 1 0 -6 0M8.6 10.6l6.8-3.6M8.6 13.4l6.8 3.6",
                         size = 20.dp,
-                        tint = Color(0xFF1A1A2E),
+                        tint = palette.ink,
                     )
                 }
             }
@@ -1149,7 +1418,7 @@ internal fun RenderEventChatTabS41(
                                 fontFamily = typo.bodyFamily,
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = Color(0xFF62627A),
+                                color = palette.muted,
                             ),
                         )
                     }
@@ -1169,7 +1438,7 @@ internal fun RenderEventChatTabS41(
                                     fontFamily = typo.bodyFamily,
                                     fontSize = 15.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF1A1A2E),
+                                    color = palette.ink,
                                 ),
                             )
                         }
@@ -1185,7 +1454,7 @@ internal fun RenderEventChatTabS41(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(1.dp)
-                        .background(Color(0xFFEEE9F2)),
+                        .background(palette.line),
                 )
             }
 
@@ -1193,8 +1462,8 @@ internal fun RenderEventChatTabS41(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .background(Color.White)
-                    .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(16.dp))
+                    .background(palette.surface)
+                    .border(1.dp, palette.line, RoundedCornerShape(16.dp))
                     .padding(horizontal = 12.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -1205,12 +1474,12 @@ internal fun RenderEventChatTabS41(
                 )
                 Column(modifier = Modifier.weight(1f)) {
                     BasicText(
-                        text = "Equipo Rosa Fiesta",
+                        text = "María · Equipo Rosa Fiesta",
                         style = TextStyle(
                             fontFamily = typo.bodyFamily,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF1A1A2E),
+                            color = palette.ink,
                         ),
                     )
                     Row(
@@ -1224,7 +1493,7 @@ internal fun RenderEventChatTabS41(
                                 .background(Color(0xFF8DB52C)),
                         )
                         BasicText(
-                            text = "En línea",
+                            text = "En línea · Responde al instante",
                             style = TextStyle(
                                 fontFamily = typo.bodyFamily,
                                 fontSize = 12.sp,
@@ -1245,118 +1514,142 @@ internal fun RenderEventChatTabS41(
                     modifier = Modifier.fillMaxWidth(),
                     contentAlignment = Alignment.Center,
                 ) {
-                    ChatDateBadge("Ayer")
+                    ChatDateBadge("Conversación activa")
                 }
 
-                ChatMessageBubble(
-                    text = "¡Hola equipo Rosa Fiesta! ¿Podemos incluir 20 sillas Chiavari doradas adicionales para el área del brindis?",
-                    time = "7:38 p. m.",
-                )
-
-                ChatMessageBubble(
-                    text = "Ya revisé el presupuesto ajustado y el montaje en el Jardín Botánico nos encanta.",
-                    time = "9:08 p. m.",
-                )
-
-                sentMessagesS41.forEach { messageText ->
-                    ChatMessageBubble(
-                        text = messageText,
-                        time = "Ahora",
-                    )
-                }
-
-                if (sentMessagesS41.isNotEmpty()) {
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.End)
-                            .widthIn(max = 280.dp)
-                            .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 20.dp, bottomEnd = 6.dp))
-                            .background(Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC))))
-                            .padding(horizontal = 14.dp, vertical = 12.dp),
-                    ) {
-                        BasicText(
-                            text = "¡Claro Camila! Ya lo anotamos en tu expediente de la boda 🌸",
-                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color.White, lineHeight = 20.sp),
+                activeMessages.forEach { msg ->
+                    if (msg.isFromClient) {
+                        ChatMessageBubble(
+                            text = msg.text,
+                            time = msg.timeLabel,
+                        )
+                    } else {
+                        ChatMariaIncomingBubble(
+                            author = msg.senderName,
+                            text = msg.text,
+                            time = msg.timeLabel,
                         )
                     }
                 }
             }
         }
 
-        Row(
+        Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .background(Color.White)
-                .border(1.dp, Color(0xFFF2EDF5))
-                .padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 30.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                .background(palette.surface)
+                .border(1.dp, palette.line),
         ) {
-            Box(
+            Row(
                 modifier = Modifier
-                    .size(44.dp)
-                    .rfIconButtonShadow(CircleShape, isAdmin = false)
-                    .clip(CircleShape)
-                    .clickable {
-                        sentMessagesS41 = sentMessagesS41 + "📎 Plano-brindis-jardin.pdf adjuntado"
-                    },
-                contentAlignment = Alignment.Center,
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                CustomSvgIcon(
-                    pathData = "M20 11.5l-8.2 8.2a5 5 0 0 1-7-7L13 4.5a3.3 3.3 0 0 1 4.7 4.7l-8.2 8.2a1.7 1.7 0 0 1-2.4-2.4L14.5 7.5",
-                    size = 22.dp,
-                    tint = Color(0xFF62627A),
+                val quickPrompts = listOf(
+                    "Cotizar sillas Tiffany",
+                    "Consultar fecha",
+                    "Formas de pago",
+                    "Visitar el local",
                 )
+                quickPrompts.forEach { promptChip ->
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(999.dp))
+                            .background(palette.chipBg)
+                            .border(1.dp, palette.line, RoundedCornerShape(999.dp))
+                            .clickable { sendChatText(promptChip) }
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                    ) {
+                        BasicText(
+                            text = promptChip,
+                            style = TextStyle(
+                                fontFamily = typo.bodyFamily,
+                                fontSize = 12.5.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFFD63F98),
+                            ),
+                        )
+                    }
+                }
             }
 
-            Box(
+            Row(
                 modifier = Modifier
-                    .weight(1f)
-                    .height(48.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFFF5F0F3))
-                    .padding(horizontal = 16.dp),
-                contentAlignment = Alignment.CenterStart,
+                    .fillMaxWidth()
+                    .padding(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 26.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                if (draftInputS41.isEmpty()) {
-                    BasicText(
-                        text = "Escribe un mensaje…",
-                        style = TextStyle(
-                            fontFamily = typo.bodyFamily,
-                            fontSize = 15.sp,
-                            color = Color(0xFF62627A),
-                        ),
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .rfIconButtonShadow(CircleShape, isAdmin = false)
+                        .clip(CircleShape)
+                        .background(palette.chipBg)
+                        .clickable {
+                            sendChatText("📎 Plano-brindis-jardin.pdf adjuntado")
+                        },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CustomSvgIcon(
+                        pathData = "M20 11.5l-8.2 8.2a5 5 0 0 1-7-7L13 4.5a3.3 3.3 0 0 1 4.7 4.7l-8.2 8.2a1.7 1.7 0 0 1-2.4-2.4L14.5 7.5",
+                        size = 22.dp,
+                        tint = palette.muted,
                     )
                 }
-                BasicTextField(
-                    value = draftInputS41,
-                    onValueChange = { updatedText -> draftInputS41 = updatedText },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                    keyboardActions = KeyboardActions(onSend = { submitMessageS41() }),
-                    textStyle = TextStyle(
-                        fontFamily = typo.bodyFamily,
-                        fontSize = 15.sp,
-                        color = Color(0xFF1A1A2E),
-                    ),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
 
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC))))
-                    .clickable { submitMessageS41() },
-                contentAlignment = Alignment.Center,
-            ) {
-                CustomSvgIcon(
-                    pathData = "M21 3L10 14M21 3l-6.5 18-4.5-7-7-4.5z",
-                    size = 20.dp,
-                    tint = Color.White,
-                )
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp)
+                        .clip(CircleShape)
+                        .background(palette.chipBg)
+                        .padding(horizontal = 16.dp),
+                    contentAlignment = Alignment.CenterStart,
+                ) {
+                    if (draftInputS41.isEmpty()) {
+                        BasicText(
+                            text = "Escríbele a María…",
+                            style = TextStyle(
+                                fontFamily = typo.bodyFamily,
+                                fontSize = 15.sp,
+                                color = palette.muted,
+                            ),
+                        )
+                    }
+                    BasicTextField(
+                        value = draftInputS41,
+                        onValueChange = { updatedText -> draftInputS41 = updatedText },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                        keyboardActions = KeyboardActions(onSend = { submitMessageS41() }),
+                        textStyle = TextStyle(
+                            fontFamily = typo.bodyFamily,
+                            fontSize = 15.sp,
+                            color = palette.ink,
+                        ),
+                        cursorBrush = SolidColor(Color(0xFFD63F98)),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC))))
+                        .clickable { submitMessageS41() },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CustomSvgIcon(
+                        pathData = "M21 3L10 14M21 3l-6.5 18-4.5-7-7-4.5z",
+                        size = 20.dp,
+                        tint = Color.White,
+                    )
+                }
             }
         }
     }
@@ -1365,22 +1658,78 @@ internal fun RenderEventChatTabS41(
 @Composable
 internal fun RenderEventChatS42(
     onSelectScreenCode: (String) -> Unit = {},
+    viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
+    val palette = LocalRfPalette.current
     var draftInputS42 by remember { mutableStateOf("") }
-    var sentMessagesS42 by remember { mutableStateOf(emptyList<String>()) }
+    var localFallbackMessages by remember {
+        mutableStateOf(
+            listOf(
+                DirectChatMessageUiModel(
+                    id = "loc42-1",
+                    senderName = "María · Rosa Fiesta",
+                    text = "¡Hola! Soy María de Rosa Fiesta 🌸 Estoy conectada para ayudarte con la cotización, el mobiliario o cualquier detalle de tu evento.",
+                    timeLabel = "7:35 p. m.",
+                    isFromClient = false,
+                ),
+                DirectChatMessageUiModel(
+                    id = "loc42-2",
+                    senderName = "Cliente",
+                    text = "¡Hola equipo Rosa Fiesta! ¿Podemos incluir 20 sillas Chiavari doradas adicionales para el área del brindis?",
+                    timeLabel = "7:38 p. m.",
+                    isFromClient = true,
+                ),
+                DirectChatMessageUiModel(
+                    id = "loc42-3",
+                    senderName = "María · Rosa Fiesta",
+                    text = "¡Claro que sí! Tenemos disponibilidad inmediata y las acabo de reservar en tu lista del Jardín Botánico ✨",
+                    timeLabel = "7:40 p. m.",
+                    isFromClient = false,
+                ),
+            ),
+        )
+    }
+    val vmMessages = viewModel?.directChatMessages?.collectAsState()?.value
+    val activeMessages = vmMessages ?: localFallbackMessages
     val scrollState = rememberScrollState()
+
+    val sendChatText: (String) -> Unit = { rawText ->
+        val trimmed = rawText.trim()
+        if (trimmed.isNotEmpty()) {
+            if (viewModel != null) {
+                viewModel.sendDirectChatMessage(trimmed)
+            } else {
+                localFallbackMessages = localFallbackMessages + listOf(
+                    DirectChatMessageUiModel(
+                        id = "loc42-${localFallbackMessages.size + 1}",
+                        senderName = "Cliente",
+                        text = trimmed,
+                        timeLabel = "Ahora",
+                        isFromClient = true,
+                    ),
+                    DirectChatMessageUiModel(
+                        id = "loc42-${localFallbackMessages.size + 2}",
+                        senderName = "María · Rosa Fiesta",
+                        text = "¡Recibido, muchas gracias! Ya lo anoté en tu expediente de evento 🌸",
+                        timeLabel = "Ahora",
+                        isFromClient = false,
+                    ),
+                )
+            }
+        }
+    }
 
     val submitMessageS42 = {
         val trimmed = draftInputS42.trim()
         if (trimmed.isNotEmpty()) {
-            sentMessagesS42 = sentMessagesS42 + trimmed
+            sendChatText(trimmed)
             draftInputS42 = ""
         }
     }
 
-    LaunchedEffect(sentMessagesS42.size) {
-        if (sentMessagesS42.isNotEmpty()) {
+    LaunchedEffect(activeMessages.size) {
+        if (activeMessages.isNotEmpty()) {
             scrollState.animateScrollTo(scrollState.maxValue)
         }
     }
@@ -1388,12 +1737,12 @@ internal fun RenderEventChatS42(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFFAFAFC)),
+            .background(palette.bg),
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 114.dp, bottom = 82.dp)
+                .padding(top = 84.dp, bottom = 126.dp)
                 .verticalScroll(scrollState)
                 .padding(top = 12.dp, start = 16.dp, end = 16.dp, bottom = 12.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -1402,8 +1751,8 @@ internal fun RenderEventChatS42(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(18.dp))
-                    .background(Color.White)
-                    .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(18.dp))
+                    .background(palette.surface)
+                    .border(1.dp, palette.line, RoundedCornerShape(18.dp))
                     .clickable { onSelectScreenCode("s40") }
                     .padding(10.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -1423,7 +1772,7 @@ internal fun RenderEventChatS42(
                             fontFamily = typo.bodyFamily,
                             fontWeight = FontWeight.Bold,
                             fontSize = 14.sp,
-                            color = Color(0xFF1A1A2E),
+                            color = palette.ink,
                         ),
                         maxLines = 1,
                     )
@@ -1432,7 +1781,7 @@ internal fun RenderEventChatS42(
                         style = TextStyle(
                             fontFamily = typo.bodyFamily,
                             fontSize = 12.sp,
-                            color = Color(0xFF62627A),
+                            color = palette.muted,
                         ),
                     )
                 }
@@ -1452,41 +1801,23 @@ internal fun RenderEventChatS42(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 10.dp),
+                    .padding(top = 6.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                ChatDateBadge("Ayer")
+                ChatDateBadge("Chat directo con María")
             }
 
-            ChatMessageBubble(
-                text = "¡Hola equipo Rosa Fiesta! ¿Podemos incluir 20 sillas Chiavari doradas adicionales para el área del brindis?",
-                time = "7:38 p. m.",
-            )
-
-            ChatMessageBubble(
-                text = "Ya revisé el presupuesto ajustado y el montaje en el Jardín Botánico nos encanta.",
-                time = "9:08 p. m.",
-            )
-
-            sentMessagesS42.forEach { messageText ->
-                ChatMessageBubble(
-                    text = messageText,
-                    time = "Ahora",
-                )
-            }
-
-            if (sentMessagesS42.isNotEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.End)
-                        .widthIn(max = 280.dp)
-                        .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 20.dp, bottomEnd = 6.dp))
-                        .background(Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC))))
-                        .padding(horizontal = 14.dp, vertical = 12.dp),
-                ) {
-                    BasicText(
-                        text = "¡Claro Camila! Ya lo anotamos en tu expediente de la boda 🌸",
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color.White, lineHeight = 20.sp),
+            activeMessages.forEach { msg ->
+                if (msg.isFromClient) {
+                    ChatMessageBubble(
+                        text = msg.text,
+                        time = msg.timeLabel,
+                    )
+                } else {
+                    ChatMariaIncomingBubble(
+                        author = msg.senderName,
+                        text = msg.text,
+                        time = msg.timeLabel,
                     )
                 }
             }
@@ -1496,8 +1827,8 @@ internal fun RenderEventChatS42(
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .fillMaxWidth()
-                .background(Color.White)
-                .border(1.dp, Color(0xFFF2EDF5))
+                .background(palette.surface)
+                .border(1.dp, palette.line)
                 .padding(start = 12.dp, end = 12.dp, top = 16.dp, bottom = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -1505,13 +1836,14 @@ internal fun RenderEventChatS42(
             Box(
                 modifier = Modifier
                     .size(44.dp)
-                    .clickable { onSelectScreenCode("s40") },
+                    .clip(CircleShape)
+                    .clickable { onSelectScreenCode("BACK:s16") },
                 contentAlignment = Alignment.Center,
             ) {
                 CustomSvgIcon(
                     pathData = "M19 12H5M11 18l-6-6 6-6",
                     size = 22.dp,
-                    tint = Color(0xFF1A1A2E),
+                    tint = palette.ink,
                 )
             }
 
@@ -1522,12 +1854,12 @@ internal fun RenderEventChatS42(
 
             Column(modifier = Modifier.weight(1f)) {
                 BasicText(
-                    text = "Equipo Rosa Fiesta",
+                    text = "María · Rosa Fiesta",
                     style = TextStyle(
                         fontFamily = typo.bodyFamily,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1A1A2E),
+                        color = palette.ink,
                     ),
                     maxLines = 1,
                 )
@@ -1542,7 +1874,7 @@ internal fun RenderEventChatS42(
                             .background(Color(0xFF8DB52C)),
                     )
                     BasicText(
-                        text = "En línea",
+                        text = "En línea · Atención personalizada",
                         style = TextStyle(
                             fontFamily = typo.bodyFamily,
                             fontSize = 12.sp,
@@ -1555,111 +1887,154 @@ internal fun RenderEventChatS42(
             Box(
                 modifier = Modifier
                     .size(44.dp)
+                    .clip(CircleShape)
                     .clickable { onSelectScreenCode("s40") },
                 contentAlignment = Alignment.Center,
             ) {
                 CustomSvgIcon(
                     pathData = "M12 5h.01M12 12h.01M12 19h.01",
                     size = 22.dp,
-                    tint = Color(0xFF1A1A2E),
+                    tint = palette.ink,
                     strokeWidth = 2.6f,
                 )
             }
         }
 
-        Row(
+        Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .background(Color.White)
-                .border(1.dp, Color(0xFFF2EDF5))
-                .padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 30.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                .background(palette.surface)
+                .border(1.dp, palette.line),
         ) {
-            Box(
+            Row(
                 modifier = Modifier
-                    .size(44.dp)
-                    .rfIconButtonShadow(CircleShape, isAdmin = false)
-                    .clip(CircleShape)
-                    .clickable {
-                        draftInputS42 = "$draftInputS42 ✨"
-                    },
-                contentAlignment = Alignment.Center,
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                CustomSvgIcon(
-                    pathData = "M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0M8.5 14.5c1.8 2 5.2 2 7 0M9 9.5h.01M15 9.5h.01",
-                    size = 22.dp,
-                    tint = Color(0xFF62627A),
+                val quickPrompts = listOf(
+                    "Cotizar sillas Tiffany",
+                    "Consultar fecha",
+                    "Formas de pago",
+                    "Visitar el local",
                 )
+                quickPrompts.forEach { promptChip ->
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(999.dp))
+                            .background(palette.chipBg)
+                            .border(1.dp, palette.line, RoundedCornerShape(999.dp))
+                            .clickable { sendChatText(promptChip) }
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                    ) {
+                        BasicText(
+                            text = promptChip,
+                            style = TextStyle(
+                                fontFamily = typo.bodyFamily,
+                                fontSize = 12.5.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFFD63F98),
+                            ),
+                        )
+                    }
+                }
             }
 
             Row(
                 modifier = Modifier
-                    .weight(1f)
-                    .height(48.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFFF5F0F3))
-                    .padding(start = 16.dp, end = 6.dp),
+                    .fillMaxWidth()
+                    .padding(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 26.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-                    if (draftInputS42.isEmpty()) {
-                        BasicText(
-                            text = "Escribe un mensaje…",
-                            style = TextStyle(
-                                fontFamily = typo.bodyFamily,
-                                fontSize = 15.sp,
-                                color = Color(0xFF62627A),
-                            ),
-                        )
-                    }
-                    BasicTextField(
-                        value = draftInputS42,
-                        onValueChange = { updatedText -> draftInputS42 = updatedText },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                        keyboardActions = KeyboardActions(onSend = { submitMessageS42() }),
-                        textStyle = TextStyle(
-                            fontFamily = typo.bodyFamily,
-                            fontSize = 15.sp,
-                            color = Color(0xFF1A1A2E),
-                        ),
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-
                 Box(
                     modifier = Modifier
-                        .size(38.dp)
+                        .size(44.dp)
+                        .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
+                        .background(palette.chipBg)
                         .clickable {
-                            sentMessagesS42 = sentMessagesS42 + "📷 Foto de referencia adjuntada"
+                            draftInputS42 = "$draftInputS42 ✨"
                         },
                     contentAlignment = Alignment.Center,
                 ) {
                     CustomSvgIcon(
-                        pathData = "M3 8.5A1.5 1.5 0 0 1 4.5 7H7l1.5-2.5h7L17 7h2.5A1.5 1.5 0 0 1 21 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5zM8.5 13a3.5 3.5 0 1 0 7 0a3.5 3.5 0 1 0 -7 0",
-                        size = 20.dp,
-                        tint = Color(0xFF62627A),
+                        pathData = "M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0M8.5 14.5c1.8 2 5.2 2 7 0M9 9.5h.01M15 9.5h.01",
+                        size = 22.dp,
+                        tint = palette.muted,
                     )
                 }
-            }
 
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC))))
-                    .clickable { submitMessageS42() },
-                contentAlignment = Alignment.Center,
-            ) {
-                CustomSvgIcon(
-                    pathData = "M21 3L10 14M21 3l-6.5 18-4.5-7-7-4.5z",
-                    size = 20.dp,
-                    tint = Color.White,
-                )
+                Row(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp)
+                        .clip(CircleShape)
+                        .background(palette.chipBg)
+                        .padding(start = 16.dp, end = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                        if (draftInputS42.isEmpty()) {
+                            BasicText(
+                                text = "Escríbele a María…",
+                                style = TextStyle(
+                                    fontFamily = typo.bodyFamily,
+                                    fontSize = 15.sp,
+                                    color = palette.muted,
+                                ),
+                            )
+                        }
+                        BasicTextField(
+                            value = draftInputS42,
+                            onValueChange = { updatedText -> draftInputS42 = updatedText },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                            keyboardActions = KeyboardActions(onSend = { submitMessageS42() }),
+                            textStyle = TextStyle(
+                                fontFamily = typo.bodyFamily,
+                                fontSize = 15.sp,
+                                color = palette.ink,
+                            ),
+                            cursorBrush = SolidColor(Color(0xFFD63F98)),
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clip(CircleShape)
+                            .clickable {
+                                sendChatText("📷 Foto de referencia adjuntada")
+                            },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        CustomSvgIcon(
+                            pathData = "M3 8.5A1.5 1.5 0 0 1 4.5 7H7l1.5-2.5h7L17 7h2.5A1.5 1.5 0 0 1 21 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5zM8.5 13a3.5 3.5 0 1 0 7 0a3.5 3.5 0 1 0 -7 0",
+                            size = 20.dp,
+                            tint = palette.muted,
+                        )
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC))))
+                        .clickable { submitMessageS42() },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CustomSvgIcon(
+                        pathData = "M21 3L10 14M21 3l-6.5 18-4.5-7-7-4.5z",
+                        size = 20.dp,
+                        tint = Color.White,
+                    )
+                }
             }
         }
     }
@@ -1704,7 +2079,7 @@ internal fun RenderFinanceDashboardS59(
                 modifier = Modifier
                     .weight(1f)
                     .clip(RoundedCornerShape(18.dp))
-                    .background(Color.White)
+                    .background(RfThemeState.currentPalette.surface)
                     .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(18.dp))
                     .padding(14.dp),
                 verticalArrangement = Arrangement.spacedBy(1.dp),
@@ -1717,7 +2092,7 @@ internal fun RenderFinanceDashboardS59(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(22.dp))
-                .background(Color.White)
+                .background(RfThemeState.currentPalette.surface)
                 .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(22.dp)),
         ) {
             PanelMovementRow59("Anticipo 30%", "Quinceañera Valentina Crystal", "+RD$ 1,860", RfIconKind.TREND_UP, Color(0xFFEEF6D6), Color(0xFF4E6A10), Color(0xFF4E6A10), divider = false)
@@ -1854,7 +2229,7 @@ internal fun RenderInventoryCalendarS63(onSelectScreenCode: (String) -> Unit = {
                         .fillMaxWidth()
                         .padding(horizontal = 20.dp)
                         .clip(RoundedCornerShape(22.dp))
-                        .background(Color.White)
+                        .background(RfThemeState.currentPalette.surface)
                         .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(22.dp))
                         .padding(start = 10.dp, end = 10.dp, top = 14.dp, bottom = 12.dp),
                 ) {
@@ -1987,7 +2362,7 @@ private fun CalendarDay63(
         modifier = modifier
             .height(50.dp)
             .clip(RoundedCornerShape(12.dp))
-            .background(if (selected) Color(0xFFECEBFF) else Color(0xFFFAFAFC))
+            .background(if (selected) Color(0xFFECEBFF) else RfThemeState.currentPalette.bg)
             .then(if (selected) Modifier.border(2.dp, Color(0xFFD63F98), RoundedCornerShape(12.dp)) else Modifier)
             .clickable(onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -2185,7 +2560,7 @@ private fun LeadPipelineCard64(
             .fillMaxWidth()
             .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = true)
             .clip(RoundedCornerShape(22.dp))
-            .background(Color.White)
+            .background(RfThemeState.currentPalette.surface)
             .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(22.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 14.dp),
@@ -2255,7 +2630,7 @@ private fun LeadFollowupCard65(task: String, due: String) {
             .fillMaxWidth()
             .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = true)
             .clip(RoundedCornerShape(22.dp))
-            .background(Color.White)
+            .background(RfThemeState.currentPalette.surface)
             .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(22.dp))
             .clickable { isCompleted = !isCompleted }
             .padding(16.dp),
@@ -2428,7 +2803,7 @@ private fun PeriodSelector67() {
         modifier = Modifier
             .height(44.dp)
             .clip(RoundedCornerShape(14.dp))
-            .background(Color.White)
+            .background(RfThemeState.currentPalette.surface)
             .border(1.dp, Color(0xFFE9E9F2), RoundedCornerShape(14.dp))
             .padding(horizontal = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -2551,7 +2926,7 @@ internal fun RenderReportsEventsS68(
                 .fillMaxWidth()
                 .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = true)
                 .clip(RoundedCornerShape(22.dp))
-                .background(Color.White)
+                .background(RfThemeState.currentPalette.surface)
                 .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(22.dp))
                 .padding(horizontal = 20.dp, vertical = 18.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -2671,7 +3046,7 @@ internal fun RenderReportsClientsS69(onSelectScreenCode: (String) -> Unit = {}) 
                     .weight(1f)
                     .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = true)
                     .clip(RoundedCornerShape(22.dp))
-                    .background(Color.White)
+                    .background(RfThemeState.currentPalette.surface)
                     .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(22.dp))
                     .padding(16.dp),
             ) {
@@ -2685,7 +3060,7 @@ internal fun RenderReportsClientsS69(onSelectScreenCode: (String) -> Unit = {}) 
                 .fillMaxWidth()
                 .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = true)
                 .clip(RoundedCornerShape(22.dp))
-                .background(Color.White)
+                .background(RfThemeState.currentPalette.surface)
                 .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(22.dp)),
         ) {
             BasicText(
@@ -2779,7 +3154,7 @@ internal fun RenderReportsInventoryS70(onSelectScreenCode: (String) -> Unit = {}
                 .fillMaxWidth()
                 .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = true)
                 .clip(RoundedCornerShape(22.dp))
-                .background(Color.White)
+                .background(RfThemeState.currentPalette.surface)
                 .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(22.dp))
                 .padding(horizontal = 18.dp, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -2832,7 +3207,7 @@ internal fun RenderReportsInventoryS70(onSelectScreenCode: (String) -> Unit = {}
                 .fillMaxWidth()
                 .rfCardShadow(RoundedCornerShape(18.dp), isAdmin = true)
                 .clip(RoundedCornerShape(18.dp))
-                .background(Color.White)
+                .background(RfThemeState.currentPalette.surface)
                 .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(18.dp))
                 .padding(horizontal = 14.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -2977,7 +3352,7 @@ private fun ReportIconButton(icon: RfIconKind, onClick: () -> Unit) {
             .size(44.dp)
             .rfIconButtonShadow(CircleShape, isAdmin = true)
             .clip(CircleShape)
-            .background(Color.White)
+            .background(RfThemeState.currentPalette.surface)
             .border(1.dp, Color(0xFFECECF5), CircleShape)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
@@ -2997,7 +3372,7 @@ private fun ReportCard(
             .fillMaxWidth()
             .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = true)
             .clip(RoundedCornerShape(22.dp))
-            .background(Color.White)
+            .background(RfThemeState.currentPalette.surface)
             .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(22.dp))
             .padding(contentPadding),
         content = content,
@@ -3263,7 +3638,7 @@ private fun ReviewCard71(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(22.dp))
-            .background(Color.White)
+            .background(RfThemeState.currentPalette.surface)
             .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(22.dp))
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -3474,7 +3849,7 @@ private fun BotQuestionCard72(tag: String, question: String, answer: String) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(20.dp))
-            .background(Color.White)
+            .background(RfThemeState.currentPalette.surface)
             .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(20.dp))
             .padding(start = 16.dp, end = 8.dp, top = 14.dp, bottom = 14.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -3520,7 +3895,7 @@ internal fun RenderBotKeywordsS73(onSelectScreenCode: (String) -> Unit = {}) {
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(22.dp))
-                .background(Color.White)
+                .background(RfThemeState.currentPalette.surface)
                 .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(22.dp)),
         ) {
             rows.forEachIndexed { index, row ->
@@ -3572,7 +3947,7 @@ internal fun RenderBotConversationsS74(onSelectScreenCode: (String) -> Unit = {}
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(22.dp))
-                .background(Color.White)
+                .background(RfThemeState.currentPalette.surface)
                 .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(22.dp)),
         ) {
             BotConversationRow74(
@@ -3779,7 +4154,7 @@ private fun PolicyRow60(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(20.dp))
-            .background(Color.White)
+            .background(RfThemeState.currentPalette.surface)
             .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(20.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 14.dp),
@@ -3939,7 +4314,7 @@ internal fun RenderClientsAnalyticsS62(onSelectScreenCode: (String) -> Unit = {}
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(22.dp))
-                .background(Color.White)
+                .background(RfThemeState.currentPalette.surface)
                 .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(22.dp))
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -3956,7 +4331,7 @@ internal fun RenderClientsAnalyticsS62(onSelectScreenCode: (String) -> Unit = {}
                 BasicText("camila.rodriguez@correo.com", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF5F6377)))
             }
             Box(
-                modifier = Modifier.size(44.dp).clip(CircleShape).background(Color.White).border(1.dp, Color(0xFFECECF5), CircleShape).clickable { onSelectScreenCode("s74") },
+                modifier = Modifier.size(44.dp).clip(CircleShape).background(RfThemeState.currentPalette.surface).border(1.dp, Color(0xFFECECF5), CircleShape).clickable { onSelectScreenCode("s74") },
                 contentAlignment = Alignment.Center,
             ) {
                 RfIcon(kind = RfIconKind.WHATSAPP, tint = Color(0xFF4E6A10), size = 20.dp)
@@ -3980,7 +4355,7 @@ internal fun RenderClientsAnalyticsS62(onSelectScreenCode: (String) -> Unit = {}
             horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Column(
-                modifier = Modifier.width(52.dp).height(56.dp).clip(RoundedCornerShape(14.dp)).background(Color.White),
+                modifier = Modifier.width(52.dp).height(56.dp).clip(RoundedCornerShape(14.dp)).background(RfThemeState.currentPalette.surface),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
             ) {
@@ -3999,7 +4374,7 @@ internal fun RenderClientsAnalyticsS62(onSelectScreenCode: (String) -> Unit = {}
                 .fillMaxWidth()
                 .padding(top = 6.dp)
                 .clip(RoundedCornerShape(22.dp))
-                .background(Color.White)
+                .background(RfThemeState.currentPalette.surface)
                 .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(22.dp)),
         ) {
             ClientActionRow62("Eventos del cliente", RfIconKind.CALENDAR, Color(0xFFEFE8FD), Color(0xFF7A4FD8), badge = "3", divider = false, onClick = { onSelectScreenCode("A11") })
@@ -4090,7 +4465,7 @@ private fun RenderGenericPersonalSubPanel(
                         .size(44.dp)
                         .shadow(6.dp, CircleShape, spotColor = Color(0x33FF3366))
                         .clip(CircleShape)
-                        .background(Color.White)
+                        .background(RfThemeState.currentPalette.surface)
                         .clickable { onSelectScreenCode("BACK:s14") },
                     contentAlignment = Alignment.Center,
                 ) {
@@ -4105,7 +4480,7 @@ private fun RenderGenericPersonalSubPanel(
                     .fillMaxWidth()
                     .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
                     .clip(RoundedCornerShape(20.dp))
-                    .background(Color.White)
+                    .background(RfThemeState.currentPalette.surface)
                     .border(1.dp, Color(0xFFFFE3EC), RoundedCornerShape(20.dp))
                     .padding(20.dp),
             ) {

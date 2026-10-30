@@ -2350,6 +2350,7 @@ internal fun RenderAdminRecordPaymentA21(
                         )
                     }
 
+                    var showPaymentDatePicker by remember { mutableStateOf(false) }
                     Box(
                         modifier = Modifier
                             .weight(1f)
@@ -2357,19 +2358,33 @@ internal fun RenderAdminRecordPaymentA21(
                             .clip(RoundedCornerShape(14.dp))
                             .background(Color.White)
                             .border(1.dp, Color(0xFFE3E4EF), RoundedCornerShape(14.dp))
-                            .padding(horizontal = 14.dp),
+                            .padding(start = 10.dp, end = 6.dp),
                         contentAlignment = Alignment.CenterStart,
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            RfIcon(kind = RfIconKind.CALENDAR, tint = Color(0xFF5F6377), size = 18.dp)
-                            BasicTextField(
-                                value = paymentDate,
-                                onValueChange = { updatedText -> paymentDate = updatedText },
-                                singleLine = true,
-                                textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, fontWeight = FontWeight.Normal, color = Color(0xFF2E324A)),
-                                modifier = Modifier.weight(1f),
-                            )
-                        }
+                        RfMaskedDateField(
+                            value = paymentDate,
+                            onValueChange = { updatedText -> paymentDate = updatedText },
+                            onOpenCalendar = { showPaymentDatePicker = true },
+                            placeholder = "DD/MM/AAAA",
+                            isAdmin = true,
+                            compactInline = true,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                    if (showPaymentDatePicker) {
+                        RfInteractiveCalendarModal(
+                            title = "Fecha del pago",
+                            currentDateText = paymentDate,
+                            minYear = 2024,
+                            maxYear = 2030,
+                            defaultYear = 2026,
+                            isAdmin = true,
+                            onDismiss = { showPaymentDatePicker = false },
+                            onSelectDate = { formattedDate ->
+                                paymentDate = formattedDate
+                                showPaymentDatePicker = false
+                            },
+                        )
                     }
                 }
 
@@ -2846,7 +2861,7 @@ internal fun RenderAdminExecutionA16(
                                 .rfIconButtonShadow(CircleShape, isAdmin = true)
                                 .clip(CircleShape)
                                 .background(Color(0x2EFFFFFF))
-                                .clickable { onSelectScreenCode("A13") },
+                                .clickable { onSelectScreenCode("BACK:A13") },
                             contentAlignment = Alignment.Center,
                         ) {
                             RfIcon(kind = RfIconKind.CLOSE, tint = Color.White, size = 22.dp)

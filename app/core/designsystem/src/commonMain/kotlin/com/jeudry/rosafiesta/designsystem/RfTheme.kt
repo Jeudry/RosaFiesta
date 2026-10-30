@@ -11,6 +11,9 @@ import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -136,6 +139,18 @@ public val LocalRfPalette: androidx.compose.runtime.ProvidableCompositionLocal<R
     staticCompositionLocalOf { paletteForVariant(RfThemeVariant.PERSONAL) }
 
 /**
+ * Estado reactivo centralizado del tema Personal (Claro `s14` vs Oscuro `s15`),
+ * accesible tanto desde funciones `@Composable` como desde bloques `DrawScope` (`Canvas` / `drawBehind`).
+ */
+public object RfThemeState {
+    public var isPersonalDark: Boolean by mutableStateOf(false)
+    public var activeVariant: RfThemeVariant by mutableStateOf(RfThemeVariant.PERSONAL)
+
+    public val currentPalette: RfPalette
+        get() = paletteForVariant(activeVariant)
+}
+
+/**
  * Indicación táctil contextual para todos los elementos interactivos de RosaFiesta.
  * Elimina el recuadro gris rectangular por defecto de Compose y aplica un efecto elástico suave
  * de escala alrededor del centro del propio elemento (respetando círculos, píldoras, tarjetas e iconos).
@@ -205,7 +220,13 @@ public fun RfTheme(
     variant: RfThemeVariant = RfThemeVariant.PERSONAL,
     content: @Composable () -> Unit,
 ) {
-    val palette = paletteForVariant(variant)
+    val effectiveVariant = if (variant == RfThemeVariant.PERSONAL) {
+        if (RfThemeState.isPersonalDark) RfThemeVariant.PERSONAL_DARK else RfThemeVariant.PERSONAL
+    } else {
+        variant
+    }
+    RfThemeState.activeVariant = effectiveVariant
+    val palette = paletteForVariant(effectiveVariant)
     val typography = rememberRfTypography(palette.ink, palette.muted)
     CompositionLocalProvider(
         LocalRfPalette provides palette,

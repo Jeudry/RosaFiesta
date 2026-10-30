@@ -101,10 +101,12 @@ public fun RenderAppBottomBar(
         )
     } else {
         val guestMode = ScreenCatalog.isGuestScreen(spec.code)
+        val palette = LocalRfPalette.current
+        val isDarkBar = if (palette.isDark) true else spec.variant == RfThemeVariant.PERSONAL_DARK
         PersonalTabBar(
             activeTab = ScreenCatalog.activePersonalTab(spec.code),
             guestMode = guestMode,
-            dark = spec.variant == RfThemeVariant.PERSONAL_DARK,
+            dark = isDarkBar,
             modifier = modifier,
             onSelectTab = { tab ->
                 when (tab) {
@@ -148,6 +150,9 @@ fun RenderScreenSpec(
 
     val offlineQueue = viewModel?.offlineQueue?.collectAsState()?.value ?: CanonicalSampleData.offlineQueue
     val isAdmin = spec.variant == RfThemeVariant.ADMIN
+    val isDarkThemeEnabled = viewModel?.isDarkTheme?.collectAsState()?.value ?: false
+    val usePersonalDark = if (isAdmin) false else isDarkThemeEnabled
+    val resolvedVariant = if (usePersonalDark) RfThemeVariant.PERSONAL_DARK else spec.variant
     val isCustomSelfContainedScreen = spec.code in setOf(
         "p00", "A00", "s01", "s02", "s03", "s04", "s05", "s06", "s07", "s08", "s09", "s10", "s11", "s12", "s13", "s14", "s15",
         "s18", "s19", "s20", "s21", "s22", "s23", "s24",
@@ -163,7 +168,7 @@ fun RenderScreenSpec(
     val showBottomBar = includeBottomBar && shouldShowBottomBar(spec.code)
 
     RfPhoneFrame(
-        variant = spec.variant,
+        variant = resolvedVariant,
         screenCode = spec.code,
         screenTitle = spec.title,
         showMockStatusBar = false,
@@ -289,10 +294,10 @@ fun RenderScreenSpec(
                 "A36" -> RenderAdminLoadingStateA36(onSelectScreenCode = onSelectScreenCode)
                 "A37" -> RenderAdminErrorStateA37(onSelectScreenCode = onSelectScreenCode)
                 "A38" -> RenderAdminSuccessStateA38(onSelectScreenCode = onSelectScreenCode)
-                "s16" -> RenderAboutScreenS16(onSelectScreenCode = onSelectScreenCode)
-                "s17" -> RenderCompanyReviewsS17(onSelectScreenCode = onSelectScreenCode)
-                "s41" -> RenderEventChatTabS41(onSelectScreenCode = onSelectScreenCode)
-                "s42" -> RenderEventChatS42(onSelectScreenCode = onSelectScreenCode)
+                "s16" -> RenderAboutScreenS16(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                "s17" -> RenderCompanyReviewsS17(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                "s41" -> RenderEventChatTabS41(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                "s42" -> RenderEventChatS42(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
                 "s59" -> RenderFinanceDashboardS59(onSelectScreenCode = onSelectScreenCode)
                 "s60" -> RenderInsurancePanelS60(onSelectScreenCode = onSelectScreenCode)
                 "s61" -> RenderAuditPanelS61(onSelectScreenCode = onSelectScreenCode)

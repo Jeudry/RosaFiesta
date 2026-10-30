@@ -222,7 +222,7 @@ internal fun RenderAdminCreateEventA04(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(44.dp)
-                        .clickable { onSelectScreenCode("A01") },
+                        .clickable { onSelectScreenCode("BACK:A01") },
                     contentAlignment = Alignment.Center,
                 ) {
                     BasicText("Cancelar", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF5F6377)))
@@ -250,7 +250,8 @@ internal fun RenderAdminManualEventA05(
     var clientIndex by remember { mutableStateOf(0) }
     val currentClient = clientOptions[clientIndex % clientOptions.size]
     var selectedType by remember { mutableStateOf("Cumpleaños") }
-    var dateText by remember { mutableStateOf("Sáb 7 nov") }
+    var dateText by remember { mutableStateOf("07/11/2026") }
+    var showDatePickerModal by remember { mutableStateOf(false) }
     var timeText by remember { mutableStateOf("4:00 p. m.") }
     var venueText by remember { mutableStateOf("") }
     var guestCount by remember { mutableStateOf(40) }
@@ -409,20 +410,18 @@ internal fun RenderAdminManualEventA05(
                             .clip(RoundedCornerShape(14.dp))
                             .background(Color.White)
                             .border(1.dp, Color(0xFFE3E4EF), RoundedCornerShape(14.dp))
-                            .padding(horizontal = 14.dp),
+                            .padding(start = 12.dp, end = 8.dp),
                         contentAlignment = Alignment.CenterStart,
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            RfIcon(kind = RfIconKind.CALENDAR, tint = Color(0xFF5F6377), size = 18.dp)
-                            BasicTextField(
-                                value = dateText,
-                                onValueChange = { updated -> dateText = updated },
-                                singleLine = true,
-                                textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, fontWeight = FontWeight.Normal, color = Color(0xFF2E324A)),
-                                cursorBrush = SolidColor(Color(0xFF5B6CF0)),
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                        }
+                        RfMaskedDateField(
+                            value = dateText,
+                            onValueChange = { updated -> dateText = updated },
+                            onOpenCalendar = { showDatePickerModal = true },
+                            placeholder = "DD/MM/AAAA",
+                            isAdmin = true,
+                            compactInline = true,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
                     }
                 }
 
@@ -595,6 +594,21 @@ internal fun RenderAdminManualEventA05(
                     RfIcon(kind = RfIconKind.ARROW_RIGHT, tint = Color.White, size = 18.dp)
                 }
             }
+        }
+        if (showDatePickerModal) {
+            RfInteractiveCalendarModal(
+                title = "Fecha del evento",
+                currentDateText = dateText,
+                minYear = 2024,
+                maxYear = 2030,
+                defaultYear = 2026,
+                isAdmin = true,
+                onDismiss = { showDatePickerModal = false },
+                onSelectDate = { formattedDate ->
+                    dateText = formattedDate
+                    showDatePickerModal = false
+                },
+            )
         }
     }
 }
@@ -2812,53 +2826,110 @@ private fun AdminOnboardingIllustrationCard(step: Int) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .rfCardShadow(RoundedCornerShape(24.dp), isAdmin = true)
-            .clip(RoundedCornerShape(24.dp))
+            .rfCardShadow(RoundedCornerShape(28.dp), isAdmin = true)
+            .clip(RoundedCornerShape(28.dp))
             .background(
                 Brush.linearGradient(
-                    listOf(Color(0xFFECEBFF), Color(0xFFE2F5F7)),
+                    listOf(Color(0xFFECEBFF), Color(0xFFE5F4F8), Color(0xFFF3EEFF)),
                 ),
             )
-            .padding(18.dp),
+            .border(1.dp, Color(0xFFDCE0F5), RoundedCornerShape(28.dp)),
     ) {
-        when (step) {
-            1 -> {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth(),
+        Canvas(modifier = Modifier.matchParentSize()) {
+            drawCircle(
+                color = Color(0xFF7C5CF0).copy(alpha = 0.08f),
+                radius = size.width * 0.38f,
+                center = Offset(size.width * 0.88f, size.height * 0.18f),
+            )
+            drawCircle(
+                color = Color(0xFF2FB8C8).copy(alpha = 0.10f),
+                radius = size.width * 0.32f,
+                center = Offset(size.width * 0.12f, size.height * 0.85f),
+            )
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            when (step) {
+                1 -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(116.dp)
+                            .clip(RoundedCornerShape(20.dp)),
                     ) {
-                        BasicText(
-                            text = "Agenda de la semana",
-                            style = TextStyle(fontFamily = typo.displayFamily, fontSize = 17.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729)),
+                        RfPhoto(
+                            photoKey = RfPhotoKey.BODA,
+                            contentDescription = "Montaje Boda Real",
+                            cornerRadius = 20.dp,
+                            modifier = Modifier.fillMaxSize(),
                         )
                         Box(
                             modifier = Modifier
-                                .height(24.dp)
+                                .fillMaxSize()
+                                .background(
+                                    Brush.verticalGradient(
+                                        listOf(Color(0x18151729), Color(0xCC151729)),
+                                    ),
+                                ),
+                        )
+                        Row(
+                            modifier = Modifier
+                                .align(Alignment.TopStart)
+                                .padding(10.dp)
                                 .clip(CircleShape)
                                 .background(Color(0xFFFFD45C))
-                                .padding(horizontal = 10.dp),
-                            contentAlignment = Alignment.Center,
+                                .padding(horizontal = 10.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(5.dp),
                         ) {
-                            BasicText("4 activos", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E1A47)))
+                            RfIcon(kind = RfIconKind.SPARK, tint = Color(0xFF2E1A47), size = 12.dp)
+                            BasicText(
+                                "4 montajes esta semana",
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 11.5.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF2E1A47)),
+                            )
+                        }
+                        Row(
+                            modifier = Modifier
+                                .align(Alignment.BottomStart)
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.Bottom,
+                        ) {
+                            Column {
+                                BasicText(
+                                    "Boda Real Rosa & Dorado",
+                                    style = TextStyle(fontFamily = typo.displayFamily, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = Color.White),
+                                )
+                                BasicText(
+                                    "Vie 23 oct · Jardín Botánico · 145 pzas",
+                                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = Color(0xFFE3E4EF)),
+                                )
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .clip(CircleShape)
+                                    .background(Color(0xFFB9D84A))
+                                    .padding(horizontal = 9.dp, vertical = 4.dp),
+                            ) {
+                                BasicText(
+                                    "98% a tiempo",
+                                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF2E3A08)),
+                                )
+                            }
                         }
                     }
 
                     AdminOnboardingEventMiniRow(
-                        day = "23",
-                        month = "OCT",
-                        title = "Boda Real Rosa & Dorado",
-                        subtitle = "Jardín Botánico · Pedro y Yuli",
-                        badge = "En montaje",
-                        badgeBg = Color(0xFFECEBFF),
-                        badgeTint = Color(0xFF4B47D6),
-                    )
-                    AdminOnboardingEventMiniRow(
                         day = "02",
                         month = "NOV",
                         title = "Quinceañera Valentina Crystal",
-                        subtitle = "Hotel Embajador · 145 piezas",
+                        subtitle = "Hotel Embajador · Equipo Pedro y Yuli",
                         badge = "Confirmado",
                         badgeBg = Color(0xFFEEF6D6),
                         badgeTint = Color(0xFF4E6A10),
@@ -2867,106 +2938,152 @@ private fun AdminOnboardingIllustrationCard(step: Int) {
                         day = "07",
                         month = "NOV",
                         title = "Cumpleaños de Mateo",
-                        subtitle = "Laura Peña · Solicitud nueva",
+                        subtitle = "Laura Peña · Solicitud recibida hoy",
                         badge = "Por cotizar",
                         badgeBg = Color(0xFFFFF2C9),
                         badgeTint = Color(0xFF7A5700),
                     )
                 }
-            }
 
-            2 -> {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
-                        RosaAvatar(size = RosaAvatarSize.MEDIUM, customSize = 44.dp, forceAdminPalette = true)
-                        Column {
-                            BasicText(
-                                text = "Rosa IA · Modo Negocio",
-                                style = TextStyle(fontFamily = typo.displayFamily, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729)),
-                            )
-                            BasicText(
-                                text = "Borrador con validación de stock",
-                                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.5.sp, color = Color(0xFF5F6377)),
-                            )
-                        }
-                    }
-
+                2 -> {
                     Box(
                         modifier = Modifier
-                            .align(Alignment.End)
-                            .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 16.dp, bottomEnd = 4.dp))
-                            .background(AdminButtonGradient)
-                            .padding(horizontal = 14.dp, vertical = 8.dp),
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(
+                                Brush.linearGradient(
+                                    listOf(Color(0xFF1E1F3B), Color(0xFF342E6B), Color(0xFF1F6E7E)),
+                                ),
+                            )
+                            .padding(14.dp),
                     ) {
-                        BasicText(
-                            text = "Arma boda para 120 inv. el 23 oct",
-                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold, color = Color.White),
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Box(contentAlignment = Alignment.Center, modifier = Modifier.size(64.dp)) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(64.dp)
+                                        .clip(CircleShape)
+                                        .background(Color.White.copy(alpha = 0.14f)),
+                                )
+                                RosaAvatar(size = RosaAvatarSize.MEDIUM, customSize = 52.dp, forceAdminPalette = true)
+                            }
+                            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                ) {
+                                    BasicText(
+                                        text = "Rosa IA · Copiloto Admin",
+                                        style = TextStyle(fontFamily = typo.displayFamily, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = Color.White),
+                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(CircleShape)
+                                            .background(Color(0xFF2FB8C8))
+                                            .padding(horizontal = 7.dp, vertical = 2.dp),
+                                    ) {
+                                        BasicText("PRO", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, color = Color.White))
+                                    }
+                                }
+                                BasicText(
+                                    text = "“Arma boda para 120 inv. el 23 oct con sillas Tiffany y arco floral”",
+                                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.5.sp, color = Color(0xFFDCDDF8), lineHeight = 17.sp),
+                                )
+                            }
+                        }
                     }
 
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(16.dp))
+                            .clip(RoundedCornerShape(18.dp))
                             .background(Color.White)
                             .padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            BasicText("120 Sillas Tiffany · 15 Mesas", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF151729)))
+                            RfPhoto(
+                                photoKey = RfPhotoKey.SILLA_TIFFANY,
+                                contentDescription = "Silla Tiffany",
+                                cornerRadius = 10.dp,
+                                modifier = Modifier.size(42.dp),
+                            )
+                            Column(modifier = Modifier.weight(1f)) {
+                                BasicText("120 Sillas Tiffany + 15 Mesas", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF151729)))
+                                BasicText("Stock verificado para el 23 oct", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = Color(0xFF5F6377)))
+                            }
                             Box(
                                 modifier = Modifier
                                     .clip(CircleShape)
                                     .background(Color(0xFFEEF6D6))
-                                    .padding(horizontal = 8.dp, vertical = 2.dp),
+                                    .padding(horizontal = 8.dp, vertical = 4.dp),
                             ) {
                                 BasicText("Stock libre", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF4E6A10)))
                             }
                         }
+                        Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFECECF5)))
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            BasicText("Total estimado (anticipo 30 %)", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.5.sp, color = Color(0xFF5F6377)))
-                            BasicText("RD$ 4,500", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 17.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF4B47D6)))
+                            BasicText("Propuesta lista (anticipo 30 %)", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.5.sp, color = Color(0xFF5F6377)))
+                            BasicText("RD$ 4,500", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF4B47D6)))
                         }
                     }
                 }
-            }
 
-            else -> {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                else -> {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(18.dp))
+                            .clip(RoundedCornerShape(20.dp))
                             .background(Brush.linearGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0), Color(0xFF2FB8C8))))
                             .padding(14.dp),
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Column {
-                                BasicText("Ingresos de octubre", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.5.sp, color = Color(0xFFE9EEFF)))
-                                BasicText("RD$ 12,450", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = Color.White))
-                            }
-                            Box(
-                                modifier = Modifier
-                                    .clip(CircleShape)
-                                    .background(Color(0xFFFFD45C))
-                                    .padding(horizontal = 10.dp, vertical = 4.dp),
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                BasicText("+18 % vs sep", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 11.5.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF2E1A47)))
+                                Column {
+                                    BasicText("Ingresos de octubre", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.5.sp, color = Color(0xFFE9EEFF)))
+                                    BasicText("RD$ 12,450", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, color = Color.White))
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .clip(CircleShape)
+                                        .background(Color(0xFFFFD45C))
+                                        .padding(horizontal = 10.dp, vertical = 4.dp),
+                                ) {
+                                    BasicText("+18 % vs sep", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 11.5.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF2E1A47)))
+                                }
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.Bottom,
+                            ) {
+                                val barHeights = listOf(18.dp, 26.dp, 22.dp, 34.dp, 30.dp, 42.dp)
+                                barHeights.forEachIndexed { barIdx, barHeight ->
+                                    val isHighlight = barIdx == barHeights.lastIndex
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(barHeight)
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .background(if (isHighlight) Color(0xFFFFD45C) else Color.White.copy(alpha = 0.32f)),
+                                    )
+                                }
                             }
                         }
                     }
@@ -2983,8 +3100,8 @@ private fun AdminOnboardingIllustrationCard(step: Int) {
                     AdminOnboardingEventMiniRow(
                         day = "86",
                         month = "SKU",
-                        title = "358 piezas en inventario",
-                        subtitle = "Calendario de disponibilidad por fecha",
+                        title = "358 piezas controladas en vivo",
+                        subtitle = "Alertas de mantenimiento y calendario",
                         badge = "92 % uso",
                         badgeBg = Color(0xFFDDF4F3),
                         badgeTint = Color(0xFF1F8A84),

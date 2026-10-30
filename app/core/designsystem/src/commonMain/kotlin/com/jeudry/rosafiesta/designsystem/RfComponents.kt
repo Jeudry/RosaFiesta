@@ -1637,38 +1637,33 @@ public fun RfRadialBackgroundBox(
 ) {
     val palette = LocalRfPalette.current
     Box(modifier = modifier.background(palette.bg)) {
-        if (!palette.isDark) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                val w = size.width
-                val h = size.height
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val w = size.width
+            val h = size.height
 
-                // CSS `radial-gradient(<rx> <ry> at <x> <y>)` is elliptical; emulate it by
-                // scaling the canvas on Y before drawing a circular gradient.
-                fun ellipse(centerX: Float, centerY: Float, rx: Float, ry: Float, color: Color) {
-                    if (rx <= 0f || ry <= 0f) return
-                    withTransform({
-                        scale(scaleX = 1f, scaleY = ry / rx, pivot = Offset(centerX, centerY))
-                    }) {
-                        drawCircle(
-                            brush = Brush.radialGradient(
-                                colorStops = arrayOf(0f to color, 0.6f to color.copy(alpha = 0f)),
-                                center = Offset(centerX, centerY),
-                                radius = rx,
-                            ),
-                            radius = rx,
+            fun ellipse(centerX: Float, centerY: Float, rx: Float, ry: Float, color: Color) {
+                val isValidRadius = if (rx > 0f) ry > 0f else false
+                if (!isValidRadius) return
+                withTransform({
+                    scale(scaleX = 1f, scaleY = ry / rx, pivot = Offset(centerX, centerY))
+                }) {
+                    drawCircle(
+                        brush = Brush.radialGradient(
+                            colorStops = arrayOf(0f to color, 0.6f to color.copy(alpha = 0f)),
                             center = Offset(centerX, centerY),
-                        )
-                    }
+                            radius = rx,
+                        ),
+                        radius = rx,
+                        center = Offset(centerX, centerY),
+                    )
                 }
-                if (palette.isAdmin) {
-                    // Admin (2.3): radial-gradient(110% 40% at 100% 0%,#E6E7FF 0%,transparent 60%), radial-gradient(80% 35% at 0% 12%,#F1E9FB 0%,transparent 60%)
-                    ellipse(centerX = w, centerY = 0f, rx = w * 1.1f, ry = h * 0.4f, color = palette.radialPrimary)
-                    ellipse(centerX = 0f, centerY = h * 0.12f, rx = w * 0.8f, ry = h * 0.35f, color = palette.radialSecondary)
-                } else {
-                    // Personal (2.2): radial-gradient(110% 40% at 0% 0%,#F9E3F1 0%,transparent 60%), radial-gradient(80% 35% at 100% 15%,#EEE7FB 0%,transparent 60%)
-                    ellipse(centerX = 0f, centerY = 0f, rx = w * 1.1f, ry = h * 0.4f, color = palette.radialPrimary)
-                    ellipse(centerX = w, centerY = h * 0.15f, rx = w * 0.8f, ry = h * 0.35f, color = palette.radialSecondary)
-                }
+            }
+            if (palette.isAdmin) {
+                ellipse(centerX = w, centerY = 0f, rx = w * 1.1f, ry = h * 0.4f, color = palette.radialPrimary)
+                ellipse(centerX = 0f, centerY = h * 0.12f, rx = w * 0.8f, ry = h * 0.35f, color = palette.radialSecondary)
+            } else {
+                ellipse(centerX = 0f, centerY = 0f, rx = w * 1.1f, ry = h * 0.4f, color = palette.radialPrimary)
+                ellipse(centerX = w, centerY = h * 0.15f, rx = w * 0.8f, ry = h * 0.35f, color = palette.radialSecondary)
             }
         }
         content()

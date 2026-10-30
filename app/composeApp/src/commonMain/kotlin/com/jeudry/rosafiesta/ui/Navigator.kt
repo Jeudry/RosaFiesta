@@ -90,12 +90,11 @@ public class Navigator(
         val isHomeTab = code in HOME_TAB_CODES
         if (isHomeTab) {
             backStack.clear()
-        } else if (isRootTab) {
-            val homeCode = if (activeView == AppView.ADMIN) "A01" else "s14"
-            backStack.clear()
-            backStack.add(homeCode)
-        } else {
-            backStack.add(currentCode)
+        } else if (currentCode !in SPLASH_CODES) {
+            val shouldPushCurrent = backStack.lastOrNull() != currentCode
+            if (shouldPushCurrent) {
+                backStack.add(currentCode)
+            }
         }
         currentCode = code
     }
@@ -135,15 +134,12 @@ public class Navigator(
     }
 
     private companion object {
+        val SPLASH_CODES = setOf("p00", "A00")
         val HOME_TAB_CODES = setOf("s01", "s14", "s15", "A01")
         val ROOT_TAB_CODES = setOf("s01", "s02", "s14", "s15", "s18", "s21", "s24", "s26", "s37", "A01", "A08", "A09", "A11", "A12")
         val SIBLING_TAB_GROUPS = listOf(
-            setOf("s40", "s41"),
             setOf("s84", "s85"),
             setOf("s58", "s59", "s60", "s61", "s62"),
-            setOf("s64", "s65", "s66"),
-            setOf("s67", "s68", "s69", "s70"),
-            setOf("s72", "s73", "s74"),
         )
     }
 }

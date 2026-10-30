@@ -55,6 +55,7 @@ import androidx.compose.ui.unit.sp
 import com.jeudry.rosafiesta.core.engine.RosaFiestaEngine
 import com.jeudry.rosafiesta.designsystem.LocalRfPalette
 import com.jeudry.rosafiesta.designsystem.LocalRfTypography
+import com.jeudry.rosafiesta.designsystem.RfThemeState
 import com.jeudry.rosafiesta.designsystem.RfButton
 import com.jeudry.rosafiesta.designsystem.RfButtonStyle
 import com.jeudry.rosafiesta.designsystem.RfCard
@@ -603,15 +604,17 @@ internal fun RenderPersonalHomeScreen(
     viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit,
 ) {
-    val isDark = spec.variant == RfThemeVariant.PERSONAL_DARK
+    val palette = LocalRfPalette.current
+    val isDark = if (palette.isDark) true else spec.variant == RfThemeVariant.PERSONAL_DARK
     val typo = LocalRfTypography.current
     val fullName = viewModel?.profileName?.collectAsState()?.value ?: "Invitado Rosa Fiesta"
+    val avatarKey = viewModel?.profileAvatarKey?.collectAsState()?.value
     val firstName = fullName.substringBefore(" ").ifBlank { "Invitado" }
     val avatarInitial = firstName.firstOrNull()?.uppercaseChar()?.toString() ?: "R"
     val textColor = if (isDark) Color(0xFFF2F0F8) else Color(0xFF1A1A2E)
     val mutedColor = if (isDark) Color(0xFFA6A3BA) else Color(0xFF62627A)
     val cardBg = if (isDark) Color(0xFF1D1D30) else Color(0xFFFFFFFF)
-    val cardBorder = if (isDark) Color(0xFF2A2A40) else Color(0xFFF0EBF4)
+    val cardBorder = if (isDark) Color(0xFF2A2A40) else RfThemeState.currentPalette.line
     val chipBg = if (isDark) Color(0x2EB54BD6) else Color(0xFFF5EAF9)
     val chipText = Color(0xFFB54BD6)
     val decoracionBg = if (isDark) Color(0xFF3A1630) else Color(0xFFFDE6F2)
@@ -693,14 +696,30 @@ internal fun RenderPersonalHomeScreen(
                         .clip(CircleShape)
                         .background(cardBg),
                 ) {
-                    BasicText(
-                        text = avatarInitial,
-                        style = typo.rootTabTitle.copy(
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = Color(0xFFC84FB8),
-                        ),
-                    )
+                    val matchedPhoto = remember(avatarKey) {
+                        if (avatarKey.isNullOrBlank()) {
+                            null
+                        } else {
+                            RfPhotoKey.entries.firstOrNull { entry -> entry.name == avatarKey }
+                        }
+                    }
+                    if (matchedPhoto != null) {
+                        RfPhoto(
+                            photoKey = matchedPhoto,
+                            contentDescription = fullName,
+                            cornerRadius = 999.dp,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    } else {
+                        BasicText(
+                            text = avatarInitial,
+                            style = typo.rootTabTitle.copy(
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = Color(0xFFC84FB8),
+                            ),
+                        )
+                    }
                 }
             }
 
@@ -1047,7 +1066,7 @@ internal fun RenderPersonalHomeScreen(
                     modifier = Modifier
                         .height(44.dp)
                         .clip(CircleShape)
-                        .background(Color.White)
+                        .background(RfThemeState.currentPalette.surface)
                         .clickable { onSelectScreenCode("s21") }
                         .padding(horizontal = 18.dp),
                 ) {

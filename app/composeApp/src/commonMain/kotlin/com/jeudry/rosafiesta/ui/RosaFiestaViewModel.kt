@@ -39,6 +39,26 @@ public enum class VoiceInputOrigin {
     ROSA_WIZARD,
 }
 
+public data class CompanyReviewUiModel(
+    public val id: String,
+    public val author: String,
+    public val initial: String,
+    public val dateLabel: String,
+    public val rating: Int,
+    public val comment: String,
+    public val isVerified: Boolean = true,
+    public val avatarBgHex: Long = 0xFFFDE6F2,
+    public val avatarInkHex: Long = 0xFFC2338F,
+)
+
+public data class DirectChatMessageUiModel(
+    public val id: String,
+    public val senderName: String,
+    public val text: String,
+    public val timeLabel: String,
+    public val isFromClient: Boolean,
+)
+
 /**
  * ViewModel multiplataforma compartido para `PersonalApp` y `AdminApp`.
  * Mantiene el estado reactivo de formularios, filtros, Rosa IA, sonidos CC0, almacenamiento seguro y operaciones de negocio.
@@ -205,6 +225,63 @@ public class RosaFiestaViewModel(
 
     private val _profileZone = MutableStateFlow("Piantini, Santo Domingo DN")
     public val profileZone: StateFlow<String> = _profileZone.asStateFlow()
+
+    private val _profileAvatarKey = MutableStateFlow<String?>(null)
+    public val profileAvatarKey: StateFlow<String?> = _profileAvatarKey.asStateFlow()
+
+    private val _isDarkTheme = MutableStateFlow(false)
+    public val isDarkTheme: StateFlow<Boolean> = _isDarkTheme.asStateFlow()
+
+    private val _companyReviews = MutableStateFlow(
+        listOf(
+            CompanyReviewUiModel(
+                id = "rev-1",
+                author = "Camila R.",
+                initial = "C",
+                dateLabel = "Hoy",
+                rating = 5,
+                comment = "El montaje de nuestra boda superó todas las expectativas. Las sillas Tiffany y el arco floral quedaron de revista.",
+                isVerified = true,
+            ),
+            CompanyReviewUiModel(
+                id = "rev-2",
+                author = "Laura M.",
+                initial = "L",
+                dateLabel = "Hoy",
+                rating = 5,
+                comment = "Puntualidad impecable y atención personalizada con Rosa IA. ¡Recomendados 100%!",
+                isVerified = true,
+            ),
+        ),
+    )
+    public val companyReviews: StateFlow<List<CompanyReviewUiModel>> = _companyReviews.asStateFlow()
+
+    private val _directChatMessages = MutableStateFlow(
+        listOf(
+            DirectChatMessageUiModel(
+                id = "msg-1",
+                senderName = "María · Rosa Fiesta",
+                text = "¡Hola! Soy María, directora de Rosa Fiesta 🌸 Estoy en línea para ayudarte con tu cotización, fechas o detalles de montaje.",
+                timeLabel = "10:14 a. m.",
+                isFromClient = false,
+            ),
+            DirectChatMessageUiModel(
+                id = "msg-2",
+                senderName = "Cliente",
+                text = "¡Hola equipo Rosa Fiesta! ¿Podemos incluir 20 sillas Chiavari doradas adicionales para el área del brindis?",
+                timeLabel = "10:16 a. m.",
+                isFromClient = true,
+            ),
+            DirectChatMessageUiModel(
+                id = "msg-3",
+                senderName = "María · Rosa Fiesta",
+                text = "¡Claro que sí! Tenemos disponibilidad inmediata de sillas Tiffany y Chiavari doradas (RD$ 4/día). Dime qué más deseas ajustar y te actualizo el expediente al instante.",
+                timeLabel = "10:17 a. m.",
+                isFromClient = false,
+            ),
+        ),
+    )
+    public val directChatMessages: StateFlow<List<DirectChatMessageUiModel>> = _directChatMessages.asStateFlow()
 
     private val _supportSubject = MutableStateFlow("Ajuste de sillas doradas")
     public val supportSubject: StateFlow<String> = _supportSubject.asStateFlow()
@@ -1044,6 +1121,7 @@ public class RosaFiestaViewModel(
         draftPhone: String = _profilePhone.value,
         draftBirthDate: String = _profileBirthDate.value,
         draftUsername: String = _profileUsername.value,
+        draftAvatarKey: String? = _profileAvatarKey.value,
     ): Boolean {
         val cleanName = draftName.trim()
         val cleanEmail = draftEmail.trim().lowercase()
@@ -1108,10 +1186,128 @@ public class RosaFiestaViewModel(
             _profileBirthDate.value = cleanBirthDate
             _profileUsername.value = cleanUsername
         }
+        _profileAvatarKey.value = draftAvatarKey
         soundPlayer.playPaymentSuccess()
         _formError.value = null
         _formFeedback.value = "Perfil actualizado para $cleanName."
         return true
+    }
+
+    public fun setProfileAvatarKey(avatarKey: String?) {
+        soundPlayer.playTap()
+        _profileAvatarKey.value = avatarKey
+    }
+
+    public fun setDarkTheme(enabled: Boolean) {
+        soundPlayer.playTap()
+        _isDarkTheme.value = enabled
+        com.jeudry.rosafiesta.designsystem.RfThemeState.isPersonalDark = enabled
+    }
+
+    public fun toggleDarkTheme() {
+        soundPlayer.playTap()
+        val nextValue = !_isDarkTheme.value
+        _isDarkTheme.value = nextValue
+        com.jeudry.rosafiesta.designsystem.RfThemeState.isPersonalDark = nextValue
+    }
+
+    public fun companyAverageRatingFormatted(): String {
+        val currentReviews = _companyReviews.value
+        if (currentReviews.isEmpty()) return "5.0"
+        val sumRatings = currentReviews.sumOf { reviewItem -> reviewItem.rating }
+        val tenths = ((sumRatings.toDouble() / currentReviews.size.toDouble()) * 10.0).toInt()
+        val wholePart = tenths / 10
+        val decimalPart = tenths % 10
+        return "$wholePart.$decimalPart"
+    }
+
+    public fun submitCompanyReview(comment: String, rating: Int = 5): Boolean {
+        val trimmedComment = comment.trim()
+        val isTooShort = trimmedComment.length < 6
+        if (isTooShort) {
+            soundPlayer.playAlertError()
+            _formError.value = "Escribe al menos 6 caracteres para publicar tu reseña."
+            return false
+        }
+        val cleanRating = rating.coerceIn(1, 5)
+        val authorName = _profileName.value.trim().ifBlank { "Cliente Rosa Fiesta" }
+        val initialChar = authorName.firstOrNull()?.uppercaseChar()?.toString() ?: "C"
+        val newReview = CompanyReviewUiModel(
+            id = "rev-${_companyReviews.value.size + 1}",
+            author = authorName,
+            initial = initialChar,
+            dateLabel = "Ahora",
+            rating = cleanRating,
+            comment = trimmedComment,
+            isVerified = true,
+        )
+        _companyReviews.update { currentList -> listOf(newReview) + currentList }
+        soundPlayer.playPaymentSuccess()
+        _formError.value = null
+        _formFeedback.value = "¡Gracias por tu reseña de $cleanRating estrellas!"
+        return true
+    }
+
+    public fun sendDirectChatMessage(rawText: String) {
+        val trimmedText = rawText.trim()
+        if (trimmedText.isEmpty()) return
+        soundPlayer.playRosaSend()
+        val clientName = _profileName.value.substringBefore(" ").ifBlank { "Cliente" }
+        val clientMessage = DirectChatMessageUiModel(
+            id = "msg-${_directChatMessages.value.size + 1}",
+            senderName = clientName,
+            text = SensitiveDataRedactor.redactText(trimmedText),
+            timeLabel = "Ahora",
+            isFromClient = true,
+        )
+        val mariaReplyText = buildMariaContextualReply(trimmedText, clientName)
+        val mariaReply = DirectChatMessageUiModel(
+            id = "msg-${_directChatMessages.value.size + 2}",
+            senderName = "María · Rosa Fiesta",
+            text = mariaReplyText,
+            timeLabel = "Ahora",
+            isFromClient = false,
+        )
+        _directChatMessages.update { existingMessages ->
+            existingMessages + clientMessage + mariaReply
+        }
+        repository.sendChatMessage(clientName, SensitiveDataRedactor.redactText(trimmedText))
+    }
+
+    private fun buildMariaContextualReply(userMessage: String, clientName: String): String {
+        val normalized = userMessage.lowercase()
+        val activeEvent = events.value.firstOrNull { eventItem -> eventItem.id == _selectedEventId.value }
+            ?: events.value.firstOrNull()
+        val eventName = activeEvent?.title ?: "tu evento"
+        val eventDate = activeEvent?.dateLabel ?: "Vie 23 oct"
+
+        val mentionsChair = listOf("silla", "tiffany", "chiavari", "asiento").any { keyword -> normalized.contains(keyword) }
+        if (mentionsChair) {
+            val chairStock = articles.value.firstOrNull { item -> item.id == "art-silla-tiffany" }?.totalStock ?: 200
+            return "¡Perfecto, $clientName! Contamos con $chairStock Sillas Tiffany doradas libres para $eventDate a RD$ 4/día. Ya dejé la nota lista en el expediente de «$eventName»."
+        }
+
+        val mentionsTable = listOf("mesa", "mantel", "redonda", "postre", "dulce").any { keyword -> normalized.contains(keyword) }
+        if (mentionsTable) {
+            return "¡Claro que sí, $clientName! Tenemos mesas redondas para 10 personas (RD$ 18/día) y estación de postres completa (RD$ 150/día) con mantelería incluida para «$eventName»."
+        }
+
+        val mentionsArchOrFlowers = listOf("arco", "flor", "centro", "globo", "decoraci").any { keyword -> normalized.contains(keyword) }
+        if (mentionsArchOrFlowers) {
+            return "¡Nos encanta esa idea, $clientName! Yuli (nuestra líder de decoración) puede personalizar el arco orgánico de 3 m (RD$ 95/día) y los centros florales (RD$ 45/día) en tu paleta favorita 🌸"
+        }
+
+        val mentionsPriceOrQuote = listOf("precio", "cuanto", "cuánto", "costo", "cotiza", "presupuesto", "descuento", "pago", "anticipo").any { keyword -> normalized.contains(keyword) }
+        if (mentionsPriceOrQuote) {
+            return "Para «$eventName» reservas tu fecha con solo el 30 % de anticipo por transferencia Banreservas o tarjeta, y el saldo 7 días antes del montaje ($eventDate). ¿Quieres que te genere el PDF actualizado?"
+        }
+
+        val mentionsDateOrPlace = listOf("fecha", "día", "dia", "hora", "lugar", "jardín", "jardin", "salón", "salon", "visita", "direcci", "ubicaci").any { keyword -> normalized.contains(keyword) }
+        if (mentionsDateOrPlace) {
+            return "Tenemos disponibilidad confirmada para $eventDate y nuestro equipo de logística (Pedro) coordina la entrega y desmontaje puntual en el salón. También puedes visitarnos en Piantini de lunes a sábado."
+        }
+
+        return "¡Recibido, $clientName! Ya registré tu comentario («${userMessage.take(60)}») en la orden de «$eventName» para el $eventDate. Pedro y Yuli ya están al tanto ✨"
     }
 
     public fun saveBusinessConfig(): Boolean {
