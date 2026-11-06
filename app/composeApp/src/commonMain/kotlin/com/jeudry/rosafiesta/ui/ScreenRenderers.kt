@@ -22,11 +22,19 @@ import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jeudry.rosafiesta.core.engine.RosaFiestaEngine
@@ -82,6 +90,8 @@ public fun shouldShowBottomBar(code: String): Boolean = code.lowercase() in setO
 public fun RenderAppBottomBar(
     spec: ScreenSpec,
     onSelectScreenCode: (String) -> Unit,
+    onTogglePersonalMoreMenu: (() -> Unit)? = null,
+    isMoreMenuOpen: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val isAdmin = spec.variant == RfThemeVariant.ADMIN
@@ -103,8 +113,9 @@ public fun RenderAppBottomBar(
         val guestMode = ScreenCatalog.isGuestScreen(spec.code)
         val palette = LocalRfPalette.current
         val isDarkBar = if (palette.isDark) true else spec.variant == RfThemeVariant.PERSONAL_DARK
+        val effectiveTab = if (isMoreMenuOpen) PersonalTab.MAS else ScreenCatalog.activePersonalTab(spec.code)
         PersonalTabBar(
-            activeTab = ScreenCatalog.activePersonalTab(spec.code),
+            activeTab = effectiveTab,
             guestMode = guestMode,
             dark = isDarkBar,
             modifier = modifier,
@@ -115,11 +126,190 @@ public fun RenderAppBottomBar(
                     PersonalTab.ROSA -> onSelectScreenCode(if (guestMode) "s75" else "s26")
                     PersonalTab.EVENTOS -> onSelectScreenCode("s37")
                     PersonalTab.FAVORITOS -> onSelectScreenCode(if (guestMode) "s02" else "s24")
+                    PersonalTab.MAS -> {
+                        if (onTogglePersonalMoreMenu != null) {
+                            onTogglePersonalMoreMenu()
+                        } else {
+                            onSelectScreenCode("s24")
+                        }
+                    }
                     PersonalTab.PAQUETES -> onSelectScreenCode("s21")
                     PersonalTab.ENTRAR -> onSelectScreenCode("s07")
                 }
             },
         )
+    }
+}
+
+private data class PersonalMoreMenuItem(
+    val title: String,
+    val subtitle: String,
+    val icon: RfIconKind,
+    val targetCode: String,
+)
+
+@Composable
+private fun RenderPersonalMoreOptionsPanel(
+    currentScreenCode: String,
+    onDismiss: () -> Unit,
+    onSelectOption: (String) -> Unit,
+) {
+    val palette = LocalRfPalette.current
+    val typo = LocalRfTypography.current
+    val options = remember {
+        listOf(
+            PersonalMoreMenuItem(
+                title = "Mis favoritos",
+                subtitle = "Artículos y paquetes guardados para tu evento",
+                icon = RfIconKind.HEART,
+                targetCode = "s24",
+            ),
+            PersonalMoreMenuItem(
+                title = "Mis pagos y recibos",
+                subtitle = "Historial de abonos, facturas y comprobantes",
+                icon = RfIconKind.RECEIPT,
+                targetCode = "s82",
+            ),
+            PersonalMoreMenuItem(
+                title = "Ajustes",
+                subtitle = "Tema oscuro, idioma, recordatorios y privacidad",
+                icon = RfIconKind.SETTINGS,
+                targetCode = "s86",
+            ),
+            PersonalMoreMenuItem(
+                title = "Acerca de Rosa Fiesta",
+                subtitle = "Reseñas 5.0 ★, historia y garantías de servicio",
+                icon = RfIconKind.INFO,
+                targetCode = "s16",
+            ),
+            PersonalMoreMenuItem(
+                title = "Mi perfil",
+                subtitle = "Editar foto, datos personales y cerrar sesión",
+                icon = RfIconKind.USER,
+                targetCode = "s54",
+            ),
+        )
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0x780E0B1A))
+            .clickable { onDismiss() },
+        contentAlignment = Alignment.BottomCenter,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 12.dp)
+                .shadow(22.dp, RoundedCornerShape(26.dp), ambientColor = Color(0x451A1A2E), spotColor = Color(0x451A1A2E))
+                .clip(RoundedCornerShape(26.dp))
+                .background(palette.surface)
+                .border(1.dp, palette.line, RoundedCornerShape(26.dp))
+                .clickable(enabled = false) {}
+                .padding(horizontal = 18.dp, vertical = 18.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .width(40.dp)
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(palette.line),
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    BasicText(
+                        text = "Más opciones",
+                        style = TextStyle(
+                            fontFamily = typo.displayFamily,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 19.sp,
+                            color = palette.ink,
+                        ),
+                    )
+                    BasicText(
+                        text = "Accesos rápidos a tu cuenta y preferencias",
+                        style = TextStyle(
+                            fontFamily = typo.bodyFamily,
+                            fontSize = 12.5.sp,
+                            color = palette.muted,
+                        ),
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .size(34.dp)
+                        .clip(CircleShape)
+                        .background(palette.chipBg)
+                        .clickable { onDismiss() },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    RfIcon(kind = RfIconKind.CLOSE, tint = palette.muted, size = 16.dp)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(2.dp))
+
+            options.forEach { option ->
+                val isCurrentOption = currentScreenCode == option.targetCode
+                val cardBg = if (isCurrentOption) palette.chipBg else palette.bg
+                val borderColor = if (isCurrentOption) palette.primaryAccent.copy(alpha = 0.45f) else palette.lineSoft
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(cardBg)
+                        .border(1.dp, borderColor, RoundedCornerShape(16.dp))
+                        .clickable { onSelectOption(option.targetCode) }
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        RfIcon(kind = option.icon, tint = Color.White, size = 20.dp)
+                    }
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                    ) {
+                        BasicText(
+                            text = option.title,
+                            style = TextStyle(
+                                fontFamily = typo.bodyFamily,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.5.sp,
+                                color = palette.ink,
+                            ),
+                        )
+                        BasicText(
+                            text = option.subtitle,
+                            style = TextStyle(
+                                fontFamily = typo.bodyFamily,
+                                fontSize = 12.sp,
+                                color = palette.muted,
+                            ),
+                        )
+                    }
+                    RfIcon(
+                        kind = RfIconKind.CHEVRON_RIGHT,
+                        tint = if (isCurrentOption) palette.primaryAccent else palette.muted,
+                        size = 16.dp,
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -165,7 +355,9 @@ fun RenderScreenSpec(
         "s16", "s17", "s41", "s42", "s59", "s60", "s61", "s62", "s63", "s64", "s65", "s66", "s67", "s68", "s69", "s70", "s71", "s72", "s73", "s74",
         "s75", "s76", "s77", "s79", "s80", "s81", "s82", "s84", "s85", "s86", "s87", "s88", "s89", "s90", "s91", "s92",
     )
-    val showBottomBar = includeBottomBar && shouldShowBottomBar(spec.code)
+    val isBottomBarScreen = shouldShowBottomBar(spec.code)
+    val showBottomBar = if (includeBottomBar) isBottomBarScreen else false
+    var showPersonalMoreMenu by remember(spec.code) { mutableStateOf(false) }
 
     RfPhoneFrame(
         variant = resolvedVariant,
@@ -178,13 +370,23 @@ fun RenderScreenSpec(
             if (showBottomBar) {
                 RenderAppBottomBar(
                     spec = spec,
-                    onSelectScreenCode = onSelectScreenCode,
+                    onSelectScreenCode = { targetCode ->
+                        showPersonalMoreMenu = false
+                        onSelectScreenCode(targetCode)
+                    },
+                    onTogglePersonalMoreMenu = {
+                        showPersonalMoreMenu = !showPersonalMoreMenu
+                    },
+                    isMoreMenuOpen = showPersonalMoreMenu,
                 )
             }
         },
         modifier = modifier.testTag("screen-${spec.code}"),
     ) {
-        if (ScreenCatalog.isBottomSheet(spec.code) && spec.code !in setOf("s75", "s76", "s77", "s81", "s84", "s85")) {
+        val isSheetSpec = ScreenCatalog.isBottomSheet(spec.code)
+        val isCustomHandledSheet = spec.code in setOf("s75", "s76", "s77", "s81", "s84", "s85")
+        val useGenericBottomSheet = if (isSheetSpec) !isCustomHandledSheet else false
+        if (useGenericBottomSheet) {
             Column(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
                 modifier = Modifier.fillMaxSize(),
@@ -204,132 +406,144 @@ fun RenderScreenSpec(
         }
 
         if (isCustomSelfContainedScreen) {
-            when (spec.code) {
-                "p00" -> RenderPersonalSplashP00(onPrimaryAction = onPrimaryAction)
-                "A00" -> RenderAdminSplashA00(onPrimaryAction = onPrimaryAction)
-                "s01" -> RenderGuestCatalogS01(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
-                "s02" -> RenderGuestFavoritesS02(onSelectScreenCode = onSelectScreenCode)
-                "s03", "s04", "s05" -> RenderOnboardingScreen(spec = spec, onSelectScreenCode = onSelectScreenCode)
-                "s06" -> RenderBienvenidaScreen(spec = spec, onSelectScreenCode = onSelectScreenCode)
-                "s07" -> RenderLoginScreenS07(viewModel = viewModel, onPrimaryAction = onPrimaryAction, onSelectScreenCode = onSelectScreenCode)
-                "s08" -> RenderRegisterScreenS08(viewModel = viewModel, onPrimaryAction = onPrimaryAction, onSelectScreenCode = onSelectScreenCode)
-                "s09", "s10", "s11", "s12", "s13" -> RenderRecoveryAndConfirmationScreens(spec = spec, viewModel = viewModel, onPrimaryAction = onPrimaryAction, onSelectScreenCode = onSelectScreenCode)
-                "s14", "s15" -> RenderPersonalHomeScreen(spec = spec, viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
-                "s18" -> RenderPersonalCatalogS18(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
-                "s19" -> RenderProductDetailS19(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
-                "s20" -> RenderCategoriesScreenS20(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
-                "s21" -> RenderPackagesScreenS21(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
-                "s22" -> RenderPackageDetailScreenS22(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
-                "s23" -> RenderShopScreenS23(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
-                "s24" -> RenderClientFavoritesScreenS24(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
-                "s25" -> RenderMyEventDraftS25(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
-                "s26" -> RenderRosaEventTypeS26(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
-                "s27" -> RenderRosaTutorialS27(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
-                "s28" -> RenderRosaHelpS28(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
-                "s29" -> RenderRosaSuggestionsS29(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
-                "s30" -> RenderRosaCategoriesS30(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
-                "s31" -> RenderRosaDetailsS31(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
-                "s32" -> RenderRosaSummaryS32(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
-                "s33" -> RenderRosaSubmittedS33(onSelectScreenCode = onSelectScreenCode)
-                "s34" -> RenderRosaChatS34(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
-                "s35" -> RenderRosaVoiceS35(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
-                "s36" -> RenderRosaSketchS36(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
-                "s78" -> RenderRosaSketchConfirmS78(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
-                "A08" -> RenderAdminRosaA08(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
-                "s37" -> RenderMyEventsScreenS37(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
-                "s38" -> RenderNewEventScreenS38(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
-                "s39" -> RenderCalendarScreenS39(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
-                "s40" -> RenderEventDetailScreenS40(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
-                "s43" -> RenderExecutionModeScreenS43(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
-                "s44" -> RenderTimelineScreenS44(onSelectScreenCode = onSelectScreenCode)
-                "s45" -> RenderTasksScreenS45(onSelectScreenCode = onSelectScreenCode)
-                "s46" -> RenderChecklistScreenS46(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
-                "s47" -> RenderGuestsScreenS47(onSelectScreenCode = onSelectScreenCode)
-                "s48" -> RenderQuoteScreenS48(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
-                "s49" -> RenderQuoteHistoryScreenS49(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
-                "s50" -> RenderPaymentCheckoutScreenS50(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
-                "s51" -> RenderPaymentSuccessScreenS51(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
-                "s52" -> RenderPostEventReviewScreenS52(onSelectScreenCode = onSelectScreenCode)
-                "s53" -> RenderMyReservationsScreenS53(onSelectScreenCode = onSelectScreenCode)
-                "s54" -> RenderUserProfileScreenS54(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
-                "s55" -> RenderSuppliersScreenS55(onSelectScreenCode = onSelectScreenCode)
-                "s56" -> RenderNewSupplierScreenS56(onSelectScreenCode = onSelectScreenCode)
-                "s57" -> RenderSpendingAnalyticsScreenS57(onSelectScreenCode = onSelectScreenCode)
-                "s58" -> RenderFinancialDashboardScreenS58(onSelectScreenCode = onSelectScreenCode)
-                "s83" -> RenderOfficialReceiptScreenS83(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
-                "A01" -> RenderAdminHomeA01(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
-                "A02" -> RenderAdminRequestsA02(onSelectScreenCode = onSelectScreenCode)
-                "A03" -> RenderAdminQuoteBuilderA03(onSelectScreenCode = onSelectScreenCode)
-                "A09" -> RenderAdminInventoryA09(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
-                "A11" -> RenderAdminEventsA11(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
-                "A12" -> RenderAdminMoreA12(onSelectScreenCode = onSelectScreenCode)
-                "A20" -> RenderAdminPaymentsA20(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
-                "A21" -> RenderAdminRecordPaymentA21(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
-                "A10" -> RenderAdminNewArticleA10(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
-                "A13" -> RenderAdminEventDetailA13(onSelectScreenCode = onSelectScreenCode)
-                "A16" -> RenderAdminExecutionA16(onSelectScreenCode = onSelectScreenCode)
-                "A17" -> RenderAdminTasksA17(onSelectScreenCode = onSelectScreenCode)
-                "A18" -> RenderAdminSketchA18(onSelectScreenCode = onSelectScreenCode)
-                "A19" -> RenderAdminCloseoutA19(onSelectScreenCode = onSelectScreenCode)
-                "A23" -> RenderAdminArticleDetailA23(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
-                "A24" -> RenderAdminPackagesA24(onSelectScreenCode = onSelectScreenCode)
-                "A25" -> RenderAdminPackageEditA25(onSelectScreenCode = onSelectScreenCode)
-                "A26" -> RenderAdminClientsA26(onSelectScreenCode = onSelectScreenCode)
-                "A27" -> RenderAdminClientProfileA27(onSelectScreenCode = onSelectScreenCode)
-                "A28" -> RenderAdminTeamA28(onSelectScreenCode = onSelectScreenCode)
-                "A04" -> RenderAdminCreateEventA04(onSelectScreenCode = onSelectScreenCode)
-                "A05" -> RenderAdminManualEventA05(onSelectScreenCode = onSelectScreenCode)
-                "A06" -> RenderAdminEventArticlesA06(onSelectScreenCode = onSelectScreenCode)
-                "A07" -> RenderAdminEventSummaryA07(onSelectScreenCode = onSelectScreenCode)
-                "A14" -> RenderAdminChatsA14(onSelectScreenCode = onSelectScreenCode)
-                "A15" -> RenderAdminChatConversationA15(onSelectScreenCode = onSelectScreenCode)
-                "A22" -> RenderAdminQuotesA22(onSelectScreenCode = onSelectScreenCode)
-                "A29" -> RenderAdminNotificationsA29(onSelectScreenCode = onSelectScreenCode)
-                "A30" -> RenderAdminEntryChoiceA30(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
-                "A31" -> RenderAdminSettingsA31(onSelectScreenCode = onSelectScreenCode)
-                "A32" -> RenderAdminCancellationsA32(onSelectScreenCode = onSelectScreenCode)
-                "A33" -> RenderAdminRefundA33(onSelectScreenCode = onSelectScreenCode)
-                "A34" -> RenderAdminReplyReviewA34(onSelectScreenCode = onSelectScreenCode)
-                "A35" -> RenderAdminEmptyStateA35(onSelectScreenCode = onSelectScreenCode)
-                "A36" -> RenderAdminLoadingStateA36(onSelectScreenCode = onSelectScreenCode)
-                "A37" -> RenderAdminErrorStateA37(onSelectScreenCode = onSelectScreenCode)
-                "A38" -> RenderAdminSuccessStateA38(onSelectScreenCode = onSelectScreenCode)
-                "s16" -> RenderAboutScreenS16(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
-                "s17" -> RenderCompanyReviewsS17(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
-                "s41" -> RenderEventChatTabS41(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
-                "s42" -> RenderEventChatS42(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
-                "s59" -> RenderFinanceDashboardS59(onSelectScreenCode = onSelectScreenCode)
-                "s60" -> RenderInsurancePanelS60(onSelectScreenCode = onSelectScreenCode)
-                "s61" -> RenderAuditPanelS61(onSelectScreenCode = onSelectScreenCode)
-                "s62" -> RenderClientsAnalyticsS62(onSelectScreenCode = onSelectScreenCode)
-                "s63" -> RenderInventoryCalendarS63(onSelectScreenCode = onSelectScreenCode)
-                "s64" -> RenderLeadsPipelineS64(onSelectScreenCode = onSelectScreenCode)
-                "s65" -> RenderLeadsFollowupS65(onSelectScreenCode = onSelectScreenCode)
-                "s66" -> RenderLeadsStatsS66(onSelectScreenCode = onSelectScreenCode)
-                "s67" -> RenderReportsIncomeS67(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
-                "s68" -> RenderReportsEventsS68(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
-                "s69" -> RenderReportsClientsS69(onSelectScreenCode = onSelectScreenCode)
-                "s70" -> RenderReportsInventoryS70(onSelectScreenCode = onSelectScreenCode)
-                "s71" -> RenderReviewModerationS71(onSelectScreenCode = onSelectScreenCode)
-                "s72" -> RenderBotQuestionsS72(onSelectScreenCode = onSelectScreenCode)
-                "s73" -> RenderBotKeywordsS73(onSelectScreenCode = onSelectScreenCode)
-                "s74" -> RenderBotConversationsS74(onSelectScreenCode = onSelectScreenCode)
-                "s75" -> RenderGuestAuthModalS75(onSelectScreenCode = onSelectScreenCode)
-                "s76" -> RenderPlanningModalS76(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
-                "s77" -> RenderEventReviewsModalS77(onSelectScreenCode = onSelectScreenCode)
-                "s79" -> RenderPersonalNotificationsS79(onSelectScreenCode = onSelectScreenCode)
-                "s80" -> RenderPersonalSearchS80(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
-                "s81" -> RenderCatalogFiltersModalS81(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
-                "s82" -> RenderPersonalPaymentsS82(onSelectScreenCode = onSelectScreenCode)
-                "s84" -> RenderChangeDateModalS84(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
-                "s85" -> RenderCancelEventModalS85(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
-                "s86" -> RenderAccountSettingsS86(onSelectScreenCode = onSelectScreenCode)
-                "s87" -> RenderTermsS87(onSelectScreenCode = onSelectScreenCode)
-                "s88" -> RenderDeleteAccountS88(onSelectScreenCode = onSelectScreenCode)
-                "s89" -> RenderPersonalEmptyStateS89(onSelectScreenCode = onSelectScreenCode)
-                "s90" -> RenderPersonalLoadingStateS90(onSelectScreenCode = onSelectScreenCode)
-                "s91" -> RenderPersonalOfflineStateS91(onSelectScreenCode = onSelectScreenCode)
-                "s92" -> RenderPersonalSuccessStateS92(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+            Box(modifier = Modifier.fillMaxSize()) {
+                when (spec.code) {
+                    "p00" -> RenderPersonalSplashP00(onPrimaryAction = onPrimaryAction)
+                    "A00" -> RenderAdminSplashA00(onPrimaryAction = onPrimaryAction)
+                    "s01" -> RenderGuestCatalogS01(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                    "s02" -> RenderGuestFavoritesS02(onSelectScreenCode = onSelectScreenCode)
+                    "s03", "s04", "s05" -> RenderOnboardingScreen(spec = spec, onSelectScreenCode = onSelectScreenCode)
+                    "s06" -> RenderBienvenidaScreen(spec = spec, onSelectScreenCode = onSelectScreenCode)
+                    "s07" -> RenderLoginScreenS07(viewModel = viewModel, onPrimaryAction = onPrimaryAction, onSelectScreenCode = onSelectScreenCode)
+                    "s08" -> RenderRegisterScreenS08(viewModel = viewModel, onPrimaryAction = onPrimaryAction, onSelectScreenCode = onSelectScreenCode)
+                    "s09", "s10", "s11", "s12", "s13" -> RenderRecoveryAndConfirmationScreens(spec = spec, viewModel = viewModel, onPrimaryAction = onPrimaryAction, onSelectScreenCode = onSelectScreenCode)
+                    "s14", "s15" -> RenderPersonalHomeScreen(spec = spec, viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                    "s18" -> RenderPersonalCatalogS18(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                    "s19" -> RenderProductDetailS19(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                    "s20" -> RenderCategoriesScreenS20(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                    "s21" -> RenderPackagesScreenS21(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                    "s22" -> RenderPackageDetailScreenS22(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                    "s23" -> RenderShopScreenS23(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                    "s24" -> RenderClientFavoritesScreenS24(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                    "s25" -> RenderMyEventDraftS25(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                    "s26" -> RenderRosaEventTypeS26(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                    "s27" -> RenderRosaTutorialS27(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                    "s28" -> RenderRosaHelpS28(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                    "s29" -> RenderRosaSuggestionsS29(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                    "s30" -> RenderRosaCategoriesS30(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                    "s31" -> RenderRosaDetailsS31(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                    "s32" -> RenderRosaSummaryS32(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                    "s33" -> RenderRosaSubmittedS33(onSelectScreenCode = onSelectScreenCode)
+                    "s34" -> RenderRosaChatS34(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                    "s35" -> RenderRosaVoiceS35(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                    "s36" -> RenderRosaSketchS36(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                    "s78" -> RenderRosaSketchConfirmS78(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                    "A08" -> RenderAdminRosaA08(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                    "s37" -> RenderMyEventsScreenS37(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                    "s38" -> RenderNewEventScreenS38(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                    "s39" -> RenderCalendarScreenS39(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                    "s40" -> RenderEventDetailScreenS40(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                    "s43" -> RenderExecutionModeScreenS43(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                    "s44" -> RenderTimelineScreenS44(onSelectScreenCode = onSelectScreenCode)
+                    "s45" -> RenderTasksScreenS45(onSelectScreenCode = onSelectScreenCode)
+                    "s46" -> RenderChecklistScreenS46(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                    "s47" -> RenderGuestsScreenS47(onSelectScreenCode = onSelectScreenCode)
+                    "s48" -> RenderQuoteScreenS48(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                    "s49" -> RenderQuoteHistoryScreenS49(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                    "s50" -> RenderPaymentCheckoutScreenS50(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                    "s51" -> RenderPaymentSuccessScreenS51(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                    "s52" -> RenderPostEventReviewScreenS52(onSelectScreenCode = onSelectScreenCode)
+                    "s53" -> RenderMyReservationsScreenS53(onSelectScreenCode = onSelectScreenCode)
+                    "s54" -> RenderUserProfileScreenS54(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                    "s55" -> RenderSuppliersScreenS55(onSelectScreenCode = onSelectScreenCode)
+                    "s56" -> RenderNewSupplierScreenS56(onSelectScreenCode = onSelectScreenCode)
+                    "s57" -> RenderSpendingAnalyticsScreenS57(onSelectScreenCode = onSelectScreenCode)
+                    "s58" -> RenderFinancialDashboardScreenS58(onSelectScreenCode = onSelectScreenCode)
+                    "s83" -> RenderOfficialReceiptScreenS83(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                    "A01" -> RenderAdminHomeA01(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                    "A02" -> RenderAdminRequestsA02(onSelectScreenCode = onSelectScreenCode)
+                    "A03" -> RenderAdminQuoteBuilderA03(onSelectScreenCode = onSelectScreenCode)
+                    "A09" -> RenderAdminInventoryA09(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                    "A11" -> RenderAdminEventsA11(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                    "A12" -> RenderAdminMoreA12(onSelectScreenCode = onSelectScreenCode)
+                    "A20" -> RenderAdminPaymentsA20(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                    "A21" -> RenderAdminRecordPaymentA21(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                    "A10" -> RenderAdminNewArticleA10(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                    "A13" -> RenderAdminEventDetailA13(onSelectScreenCode = onSelectScreenCode)
+                    "A16" -> RenderAdminExecutionA16(onSelectScreenCode = onSelectScreenCode)
+                    "A17" -> RenderAdminTasksA17(onSelectScreenCode = onSelectScreenCode)
+                    "A18" -> RenderAdminSketchA18(onSelectScreenCode = onSelectScreenCode)
+                    "A19" -> RenderAdminCloseoutA19(onSelectScreenCode = onSelectScreenCode)
+                    "A23" -> RenderAdminArticleDetailA23(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                    "A24" -> RenderAdminPackagesA24(onSelectScreenCode = onSelectScreenCode)
+                    "A25" -> RenderAdminPackageEditA25(onSelectScreenCode = onSelectScreenCode)
+                    "A26" -> RenderAdminClientsA26(onSelectScreenCode = onSelectScreenCode)
+                    "A27" -> RenderAdminClientProfileA27(onSelectScreenCode = onSelectScreenCode)
+                    "A28" -> RenderAdminTeamA28(onSelectScreenCode = onSelectScreenCode)
+                    "A04" -> RenderAdminCreateEventA04(onSelectScreenCode = onSelectScreenCode)
+                    "A05" -> RenderAdminManualEventA05(onSelectScreenCode = onSelectScreenCode)
+                    "A06" -> RenderAdminEventArticlesA06(onSelectScreenCode = onSelectScreenCode)
+                    "A07" -> RenderAdminEventSummaryA07(onSelectScreenCode = onSelectScreenCode)
+                    "A14" -> RenderAdminChatsA14(onSelectScreenCode = onSelectScreenCode)
+                    "A15" -> RenderAdminChatConversationA15(onSelectScreenCode = onSelectScreenCode)
+                    "A22" -> RenderAdminQuotesA22(onSelectScreenCode = onSelectScreenCode)
+                    "A29" -> RenderAdminNotificationsA29(onSelectScreenCode = onSelectScreenCode)
+                    "A30" -> RenderAdminEntryChoiceA30(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                    "A31" -> RenderAdminSettingsA31(onSelectScreenCode = onSelectScreenCode)
+                    "A32" -> RenderAdminCancellationsA32(onSelectScreenCode = onSelectScreenCode)
+                    "A33" -> RenderAdminRefundA33(onSelectScreenCode = onSelectScreenCode)
+                    "A34" -> RenderAdminReplyReviewA34(onSelectScreenCode = onSelectScreenCode)
+                    "A35" -> RenderAdminEmptyStateA35(onSelectScreenCode = onSelectScreenCode)
+                    "A36" -> RenderAdminLoadingStateA36(onSelectScreenCode = onSelectScreenCode)
+                    "A37" -> RenderAdminErrorStateA37(onSelectScreenCode = onSelectScreenCode)
+                    "A38" -> RenderAdminSuccessStateA38(onSelectScreenCode = onSelectScreenCode)
+                    "s16" -> RenderAboutScreenS16(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                    "s17" -> RenderCompanyReviewsS17(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                    "s41" -> RenderEventChatTabS41(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                    "s42" -> RenderEventChatS42(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                    "s59" -> RenderFinanceDashboardS59(onSelectScreenCode = onSelectScreenCode)
+                    "s60" -> RenderInsurancePanelS60(onSelectScreenCode = onSelectScreenCode)
+                    "s61" -> RenderAuditPanelS61(onSelectScreenCode = onSelectScreenCode)
+                    "s62" -> RenderClientsAnalyticsS62(onSelectScreenCode = onSelectScreenCode)
+                    "s63" -> RenderInventoryCalendarS63(onSelectScreenCode = onSelectScreenCode)
+                    "s64" -> RenderLeadsPipelineS64(onSelectScreenCode = onSelectScreenCode)
+                    "s65" -> RenderLeadsFollowupS65(onSelectScreenCode = onSelectScreenCode)
+                    "s66" -> RenderLeadsStatsS66(onSelectScreenCode = onSelectScreenCode)
+                    "s67" -> RenderReportsIncomeS67(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                    "s68" -> RenderReportsEventsS68(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                    "s69" -> RenderReportsClientsS69(onSelectScreenCode = onSelectScreenCode)
+                    "s70" -> RenderReportsInventoryS70(onSelectScreenCode = onSelectScreenCode)
+                    "s71" -> RenderReviewModerationS71(onSelectScreenCode = onSelectScreenCode)
+                    "s72" -> RenderBotQuestionsS72(onSelectScreenCode = onSelectScreenCode)
+                    "s73" -> RenderBotKeywordsS73(onSelectScreenCode = onSelectScreenCode)
+                    "s74" -> RenderBotConversationsS74(onSelectScreenCode = onSelectScreenCode)
+                    "s75" -> RenderGuestAuthModalS75(onSelectScreenCode = onSelectScreenCode)
+                    "s76" -> RenderPlanningModalS76(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                    "s77" -> RenderEventReviewsModalS77(onSelectScreenCode = onSelectScreenCode)
+                    "s79" -> RenderPersonalNotificationsS79(onSelectScreenCode = onSelectScreenCode)
+                    "s80" -> RenderPersonalSearchS80(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                    "s81" -> RenderCatalogFiltersModalS81(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                    "s82" -> RenderPersonalPaymentsS82(onSelectScreenCode = onSelectScreenCode)
+                    "s84" -> RenderChangeDateModalS84(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                    "s85" -> RenderCancelEventModalS85(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                    "s86" -> RenderAccountSettingsS86(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                    "s87" -> RenderTermsS87(onSelectScreenCode = onSelectScreenCode)
+                    "s88" -> RenderDeleteAccountS88(onSelectScreenCode = onSelectScreenCode)
+                    "s89" -> RenderPersonalEmptyStateS89(onSelectScreenCode = onSelectScreenCode)
+                    "s90" -> RenderPersonalLoadingStateS90(onSelectScreenCode = onSelectScreenCode)
+                    "s91" -> RenderPersonalOfflineStateS91(onSelectScreenCode = onSelectScreenCode)
+                    "s92" -> RenderPersonalSuccessStateS92(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                }
+                if (showPersonalMoreMenu) {
+                    RenderPersonalMoreOptionsPanel(
+                        currentScreenCode = spec.code,
+                        onDismiss = { showPersonalMoreMenu = false },
+                        onSelectOption = { targetCode ->
+                            showPersonalMoreMenu = false
+                            onSelectScreenCode(targetCode)
+                        },
+                    )
+                }
             }
             return@RfPhoneFrame
         }

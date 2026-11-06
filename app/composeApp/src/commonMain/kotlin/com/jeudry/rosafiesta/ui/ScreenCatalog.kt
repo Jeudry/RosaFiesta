@@ -250,7 +250,9 @@ object ScreenCatalog {
 
         "s21", "s22" -> if (isGuestScreen(code)) PersonalTab.PAQUETES else PersonalTab.CATALOGO
 
-        "s02", "s24" -> PersonalTab.FAVORITOS
+        "s02" -> PersonalTab.FAVORITOS
+
+        "s16", "s17", "s24", "s54", "s82", "s86", "s87", "s88" -> PersonalTab.MAS
 
         "s26", "s27", "s28", "s29", "s30", "s31", "s32", "s33", "s34", "s35", "s36", "s78" -> PersonalTab.ROSA
 

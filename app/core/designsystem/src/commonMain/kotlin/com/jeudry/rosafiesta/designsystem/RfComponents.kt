@@ -77,6 +77,7 @@ public enum class PersonalTab(
     ROSA("rosa", "Rosa", RfIconKind.SPARK),
     EVENTOS("eventos", "Eventos", RfIconKind.CALENDAR),
     FAVORITOS("favoritos", "Favoritos", RfIconKind.HEART),
+    MAS("mas", "Más", RfIconKind.MORE),
     PAQUETES("paquetes", "Paquetes", RfIconKind.GIFT),
     ENTRAR("entrar", "Entrar", RfIconKind.LOGIN),
     ;
@@ -87,9 +88,10 @@ public enum class PersonalTab(
         public val ROSA_IA: PersonalTab = ROSA
         public val EVENTS: PersonalTab = EVENTOS
         public val FAVORITES: PersonalTab = FAVORITOS
-        public val PROFILE: PersonalTab = FAVORITOS
+        public val MORE: PersonalTab = MAS
+        public val PROFILE: PersonalTab = MAS
 
-        public val standardTabs: List<PersonalTab> = listOf(INICIO, CATALOGO, ROSA, EVENTOS, FAVORITOS)
+        public val standardTabs: List<PersonalTab> = listOf(INICIO, CATALOGO, ROSA, EVENTOS, MAS)
         public val guestTabs: List<PersonalTab> = listOf(CATALOGO, FAVORITOS, ROSA, PAQUETES, ENTRAR)
     }
 }

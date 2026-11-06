@@ -1456,7 +1456,6 @@ internal fun RenderUserProfileScreenS54(
     val profileUsername = viewModel?.profileUsername?.collectAsState()?.value ?: profileEmail.substringBefore("@")
     val profileBirthDate = viewModel?.profileBirthDate?.collectAsState()?.value ?: ""
     val profileAvatarKey = viewModel?.profileAvatarKey?.collectAsState()?.value
-    val isDarkThemeActive = viewModel?.isDarkTheme?.collectAsState()?.value ?: palette.isDark
     val formError = viewModel?.formError?.collectAsState()?.value
     val formFeedback = viewModel?.formFeedback?.collectAsState()?.value
 
@@ -1803,8 +1802,6 @@ internal fun RenderUserProfileScreenS54(
             }
 
             Spacer(Modifier.height(14.dp))
-            ProfileCaption54("PREFERENCIAS")
-            Spacer(Modifier.height(8.dp))
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1813,129 +1810,6 @@ internal fun RenderUserProfileScreenS54(
                     .background(palette.surface)
                     .border(1.dp, palette.line, RoundedCornerShape(20.dp)),
             ) {
-                ProfileRow54("Idioma", RfIconKind.GLOBE) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        BasicText("Español", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = palette.muted))
-                        RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = palette.muted, size = 16.dp)
-                    }
-                }
-                ProfileDivider54()
-                var remindersEnabled by remember { mutableStateOf(true) }
-                Row(
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 54.dp).padding(horizontal = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    RfIcon(kind = RfIconKind.BELL, tint = palette.ink, size = 20.dp)
-                    Column(modifier = Modifier.weight(1f)) {
-                        BasicText("Recordatorios", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = palette.ink))
-                        BasicText("Antes y después de cada evento", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = palette.muted))
-                    }
-                    Box(
-                        modifier = Modifier
-                            .width(50.dp)
-                            .height(30.dp)
-                            .clip(RoundedCornerShape(999.dp))
-                            .background(
-                                if (remindersEnabled) {
-                                    Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))
-                                } else {
-                                    Brush.linearGradient(listOf(Color(0xFFE3DCE8), Color(0xFFE3DCE8)))
-                                },
-                            )
-                            .clickable { remindersEnabled = !remindersEnabled },
-                        contentAlignment = if (remindersEnabled) Alignment.CenterEnd else Alignment.CenterStart,
-                    ) {
-                        Box(modifier = Modifier.padding(horizontal = 3.dp).size(24.dp).clip(CircleShape).background(RfThemeState.currentPalette.surface))
-                    }
-                }
-                ProfileDivider54()
-                ProfileRow54("Tema", RfIconKind.MOON) {
-                    val lightSelected = !isDarkThemeActive
-                    val darkSelected = isDarkThemeActive
-                    Row(
-                        modifier = Modifier.clip(RoundedCornerShape(10.dp)).background(palette.chipBg).padding(3.dp),
-                        horizontalArrangement = Arrangement.spacedBy(2.dp),
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .height(30.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(
-                                    if (lightSelected) {
-                                        Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))
-                                    } else {
-                                        SolidColor(Color.Transparent)
-                                    },
-                                )
-                                .clickable {
-                                    viewModel?.setDarkTheme(false)
-                                }
-                                .padding(horizontal = 10.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            BasicText(
-                                "Claro",
-                                style = TextStyle(
-                                    fontFamily = typo.bodyFamily,
-                                    fontWeight = if (lightSelected) FontWeight.Bold else FontWeight.SemiBold,
-                                    fontSize = 13.sp,
-                                    color = if (lightSelected) Color.White else palette.muted,
-                                ),
-                            )
-                        }
-                        Box(
-                            modifier = Modifier
-                                .height(30.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(
-                                    if (darkSelected) {
-                                        Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))
-                                    } else {
-                                        SolidColor(Color.Transparent)
-                                    },
-                                )
-                                .clickable {
-                                    viewModel?.setDarkTheme(true)
-                                }
-                                .padding(horizontal = 10.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            BasicText(
-                                "Oscuro",
-                                style = TextStyle(
-                                    fontFamily = typo.bodyFamily,
-                                    fontWeight = if (darkSelected) FontWeight.Bold else FontWeight.SemiBold,
-                                    fontSize = 13.sp,
-                                    color = if (darkSelected) Color.White else palette.muted,
-                                ),
-                            )
-                        }
-                    }
-                }
-            }
-
-            Spacer(Modifier.height(14.dp))
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(palette.surface)
-                    .border(1.dp, palette.line, RoundedCornerShape(20.dp)),
-            ) {
-                ProfileRow54("Mis pagos y recibos", RfIconKind.RECEIPT, onClick = { onSelectScreenCode("s82") }) {
-                    RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = palette.muted, size = 16.dp)
-                }
-                ProfileDivider54()
-                ProfileRow54("Ajustes y privacidad", RfIconKind.FILTER, onClick = { onSelectScreenCode("s86") }) {
-                    RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = palette.muted, size = 16.dp)
-                }
-                ProfileDivider54()
-                ProfileRow54("Acerca de Rosa Fiesta", RfIconKind.INFO, onClick = { onSelectScreenCode("s16") }) {
-                    RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = palette.muted, size = 16.dp)
-                }
-                ProfileDivider54()
                 ProfileRow54(
                     "Cerrar sesión",
                     RfIconKind.LOGOUT,

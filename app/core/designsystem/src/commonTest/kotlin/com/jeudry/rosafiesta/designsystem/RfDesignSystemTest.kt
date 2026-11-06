@@ -30,7 +30,7 @@ class RfDesignSystemTest {
     @Test
     fun `verifica las pestanas de TabBar personal modo cliente e invitado y AdminBar administrativa`() {
         assertEquals(
-            listOf("Inicio", "Catálogo", "Rosa", "Eventos", "Favoritos"),
+            listOf("Inicio", "Catálogo", "Rosa", "Eventos", "Más"),
             PersonalTab.standardTabs.map { it.label },
         )
         assertEquals(

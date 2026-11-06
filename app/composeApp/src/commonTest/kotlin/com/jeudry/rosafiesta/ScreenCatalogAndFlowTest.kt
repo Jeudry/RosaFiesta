@@ -54,7 +54,8 @@ class ScreenCatalogAndFlowTest {
         assertEquals(PersonalTab.CATALOGO, ScreenCatalog.activePersonalTab("s18"))
         assertEquals(PersonalTab.ROSA, ScreenCatalog.activePersonalTab("s26"))
         assertEquals(PersonalTab.EVENTOS, ScreenCatalog.activePersonalTab("s37"))
-        assertEquals(PersonalTab.FAVORITOS, ScreenCatalog.activePersonalTab("s24"))
+        assertEquals(PersonalTab.MAS, ScreenCatalog.activePersonalTab("s24"))
+        assertEquals(PersonalTab.FAVORITOS, ScreenCatalog.activePersonalTab("s02"))
 
         assertEquals(AdminTab.INICIO, ScreenCatalog.activeAdminTab("A01"))
         assertEquals(AdminTab.EVENTOS, ScreenCatalog.activeAdminTab("A11"))

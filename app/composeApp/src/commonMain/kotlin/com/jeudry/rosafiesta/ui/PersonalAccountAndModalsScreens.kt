@@ -1225,9 +1225,14 @@ private fun ReceiptRow82(
 // ==============================================================================
 @Composable
 internal fun RenderAccountSettingsS86(
+    viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
+    val palette = RfThemeState.currentPalette
+    val isDarkThemeActive = viewModel?.isDarkTheme?.collectAsState()?.value ?: palette.isDark
+    var selectedLanguage by remember { mutableStateOf("Español") }
+    var remindersEnabled by remember { mutableStateOf(true) }
 
     RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
@@ -1242,20 +1247,134 @@ internal fun RenderAccountSettingsS86(
                         .size(44.dp)
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
-                        .background(RfThemeState.currentPalette.surface)
-                        .clickable { onSelectScreenCode("BACK:s54") },
+                        .background(palette.surface)
+                        .clickable { onSelectScreenCode("BACK:s14") },
                     contentAlignment = Alignment.Center,
                 ) {
-                    RfIcon(kind = RfIconKind.BACK, tint = RfThemeState.currentPalette.ink, size = 22.dp)
+                    RfIcon(kind = RfIconKind.BACK, tint = palette.ink, size = 22.dp)
                 }
                 BasicText(
                     "Ajustes",
                     modifier = Modifier.weight(1f),
-                    style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, lineHeight = 22.sp, color = RfThemeState.currentPalette.ink),
+                    style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, lineHeight = 22.sp, color = palette.ink),
                 )
             }
 
             Spacer(modifier = Modifier.height(12.dp))
+            SettingsCaption86("PREFERENCIAS")
+            Spacer(modifier = Modifier.height(8.dp))
+            SettingsGroup86 {
+                Row(
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 54.dp).padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    RfIcon(kind = RfIconKind.MOON, tint = palette.ink, size = 20.dp)
+                    BasicText(
+                        "Tema",
+                        modifier = Modifier.weight(1f),
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = palette.ink),
+                    )
+                    val lightSelected = !isDarkThemeActive
+                    val darkSelected = isDarkThemeActive
+                    Row(
+                        modifier = Modifier.clip(RoundedCornerShape(10.dp)).background(palette.chipBg).padding(3.dp),
+                        horizontalArrangement = Arrangement.spacedBy(2.dp),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .height(30.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(
+                                    if (lightSelected) {
+                                        Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))
+                                    } else {
+                                        SolidColor(Color.Transparent)
+                                    },
+                                )
+                                .clickable { viewModel?.setDarkTheme(false) }
+                                .padding(horizontal = 10.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            BasicText(
+                                "Claro",
+                                style = TextStyle(
+                                    fontFamily = typo.bodyFamily,
+                                    fontWeight = if (lightSelected) FontWeight.Bold else FontWeight.SemiBold,
+                                    fontSize = 13.sp,
+                                    color = if (lightSelected) Color.White else palette.muted,
+                                ),
+                            )
+                        }
+                        Box(
+                            modifier = Modifier
+                                .height(30.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(
+                                    if (darkSelected) {
+                                        Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))
+                                    } else {
+                                        SolidColor(Color.Transparent)
+                                    },
+                                )
+                                .clickable { viewModel?.setDarkTheme(true) }
+                                .padding(horizontal = 10.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            BasicText(
+                                "Oscuro",
+                                style = TextStyle(
+                                    fontFamily = typo.bodyFamily,
+                                    fontWeight = if (darkSelected) FontWeight.Bold else FontWeight.SemiBold,
+                                    fontSize = 13.sp,
+                                    color = if (darkSelected) Color.White else palette.muted,
+                                ),
+                            )
+                        }
+                    }
+                }
+                SettingsDivider86()
+                SettingsRow86(
+                    label = "Idioma",
+                    icon = RfIconKind.GLOBE,
+                    onClick = {
+                        selectedLanguage = if (selectedLanguage == "Español") "English" else "Español"
+                    },
+                ) {
+                    BasicText(selectedLanguage, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = palette.muted))
+                }
+                SettingsDivider86()
+                Row(
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 54.dp).padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    RfIcon(kind = RfIconKind.BELL, tint = palette.ink, size = 20.dp)
+                    Column(modifier = Modifier.weight(1f)) {
+                        BasicText("Recordatorios", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = palette.ink))
+                        BasicText("Antes y después de cada evento", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = palette.muted))
+                    }
+                    Box(
+                        modifier = Modifier
+                            .width(46.dp)
+                            .height(28.dp)
+                            .clip(RoundedCornerShape(999.dp))
+                            .background(
+                                if (remindersEnabled) {
+                                    Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))
+                                } else {
+                                    Brush.linearGradient(listOf(Color(0xFFE3DCE8), Color(0xFFE3DCE8)))
+                                },
+                            )
+                            .clickable { remindersEnabled = !remindersEnabled },
+                        contentAlignment = if (remindersEnabled) Alignment.CenterEnd else Alignment.CenterStart,
+                    ) {
+                        Box(modifier = Modifier.padding(horizontal = 3.dp).size(22.dp).clip(CircleShape).background(palette.surface).shadow(1.dp, CircleShape))
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
             SettingsCaption86("CUENTA")
             Spacer(modifier = Modifier.height(8.dp))
             SettingsGroup86 {
