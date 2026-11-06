@@ -2137,10 +2137,15 @@ private fun ProfileInlineFieldHelper54(
 // ==============================================================================
 @Composable
 internal fun RenderSuppliersScreenS55(
+    viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
     var searchQuery by remember { mutableStateOf("") }
+    val suppliers = viewModel?.suppliersList?.collectAsState()?.value ?: listOf(
+        SupplierUiModel("sup-1", "Flores del Jarabacoa Premium", "Doña Carmen Polanco", "+1 809 555 2201", "F"),
+        SupplierUiModel("sup-2", "Cristalería & Eventos Caribe", "Ing. Marcos Tavares", "+1 809 555 2202", "C"),
+    )
 
     Box(modifier = Modifier.fillMaxSize()) {
         Canvas(modifier = Modifier.fillMaxSize()) {
@@ -2183,7 +2188,7 @@ internal fun RenderSuppliersScreenS55(
                         "Proveedores",
                         style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, lineHeight = 22.sp, color = Color(0xFF151729)),
                     )
-                    BasicText("2 activos", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF5F6377)))
+                    BasicText("${suppliers.size} activos", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF5F6377)))
                 }
                 Box(
                     modifier = Modifier
@@ -2230,39 +2235,26 @@ internal fun RenderSuppliersScreenS55(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 val trimmedSupplierQuery = searchQuery.trim()
-                val matchesFlores = if (trimmedSupplierQuery.isEmpty()) {
-                    true
-                } else {
-                    "Flores del Jarabacoa Premium Doña Carmen Polanco".contains(trimmedSupplierQuery, ignoreCase = true)
-                }
-                if (matchesFlores) {
-                    SupplierCard55(
-                        initial = "F",
-                        initialBackground = Color(0xFFECEBFF),
-                        initialColor = Color(0xFF4B47D6),
-                        name = "Flores del Jarabacoa Premium",
-                        contact = "Doña Carmen Polanco",
-                        phone = "+1 809 555 2201",
-                        onEditClick = { onSelectScreenCode("s56") },
-                        onChatClick = { onSelectScreenCode("A15") },
-                    )
-                }
-                val matchesCristaleria = if (trimmedSupplierQuery.isEmpty()) {
-                    true
-                } else {
-                    "Cristalería & Eventos Caribe Ing. Marcos Tavares".contains(trimmedSupplierQuery, ignoreCase = true)
-                }
-                if (matchesCristaleria) {
-                    SupplierCard55(
-                        initial = "C",
-                        initialBackground = Color(0xFFDDF4F3),
-                        initialColor = Color(0xFF1F8A84),
-                        name = "Cristalería & Eventos Caribe",
-                        contact = "Ing. Marcos Tavares",
-                        phone = "+1 809 555 2202",
-                        onEditClick = { onSelectScreenCode("s56") },
-                        onChatClick = { onSelectScreenCode("A15") },
-                    )
+                suppliers.forEachIndexed { supplierIndex, supplier ->
+                    val combinedSupplierText = "${supplier.name} ${supplier.category} ${supplier.phone}"
+                    val matchesSupplier = if (trimmedSupplierQuery.isEmpty()) {
+                        true
+                    } else {
+                        combinedSupplierText.contains(trimmedSupplierQuery, ignoreCase = true)
+                    }
+                    if (matchesSupplier) {
+                        val isEvenSupplier = supplierIndex % 2 == 0
+                        SupplierCard55(
+                            initial = supplier.initial,
+                            initialBackground = if (isEvenSupplier) Color(0xFFECEBFF) else Color(0xFFDDF4F3),
+                            initialColor = if (isEvenSupplier) Color(0xFF4B47D6) else Color(0xFF1F8A84),
+                            name = supplier.name,
+                            contact = supplier.category,
+                            phone = supplier.phone,
+                            onEditClick = { onSelectScreenCode("s56") },
+                            onChatClick = { onSelectScreenCode("A15") },
+                        )
+                    }
                 }
             }
             Spacer(modifier = Modifier.height(30.dp))
@@ -2377,9 +2369,13 @@ private fun AdminPanelCard(
 
 @Composable
 internal fun RenderNewSupplierScreenS56(
+    viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
+    var companyName by remember { mutableStateOf("") }
+    var contactPerson by remember { mutableStateOf("") }
+    var phoneNumber by remember { mutableStateOf("") }
 
     Box(modifier = Modifier.fillMaxSize()) {
         RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
@@ -2404,10 +2400,30 @@ internal fun RenderNewSupplierScreenS56(
                 }
                 Spacer(modifier = Modifier.height(18.dp))
                 Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                    AdminField56(label = "Nombre de la empresa", placeholder = "Ej. Flores del Valle", icon = RfIconKind.BOX, required = true)
-                    AdminField56(label = "Persona de contacto", placeholder = "Nombre y apellido", icon = RfIconKind.USER)
+                    AdminField56(
+                        label = "Nombre de la empresa",
+                        placeholder = "Ej. Flores del Valle",
+                        icon = RfIconKind.BOX,
+                        required = true,
+                        boundValue = companyName,
+                        onBoundValueChange = { updatedText -> companyName = updatedText },
+                    )
+                    AdminField56(
+                        label = "Persona de contacto",
+                        placeholder = "Nombre y apellido",
+                        icon = RfIconKind.USER,
+                        boundValue = contactPerson,
+                        onBoundValueChange = { updatedText -> contactPerson = updatedText },
+                    )
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Box(Modifier.weight(1f)) { AdminField56(label = "Teléfono", placeholder = "809 000 0000") }
+                        Box(Modifier.weight(1f)) {
+                            AdminField56(
+                                label = "Teléfono",
+                                placeholder = "809 000 0000",
+                                boundValue = phoneNumber,
+                                onBoundValueChange = { updatedText -> phoneNumber = updatedText },
+                            )
+                        }
                         Box(Modifier.weight(1f)) { AdminField56(label = "Correo", placeholder = "correo@…") }
                     }
                     AdminField56(label = "Sitio web", placeholder = "www.ejemplo.com", icon = RfIconKind.SHARE)
@@ -2425,7 +2441,17 @@ internal fun RenderNewSupplierScreenS56(
                 .shadow(12.dp, RoundedCornerShape(16.dp), spotColor = Color(0x995B6CF0))
                 .clip(RoundedCornerShape(16.dp))
                 .background(AdminPanelGradient)
-                .clickable { onSelectScreenCode("BACK:s55") },
+                .clickable {
+                    val resolvedName = companyName.trim().ifBlank { "Proveedor Nuevo" }
+                    val resolvedContact = contactPerson.trim().ifBlank { "Contacto principal" }
+                    val resolvedPhone = phoneNumber.trim().ifBlank { "+1 809 555 2200" }
+                    viewModel?.addSupplier(
+                        name = resolvedName,
+                        category = resolvedContact,
+                        phone = resolvedPhone,
+                    )
+                    onSelectScreenCode("BACK:s55")
+                },
             contentAlignment = Alignment.Center,
         ) {
             BasicText("Guardar proveedor", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White))
@@ -2439,9 +2465,12 @@ private fun AdminField56(
     placeholder: String,
     icon: RfIconKind? = null,
     required: Boolean = false,
+    boundValue: String? = null,
+    onBoundValueChange: ((String) -> Unit)? = null,
 ) {
     val typo = LocalRfTypography.current
-    var textValue by remember { mutableStateOf("") }
+    var internalValue by remember { mutableStateOf("") }
+    val textValue = boundValue ?: internalValue
 
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row {
@@ -2475,7 +2504,10 @@ private fun AdminField56(
                 }
                 BasicTextField(
                     value = textValue,
-                    onValueChange = { updatedText -> textValue = updatedText },
+                    onValueChange = { updatedText ->
+                        internalValue = updatedText
+                        onBoundValueChange?.invoke(updatedText)
+                    },
                     singleLine = true,
                     textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF151729)),
                     modifier = Modifier.fillMaxWidth(),
@@ -2523,9 +2555,17 @@ private fun AdminNotes56() {
 // ==============================================================================
 @Composable
 internal fun RenderSpendingAnalyticsScreenS57(
+    viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
+    val eventsState = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
+    val paymentsState = viewModel?.payments?.collectAsState()?.value ?: CanonicalSampleData.payments
+    val totalIncomeDop = paymentsState.sumOf { paymentItem -> paymentItem.amountDop }.coerceAtLeast(22100)
+    val confirmedCount = eventsState.count { eventItem -> eventItem.statusLabel.contains("Confirmad", ignoreCase = true) }
+    val completedCount = eventsState.count { eventItem -> eventItem.statusLabel.contains("Completad", ignoreCase = true) }
+    val quoteCount = eventsState.count { eventItem -> eventItem.statusLabel.contains("Cotiz", ignoreCase = true) }
+    val draftCount = (eventsState.size - confirmedCount - completedCount - quoteCount).coerceAtLeast(0)
 
     RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -2574,7 +2614,7 @@ internal fun RenderSpendingAnalyticsScreenS57(
                     ) {
                         BasicText("Ingresos totales", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFFF6EAFB)))
                         Spacer(Modifier.height(6.dp))
-                        BasicText("RD$ 22,100", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 28.sp, lineHeight = 32.sp, color = Color.White))
+                        BasicText("RD$ $totalIncomeDop", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 28.sp, lineHeight = 32.sp, color = Color.White))
                     }
                     Column(
                         modifier = Modifier
@@ -2586,14 +2626,14 @@ internal fun RenderSpendingAnalyticsScreenS57(
                     ) {
                         BasicText("Eventos", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF5F6377)))
                         Spacer(Modifier.height(6.dp))
-                        BasicText("4", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 28.sp, lineHeight = 32.sp, color = Color(0xFF151729)))
+                        BasicText("${eventsState.size}", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 28.sp, lineHeight = 32.sp, color = Color(0xFF151729)))
                     }
                 }
 
                 AdminPanelCard(contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 12.dp)) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
                         BasicText("Tendencia de ingresos", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF151729)))
-                        BasicText("Datos de ejemplo", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = Color(0xFF5F6377)))
+                        BasicText("${paymentsState.size} abonos", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = Color(0xFF5F6377)))
                     }
                     Spacer(Modifier.height(10.dp))
                     IncomeTrend57()
@@ -2614,12 +2654,12 @@ internal fun RenderSpendingAnalyticsScreenS57(
                     Spacer(Modifier.height(12.dp))
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            StatusLegend57("Confirmado", "1", Color(0xFF8DB52C))
-                            StatusLegend57("Completado", "1", Color(0xFF865DEC))
+                            StatusLegend57("Confirmado", "$confirmedCount", Color(0xFF8DB52C))
+                            StatusLegend57("Completado", "$completedCount", Color(0xFF865DEC))
                         }
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            StatusLegend57("Ajustado", "1", Color(0xFF1FBDC0))
-                            StatusLegend57("Borrador", "1", Color(0xFFCDBFCB))
+                            StatusLegend57("Cotización", "$quoteCount", Color(0xFF1FBDC0))
+                            StatusLegend57("Borrador", "$draftCount", Color(0xFFCDBFCB))
                         }
                     }
                 }
@@ -2686,9 +2726,16 @@ private fun StatusLegend57(label: String, count: String, color: Color) {
 // ==============================================================================
 @Composable
 internal fun RenderFinancialDashboardScreenS58(
+    viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
+    val eventsState = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
+    val paymentsState = viewModel?.payments?.collectAsState()?.value ?: CanonicalSampleData.payments
+    val registeredAccounts = viewModel?.registeredAccounts?.collectAsState()?.value ?: emptyList()
+    val monthlyRevenueDop = paymentsState.sumOf { paymentItem -> paymentItem.amountDop }.coerceAtLeast(12450)
+    val activeEventsCount = eventsState.count { eventItem -> !eventItem.statusLabel.contains("Cancelad", ignoreCase = true) }
+    val clientCount = (registeredAccounts.size + 2).coerceAtLeast(2)
 
     RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -2749,7 +2796,7 @@ internal fun RenderFinancialDashboardScreenS58(
                             BasicText("Ingresos del mes", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFFF6EAFB)))
                         }
                         Spacer(Modifier.height(8.dp))
-                        BasicText("RD$ 12,450", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 34.sp, lineHeight = 38.sp, color = Color.White))
+                        BasicText("RD$ $monthlyRevenueDop", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 34.sp, lineHeight = 38.sp, color = Color.White))
                     }
                 }
 
@@ -2765,7 +2812,7 @@ internal fun RenderFinancialDashboardScreenS58(
                         iconBackground = Color(0xFFECEBFF),
                         iconTint = Color(0xFF4B47D6),
                         title = "Eventos activos",
-                        value = "4",
+                        value = "$activeEventsCount",
                         divider = false,
                         onLinkClick = { onSelectScreenCode("A11") },
                     )
@@ -2784,7 +2831,7 @@ internal fun RenderFinancialDashboardScreenS58(
                         iconBackground = Color(0xFFEEF6D6),
                         iconTint = Color(0xFF4E6A10),
                         title = "Clientes nuevos",
-                        value = "2",
+                        value = "$clientCount",
                         divider = true,
                         onLinkClick = { onSelectScreenCode("s62") },
                     )

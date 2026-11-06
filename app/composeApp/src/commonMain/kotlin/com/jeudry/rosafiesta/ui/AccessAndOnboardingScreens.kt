@@ -1,5 +1,6 @@
 package com.jeudry.rosafiesta.ui
 
+import com.jeudry.rosafiesta.domain.CanonicalSampleData
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ContentTransform
@@ -4072,6 +4073,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
 
                     Spacer(Modifier.height(28.dp))
 
+                    val s13Events = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -4091,41 +4093,41 @@ internal fun RenderRecoveryAndConfirmationScreens(
                                     .padding(start = 12.dp, end = 12.dp, top = 12.dp, bottom = 8.dp),
                             ) {
                                 BasicText("Tus eventos", style = typo.heroTitle.copy(fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = RfThemeState.currentPalette.ink))
-                                BasicText("3 activos", style = typo.body.copy(fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
+                                BasicText("${s13Events.size} activos", style = typo.body.copy(fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
                             }
 
-                            EventActiveItemRow(
-                                day = "23",
-                                month = "OCT",
-                                dateBg = Color(0xFFFDE6F2),
-                                title = "Boda Real Rosa & Dorado",
-                                tagText = "Por pagar",
-                                tagBg = Color(0xFFFFF2C9),
-                                tagColor = Color(0xFF7A5700),
-                                timing = "en 3 días",
-                            )
-
-                            EventActiveItemRow(
-                                day = "2",
-                                month = "NOV",
-                                dateBg = Color(0xFFEFE8FD),
-                                title = "Quinceañera Valentina Crystal",
-                                tagText = "Confirmado",
-                                tagBg = Color(0xFFEEF6D6),
-                                tagColor = Color(0xFF4E6A10),
-                                timing = "en 13 días",
-                            )
-
-                            EventActiveItemRow(
-                                day = "9",
-                                month = "NOV",
-                                dateBg = Color(0xFFDDF4F3),
-                                title = "Baby Shower Sofía en Rosas",
-                                tagText = "Borrador",
-                                tagBg = RfThemeState.currentPalette.chipBg,
-                                tagColor = Color(0xFF62627A),
-                                timing = "en 20 días",
-                            )
+                            s13Events.take(3).forEachIndexed { eventIndex, eventItem ->
+                                val dateParts = eventItem.dateLabel.split(" ")
+                                val dayText = dateParts.firstOrNull { token -> token.any { ch -> ch.isDigit() } } ?: "${23 + eventIndex}"
+                                val monthText = dateParts.lastOrNull { token -> token.all { ch -> ch.isLetter() } }?.take(3)?.uppercase() ?: "OCT"
+                                val dateBg = when (eventIndex % 3) {
+                                    0 -> Color(0xFFFDE6F2)
+                                    1 -> Color(0xFFEFE8FD)
+                                    else -> Color(0xFFDDF4F3)
+                                }
+                                val isConfirmed = eventItem.statusLabel.contains("Confirmad", ignoreCase = true)
+                                val isPendingPay = eventItem.statusLabel.contains("pagar", ignoreCase = true)
+                                val tagBg = when {
+                                    isConfirmed -> Color(0xFFEEF6D6)
+                                    isPendingPay -> Color(0xFFFFF2C9)
+                                    else -> RfThemeState.currentPalette.chipBg
+                                }
+                                val tagColor = when {
+                                    isConfirmed -> Color(0xFF4E6A10)
+                                    isPendingPay -> Color(0xFF7A5700)
+                                    else -> Color(0xFF62627A)
+                                }
+                                EventActiveItemRow(
+                                    day = dayText,
+                                    month = monthText,
+                                    dateBg = dateBg,
+                                    title = eventItem.title,
+                                    tagText = eventItem.statusLabel,
+                                    tagBg = tagBg,
+                                    tagColor = tagColor,
+                                    timing = eventItem.venue,
+                                )
+                            }
                         }
                     }
 

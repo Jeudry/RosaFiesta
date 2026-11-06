@@ -80,4 +80,6 @@ public interface RosaFiestaRepository {
         methodLabel: String,
         referenceCode: String,
     ): PaymentRecord?
+    public fun deleteCurrentAccount(): Boolean = true
+    public fun refreshSharedState() {}
 }

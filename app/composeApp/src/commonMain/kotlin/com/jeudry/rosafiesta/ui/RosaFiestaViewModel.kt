@@ -84,6 +84,18 @@ public data class EventGuestUiModel(
     public val status: String,
 )
 
+public data class SupplierUiModel(
+    public val id: String,
+    public val name: String,
+    public val category: String,
+    public val phone: String,
+    public val ratingLabel: String,
+    public val statusLabel: String = "Confirmado",
+) {
+    public val initial: String
+        get() = name.trim().take(1).uppercase().ifBlank { "P" }
+}
+
 public data class AdminOnboardingSummary(
     public val activeEventsCount: Int,
     public val leadEventTitle: String,
@@ -372,6 +384,16 @@ public class RosaFiestaViewModel(
     )
     public val companyReviews: StateFlow<List<CompanyReviewUiModel>> = _companyReviews.asStateFlow()
 
+    private val _suppliersList = MutableStateFlow(
+        listOf(
+            SupplierUiModel("sup-1", "Flores del Caribe", "Floristería", "809-555-0191", "4.9", "Confirmado"),
+            SupplierUiModel("sup-2", "Sonido & Luces Pro", "Audio e iluminación", "809-555-0244", "4.8", "Confirmado"),
+            SupplierUiModel("sup-3", "Dulce Fantasía", "Repostería", "809-555-0318", "5.0", "Cotizando"),
+            SupplierUiModel("sup-4", "Transporte Veloz", "Logística", "809-555-0412", "4.7", "Confirmado"),
+        ),
+    )
+    public val suppliersList: StateFlow<List<SupplierUiModel>> = _suppliersList.asStateFlow()
+
     private val _directChatMessages = MutableStateFlow(
         listOf(
             DirectChatMessageUiModel(
@@ -526,8 +548,68 @@ public class RosaFiestaViewModel(
                     _directChatMessages.value = parsedChat
                 }
             }
+            val savedSuppliersRaw = secureStorage.get(SecureStorage.KEY_SUPPLIERS)
+            if (!savedSuppliersRaw.isNullOrBlank()) {
+                val parsedSuppliers = parseSuppliersFromStorage(savedSuppliersRaw)
+                if (parsedSuppliers.isNotEmpty()) {
+                    _suppliersList.value = parsedSuppliers
+                }
+            }
         }
     }
+
+    public fun refreshSharedStateFromDisk() {
+        repository.refreshSharedState()
+        securityScope.launch {
+            val savedReviewsRaw = secureStorage.get(SecureStorage.KEY_COMPANY_REVIEWS)
+            if (!savedReviewsRaw.isNullOrBlank()) {
+                val parsedReviews = parseReviewsFromStorage(savedReviewsRaw)
+                if (parsedReviews.isNotEmpty()) {
+                    _companyReviews.value = parsedReviews
+                }
+            }
+            val savedChatRaw = secureStorage.get(SecureStorage.KEY_DIRECT_CHAT)
+            if (!savedChatRaw.isNullOrBlank()) {
+                val parsedChat = parseChatFromStorage(savedChatRaw)
+                if (parsedChat.isNotEmpty()) {
+                    _directChatMessages.value = parsedChat
+                }
+            }
+            val savedSuppliersRaw = secureStorage.get(SecureStorage.KEY_SUPPLIERS)
+            if (!savedSuppliersRaw.isNullOrBlank()) {
+                val parsedSuppliers = parseSuppliersFromStorage(savedSuppliersRaw)
+                if (parsedSuppliers.isNotEmpty()) {
+                    _suppliersList.value = parsedSuppliers
+                }
+            }
+            val savedTables = secureStorage.get(SecureStorage.KEY_SKETCH_TABLES)?.toIntOrNull()
+            if (savedTables != null) {
+                _sketchTableCount.value = savedTables.coerceIn(2, 12)
+            }
+        }
+    }
+
+    private fun parseSuppliersFromStorage(serialized: String): List<SupplierUiModel> =
+        serialized.split("||").mapNotNull { entry ->
+            val parts = entry.split("::")
+            if (parts.size >= 6) {
+                SupplierUiModel(
+                    id = parts[0],
+                    name = parts[1],
+                    category = parts[2],
+                    phone = parts[3],
+                    ratingLabel = parts[4],
+                    statusLabel = parts[5],
+                )
+            } else {
+                null
+            }
+        }
+
+    private fun serializeSuppliersForStorage(suppliers: List<SupplierUiModel>): String =
+        suppliers.joinToString("||") { item ->
+            "${item.id}::${item.name.replace("::", " ")}::${item.category.replace("::", " ")}::${item.phone.replace("::", " ")}::${item.ratingLabel}::${item.statusLabel}"
+        }
 
     private fun parseReviewsFromStorage(serialized: String): List<CompanyReviewUiModel> =
         serialized.split("||").mapNotNull { entry ->
@@ -1478,6 +1560,10 @@ public class RosaFiestaViewModel(
         }
     }
 
+    public fun adjustSketchTables(delta: Int) {
+        setSketchTableCount(_sketchTableCount.value + delta)
+    }
+
     public fun clientEventsForCurrentUser(): List<ClientEvent> {
         val allEvents = events.value
         val activeName = _profileName.value.trim()
@@ -1748,6 +1834,54 @@ public class RosaFiestaViewModel(
         }
 
         return "¡Recibido, $clientName! Ya registré tu comentario («${userMessage.take(60)}») en la orden de «$eventName» para el $eventDate. Pedro y Yuli ya están al tanto ✨"
+    }
+
+    public fun addSupplier(
+        name: String,
+        category: String,
+        phone: String,
+        statusLabel: String = "Confirmado",
+    ): Boolean {
+        val cleanName = name.trim()
+        val cleanCat = category.trim().ifBlank { "Servicios" }
+        val cleanPhone = phone.trim().ifBlank { "809-555-0100" }
+        if (cleanName.length < 2) {
+            soundPlayer.playAlertError()
+            _formError.value = "Ingresa el nombre del proveedor."
+            return false
+        }
+        val nextIdx = _suppliersList.value.size + 1
+        val created = SupplierUiModel(
+            id = "sup-$nextIdx",
+            name = cleanName,
+            category = cleanCat,
+            phone = cleanPhone,
+            ratingLabel = "5.0",
+            statusLabel = statusLabel,
+        )
+        _suppliersList.update { existing -> listOf(created) + existing }
+        val snapshot = _suppliersList.value
+        securityScope.launch {
+            secureStorage.put(SecureStorage.KEY_SUPPLIERS, serializeSuppliersForStorage(snapshot))
+        }
+        soundPlayer.playPaymentSuccess()
+        _formError.value = null
+        _formFeedback.value = "Proveedor '$cleanName' guardado."
+        return true
+    }
+
+    public fun deleteCurrentUserAccount(): Boolean {
+        soundPlayer.playAlertError()
+        repository.deleteCurrentAccount()
+        securityScope.launch {
+            secureStorage.remove(SecureStorage.KEY_ACCESS_TOKEN)
+            secureStorage.remove(SecureStorage.KEY_USER_ROLE)
+        }
+        _profileName.value = "Invitado"
+        _profileEmail.value = ""
+        _profileUsername.value = "invitado"
+        _formFeedback.value = "Tu cuenta y sesión activa han sido eliminadas."
+        return true
     }
 
     public fun saveBusinessConfig(): Boolean {

@@ -588,9 +588,12 @@ internal fun RenderAdminHomeA01(
 // ==============================================================================
 @Composable
 internal fun RenderAdminRequestsA02(
+    viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
+    val eventsState = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
+    val newRequestsCount = eventsState.count { eventItem -> eventItem.statusLabel.contains("Cotiz", ignoreCase = true) }.coerceAtLeast(2)
 
     Column(
         modifier = Modifier
@@ -635,7 +638,7 @@ internal fun RenderAdminRequestsA02(
         }
 
         var selectedRequestTab by remember { mutableStateOf(0) }
-        val requestTabs = listOf("Nuevas · 2", "En revisión · 1", "Enviadas")
+        val requestTabs = listOf("Nuevas · $newRequestsCount", "En revisión · 1", "Enviadas")
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -917,6 +920,7 @@ private fun formatAdminDop(amount: Int): String {
 // ==============================================================================
 @Composable
 internal fun RenderAdminQuoteBuilderA03(
+    viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
@@ -1221,7 +1225,12 @@ internal fun RenderAdminQuoteBuilderA03(
                         .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = true)
                         .clip(RoundedCornerShape(16.dp))
                         .background(Brush.linearGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0))))
-                        .clickable { onSelectScreenCode("A02") },
+                        .clickable {
+                            viewModel?.adjustDraftQuantity("art-arco-rosa", articleQuantities[0])
+                            viewModel?.adjustDraftQuantity("art-mesa-helados", articleQuantities[1])
+                            viewModel?.adjustDraftQuantity("art-silla-tiffany", articleQuantities[2])
+                            onSelectScreenCode("A02")
+                        },
                     contentAlignment = Alignment.Center,
                 ) {
                     Row(
@@ -2454,9 +2463,15 @@ internal fun RenderAdminRecordPaymentA21(
 // ==============================================================================
 @Composable
 internal fun RenderAdminEventDetailA13(
+    viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
+    val activeEvent = viewModel?.activeClientEvent() ?: CanonicalSampleData.events.first()
+    val clientName = viewModel?.profileName?.collectAsState()?.value ?: "Camila Rodríguez"
+    val clientInitial = clientName.firstOrNull()?.uppercaseChar()?.toString() ?: "C"
+    val paidDop = activeEvent.paidDepositDop
+    val remainingDop = (activeEvent.totalDop - paidDop).coerceAtLeast(0)
 
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -2488,8 +2503,8 @@ internal fun RenderAdminEventDetailA13(
                 }
 
                 Column(modifier = Modifier.weight(1f)) {
-                    BasicText("Boda Real Rosa & Dorado", maxLines = 1, style = TextStyle(fontFamily = typo.displayFamily, fontSize = 19.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.5).sp, color = Color(0xFF2E324A)))
-                    BasicText("Vie 23 oct · Jardín Botánico", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF5F6377)))
+                    BasicText(activeEvent.title, maxLines = 1, style = TextStyle(fontFamily = typo.displayFamily, fontSize = 19.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.5).sp, color = Color(0xFF2E324A)))
+                    BasicText("${activeEvent.dateLabel} · ${activeEvent.venue}", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF5F6377)))
                 }
 
                 Box(
@@ -2543,7 +2558,7 @@ internal fun RenderAdminEventDetailA13(
                             .padding(horizontal = 9.dp),
                         contentAlignment = Alignment.Center,
                     ) {
-                        BasicText("Ajustado", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = Color(0xFF1F8A84)))
+                        BasicText(activeEvent.statusLabel, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = Color(0xFF1F8A84)))
                     }
                 }
             }
@@ -2570,12 +2585,12 @@ internal fun RenderAdminEventDetailA13(
                             .background(Color(0xFFFDE6F2)),
                         contentAlignment = Alignment.Center,
                     ) {
-                        BasicText("C", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFFC2338F)))
+                        BasicText(clientInitial, style = TextStyle(fontFamily = typo.displayFamily, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFFC2338F)))
                     }
 
                     Column(modifier = Modifier.weight(1f)) {
-                        BasicText("Camila Rodríguez", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, fontWeight = FontWeight.Normal, color = Color(0xFF2E324A)))
-                        BasicText("120 invitados · 2:00 p. m.", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF5F6377)))
+                        BasicText(clientName, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, fontWeight = FontWeight.Normal, color = Color(0xFF2E324A)))
+                        BasicText("${activeEvent.guests} invitados · 6:00 p. m.", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF5F6377)))
                     }
 
                     Box(
@@ -2623,7 +2638,7 @@ internal fun RenderAdminEventDetailA13(
                         BasicText("Pagos", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, fontWeight = FontWeight.Normal, color = Color(0xFF2E324A)))
                         Row(verticalAlignment = Alignment.Bottom) {
                             BasicText("Total ", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF5F6377)))
-                            BasicText("RD$ 4,500", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF151729)))
+                            BasicText("RD$ ${activeEvent.totalDop}", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF151729)))
                         }
                     }
 
@@ -2652,9 +2667,9 @@ internal fun RenderAdminEventDetailA13(
                         Column {
                             Row {
                                 BasicText("Pagado ", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF5F6377)))
-                                BasicText("RD$ 1,350", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, fontWeight = FontWeight.Normal, color = Color(0xFF2E324A)))
+                                BasicText("RD$ $paidDop", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, fontWeight = FontWeight.Normal, color = Color(0xFF2E324A)))
                             }
-                            BasicText("Faltan RD$ 3,150", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = Color(0xFF7A5700)))
+                            BasicText("Faltan RD$ $remainingDop", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = Color(0xFF7A5700)))
                         }
 
                         Box(
@@ -5075,28 +5090,46 @@ internal fun RenderAdminPackageEditA25(
 // ==============================================================================
 @Composable
 internal fun RenderAdminClientsA26(
+    viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
     var searchQuery by remember { mutableStateOf("") }
     var selectedFilterIndex by remember { mutableStateOf(0) }
+    val registeredAccounts = viewModel?.registeredAccounts?.collectAsState()?.value ?: emptyList()
+    val extraClients = registeredAccounts.map { account ->
+        val letter = account.fullName.firstOrNull()?.uppercaseChar()?.toString() ?: "U"
+        ClientItemData(
+            letter = letter,
+            name = account.fullName,
+            subtitle = "${account.email} · ${account.phone}",
+            tagText = "Registrado",
+            avatarColors = Pair(Color(0xFFECEBFF), Color(0xFF4B47D6)),
+            tagColors = Pair(Color(0xFFEEF6D6), Color(0xFF4E6A10)),
+        )
+    }
 
     val allClients = listOf(
         ClientItemData("C", "Camila Rodríguez", "3 eventos · pagó RD$ 3,210", "Vie 23 oct", Pair(Color(0xFFFDE6F2), Color(0xFFC2338F)), Pair(Color(0xFFFFF2C9), Color(0xFF7A5700))),
         ClientItemData("L", "Laura Peña", "Cotización enviada", "Sáb 7 nov", Pair(Color(0xFFEEF6D6), Color(0xFF4E6A10)), Pair(Color(0xFFECEBFF), Color(0xFF4B47D6))),
         ClientItemData("A", "Ana Gómez", "Solicitud nueva", "Nueva", Pair(Color(0xFFFFF2C9), Color(0xFF7A5700)), Pair(Color(0xFFFFD45C), Color(0xFF2E1A47))),
         ClientItemData("G", "Grupo Caribe", "Empresa · 1 evento", "Cerrado", Pair(Color(0xFFF2F2F8), Color(0xFF5F6377)), Pair(Color(0xFFF2F2F8), Color(0xFF5F6377))),
-    )
+    ) + extraClients
     val filteredClients = allClients.filter { client ->
+        val isUpcomingDate = setOf("Vie 23 oct", "Sáb 7 nov", "Registrado").contains(client.tagText)
         val matchesChip = when (selectedFilterIndex) {
-            1 -> client.tagText == "Vie 23 oct" || client.tagText == "Sáb 7 nov"
+            1 -> isUpcomingDate
             2 -> client.subtitle.contains("Empresa", ignoreCase = true)
             else -> true
         }
-        val matchesQuery = searchQuery.isBlank() ||
-            client.name.contains(searchQuery.trim(), ignoreCase = true) ||
-            client.subtitle.contains(searchQuery.trim(), ignoreCase = true)
-        matchesChip && matchesQuery
+        val trimmedClientQuery = searchQuery.trim()
+        val combinedClientText = "${client.name} ${client.subtitle}"
+        val matchesQuery = if (trimmedClientQuery.isEmpty()) {
+            true
+        } else {
+            combinedClientText.contains(trimmedClientQuery, ignoreCase = true)
+        }
+        if (matchesChip) matchesQuery else false
     }
 
     Column(
@@ -5258,10 +5291,18 @@ internal fun RenderAdminClientsA26(
 // ==============================================================================
 @Composable
 internal fun RenderAdminClientProfileA27(
+    viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
     var internalNote by remember { mutableStateOf("Nota interna: prefiere tonos rosa y dorado. Escribirle por WhatsApp después de las 6 p. m.") }
+    val clientName = viewModel?.profileName?.collectAsState()?.value ?: "Camila Rodríguez"
+    val clientEmail = viewModel?.profileEmail?.collectAsState()?.value ?: "camila.rodriguez@correo.com"
+    val clientPhone = viewModel?.profilePhone?.collectAsState()?.value ?: "(809) 555-0198"
+    val clientInitial = clientName.firstOrNull()?.uppercaseChar()?.toString() ?: "C"
+    val eventsState = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
+    val paymentsState = viewModel?.payments?.collectAsState()?.value ?: CanonicalSampleData.payments
+    val totalPaidDop = paymentsState.sumOf { paymentItem -> paymentItem.amountDop }.coerceAtLeast(3210)
 
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -5323,10 +5364,10 @@ internal fun RenderAdminClientProfileA27(
                         .background(Color(0xFFFDE6F2)),
                     contentAlignment = Alignment.Center,
                 ) {
-                    BasicText("C", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, color = Color(0xFFC2338F), fontSize = 28.sp))
+                    BasicText(clientInitial, style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, color = Color(0xFFC2338F), fontSize = 28.sp))
                 }
-                BasicText("Camila Rodríguez", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729), fontSize = 22.sp))
-                BasicText("camila.rodriguez@correo.com · (809) 555-0198", style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFF5F6377), fontSize = 13.sp))
+                BasicText(clientName, style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729), fontSize = 22.sp))
+                BasicText("$clientEmail · $clientPhone", style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFF5F6377), fontSize = 13.sp))
             }
 
             Row(
@@ -5406,7 +5447,7 @@ internal fun RenderAdminClientProfileA27(
                         .padding(horizontal = 14.dp, vertical = 12.dp),
                 ) {
                     Column {
-                        BasicText("3", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, color = Color(0xFF4B47D6), fontSize = 20.sp))
+                        BasicText("${eventsState.size}", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, color = Color(0xFF4B47D6), fontSize = 20.sp))
                         BasicText("Eventos", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, color = Color(0xFF4B47D6), fontSize = 12.sp))
                     }
                 }
@@ -5418,7 +5459,7 @@ internal fun RenderAdminClientProfileA27(
                         .padding(horizontal = 14.dp, vertical = 12.dp),
                 ) {
                     Column {
-                        BasicText("RD$ 3,210", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, color = Color(0xFF3F560C), fontSize = 20.sp))
+                        BasicText("RD$ $totalPaidDop", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, color = Color(0xFF3F560C), fontSize = 20.sp))
                         BasicText("Pagado", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, color = Color(0xFF4E6A10), fontSize = 12.sp))
                     }
                 }
@@ -5501,11 +5542,14 @@ internal fun RenderAdminClientProfileA27(
 // ==============================================================================
 @Composable
 internal fun RenderAdminTeamA28(
+    viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
     var selectedMemberName by remember { mutableStateOf("Yuli") }
-    var permissionStates by remember { mutableStateOf(listOf(true, true, false, false, true)) }
+    val staffList = viewModel?.staffMembers?.collectAsState()?.value ?: emptyList()
+    val staffPaymentAccess = staffList.firstOrNull { staff -> staff.name.equals(selectedMemberName, ignoreCase = true) }?.canViewPayments ?: false
+    var permissionStates by remember(staffPaymentAccess, selectedMemberName) { mutableStateOf(listOf(true, true, staffPaymentAccess, false, true)) }
 
     Column(
         modifier = Modifier
@@ -5656,6 +5700,9 @@ internal fun RenderAdminTeamA28(
                                 val updatedPerms = permissionStates.toMutableList()
                                 updatedPerms[permIndex] = !updatedPerms[permIndex]
                                 permissionStates = updatedPerms
+                                if (permIndex == 2) {
+                                    viewModel?.toggleStaffPaymentAccess(selectedMemberName)
+                                }
                             }
                             .padding(horizontal = 14.dp, vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically,

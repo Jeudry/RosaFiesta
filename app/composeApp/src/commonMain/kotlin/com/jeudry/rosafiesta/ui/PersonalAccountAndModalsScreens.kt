@@ -1,5 +1,6 @@
 package com.jeudry.rosafiesta.ui
 
+import com.jeudry.rosafiesta.domain.CanonicalSampleData
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -89,11 +90,17 @@ private val RosaButtonGradient = Brush.horizontalGradient(
 // ==============================================================================
 @Composable
 internal fun RenderPersonalNotificationsS79(
+    viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
     var allMarkedRead by remember { mutableStateOf(false) }
     var selectedFilterIndex by remember { mutableStateOf(0) }
+    val activeEvent = viewModel?.activeClientEvent() ?: CanonicalSampleData.events.first()
+    val paymentsState = viewModel?.payments?.collectAsState()?.value ?: CanonicalSampleData.payments
+    val latestPayment = paymentsState.firstOrNull()
+    val chatMessages = viewModel?.directChatMessages?.collectAsState()?.value ?: emptyList()
+    val latestMessage = chatMessages.lastOrNull()
 
     RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -174,37 +181,43 @@ internal fun RenderPersonalNotificationsS79(
                 }
             }
 
+            val quoteBody = "${activeEvent.title} · Total RD$ ${activeEvent.totalDop}. Revísala y aparta tu fecha."
+            val messageBody = latestMessage?.text ?: "María: “¡Confirmado el arco de globos para el viernes!”"
+            val messageTime = latestMessage?.timeLabel ?: "8:15 a. m."
+            val balanceDop = (activeEvent.totalDop - activeEvent.paidDepositDop).coerceAtLeast(0)
+            val depositAmountDop = latestPayment?.amountDop ?: activeEvent.paidDepositDop
+
             NotificationSectionLabel79("Hoy")
             NotificationCard79(
                 items = listOf(
                     NotificationItem79(
                         title = "Tu cotización está lista",
-                        body = "Boda Real Rosa & Dorado · Total RD$ 4,500. Revísala y aparta tu fecha.",
+                        body = quoteBody,
                         time = "9:40 a. m.",
                         icon = RfIconKind.NOTE,
                         iconBg = Color(0xFFFDE6F2),
                         iconTint = Color(0xFFC2338F),
-                        unread = true,
+                        unread = !allMarkedRead,
                         onClick = { onSelectScreenCode("s48") },
                     ),
                     NotificationItem79(
                         title = "Nuevo mensaje de Rosa Fiesta",
-                        body = "María: “¡Confirmado el arco de globos para el viernes!”",
-                        time = "8:15 a. m.",
+                        body = messageBody,
+                        time = messageTime,
                         icon = RfIconKind.CHAT,
                         iconBg = Color(0xFFEFE8FD),
                         iconTint = Color(0xFF7A4FD8),
-                        unread = true,
+                        unread = !allMarkedRead,
                         onClick = { onSelectScreenCode("s42") },
                     ),
                     NotificationItem79(
-                        title = "Tu boda es en 3 días",
-                        body = "Revisa tu checklist y confirma la hora de montaje.",
+                        title = "Tu evento ${activeEvent.title}",
+                        body = "Revisa tu checklist y confirma la hora de montaje (${activeEvent.dateLabel}).",
                         time = "7:00 a. m.",
                         icon = RfIconKind.CALENDAR,
                         iconBg = Color(0xFFFFF2C9),
                         iconTint = Color(0xFF7A5700),
-                        unread = true,
+                        unread = !allMarkedRead,
                         onClick = { onSelectScreenCode("s46") },
                     ),
                 ),
@@ -215,7 +228,7 @@ internal fun RenderPersonalNotificationsS79(
                 items = listOf(
                     NotificationItem79(
                         title = "Recordatorio de pago",
-                        body = "El saldo de RD$ 3,150 de tu boda vence el jue 22 oct.",
+                        body = "El saldo de RD$ $balanceDop de ${activeEvent.title} vence pronto.",
                         time = "6:30 p. m.",
                         icon = RfIconKind.WALLET,
                         iconBg = Color(0xFFEEF6D6),
@@ -225,7 +238,7 @@ internal fun RenderPersonalNotificationsS79(
                     ),
                     NotificationItem79(
                         title = "Rosa tiene ideas para ti",
-                        body = "3 combinaciones para la mesa de dulces de tu quinceañera.",
+                        body = "3 combinaciones para la decoración de ${activeEvent.title}.",
                         time = "11:02 a. m.",
                         icon = RfIconKind.SPARKLE,
                         iconBg = Color(0xFFDDF4F3),
@@ -241,7 +254,7 @@ internal fun RenderPersonalNotificationsS79(
                 items = listOf(
                     NotificationItem79(
                         title = "Recibimos tu anticipo",
-                        body = "RD$ 1,350 · Boda Real Rosa & Dorado. Ver recibo.",
+                        body = "RD$ $depositAmountDop · ${activeEvent.title}. Ver recibo.",
                         time = "18 oct",
                         icon = RfIconKind.CHECK,
                         iconBg = Color(0xFFEEF6D6),
@@ -1821,9 +1834,14 @@ private fun TermsSection87(
 // ==============================================================================
 @Composable
 internal fun RenderDeleteAccountS88(
+    viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
+    var confirmationText by remember { mutableStateOf("ELIMINAR") }
+    val eventsState = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
+    val activeEventsCount = eventsState.count { eventItem -> !eventItem.statusLabel.contains("Cancelad", ignoreCase = true) }
+    val canConfirmDeletion = confirmationText.trim().equals("ELIMINAR", ignoreCase = true)
 
     RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -1936,7 +1954,7 @@ internal fun RenderDeleteAccountS88(
                     BasicText(
                         text = buildAnnotatedString {
                             append("Tienes ")
-                            withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append("2 eventos activos") }
+                            withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append("$activeEventsCount eventos activos") }
                             append(". Cancélalos o espera a que terminen para poder eliminar tu cuenta.")
                         },
                         style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.5.sp, lineHeight = 18.9.sp, color = Color(0xFF5E4300)),
@@ -1957,7 +1975,16 @@ internal fun RenderDeleteAccountS88(
                         .padding(horizontal = 16.dp),
                     contentAlignment = Alignment.CenterStart,
                 ) {
-                    BasicText("ELIMINAR", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = RfThemeState.currentPalette.muted))
+                    if (confirmationText.isEmpty()) {
+                        BasicText("ELIMINAR", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = RfThemeState.currentPalette.muted))
+                    }
+                    BasicTextField(
+                        value = confirmationText,
+                        onValueChange = { updatedText -> confirmationText = updatedText },
+                        singleLine = true,
+                        textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = RfThemeState.currentPalette.ink),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                 }
             }
         }
@@ -1976,7 +2003,13 @@ internal fun RenderDeleteAccountS88(
                     .height(54.dp)
                     .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
                     .clip(RoundedCornerShape(16.dp))
-                    .background(Color(0xFFF1D5DB)),
+                    .background(if (canConfirmDeletion) Color(0xFFB42345) else Color(0xFFF1D5DB))
+                    .clickable {
+                        if (canConfirmDeletion) {
+                            viewModel?.deleteCurrentUserAccount()
+                            onSelectScreenCode("s01")
+                        }
+                    },
                 contentAlignment = Alignment.Center,
             ) {
                 BasicText("Eliminar cuenta", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White))
@@ -1986,7 +2019,7 @@ internal fun RenderDeleteAccountS88(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(44.dp)
-                    .clickable { onSelectScreenCode("s54") },
+                    .clickable { onSelectScreenCode("BACK:s54") },
                 contentAlignment = Alignment.Center,
             ) {
                 BasicText("Mantener mi cuenta", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = RfThemeState.currentPalette.muted))
@@ -2881,9 +2914,15 @@ internal fun RenderPlanningModalS76(
 // ==============================================================================
 @Composable
 internal fun RenderEventReviewsModalS77(
+    viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
+    val activeEvent = viewModel?.activeClientEvent() ?: CanonicalSampleData.events.last()
+    val reviewsState = viewModel?.companyReviews?.collectAsState()?.value ?: emptyList()
+    val latestReview = reviewsState.firstOrNull()
+    var showComposer by remember { mutableStateOf(false) }
+    var draftComment by remember { mutableStateOf("") }
 
     Box(
         modifier = Modifier
@@ -2891,7 +2930,7 @@ internal fun RenderEventReviewsModalS77(
             .background(RfThemeState.currentPalette.bg),
     ) {
         // Background my events (s37)
-        RenderMyEventsScreenS37(onSelectScreenCode = onSelectScreenCode)
+        RenderMyEventsScreenS37(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
 
         // Scrim
         Box(
@@ -2943,7 +2982,7 @@ internal fun RenderEventReviewsModalS77(
                         )
                         Spacer(Modifier.height(2.dp))
                         BasicText(
-                            "Gala Corporativa Grupo Caribe",
+                            activeEvent.title,
                             style = TextStyle(
                                 fontFamily = typo.bodyFamily,
                                 fontSize = 14.sp,
@@ -2965,6 +3004,11 @@ internal fun RenderEventReviewsModalS77(
                 }
 
                 // Review card
+                val reviewInitial = latestReview?.initial ?: "A"
+                val reviewAuthor = latestReview?.author ?: "Anónimo"
+                val reviewStars = latestReview?.rating ?: 5
+                val reviewDate = latestReview?.dateLabel ?: "19 oct"
+                val reviewBody = latestReview?.comment ?: "Excelente coordinación en nuestra Gala Corporativa. Todo el mobiliario llegó impecable."
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -2988,7 +3032,7 @@ internal fun RenderEventReviewsModalS77(
                                     .background(Color(0xFFFFF2C9)),
                             ) {
                                 BasicText(
-                                    "A",
+                                    reviewInitial,
                                     style = TextStyle(
                                         fontFamily = typo.bodyFamily,
                                         fontWeight = FontWeight.ExtraBold,
@@ -2999,7 +3043,7 @@ internal fun RenderEventReviewsModalS77(
                             }
                             Column(modifier = Modifier.weight(1f)) {
                                 BasicText(
-                                    "Anónimo",
+                                    reviewAuthor,
                                     style = TextStyle(
                                         fontFamily = typo.bodyFamily,
                                         fontWeight = FontWeight.Bold,
@@ -3009,13 +3053,13 @@ internal fun RenderEventReviewsModalS77(
                                 )
                                 Spacer(Modifier.height(2.dp))
                                 Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                                    repeat(5) {
+                                    repeat(reviewStars) {
                                         RfIcon(kind = RfIconKind.STAR, tint = Color(0xFFF7B500), size = 14.dp)
                                     }
                                 }
                             }
                             BasicText(
-                                "19 oct",
+                                reviewDate,
                                 style = TextStyle(
                                     fontFamily = typo.bodyFamily,
                                     fontSize = 13.sp,
@@ -3024,13 +3068,35 @@ internal fun RenderEventReviewsModalS77(
                             )
                         }
                         BasicText(
-                            "Excelente coordinación en nuestra Gala Corporativa. Todo el mobiliario llegó impecable.",
+                            reviewBody,
                             style = TextStyle(
                                 fontFamily = typo.bodyFamily,
                                 fontSize = 15.sp,
                                 color = RfThemeState.currentPalette.ink,
                                 lineHeight = 22.sp,
                             ),
+                        )
+                    }
+                }
+
+                if (showComposer) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(74.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(RfThemeState.currentPalette.surface)
+                            .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(16.dp))
+                            .padding(12.dp),
+                    ) {
+                        if (draftComment.isEmpty()) {
+                            BasicText("Escribe tu comentario sobre el evento...", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
+                        }
+                        BasicTextField(
+                            value = draftComment,
+                            onValueChange = { updatedText -> draftComment = updatedText },
+                            textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.ink),
+                            modifier = Modifier.fillMaxSize(),
                         )
                     }
                 }
@@ -3046,7 +3112,20 @@ internal fun RenderEventReviewsModalS77(
                         .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
                         .clip(RoundedCornerShape(16.dp))
                         .background(RosaButtonGradient)
-                        .clickable { onSelectScreenCode("s37") },
+                        .clickable {
+                            if (!showComposer) {
+                                showComposer = true
+                            } else {
+                                val resolvedBody = draftComment.trim().ifBlank { "Excelente servicio en ${activeEvent.title}." }
+                                viewModel?.submitCompanyReview(
+                                    comment = resolvedBody,
+                                    rating = 5,
+                                )
+                                showComposer = false
+                                draftComment = ""
+                                onSelectScreenCode("BACK:s37")
+                            }
+                        },
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -3054,7 +3133,7 @@ internal fun RenderEventReviewsModalS77(
                     ) {
                         RfIcon(kind = RfIconKind.EDIT, tint = Color.White, size = 20.dp)
                         BasicText(
-                            "Escribir reseña",
+                            if (showComposer) "Publicar reseña" else "Escribir reseña",
                             style = TextStyle(
                                 fontFamily = typo.bodyFamily,
                                 fontWeight = FontWeight.Bold,

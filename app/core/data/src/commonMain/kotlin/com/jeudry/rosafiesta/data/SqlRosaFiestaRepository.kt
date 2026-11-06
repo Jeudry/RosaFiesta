@@ -699,6 +699,29 @@ public class SqlRosaFiestaRepository(
             )
             reloadEventsFromSql()
         }
+        runCatching {
+            val proposal = RosaFiestaEngine.buildRosaProposal(cleanTitle, guests)
+            val dtoLines = proposal.lines.map { line ->
+                QuoteLineDto(
+                    articleCode = line.code,
+                    name = line.name,
+                    quantity = line.quantity.toLong(),
+                    unitPriceRD = line.unitPriceDop.toLong(),
+                )
+            }
+            apiClient?.createQuote(
+                CreateQuoteInputDto(
+                    eventTitle = cleanTitle,
+                    clientName = cleanClient,
+                    eventDateLabel = cleanDate,
+                    venue = cleanVenue,
+                    guests = guests.toLong(),
+                    lines = dtoLines,
+                    deliveryFeeRD = 350L,
+                    discountRD = 0L,
+                ),
+            )
+        }
     }
 
     /**
@@ -706,11 +729,12 @@ public class SqlRosaFiestaRepository(
      */
     public suspend fun changeEventDateAsync(eventId: String, newDateLabel: String): DateChangeResult = withContext(ioDispatcher) {
         val cleanDate = newDateLabel.trim()
-        sqlMutex.withLock {
+        val evalResult = sqlMutex.withLock {
             val rows = queries.selectAllEvents().executeAsList()
-            val target = rows.firstOrNull { it.id == eventId.trim() } ?: rows.first()
+            val target = rows.firstOrNull { row -> row.id == eventId.trim() } ?: rows.first()
             val eval = RosaFiestaEngine.evaluateDateChange(target.daysUntilEvent.toInt(), target.priorChangesCount.toInt())
-            if (eval.allowed && cleanDate.isNotEmpty()) {
+            val canPersistDate = if (eval.allowed) cleanDate.isNotEmpty() else false
+            if (canPersistDate) {
                 queries.updateEventDateAndTotal(
                     dateLabel = cleanDate,
                     totalDop = target.totalDop + eval.feeDop,
@@ -721,13 +745,26 @@ public class SqlRosaFiestaRepository(
             }
             eval
         }
+        val canSyncDateChange = if (evalResult.allowed) cleanDate.isNotEmpty() else false
+        if (canSyncDateChange) {
+            runCatching {
+                apiClient?.requestDateChange(
+                    id = eventId,
+                    input = DateChangeInputDto(
+                        newDateLabel = cleanDate,
+                        newDaysUntilEvent = 14L,
+                    ),
+                )
+            }
+        }
+        evalResult
     }
 
     /**
      * Cancela un evento en SQLite fuera del hilo principal y devuelve el desglose de reembolso.
      */
     public suspend fun cancelEventAsync(eventId: String): CancellationRefund = withContext(ioDispatcher) {
-        sqlMutex.withLock {
+        val refundResult = sqlMutex.withLock {
             val rows = queries.selectAllEvents().executeAsList()
             val target = rows.firstOrNull { it.id == eventId.trim() } ?: rows.first()
             val refund = RosaFiestaEngine.calculateCancellationRefund(target.paidDepositDop.toInt(), target.daysUntilEvent.toInt())
@@ -738,6 +775,10 @@ public class SqlRosaFiestaRepository(
             reloadEventsFromSql()
             refund
         }
+        runCatching {
+            apiClient?.cancelEvent(eventId)
+        }
+        refundResult
     }
 
     /**
@@ -754,7 +795,7 @@ public class SqlRosaFiestaRepository(
         if (amountDop <= 0 || cleanMethod.isEmpty()) {
             return@withContext null
         }
-        sqlMutex.withLock {
+        val createdRecord = sqlMutex.withLock {
             val eventRows = queries.selectAllEvents().executeAsList()
             val target = eventRows.firstOrNull { it.id == eventId.trim() } ?: eventRows.first()
             val existingPayments = queries.selectAllPayments().executeAsList()
@@ -798,6 +839,20 @@ public class SqlRosaFiestaRepository(
             reloadEventsFromSql()
             record
         }
+        runCatching {
+            apiClient?.registerPayment(
+                RegisterPaymentInputDto(
+                    eventId = createdRecord.eventId,
+                    eventTitle = createdRecord.eventTitle,
+                    clientName = createdRecord.clientName,
+                    amountRD = createdRecord.amountDop.toLong(),
+                    method = cleanMethod,
+                    kind = createdRecord.kindLabel,
+                    referenceCode = cleanRef,
+                ),
+            )
+        }
+        createdRecord
     }
 
     override fun toggleChecklistStep(stepId: String) {
@@ -1303,6 +1358,34 @@ public class SqlRosaFiestaRepository(
         scope.launch {
             sqlMutex.withLock {
                 queries.clearActiveSession()
+            }
+        }
+    }
+
+    override fun deleteCurrentAccount(): Boolean {
+        val currentToken = _currentSessionJwt.value
+        _currentSessionJwt.value = null
+        _currentAuthenticatedUser.value = null
+        _activeRole.value = "guest"
+        scope.launch {
+            sqlMutex.withLock {
+                queries.clearActiveSession()
+            }
+            if (!currentToken.isNullOrBlank()) {
+                runCatching {
+                    apiClient?.deleteAccount(currentToken)
+                }
+            }
+        }
+        return true
+    }
+
+    override fun refreshSharedState() {
+        scope.launch {
+            sqlMutex.withLock {
+                runCatching {
+                    reloadFromSql()
+                }
             }
         }
     }

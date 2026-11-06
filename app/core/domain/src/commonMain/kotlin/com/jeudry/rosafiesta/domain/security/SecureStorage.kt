@@ -34,6 +34,7 @@ public interface SecureStorage {
         public const val KEY_EVENT_TIMELINE: String = "rf_event_timeline"
         public const val KEY_EVENT_GUESTS: String = "rf_event_guests"
         public const val KEY_SKETCH_TABLES: String = "rf_sketch_tables"
+        public const val KEY_SUPPLIERS: String = "rf_suppliers"
     }
 }
 

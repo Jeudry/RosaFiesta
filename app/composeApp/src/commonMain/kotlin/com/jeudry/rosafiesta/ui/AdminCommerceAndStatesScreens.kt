@@ -907,10 +907,15 @@ private data class ItemSummaryA07(val photo: RfPhotoKey, val name: String, val q
 
 @Composable
 internal fun RenderAdminEventSummaryA07(
+    viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
     var notifyWhatsApp by remember { mutableStateOf(true) }
+    val draftTitle = viewModel?.newEventTitle?.collectAsState()?.value?.ifBlank { "Cumpleaños de Mateo" } ?: "Cumpleaños de Mateo"
+    val draftDate = viewModel?.newEventDate?.collectAsState()?.value?.ifBlank { "Sáb 7 nov · 4:00 p. m." } ?: "Sáb 7 nov · 4:00 p. m."
+    val draftGuests = viewModel?.newEventGuests?.collectAsState()?.value?.ifBlank { "40" } ?: "40"
+    val clientName = viewModel?.profileName?.collectAsState()?.value ?: "Laura Peña"
 
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -1032,13 +1037,13 @@ internal fun RenderAdminEventSummaryA07(
                 }
 
                 Column(modifier = Modifier.padding(16.dp).widthIn(max = 220.dp)) {
-                    BasicText("Cumpleaños de Mateo", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = Color.White))
+                    BasicText(draftTitle, style = TextStyle(fontFamily = typo.displayFamily, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = Color.White))
                     Spacer(modifier = Modifier.height(4.dp))
-                    BasicText("Sáb 7 nov · 4:00 p. m. · 40 invitados", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFFE9EEFF)))
+                    BasicText("$draftDate · $draftGuests invitados", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFFE9EEFF)))
                     Spacer(modifier = Modifier.height(2.dp))
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         RfIcon(kind = RfIconKind.USER, tint = Color(0xFFE9EEFF), size = 14.dp)
-                        BasicText("Laura Peña", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFFE9EEFF)))
+                        BasicText(clientName, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFFE9EEFF)))
                     }
                 }
             }
@@ -1195,7 +1200,10 @@ internal fun RenderAdminEventSummaryA07(
                     .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = true)
                     .clip(RoundedCornerShape(16.dp))
                     .background(AdminButtonGradient)
-                    .clickable { onSelectScreenCode("A11") },
+                    .clickable {
+                        viewModel?.submitNewEvent()
+                        onSelectScreenCode("A11")
+                    },
                 contentAlignment = Alignment.Center,
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -2093,9 +2101,15 @@ internal fun RenderAdminQuotesA22(
 // ==============================================================================
 @Composable
 internal fun RenderAdminNotificationsA29(
+    viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
+    val activeEvent = viewModel?.activeClientEvent()
+    val clientName = viewModel?.profileName?.collectAsState()?.value ?: "Camila Rodríguez"
+    val latestPayment = viewModel?.payments?.collectAsState()?.value?.firstOrNull()
+    val latestPaymentAmount = if (latestPayment != null) "RD$ ${latestPayment.amountDop}" else "RD$ 1,350"
+    val latestEventTitle = activeEvent?.title ?: "Boda Real"
 
     Column(
         modifier = Modifier
@@ -2203,8 +2217,8 @@ internal fun RenderAdminNotificationsA29(
                         RfIcon(kind = RfIconKind.WALLET, tint = Color(0xFF4E6A10), size = 18.dp)
                     }
                     Column(modifier = Modifier.weight(1f)) {
-                        BasicText("Pago recibido · RD$ 1,350", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF151729)))
-                        BasicText("Camila Rodríguez · Boda Real", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.Normal, color = Color(0xFF5F6377)))
+                        BasicText("Pago recibido · $latestPaymentAmount", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF151729)))
+                        BasicText("$clientName · $latestEventTitle", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.Normal, color = Color(0xFF5F6377)))
                     }
                     BasicText("2:15 p. m.", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.Normal, color = Color(0xFF5F6377)))
                 }

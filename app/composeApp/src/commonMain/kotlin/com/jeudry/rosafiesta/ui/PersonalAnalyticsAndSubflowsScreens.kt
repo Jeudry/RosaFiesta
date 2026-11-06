@@ -3477,10 +3477,14 @@ private fun AdminTabRow(
 }
 
 @Composable
-internal fun RenderReviewModerationS71(onSelectScreenCode: (String) -> Unit = {}) {
+internal fun RenderReviewModerationS71(
+    viewModel: RosaFiestaViewModel? = null,
+    onSelectScreenCode: (String) -> Unit = {},
+) {
     val typo = LocalRfTypography.current
     var selectedFilter by remember { mutableStateOf("Pendientes") }
     var ricardoStatus by remember { mutableStateOf("PENDING") }
+    val companyReviews = viewModel?.companyReviews?.collectAsState()?.value ?: emptyList()
 
     RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
@@ -3540,6 +3544,17 @@ internal fun RenderReviewModerationS71(onSelectScreenCode: (String) -> Unit = {}
                 }
                 val showSofia = selectedFilter != "Rechazadas"
                 if (showSofia) {
+                    companyReviews.forEach { userReview ->
+                        ReviewCard71(
+                            initial = userReview.author.take(1).uppercase().ifBlank { "C" },
+                            avatarBackground = Color(0xFFECEBFF),
+                            avatarTint = Color(0xFF4B47D6),
+                            name = userReview.author,
+                            event = "Evento verificado · ${userReview.dateLabel}",
+                            body = userReview.comment,
+                            verified = true,
+                        )
+                    }
                     ReviewCard71(
                         initial = "S",
                         avatarBackground = Color(0xFFECEBFF),
@@ -4306,8 +4321,16 @@ private fun AuditTimelineRow61(
 }
 
 @Composable
-internal fun RenderClientsAnalyticsS62(onSelectScreenCode: (String) -> Unit = {}) {
+internal fun RenderClientsAnalyticsS62(
+    viewModel: RosaFiestaViewModel? = null,
+    onSelectScreenCode: (String) -> Unit = {},
+) {
     val typo = LocalRfTypography.current
+    val clientName = viewModel?.profileName?.collectAsState()?.value ?: "Camila Rodríguez"
+    val clientEmail = viewModel?.profileEmail?.collectAsState()?.value ?: "camila.rodriguez@correo.com"
+    val clientInitial = clientName.trim().take(1).uppercase().ifBlank { "C" }
+    val activeEvent = viewModel?.activeClientEvent()
+    val eventsCount = viewModel?.events?.collectAsState()?.value?.size ?: 3
 
     AdminPanelScaffold(activeCode = "s62", onSelectScreenCode = onSelectScreenCode, tabScroll = 56.dp) {
         Row(
@@ -4324,11 +4347,11 @@ internal fun RenderClientsAnalyticsS62(onSelectScreenCode: (String) -> Unit = {}
                 modifier = Modifier.size(56.dp).clip(CircleShape).background(Color(0xFFECEBFF)),
                 contentAlignment = Alignment.Center,
             ) {
-                BasicText("C", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp, color = Color(0xFF4B47D6)))
+                BasicText(clientInitial, style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp, color = Color(0xFF4B47D6)))
             }
             Column(modifier = Modifier.weight(1f)) {
-                BasicText("Camila Rodríguez", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 17.sp, color = Color(0xFF151729)))
-                BasicText("camila.rodriguez@correo.com", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF5F6377)))
+                BasicText(clientName, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 17.sp, color = Color(0xFF151729)))
+                BasicText(clientEmail, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF5F6377)))
             }
             Box(
                 modifier = Modifier.size(44.dp).clip(CircleShape).background(RfThemeState.currentPalette.surface).border(1.dp, Color(0xFFECECF5), CircleShape).clickable { onSelectScreenCode("s74") },
@@ -4363,8 +4386,8 @@ internal fun RenderClientsAnalyticsS62(onSelectScreenCode: (String) -> Unit = {}
                 BasicText("OCT", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 11.sp, letterSpacing = 0.7.sp, color = Color(0xFF151729)))
             }
             Column(modifier = Modifier.weight(1f)) {
-                BasicText("Boda Real Rosa & Dorado", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF151729)))
-                BasicText("Viernes · 5:38 p. m.", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Color(0xFF7A5700)))
+                BasicText(activeEvent?.title ?: "Boda Real Rosa & Dorado", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF151729)))
+                BasicText(activeEvent?.dateLabel ?: "Viernes · 5:38 p. m.", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Color(0xFF7A5700)))
             }
             RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = Color(0xFF7A5700), size = 18.dp)
         }
@@ -4377,7 +4400,7 @@ internal fun RenderClientsAnalyticsS62(onSelectScreenCode: (String) -> Unit = {}
                 .background(RfThemeState.currentPalette.surface)
                 .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(22.dp)),
         ) {
-            ClientActionRow62("Eventos del cliente", RfIconKind.CALENDAR, Color(0xFFEFE8FD), Color(0xFF7A4FD8), badge = "3", divider = false, onClick = { onSelectScreenCode("A11") })
+            ClientActionRow62("Eventos del cliente", RfIconKind.CALENDAR, Color(0xFFEFE8FD), Color(0xFF7A4FD8), badge = eventsCount.toString(), divider = false, onClick = { onSelectScreenCode("A11") })
             ClientActionRow62("Pagos", RfIconKind.WALLET, Color(0xFFEEF6D6), Color(0xFF4E6A10), divider = true, onClick = { onSelectScreenCode("s59") })
             ClientActionRow62("Notificaciones", RfIconKind.BELL, Color(0xFFDDF4F3), Color(0xFF1F8A84), divider = true, onClick = { onSelectScreenCode("A29") })
         }

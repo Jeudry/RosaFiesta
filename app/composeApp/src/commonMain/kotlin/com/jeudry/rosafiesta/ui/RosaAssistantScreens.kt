@@ -3667,7 +3667,8 @@ internal fun RenderRosaSketchS36(
     }
     var selectedSwatchIndex by remember { mutableStateOf(0) }
     var selectedToolIndex by remember { mutableStateOf(1) }
-    var tableCount by remember { mutableStateOf(6) }
+    val vmTableCount = viewModel?.sketchTableCount?.collectAsState()?.value ?: 6
+    var tableCount by remember(vmTableCount) { mutableStateOf(vmTableCount) }
     var showChairsAroundTables by remember { mutableStateOf(false) }
     var showVipZoneLabel by remember { mutableStateOf(false) }
     val activeTableColor = swatchColors[selectedSwatchIndex]
@@ -4000,6 +4001,7 @@ internal fun RenderRosaSketchS36(
                     .clip(RoundedCornerShape(16.dp))
                     .background(RosaButtonGradient)
                     .clickable {
+                        viewModel?.adjustSketchTables(tableCount - vmTableCount)
                         viewModel?.adjustDraftQuantity("art-mesa-redonda", tableCount - 6)
                         onSelectScreenCode("s78")
                     },
@@ -4101,13 +4103,14 @@ internal fun RenderRosaSketchConfirmS78(
                 RfIcon(kind = RfIconKind.BACK, tint = RfThemeState.currentPalette.ink, size = 22.dp)
             }
 
+            val activeEvent78 = viewModel?.activeClientEvent() ?: CanonicalSampleData.events.first()
             Column(modifier = Modifier.weight(1f)) {
                 BasicText(
                     text = "Revisa tu boceto",
                     style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 19.sp, color = RfThemeState.currentPalette.ink),
                 )
                 BasicText(
-                    text = "Boda Real Rosa & Dorado",
+                    text = activeEvent78.title,
                     style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = RfThemeState.currentPalette.muted),
                 )
             }
@@ -4236,7 +4239,8 @@ internal fun RenderRosaSketchConfirmS78(
             }
 
             val draftQuantities = viewModel?.draftQuantities?.collectAsState()?.value.orEmpty()
-            val sketchTableCount = draftQuantities["art-mesa-redonda"] ?: 6
+            val vmSketchTables = viewModel?.sketchTableCount?.collectAsState()?.value
+            val sketchTableCount = vmSketchTables ?: draftQuantities["art-mesa-redonda"] ?: 6
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 BasicText(
                     text = "LO QUE DIBUJASTE",
