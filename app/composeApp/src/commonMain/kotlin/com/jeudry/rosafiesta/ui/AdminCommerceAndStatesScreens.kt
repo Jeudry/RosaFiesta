@@ -41,6 +41,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -1223,14 +1224,23 @@ private data class AdminChatItem(
 @Composable
 internal fun RenderAdminChatsA14(
     onSelectScreenCode: (String) -> Unit = {},
+    viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
     var searchQuery by remember { mutableStateOf("") }
     var selectedFilter by remember { mutableStateOf("Todos") }
+    val directMessages = viewModel?.directChatMessages?.collectAsState()?.value ?: emptyList()
+    val clientName = viewModel?.profileName?.collectAsState()?.value ?: "Camila Rodríguez"
+    val activeEvent = viewModel?.activeClientEvent()
+    val eventSubtitle = activeEvent?.title ?: "Boda Real Rosa & Dorado"
+    val latestMsg = directMessages.lastOrNull()
+    val latestSnippet = latestMsg?.text ?: "Ya revisé el presupuesto ajustado y el montaje…"
+    val latestTime = latestMsg?.timeLabel ?: "9:08 p. m."
+    val clientInitial = clientName.trim().firstOrNull()?.uppercase() ?: "C"
 
-    val allChats = remember {
+    val allChats = remember(clientName, eventSubtitle, latestSnippet, latestTime) {
         listOf(
-            AdminChatItem("C", Color(0xFFFDE6F2), Color(0xFFC2338F), "Camila Rodríguez", "9:08 p. m.", "Boda Real Rosa & Dorado", "Ya revisé el presupuesto ajustado y el montaje…", unreadCount = 2),
+            AdminChatItem(clientInitial, Color(0xFFFDE6F2), Color(0xFFC2338F), clientName, latestTime, eventSubtitle, latestSnippet, unreadCount = 2),
             AdminChatItem("A", Color(0xFFFFF2C9), Color(0xFF7A5700), "Ana Gómez", "6:40 p. m.", "Graduación Promo 2026", "¿Tienen letreros con luces para la entrada?"),
             AdminChatItem("L", Color(0xFFEEF6D6), Color(0xFF4E6A10), "Laura Peña", "Ayer", "Cumpleaños de Mateo", "Tú: Te envié la cotización por aquí 🎈"),
             AdminChatItem("Y", Color(0xFFFDE6F2), Color(0xFFC2338F), "Yuli · Decoración", "Ayer", "Equipo", "Ya tengo las flores para el viernes."),
@@ -1458,23 +1468,37 @@ internal fun RenderAdminChatsA14(
 @Composable
 internal fun RenderAdminChatConversationA15(
     onSelectScreenCode: (String) -> Unit = {},
+    viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
     var messageInput by remember { mutableStateOf("") }
     var sentMessages by remember { mutableStateOf(listOf<String>()) }
     var proposalApproved by remember { mutableStateOf(false) }
+    val directMessages = viewModel?.directChatMessages?.collectAsState()?.value ?: emptyList()
+    val clientName = viewModel?.profileName?.collectAsState()?.value ?: "Camila Rodríguez"
+    val activeEvent = viewModel?.activeClientEvent()
+    val eventSubtitle = if (activeEvent != null) "${activeEvent.title} · ${activeEvent.dateLabel}" else "Boda Real Rosa & Dorado · Vie 23 oct"
+    val clientInitial = clientName.trim().firstOrNull()?.uppercase() ?: "C"
     val scrollState = rememberScrollState()
 
     val submitAdminMessage = {
         val trimmed = messageInput.trim()
         if (trimmed.isNotEmpty()) {
-            sentMessages = sentMessages + trimmed
+            if (viewModel != null) {
+                viewModel.sendAdminDirectChatReply(trimmed)
+            } else {
+                sentMessages = sentMessages + trimmed
+            }
             messageInput = ""
         }
     }
 
-    LaunchedEffect(sentMessages.size) {
-        if (sentMessages.isNotEmpty()) {
+    LaunchedEffect(sentMessages.size, directMessages.size) {
+        val hasAnyNew = sentMessages.isNotEmpty()
+        val hasSharedMessages = directMessages.size > 3
+        if (hasAnyNew) {
+            scrollState.animateScrollTo(scrollState.maxValue)
+        } else if (hasSharedMessages) {
             scrollState.animateScrollTo(scrollState.maxValue)
         }
     }
@@ -1627,6 +1651,41 @@ internal fun RenderAdminChatConversationA15(
                 }
             }
 
+            directMessages.drop(3).forEach { sharedMsg ->
+                val isAdminTurn = !sharedMsg.isFromClient
+                Box(
+                    modifier = Modifier
+                        .align(if (isAdminTurn) Alignment.End else Alignment.Start)
+                        .widthIn(max = 300.dp)
+                        .clip(
+                            if (isAdminTurn) {
+                                RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 20.dp, bottomEnd = 6.dp)
+                            } else {
+                                RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 6.dp, bottomEnd = 20.dp)
+                            },
+                        )
+                        .then(
+                            if (isAdminTurn) {
+                                Modifier.background(AdminButtonGradient)
+                            } else {
+                                Modifier.background(Color.White).border(1.dp, Color(0xFFECECF5), RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 6.dp, bottomEnd = 20.dp))
+                            },
+                        )
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        BasicText(
+                            text = sharedMsg.text,
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = if (isAdminTurn) Color.White else Color(0xFF2E324A), lineHeight = 21.sp),
+                        )
+                        BasicText(
+                            text = sharedMsg.timeLabel,
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 11.sp, color = if (isAdminTurn) Color(0xFFE3E4EF) else Color(0xFF5F6377)),
+                        )
+                    }
+                }
+            }
+
             sentMessages.forEach { msg ->
                 Box(
                     modifier = Modifier
@@ -1677,13 +1736,13 @@ internal fun RenderAdminChatConversationA15(
                         .background(Color(0xFFFDE6F2)),
                     contentAlignment = Alignment.Center,
                 ) {
-                    BasicText("C", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFFC2338F)))
+                    BasicText(clientInitial, style = TextStyle(fontFamily = typo.displayFamily, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFFC2338F)))
                 }
 
                 Column(modifier = Modifier.weight(1f)) {
-                    BasicText("Camila Rodríguez", maxLines = 1, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2E324A)))
+                    BasicText(clientName, maxLines = 1, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2E324A)))
                     BasicText(
-                        text = "Boda Real Rosa & Dorado · Vie 23 oct",
+                        text = eventSubtitle,
                         maxLines = 1,
                         modifier = Modifier.clickable { onSelectScreenCode("A13") },
                         style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF4B47D6)),

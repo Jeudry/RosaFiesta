@@ -2087,9 +2087,7 @@ internal fun RenderLoginScreenS07(
                         .background(RfThemeState.currentPalette.surface)
                         .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(16.dp))
                         .clickable {
-                            val isTypedEmailValid = InputValidator.validateLoginIdentifier(email) == null
-                            val resolvedIdentity = if (isTypedEmailValid) email.trim() else "camila@rosafiesta.do"
-                            viewModel?.applyUserIdentityFromLogin(resolvedIdentity)
+                            viewModel?.authenticateSocialAccount("Google", email)
                             onSelectScreenCode("s14")
                         },
                 ) {
@@ -2105,9 +2103,7 @@ internal fun RenderLoginScreenS07(
                         .background(RfThemeState.currentPalette.surface)
                         .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(16.dp))
                         .clickable {
-                            val isTypedEmailValid = InputValidator.validateLoginIdentifier(email) == null
-                            val resolvedIdentity = if (isTypedEmailValid) email.trim() else "camila@rosafiesta.do"
-                            viewModel?.applyUserIdentityFromLogin(resolvedIdentity)
+                            viewModel?.authenticateSocialAccount("Apple", email)
                             onSelectScreenCode("s14")
                         },
                 ) {
@@ -3509,6 +3505,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                                     recoveryEmailError = null
                                     viewModel?.setLoginEmail(trimmedRec)
                                     viewModel?.applyUserIdentityFromLogin(trimmedRec)
+                                    viewModel?.requestPasswordResetOtp(trimmedRec)
                                     onSelectScreenCode("s10")
                                 }
                             },
@@ -3611,6 +3608,22 @@ internal fun RenderRecoveryAndConfirmationScreens(
                         .verticalScroll(rememberScrollState())
                         .padding(top = 104.dp, start = 24.dp, end = 24.dp, bottom = 20.dp),
                 ) {
+                    val activeOtp = viewModel?.activeOtpCode?.collectAsState()?.value
+                    if (activeOtp != null) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 12.dp)
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(Color(0xFFEEF6D6))
+                                .padding(horizontal = 14.dp, vertical = 10.dp),
+                        ) {
+                            BasicText(
+                                text = "Código de verificación verificado: $activeOtp",
+                                style = typo.body.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF4E6A10)),
+                            )
+                        }
+                    }
                     BasicText("Nueva contraseña", style = typo.fieldLabel.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = RfThemeState.currentPalette.ink))
                     Spacer(Modifier.height(8.dp))
                     Box(

@@ -23,6 +23,17 @@ public interface SecureStorage {
         public const val KEY_ACCESS_TOKEN: String = "rf_access_token"
         public const val KEY_ACTIVE_VIEW: String = "rf_active_view"
         public const val KEY_USER_ROLE: String = "rf_user_role"
+        public const val KEY_DARK_THEME: String = "rf_dark_theme"
+        public const val KEY_AVATAR_KEY: String = "rf_avatar_key"
+        public const val KEY_LANGUAGE: String = "rf_language"
+        public const val KEY_REMINDERS: String = "rf_reminders"
+        public const val KEY_PAYMENT_METHOD: String = "rf_payment_method"
+        public const val KEY_COMPANY_REVIEWS: String = "rf_company_reviews"
+        public const val KEY_DIRECT_CHAT: String = "rf_direct_chat"
+        public const val KEY_EVENT_TASKS: String = "rf_event_tasks"
+        public const val KEY_EVENT_TIMELINE: String = "rf_event_timeline"
+        public const val KEY_EVENT_GUESTS: String = "rf_event_guests"
+        public const val KEY_SKETCH_TABLES: String = "rf_sketch_tables"
     }
 }
 

@@ -351,13 +351,14 @@ internal fun RenderPaymentCheckoutScreenS50(
     var selectedMethod by remember { mutableStateOf(0) } // 0: Tarjeta, 1: Popular, 2: Banreservas, 3: Efectivo
     val events = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
     val selectedId = viewModel?.selectedEventId?.collectAsState()?.value ?: "evt-boda-real"
-    val event = events.firstOrNull { it.id == selectedId } ?: events.first()
+    val event = viewModel?.activeClientEvent() ?: events.firstOrNull { currentEvent -> currentEvent.id == selectedId } ?: events.first()
+    val profilePhone = viewModel?.profilePhone?.collectAsState()?.value ?: "(809) 555-0142"
     val depositAmount = (event.totalDop * 30 / 100).coerceAtLeast(100)
     var cardHolderName by remember(event.clientName) { mutableStateOf(event.clientName) }
     var cardNumberText by remember { mutableStateOf("•••• •••• •••• 4242") }
     var cardExpiryText by remember { mutableStateOf("12/28") }
     var cardCvcText by remember { mutableStateOf("•••") }
-    var contactPhoneText by remember { mutableStateOf("(809) 555-0142") }
+    var contactPhoneText by remember(profilePhone) { mutableStateOf(profilePhone) }
 
     Box(
         modifier = Modifier
@@ -655,6 +656,11 @@ internal fun RenderPaymentCheckoutScreenS50(
                     .clip(RoundedCornerShape(16.dp))
                     .background(RosaButtonGradient)
                     .clickable {
+                        val methodLabels = listOf("Tarjeta", "Banco Popular", "Banreservas", "Efectivo")
+                        val chosenMethod = methodLabels.getOrElse(selectedMethod) { "Tarjeta" }
+                        viewModel?.setPaymentAmountInput(depositAmount.toString())
+                        viewModel?.setPaymentMethodInput(chosenMethod)
+                        viewModel?.setSavedPaymentMethod(chosenMethod)
                         viewModel?.submitPayment(eventId = event.id)
                         viewModel?.soundPlayer?.playPaymentSuccess()
                         onSelectScreenCode("s51")
@@ -686,7 +692,7 @@ internal fun RenderPaymentSuccessScreenS51(
     val typo = LocalRfTypography.current
     val events = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
     val selectedId = viewModel?.selectedEventId?.collectAsState()?.value ?: "evt-boda-real"
-    val event = events.firstOrNull { it.id == selectedId } ?: events.first()
+    val event = viewModel?.activeClientEvent() ?: events.firstOrNull { currentEvent -> currentEvent.id == selectedId } ?: events.first()
     val depositPaid = if (event.paidDepositDop > 0) event.paidDepositDop else (event.totalDop * 30 / 100).coerceAtLeast(100)
 
     Box(
@@ -824,7 +830,7 @@ internal fun RenderPaymentSuccessScreenS51(
                     ),
                 )
 
-                BasicText("Todo listo para el 23 de octubre.", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = RfThemeState.currentPalette.muted))
+                BasicText("Todo listo para ${event.dateLabel} · ${event.venue}.", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = RfThemeState.currentPalette.muted))
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -1012,7 +1018,10 @@ internal fun RenderPaymentSuccessScreenS51(
                         .clip(RoundedCornerShape(16.dp))
                         .background(RfThemeState.currentPalette.surface)
                         .border(1.dp, Color(0xFFECE6F0), RoundedCornerShape(16.dp))
-                        .clickable { onSelectScreenCode("s40") },
+                        .clickable {
+                            viewModel?.exportReceiptDocument(event)
+                            onSelectScreenCode("s83")
+                        },
                     contentAlignment = Alignment.Center,
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1043,8 +1052,19 @@ internal fun RenderPaymentSuccessScreenS51(
 @Composable
 internal fun RenderPostEventReviewScreenS52(
     onSelectScreenCode: (String) -> Unit = {},
+    viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
+    val events = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
+    val selectedId = viewModel?.selectedEventId?.collectAsState()?.value ?: "evt-boda-real"
+    val event = viewModel?.activeClientEvent() ?: events.firstOrNull { currentEvent -> currentEvent.id == selectedId } ?: events.first()
+    val tasks = viewModel?.eventTasksList?.collectAsState()?.value ?: emptyList()
+    val timeline = viewModel?.eventTimelineItems?.collectAsState()?.value ?: emptyList()
+    val completedTaskCount = tasks.count { taskItem -> taskItem.completed }
+    val taskSummaryText = if (tasks.isEmpty()) "Sin tareas" else "$completedTaskCount de ${tasks.size} listas"
+    val timelineSummaryText = if (timeline.isEmpty()) "Sin actividades" else "${timeline.size} actividades"
+    val estimatedBudget = event.totalDop.coerceAtLeast(1850)
+    val realBudget = estimatedBudget + 35
 
     Box(
         modifier = Modifier
@@ -1087,7 +1107,7 @@ internal fun RenderPostEventReviewScreenS52(
                         style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, lineHeight = 22.sp, color = RfThemeState.currentPalette.ink),
                     )
                     BasicText(
-                        text = "Gala Corporativa Grupo Caribe · 12 oct",
+                        text = "${event.title} · ${event.dateLabel}",
                         style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = RfThemeState.currentPalette.muted),
                     )
                 }
@@ -1142,7 +1162,7 @@ internal fun RenderPostEventReviewScreenS52(
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             BasicText("Estimado", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
-                            BasicText("RD$ 8,500", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = RfThemeState.currentPalette.ink))
+                            BasicText("RD$ $estimatedBudget", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = RfThemeState.currentPalette.ink))
                         }
                         Box(modifier = Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(5.dp)).background(Color(0xFFE6DEEA)))
                     }
@@ -1150,7 +1170,7 @@ internal fun RenderPostEventReviewScreenS52(
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             BasicText("Real", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
-                            BasicText("RD$ 8,535", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = RfThemeState.currentPalette.ink))
+                            BasicText("RD$ $realBudget", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = RfThemeState.currentPalette.ink))
                         }
                         Box(modifier = Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(5.dp)).background(Color(0xFF8DB52C)))
                     }
@@ -1185,21 +1205,21 @@ internal fun RenderPostEventReviewScreenS52(
             ) {
                 Column {
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 14.dp),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 14.dp).clickable { onSelectScreenCode("s45") },
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         BasicText("Tareas completadas", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = RfThemeState.currentPalette.ink))
-                        BasicText("Sin tareas", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
+                        BasicText(taskSummaryText, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
                     }
                     Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(RfThemeState.currentPalette.lineSoft))
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 14.dp),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 14.dp).clickable { onSelectScreenCode("s44") },
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         BasicText("Cronograma ejecutado", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = RfThemeState.currentPalette.ink))
-                        BasicText("Sin actividades", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
+                        BasicText(timelineSummaryText, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
                     }
                 }
             }
@@ -1235,9 +1255,12 @@ internal fun RenderPostEventReviewScreenS52(
 @Composable
 internal fun RenderMyReservationsScreenS53(
     onSelectScreenCode: (String) -> Unit = {},
+    viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
     var selectedTab by remember { mutableStateOf("Próximas") }
+    val eventsState = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
+    val userEvents = viewModel?.clientEventsForCurrentUser() ?: eventsState
 
     RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
@@ -1282,7 +1305,7 @@ internal fun RenderMyReservationsScreenS53(
                             .height(40.dp)
                             .then(if (selected) Modifier.rfCardShadow(RoundedCornerShape(12.dp), isAdmin = false) else Modifier)
                             .clip(RoundedCornerShape(12.dp))
-                            .background(if (selected) Color.White else Color.Transparent)
+                            .background(if (selected) RfThemeState.currentPalette.surface else Color.Transparent)
                             .clickable { selectedTab = label },
                         contentAlignment = Alignment.Center,
                     ) {
@@ -1292,7 +1315,7 @@ internal fun RenderMyReservationsScreenS53(
                                 fontFamily = typo.bodyFamily,
                                 fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
                                 fontSize = 14.sp,
-                                color = if (selected) Color(0xFF1A1A2E) else Color(0xFF62627A),
+                                color = if (selected) RfThemeState.currentPalette.ink else RfThemeState.currentPalette.muted,
                             ),
                         )
                     }
@@ -1303,49 +1326,61 @@ internal fun RenderMyReservationsScreenS53(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                val showUpcoming = selectedTab != "Pasadas"
-                if (showUpcoming) {
+                val filteredEvents = when (selectedTab) {
+                    "Próximas" -> userEvents.filter { eventItem -> eventItem.statusLabel != "Borrador" }
+                    "Pasadas" -> userEvents.filter { eventItem -> eventItem.statusLabel == "Borrador" }
+                    else -> userEvents
+                }.ifEmpty { userEvents }
+
+                filteredEvents.forEach { eventItem ->
+                    val totalAmount = eventItem.totalDop.coerceAtLeast(1850)
+                    val paidAmount = if (eventItem.paidDepositDop > 0) eventItem.paidDepositDop else (totalAmount * 30 / 100)
+                    val remainingAmount = (totalAmount - paidAmount).coerceAtLeast(0)
+                    val progressFraction = (paidAmount.toFloat() / totalAmount.toFloat()).coerceIn(0.1f, 1.0f)
+                    val lowerTitle = eventItem.title.lowercase()
+                    val isCorporateEvent = listOf("corp", "gala").any { keyword -> lowerTitle.contains(keyword) }
+                    val photoKey = if (lowerTitle.contains("boda")) {
+                        RfPhotoKey.BODA
+                    } else if (lowerTitle.contains("quince")) {
+                        RfPhotoKey.QUINCEANERA
+                    } else if (lowerTitle.contains("baby")) {
+                        RfPhotoKey.BABY_SHOWER
+                    } else if (isCorporateEvent) {
+                        RfPhotoKey.CORPORATIVO
+                    } else {
+                        RfPhotoKey.CUMPLE_INFANTIL
+                    }
+                    val isConfirmed = eventItem.statusLabel == "Confirmado"
+                    val isDraft = eventItem.statusLabel == "Borrador"
+                    val tagBg = if (isConfirmed) {
+                        Color(0xFFEEF6D6)
+                    } else if (isDraft) {
+                        RfThemeState.currentPalette.chipBg
+                    } else {
+                        Color(0xFFDDF4F3)
+                    }
+                    val tagTextColor = if (isConfirmed) {
+                        Color(0xFF4E6A10)
+                    } else if (isDraft) {
+                        RfThemeState.currentPalette.muted
+                    } else {
+                        Color(0xFF1F8A84)
+                    }
                     ReservationCard53(
-                        title = "Boda Real Rosa & Dorado",
-                        meta = "Vie 23 oct · Jardín Botánico",
-                        tag = "Cotización lista",
-                        tagBackground = Color(0xFFDDF4F3),
-                        tagColor = Color(0xFF1F8A84),
-                        photoKey = RfPhotoKey.BODA,
-                        paid = "RD$ 1,350",
-                        total = "RD$ 4,500",
-                        remaining = "Resta RD$ 3,150",
-                        progress = 0.30f,
-                        onClick = { onSelectScreenCode("s49") },
-                    )
-                    ReservationCard53(
-                        title = "Quinceañera Valentina Crystal",
-                        meta = "Lun 2 nov · Hotel El Embajador",
-                        tag = "Confirmado",
-                        tagBackground = Color(0xFFEEF6D6),
-                        tagColor = Color(0xFF4E6A10),
-                        photoKey = RfPhotoKey.QUINCEANERA,
-                        paid = "RD$ 1,860",
-                        total = "RD$ 6,200",
-                        remaining = "Resta RD$ 4,340",
-                        progress = 0.30f,
-                        onClick = { onSelectScreenCode("s49") },
-                    )
-                }
-                val showPastOrDraft = selectedTab != "Próximas"
-                if (showPastOrDraft) {
-                    ReservationCard53(
-                        title = "Baby Shower Sofía en Rosas",
-                        meta = "Lun 9 nov · Terraza Cava Alta, Piantini",
-                        tag = "Borrador",
-                        tagBackground = RfThemeState.currentPalette.chipBg,
-                        tagColor = Color(0xFF62627A),
-                        photoKey = RfPhotoKey.BABY_SHOWER,
-                        paid = "RD$ 555",
-                        total = "RD$ 1,850",
-                        remaining = "Resta RD$ 1,295",
-                        progress = 0.30f,
-                        onClick = { onSelectScreenCode("s49") },
+                        title = eventItem.title,
+                        meta = "${eventItem.dateLabel} · ${eventItem.venue}",
+                        tag = eventItem.statusLabel,
+                        tagBackground = tagBg,
+                        tagColor = tagTextColor,
+                        photoKey = photoKey,
+                        paid = "RD$ $paidAmount",
+                        total = "RD$ $totalAmount",
+                        remaining = if (remainingAmount > 0) "Resta RD$ $remainingAmount" else "Saldo al día",
+                        progress = progressFraction,
+                        onClick = {
+                            viewModel?.selectEvent(eventItem.id)
+                            onSelectScreenCode("s49")
+                        },
                     )
                 }
             }
@@ -2871,6 +2906,18 @@ internal fun RenderOfficialReceiptScreenS83(
 ) {
     val typo = LocalRfTypography.current
     val profileName = viewModel?.profileName?.collectAsState()?.value ?: "Cliente Rosa Fiesta"
+    val eventsState = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
+    val paymentsState = viewModel?.payments?.collectAsState()?.value ?: CanonicalSampleData.payments
+    val event = viewModel?.activeClientEvent() ?: eventsState.first()
+    val userPayments = viewModel?.clientPaymentsForCurrentUser() ?: paymentsState
+    val latestPayment = userPayments.firstOrNull { paymentItem -> paymentItem.eventTitle == event.title } ?: userPayments.firstOrNull()
+    val savedMethod = viewModel?.savedPaymentMethod?.collectAsState()?.value ?: "Transferencia · Banco Popular"
+    val totalEventDop = event.totalDop.coerceAtLeast(1850)
+    val paidDop = latestPayment?.amountDop ?: if (event.paidDepositDop > 0) event.paidDepositDop else (totalEventDop * 30 / 100)
+    val remainingDop = (totalEventDop - paidDop).coerceAtLeast(0)
+    val receiptCode = latestPayment?.id?.uppercase() ?: "RF-2026-0412"
+    val receiptMethod = latestPayment?.methodLabel ?: savedMethod
+    val receiptDate = latestPayment?.dateLabel ?: "${event.dateLabel} · 10:24 a. m."
     var receiptShared by remember { mutableStateOf(false) }
     var pdfDownloaded by remember { mutableStateOf(false) }
 
@@ -2914,7 +2961,7 @@ internal fun RenderOfficialReceiptScreenS83(
                         maxLines = 1,
                     )
                     BasicText(
-                        text = "No. RF-2026-0412",
+                        text = "No. $receiptCode",
                         style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = RfThemeState.currentPalette.muted),
                         overflow = TextOverflow.Ellipsis,
                         maxLines = 1,
@@ -2995,14 +3042,14 @@ internal fun RenderOfficialReceiptScreenS83(
 
                     // Amount
                     BasicText(
-                        text = "RD$ 1,350",
+                        text = "RD$ $paidDop",
                         style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 34.sp, lineHeight = 34.sp, color = RfThemeState.currentPalette.ink),
                     )
 
                     Spacer(modifier = Modifier.height(6.dp))
 
                     BasicText(
-                        text = "Anticipo (30%) · Boda Real Rosa & Dorado",
+                        text = "Anticipo · ${event.title}",
                         style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.muted, textAlign = TextAlign.Center),
                     )
 
@@ -3023,12 +3070,12 @@ internal fun RenderOfficialReceiptScreenS83(
 
                     // Detail rows
                     val rows = listOf(
-                        "Fecha" to "18 oct 2026 · 10:24 a. m.",
-                        "Método" to "Transferencia · Banco Popular",
+                        "Fecha" to receiptDate,
+                        "Método" to receiptMethod,
                         "A nombre de" to profileName,
-                        "Evento" to "Vie 23 oct · Jardín Botánico",
-                        "Total del evento" to "RD$ 4,500",
-                        "Pagado hasta hoy" to "RD$ 1,350",
+                        "Evento" to "${event.dateLabel} · ${event.venue}",
+                        "Total del evento" to "RD$ $totalEventDop",
+                        "Pagado hasta hoy" to "RD$ $paidDop",
                     )
 
                     rows.forEachIndexed { idx, (label, value) ->
@@ -3053,7 +3100,7 @@ internal fun RenderOfficialReceiptScreenS83(
                     ) {
                         BasicText("Saldo pendiente", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
                         BasicText(
-                            text = "RD$ 3,150",
+                            text = "RD$ $remainingDop",
                             style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, color = Color(0xFF7A5700)),
                         )
                     }
@@ -3089,12 +3136,15 @@ internal fun RenderOfficialReceiptScreenS83(
                     .clip(RoundedCornerShape(16.dp))
                     .background(RfThemeState.currentPalette.surface)
                     .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(16.dp))
-                    .clickable { receiptShared = !receiptShared },
+                    .clickable {
+                        receiptShared = true
+                        viewModel?.exportReceiptDocument(event, latestPayment)
+                    },
                 contentAlignment = Alignment.Center,
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    RfIcon(kind = if (receiptShared) RfIconKind.CHECK else RfIconKind.SEND, tint = if (receiptShared) Color(0xFF4E6A10) else Color(0xFF1A1A2E), size = 18.dp)
-                    BasicText(if (receiptShared) "Compartido" else "Compartir", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = if (receiptShared) Color(0xFF4E6A10) else Color(0xFF1A1A2E)))
+                    RfIcon(kind = if (receiptShared) RfIconKind.CHECK else RfIconKind.SEND, tint = if (receiptShared) Color(0xFF4E6A10) else RfThemeState.currentPalette.ink, size = 18.dp)
+                    BasicText(if (receiptShared) "Compartido" else "Compartir", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = if (receiptShared) Color(0xFF4E6A10) else RfThemeState.currentPalette.ink))
                 }
             }
             // Descargar PDF — primary gradient
@@ -3105,7 +3155,10 @@ internal fun RenderOfficialReceiptScreenS83(
                     .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
                     .clip(RoundedCornerShape(16.dp))
                     .background(RosaButtonGradient)
-                    .clickable { pdfDownloaded = !pdfDownloaded },
+                    .clickable {
+                        pdfDownloaded = true
+                        viewModel?.exportReceiptDocument(event, latestPayment)
+                    },
                 contentAlignment = Alignment.Center,
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {

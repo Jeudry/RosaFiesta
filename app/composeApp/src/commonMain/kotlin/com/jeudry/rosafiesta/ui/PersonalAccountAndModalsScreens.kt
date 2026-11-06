@@ -878,10 +878,29 @@ private fun SearchResultCard80(
 // ==============================================================================
 @Composable
 internal fun RenderPersonalPaymentsS82(
+    viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
+    val palette = RfThemeState.currentPalette
     val cardShape = RoundedCornerShape(20.dp)
+    val allEventsState = viewModel?.events?.collectAsState()?.value ?: com.jeudry.rosafiesta.domain.CanonicalSampleData.events
+    val allPaymentsState = viewModel?.payments?.collectAsState()?.value ?: com.jeudry.rosafiesta.domain.CanonicalSampleData.payments
+    val userEvents = remember(allEventsState, viewModel) {
+        viewModel?.clientEventsForCurrentUser() ?: allEventsState
+    }
+    val userPayments = remember(allPaymentsState, userEvents, viewModel) {
+        viewModel?.clientPaymentsForCurrentUser() ?: allPaymentsState
+    }
+    val savedPaymentMethod = viewModel?.savedPaymentMethod?.collectAsState()?.value ?: "Visa •••• 4821 · Transferencia"
+    var showPaymentMethodSelector by remember { mutableStateOf(false) }
+
+    val totalPaidDop = userEvents.sumOf { eventItem -> eventItem.paidDepositDop }
+        .coerceAtLeast(userPayments.sumOf { paymentItem -> paymentItem.amountDop })
+    val totalPendingDop = userEvents.sumOf { eventItem ->
+        (eventItem.totalDop - eventItem.paidDepositDop).coerceAtLeast(0)
+    }
+    val pendingEvents = userEvents.filter { eventItem -> eventItem.totalDop > eventItem.paidDepositDop }
 
     RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -901,11 +920,11 @@ internal fun RenderPersonalPaymentsS82(
                         .size(44.dp)
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
-                        .background(RfThemeState.currentPalette.surface)
-                        .clickable { onSelectScreenCode("BACK:s54") },
+                        .background(palette.surface)
+                        .clickable { onSelectScreenCode("BACK:s14") },
                     contentAlignment = Alignment.Center,
                 ) {
-                    RfIcon(kind = RfIconKind.BACK, tint = RfThemeState.currentPalette.ink, size = 22.dp)
+                    RfIcon(kind = RfIconKind.BACK, tint = palette.ink, size = 22.dp)
                 }
                 Column(modifier = Modifier.weight(1f)) {
                     BasicText(
@@ -916,17 +935,17 @@ internal fun RenderPersonalPaymentsS82(
                             fontSize = 20.sp,
                             lineHeight = 22.sp,
                             letterSpacing = (-0.4).sp,
-                            color = RfThemeState.currentPalette.ink,
+                            color = palette.ink,
                         ),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                     BasicText(
-                        text = "Pagos y recibos de tus eventos",
+                        text = "Pagos y recibos de tus eventos (${userEvents.size})",
                         style = TextStyle(
                             fontFamily = typo.bodyFamily,
                             fontSize = 13.sp,
-                            color = RfThemeState.currentPalette.muted,
+                            color = palette.muted,
                         ),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -950,7 +969,7 @@ internal fun RenderPersonalPaymentsS82(
                         style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color.White.copy(alpha = 0.85f)),
                     )
                     BasicText(
-                        text = "RD$ 3,210",
+                        text = "RD$ $totalPaidDop",
                         style = TextStyle(
                             fontFamily = typo.displayFamily,
                             fontWeight = FontWeight.ExtraBold,
@@ -972,7 +991,7 @@ internal fun RenderPersonalPaymentsS82(
                         style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color.White.copy(alpha = 0.85f)),
                     )
                     BasicText(
-                        text = "RD$ 7,490",
+                        text = "RD$ $totalPendingDop",
                         style = TextStyle(
                             fontFamily = typo.displayFamily,
                             fontWeight = FontWeight.ExtraBold,
@@ -991,7 +1010,7 @@ internal fun RenderPersonalPaymentsS82(
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 12.sp,
                     letterSpacing = 0.96.sp,
-                    color = RfThemeState.currentPalette.muted,
+                    color = palette.muted,
                 ),
             )
 
@@ -1000,30 +1019,41 @@ internal fun RenderPersonalPaymentsS82(
                     .fillMaxWidth()
                     .rfCardShadow(cardShape, isAdmin = false)
                     .clip(cardShape)
-                    .background(RfThemeState.currentPalette.surface),
+                    .background(palette.surface),
             ) {
-                PendingPaymentRow82(
-                    title = "Boda Real · saldo",
-                    due = "Vence el jue 22 oct",
-                    dueColor = Color(0xFFB42345),
-                    amount = "RD$ 3,150",
-                    highlighted = true,
-                    onClick = { onSelectScreenCode("s50") },
-                )
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(1.dp)
-                        .background(RfThemeState.currentPalette.lineSoft),
-                )
-                PendingPaymentRow82(
-                    title = "Quinceañera · saldo",
-                    due = "Vence el vie 30 oct",
-                    dueColor = Color(0xFF7A5700),
-                    amount = "RD$ 4,340",
-                    highlighted = false,
-                    onClick = { onSelectScreenCode("s50") },
-                )
+                if (pendingEvents.isEmpty()) {
+                    PendingPaymentRow82(
+                        title = "Todos tus eventos están al día",
+                        due = "Sin saldos pendientes",
+                        dueColor = Color(0xFF4E6A10),
+                        amount = "RD$ 0",
+                        highlighted = false,
+                        onClick = { onSelectScreenCode("s37") },
+                    )
+                } else {
+                    pendingEvents.forEachIndexed { index, eventItem ->
+                        if (index > 0) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(1.dp)
+                                    .background(palette.lineSoft),
+                            )
+                        }
+                        val remainingAmount = (eventItem.totalDop - eventItem.paidDepositDop).coerceAtLeast(0)
+                        PendingPaymentRow82(
+                            title = "${eventItem.title} · saldo",
+                            due = "Vence ${eventItem.balanceDueDateLabel.ifBlank { eventItem.dateLabel }}",
+                            dueColor = if (index == 0) Color(0xFFB42345) else Color(0xFF7A5700),
+                            amount = "RD$ $remainingAmount",
+                            highlighted = index == 0,
+                            onClick = {
+                                viewModel?.selectEvent(eventItem.id)
+                                onSelectScreenCode("s50")
+                            },
+                        )
+                    }
+                }
             }
 
             BasicText(
@@ -1033,7 +1063,7 @@ internal fun RenderPersonalPaymentsS82(
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 12.sp,
                     letterSpacing = 0.96.sp,
-                    color = RfThemeState.currentPalette.muted,
+                    color = palette.muted,
                 ),
             )
 
@@ -1042,26 +1072,27 @@ internal fun RenderPersonalPaymentsS82(
                     .fillMaxWidth()
                     .rfCardShadow(cardShape, isAdmin = false)
                     .clip(cardShape)
-                    .background(RfThemeState.currentPalette.surface),
+                    .background(palette.surface),
             ) {
-                ReceiptRow82(
-                    title = "Anticipo · Boda Real",
-                    subtitle = "18 oct · Transferencia Banco Popular",
-                    amount = "RD$ 1,350",
-                    onClick = { onSelectScreenCode("s83") },
-                )
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(1.dp)
-                        .background(RfThemeState.currentPalette.lineSoft),
-                )
-                ReceiptRow82(
-                    title = "Anticipo · Quinceañera",
-                    subtitle = "15 oct · Efectivo",
-                    amount = "RD$ 1,860",
-                    onClick = { onSelectScreenCode("s83") },
-                )
+                userPayments.forEachIndexed { index, paymentItem ->
+                    if (index > 0) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(1.dp)
+                                .background(palette.lineSoft),
+                        )
+                    }
+                    ReceiptRow82(
+                        title = "${paymentItem.kindLabel} · ${paymentItem.eventTitle}",
+                        subtitle = "${paymentItem.dateLabel} · ${paymentItem.methodLabel} (${paymentItem.receiptNumber})",
+                        amount = "RD$ ${paymentItem.amountDop}",
+                        onClick = {
+                            viewModel?.selectEvent(paymentItem.eventId)
+                            onSelectScreenCode("s83")
+                        },
+                    )
+                }
             }
 
             Row(
@@ -1069,24 +1100,72 @@ internal fun RenderPersonalPaymentsS82(
                     .fillMaxWidth()
                     .rfCardShadow(cardShape, isAdmin = false)
                     .clip(cardShape)
-                    .background(RfThemeState.currentPalette.surface)
-                    .clickable { onSelectScreenCode("s50") }
+                    .background(palette.surface)
+                    .clickable { showPaymentMethodSelector = !showPaymentMethodSelector }
                     .padding(horizontal = 16.dp, vertical = 14.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                RfIcon(kind = RfIconKind.WALLET, tint = Color(0xFF3B3550), size = 18.dp)
+                RfIcon(kind = RfIconKind.WALLET, tint = palette.ink, size = 18.dp)
                 Column(modifier = Modifier.weight(1f)) {
                     BasicText(
                         text = "Métodos de pago",
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Medium, fontSize = 15.sp, color = RfThemeState.currentPalette.ink),
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Medium, fontSize = 15.sp, color = palette.ink),
                     )
                     BasicText(
-                        text = "Visa •••• 4821 · Transferencia",
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = RfThemeState.currentPalette.muted),
+                        text = savedPaymentMethod,
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = palette.muted),
                     )
                 }
-                RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = RfThemeState.currentPalette.muted, size = 16.dp)
+                RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = palette.muted, size = 16.dp)
+            }
+
+            if (showPaymentMethodSelector) {
+                val methodOptions = listOf(
+                    "Visa •••• 4821 · Transferencia",
+                    "Mastercard •••• 8834 · Crédito",
+                    "Transferencia Banreservas",
+                    "Transferencia Banco Popular",
+                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(cardShape)
+                        .background(palette.surface)
+                        .border(1.dp, palette.line, cardShape)
+                        .padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    methodOptions.forEach { optionLabel ->
+                        val isOptionSelected = optionLabel == savedPaymentMethod
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(if (isOptionSelected) palette.chipBg else Color.Transparent)
+                                .clickable {
+                                    viewModel?.setSavedPaymentMethod(optionLabel)
+                                    showPaymentMethodSelector = false
+                                }
+                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            BasicText(
+                                text = optionLabel,
+                                style = TextStyle(
+                                    fontFamily = typo.bodyFamily,
+                                    fontWeight = if (isOptionSelected) FontWeight.Bold else FontWeight.Medium,
+                                    fontSize = 14.sp,
+                                    color = palette.ink,
+                                ),
+                            )
+                            if (isOptionSelected) {
+                                RfIcon(kind = RfIconKind.CHECK, tint = palette.primaryAccent, size = 16.dp)
+                            }
+                        }
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -1231,8 +1310,10 @@ internal fun RenderAccountSettingsS86(
     val typo = LocalRfTypography.current
     val palette = RfThemeState.currentPalette
     val isDarkThemeActive = viewModel?.isDarkTheme?.collectAsState()?.value ?: palette.isDark
-    var selectedLanguage by remember { mutableStateOf("Español") }
-    var remindersEnabled by remember { mutableStateOf(true) }
+    val selectedLanguage = viewModel?.preferredLanguage?.collectAsState()?.value ?: "Español"
+    val remindersEnabled = viewModel?.remindersEnabled?.collectAsState()?.value ?: true
+    val savedPaymentMethod = viewModel?.savedPaymentMethod?.collectAsState()?.value ?: "Visa •••• 4821"
+    val userEventsCount = viewModel?.clientEventsForCurrentUser()?.size ?: 2
 
     RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
@@ -1338,7 +1419,7 @@ internal fun RenderAccountSettingsS86(
                     label = "Idioma",
                     icon = RfIconKind.GLOBE,
                     onClick = {
-                        selectedLanguage = if (selectedLanguage == "Español") "English" else "Español"
+                        viewModel?.togglePreferredLanguage()
                     },
                 ) {
                     BasicText(selectedLanguage, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = palette.muted))
@@ -1366,7 +1447,7 @@ internal fun RenderAccountSettingsS86(
                                     Brush.linearGradient(listOf(Color(0xFFE3DCE8), Color(0xFFE3DCE8)))
                                 },
                             )
-                            .clickable { remindersEnabled = !remindersEnabled },
+                            .clickable { viewModel?.toggleRemindersEnabled() },
                         contentAlignment = if (remindersEnabled) Alignment.CenterEnd else Alignment.CenterStart,
                     ) {
                         Box(modifier = Modifier.padding(horizontal = 3.dp).size(22.dp).clip(CircleShape).background(palette.surface).shadow(1.dp, CircleShape))
@@ -1380,14 +1461,14 @@ internal fun RenderAccountSettingsS86(
             SettingsGroup86 {
                 SettingsRow86("Datos personales", RfIconKind.USER, onClick = { onSelectScreenCode("s54") })
                 SettingsDivider86()
-                SettingsRow86("Cambiar contraseña", RfIconKind.LOCK, onClick = { onSelectScreenCode("s54") })
+                SettingsRow86("Cambiar contraseña", RfIconKind.LOCK, onClick = { onSelectScreenCode("s09") })
                 SettingsDivider86()
                 SettingsRow86("Métodos de pago", RfIconKind.RECEIPT, onClick = { onSelectScreenCode("s82") }) {
-                    BasicText("Visa •••• 4821", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
+                    BasicText(savedPaymentMethod.substringBefore(" ·"), style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
                 }
                 SettingsDivider86()
-                SettingsRow86("Direcciones de mis eventos", RfIconKind.LOCATION) {
-                    BasicText("2", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
+                SettingsRow86("Direcciones de mis eventos", RfIconKind.LOCATION, onClick = { onSelectScreenCode("s37") }) {
+                    BasicText("$userEventsCount", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
                 }
             }
 

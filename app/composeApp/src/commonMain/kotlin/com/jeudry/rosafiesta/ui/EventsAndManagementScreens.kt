@@ -1644,9 +1644,12 @@ private data class TimelineItem44(
 @Composable
 internal fun RenderTimelineScreenS44(
     onSelectScreenCode: (String) -> Unit = {},
+    viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
-    var extraTimelineItems by remember { mutableStateOf(emptyList<TimelineItem44>()) }
+    val eventsState = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
+    val event = viewModel?.activeClientEvent() ?: eventsState.first()
+    val persistedTimeline = viewModel?.eventTimelineItems?.collectAsState()?.value
 
     RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -1686,7 +1689,7 @@ internal fun RenderTimelineScreenS44(
                         ),
                     )
                     BasicText(
-                        text = "Viernes 23 de octubre",
+                        text = "${event.title} · ${event.dateLabel}",
                         style = TextStyle(
                             fontFamily = typo.bodyFamily,
                             fontSize = 13.sp,
@@ -1702,15 +1705,7 @@ internal fun RenderTimelineScreenS44(
                         .clip(CircleShape)
                         .background(RosaButtonGradient)
                         .clickable {
-                            val nextIndex = extraTimelineItems.size + 1
-                            extraTimelineItems = extraTimelineItems + TimelineItem44(
-                                start = "22:00",
-                                end = "23:30",
-                                dotColor = Color(0xFF8DB52C),
-                                ringColor = Color(0xFFEEF6D6),
-                                title = "Desmontaje y retorno a bodega #$nextIndex",
-                                subtitle = "Conteo de 145 piezas con el equipo de Pedro",
-                            )
+                            viewModel?.addEventTimelineItem()
                         },
                     contentAlignment = Alignment.Center,
                 ) {
@@ -1718,40 +1713,45 @@ internal fun RenderTimelineScreenS44(
                 }
             }
 
-            val timelineItems = listOf(
-                TimelineItem44(
-                    start = "06:38",
-                    end = "09:08",
-                    dotColor = Color(0xFFF7B500),
-                    ringColor = Color(0xFFFFF2C9),
-                    title = "Descarga y montaje de mobiliario",
-                    subtitle = "Llega el camión con 120 sillas Tiffany y mesas",
-                ),
-                TimelineItem44(
-                    start = "09:38",
-                    end = "12:38",
-                    dotColor = Color(0xFFEA4EA9),
-                    ringColor = Color(0xFFFDE6F2),
-                    title = "Arco orgánico y flores",
-                    subtitle = "Montaje del backdrop principal y centros de mesa",
-                ),
-                TimelineItem44(
-                    start = "13:08",
-                    end = "14:38",
-                    dotColor = Color(0xFF1FBDC0),
-                    ringColor = Color(0xFFDDF4F3),
-                    title = "Pruebas de sonido e iluminación",
-                    subtitle = "Microfonía, luces ambientales y playlist lista",
-                ),
-                TimelineItem44(
-                    start = "15:38",
-                    end = "16:38",
-                    dotColor = Color(0xFF865DEC),
-                    ringColor = Color(0xFFEFE8FD),
-                    title = "Recepción de invitados",
-                    subtitle = "Cóctel de bienvenida en el área de la terraza",
-                ),
-            ) + extraTimelineItems
+            val dotPalette = listOf(
+                Color(0xFFF7B500) to Color(0xFFFFF2C9),
+                Color(0xFFEA4EA9) to Color(0xFFFDE6F2),
+                Color(0xFF1FBDC0) to Color(0xFFDDF4F3),
+                Color(0xFF865DEC) to Color(0xFFEFE8FD),
+                Color(0xFF8DB52C) to Color(0xFFEEF6D6),
+            )
+            val timelineItems = if (persistedTimeline != null) {
+                persistedTimeline.mapIndexed { idx, row ->
+                    val (dotCol, ringCol) = dotPalette[idx % dotPalette.size]
+                    TimelineItem44(
+                        start = row.startTime,
+                        end = row.endTime,
+                        dotColor = dotCol,
+                        ringColor = ringCol,
+                        title = row.title,
+                        subtitle = row.subtitle,
+                    )
+                }
+            } else {
+                listOf(
+                    TimelineItem44(
+                        start = "06:38",
+                        end = "09:08",
+                        dotColor = Color(0xFFF7B500),
+                        ringColor = Color(0xFFFFF2C9),
+                        title = "Descarga y montaje de mobiliario",
+                        subtitle = "Llega el camión con 120 sillas Tiffany y mesas",
+                    ),
+                    TimelineItem44(
+                        start = "09:38",
+                        end = "12:38",
+                        dotColor = Color(0xFFEA4EA9),
+                        ringColor = Color(0xFFFDE6F2),
+                        title = "Arco orgánico y flores",
+                        subtitle = "Montaje del backdrop principal y centros de mesa",
+                    ),
+                )
+            }
 
             Column(modifier = Modifier.fillMaxWidth()) {
                 timelineItems.forEachIndexed { index, item ->
@@ -1859,18 +1859,25 @@ private data class EventTaskRowState(
 @Composable
 internal fun RenderTasksScreenS45(
     onSelectScreenCode: (String) -> Unit = {},
+    viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
-    var taskItems by remember {
-        mutableStateOf(
-            listOf(
-                EventTaskRowState("Realizar pago inicial de reserva (30%)", "Vence hoy", true, false),
-                EventTaskRowState("Inspección técnica de iluminación exterior", "Mañana", false, false),
-                EventTaskRowState("Confirmar paleta floral blanco y rosa pastel", "18 oct", false, true),
-                EventTaskRowState("Aprobar plano de mesas imperial y sillas Tiffany", "15 oct", false, true),
-            ),
+    val eventsState = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
+    val event = viewModel?.activeClientEvent() ?: eventsState.first()
+    val vmTasks = viewModel?.eventTasksList?.collectAsState()?.value
+    val taskItems = vmTasks?.map { row ->
+        EventTaskRowState(
+            title = row.title,
+            badgeText = row.badgeText,
+            isUrgent = row.isUrgent,
+            completed = row.completed,
         )
-    }
+    } ?: listOf(
+        EventTaskRowState("Realizar pago inicial de reserva (30%)", "Vence hoy", true, false),
+        EventTaskRowState("Inspección técnica de iluminación exterior", "Mañana", false, false),
+        EventTaskRowState("Confirmar paleta floral blanco y rosa pastel", "18 oct", false, true),
+        EventTaskRowState("Aprobar plano de mesas imperial y sillas Tiffany", "15 oct", false, true),
+    )
     val completedCount = taskItems.count { taskItem -> taskItem.completed }
     val totalCount = taskItems.size.coerceAtLeast(1)
     val completionFraction = completedCount.toFloat() / totalCount.toFloat()
@@ -1915,7 +1922,7 @@ internal fun RenderTasksScreenS45(
                         ),
                     )
                     BasicText(
-                        text = "Boda Real Rosa & Dorado",
+                        text = event.title,
                         style = TextStyle(
                             fontFamily = typo.bodyFamily,
                             fontSize = 13.sp,
@@ -1931,15 +1938,7 @@ internal fun RenderTasksScreenS45(
                         .clip(CircleShape)
                         .background(RosaButtonGradient)
                         .clickable {
-                            val nextIndex = taskItems.size + 1
-                            taskItems = listOf(
-                                EventTaskRowState(
-                                    title = "Nueva tarea de coordinación #$nextIndex",
-                                    badgeText = "Pendiente",
-                                    isUrgent = false,
-                                    completed = false,
-                                ),
-                            ) + taskItems
+                            viewModel?.addEventTask()
                         },
                     contentAlignment = Alignment.Center,
                 ) {
@@ -2025,9 +2024,7 @@ internal fun RenderTasksScreenS45(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable {
-                                    taskItems = taskItems.map { current ->
-                                        if (current.title == taskItem.title) current.copy(completed = true) else current
-                                    }
+                                    viewModel?.toggleEventTask(taskItem.title)
                                 }
                                 .padding(horizontal = 16.dp, vertical = 14.dp),
                             horizontalArrangement = Arrangement.spacedBy(14.dp),
@@ -2098,9 +2095,7 @@ internal fun RenderTasksScreenS45(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable {
-                                    taskItems = taskItems.map { current ->
-                                        if (current.title == taskItem.title) current.copy(completed = false) else current
-                                    }
+                                    viewModel?.toggleEventTask(taskItem.title)
                                 }
                                 .padding(horizontal = 16.dp, vertical = 14.dp),
                             horizontalArrangement = Arrangement.spacedBy(14.dp),
@@ -2153,8 +2148,13 @@ internal fun RenderChecklistScreenS46(
 ) {
     val typo = LocalRfTypography.current
     val checklist = viewModel?.checklist?.collectAsState()?.value ?: CanonicalSampleData.bodaChecklist
+    val eventsState = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
+    val event = viewModel?.activeClientEvent() ?: eventsState.first()
+    val totalEventDop = event.totalDop.coerceAtLeast(1850)
+    val paidDop = if (event.paidDepositDop > 0) event.paidDepositDop else (totalEventDop * 30 / 100)
+    val remainingDop = (totalEventDop - paidDop).coerceAtLeast(0)
     val totalSteps = checklist.size.coerceAtLeast(1)
-    val completedCount = checklist.count { it.completed }
+    val completedCount = checklist.count { checklistStep -> checklistStep.completed }
 
     RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -2212,13 +2212,13 @@ internal fun RenderChecklistScreenS46(
 
                 Column(modifier = Modifier.weight(1f)) {
                     BasicText(
-                        text = "Boda Real Rosa & Dorado",
+                        text = event.title,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = RfThemeState.currentPalette.ink),
                     )
                     BasicText(
-                        text = "Vie 23 oct · en 3 días",
+                        text = "${event.dateLabel} · ${event.venue}",
                         style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Color(0xFFC2338F)),
                     )
                     Spacer(modifier = Modifier.height(8.dp))
@@ -2255,7 +2255,7 @@ internal fun RenderChecklistScreenS46(
             val items = listOf(
                 ChecklistItem46("chk-1", "Confirmar invitados (RSVP)", null, RfIconKind.GUESTS, Color(0xFFEFE8FD), Color(0xFF7A4FD8)),
                 ChecklistItem46("chk-2", "Revisar artículos reservados", null, RfIconKind.BOX, Color(0xFFFDE6F2), Color(0xFFC2338F)),
-                ChecklistItem46("chk-3", "Verificar dirección de entrega", "Jardín Botánico Santo Domingo", RfIconKind.LOCATION, Color(0xFFDDF4F3), Color(0xFF1F8A84)),
+                ChecklistItem46("chk-3", "Verificar dirección de entrega", event.venue, RfIconKind.LOCATION, Color(0xFFDDF4F3), Color(0xFF1F8A84)),
                 ChecklistItem46("chk-4", "Preparar espacio para montaje", null, RfIconKind.CHECKLIST, Color(0xFFEEF6D6), Color(0xFF4E6A10)),
             )
 
@@ -2339,7 +2339,7 @@ internal fun RenderChecklistScreenS46(
                             style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = RfThemeState.currentPalette.ink),
                         )
                         BasicText(
-                            text = "RD$ 3,150",
+                            text = "RD$ $remainingDop",
                             style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, color = Color(0xFF7A5700)),
                         )
                     }
@@ -2397,20 +2397,23 @@ private fun ChecklistBox46(checked: Boolean, ringColor: Color) {
 @Composable
 internal fun RenderGuestsScreenS47(
     onSelectScreenCode: (String) -> Unit = {},
+    viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
     var searchQuery by remember { mutableStateOf("") }
     var selectedStatusFilter by remember { mutableStateOf("Todos") }
-    var guestStatuses by remember {
-        mutableStateOf(
-            listOf(
-                Triple("Familia Pérez Martínez", "Confirmados · Mesa 2 · 4 personas", "Confirmado"),
-                Triple("Carlos & Andrea Sánchez", "Confirmados · Mesa 1 · 2 personas", "Confirmado"),
-                Triple("Dra. Laura Gómez", "Pendiente respuesta · 1 persona", "Pendiente"),
-                Triple("Lic. Roberto Fernández", "Confirmado · Mesa 4 · 2 personas", "Confirmado"),
-            ),
-        )
-    }
+    val eventsState = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
+    val event = viewModel?.activeClientEvent() ?: eventsState.first()
+    val vmGuests = viewModel?.eventGuestsList?.collectAsState()?.value
+    val guestStatuses = vmGuests?.map { row ->
+        Triple(row.name, row.details, row.status)
+    } ?: listOf(
+        Triple("Familia Pérez Martínez", "Confirmados · Mesa 2 · 4 personas", "Confirmado"),
+        Triple("Carlos & Andrea Sánchez", "Confirmados · Mesa 1 · 2 personas", "Confirmado"),
+        Triple("Dra. Laura Gómez", "Pendiente respuesta · 1 persona", "Pendiente"),
+        Triple("Lic. Roberto Fernández", "Confirmado · Mesa 4 · 2 personas", "Confirmado"),
+    )
+    val baseGuestsCount = (event.guests - 4).coerceAtLeast(0)
 
     RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -2444,7 +2447,7 @@ internal fun RenderGuestsScreenS47(
                         style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, lineHeight = 22.sp, color = RfThemeState.currentPalette.ink),
                     )
                     BasicText(
-                        text = "${116 + guestStatuses.size} invitados · Boda Real",
+                        text = "${baseGuestsCount + guestStatuses.size} invitados · ${event.title}",
                         style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = RfThemeState.currentPalette.muted),
                     )
                 }
@@ -2456,12 +2459,7 @@ internal fun RenderGuestsScreenS47(
                         .clip(CircleShape)
                         .background(RosaButtonGradient)
                         .clickable {
-                            val nextGuestNum = guestStatuses.size + 1
-                            guestStatuses = guestStatuses + Triple(
-                                "Invitado VIP #$nextGuestNum",
-                                "Confirmado · Mesa ${nextGuestNum + 3} · 2 personas",
-                                "Confirmado",
-                            )
+                            viewModel?.addEventGuest()
                         },
                     contentAlignment = Alignment.Center,
                 ) {
@@ -2578,14 +2576,7 @@ internal fun RenderGuestsScreenS47(
                             .background(RfThemeState.currentPalette.surface)
                             .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(20.dp))
                             .clickable {
-                                guestStatuses = guestStatuses.map { existingGuest ->
-                                    if (existingGuest.first == name) {
-                                        val nextStatus = if (existingGuest.third == "Confirmado") "Pendiente" else "Confirmado"
-                                        Triple(existingGuest.first, existingGuest.second, nextStatus)
-                                    } else {
-                                        existingGuest
-                                    }
-                                }
+                                viewModel?.toggleEventGuestStatus(name)
                             }
                             .padding(14.dp),
                     ) {
@@ -2637,7 +2628,7 @@ internal fun RenderQuoteScreenS48(
     val typo = LocalRfTypography.current
     val events = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
     val selectedId = viewModel?.selectedEventId?.collectAsState()?.value ?: "evt-boda-real"
-    val event = events.firstOrNull { it.id == selectedId } ?: events.first()
+    val event = viewModel?.activeClientEvent() ?: events.firstOrNull { currentEvent -> currentEvent.id == selectedId } ?: events.first()
 
     Box(
         modifier = Modifier

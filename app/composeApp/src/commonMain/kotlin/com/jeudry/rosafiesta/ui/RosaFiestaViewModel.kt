@@ -59,6 +59,31 @@ public data class DirectChatMessageUiModel(
     public val isFromClient: Boolean,
 )
 
+public data class EventTimelineItemUiModel(
+    public val id: String,
+    public val startTime: String,
+    public val endTime: String,
+    public val title: String,
+    public val subtitle: String,
+    public val dotColorHex: Long,
+    public val ringColorHex: Long,
+)
+
+public data class EventTaskUiModel(
+    public val id: String,
+    public val title: String,
+    public val badgeText: String,
+    public val isUrgent: Boolean,
+    public val completed: Boolean,
+)
+
+public data class EventGuestUiModel(
+    public val id: String,
+    public val name: String,
+    public val details: String,
+    public val status: String,
+)
+
 public data class AdminOnboardingSummary(
     public val activeEventsCount: Int,
     public val leadEventTitle: String,
@@ -246,6 +271,83 @@ public class RosaFiestaViewModel(
     private val _isDarkTheme = MutableStateFlow(false)
     public val isDarkTheme: StateFlow<Boolean> = _isDarkTheme.asStateFlow()
 
+    private val _preferredLanguage = MutableStateFlow("Español")
+    public val preferredLanguage: StateFlow<String> = _preferredLanguage.asStateFlow()
+
+    private val _remindersEnabled = MutableStateFlow(true)
+    public val remindersEnabled: StateFlow<Boolean> = _remindersEnabled.asStateFlow()
+
+    private val _savedPaymentMethod = MutableStateFlow("Visa •••• 4821 · Transferencia")
+    public val savedPaymentMethod: StateFlow<String> = _savedPaymentMethod.asStateFlow()
+
+    private val _sketchTableCount = MutableStateFlow(6)
+    public val sketchTableCount: StateFlow<Int> = _sketchTableCount.asStateFlow()
+
+    private val _activeOtpCode = MutableStateFlow<String?>(null)
+    public val activeOtpCode: StateFlow<String?> = _activeOtpCode.asStateFlow()
+
+    private val _eventTimelineItems = MutableStateFlow(
+        listOf(
+            EventTimelineItemUiModel(
+                id = "tl-1",
+                startTime = "06:38",
+                endTime = "09:08",
+                title = "Descarga y montaje de mobiliario",
+                subtitle = "Llega el camión con sillas Tiffany y mesas",
+                dotColorHex = 0xFFF7B500,
+                ringColorHex = 0xFFFFF2C9,
+            ),
+            EventTimelineItemUiModel(
+                id = "tl-2",
+                startTime = "09:38",
+                endTime = "12:38",
+                title = "Arco orgánico y flores",
+                subtitle = "Montaje del backdrop principal y centros de mesa",
+                dotColorHex = 0xFFEA4EA9,
+                ringColorHex = 0xFFFDE6F2,
+            ),
+            EventTimelineItemUiModel(
+                id = "tl-3",
+                startTime = "13:08",
+                endTime = "14:38",
+                title = "Pruebas de sonido e iluminación",
+                subtitle = "Microfonía, luces ambientales y playlist lista",
+                dotColorHex = 0xFF1FBDC0,
+                ringColorHex = 0xFFDDF4F3,
+            ),
+            EventTimelineItemUiModel(
+                id = "tl-4",
+                startTime = "15:38",
+                endTime = "16:38",
+                title = "Recepción de invitados",
+                subtitle = "Cóctel de bienvenida en el área de la terraza",
+                dotColorHex = 0xFF865DEC,
+                ringColorHex = 0xFFEFE8FD,
+            ),
+        ),
+    )
+    public val eventTimelineItems: StateFlow<List<EventTimelineItemUiModel>> = _eventTimelineItems.asStateFlow()
+
+    private val _eventTasksList = MutableStateFlow(
+        listOf(
+            EventTaskUiModel("tsk-1", "Realizar pago inicial de reserva (30%)", "Vence hoy", isUrgent = true, completed = false),
+            EventTaskUiModel("tsk-2", "Inspección técnica de iluminación exterior", "Mañana", isUrgent = false, completed = false),
+            EventTaskUiModel("tsk-3", "Confirmar paleta floral blanco y rosa pastel", "18 oct", isUrgent = false, completed = true),
+            EventTaskUiModel("tsk-4", "Aprobar plano de mesas imperial y sillas Tiffany", "15 oct", isUrgent = false, completed = true),
+        ),
+    )
+    public val eventTasksList: StateFlow<List<EventTaskUiModel>> = _eventTasksList.asStateFlow()
+
+    private val _eventGuestsList = MutableStateFlow(
+        listOf(
+            EventGuestUiModel("gst-1", "Familia Pérez Martínez", "Confirmados · Mesa 2 · 4 personas", "Confirmado"),
+            EventGuestUiModel("gst-2", "Carlos & Andrea Sánchez", "Confirmados · Mesa 1 · 2 personas", "Confirmado"),
+            EventGuestUiModel("gst-3", "Dra. Laura Gómez", "Pendiente respuesta · 1 persona", "Pendiente"),
+            EventGuestUiModel("gst-4", "Lic. Roberto Fernández", "Confirmado · Mesa 4 · 2 personas", "Confirmado"),
+        ),
+    )
+    public val eventGuestsList: StateFlow<List<EventGuestUiModel>> = _eventGuestsList.asStateFlow()
+
     private val _companyReviews = MutableStateFlow(
         listOf(
             CompanyReviewUiModel(
@@ -384,8 +486,92 @@ public class RosaFiestaViewModel(
                     applyProfileFieldsFromAccount(restoredAccount)
                 }
             }
+            val savedDark = secureStorage.get(SecureStorage.KEY_DARK_THEME)
+            if (savedDark != null) {
+                val darkEnabled = savedDark == "true"
+                _isDarkTheme.value = darkEnabled
+                com.jeudry.rosafiesta.designsystem.RfThemeState.isPersonalDark = darkEnabled
+            }
+            val savedAvatar = secureStorage.get(SecureStorage.KEY_AVATAR_KEY)
+            if (!savedAvatar.isNullOrBlank()) {
+                _profileAvatarKey.value = savedAvatar
+            }
+            val savedLang = secureStorage.get(SecureStorage.KEY_LANGUAGE)
+            if (!savedLang.isNullOrBlank()) {
+                _preferredLanguage.value = savedLang
+            }
+            val savedReminders = secureStorage.get(SecureStorage.KEY_REMINDERS)
+            if (savedReminders != null) {
+                _remindersEnabled.value = savedReminders == "true"
+            }
+            val savedMethod = secureStorage.get(SecureStorage.KEY_PAYMENT_METHOD)
+            if (!savedMethod.isNullOrBlank()) {
+                _savedPaymentMethod.value = savedMethod
+            }
+            val savedTables = secureStorage.get(SecureStorage.KEY_SKETCH_TABLES)?.toIntOrNull()
+            if (savedTables != null) {
+                _sketchTableCount.value = savedTables.coerceIn(2, 12)
+            }
+            val savedReviewsRaw = secureStorage.get(SecureStorage.KEY_COMPANY_REVIEWS)
+            if (!savedReviewsRaw.isNullOrBlank()) {
+                val parsedReviews = parseReviewsFromStorage(savedReviewsRaw)
+                if (parsedReviews.isNotEmpty()) {
+                    _companyReviews.value = parsedReviews
+                }
+            }
+            val savedChatRaw = secureStorage.get(SecureStorage.KEY_DIRECT_CHAT)
+            if (!savedChatRaw.isNullOrBlank()) {
+                val parsedChat = parseChatFromStorage(savedChatRaw)
+                if (parsedChat.isNotEmpty()) {
+                    _directChatMessages.value = parsedChat
+                }
+            }
         }
     }
+
+    private fun parseReviewsFromStorage(serialized: String): List<CompanyReviewUiModel> =
+        serialized.split("||").mapNotNull { entry ->
+            val parts = entry.split("::")
+            if (parts.size >= 6) {
+                CompanyReviewUiModel(
+                    id = parts[0],
+                    author = parts[1],
+                    initial = parts[2],
+                    dateLabel = parts[3],
+                    rating = parts[4].toIntOrNull() ?: 5,
+                    comment = parts[5],
+                    isVerified = true,
+                )
+            } else {
+                null
+            }
+        }
+
+    private fun serializeReviewsForStorage(reviews: List<CompanyReviewUiModel>): String =
+        reviews.joinToString("||") { reviewItem ->
+            "${reviewItem.id}::${reviewItem.author}::${reviewItem.initial}::${reviewItem.dateLabel}::${reviewItem.rating}::${reviewItem.comment.replace("::", " ").replace("||", " ")}"
+        }
+
+    private fun parseChatFromStorage(serialized: String): List<DirectChatMessageUiModel> =
+        serialized.split("||").mapNotNull { entry ->
+            val parts = entry.split("::")
+            if (parts.size >= 5) {
+                DirectChatMessageUiModel(
+                    id = parts[0],
+                    senderName = parts[1],
+                    text = parts[2],
+                    timeLabel = parts[3],
+                    isFromClient = parts[4] == "true",
+                )
+            } else {
+                null
+            }
+        }
+
+    private fun serializeChatForStorage(messages: List<DirectChatMessageUiModel>): String =
+        messages.joinToString("||") { msgItem ->
+            "${msgItem.id}::${msgItem.senderName}::${msgItem.text.replace("::", " ").replace("||", " ")}::${msgItem.timeLabel}::${msgItem.isFromClient}"
+        }
 
     private fun applyProfileFieldsFromAccount(account: RegisteredUserAccount) {
         _profileName.value = account.fullName
@@ -1009,6 +1195,9 @@ public class RosaFiestaViewModel(
                 return false
             }
             repository.createEvent(title, client, date, venue, guests)
+            repository.events.value.firstOrNull()?.id?.let { createdId ->
+                _selectedEventId.value = createdId
+            }
             _formError.value = null
             _formFeedback.value = "Evento '$title' creado con propuesta automática."
             return true
@@ -1032,6 +1221,9 @@ public class RosaFiestaViewModel(
             }
             val resolvedClientName = _profileName.value.trim().ifEmpty { "Cliente" }
             repository.createEvent(title, resolvedClientName, date, venue, guests)
+            repository.events.value.firstOrNull()?.id?.let { createdId ->
+                _selectedEventId.value = createdId
+            }
             _formError.value = null
             _formFeedback.value = "Evento '$title' configurado."
             return true
@@ -1201,6 +1393,11 @@ public class RosaFiestaViewModel(
             _profileUsername.value = cleanUsername
         }
         _profileAvatarKey.value = draftAvatarKey
+        if (!draftAvatarKey.isNullOrBlank()) {
+            securityScope.launch {
+                secureStorage.put(SecureStorage.KEY_AVATAR_KEY, draftAvatarKey)
+            }
+        }
         soundPlayer.playPaymentSuccess()
         _formError.value = null
         _formFeedback.value = "Perfil actualizado para $cleanName."
@@ -1210,12 +1407,22 @@ public class RosaFiestaViewModel(
     public fun setProfileAvatarKey(avatarKey: String?) {
         soundPlayer.playTap()
         _profileAvatarKey.value = avatarKey
+        securityScope.launch {
+            if (avatarKey.isNullOrBlank()) {
+                secureStorage.remove(SecureStorage.KEY_AVATAR_KEY)
+            } else {
+                secureStorage.put(SecureStorage.KEY_AVATAR_KEY, avatarKey)
+            }
+        }
     }
 
     public fun setDarkTheme(enabled: Boolean) {
         soundPlayer.playTap()
         _isDarkTheme.value = enabled
         com.jeudry.rosafiesta.designsystem.RfThemeState.isPersonalDark = enabled
+        securityScope.launch {
+            secureStorage.put(SecureStorage.KEY_DARK_THEME, enabled.toString())
+        }
     }
 
     public fun toggleDarkTheme() {
@@ -1223,6 +1430,196 @@ public class RosaFiestaViewModel(
         val nextValue = !_isDarkTheme.value
         _isDarkTheme.value = nextValue
         com.jeudry.rosafiesta.designsystem.RfThemeState.isPersonalDark = nextValue
+        securityScope.launch {
+            secureStorage.put(SecureStorage.KEY_DARK_THEME, nextValue.toString())
+        }
+    }
+
+    public fun setPreferredLanguage(language: String) {
+        soundPlayer.playTap()
+        val cleanLang = language.trim().ifBlank { "Español" }
+        _preferredLanguage.value = cleanLang
+        securityScope.launch {
+            secureStorage.put(SecureStorage.KEY_LANGUAGE, cleanLang)
+        }
+    }
+
+    public fun togglePreferredLanguage() {
+        val nextLanguage = if (_preferredLanguage.value == "Español") "English" else "Español"
+        setPreferredLanguage(nextLanguage)
+    }
+
+    public fun setRemindersEnabled(enabled: Boolean) {
+        soundPlayer.playTap()
+        _remindersEnabled.value = enabled
+        securityScope.launch {
+            secureStorage.put(SecureStorage.KEY_REMINDERS, enabled.toString())
+        }
+    }
+
+    public fun toggleRemindersEnabled() {
+        setRemindersEnabled(!_remindersEnabled.value)
+    }
+
+    public fun setSavedPaymentMethod(methodLabel: String) {
+        soundPlayer.playTap()
+        val cleanMethod = methodLabel.trim().ifBlank { "Visa •••• 4821 · Transferencia" }
+        _savedPaymentMethod.value = cleanMethod
+        securityScope.launch {
+            secureStorage.put(SecureStorage.KEY_PAYMENT_METHOD, cleanMethod)
+        }
+    }
+
+    public fun setSketchTableCount(count: Int) {
+        val clamped = count.coerceIn(2, 12)
+        _sketchTableCount.value = clamped
+        securityScope.launch {
+            secureStorage.put(SecureStorage.KEY_SKETCH_TABLES, clamped.toString())
+        }
+    }
+
+    public fun clientEventsForCurrentUser(): List<ClientEvent> {
+        val allEvents = events.value
+        val activeName = _profileName.value.trim()
+        val firstToken = activeName.substringBefore(" ").trim()
+        val isGenericGuest = activeName.isBlank() || activeName.equals("Invitado Rosa Fiesta", ignoreCase = true) || activeName.equals("Cliente", ignoreCase = true)
+        if (isGenericGuest) {
+            return allEvents
+        }
+        val matchingEvents = allEvents.filter { eventItem ->
+            val matchesFull = eventItem.clientName.equals(activeName, ignoreCase = true)
+            if (matchesFull) {
+                true
+            } else {
+                val hasValidToken = firstToken.length >= 3
+                if (hasValidToken) eventItem.clientName.contains(firstToken, ignoreCase = true) else false
+            }
+        }
+        return if (matchingEvents.isNotEmpty()) matchingEvents else allEvents
+    }
+
+    public fun activeClientEvent(): ClientEvent {
+        val userEvents = clientEventsForCurrentUser()
+        val currentSelectedId = _selectedEventId.value
+        return userEvents.firstOrNull { eventItem -> eventItem.id == currentSelectedId }
+            ?: events.value.firstOrNull { eventItem -> eventItem.id == currentSelectedId }
+            ?: userEvents.firstOrNull()
+            ?: events.value.first()
+    }
+
+    public fun clientPaymentsForCurrentUser(): List<PaymentRecord> {
+        val userEventsIds = clientEventsForCurrentUser().map { eventItem -> eventItem.id }.toSet()
+        val allPayments = payments.value
+        val matchingPayments = allPayments.filter { paymentItem -> paymentItem.eventId in userEventsIds }
+        return if (matchingPayments.isNotEmpty()) matchingPayments else allPayments
+    }
+
+    public fun addEventTimelineItem() {
+        soundPlayer.playTap()
+        val nextNum = _eventTimelineItems.value.size + 1
+        val activeEvt = activeClientEvent()
+        val newItem = EventTimelineItemUiModel(
+            id = "tl-$nextNum",
+            startTime = "22:00",
+            endTime = "23:30",
+            title = "Desmontaje y retorno a bodega #$nextNum",
+            subtitle = "Conteo de ${activeEvt.articleCount} piezas (${activeEvt.title})",
+            dotColorHex = 0xFF8DB52C,
+            ringColorHex = 0xFFEEF6D6,
+        )
+        _eventTimelineItems.update { currentList -> currentList + newItem }
+    }
+
+    public fun toggleEventTask(taskId: String) {
+        soundPlayer.playChecklistTick()
+        _eventTasksList.update { currentList ->
+            currentList.map { taskItem ->
+                if (taskItem.id == taskId) taskItem.copy(completed = !taskItem.completed) else taskItem
+            }
+        }
+    }
+
+    public fun addEventTask(customTitle: String = "") {
+        soundPlayer.playTap()
+        val nextNum = _eventTasksList.value.size + 1
+        val activeEvt = activeClientEvent()
+        val resolvedTitle = customTitle.trim().ifBlank { "Coordinación #${nextNum} · ${activeEvt.title}" }
+        val newTask = EventTaskUiModel(
+            id = "tsk-$nextNum",
+            title = resolvedTitle,
+            badgeText = "Pendiente",
+            isUrgent = false,
+            completed = false,
+        )
+        _eventTasksList.update { currentList -> listOf(newTask) + currentList }
+    }
+
+    public fun toggleEventGuestStatus(guestId: String) {
+        soundPlayer.playTap()
+        _eventGuestsList.update { currentList ->
+            currentList.map { guestItem ->
+                if (guestItem.id == guestId) {
+                    val nextStatus = if (guestItem.status == "Confirmado") "Pendiente" else "Confirmado"
+                    guestItem.copy(status = nextStatus)
+                } else {
+                    guestItem
+                }
+            }
+        }
+    }
+
+    public fun addEventGuest(guestName: String = "") {
+        soundPlayer.playTap()
+        val nextNum = _eventGuestsList.value.size + 1
+        val resolvedName = guestName.trim().ifBlank { "Invitado VIP #$nextNum" }
+        val newGuest = EventGuestUiModel(
+            id = "gst-$nextNum",
+            name = resolvedName,
+            details = "Confirmado · Mesa ${nextNum + 2} · 2 personas",
+            status = "Confirmado",
+        )
+        _eventGuestsList.update { currentList -> currentList + newGuest }
+    }
+
+    public fun authenticateSocialAccount(provider: String, typedIdentifier: String = ""): Boolean {
+        soundPlayer.playPaymentSuccess()
+        val cleanTyped = typedIdentifier.trim()
+        val isTypedValid = InputValidator.validateLoginIdentifier(cleanTyped) == null
+        val resolvedEmail = if (isTypedValid) {
+            if (cleanTyped.contains("@")) cleanTyped.lowercase() else "${cleanTyped.lowercase()}@rosafiesta.do"
+        } else {
+            "camila@rosafiesta.do"
+        }
+        val authOutcome = repository.authenticateUser(resolvedEmail, "RosaFiesta2026!")
+        val account = authOutcome.account
+        if (account != null) {
+            applyAuthenticatedAccount(account, authOutcome.accessToken)
+        } else {
+            applyUserIdentityFromLogin(resolvedEmail)
+        }
+        _formError.value = null
+        _formFeedback.value = "Sesión iniciada con $provider como ${_profileName.value}"
+        return true
+    }
+
+    public fun requestPasswordResetOtp(emailInput: String): String {
+        val cleanEmail = emailInput.trim().lowercase()
+        val codeDigits = ((cleanEmail.hashCode().let { hash -> if (hash < 0) -hash else hash } % 900000) + 100000).toString()
+        _activeOtpCode.value = codeDigits
+        _loginEmail.value = cleanEmail
+        applyUserIdentityFromLogin(cleanEmail)
+        _formError.value = null
+        _formFeedback.value = "Código de seguridad enviado a $cleanEmail: $codeDigits"
+        return codeDigits
+    }
+
+    public fun exportReceiptDocument(event: ClientEvent, payment: PaymentRecord? = null): String {
+        soundPlayer.playPaymentSuccess()
+        val receiptNo = payment?.receiptNumber ?: "RF-2026-0412"
+        val paidAmount = payment?.amountDop ?: event.paidDepositDop
+        val summaryText = "Recibo $receiptNo · ${event.title} (${event.dateLabel}) · Pagado: RD$ $paidAmount de RD$ ${event.totalDop}"
+        _formFeedback.value = "Comprobante $receiptNo exportado correctamente."
+        return summaryText
     }
 
     public fun companyAverageRatingFormatted(): String {
@@ -1256,6 +1653,10 @@ public class RosaFiestaViewModel(
             isVerified = true,
         )
         _companyReviews.update { currentList -> listOf(newReview) + currentList }
+        val updatedReviews = _companyReviews.value
+        securityScope.launch {
+            secureStorage.put(SecureStorage.KEY_COMPANY_REVIEWS, serializeReviewsForStorage(updatedReviews))
+        }
         soundPlayer.playPaymentSuccess()
         _formError.value = null
         _formFeedback.value = "¡Gracias por tu reseña de $cleanRating estrellas!"
@@ -1285,7 +1686,32 @@ public class RosaFiestaViewModel(
         _directChatMessages.update { existingMessages ->
             existingMessages + clientMessage + mariaReply
         }
+        val updatedChat = _directChatMessages.value
+        securityScope.launch {
+            secureStorage.put(SecureStorage.KEY_DIRECT_CHAT, serializeChatForStorage(updatedChat))
+        }
         repository.sendChatMessage(clientName, SensitiveDataRedactor.redactText(trimmedText))
+    }
+
+    public fun sendAdminDirectChatReply(rawReplyText: String) {
+        val trimmedReply = rawReplyText.trim()
+        if (trimmedReply.isEmpty()) return
+        soundPlayer.playRosaSend()
+        val adminReply = DirectChatMessageUiModel(
+            id = "msg-${_directChatMessages.value.size + 1}",
+            senderName = "María · Rosa Fiesta",
+            text = SensitiveDataRedactor.redactText(trimmedReply),
+            timeLabel = "Ahora",
+            isFromClient = false,
+        )
+        _directChatMessages.update { existingMessages ->
+            existingMessages + adminReply
+        }
+        val updatedChat = _directChatMessages.value
+        securityScope.launch {
+            secureStorage.put(SecureStorage.KEY_DIRECT_CHAT, serializeChatForStorage(updatedChat))
+        }
+        repository.sendChatMessage("María · Rosa Fiesta", SensitiveDataRedactor.redactText(trimmedReply))
     }
 
     private fun buildMariaContextualReply(userMessage: String, clientName: String): String {
