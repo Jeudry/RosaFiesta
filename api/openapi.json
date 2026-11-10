@@ -1,48 +1,189 @@
 {
   "components": {
     "schemas": {
+      "AddGuestInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/AddGuestInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "dietaryNotes": {
+            "type": "string"
+          },
+          "fullName": {
+            "type": "string"
+          },
+          "rsvpStatus": {
+            "type": "string"
+          },
+          "tableLabel": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "fullName"
+        ],
+        "type": "object"
+      },
+      "AddScheduleBlockInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/AddScheduleBlockInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "ownerName": {
+            "type": "string"
+          },
+          "sortOrder": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "status": {
+            "type": "string"
+          },
+          "timeRange": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "timeRange",
+          "title"
+        ],
+        "type": "object"
+      },
+      "AdminClient": {
+        "additionalProperties": false,
+        "properties": {
+          "balanceDop": {
+            "description": "Outstanding balance in DOP.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "email": {
+            "description": "Client email address.",
+            "type": "string"
+          },
+          "eventsCount": {
+            "description": "Total events contracted.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "fullName": {
+            "description": "Client full name.",
+            "type": "string"
+          },
+          "id": {
+            "description": "Client identifier.",
+            "type": "string"
+          },
+          "notes": {
+            "description": "Internal operational notes.",
+            "type": "string"
+          },
+          "phone": {
+            "description": "Client phone number.",
+            "type": "string"
+          },
+          "totalSpentDop": {
+            "description": "Total contracted amount in DOP.",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "fullName",
+          "email",
+          "phone",
+          "eventsCount",
+          "totalSpentDop",
+          "balanceDop"
+        ],
+        "type": "object"
+      },
       "Article": {
         "additionalProperties": false,
         "properties": {
           "availableStock": {
-            "description": "Stock disponible para la fecha consultada (s63).",
+            "description": "Currently available stock.",
             "format": "int64",
             "type": "integer"
           },
           "categoryId": {
-            "description": "Categoría a la que pertenece.",
+            "description": "Category identifier.",
             "type": "string"
           },
+          "colorVariants": {
+            "description": "Available color variants.",
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "dailyPriceDop": {
-            "description": "Precio de alquiler por día en RD$.",
+            "description": "Daily rental or unit price in DOP.",
             "format": "int64",
             "type": "integer"
           },
           "description": {
-            "description": "Descripción del artículo.",
+            "description": "Article description.",
+            "type": "string"
+          },
+          "dimensions": {
+            "description": "Physical dimensions specification.",
             "type": "string"
           },
           "id": {
-            "description": "Clave única del artículo (ej. silla-tiffany).",
+            "description": "Unique article identifier.",
             "type": "string"
           },
+          "isDirectSale": {
+            "description": "True for direct-sale balloon items.",
+            "type": "boolean"
+          },
           "lowStockThreshold": {
-            "description": "Umbral para insignia sol-tint de stock bajo.",
+            "description": "Low stock warning threshold.",
             "format": "int64",
             "type": "integer"
           },
+          "material": {
+            "description": "Primary material specification.",
+            "type": "string"
+          },
           "name": {
-            "description": "Nombre comercial del artículo.",
+            "description": "Commercial article name.",
             "type": "string"
           },
           "photoKey": {
-            "description": "Clave de la foto real en frontend/assets/images.",
+            "description": "Asset image key.",
             "type": "string"
           },
           "totalStock": {
-            "description": "Stock total en almacén.",
+            "description": "Total warehouse stock.",
             "format": "int64",
             "type": "integer"
+          },
+          "visible": {
+            "description": "Whether the article is visible in the public catalog.",
+            "type": "boolean"
           }
         },
         "required": [
@@ -54,7 +195,70 @@
           "totalStock",
           "availableStock",
           "lowStockThreshold",
-          "description"
+          "description",
+          "visible"
+        ],
+        "type": "object"
+      },
+      "ArticleAvailability": {
+        "additionalProperties": false,
+        "properties": {
+          "articleId": {
+            "description": "Article identifier.",
+            "type": "string"
+          },
+          "articleName": {
+            "description": "Article name.",
+            "type": "string"
+          },
+          "days": {
+            "description": "Per-day availability breakdown.",
+            "items": {
+              "$ref": "#/components/schemas/AvailabilityDay"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "month": {
+            "description": "Queried month (YYYY-MM).",
+            "type": "string"
+          },
+          "totalStock": {
+            "description": "Total warehouse stock.",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "articleId",
+          "articleName",
+          "month",
+          "totalStock",
+          "days"
+        ],
+        "type": "object"
+      },
+      "ArticleOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/ArticleOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "article": {
+            "$ref": "#/components/schemas/Article",
+            "description": "Catalog article record."
+          }
+        },
+        "required": [
+          "article"
         ],
         "type": "object"
       },
@@ -71,7 +275,7 @@
             "type": "string"
           },
           "articles": {
-            "description": "Artículos de alquiler con foto y precio por día.",
+            "description": "Catalog articles with daily prices and stock.",
             "items": {
               "$ref": "#/components/schemas/Article"
             },
@@ -83,6 +287,414 @@
         },
         "required": [
           "articles"
+        ],
+        "type": "object"
+      },
+      "AuditLog": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "actorName": {
+            "type": "string"
+          },
+          "actorRole": {
+            "type": "string"
+          },
+          "createdAtLabel": {
+            "type": "string"
+          },
+          "entityId": {
+            "type": "string"
+          },
+          "entityType": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "actorName",
+          "actorRole",
+          "action",
+          "entityType",
+          "entityId",
+          "summary",
+          "createdAtLabel"
+        ],
+        "type": "object"
+      },
+      "AuditLogsOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/AuditLogsOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "logs": {
+            "items": {
+              "$ref": "#/components/schemas/AuditLog"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "logs"
+        ],
+        "type": "object"
+      },
+      "AvailabilityDay": {
+        "additionalProperties": false,
+        "properties": {
+          "available": {
+            "description": "Remaining units available for rental on this date.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "date": {
+            "description": "ISO calendar date (YYYY-MM-DD).",
+            "type": "string"
+          },
+          "lowStock": {
+            "description": "True when available units are at or below low stock threshold.",
+            "type": "boolean"
+          },
+          "reserved": {
+            "description": "Units reserved by active events on this date.",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "date",
+          "reserved",
+          "available",
+          "lowStock"
+        ],
+        "type": "object"
+      },
+      "AvailabilityOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/AvailabilityOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "availability": {
+            "$ref": "#/components/schemas/ArticleAvailability",
+            "description": "Per-day reserved and available stock."
+          }
+        },
+        "required": [
+          "availability"
+        ],
+        "type": "object"
+      },
+      "BotFAQ": {
+        "additionalProperties": false,
+        "properties": {
+          "active": {
+            "type": "boolean"
+          },
+          "answer": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "question": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "question",
+          "answer",
+          "category",
+          "active"
+        ],
+        "type": "object"
+      },
+      "BotFAQOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/BotFAQOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "faq": {
+            "$ref": "#/components/schemas/BotFAQ"
+          }
+        },
+        "required": [
+          "faq"
+        ],
+        "type": "object"
+      },
+      "BotFAQsOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/BotFAQsOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "faqs": {
+            "items": {
+              "$ref": "#/components/schemas/BotFAQ"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "faqs"
+        ],
+        "type": "object"
+      },
+      "BotKeyword": {
+        "additionalProperties": false,
+        "properties": {
+          "autoReply": {
+            "type": "string"
+          },
+          "handoffToHuman": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "keyword": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "keyword",
+          "autoReply",
+          "handoffToHuman"
+        ],
+        "type": "object"
+      },
+      "BotKeywordOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/BotKeywordOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "keyword": {
+            "$ref": "#/components/schemas/BotKeyword"
+          }
+        },
+        "required": [
+          "keyword"
+        ],
+        "type": "object"
+      },
+      "BotKeywordsOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/BotKeywordsOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "keywords": {
+            "items": {
+              "$ref": "#/components/schemas/BotKeyword"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "keywords"
+        ],
+        "type": "object"
+      },
+      "BotThread": {
+        "additionalProperties": false,
+        "properties": {
+          "assignedAgent": {
+            "type": "string"
+          },
+          "botPaused": {
+            "type": "boolean"
+          },
+          "customerName": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "lastMessage": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "updatedAtLabel": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "customerName",
+          "phone",
+          "lastMessage",
+          "botPaused",
+          "updatedAtLabel"
+        ],
+        "type": "object"
+      },
+      "BotThreadOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/BotThreadOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "thread": {
+            "$ref": "#/components/schemas/BotThread"
+          }
+        },
+        "required": [
+          "thread"
+        ],
+        "type": "object"
+      },
+      "BotThreadsOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/BotThreadsOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "threads": {
+            "items": {
+              "$ref": "#/components/schemas/BotThread"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "threads"
+        ],
+        "type": "object"
+      },
+      "BusinessSettings": {
+        "additionalProperties": false,
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "businessHours": {
+            "type": "string"
+          },
+          "companyName": {
+            "type": "string"
+          },
+          "depositPercent": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "email": {
+            "type": "string"
+          },
+          "facebook": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "instagram": {
+            "type": "string"
+          },
+          "itbisPercent": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "rnc": {
+            "type": "string"
+          },
+          "whatsapp": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "companyName",
+          "rnc",
+          "address",
+          "phone",
+          "whatsapp",
+          "email",
+          "instagram",
+          "facebook",
+          "businessHours",
+          "itbisPercent",
+          "depositPercent"
         ],
         "type": "object"
       },
@@ -124,7 +736,7 @@
             "type": "string"
           },
           "categories": {
-            "description": "Categorías con su ilustración.",
+            "description": "Catalog categories.",
             "items": {
               "$ref": "#/components/schemas/Category"
             },
@@ -143,20 +755,20 @@
         "additionalProperties": false,
         "properties": {
           "id": {
-            "description": "Identificador de la categoría.",
+            "description": "Category identifier.",
             "type": "string"
           },
           "illoKey": {
-            "description": "Ilustración vectorial (globos, flores, sillas, dulces).",
+            "description": "Vector illustration key.",
             "type": "string"
           },
           "itemCount": {
-            "description": "Cantidad de artículos en la categoría.",
+            "description": "Number of articles in the category.",
             "format": "int64",
             "type": "integer"
           },
           "name": {
-            "description": "Nombre de la categoría.",
+            "description": "Category name.",
             "type": "string"
           }
         },
@@ -165,6 +777,201 @@
           "name",
           "illoKey",
           "itemCount"
+        ],
+        "type": "object"
+      },
+      "ChangePasswordInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/ChangePasswordInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "currentPassword": {
+            "description": "Current account password.",
+            "type": "string"
+          },
+          "newPassword": {
+            "description": "New account password (minimum 6 characters).",
+            "type": "string"
+          }
+        },
+        "required": [
+          "currentPassword",
+          "newPassword"
+        ],
+        "type": "object"
+      },
+      "ChatMessage": {
+        "additionalProperties": false,
+        "properties": {
+          "attachmentName": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "eventId": {
+            "type": "string"
+          },
+          "eventTitle": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "recipientLabel": {
+            "type": "string"
+          },
+          "senderId": {
+            "type": "string"
+          },
+          "senderName": {
+            "type": "string"
+          },
+          "senderRole": {
+            "type": "string"
+          },
+          "threadId": {
+            "type": "string"
+          },
+          "unread": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "threadId",
+          "eventId",
+          "eventTitle",
+          "senderId",
+          "senderName",
+          "senderRole",
+          "body",
+          "unread",
+          "createdAt"
+        ],
+        "type": "object"
+      },
+      "ChatMessageOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/ChatMessageOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "message": {
+            "$ref": "#/components/schemas/ChatMessage"
+          }
+        },
+        "required": [
+          "message"
+        ],
+        "type": "object"
+      },
+      "ChatMessagesOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/ChatMessagesOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/ChatMessage"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "messages"
+        ],
+        "type": "object"
+      },
+      "ChatThread": {
+        "additionalProperties": false,
+        "properties": {
+          "eventId": {
+            "type": "string"
+          },
+          "eventTitle": {
+            "type": "string"
+          },
+          "lastMessage": {
+            "type": "string"
+          },
+          "participantName": {
+            "type": "string"
+          },
+          "threadId": {
+            "type": "string"
+          },
+          "unreadCount": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "threadId",
+          "eventId",
+          "eventTitle",
+          "participantName",
+          "lastMessage",
+          "unreadCount",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
+      "ChatThreadsOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/ChatThreadsOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "threads": {
+            "items": {
+              "$ref": "#/components/schemas/ChatThread"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "threads"
         ],
         "type": "object"
       },
@@ -198,49 +1005,25 @@
         ],
         "type": "object"
       },
-      "ClientSummary": {
+      "ClientOutputBody": {
         "additionalProperties": false,
         "properties": {
-          "balanceDop": {
-            "description": "Saldo pendiente en RD$.",
-            "format": "int64",
-            "type": "integer"
-          },
-          "email": {
-            "description": "Correo electrónico.",
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/ClientOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
             "type": "string"
           },
-          "eventsCount": {
-            "description": "Cantidad de eventos.",
-            "format": "int64",
-            "type": "integer"
-          },
-          "fullName": {
-            "description": "Nombre completo del cliente.",
-            "type": "string"
-          },
-          "id": {
-            "description": "Identificador del cliente.",
-            "type": "string"
-          },
-          "phone": {
-            "description": "Teléfono de contacto.",
-            "type": "string"
-          },
-          "totalSpentDop": {
-            "description": "Total contratado en RD$.",
-            "format": "int64",
-            "type": "integer"
+          "client": {
+            "$ref": "#/components/schemas/AdminClient",
+            "description": "Updated client summary."
           }
         },
         "required": [
-          "id",
-          "fullName",
-          "email",
-          "phone",
-          "eventsCount",
-          "totalSpentDop",
-          "balanceDop"
+          "client"
         ],
         "type": "object"
       },
@@ -257,9 +1040,9 @@
             "type": "string"
           },
           "clients": {
-            "description": "Lista de clientes de RosaFiesta.",
+            "description": "Registered clients list.",
             "items": {
-              "$ref": "#/components/schemas/ClientSummary"
+              "$ref": "#/components/schemas/AdminClient"
             },
             "type": [
               "array",
@@ -269,6 +1052,220 @@
         },
         "required": [
           "clients"
+        ],
+        "type": "object"
+      },
+      "CreateArticleInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/CreateArticleInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "availableStock": {
+            "description": "Initial available stock.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "categoryId": {
+            "description": "Category identifier.",
+            "type": "string"
+          },
+          "colorVariants": {
+            "description": "Color variants.",
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "dailyPriceDop": {
+            "description": "Daily rental or sale price in DOP.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "description": {
+            "description": "Article description.",
+            "type": "string"
+          },
+          "dimensions": {
+            "description": "Physical dimensions.",
+            "type": "string"
+          },
+          "id": {
+            "description": "Optional article slug identifier.",
+            "type": "string"
+          },
+          "isDirectSale": {
+            "description": "True for direct-sale balloon items.",
+            "type": "boolean"
+          },
+          "lowStockThreshold": {
+            "description": "Low stock warning threshold.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "material": {
+            "description": "Primary material.",
+            "type": "string"
+          },
+          "name": {
+            "description": "Commercial article name.",
+            "type": "string"
+          },
+          "photoKey": {
+            "description": "Photo asset key.",
+            "type": "string"
+          },
+          "totalStock": {
+            "description": "Total warehouse stock.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "visible": {
+            "description": "Catalog visibility flag.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "dailyPriceDop",
+          "totalStock"
+        ],
+        "type": "object"
+      },
+      "CreateEventInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/CreateEventInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "assignedLead": {
+            "type": "string"
+          },
+          "balanceDueDate": {
+            "type": "string"
+          },
+          "clientEmail": {
+            "type": "string"
+          },
+          "clientName": {
+            "type": "string"
+          },
+          "dateLabel": {
+            "type": "string"
+          },
+          "daysUntilEvent": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "eventType": {
+            "type": "string"
+          },
+          "guests": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/EventItem"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "paidDepositRD": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "sketchJson": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "totalRD": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "venue": {
+            "type": "string"
+          },
+          "zone": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "dateLabel",
+          "venue",
+          "guests"
+        ],
+        "type": "object"
+      },
+      "CreateLeadInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/CreateLeadInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "estimatedDop": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "eventDateLabel": {
+            "type": "string"
+          },
+          "eventType": {
+            "minLength": 2,
+            "type": "string"
+          },
+          "fullName": {
+            "minLength": 2,
+            "type": "string"
+          },
+          "guests": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "phone": {
+            "minLength": 5,
+            "type": "string"
+          },
+          "stage": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "fullName",
+          "phone",
+          "eventType"
         ],
         "type": "object"
       },
@@ -282,6 +1279,9 @@
             ],
             "format": "uri",
             "readOnly": true,
+            "type": "string"
+          },
+          "clientEmail": {
             "type": "string"
           },
           "clientName": {
@@ -300,6 +1300,9 @@
           },
           "eventDateLabel": {
             "minLength": 2,
+            "type": "string"
+          },
+          "eventId": {
             "type": "string"
           },
           "eventTitle": {
@@ -334,6 +1337,43 @@
           "lines",
           "deliveryFeeRD",
           "discountRD"
+        ],
+        "type": "object"
+      },
+      "CreateReviewInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/CreateReviewInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "clientName": {
+            "type": "string"
+          },
+          "comment": {
+            "minLength": 3,
+            "type": "string"
+          },
+          "eventId": {
+            "minLength": 2,
+            "type": "string"
+          },
+          "rating": {
+            "format": "int64",
+            "maximum": 5,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "eventId",
+          "rating",
+          "comment"
         ],
         "type": "object"
       },
@@ -380,6 +1420,33 @@
         ],
         "type": "object"
       },
+      "DamagesListOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/DamagesListOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "damages": {
+            "items": {
+              "$ref": "#/components/schemas/DamageReport"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "damages"
+        ],
+        "type": "object"
+      },
       "DateChangeEvaluation": {
         "additionalProperties": false,
         "properties": {
@@ -423,7 +1490,7 @@
             "type": "string"
           },
           "newDateLabel": {
-            "description": "Nueva fecha legible (ej. Sáb 31 oct)",
+            "description": "Updated readable event date.",
             "type": "string"
           },
           "newDaysUntilEvent": {
@@ -498,12 +1565,63 @@
             "type": "string"
           },
           "deleted": {
-            "description": "Indica si la cuenta fue eliminada.",
+            "description": "Indicates whether the account was deleted.",
             "type": "boolean"
           }
         },
         "required": [
           "deleted"
+        ],
+        "type": "object"
+      },
+      "DeleteScheduleBlockOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/DeleteScheduleBlockOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "deleted": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "deleted"
+        ],
+        "type": "object"
+      },
+      "DeliveryZone": {
+        "additionalProperties": false,
+        "properties": {
+          "active": {
+            "type": "boolean"
+          },
+          "etaMinutes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "feeDop": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "feeDop",
+          "etaMinutes",
+          "active"
         ],
         "type": "object"
       },
@@ -601,6 +1719,15 @@
           "balanceDueDate": {
             "type": "string"
           },
+          "cancellationReason": {
+            "type": "string"
+          },
+          "clientEmail": {
+            "type": "string"
+          },
+          "clientId": {
+            "type": "string"
+          },
           "clientName": {
             "type": "string"
           },
@@ -640,6 +1767,9 @@
           "paidDepositRD": {
             "format": "int64",
             "type": "integer"
+          },
+          "sketchJson": {
+            "type": "string"
           },
           "status": {
             "type": "string"
@@ -703,6 +1833,42 @@
         "required": [
           "event",
           "balanceRD"
+        ],
+        "type": "object"
+      },
+      "EventGuest": {
+        "additionalProperties": false,
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "dietaryNotes": {
+            "type": "string"
+          },
+          "eventId": {
+            "type": "string"
+          },
+          "fullName": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "rsvpStatus": {
+            "type": "string"
+          },
+          "tableLabel": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "eventId",
+          "fullName",
+          "rsvpStatus",
+          "tableLabel",
+          "createdAt"
         ],
         "type": "object"
       },
@@ -966,6 +2132,267 @@
         ],
         "type": "object"
       },
+      "GuestOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/GuestOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "guest": {
+            "$ref": "#/components/schemas/EventGuest"
+          }
+        },
+        "required": [
+          "guest"
+        ],
+        "type": "object"
+      },
+      "GuestsListOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/GuestsListOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "guests": {
+            "items": {
+              "$ref": "#/components/schemas/EventGuest"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "guests"
+        ],
+        "type": "object"
+      },
+      "InsuranceOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/InsuranceOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "policies": {
+            "items": {
+              "$ref": "#/components/schemas/InsurancePolicy"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "policies"
+        ],
+        "type": "object"
+      },
+      "InsurancePolicy": {
+        "additionalProperties": false,
+        "properties": {
+          "coverageType": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "maxCoverageDop": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "policyNumber": {
+            "type": "string"
+          },
+          "providerName": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "validUntilLabel": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "providerName",
+          "policyNumber",
+          "coverageType",
+          "maxCoverageDop",
+          "validUntilLabel",
+          "status"
+        ],
+        "type": "object"
+      },
+      "InviteStaffInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/InviteStaffInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "email": {
+            "description": "Staff member email address.",
+            "type": "string"
+          },
+          "fullName": {
+            "description": "Staff member full name.",
+            "type": "string"
+          },
+          "password": {
+            "description": "Optional initial password.",
+            "type": "string"
+          },
+          "permissions": {
+            "description": "Assigned permissions.",
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "phone": {
+            "description": "Staff member phone number.",
+            "type": "string"
+          },
+          "role": {
+            "description": "Technical role (staff or admin).",
+            "type": "string"
+          },
+          "roleLabel": {
+            "description": "Operational role title.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "fullName",
+          "email",
+          "permissions"
+        ],
+        "type": "object"
+      },
+      "Lead": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "estimatedDop": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "eventDateLabel": {
+            "type": "string"
+          },
+          "eventType": {
+            "type": "string"
+          },
+          "fullName": {
+            "type": "string"
+          },
+          "guests": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "stage": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "fullName",
+          "phone",
+          "eventType",
+          "guests",
+          "estimatedDop",
+          "stage"
+        ],
+        "type": "object"
+      },
+      "LeadOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/LeadOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "lead": {
+            "$ref": "#/components/schemas/Lead"
+          }
+        },
+        "required": [
+          "lead"
+        ],
+        "type": "object"
+      },
+      "LeadsListOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/LeadsListOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "leads": {
+            "items": {
+              "$ref": "#/components/schemas/Lead"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "leads"
+        ],
+        "type": "object"
+      },
       "LoginInputBody": {
         "additionalProperties": false,
         "properties": {
@@ -979,11 +2406,11 @@
             "type": "string"
           },
           "email": {
-            "description": "Correo electrónico o username del usuario.",
+            "description": "Email address or username.",
             "type": "string"
           },
           "password": {
-            "description": "Contraseña de la cuenta.",
+            "description": "Account password.",
             "type": "string"
           }
         },
@@ -1006,17 +2433,270 @@
             "type": "string"
           },
           "accessToken": {
-            "description": "Token Bearer para llamadas autenticadas.",
+            "description": "Bearer token for authenticated requests.",
             "type": "string"
           },
           "user": {
             "$ref": "#/components/schemas/User",
-            "description": "Datos del usuario y vista activa."
+            "description": "Authenticated user and active view."
           }
         },
         "required": [
           "accessToken",
           "user"
+        ],
+        "type": "object"
+      },
+      "LogoutOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/LogoutOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "loggedOut": {
+            "description": "Indicates whether the session was terminated.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "loggedOut"
+        ],
+        "type": "object"
+      },
+      "Notification": {
+        "additionalProperties": false,
+        "properties": {
+          "actionPath": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "createdAtLabel": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "isRead": {
+            "type": "boolean"
+          },
+          "recipientRole": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "recipientRole",
+          "title",
+          "body",
+          "category",
+          "isRead",
+          "createdAtLabel"
+        ],
+        "type": "object"
+      },
+      "NotificationOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/NotificationOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "notification": {
+            "$ref": "#/components/schemas/Notification"
+          }
+        },
+        "required": [
+          "notification"
+        ],
+        "type": "object"
+      },
+      "NotificationsOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/NotificationsOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "notifications": {
+            "items": {
+              "$ref": "#/components/schemas/Notification"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "notifications"
+        ],
+        "type": "object"
+      },
+      "OAuthLoginInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/OAuthLoginInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "idToken": {
+            "description": "OIDC identity token issued by the provider.",
+            "type": "string"
+          },
+          "provider": {
+            "description": "OAuth identity provider (google or apple).",
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider",
+          "idToken"
+        ],
+        "type": "object"
+      },
+      "OTPRequestInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/OTPRequestInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "email": {
+            "description": "Account email address to receive the verification code.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "type": "object"
+      },
+      "OTPRequestResult": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/OTPRequestResult.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "devCode": {
+            "description": "Verification code exposed strictly in non-production environments.",
+            "type": "string"
+          },
+          "expiresInSeconds": {
+            "description": "Code expiration window in seconds.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "sent": {
+            "description": "Indicates whether the verification code was dispatched.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "sent",
+          "expiresInSeconds"
+        ],
+        "type": "object"
+      },
+      "OTPVerifyInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/OTPVerifyInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "code": {
+            "description": "Six-digit verification code.",
+            "type": "string"
+          },
+          "email": {
+            "description": "Account email address.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "code"
+        ],
+        "type": "object"
+      },
+      "OTPVerifyResult": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/OTPVerifyResult.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "expiresInSeconds": {
+            "description": "Reset token expiration window in seconds.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "resetToken": {
+            "description": "Single-use token required to complete password reset.",
+            "type": "string"
+          },
+          "verified": {
+            "description": "Indicates whether the verification code matched.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "verified",
+          "resetToken",
+          "expiresInSeconds"
         ],
         "type": "object"
       },
@@ -1088,11 +2768,11 @@
             "type": "string"
           },
           "product": {
-            "description": "Nombre del sistema.",
+            "description": "System name.",
             "type": "string"
           },
           "status": {
-            "description": "Estado del servicio.",
+            "description": "Service status.",
             "type": "string"
           }
         },
@@ -1106,34 +2786,48 @@
         "additionalProperties": false,
         "properties": {
           "eventType": {
-            "description": "Tipo de evento asociado.",
+            "description": "Target event type.",
             "type": "string"
           },
           "guestCapacity": {
-            "description": "Capacidad de invitados.",
+            "description": "Recommended guest capacity.",
             "format": "int64",
             "type": "integer"
           },
           "id": {
-            "description": "Identificador del paquete.",
+            "description": "Package identifier.",
             "type": "string"
           },
+          "items": {
+            "description": "Structured items included in the package.",
+            "items": {
+              "$ref": "#/components/schemas/PackageItem"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "itemsSummary": {
-            "description": "Resumen de artículos incluidos.",
+            "description": "Human-readable summary of included items.",
             "type": "string"
           },
           "name": {
-            "description": "Nombre del paquete temático.",
+            "description": "Package commercial name.",
             "type": "string"
           },
           "photoKey": {
-            "description": "Foto real del paquete.",
+            "description": "Package photo key.",
             "type": "string"
           },
           "totalPriceDop": {
-            "description": "Precio del paquete en RD$.",
+            "description": "Package price in DOP.",
             "format": "int64",
             "type": "integer"
+          },
+          "visible": {
+            "description": "Whether the package is visible in the catalog.",
+            "type": "boolean"
           }
         },
         "required": [
@@ -1143,7 +2837,60 @@
           "photoKey",
           "totalPriceDop",
           "guestCapacity",
-          "itemsSummary"
+          "itemsSummary",
+          "visible"
+        ],
+        "type": "object"
+      },
+      "PackageItem": {
+        "additionalProperties": false,
+        "properties": {
+          "articleId": {
+            "description": "Included article identifier.",
+            "type": "string"
+          },
+          "articleName": {
+            "description": "Included article display name.",
+            "type": "string"
+          },
+          "quantity": {
+            "description": "Included quantity.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "unitPriceDop": {
+            "description": "Unit price in DOP.",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "articleId",
+          "articleName",
+          "quantity",
+          "unitPriceDop"
+        ],
+        "type": "object"
+      },
+      "PackageOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/PackageOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "package": {
+            "$ref": "#/components/schemas/PackageBundle",
+            "description": "Event package bundle."
+          }
+        },
+        "required": [
+          "package"
         ],
         "type": "object"
       },
@@ -1160,7 +2907,7 @@
             "type": "string"
           },
           "packages": {
-            "description": "Paquetes preconfigurados para eventos.",
+            "description": "Catalog event packages.",
             "items": {
               "$ref": "#/components/schemas/PackageBundle"
             },
@@ -1175,12 +2922,43 @@
         ],
         "type": "object"
       },
+      "PasswordChangedOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/PasswordChangedOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "updated": {
+            "description": "Indicates whether the password was updated.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "updated"
+        ],
+        "type": "object"
+      },
       "Payment": {
         "additionalProperties": false,
         "properties": {
           "amountRD": {
             "format": "int64",
             "type": "integer"
+          },
+          "bankName": {
+            "type": "string"
+          },
+          "clientEmail": {
+            "type": "string"
+          },
+          "clientId": {
+            "type": "string"
           },
           "clientName": {
             "type": "string"
@@ -1276,12 +3054,131 @@
         ],
         "type": "object"
       },
+      "PostChatMessageInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/PostChatMessageInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "attachmentName": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "eventId": {
+            "type": "string"
+          },
+          "eventTitle": {
+            "type": "string"
+          },
+          "recipientLabel": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "body"
+        ],
+        "type": "object"
+      },
+      "PublicBusinessSettings": {
+        "additionalProperties": false,
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "businessHours": {
+            "type": "string"
+          },
+          "companyName": {
+            "type": "string"
+          },
+          "deliveryZones": {
+            "items": {
+              "$ref": "#/components/schemas/DeliveryZone"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "depositPercent": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "email": {
+            "type": "string"
+          },
+          "facebook": {
+            "type": "string"
+          },
+          "instagram": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "rnc": {
+            "type": "string"
+          },
+          "whatsapp": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "companyName",
+          "rnc",
+          "address",
+          "phone",
+          "whatsapp",
+          "email",
+          "instagram",
+          "facebook",
+          "businessHours",
+          "depositPercent",
+          "deliveryZones"
+        ],
+        "type": "object"
+      },
+      "PublicSettingsOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/PublicSettingsOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/PublicBusinessSettings"
+          }
+        },
+        "required": [
+          "settings"
+        ],
+        "type": "object"
+      },
       "Quote": {
         "additionalProperties": false,
         "properties": {
           "balanceRD": {
             "format": "int64",
             "type": "integer"
+          },
+          "clientEmail": {
+            "type": "string"
+          },
+          "clientId": {
+            "type": "string"
           },
           "clientName": {
             "type": "string"
@@ -1306,6 +3203,9 @@
             "type": "integer"
           },
           "eventDateLabel": {
+            "type": "string"
+          },
+          "eventId": {
             "type": "string"
           },
           "eventTitle": {
@@ -1440,6 +3340,80 @@
         ],
         "type": "object"
       },
+      "Refund": {
+        "additionalProperties": false,
+        "properties": {
+          "approvedAtLabel": {
+            "type": "string"
+          },
+          "approvedBy": {
+            "type": "string"
+          },
+          "clientName": {
+            "type": "string"
+          },
+          "eventId": {
+            "type": "string"
+          },
+          "eventTitle": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "paidRD": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "refundPercent": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "refundRD": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "eventId",
+          "eventTitle",
+          "clientName",
+          "paidRD",
+          "refundPercent",
+          "refundRD",
+          "reason",
+          "status"
+        ],
+        "type": "object"
+      },
+      "RefundOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/RefundOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "refund": {
+            "$ref": "#/components/schemas/Refund"
+          }
+        },
+        "required": [
+          "refund"
+        ],
+        "type": "object"
+      },
       "RefundPolicyResult": {
         "additionalProperties": false,
         "properties": {
@@ -1467,6 +3441,33 @@
         ],
         "type": "object"
       },
+      "RefundsListOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/RefundsListOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "refunds": {
+            "items": {
+              "$ref": "#/components/schemas/Refund"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "refunds"
+        ],
+        "type": "object"
+      },
       "RegisterInputBody": {
         "additionalProperties": false,
         "properties": {
@@ -1480,27 +3481,27 @@
             "type": "string"
           },
           "birthDate": {
-            "description": "Fecha de nacimiento (DD/MM/AAAA).",
+            "description": "Birth date (DD/MM/YYYY).",
             "type": "string"
           },
           "email": {
-            "description": "Correo electrónico del cliente.",
+            "description": "Client email address.",
             "type": "string"
           },
           "fullName": {
-            "description": "Nombre completo del cliente.",
+            "description": "Client full name.",
             "type": "string"
           },
           "password": {
-            "description": "Contraseña de la cuenta (mínimo 6 caracteres).",
+            "description": "Account password (minimum 6 characters).",
             "type": "string"
           },
           "phone": {
-            "description": "Teléfono de contacto.",
+            "description": "Contact phone number.",
             "type": "string"
           },
           "username": {
-            "description": "Nombre de usuario de la cuenta.",
+            "description": "Account username.",
             "type": "string"
           }
         },
@@ -1529,6 +3530,12 @@
             "minimum": 1,
             "type": "integer"
           },
+          "bankName": {
+            "type": "string"
+          },
+          "clientEmail": {
+            "type": "string"
+          },
           "clientName": {
             "minLength": 2,
             "type": "string"
@@ -1545,6 +3552,7 @@
             "type": "string"
           },
           "method": {
+            "minLength": 2,
             "type": "string"
           },
           "referenceCode": {
@@ -1575,7 +3583,7 @@
             "type": "string"
           },
           "users": {
-            "description": "Cuentas registradas en PostgreSQL.",
+            "description": "Registered accounts.",
             "items": {
               "$ref": "#/components/schemas/User"
             },
@@ -1587,6 +3595,28 @@
         },
         "required": [
           "users"
+        ],
+        "type": "object"
+      },
+      "ReplyReviewInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/ReplyReviewInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "adminReply": {
+            "minLength": 2,
+            "type": "string"
+          }
+        },
+        "required": [
+          "adminReply"
         ],
         "type": "object"
       },
@@ -1660,6 +3690,101 @@
         ],
         "type": "object"
       },
+      "ReportExport": {
+        "additionalProperties": false,
+        "properties": {
+          "csv": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "filename": {
+            "type": "string"
+          },
+          "generatedAt": {
+            "type": "string"
+          },
+          "itbisRD": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "period": {
+            "type": "string"
+          },
+          "reportType": {
+            "type": "string"
+          },
+          "series": {
+            "items": {
+              "$ref": "#/components/schemas/ReportPoint"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "totalRD": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "reportType",
+          "period",
+          "generatedAt",
+          "currency",
+          "totalRD",
+          "itbisRD",
+          "series",
+          "filename",
+          "csv"
+        ],
+        "type": "object"
+      },
+      "ReportExportOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/ReportExportOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "report": {
+            "$ref": "#/components/schemas/ReportExport"
+          }
+        },
+        "required": [
+          "report"
+        ],
+        "type": "object"
+      },
+      "ReportPoint": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "label": {
+            "type": "string"
+          },
+          "valueRD": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "label",
+          "valueRD",
+          "count"
+        ],
+        "type": "object"
+      },
       "ResetPasswordInputBody": {
         "additionalProperties": false,
         "properties": {
@@ -1672,18 +3797,233 @@
             "readOnly": true,
             "type": "string"
           },
+          "email": {
+            "description": "Account email address.",
+            "type": "string"
+          },
           "identifier": {
-            "description": "Correo electrónico o username de la cuenta.",
+            "description": "Account email address or username.",
             "type": "string"
           },
           "newPassword": {
-            "description": "Nueva contraseña (mínimo 6 caracteres).",
+            "description": "New password (minimum 6 characters).",
+            "type": "string"
+          },
+          "otpCode": {
+            "description": "Six-digit verification code if not pre-exchanged.",
+            "type": "string"
+          },
+          "resetToken": {
+            "description": "Verified single-use reset token.",
             "type": "string"
           }
         },
         "required": [
-          "identifier",
           "newPassword"
+        ],
+        "type": "object"
+      },
+      "Review": {
+        "additionalProperties": false,
+        "properties": {
+          "adminReply": {
+            "type": "string"
+          },
+          "clientName": {
+            "type": "string"
+          },
+          "comment": {
+            "type": "string"
+          },
+          "createdAtLabel": {
+            "type": "string"
+          },
+          "eventId": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "rating": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "eventId",
+          "clientName",
+          "rating",
+          "comment"
+        ],
+        "type": "object"
+      },
+      "ReviewOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/ReviewOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "review": {
+            "$ref": "#/components/schemas/Review"
+          }
+        },
+        "required": [
+          "review"
+        ],
+        "type": "object"
+      },
+      "ReviewsListOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/ReviewsListOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "reviews": {
+            "items": {
+              "$ref": "#/components/schemas/Review"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "reviews"
+        ],
+        "type": "object"
+      },
+      "RosaChatInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/RosaChatInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "budgetRD": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "eventType": {
+            "type": "string"
+          },
+          "excludedCategories": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "guests": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "message": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "message"
+        ],
+        "type": "object"
+      },
+      "RosaChatResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/RosaChatResponse.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "actionCode": {
+            "type": "string"
+          },
+          "intent": {
+            "type": "string"
+          },
+          "proposal": {
+            "$ref": "#/components/schemas/RosaMoodboardProposal"
+          },
+          "reply": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "reply",
+          "intent"
+        ],
+        "type": "object"
+      },
+      "RosaLayoutPlan": {
+        "additionalProperties": false,
+        "properties": {
+          "arches": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "canvasDepthMeters": {
+            "format": "double",
+            "type": "number"
+          },
+          "canvasWidthMeters": {
+            "format": "double",
+            "type": "number"
+          },
+          "centerpieces": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "chairs": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "lightingStrands": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "sweetTables": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "tables": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "tables",
+          "chairs",
+          "arches",
+          "sweetTables",
+          "centerpieces",
+          "lightingStrands",
+          "canvasWidthMeters",
+          "canvasDepthMeters"
         ],
         "type": "object"
       },
@@ -1717,9 +4057,21 @@
           "eventType": {
             "type": "string"
           },
+          "excludedCategories": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "guests": {
             "format": "int64",
             "type": "integer"
+          },
+          "layout": {
+            "$ref": "#/components/schemas/RosaLayoutPlan"
           },
           "step": {
             "format": "int64",
@@ -1736,6 +4088,9 @@
               "array",
               "null"
             ]
+          },
+          "withinBudget": {
+            "type": "boolean"
           }
         },
         "required": [
@@ -1745,7 +4100,9 @@
           "colorPalette",
           "guests",
           "budgetRD",
+          "withinBudget",
           "suggestedLines",
+          "layout",
           "estimatedTotalRD",
           "depositRequiredRD",
           "assistantReply"
@@ -1766,16 +4123,28 @@
           },
           "budgetRD": {
             "format": "int64",
-            "minimum": 200,
+            "minimum": 0,
             "type": "integer"
           },
           "eventType": {
             "type": "string"
           },
+          "excludedCategories": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "guests": {
             "format": "int64",
-            "minimum": 10,
+            "minimum": 1,
             "type": "integer"
+          },
+          "prompt": {
+            "type": "string"
           }
         },
         "required": [
@@ -1803,6 +4172,37 @@
         },
         "required": [
           "proposal"
+        ],
+        "type": "object"
+      },
+      "RosaTranscribeInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/RosaTranscribeInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "audioBase64": {
+            "minLength": 4,
+            "type": "string"
+          },
+          "locale": {
+            "type": "string"
+          },
+          "mimeType": {
+            "type": "string"
+          },
+          "promptHint": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "audioBase64"
         ],
         "type": "object"
       },
@@ -1870,6 +4270,186 @@
         ],
         "type": "object"
       },
+      "SavePackageInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/SavePackageInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "eventType": {
+            "description": "Target event type.",
+            "type": "string"
+          },
+          "guestCapacity": {
+            "description": "Guest capacity.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "id": {
+            "description": "Optional package identifier.",
+            "type": "string"
+          },
+          "items": {
+            "description": "Included items list.",
+            "items": {
+              "$ref": "#/components/schemas/PackageItem"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "itemsSummary": {
+            "description": "Items summary text.",
+            "type": "string"
+          },
+          "name": {
+            "description": "Package name.",
+            "type": "string"
+          },
+          "photoKey": {
+            "description": "Photo key.",
+            "type": "string"
+          },
+          "totalPriceDop": {
+            "description": "Total package price in DOP.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "visible": {
+            "description": "Package visibility flag.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "totalPriceDop",
+          "guestCapacity"
+        ],
+        "type": "object"
+      },
+      "ScheduleBlock": {
+        "additionalProperties": false,
+        "properties": {
+          "eventId": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "ownerName": {
+            "type": "string"
+          },
+          "sortOrder": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "status": {
+            "type": "string"
+          },
+          "timeRange": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "eventId",
+          "timeRange",
+          "title",
+          "ownerName",
+          "status",
+          "sortOrder"
+        ],
+        "type": "object"
+      },
+      "ScheduleBlockOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/ScheduleBlockOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "block": {
+            "$ref": "#/components/schemas/ScheduleBlock"
+          }
+        },
+        "required": [
+          "block"
+        ],
+        "type": "object"
+      },
+      "ScheduleListOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/ScheduleListOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "blocks": {
+            "items": {
+              "$ref": "#/components/schemas/ScheduleBlock"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "blocks"
+        ],
+        "type": "object"
+      },
+      "SettingsOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/SettingsOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "deliveryZones": {
+            "items": {
+              "$ref": "#/components/schemas/DeliveryZone"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "settings": {
+            "$ref": "#/components/schemas/BusinessSettings"
+          }
+        },
+        "required": [
+          "settings",
+          "deliveryZones"
+        ],
+        "type": "object"
+      },
       "SignContractInputBody": {
         "additionalProperties": false,
         "properties": {
@@ -1897,42 +4477,25 @@
         ],
         "type": "object"
       },
-      "StaffMember": {
+      "StaffMemberOutputBody": {
         "additionalProperties": false,
         "properties": {
-          "fullName": {
-            "description": "Nombre del integrante.",
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/StaffMemberOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
             "type": "string"
           },
-          "id": {
-            "description": "Identificador del miembro del equipo.",
-            "type": "string"
-          },
-          "permissions": {
-            "description": "Permisos activos en A28.",
-            "items": {
-              "type": "string"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
-          },
-          "role": {
-            "description": "Rol técnico (admin o staff).",
-            "type": "string"
-          },
-          "roleLabel": {
-            "description": "Cargo dentro de RosaFiesta.",
-            "type": "string"
+          "member": {
+            "$ref": "#/components/schemas/StaffRecord",
+            "description": "Staff member record."
           }
         },
         "required": [
-          "id",
-          "fullName",
-          "roleLabel",
-          "role",
-          "permissions"
+          "member"
         ],
         "type": "object"
       },
@@ -1949,9 +4512,9 @@
             "type": "string"
           },
           "staff": {
-            "description": "Equipo operativo y sus permisos.",
+            "description": "Operational staff members and permissions.",
             "items": {
-              "$ref": "#/components/schemas/StaffMember"
+              "$ref": "#/components/schemas/StaffRecord"
             },
             "type": [
               "array",
@@ -1961,6 +4524,152 @@
         },
         "required": [
           "staff"
+        ],
+        "type": "object"
+      },
+      "StaffRecord": {
+        "additionalProperties": false,
+        "properties": {
+          "active": {
+            "description": "Whether the staff member is active.",
+            "type": "boolean"
+          },
+          "email": {
+            "description": "Staff member email address.",
+            "type": "string"
+          },
+          "fullName": {
+            "description": "Staff member full name.",
+            "type": "string"
+          },
+          "id": {
+            "description": "Staff member identifier.",
+            "type": "string"
+          },
+          "permissions": {
+            "description": "Assigned operational permissions.",
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "phone": {
+            "description": "Staff member phone number.",
+            "type": "string"
+          },
+          "role": {
+            "description": "Technical role (admin or staff).",
+            "type": "string"
+          },
+          "roleLabel": {
+            "description": "Display role title.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "fullName",
+          "roleLabel",
+          "role",
+          "permissions",
+          "active"
+        ],
+        "type": "object"
+      },
+      "Supplier": {
+        "additionalProperties": false,
+        "properties": {
+          "category": {
+            "type": "string"
+          },
+          "contactName": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "rating": {
+            "type": "string"
+          },
+          "specialty": {
+            "type": "string"
+          },
+          "website": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "category",
+          "specialty",
+          "contactName",
+          "phone",
+          "email",
+          "rating"
+        ],
+        "type": "object"
+      },
+      "SupplierOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/SupplierOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "supplier": {
+            "$ref": "#/components/schemas/Supplier"
+          }
+        },
+        "required": [
+          "supplier"
+        ],
+        "type": "object"
+      },
+      "SuppliersListOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/SuppliersListOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "suppliers": {
+            "items": {
+              "$ref": "#/components/schemas/Supplier"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "suppliers"
         ],
         "type": "object"
       },
@@ -1977,7 +4686,7 @@
             "type": "string"
           },
           "view": {
-            "description": "Vista destino: personal o admin.",
+            "description": "Target view: personal or admin.",
             "type": "string"
           }
         },
@@ -2000,7 +4709,7 @@
           },
           "user": {
             "$ref": "#/components/schemas/User",
-            "description": "Usuario con su nueva vista activa."
+            "description": "User with active view."
           }
         },
         "required": [
@@ -2061,10 +4770,607 @@
         ],
         "type": "object"
       },
+      "TranscriptionResult": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/TranscriptionResult.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "durationMs": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "locale": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "rmsEnergy": {
+            "format": "double",
+            "type": "number"
+          },
+          "sampleRateHz": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "transcript": {
+            "type": "string"
+          },
+          "voiceDetected": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "transcript",
+          "locale",
+          "durationMs",
+          "sampleRateHz",
+          "rmsEnergy",
+          "voiceDetected",
+          "provider"
+        ],
+        "type": "object"
+      },
+      "UpdateArticleInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/UpdateArticleInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "availableStock": {
+            "description": "Updated available stock.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "categoryId": {
+            "description": "Updated category identifier.",
+            "type": "string"
+          },
+          "colorVariants": {
+            "description": "Updated color variants.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "dailyPriceDop": {
+            "description": "Updated daily price in DOP.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "description": {
+            "description": "Updated description.",
+            "type": "string"
+          },
+          "dimensions": {
+            "description": "Updated dimensions.",
+            "type": "string"
+          },
+          "lowStockThreshold": {
+            "description": "Updated low stock threshold.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "material": {
+            "description": "Updated material.",
+            "type": "string"
+          },
+          "name": {
+            "description": "Updated article name.",
+            "type": "string"
+          },
+          "photoKey": {
+            "description": "Updated photo key.",
+            "type": "string"
+          },
+          "totalStock": {
+            "description": "Updated total stock.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "visible": {
+            "description": "Updated visibility flag.",
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateBotThreadInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/UpdateBotThreadInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "assignedAgent": {
+            "type": "string"
+          },
+          "botPaused": {
+            "type": "boolean"
+          },
+          "lastMessage": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateClientInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/UpdateClientInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "email": {
+            "description": "Client email address.",
+            "type": "string"
+          },
+          "fullName": {
+            "description": "Client full name.",
+            "type": "string"
+          },
+          "notes": {
+            "description": "Administrative client notes.",
+            "type": "string"
+          },
+          "phone": {
+            "description": "Client phone number.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateEventInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/UpdateEventInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "assignedLead": {
+            "type": "string"
+          },
+          "dateLabel": {
+            "type": "string"
+          },
+          "daysUntilEvent": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "guests": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/EventItem"
+            },
+            "type": "array"
+          },
+          "sketchJson": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "venue": {
+            "type": "string"
+          },
+          "zone": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateGuestInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/UpdateGuestInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "dietaryNotes": {
+            "type": "string"
+          },
+          "fullName": {
+            "type": "string"
+          },
+          "rsvpStatus": {
+            "type": "string"
+          },
+          "tableLabel": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateLeadInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/UpdateLeadInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "estimatedDop": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "stage": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UpdatePackageInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/UpdatePackageInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "eventType": {
+            "description": "Target event type.",
+            "type": "string"
+          },
+          "guestCapacity": {
+            "description": "Guest capacity.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "items": {
+            "description": "Included items list.",
+            "items": {
+              "$ref": "#/components/schemas/PackageItem"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "itemsSummary": {
+            "description": "Items summary text.",
+            "type": "string"
+          },
+          "name": {
+            "description": "Package name.",
+            "type": "string"
+          },
+          "photoKey": {
+            "description": "Photo key.",
+            "type": "string"
+          },
+          "totalPriceDop": {
+            "description": "Total package price in DOP.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "visible": {
+            "description": "Package visibility flag.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "totalPriceDop",
+          "guestCapacity"
+        ],
+        "type": "object"
+      },
+      "UpdateProfileInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/UpdateProfileInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "avatarKey": {
+            "description": "Updated avatar identifier.",
+            "type": "string"
+          },
+          "birthDate": {
+            "description": "Updated birth date.",
+            "type": "string"
+          },
+          "email": {
+            "description": "Updated email address.",
+            "type": "string"
+          },
+          "fullName": {
+            "description": "Updated full name.",
+            "type": "string"
+          },
+          "phone": {
+            "description": "Updated phone number.",
+            "type": "string"
+          },
+          "username": {
+            "description": "Updated username.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateSettingsInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/UpdateSettingsInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "address": {
+            "type": "string"
+          },
+          "businessHours": {
+            "type": "string"
+          },
+          "companyName": {
+            "type": "string"
+          },
+          "deliveryZones": {
+            "items": {
+              "$ref": "#/components/schemas/DeliveryZone"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "depositPercent": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "email": {
+            "type": "string"
+          },
+          "facebook": {
+            "type": "string"
+          },
+          "instagram": {
+            "type": "string"
+          },
+          "itbisPercent": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "rnc": {
+            "type": "string"
+          },
+          "whatsapp": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateStaffInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/UpdateStaffInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "active": {
+            "description": "Updated active flag.",
+            "type": "boolean"
+          },
+          "fullName": {
+            "description": "Updated staff member full name.",
+            "type": "string"
+          },
+          "permissions": {
+            "description": "Updated operational permissions.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "role": {
+            "description": "Updated technical role.",
+            "type": "string"
+          },
+          "roleLabel": {
+            "description": "Updated role title.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UpsertBotFAQInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/UpsertBotFAQInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "answer": {
+            "minLength": 3,
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "question": {
+            "minLength": 3,
+            "type": "string"
+          }
+        },
+        "required": [
+          "question",
+          "answer",
+          "active"
+        ],
+        "type": "object"
+      },
+      "UpsertBotKeywordInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/UpsertBotKeywordInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "autoReply": {
+            "minLength": 3,
+            "type": "string"
+          },
+          "handoffToHuman": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "keyword": {
+            "minLength": 2,
+            "type": "string"
+          }
+        },
+        "required": [
+          "keyword",
+          "autoReply",
+          "handoffToHuman"
+        ],
+        "type": "object"
+      },
+      "UpsertSupplierInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/UpsertSupplierInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "contactName": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "minLength": 2,
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "rating": {
+            "type": "string"
+          },
+          "specialty": {
+            "type": "string"
+          },
+          "website": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "category",
+          "specialty",
+          "phone"
+        ],
+        "type": "object"
+      },
       "User": {
         "additionalProperties": false,
         "properties": {
           "activeView": {
+            "type": "string"
+          },
+          "avatarKey": {
             "type": "string"
           },
           "birthDate": {
@@ -2157,7 +5463,38 @@
             "description": "Error"
           }
         },
-        "summary": "Verifica que el servidor esté vivo",
+        "summary": "Check service liveness",
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/readyz": {
+      "get": {
+        "operationId": "get-readiness",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Check service and database readiness",
         "tags": [
           "Health"
         ]
@@ -2193,7 +5530,7 @@
             "bearer": []
           }
         ],
-        "summary": "Elimina la cuenta validando que no existan eventos activos (s88)",
+        "summary": "Delete authenticated account when no active events remain",
         "tags": [
           "Identity"
         ]
@@ -2224,7 +5561,70 @@
             "description": "Error"
           }
         },
-        "summary": "Lista los clientes y su saldo (A26, A27)",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List clients and balances",
+        "tags": [
+          "Identity"
+        ]
+      }
+    },
+    "/v1/admin/clients/{id}": {
+      "patch": {
+        "operationId": "admin-update-client",
+        "parameters": [
+          {
+            "description": "Client identifier.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Client identifier.",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateClientInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update administrative client contact details and notes",
         "tags": [
           "Identity"
         ]
@@ -2255,7 +5655,160 @@
             "description": "Error"
           }
         },
-        "summary": "Lista el equipo y sus permisos operativos (A28)",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List operational staff members and permissions",
+        "tags": [
+          "Identity"
+        ]
+      },
+      "post": {
+        "operationId": "admin-invite-staff",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InviteStaffInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffMemberOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Invite a new staff member and configure permissions",
+        "tags": [
+          "Identity"
+        ]
+      }
+    },
+    "/v1/admin/staff/{id}": {
+      "patch": {
+        "operationId": "admin-update-staff",
+        "parameters": [
+          {
+            "description": "Staff member identifier.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Staff member identifier.",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStaffInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffMemberOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update staff member role and operational permissions",
+        "tags": [
+          "Identity"
+        ]
+      }
+    },
+    "/v1/auth/change-password": {
+      "post": {
+        "operationId": "auth-change-password",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasswordChangedOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Verify current password and update password hash",
         "tags": [
           "Identity"
         ]
@@ -2296,7 +5849,43 @@
             "description": "Error"
           }
         },
-        "summary": "Inicia sesión en RosaFiesta (s07)",
+        "summary": "Authenticate user credentials with bcrypt",
+        "tags": [
+          "Identity"
+        ]
+      }
+    },
+    "/v1/auth/logout": {
+      "post": {
+        "operationId": "auth-logout",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LogoutOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Revoke and delete the current bearer session",
         "tags": [
           "Identity"
         ]
@@ -2332,7 +5921,174 @@
             "bearer": []
           }
         ],
-        "summary": "Devuelve el usuario autenticado por su token Bearer",
+        "summary": "Return the authenticated user profile",
+        "tags": [
+          "Identity"
+        ]
+      },
+      "patch": {
+        "operationId": "auth-update-me",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProfileInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SwitchViewOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update the authenticated user profile",
+        "tags": [
+          "Identity"
+        ]
+      }
+    },
+    "/v1/auth/oauth": {
+      "post": {
+        "operationId": "auth-oauth",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OAuthLoginInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Authenticate with OAuth provider identity token",
+        "tags": [
+          "Identity"
+        ]
+      }
+    },
+    "/v1/auth/otp/request": {
+      "post": {
+        "operationId": "auth-otp-request",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OTPRequestInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OTPRequestResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Generate and dispatch a cryptographic six-digit verification code",
+        "tags": [
+          "Identity"
+        ]
+      }
+    },
+    "/v1/auth/otp/verify": {
+      "post": {
+        "operationId": "auth-otp-verify",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OTPVerifyInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OTPVerifyResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Verify OTP code and issue a single-use password reset token",
         "tags": [
           "Identity"
         ]
@@ -2373,7 +6129,7 @@
             "description": "Error"
           }
         },
-        "summary": "Registra una cuenta nueva en PostgreSQL y emite su JWT (s08)",
+        "summary": "Register a new account and issue a signed JWT",
         "tags": [
           "Identity"
         ]
@@ -2414,7 +6170,7 @@
             "description": "Error"
           }
         },
-        "summary": "Actualiza la contraseña de una cuenta en PostgreSQL (s10)",
+        "summary": "Reset account password using a verified reset token or OTP code",
         "tags": [
           "Identity"
         ]
@@ -2460,7 +6216,7 @@
             "bearer": []
           }
         ],
-        "summary": "Permite a un admin entrar como cliente o volver a negocio (A30)",
+        "summary": "Switch between administrative and personal views",
         "tags": [
           "Identity"
         ]
@@ -2491,7 +6247,12 @@
             "description": "Error"
           }
         },
-        "summary": "Lista las cuentas registradas en PostgreSQL",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List registered accounts for administrators",
         "tags": [
           "Identity"
         ]
@@ -2502,13 +6263,33 @@
         "operationId": "catalog-list-articles",
         "parameters": [
           {
-            "description": "Búsqueda opcional por nombre o categoría.",
+            "description": "Optional search filter by name or category.",
             "explode": false,
             "in": "query",
             "name": "q",
             "schema": {
-              "description": "Búsqueda opcional por nombre o categoría.",
+              "description": "Optional search filter by name or category.",
               "type": "string"
+            }
+          },
+          {
+            "description": "Catalog kind filter: rental, balloon, or all.",
+            "explode": false,
+            "in": "query",
+            "name": "kind",
+            "schema": {
+              "description": "Catalog kind filter: rental, balloon, or all.",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Include hidden inventory items.",
+            "explode": false,
+            "in": "query",
+            "name": "includeHidden",
+            "schema": {
+              "description": "Include hidden inventory items.",
+              "type": "boolean"
             }
           }
         ],
@@ -2534,7 +6315,193 @@
             "description": "Error"
           }
         },
-        "summary": "Lista los artículos de alquiler y su disponibilidad (s01, s18, A09, s63)",
+        "summary": "List rental catalog articles and live stock",
+        "tags": [
+          "Catalog"
+        ]
+      },
+      "post": {
+        "operationId": "catalog-create-article",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateArticleInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArticleOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a new catalog article",
+        "tags": [
+          "Catalog"
+        ]
+      }
+    },
+    "/v1/catalog/articles/{id}": {
+      "patch": {
+        "operationId": "catalog-update-article",
+        "parameters": [
+          {
+            "description": "Article identifier.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Article identifier.",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateArticleInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArticleOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update an existing catalog article",
+        "tags": [
+          "Catalog"
+        ]
+      }
+    },
+    "/v1/catalog/availability": {
+      "get": {
+        "operationId": "catalog-availability",
+        "parameters": [
+          {
+            "description": "Article identifier to inspect.",
+            "explode": false,
+            "in": "query",
+            "name": "articleId",
+            "schema": {
+              "description": "Article identifier to inspect.",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Calendar month in YYYY-MM format.",
+            "explode": false,
+            "in": "query",
+            "name": "month",
+            "schema": {
+              "description": "Calendar month in YYYY-MM format.",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvailabilityOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Compute per-day reserved and available stock for an article and month",
+        "tags": [
+          "Catalog"
+        ]
+      }
+    },
+    "/v1/catalog/balloons": {
+      "get": {
+        "operationId": "catalog-list-balloons",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArticlesOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "List direct-sale balloon items",
         "tags": [
           "Catalog"
         ]
@@ -2565,7 +6532,7 @@
             "description": "Error"
           }
         },
-        "summary": "Lista las categorías del catálogo (s20)",
+        "summary": "List catalog categories",
         "tags": [
           "Catalog"
         ]
@@ -2596,9 +6563,251 @@
             "description": "Error"
           }
         },
-        "summary": "Lista los paquetes temáticos (s21, s22, A24)",
+        "summary": "List themed event packages and included items",
         "tags": [
           "Catalog"
+        ]
+      },
+      "post": {
+        "operationId": "catalog-create-package",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SavePackageInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackageOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a new themed event package",
+        "tags": [
+          "Catalog"
+        ]
+      }
+    },
+    "/v1/catalog/packages/{id}": {
+      "put": {
+        "operationId": "catalog-update-package",
+        "parameters": [
+          {
+            "description": "Package identifier.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Package identifier.",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePackageInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackageOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update an existing themed event package",
+        "tags": [
+          "Catalog"
+        ]
+      }
+    },
+    "/v1/chats": {
+      "get": {
+        "operationId": "chats-list-threads",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatThreadsOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List event chat threads",
+        "tags": [
+          "Events"
+        ]
+      }
+    },
+    "/v1/chats/{threadId}/messages": {
+      "get": {
+        "operationId": "chats-list-messages",
+        "parameters": [
+          {
+            "description": "Chat thread identifier.",
+            "in": "path",
+            "name": "threadId",
+            "required": true,
+            "schema": {
+              "description": "Chat thread identifier.",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatMessagesOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List persisted messages in a chat thread",
+        "tags": [
+          "Events"
+        ]
+      },
+      "post": {
+        "operationId": "chats-post-message",
+        "parameters": [
+          {
+            "description": "Chat thread identifier.",
+            "in": "path",
+            "name": "threadId",
+            "required": true,
+            "schema": {
+              "description": "Chat thread identifier.",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PostChatMessageInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatMessageOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Persist a new message in a chat thread",
+        "tags": [
+          "Events"
         ]
       }
     },
@@ -2607,12 +6816,12 @@
         "operationId": "events-list",
         "parameters": [
           {
-            "description": "Estado opcional (confirmed, pending, completed, cancelled)",
+            "description": "Optional event status filter (confirmed, pending, completed, cancelled).",
             "explode": false,
             "in": "query",
             "name": "status",
             "schema": {
-              "description": "Estado opcional (confirmed, pending, completed, cancelled)",
+              "description": "Optional event status filter (confirmed, pending, completed, cancelled).",
               "type": "string"
             }
           }
@@ -2639,7 +6848,56 @@
             "description": "Error"
           }
         },
-        "summary": "Listar eventos de clientes y operación",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List events scoped by caller role",
+        "tags": [
+          "Events"
+        ]
+      },
+      "post": {
+        "operationId": "events-create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEventInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventDetailOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a new event reservation",
         "tags": [
           "Events"
         ]
@@ -2670,7 +6928,7 @@
             "description": "Error"
           }
         },
-        "summary": "Listar plantillas de tipos de evento (Bodas, Quinceañeras, Cumpleaños, etc.)",
+        "summary": "List canonical event type templates",
         "tags": [
           "Events"
         ]
@@ -2681,12 +6939,12 @@
         "operationId": "events-get-by-id",
         "parameters": [
           {
-            "description": "ID del evento",
+            "description": "Event identifier.",
             "in": "path",
             "name": "id",
             "required": true,
             "schema": {
-              "description": "ID del evento",
+              "description": "Event identifier.",
               "type": "string"
             }
           }
@@ -2713,7 +6971,68 @@
             "description": "Error"
           }
         },
-        "summary": "Obtener detalle de un evento y saldo pendiente",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get event detail and pending balance",
+        "tags": [
+          "Events"
+        ]
+      },
+      "patch": {
+        "operationId": "events-update",
+        "parameters": [
+          {
+            "description": "Event identifier.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Event identifier.",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateEventInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventDetailOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update event details, items, or sketch layout",
         "tags": [
           "Events"
         ]
@@ -2724,16 +7043,28 @@
         "operationId": "events-cancel",
         "parameters": [
           {
-            "description": "ID del evento",
+            "description": "Event identifier.",
             "in": "path",
             "name": "id",
             "required": true,
             "schema": {
-              "description": "ID del evento",
+              "description": "Event identifier.",
               "type": "string"
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "contentMediaType": "application/octet-stream",
+                "format": "binary",
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
@@ -2756,7 +7087,12 @@
             "description": "Error"
           }
         },
-        "summary": "Cancelar evento aplicando política de reembolso 90%/50%/0%",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cancel an event, persist reason, and record refund",
         "tags": [
           "Events"
         ]
@@ -2767,12 +7103,12 @@
         "operationId": "events-request-date-change",
         "parameters": [
           {
-            "description": "ID del evento",
+            "description": "Event identifier.",
             "in": "path",
             "name": "id",
             "required": true,
             "schema": {
-              "description": "ID del evento",
+              "description": "Event identifier.",
               "type": "string"
             }
           }
@@ -2809,9 +7145,818 @@
             "description": "Error"
           }
         },
-        "summary": "Solicitar cambio de fecha (primer cambio gratis)",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Request an event date change under contract policy",
         "tags": [
           "Events"
+        ]
+      }
+    },
+    "/v1/events/{id}/duplicate": {
+      "post": {
+        "operationId": "events-duplicate",
+        "parameters": [
+          {
+            "description": "Event identifier.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Event identifier.",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventDetailOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Duplicate an existing event into a draft copy",
+        "tags": [
+          "Events"
+        ]
+      }
+    },
+    "/v1/events/{id}/guests": {
+      "get": {
+        "operationId": "events-list-guests",
+        "parameters": [
+          {
+            "description": "Event identifier.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Event identifier.",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuestsListOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List event guests and RSVP statuses",
+        "tags": [
+          "Events"
+        ]
+      },
+      "post": {
+        "operationId": "events-add-guest",
+        "parameters": [
+          {
+            "description": "Event identifier.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Event identifier.",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddGuestInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuestOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add an event guest",
+        "tags": [
+          "Events"
+        ]
+      }
+    },
+    "/v1/events/{id}/guests/{guestId}": {
+      "patch": {
+        "operationId": "events-update-guest",
+        "parameters": [
+          {
+            "description": "Event identifier.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Event identifier.",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Guest identifier.",
+            "in": "path",
+            "name": "guestId",
+            "required": true,
+            "schema": {
+              "description": "Guest identifier.",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateGuestInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuestOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update guest RSVP status, table, or dietary notes",
+        "tags": [
+          "Events"
+        ]
+      }
+    },
+    "/v1/events/{id}/schedule": {
+      "get": {
+        "operationId": "events-list-schedule",
+        "parameters": [
+          {
+            "description": "Event identifier.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Event identifier.",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduleListOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List event schedule blocks",
+        "tags": [
+          "Events"
+        ]
+      },
+      "post": {
+        "operationId": "events-add-schedule",
+        "parameters": [
+          {
+            "description": "Event identifier.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Event identifier.",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddScheduleBlockInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduleBlockOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add a schedule block to an event",
+        "tags": [
+          "Events"
+        ]
+      }
+    },
+    "/v1/events/{id}/schedule/{blockId}": {
+      "delete": {
+        "operationId": "events-delete-schedule",
+        "parameters": [
+          {
+            "description": "Event identifier.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Event identifier.",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Schedule block identifier.",
+            "in": "path",
+            "name": "blockId",
+            "required": true,
+            "schema": {
+              "description": "Schedule block identifier.",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteScheduleBlockOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove a schedule block from an event",
+        "tags": [
+          "Events"
+        ]
+      }
+    },
+    "/v1/notifications": {
+      "get": {
+        "operationId": "operations-list-notifications",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationsOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List notifications visible to the authenticated user",
+        "tags": [
+          "Operations"
+        ]
+      }
+    },
+    "/v1/notifications/{id}/read": {
+      "patch": {
+        "operationId": "operations-mark-notification-read",
+        "parameters": [
+          {
+            "description": "Notification identifier.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Notification identifier.",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mark a notification as read",
+        "tags": [
+          "Operations"
+        ]
+      }
+    },
+    "/v1/operations/audit-logs": {
+      "get": {
+        "operationId": "operations-list-audit-logs",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditLogsOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List administrative and operational audit trail entries",
+        "tags": [
+          "Operations"
+        ]
+      }
+    },
+    "/v1/operations/bot/faqs": {
+      "get": {
+        "operationId": "operations-list-bot-faqs",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BotFAQsOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List WhatsApp bot automated FAQ entries",
+        "tags": [
+          "Operations"
+        ]
+      },
+      "post": {
+        "operationId": "operations-upsert-bot-faq",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertBotFAQInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BotFAQOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create or update a WhatsApp bot FAQ entry",
+        "tags": [
+          "Operations"
+        ]
+      }
+    },
+    "/v1/operations/bot/keywords": {
+      "get": {
+        "operationId": "operations-list-bot-keywords",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BotKeywordsOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List WhatsApp bot keyword triggers",
+        "tags": [
+          "Operations"
+        ]
+      },
+      "post": {
+        "operationId": "operations-upsert-bot-keyword",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertBotKeywordInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BotKeywordOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create or update a WhatsApp bot keyword trigger",
+        "tags": [
+          "Operations"
+        ]
+      }
+    },
+    "/v1/operations/bot/threads": {
+      "get": {
+        "operationId": "operations-list-bot-threads",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BotThreadsOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List WhatsApp customer conversation threads and handoff states",
+        "tags": [
+          "Operations"
+        ]
+      }
+    },
+    "/v1/operations/bot/threads/{id}": {
+      "patch": {
+        "operationId": "operations-update-bot-thread",
+        "parameters": [
+          {
+            "description": "WhatsApp bot thread identifier.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "WhatsApp bot thread identifier.",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateBotThreadInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BotThreadOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Pause or resume WhatsApp bot and assign a human agent",
+        "tags": [
+          "Operations"
+        ]
+      }
+    },
+    "/v1/operations/damages": {
+      "get": {
+        "operationId": "operations-list-damages",
+        "parameters": [
+          {
+            "description": "Optional event identifier filter.",
+            "explode": false,
+            "in": "query",
+            "name": "eventId",
+            "schema": {
+              "description": "Optional event identifier filter.",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DamagesListOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List recorded damage and missing item incidents",
+        "tags": [
+          "Operations"
         ]
       }
     },
@@ -2820,12 +7965,12 @@
         "operationId": "operations-get-event-logistics",
         "parameters": [
           {
-            "description": "ID del evento",
+            "description": "Event identifier.",
             "in": "path",
             "name": "eventId",
             "required": true,
             "schema": {
-              "description": "ID del evento",
+              "description": "Event identifier.",
               "type": "string"
             }
           }
@@ -2852,7 +7997,12 @@
             "description": "Error"
           }
         },
-        "summary": "Obtener logística, equipo y checklist de montaje de un evento (s66, s68, A11)",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get event logistics, crew, and setup checklist",
         "tags": [
           "Operations"
         ]
@@ -2863,22 +8013,22 @@
         "operationId": "operations-toggle-checklist-item",
         "parameters": [
           {
-            "description": "ID del evento",
+            "description": "Event identifier.",
             "in": "path",
             "name": "eventId",
             "required": true,
             "schema": {
-              "description": "ID del evento",
+              "description": "Event identifier.",
               "type": "string"
             }
           },
           {
-            "description": "ID del paso del checklist",
+            "description": "Checklist step identifier.",
             "in": "path",
             "name": "itemId",
             "required": true,
             "schema": {
-              "description": "ID del paso del checklist",
+              "description": "Checklist step identifier.",
               "type": "string"
             }
           }
@@ -2915,7 +8065,12 @@
             "description": "Error"
           }
         },
-        "summary": "Marcar o desmarcar un paso del checklist de montaje (s68, A11)",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Toggle a setup or teardown checklist item",
         "tags": [
           "Operations"
         ]
@@ -2926,12 +8081,12 @@
         "operationId": "operations-report-damage",
         "parameters": [
           {
-            "description": "ID del evento",
+            "description": "Event identifier.",
             "in": "path",
             "name": "eventId",
             "required": true,
             "schema": {
-              "description": "ID del evento",
+              "description": "Event identifier.",
               "type": "string"
             }
           }
@@ -2968,7 +8123,198 @@
             "description": "Error"
           }
         },
-        "summary": "Registrar incidencia de daño o faltante post-evento (A14)",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Record a post-event damage or missing item incident",
+        "tags": [
+          "Operations"
+        ]
+      }
+    },
+    "/v1/operations/insurance": {
+      "get": {
+        "operationId": "operations-list-insurance",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InsuranceOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List active inventory and fleet insurance policies",
+        "tags": [
+          "Operations"
+        ]
+      }
+    },
+    "/v1/operations/leads": {
+      "get": {
+        "operationId": "operations-list-leads",
+        "parameters": [
+          {
+            "description": "Optional CRM pipeline stage filter.",
+            "explode": false,
+            "in": "query",
+            "name": "stage",
+            "schema": {
+              "description": "Optional CRM pipeline stage filter.",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeadsListOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List CRM pipeline leads",
+        "tags": [
+          "Operations"
+        ]
+      },
+      "post": {
+        "operationId": "operations-create-lead",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateLeadInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeadOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a new CRM lead",
+        "tags": [
+          "Operations"
+        ]
+      }
+    },
+    "/v1/operations/leads/{id}": {
+      "patch": {
+        "operationId": "operations-update-lead",
+        "parameters": [
+          {
+            "description": "Lead identifier.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Lead identifier.",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateLeadInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeadOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update CRM lead stage, estimate, or notes",
         "tags": [
           "Operations"
         ]
@@ -2999,7 +8345,12 @@
             "description": "Error"
           }
         },
-        "summary": "Listar cambios pendientes de sincronizar en modo sin conexión (A37)",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List pending offline field mutations",
         "tags": [
           "Operations"
         ]
@@ -3030,7 +8381,12 @@
             "description": "Error"
           }
         },
-        "summary": "Sincronizar todos los cambios pendientes en cola offline (A37)",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Synchronize pending offline mutations with PostgreSQL",
         "tags": [
           "Operations"
         ]
@@ -3061,7 +8417,215 @@
             "description": "Error"
           }
         },
-        "summary": "Listar paradas de la ruta de entrega del día (A13)",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List daily delivery and pickup route stops",
+        "tags": [
+          "Operations"
+        ]
+      }
+    },
+    "/v1/operations/settings": {
+      "get": {
+        "operationId": "operations-get-settings",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettingsOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get full administrative business settings and delivery zones",
+        "tags": [
+          "Operations"
+        ]
+      },
+      "put": {
+        "operationId": "operations-update-settings",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSettingsInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettingsOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update administrative business settings and delivery zones",
+        "tags": [
+          "Operations"
+        ]
+      }
+    },
+    "/v1/operations/settings/public": {
+      "get": {
+        "operationId": "operations-get-public-settings",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicSettingsOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Get public Santo Domingo showroom, contact, and delivery zone info",
+        "tags": [
+          "Operations"
+        ]
+      }
+    },
+    "/v1/operations/suppliers": {
+      "get": {
+        "operationId": "operations-list-suppliers",
+        "parameters": [
+          {
+            "description": "Optional supplier category filter.",
+            "explode": false,
+            "in": "query",
+            "name": "category",
+            "schema": {
+              "description": "Optional supplier category filter.",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuppliersListOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List external suppliers and partners",
+        "tags": [
+          "Operations"
+        ]
+      },
+      "post": {
+        "operationId": "operations-upsert-supplier",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertSupplierInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupplierOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create or update a supplier directory entry",
         "tags": [
           "Operations"
         ]
@@ -3072,12 +8636,12 @@
         "operationId": "payments-list",
         "parameters": [
           {
-            "description": "ID opcional del evento",
+            "description": "Optional event identifier filter.",
             "explode": false,
             "in": "query",
             "name": "eventId",
             "schema": {
-              "description": "ID opcional del evento",
+              "description": "Optional event identifier filter.",
               "type": "string"
             }
           }
@@ -3104,7 +8668,12 @@
             "description": "Error"
           }
         },
-        "summary": "Listar pagos y comprobantes recibidos",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List payments and receipts scoped by caller role",
         "tags": [
           "Payments"
         ]
@@ -3143,7 +8712,12 @@
             "description": "Error"
           }
         },
-        "summary": "Registrar anticipo o saldo pendiente (s30, s31, s38, s70)",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Register a deposit, balance, or replacement payment",
         "tags": [
           "Payments"
         ]
@@ -3174,7 +8748,12 @@
             "description": "Error"
           }
         },
-        "summary": "Obtener resumen financiero del mes (s69, A20)",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get live monthly financial summary metrics",
         "tags": [
           "Payments"
         ]
@@ -3185,12 +8764,12 @@
         "operationId": "quotes-list",
         "parameters": [
           {
-            "description": "Estado opcional (pending, sent, approved, signed, declined)",
+            "description": "Optional quote status filter (pending, sent, approved, signed, declined).",
             "explode": false,
             "in": "query",
             "name": "status",
             "schema": {
-              "description": "Estado opcional (pending, sent, approved, signed, declined)",
+              "description": "Optional quote status filter (pending, sent, approved, signed, declined).",
               "type": "string"
             }
           }
@@ -3217,7 +8796,12 @@
             "description": "Error"
           }
         },
-        "summary": "Listar cotizaciones y solicitudes recibidas",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List quotes and contract proposals scoped by caller role",
         "tags": [
           "Quotes"
         ]
@@ -3256,7 +8840,12 @@
             "description": "Error"
           }
         },
-        "summary": "Crear nueva cotización con cálculo automático de 30% de anticipo",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a new quote with 30 percent deposit calculation",
         "tags": [
           "Quotes"
         ]
@@ -3297,7 +8886,7 @@
             "description": "Error"
           }
         },
-        "summary": "Generar propuesta y moodboard con el asistente Rosa IA (s40-s48, A16-A18)",
+        "summary": "Generate Rosa AI moodboard and live SKU quote proposal",
         "tags": [
           "Quotes"
         ]
@@ -3308,12 +8897,12 @@
         "operationId": "quotes-get-by-id",
         "parameters": [
           {
-            "description": "ID de la cotización",
+            "description": "Quote identifier.",
             "in": "path",
             "name": "id",
             "required": true,
             "schema": {
-              "description": "ID de la cotización",
+              "description": "Quote identifier.",
               "type": "string"
             }
           }
@@ -3340,7 +8929,12 @@
             "description": "Error"
           }
         },
-        "summary": "Obtener detalle de cotización y contrato",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get quote and digital contract detail",
         "tags": [
           "Quotes"
         ]
@@ -3351,12 +8945,12 @@
         "operationId": "quotes-decline",
         "parameters": [
           {
-            "description": "ID de la cotización",
+            "description": "Quote identifier.",
             "in": "path",
             "name": "id",
             "required": true,
             "schema": {
-              "description": "ID de la cotización",
+              "description": "Quote identifier.",
               "type": "string"
             }
           }
@@ -3393,7 +8987,60 @@
             "description": "Error"
           }
         },
-        "summary": "Declinar solicitud con respuesta amable (A08)",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Decline quote proposal with reason",
+        "tags": [
+          "Quotes"
+        ]
+      }
+    },
+    "/v1/quotes/{id}/duplicate": {
+      "post": {
+        "operationId": "quotes-duplicate",
+        "parameters": [
+          {
+            "description": "Quote identifier.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Quote identifier.",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuoteOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Duplicate an existing quote into a new pending draft",
         "tags": [
           "Quotes"
         ]
@@ -3404,12 +9051,12 @@
         "operationId": "quotes-sign-contract",
         "parameters": [
           {
-            "description": "ID de la cotización",
+            "description": "Quote identifier.",
             "in": "path",
             "name": "id",
             "required": true,
             "schema": {
-              "description": "ID de la cotización",
+              "description": "Quote identifier.",
               "type": "string"
             }
           }
@@ -3446,7 +9093,393 @@
             "description": "Error"
           }
         },
-        "summary": "Firmar contrato digital de alquiler (s28)",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Sign rental digital contract with SVG signature",
+        "tags": [
+          "Quotes"
+        ]
+      }
+    },
+    "/v1/refunds": {
+      "get": {
+        "operationId": "payments-list-refunds",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefundsListOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List cancellation refund requests",
+        "tags": [
+          "Payments"
+        ]
+      }
+    },
+    "/v1/refunds/{id}/approve": {
+      "post": {
+        "operationId": "payments-approve-refund",
+        "parameters": [
+          {
+            "description": "Refund identifier.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Refund identifier.",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "contentMediaType": "application/octet-stream",
+                "format": "binary",
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefundOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Approve a pending refund request",
+        "tags": [
+          "Payments"
+        ]
+      }
+    },
+    "/v1/reports/export": {
+      "get": {
+        "operationId": "operations-export-report",
+        "parameters": [
+          {
+            "description": "Report type: income, events, clients, inventory, or dgii.",
+            "explode": false,
+            "in": "query",
+            "name": "type",
+            "schema": {
+              "description": "Report type: income, events, clients, inventory, or dgii.",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Report period: 6m or 12m.",
+            "explode": false,
+            "in": "query",
+            "name": "period",
+            "schema": {
+              "description": "Report period: 6m or 12m.",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportExportOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Export analytical or DGII ITBIS report with 6m/12m series and CSV",
+        "tags": [
+          "Operations"
+        ]
+      }
+    },
+    "/v1/reviews": {
+      "get": {
+        "operationId": "operations-list-reviews",
+        "parameters": [
+          {
+            "description": "Optional event identifier filter.",
+            "explode": false,
+            "in": "query",
+            "name": "eventId",
+            "schema": {
+              "description": "Optional event identifier filter.",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewsListOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "List verified client reviews",
+        "tags": [
+          "Operations"
+        ]
+      },
+      "post": {
+        "operationId": "operations-create-review",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateReviewInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Submit a verified event review",
+        "tags": [
+          "Operations"
+        ]
+      }
+    },
+    "/v1/reviews/{id}/reply": {
+      "patch": {
+        "operationId": "operations-reply-review",
+        "parameters": [
+          {
+            "description": "Review identifier.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Review identifier.",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReplyReviewInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Publish an official response to a client review",
+        "tags": [
+          "Operations"
+        ]
+      }
+    },
+    "/v1/rosa/chat": {
+      "post": {
+        "operationId": "rosa-chat",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RosaChatInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RosaChatResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Conversational Rosa AI design and operational assistant",
+        "tags": [
+          "Quotes"
+        ]
+      }
+    },
+    "/v1/rosa/transcribe": {
+      "post": {
+        "operationId": "rosa-transcribe",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RosaTranscribeInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TranscriptionResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Analyze and transcribe voice notes for Rosa AI",
         "tags": [
           "Quotes"
         ]

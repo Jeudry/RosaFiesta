@@ -2,8 +2,12 @@
 
 package app
 
-import "github.com/Jeudry/rosafiesta/server/internal/platform/httpapi"
+import (
+	"context"
 
-func devModules(_ func()) []httpapi.Module {
+	"github.com/Jeudry/rosafiesta/server/internal/platform/httpapi"
+)
+
+func devModules(_ func(ctx context.Context)) []httpapi.Module {
 	return nil
 }

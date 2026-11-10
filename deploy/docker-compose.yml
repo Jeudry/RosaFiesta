@@ -1,5 +1,3 @@
-# Producción en un VPS: API + PostgreSQL 17 + Caddy (HTTPS automático).
-# Se levanta con `docker compose up -d` desde deploy/.
 services:
   api:
     build:
@@ -7,10 +5,17 @@ services:
     image: rosafiesta-api:${API_TAG:-latest}
     restart: unless-stopped
     environment:
+      ENV: production
       APP_ENV: production
       PORT: "8788"
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?sslmode=disable
+      JWT_SECRET: ${JWT_SECRET}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-https://app.rosafiesta.do,https://admin.rosafiesta.do}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_FROM: ${SMTP_FROM:-no-reply@rosafiesta.do}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      APPLE_CLIENT_ID: ${APPLE_CLIENT_ID:-}
     depends_on:
       db:
         condition: service_healthy

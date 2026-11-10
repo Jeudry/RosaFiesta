@@ -1,24 +1,20 @@
-// Package postgres implementa la persistencia PostgreSQL del módulo events con consultas generadas por sqlc.
 package postgres
 
 import (
 	"context"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/Jeudry/rosafiesta/server/internal/events/domain"
 	"github.com/Jeudry/rosafiesta/server/internal/events/postgres/sqlcgen"
 )
 
-// Repository persiste eventos y tareas en PostgreSQL.
 type Repository struct {
 	pool    *pgxpool.Pool
 	queries *sqlcgen.Queries
 }
 
-// NewRepository crea el repositorio PostgreSQL de eventos.
 func NewRepository(pool *pgxpool.Pool) *Repository {
 	if pool == nil {
 		return &Repository{}
@@ -26,65 +22,124 @@ func NewRepository(pool *pgxpool.Pool) *Repository {
 	return &Repository{pool: pool, queries: sqlcgen.New(pool)}
 }
 
-// Enabled indica si hay conexión PostgreSQL activa.
 func (r *Repository) Enabled() bool {
-	return r != nil && r.pool != nil
+	if r == nil {
+		return false
+	}
+	return r.pool != nil
 }
 
-// UpsertEvent guarda o actualiza un evento en PostgreSQL.
-func (r *Repository) UpsertEvent(ctx context.Context, e domain.Event, now time.Time) error {
+func (r *Repository) SeedCollaboration(ctx context.Context, now time.Time) error {
 	if !r.Enabled() {
 		return nil
 	}
-	return r.queries.UpsertEvent(ctx, sqlcgen.UpsertEventParams{
-		ID:               e.ID,
-		ClientID:         uuid.MustParse("11111111-1111-1111-1111-111111111111"),
-		ClientName:       e.ClientName,
-		Title:            e.Title,
-		EventType:        e.EventType,
-		PhotoKey:         e.EventType,
-		Venue:            e.Venue,
-		EventDateLabel:   e.DateLabel,
-		DaysUntil:        e.DaysUntilEvent,
-		GuestsCount:      e.Guests,
-		ArticlesCount:    e.ArticleCount,
-		TotalDop:         e.TotalRD,
-		DepositDop:       e.PaidDepositRD,
-		PaidDop:          e.PaidDepositRD,
-		BalanceDop:       e.BalanceRD(),
-		BalanceDueLabel:  e.BalanceDueDate,
-		Status:           string(e.Status),
-		DateChangesCount: e.DateChangesUsed,
-		CreatedAt:        now,
-	})
+	for _, guest := range domain.CanonicalGuests(now) {
+		if err := r.UpsertGuest(ctx, guest); err != nil {
+			return err
+		}
+	}
+	for _, block := range domain.CanonicalScheduleBlocks() {
+		if err := r.UpsertScheduleBlock(ctx, block); err != nil {
+			return err
+		}
+	}
+	for _, msg := range domain.CanonicalChatMessages(now) {
+		if err := r.UpsertChatMessage(ctx, msg); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
-// UpdateDate actualiza la fecha y el contador de cambios de un evento en PostgreSQL (`s84`).
-func (r *Repository) UpdateDate(ctx context.Context, e domain.Event) error {
+func (r *Repository) UpsertEvent(ctx context.Context, event domain.Event, now time.Time) error {
+	if !r.Enabled() {
+		return nil
+	}
+	sketch := event.SketchJSON
+	if sketch == "" {
+		sketch = "{}"
+	}
+	err := r.queries.UpsertEvent(ctx, sqlcgen.UpsertEventParams{
+		ID:                 event.ID,
+		Code:               event.Code,
+		ClientID:           event.ClientID,
+		ClientName:         event.ClientName,
+		ClientEmail:        event.ClientEmail,
+		Title:              event.Title,
+		EventType:          event.EventType,
+		PhotoKey:           event.EventType,
+		Venue:              event.Venue,
+		Zone:               event.Zone,
+		EventDateLabel:     event.DateLabel,
+		DaysUntil:          event.DaysUntilEvent,
+		GuestsCount:        event.Guests,
+		ArticlesCount:      event.ArticleCount,
+		TotalDop:           event.TotalRD,
+		DepositDop:         event.PaidDepositRD,
+		PaidDop:            event.PaidDepositRD,
+		PaidDepositDop:     event.PaidDepositRD,
+		BalanceDop:         event.BalanceRD(),
+		BalanceDueLabel:    event.BalanceDueDate,
+		Status:             string(event.Status),
+		DateChangesCount:   event.DateChangesUsed,
+		AssignedLead:       event.AssignedLead,
+		SketchJson:         sketch,
+		CancellationReason: event.CancellationReason,
+		CreatedAt:          now,
+	})
+	if err != nil {
+		return err
+	}
+	return r.replaceEventItems(ctx, event.ID, event.Items)
+}
+
+func (r *Repository) replaceEventItems(ctx context.Context, eventID string, items []domain.EventItem) error {
+	if err := r.queries.DeleteEventItems(ctx, eventID); err != nil {
+		return err
+	}
+	for _, item := range items {
+		if item.Quantity <= 0 {
+			continue
+		}
+		err := r.queries.UpsertEventItem(ctx, sqlcgen.UpsertEventItemParams{
+			EventID:      eventID,
+			ArticleCode:  item.ArticleCode,
+			Name:         item.Name,
+			Quantity:     item.Quantity,
+			UnitPriceDop: item.UnitPriceRD,
+		})
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *Repository) UpdateDate(ctx context.Context, event domain.Event) error {
 	if !r.Enabled() {
 		return nil
 	}
 	return r.queries.UpdateEventDate(ctx, sqlcgen.UpdateEventDateParams{
-		ID:               e.ID,
-		EventDateLabel:   e.DateLabel,
-		DaysUntil:        e.DaysUntilEvent,
-		DateChangesCount: e.DateChangesUsed,
-		TotalDop:         e.TotalRD,
+		ID:               event.ID,
+		EventDateLabel:   event.DateLabel,
+		DaysUntil:        event.DaysUntilEvent,
+		DateChangesCount: event.DateChangesUsed,
+		TotalDop:         event.TotalRD,
+		BalanceDop:       event.BalanceRD(),
 	})
 }
 
-// UpdateStatus actualiza el estado del evento en PostgreSQL (`s85`).
-func (r *Repository) UpdateStatus(ctx context.Context, id string, status domain.EventStatus) error {
+func (r *Repository) UpdateStatusAndReason(ctx context.Context, id string, status domain.EventStatus, reason string) error {
 	if !r.Enabled() {
 		return nil
 	}
-	return r.queries.UpdateEventStatus(ctx, sqlcgen.UpdateEventStatusParams{
-		ID:     id,
-		Status: string(status),
+	return r.queries.UpdateEventStatusAndReason(ctx, sqlcgen.UpdateEventStatusAndReasonParams{
+		ID:                 id,
+		Status:             string(status),
+		CancellationReason: reason,
 	})
 }
 
-// ListEvents consulta todos los eventos almacenados en PostgreSQL.
 func (r *Repository) ListEvents(ctx context.Context) ([]domain.Event, error) {
 	if !r.Enabled() {
 		return nil, nil
@@ -93,24 +148,202 @@ func (r *Repository) ListEvents(ctx context.Context) ([]domain.Event, error) {
 	if err != nil {
 		return nil, err
 	}
+	itemRows, err := r.queries.ListAllEventItems(ctx)
+	if err != nil {
+		return nil, err
+	}
+	itemsByEvent := make(map[string][]domain.EventItem)
+	for _, item := range itemRows {
+		itemsByEvent[item.EventID] = append(itemsByEvent[item.EventID], domain.EventItem{
+			ArticleCode: item.ArticleCode,
+			Name:        item.Name,
+			Quantity:    item.Quantity,
+			UnitPriceRD: item.UnitPriceDop,
+		})
+	}
 	out := make([]domain.Event, 0, len(rows))
 	for _, row := range rows {
+		paidDeposit := row.PaidDepositDop
+		if row.PaidDop > paidDeposit {
+			paidDeposit = row.PaidDop
+		}
+		items := itemsByEvent[row.ID]
+		if items == nil {
+			items = []domain.EventItem{}
+		}
 		out = append(out, domain.Event{
-			ID:              row.ID,
-			Title:           row.Title,
-			ClientName:      row.ClientName,
-			EventType:       row.EventType,
-			DateLabel:       row.EventDateLabel,
-			DaysUntilEvent:  row.DaysUntil,
-			Venue:           row.Venue,
-			Guests:          row.GuestsCount,
-			ArticleCount:    row.ArticlesCount,
-			TotalRD:         row.TotalDop,
-			PaidDepositRD:   row.PaidDop,
-			BalanceDueDate:  row.BalanceDueLabel,
-			Status:          domain.EventStatus(row.Status),
-			DateChangesUsed: row.DateChangesCount,
+			ID:                 row.ID,
+			Code:               row.Code,
+			ClientID:           row.ClientID,
+			ClientName:         row.ClientName,
+			ClientEmail:        row.ClientEmail,
+			Title:              row.Title,
+			EventType:          row.EventType,
+			DateLabel:          row.EventDateLabel,
+			DaysUntilEvent:     row.DaysUntil,
+			Venue:              row.Venue,
+			Zone:               row.Zone,
+			Guests:             row.GuestsCount,
+			ArticleCount:       row.ArticlesCount,
+			TotalRD:            row.TotalDop,
+			PaidDepositRD:      paidDeposit,
+			BalanceDueDate:     row.BalanceDueLabel,
+			Status:             domain.EventStatus(row.Status),
+			DateChangesUsed:    row.DateChangesCount,
+			AssignedLead:       row.AssignedLead,
+			SketchJSON:         row.SketchJson,
+			CancellationReason: row.CancellationReason,
+			Items:              items,
 		})
 	}
 	return out, nil
+}
+
+func (r *Repository) ListGuests(ctx context.Context, eventID string) ([]domain.EventGuest, error) {
+	if !r.Enabled() {
+		return nil, nil
+	}
+	rows, err := r.queries.ListEventGuests(ctx, eventID)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]domain.EventGuest, 0, len(rows))
+	for _, row := range rows {
+		out = append(out, domain.EventGuest{
+			ID:           row.ID,
+			EventID:      row.EventID,
+			FullName:     row.FullName,
+			RSVPStatus:   row.RsvpStatus,
+			TableLabel:   row.TableLabel,
+			DietaryNotes: row.DietaryNotes,
+			CreatedAt:    row.CreatedAt,
+		})
+	}
+	return out, nil
+}
+
+func (r *Repository) UpsertGuest(ctx context.Context, guest domain.EventGuest) error {
+	if !r.Enabled() {
+		return nil
+	}
+	return r.queries.UpsertEventGuest(ctx, sqlcgen.UpsertEventGuestParams{
+		ID:           guest.ID,
+		EventID:      guest.EventID,
+		FullName:     guest.FullName,
+		RsvpStatus:   guest.RSVPStatus,
+		TableLabel:   guest.TableLabel,
+		DietaryNotes: guest.DietaryNotes,
+		CreatedAt:    guest.CreatedAt,
+	})
+}
+
+func (r *Repository) ListScheduleBlocks(ctx context.Context, eventID string) ([]domain.ScheduleBlock, error) {
+	if !r.Enabled() {
+		return nil, nil
+	}
+	rows, err := r.queries.ListScheduleBlocks(ctx, eventID)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]domain.ScheduleBlock, 0, len(rows))
+	for _, row := range rows {
+		out = append(out, domain.ScheduleBlock{
+			ID:        row.ID,
+			EventID:   row.EventID,
+			TimeRange: row.TimeRange,
+			Title:     row.Title,
+			OwnerName: row.OwnerName,
+			Status:    row.Status,
+			SortOrder: row.SortOrder,
+		})
+	}
+	return out, nil
+}
+
+func (r *Repository) UpsertScheduleBlock(ctx context.Context, block domain.ScheduleBlock) error {
+	if !r.Enabled() {
+		return nil
+	}
+	return r.queries.UpsertScheduleBlock(ctx, sqlcgen.UpsertScheduleBlockParams{
+		ID:        block.ID,
+		EventID:   block.EventID,
+		TimeRange: block.TimeRange,
+		Title:     block.Title,
+		OwnerName: block.OwnerName,
+		Status:    block.Status,
+		SortOrder: block.SortOrder,
+	})
+}
+
+func (r *Repository) DeleteScheduleBlock(ctx context.Context, eventID, blockID string) error {
+	if !r.Enabled() {
+		return nil
+	}
+	return r.queries.DeleteScheduleBlock(ctx, sqlcgen.DeleteScheduleBlockParams{
+		EventID: eventID,
+		ID:      blockID,
+	})
+}
+
+func (r *Repository) ListAllChatMessages(ctx context.Context) ([]domain.ChatMessage, error) {
+	if !r.Enabled() {
+		return nil, nil
+	}
+	rows, err := r.queries.ListAllChatMessages(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return mapChatRows(rows), nil
+}
+
+func (r *Repository) ListChatMessagesByThread(ctx context.Context, threadID string) ([]domain.ChatMessage, error) {
+	if !r.Enabled() {
+		return nil, nil
+	}
+	rows, err := r.queries.ListChatMessagesByThread(ctx, threadID)
+	if err != nil {
+		return nil, err
+	}
+	return mapChatRows(rows), nil
+}
+
+func (r *Repository) UpsertChatMessage(ctx context.Context, msg domain.ChatMessage) error {
+	if !r.Enabled() {
+		return nil
+	}
+	return r.queries.UpsertChatMessage(ctx, sqlcgen.UpsertChatMessageParams{
+		ID:             msg.ID,
+		ThreadID:       msg.ThreadID,
+		EventID:        msg.EventID,
+		EventTitle:     msg.EventTitle,
+		SenderID:       msg.SenderID,
+		SenderName:     msg.SenderName,
+		SenderRole:     msg.SenderRole,
+		RecipientLabel: msg.RecipientLabel,
+		Body:           msg.Body,
+		AttachmentName: msg.AttachmentName,
+		Unread:         msg.Unread,
+		CreatedAt:      msg.CreatedAt,
+	})
+}
+
+func mapChatRows(rows []sqlcgen.ChatMessage) []domain.ChatMessage {
+	out := make([]domain.ChatMessage, 0, len(rows))
+	for _, row := range rows {
+		out = append(out, domain.ChatMessage{
+			ID:             row.ID,
+			ThreadID:       row.ThreadID,
+			EventID:        row.EventID,
+			EventTitle:     row.EventTitle,
+			SenderID:       row.SenderID,
+			SenderName:     row.SenderName,
+			SenderRole:     row.SenderRole,
+			RecipientLabel: row.RecipientLabel,
+			Body:           row.Body,
+			AttachmentName: row.AttachmentName,
+			Unread:         row.Unread,
+			CreatedAt:      row.CreatedAt,
+		})
+	}
+	return out
 }

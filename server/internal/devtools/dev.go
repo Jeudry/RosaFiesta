@@ -1,6 +1,5 @@
 //go:build dev
 
-// Package devtools expone endpoints exclusivos de desarrollo (compilados solo con -tags dev).
 package devtools
 
 import (
@@ -10,12 +9,10 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 )
 
-// Module registra las rutas /__dev/* cuando se compila con -tags dev.
 type Module struct {
-	OnReset func()
+	OnReset func(ctx context.Context)
 }
 
-// SeedOutput resume el resultado de poblar la base de datos con los datos canónicos.
 type SeedOutput struct {
 	Body struct {
 		Status   string `json:"status" example:"seeded"`
@@ -26,24 +23,33 @@ type SeedOutput struct {
 	}
 }
 
-// Register añade las rutas /__dev/* al router Huma cuando se compila con -tags dev.
 func (m Module) Register(api huma.API) {
 	huma.Register(api, huma.Operation{
 		OperationID: "dev-seed",
 		Method:      http.MethodPost,
 		Path:        "/__dev/seed",
-		Summary:     "Restaurar los datos canónicos de RosaFiesta (Sección 6)",
+		Summary:     "Restore canonical development dataset",
 		Tags:        []string{"DevTools"},
-	}, func(_ context.Context, _ *struct{}) (*SeedOutput, error) {
-		if m.OnReset != nil {
-			m.OnReset()
-		}
-		out := &SeedOutput{}
-		out.Body.Status = "seeded"
-		out.Body.Articles = 6
-		out.Body.Events = 5
-		out.Body.Quotes = 4
-		out.Body.Staff = 4
-		return out, nil
-	})
+	}, m.handleReset)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "dev-reset",
+		Method:      http.MethodPost,
+		Path:        "/__dev/reset",
+		Summary:     "Reset in-memory and database development state",
+		Tags:        []string{"DevTools"},
+	}, m.handleReset)
+}
+
+func (m Module) handleReset(ctx context.Context, _ *struct{}) (*SeedOutput, error) {
+	if m.OnReset != nil {
+		m.OnReset(ctx)
+	}
+	out := &SeedOutput{}
+	out.Body.Status = "seeded"
+	out.Body.Articles = 6
+	out.Body.Events = 5
+	out.Body.Quotes = 4
+	out.Body.Staff = 4
+	return out, nil
 }

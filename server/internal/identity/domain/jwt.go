@@ -2,6 +2,7 @@ package domain
 
 import (
 	"crypto/hmac"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
@@ -10,8 +11,8 @@ import (
 )
 
 const (
-	jwtSigningSecret   = "rf-2026-jwt-hs256-signing-secret-key-do-santo-domingo" //nolint:gosec // clave de firma local por defecto
-	defaultJwtTTLHours = 24 * 7
+	defaultJWTTTLHours   = 24 * 7
+	ephemeralKeyByteSize = 32
 )
 
 type jwtClaimsPayload struct {
@@ -25,13 +26,31 @@ type jwtClaimsPayload struct {
 	ExpiresAt int64  `json:"exp"`
 }
 
-// IssueAccessToken emits a signed RFC 7519 HS256 JWT token for the given user.
-func IssueAccessToken(user User, issuedAt time.Time) string {
+type TokenManager struct {
+	secret []byte
+}
+
+func NewTokenManager(secret string) TokenManager {
+	trimmed := strings.TrimSpace(secret)
+	if trimmed != "" {
+		return TokenManager{secret: []byte(trimmed)}
+	}
+	buf := make([]byte, ephemeralKeyByteSize)
+	_, _ = rand.Read(buf)
+	return TokenManager{secret: buf}
+}
+
+func (tm TokenManager) Issue(user User, issuedAt time.Time) string {
+	return tm.IssueWithTTL(user, issuedAt, defaultJWTTTLHours*time.Hour)
+}
+
+func (tm TokenManager) IssueWithTTL(user User, issuedAt time.Time, ttl time.Duration) string {
 	iat := issuedAt.Unix()
-	exp := issuedAt.Add(defaultJwtTTLHours * time.Hour).Unix()
+	exp := issuedAt.Add(ttl).Unix()
 	username := strings.TrimSpace(user.Username)
 	if username == "" {
-		username = strings.Split(user.Email, "@")[0]
+		parts := strings.Split(user.Email, "@")
+		username = parts[0]
 	}
 	payload := jwtClaimsPayload{
 		SubjectID: user.ID.String(),
@@ -51,37 +70,46 @@ func IssueAccessToken(user User, issuedAt time.Time) string {
 	encodedHeader := base64.RawURLEncoding.EncodeToString(headerBytes)
 	encodedPayload := base64.RawURLEncoding.EncodeToString(payloadBytes)
 	signingInput := encodedHeader + "." + encodedPayload
-	signature := computeHmacSha256(signingInput)
+	signature := tm.computeHMAC(signingInput)
 	return signingInput + "." + signature
 }
 
-// VerifyAccessToken validates the HS256 signature of a JWT token and returns the subject user ID.
-func VerifyAccessToken(token string) (string, bool) {
-	parts := strings.Split(strings.TrimSpace(token), ".")
+func (tm TokenManager) Verify(token string, now time.Time) (string, error) {
+	trimmed := strings.TrimSpace(token)
+	parts := strings.Split(trimmed, ".")
 	if len(parts) != 3 {
-		return "", false
+		return "", ErrInvalidCredentials
 	}
 	signingInput := parts[0] + "." + parts[1]
-	expectedSig := computeHmacSha256(signingInput)
-	if !hmac.Equal([]byte(parts[2]), []byte(expectedSig)) {
-		return "", false
+	expectedSig := tm.computeHMAC(signingInput)
+	sigMatches := hmac.Equal([]byte(parts[2]), []byte(expectedSig))
+	if !sigMatches {
+		return "", ErrInvalidCredentials
 	}
 	payloadBytes, err := base64.RawURLEncoding.DecodeString(parts[1])
 	if err != nil {
-		return "", false
+		return "", ErrInvalidCredentials
 	}
 	var payload jwtClaimsPayload
 	if err := json.Unmarshal(payloadBytes, &payload); err != nil {
-		return "", false
+		return "", ErrInvalidCredentials
 	}
-	if strings.TrimSpace(payload.SubjectID) == "" {
-		return "", false
+	subjectID := strings.TrimSpace(payload.SubjectID)
+	if subjectID == "" {
+		return "", ErrInvalidCredentials
 	}
-	return payload.SubjectID, true
+	if payload.ExpiresAt <= 0 {
+		return "", ErrTokenExpired
+	}
+	if now.Unix() >= payload.ExpiresAt {
+		return "", ErrTokenExpired
+	}
+	return subjectID, nil
 }
 
-func computeHmacSha256(message string) string {
-	mac := hmac.New(sha256.New, []byte(jwtSigningSecret))
+func (tm TokenManager) computeHMAC(message string) string {
+	mac := hmac.New(sha256.New, tm.secret)
 	_, _ = mac.Write([]byte(message))
-	return base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
+	sum := mac.Sum(nil)
+	return base64.RawURLEncoding.EncodeToString(sum)
 }

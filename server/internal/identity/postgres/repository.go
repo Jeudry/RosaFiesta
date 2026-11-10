@@ -1,4 +1,3 @@
-// Package postgres implementa la persistencia PostgreSQL del módulo identity con consultas generadas por sqlc.
 package postgres
 
 import (
@@ -11,23 +10,33 @@ import (
 
 	"github.com/Jeudry/rosafiesta/server/internal/identity/domain"
 	"github.com/Jeudry/rosafiesta/server/internal/identity/postgres/sqlcgen"
+	"github.com/Jeudry/rosafiesta/server/internal/platform/clock"
 )
 
-// Repository persiste usuarios y sesiones en PostgreSQL.
 type Repository struct {
 	pool    *pgxpool.Pool
 	queries *sqlcgen.Queries
+	clock   clock.Clock
 }
 
-// NewRepository construye el repositorio PostgreSQL de identidad; si pool es nil opera en modo desconectado.
 func NewRepository(pool *pgxpool.Pool) *Repository {
 	if pool == nil {
-		return &Repository{}
+		return &Repository{clock: clock.System{}}
 	}
-	return &Repository{pool: pool, queries: sqlcgen.New(pool)}
+	return &Repository{
+		pool:    pool,
+		queries: sqlcgen.New(pool),
+		clock:   clock.System{},
+	}
 }
 
-// Enabled indica si hay conexión activa a PostgreSQL.
+func (r *Repository) WithClock(clk clock.Clock) *Repository {
+	if clk != nil {
+		r.clock = clk
+	}
+	return r
+}
+
 func (r *Repository) Enabled() bool {
 	if r == nil {
 		return false
@@ -35,19 +44,21 @@ func (r *Repository) Enabled() bool {
 	return r.pool != nil
 }
 
-// UpsertUser guarda o actualiza una cuenta de usuario y su sesión opcional.
-func (r *Repository) UpsertUser(ctx context.Context, user domain.User, sessionKey string, expiresAt time.Time) error {
+func (r *Repository) UpsertUser(ctx context.Context, user domain.User, rawSessionToken string, expiresAt time.Time) error {
 	if !r.Enabled() {
 		return nil
 	}
 	passwordHash := user.PasswordHash
 	if passwordHash == "" {
-		passwordHash, _ = domain.HashPassword("secret123")
+		generatedHash, _ := domain.HashPassword("secret123")
+		passwordHash = generatedHash
 	}
 	username := strings.TrimSpace(user.Username)
 	if username == "" {
-		username = strings.Split(user.Email, "@")[0]
+		emailParts := strings.Split(user.Email, "@")
+		username = emailParts[0]
 	}
+	joinedPermissions := strings.Join(user.Permissions, ",")
 	err := r.queries.UpsertUser(ctx, sqlcgen.UpsertUserParams{
 		ID:           user.ID,
 		FullName:     user.FullName,
@@ -55,17 +66,19 @@ func (r *Repository) UpsertUser(ctx context.Context, user domain.User, sessionKe
 		Phone:        user.Phone,
 		PasswordHash: passwordHash,
 		Role:         string(user.Role),
-		Permissions:  strings.Join(user.Permissions, ","),
+		Permissions:  joinedPermissions,
 		CreatedAt:    user.CreatedAt,
 		Username:     username,
 		BirthDate:    user.BirthDate,
+		AvatarKey:    user.AvatarKey,
 	})
 	if err != nil {
 		return err
 	}
-	if sessionKey != "" {
+	tokenHash := domain.HashToken(rawSessionToken)
+	if tokenHash != "" {
 		return r.queries.UpsertSession(ctx, sqlcgen.UpsertSessionParams{
-			TokenHash:  sessionKey,
+			TokenHash:  tokenHash,
 			UserID:     user.ID,
 			ActiveView: string(user.ActiveView),
 			CreatedAt:  user.CreatedAt,
@@ -75,7 +88,6 @@ func (r *Repository) UpsertUser(ctx context.Context, user domain.User, sessionKe
 	return nil
 }
 
-// ListUsers devuelve todas las cuentas de usuario persistidas en PostgreSQL.
 func (r *Repository) ListUsers(ctx context.Context) ([]domain.User, error) {
 	if !r.Enabled() {
 		return nil, nil
@@ -86,24 +98,25 @@ func (r *Repository) ListUsers(ctx context.Context) ([]domain.User, error) {
 	}
 	users := make([]domain.User, 0, len(rows))
 	for _, row := range rows {
-		users = append(users, mapRowToDomainUser(row))
+		mapped := mapRowToDomainUser(row)
+		users = append(users, mapped)
 	}
 	return users, nil
 }
 
-// GetUserByEmail busca una cuenta por correo electrónico en PostgreSQL.
 func (r *Repository) GetUserByEmail(ctx context.Context, email string) (domain.User, error) {
 	if !r.Enabled() {
 		return domain.User{}, domain.ErrInvalidCredentials
 	}
-	row, err := r.queries.GetUserByEmail(ctx, strings.ToLower(strings.TrimSpace(email)))
+	trimmed := strings.TrimSpace(email)
+	normalized := strings.ToLower(trimmed)
+	row, err := r.queries.GetUserByEmail(ctx, normalized)
 	if err != nil {
 		return domain.User{}, domain.ErrInvalidCredentials
 	}
 	return mapRowToDomainUser(row), nil
 }
 
-// GetUserByID busca una cuenta por UUID en PostgreSQL.
 func (r *Repository) GetUserByID(ctx context.Context, userID uuid.UUID) (domain.User, error) {
 	if !r.Enabled() {
 		return domain.User{}, domain.ErrInvalidCredentials
@@ -115,30 +128,56 @@ func (r *Repository) GetUserByID(ctx context.Context, userID uuid.UUID) (domain.
 	return mapRowToDomainUser(row), nil
 }
 
-// UpdatePassword actualiza el hash bcrypt de una cuenta en PostgreSQL.
 func (r *Repository) UpdatePassword(ctx context.Context, email, passwordHash string) error {
 	if !r.Enabled() {
 		return nil
 	}
+	trimmed := strings.TrimSpace(email)
+	normalized := strings.ToLower(trimmed)
 	return r.queries.UpdateUserPasswordByEmail(ctx, sqlcgen.UpdateUserPasswordByEmailParams{
-		Email:        strings.ToLower(strings.TrimSpace(email)),
+		Email:        normalized,
 		PasswordHash: passwordHash,
 	})
 }
 
-// Authenticate busca el usuario dueño de un token de sesión en PostgreSQL.
-func (r *Repository) Authenticate(ctx context.Context, sessionKey string) (uuid.UUID, error) {
+func (r *Repository) Authenticate(ctx context.Context, rawSessionToken string) (uuid.UUID, error) {
 	if !r.Enabled() {
 		return uuid.Nil, domain.ErrInvalidCredentials
 	}
-	sess, err := r.queries.GetSessionByToken(ctx, strings.TrimSpace(sessionKey))
+	tokenHash := domain.HashToken(rawSessionToken)
+	if tokenHash == "" {
+		return uuid.Nil, domain.ErrInvalidCredentials
+	}
+	now := r.clock.Now()
+	params := sqlcgen.GetSessionByTokenHashParams{
+		TokenHash: tokenHash,
+		ExpiresAt: now,
+	}
+	sess, err := r.queries.GetSessionByTokenHash(ctx, params)
 	if err != nil {
 		return uuid.Nil, domain.ErrInvalidCredentials
 	}
 	return sess.UserID, nil
 }
 
-// UpdateActiveView actualiza la vista activa de las sesiones del usuario en PostgreSQL (`A30`).
+func (r *Repository) DeleteSession(ctx context.Context, rawSessionToken string) error {
+	if !r.Enabled() {
+		return nil
+	}
+	tokenHash := domain.HashToken(rawSessionToken)
+	if tokenHash == "" {
+		return nil
+	}
+	return r.queries.DeleteSessionByTokenHash(ctx, tokenHash)
+}
+
+func (r *Repository) DeleteSessionsByUser(ctx context.Context, userID uuid.UUID) error {
+	if !r.Enabled() {
+		return nil
+	}
+	return r.queries.DeleteSessionsByUserID(ctx, userID)
+}
+
 func (r *Repository) UpdateActiveView(ctx context.Context, userID uuid.UUID, view domain.AppView) error {
 	if !r.Enabled() {
 		return nil
@@ -149,7 +188,6 @@ func (r *Repository) UpdateActiveView(ctx context.Context, userID uuid.UUID, vie
 	})
 }
 
-// DeleteUser elimina un usuario de PostgreSQL (`s88`).
 func (r *Repository) DeleteUser(ctx context.Context, userID uuid.UUID) error {
 	if !r.Enabled() {
 		return nil
@@ -157,19 +195,173 @@ func (r *Repository) DeleteUser(ctx context.Context, userID uuid.UUID) error {
 	return r.queries.DeleteUserByID(ctx, userID)
 }
 
+func (r *Repository) UpsertOTP(ctx context.Context, record domain.OTPRecord) error {
+	if !r.Enabled() {
+		return nil
+	}
+	return r.queries.UpsertOTPCode(ctx, sqlcgen.UpsertOTPCodeParams{
+		Email:          record.Email,
+		CodeHash:       record.CodeHash,
+		Attempts:       record.Attempts,
+		Verified:       record.Verified,
+		ResetTokenHash: record.ResetTokenHash,
+		Used:           record.Used,
+		ExpiresAt:      record.ExpiresAt,
+		ResetExpiresAt: record.ResetExpiresAt,
+		CreatedAt:      record.CreatedAt,
+	})
+}
+
+func (r *Repository) GetOTP(ctx context.Context, email string) (domain.OTPRecord, error) {
+	if !r.Enabled() {
+		return domain.OTPRecord{}, domain.ErrOTPInvalidOrExpired
+	}
+	trimmed := strings.TrimSpace(email)
+	normalized := strings.ToLower(trimmed)
+	row, err := r.queries.GetOTPCodeByEmail(ctx, normalized)
+	if err != nil {
+		return domain.OTPRecord{}, domain.ErrOTPInvalidOrExpired
+	}
+	return domain.OTPRecord{
+		Email:          row.Email,
+		CodeHash:       row.CodeHash,
+		Attempts:       row.Attempts,
+		Verified:       row.Verified,
+		ResetTokenHash: row.ResetTokenHash,
+		Used:           row.Used,
+		ExpiresAt:      row.ExpiresAt,
+		ResetExpiresAt: row.ResetExpiresAt,
+		CreatedAt:      row.CreatedAt,
+	}, nil
+}
+
+func (r *Repository) IncrementOTPAttempts(ctx context.Context, email string) error {
+	if !r.Enabled() {
+		return nil
+	}
+	trimmed := strings.TrimSpace(email)
+	normalized := strings.ToLower(trimmed)
+	return r.queries.IncrementOTPAttempts(ctx, normalized)
+}
+
+func (r *Repository) MarkOTPVerified(ctx context.Context, email, resetTokenHash string, resetExpiresAt time.Time) error {
+	if !r.Enabled() {
+		return nil
+	}
+	trimmed := strings.TrimSpace(email)
+	normalized := strings.ToLower(trimmed)
+	return r.queries.MarkOTPVerified(ctx, sqlcgen.MarkOTPVerifiedParams{
+		Email:          normalized,
+		ResetTokenHash: resetTokenHash,
+		ResetExpiresAt: resetExpiresAt,
+	})
+}
+
+func (r *Repository) MarkOTPUsed(ctx context.Context, email string) error {
+	if !r.Enabled() {
+		return nil
+	}
+	trimmed := strings.TrimSpace(email)
+	normalized := strings.ToLower(trimmed)
+	return r.queries.MarkOTPUsed(ctx, normalized)
+}
+
+func (r *Repository) ListAdminClients(ctx context.Context) ([]domain.AdminClient, error) {
+	if !r.Enabled() {
+		return nil, nil
+	}
+	rows, err := r.queries.ListAdminClients(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]domain.AdminClient, 0, len(rows))
+	for _, row := range rows {
+		out = append(out, domain.AdminClient{
+			ID:          row.ID,
+			FullName:    row.FullName,
+			Email:       row.Email,
+			Phone:       row.Phone,
+			Notes:       row.Notes,
+			EventsCount: row.EventsCount,
+			TotalSpent:  row.TotalSpentDop,
+			BalanceDop:  row.BalanceDop,
+			UpdatedAt:   row.UpdatedAt,
+		})
+	}
+	return out, nil
+}
+
+func (r *Repository) UpsertAdminClient(ctx context.Context, client domain.AdminClient) error {
+	if !r.Enabled() {
+		return nil
+	}
+	return r.queries.UpsertAdminClient(ctx, sqlcgen.UpsertAdminClientParams{
+		ID:            client.ID,
+		FullName:      client.FullName,
+		Email:         client.Email,
+		Phone:         client.Phone,
+		Notes:         client.Notes,
+		EventsCount:   client.EventsCount,
+		TotalSpentDop: client.TotalSpent,
+		BalanceDop:    client.BalanceDop,
+		UpdatedAt:     client.UpdatedAt,
+	})
+}
+
+func (r *Repository) ListStaffMembers(ctx context.Context) ([]domain.StaffRecord, error) {
+	if !r.Enabled() {
+		return nil, nil
+	}
+	rows, err := r.queries.ListStaffMembers(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]domain.StaffRecord, 0, len(rows))
+	for _, row := range rows {
+		perms := splitCommaPermissions(row.Permissions)
+		out = append(out, domain.StaffRecord{
+			ID:          row.ID,
+			UserID:      row.UserID,
+			FullName:    row.FullName,
+			Email:       row.Email,
+			Phone:       row.Phone,
+			RoleLabel:   row.RoleLabel,
+			Role:        row.Role,
+			Permissions: perms,
+			Active:      row.Active,
+			CreatedAt:   row.CreatedAt,
+		})
+	}
+	return out, nil
+}
+
+func (r *Repository) UpsertStaffMember(ctx context.Context, staff domain.StaffRecord) error {
+	if !r.Enabled() {
+		return nil
+	}
+	joined := strings.Join(staff.Permissions, ",")
+	return r.queries.UpsertStaffMember(ctx, sqlcgen.UpsertStaffMemberParams{
+		ID:          staff.ID,
+		UserID:      staff.UserID,
+		FullName:    staff.FullName,
+		Email:       staff.Email,
+		Phone:       staff.Phone,
+		RoleLabel:   staff.RoleLabel,
+		Role:        staff.Role,
+		Permissions: joined,
+		Active:      staff.Active,
+		CreatedAt:   staff.CreatedAt,
+	})
+}
+
 func mapRowToDomainUser(row sqlcgen.User) domain.User {
-	var perms []string
-	if strings.TrimSpace(row.Permissions) != "" {
-		perms = strings.Split(row.Permissions, ",")
-	}
+	perms := splitCommaPermissions(row.Permissions)
 	role := domain.Role(row.Role)
-	activeView := domain.ViewPersonal
-	if role == domain.RoleAdmin || role == domain.RoleStaff {
-		activeView = domain.ViewAdmin
-	}
+	activeView := defaultViewForRole(role)
 	username := strings.TrimSpace(row.Username)
 	if username == "" {
-		username = strings.Split(row.Email, "@")[0]
+		emailParts := strings.Split(row.Email, "@")
+		username = emailParts[0]
 	}
 	return domain.User{
 		ID:           row.ID,
@@ -178,10 +370,29 @@ func mapRowToDomainUser(row sqlcgen.User) domain.User {
 		Email:        row.Email,
 		Phone:        row.Phone,
 		BirthDate:    row.BirthDate,
+		AvatarKey:    row.AvatarKey,
 		Role:         role,
 		Permissions:  perms,
 		ActiveView:   activeView,
 		CreatedAt:    row.CreatedAt,
 		PasswordHash: row.PasswordHash,
 	}
+}
+
+func defaultViewForRole(role domain.Role) domain.AppView {
+	if role == domain.RoleAdmin {
+		return domain.ViewAdmin
+	}
+	if role == domain.RoleStaff {
+		return domain.ViewAdmin
+	}
+	return domain.ViewPersonal
+}
+
+func splitCommaPermissions(raw string) []string {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return []string{}
+	}
+	return strings.Split(trimmed, ",")
 }

@@ -1,4 +1,3 @@
-// Command api arranca el servidor HTTP de RosaFiesta.
 package main
 
 import (
@@ -13,6 +12,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
+
 	dbfiles "github.com/Jeudry/rosafiesta/server/db"
 	"github.com/Jeudry/rosafiesta/server/internal/app"
 	"github.com/Jeudry/rosafiesta/server/internal/platform/clock"
@@ -26,7 +27,6 @@ const (
 	shutdownTimeout   = 10 * time.Second
 )
 
-// migrationFiles devuelve las migraciones empaquetadas en el binario.
 func migrationFiles() fs.FS {
 	sub, err := fs.Sub(dbfiles.Migrations, "migrations")
 	if err != nil {
@@ -35,8 +35,15 @@ func migrationFiles() fs.FS {
 	return sub
 }
 
+func isHealthcheckInvocation(args []string) bool {
+	if len(args) <= 1 {
+		return false
+	}
+	return args[1] == "healthcheck"
+}
+
 func main() {
-	if len(os.Args) > 1 && os.Args[1] == "healthcheck" {
+	if isHealthcheckInvocation(os.Args) {
 		if err := healthcheck(os.Getenv); err != nil {
 			fmt.Fprintln(os.Stderr, "healthcheck:", err)
 			os.Exit(1)
@@ -59,25 +66,63 @@ func run() error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	deps := app.Dependencies{Clock: clock.System{}}
-	if pool, openErr := db.Open(ctx, cfg.DatabaseURL); openErr == nil {
-		defer pool.Close()
-		if migErr := db.Migrate(ctx, pool, migrationFiles()); migErr != nil {
-			logger.Warn("database migration skipped", slog.String("err", migErr.Error()))
-		} else {
-			deps.Pool = pool
-		}
+	pool, dbErr := openAndMigrateDatabase(ctx, cfg, logger)
+	if dbErr != nil {
+		return dbErr
 	}
-	handler, _ := httpapi.New(logger, app.Modules(deps)...)
+	if pool != nil {
+		defer pool.Close()
+	}
+
+	deps := app.Dependencies{
+		Pool:   pool,
+		Clock:  clock.System{},
+		Config: cfg,
+	}
+	routerOpts := httpapi.RouterOptions{AllowedOrigins: cfg.CORSAllowedOrigins}
+	modules := app.Modules(deps)
+	handler, _ := httpapi.NewWithOptions(logger, routerOpts, modules...)
 	server := &http.Server{
 		Addr:              fmt.Sprintf(":%d", cfg.Port),
 		Handler:           handler,
 		ReadHeaderTimeout: readHeaderTimeout,
 	}
+	return serveWithGracefulShutdown(ctx, server, logger, cfg.Env)
+}
 
+func openAndMigrateDatabase(
+	ctx context.Context,
+	cfg config.Config,
+	logger *slog.Logger,
+) (*pgxpool.Pool, error) {
+	pool, openErr := db.Open(ctx, cfg.DatabaseURL)
+	if openErr != nil {
+		if cfg.Env == config.EnvProduction {
+			return nil, fmt.Errorf("open production database: %w", openErr)
+		}
+		logger.Warn("database connection unavailable; using in-memory dev store", slog.String("err", openErr.Error()))
+		return nil, nil
+	}
+	if migErr := db.Migrate(ctx, pool, migrationFiles()); migErr != nil {
+		pool.Close()
+		if cfg.Env == config.EnvProduction {
+			return nil, fmt.Errorf("migrate production database: %w", migErr)
+		}
+		logger.Warn("database migration skipped", slog.String("err", migErr.Error()))
+		return nil, nil
+	}
+	return pool, nil
+}
+
+func serveWithGracefulShutdown(
+	ctx context.Context,
+	server *http.Server,
+	logger *slog.Logger,
+	env config.Environment,
+) error {
 	serverErr := make(chan error, 1)
 	go func() {
-		logger.Info("server listening", slog.String("addr", server.Addr), slog.String("env", string(cfg.Env)))
+		logger.Info("server listening", slog.String("addr", server.Addr), slog.String("env", string(env)))
 		serverErr <- server.ListenAndServe()
 	}()
 

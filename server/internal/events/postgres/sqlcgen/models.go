@@ -10,6 +10,18 @@ import (
 	"github.com/google/uuid"
 )
 
+type AdminClient struct {
+	ID            string
+	FullName      string
+	Email         string
+	Phone         string
+	Notes         string
+	EventsCount   int
+	TotalSpentDop int
+	BalanceDop    int
+	UpdatedAt     time.Time
+}
+
 type Article struct {
 	ID                string
 	Name              string
@@ -19,6 +31,77 @@ type Article struct {
 	TotalStock        int
 	LowStockThreshold int
 	Description       string
+	AvailableStock    int
+	Visible           bool
+	Dimensions        string
+	Material          string
+	ColorVariants     []string
+	IsDirectSale      bool
+}
+
+type AuditLog struct {
+	ID             string
+	ActorName      string
+	ActorRole      string
+	Action         string
+	EntityType     string
+	EntityID       string
+	Summary        string
+	CreatedAtLabel string
+	CreatedAt      time.Time
+}
+
+type AuthOtpCode struct {
+	Email          string
+	CodeHash       string
+	Attempts       int
+	Verified       bool
+	ResetTokenHash string
+	Used           bool
+	ExpiresAt      time.Time
+	ResetExpiresAt time.Time
+	CreatedAt      time.Time
+}
+
+type BotFaq struct {
+	ID       string
+	Question string
+	Answer   string
+	Category string
+	Active   bool
+}
+
+type BotKeyword struct {
+	ID             string
+	Keyword        string
+	AutoReply      string
+	HandoffToHuman bool
+}
+
+type BotThread struct {
+	ID             string
+	CustomerName   string
+	Phone          string
+	LastMessage    string
+	BotPaused      bool
+	AssignedAgent  string
+	UpdatedAtLabel string
+}
+
+type BusinessSetting struct {
+	ID             string
+	CompanyName    string
+	Rnc            string
+	Address        string
+	Phone          string
+	Whatsapp       string
+	Email          string
+	Instagram      string
+	Facebook       string
+	BusinessHours  string
+	ItbisPercent   int
+	DepositPercent int
+	UpdatedAt      time.Time
 }
 
 type Category struct {
@@ -28,44 +111,153 @@ type Category struct {
 	ItemCount int
 }
 
+type ChatMessage struct {
+	ID             string
+	ThreadID       string
+	EventID        string
+	EventTitle     string
+	SenderID       string
+	SenderName     string
+	SenderRole     string
+	RecipientLabel string
+	Body           string
+	AttachmentName string
+	Unread         bool
+	CreatedAt      time.Time
+}
+
+type DamageIncident struct {
+	ID             string
+	EventID        string
+	ArticleCode    string
+	ArticleName    string
+	DamagedUnits   int
+	MissingUnits   int
+	ReplacementDop int
+	Notes          string
+	Status         string
+	CreatedAt      time.Time
+}
+
+type DeliveryZone struct {
+	ID         string
+	Name       string
+	FeeDop     int
+	EtaMinutes int
+	Active     bool
+}
+
 type Event struct {
-	ID               string
-	ClientID         uuid.UUID
-	ClientName       string
-	Title            string
-	EventType        string
-	PhotoKey         string
-	Venue            string
-	EventDateLabel   string
-	DaysUntil        int
-	GuestsCount      int
-	ArticlesCount    int
-	TotalDop         int
-	DepositDop       int
-	PaidDop          int
-	BalanceDop       int
-	BalanceDueLabel  string
-	Status           string
-	DateChangesCount int
-	CreatedAt        time.Time
+	ID                 string
+	ClientID           uuid.UUID
+	ClientName         string
+	Title              string
+	EventType          string
+	PhotoKey           string
+	Venue              string
+	EventDateLabel     string
+	DaysUntil          int
+	GuestsCount        int
+	ArticlesCount      int
+	TotalDop           int
+	DepositDop         int
+	PaidDop            int
+	BalanceDop         int
+	BalanceDueLabel    string
+	Status             string
+	DateChangesCount   int
+	CreatedAt          time.Time
+	Code               string
+	Zone               string
+	AssignedLead       string
+	PaidDepositDop     int
+	ClientEmail        string
+	SketchJson         string
+	CancellationReason string
+}
+
+type EventGuest struct {
+	ID           string
+	EventID      string
+	FullName     string
+	RsvpStatus   string
+	TableLabel   string
+	DietaryNotes string
+	CreatedAt    time.Time
+}
+
+type EventItem struct {
+	EventID      string
+	ArticleCode  string
+	Name         string
+	Quantity     int
+	UnitPriceDop int
+}
+
+type EventScheduleBlock struct {
+	ID        string
+	EventID   string
+	TimeRange string
+	Title     string
+	OwnerName string
+	Status    string
+	SortOrder int
 }
 
 type EventTask struct {
-	ID           string
-	EventID      string
-	Title        string
-	AssigneeName string
-	Completed    bool
+	ID               string
+	EventID          string
+	Title            string
+	AssigneeName     string
+	Completed        bool
+	Stage            string
+	CompletedAtLabel string
+}
+
+type InsurancePolicy struct {
+	ID              string
+	ProviderName    string
+	PolicyNumber    string
+	CoverageType    string
+	MaxCoverageDop  int
+	ValidUntilLabel string
+	Status          string
 }
 
 type Lead struct {
-	ID           string
-	FullName     string
-	Phone        string
-	EventType    string
-	EstimatedDop int
-	Stage        string
-	CreatedAt    time.Time
+	ID             string
+	FullName       string
+	Phone          string
+	EventType      string
+	EstimatedDop   int
+	Stage          string
+	CreatedAt      time.Time
+	Email          string
+	Notes          string
+	EventDateLabel string
+	Guests         int
+}
+
+type Notification struct {
+	ID             string
+	RecipientRole  string
+	UserID         string
+	Title          string
+	Body           string
+	Category       string
+	ActionPath     string
+	IsRead         bool
+	CreatedAtLabel string
+	CreatedAt      time.Time
+}
+
+type OfflineQueue struct {
+	ID             string
+	ActionLabel    string
+	EntityCode     string
+	CreatedAtLabel string
+	Synced         bool
+	CreatedAt      time.Time
 }
 
 type Package struct {
@@ -76,6 +268,15 @@ type Package struct {
 	TotalPriceDop int
 	GuestCapacity int
 	ItemsSummary  string
+	Visible       bool
+}
+
+type PackageItem struct {
+	PackageID    string
+	ArticleID    string
+	ArticleName  string
+	Quantity     int
+	UnitPriceDop int
 }
 
 type Payment struct {
@@ -88,31 +289,54 @@ type Payment struct {
 	PaidDateLabel  string
 	Status         string
 	CreatedAt      time.Time
+	ReceiptNumber  string
+	EventTitle     string
+	ClientID       string
+	ClientEmail    string
+	Kind           string
+	BankName       string
 }
 
 type Quote struct {
-	ID         string
-	EventID    string
-	ClientName string
-	EventTitle string
-	TotalDop   int
-	DepositDop int
-	BalanceDop int
-	Status     string
-	Version    int
-	Notes      string
-	CreatedAt  time.Time
+	ID              string
+	EventID         string
+	ClientName      string
+	EventTitle      string
+	TotalDop        int
+	DepositDop      int
+	BalanceDop      int
+	Status          string
+	Version         int
+	Notes           string
+	CreatedAt       time.Time
+	Code            string
+	ClientID        string
+	ClientEmail     string
+	EventDateLabel  string
+	Venue           string
+	Guests          int
+	LinesJson       []byte
+	DeliveryFeeDop  int
+	DiscountDop     int
+	SignatureSvg    string
+	SignedByName    string
+	RejectionReason string
 }
 
 type Refund struct {
-	ID             string
-	IdempotencyKey string
-	EventID        string
-	PaidDop        int
-	RefundPercent  int
-	RefundDop      int
-	Reason         string
-	CreatedAt      time.Time
+	ID              string
+	IdempotencyKey  string
+	EventID         string
+	PaidDop         int
+	RefundPercent   int
+	RefundDop       int
+	Reason          string
+	CreatedAt       time.Time
+	EventTitle      string
+	ClientName      string
+	Status          string
+	ApprovedBy      string
+	ApprovedAtLabel string
 }
 
 type Review struct {
@@ -133,12 +357,30 @@ type Session struct {
 	ExpiresAt  time.Time
 }
 
+type StaffMember struct {
+	ID          string
+	UserID      uuid.UUID
+	FullName    string
+	Email       string
+	Phone       string
+	RoleLabel   string
+	Role        string
+	Permissions string
+	Active      bool
+	CreatedAt   time.Time
+}
+
 type Supplier struct {
-	ID        string
-	Name      string
-	Specialty string
-	Phone     string
-	Rating    string
+	ID          string
+	Name        string
+	Specialty   string
+	Phone       string
+	Rating      string
+	Category    string
+	ContactName string
+	Email       string
+	Website     string
+	Notes       string
 }
 
 type User struct {
@@ -152,4 +394,5 @@ type User struct {
 	CreatedAt    time.Time
 	Username     string
 	BirthDate    string
+	AvatarKey    string
 }

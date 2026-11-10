@@ -9,21 +9,50 @@ import (
 	"context"
 )
 
-const listArticles = `-- name: ListArticles :many
-SELECT id, name, category_id, photo_key, daily_price_dop, total_stock, low_stock_threshold, description
+const deletePackageItems = `-- name: DeletePackageItems :exec
+DELETE FROM package_items
+WHERE package_id = $1
+`
+
+func (q *Queries) DeletePackageItems(ctx context.Context, packageID string) error {
+	_, err := q.db.Exec(ctx, deletePackageItems, packageID)
+	return err
+}
+
+const listAllArticles = `-- name: ListAllArticles :many
+SELECT id, name, category_id, photo_key, daily_price_dop, total_stock,
+       available_stock, low_stock_threshold, description, visible,
+       dimensions, material, color_variants, is_direct_sale
 FROM articles
 ORDER BY id
 `
 
-func (q *Queries) ListArticles(ctx context.Context) ([]Article, error) {
-	rows, err := q.db.Query(ctx, listArticles)
+type ListAllArticlesRow struct {
+	ID                string
+	Name              string
+	CategoryID        string
+	PhotoKey          string
+	DailyPriceDop     int
+	TotalStock        int
+	AvailableStock    int
+	LowStockThreshold int
+	Description       string
+	Visible           bool
+	Dimensions        string
+	Material          string
+	ColorVariants     []string
+	IsDirectSale      bool
+}
+
+func (q *Queries) ListAllArticles(ctx context.Context) ([]ListAllArticlesRow, error) {
+	rows, err := q.db.Query(ctx, listAllArticles)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Article
+	var items []ListAllArticlesRow
 	for rows.Next() {
-		var i Article
+		var i ListAllArticlesRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
@@ -31,8 +60,136 @@ func (q *Queries) ListArticles(ctx context.Context) ([]Article, error) {
 			&i.PhotoKey,
 			&i.DailyPriceDop,
 			&i.TotalStock,
+			&i.AvailableStock,
 			&i.LowStockThreshold,
 			&i.Description,
+			&i.Visible,
+			&i.Dimensions,
+			&i.Material,
+			&i.ColorVariants,
+			&i.IsDirectSale,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listArticles = `-- name: ListArticles :many
+SELECT id, name, category_id, photo_key, daily_price_dop, total_stock,
+       available_stock, low_stock_threshold, description, visible,
+       dimensions, material, color_variants, is_direct_sale
+FROM articles
+WHERE is_direct_sale = FALSE
+ORDER BY id
+`
+
+type ListArticlesRow struct {
+	ID                string
+	Name              string
+	CategoryID        string
+	PhotoKey          string
+	DailyPriceDop     int
+	TotalStock        int
+	AvailableStock    int
+	LowStockThreshold int
+	Description       string
+	Visible           bool
+	Dimensions        string
+	Material          string
+	ColorVariants     []string
+	IsDirectSale      bool
+}
+
+func (q *Queries) ListArticles(ctx context.Context) ([]ListArticlesRow, error) {
+	rows, err := q.db.Query(ctx, listArticles)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListArticlesRow
+	for rows.Next() {
+		var i ListArticlesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.CategoryID,
+			&i.PhotoKey,
+			&i.DailyPriceDop,
+			&i.TotalStock,
+			&i.AvailableStock,
+			&i.LowStockThreshold,
+			&i.Description,
+			&i.Visible,
+			&i.Dimensions,
+			&i.Material,
+			&i.ColorVariants,
+			&i.IsDirectSale,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listBalloonArticles = `-- name: ListBalloonArticles :many
+SELECT id, name, category_id, photo_key, daily_price_dop, total_stock,
+       available_stock, low_stock_threshold, description, visible,
+       dimensions, material, color_variants, is_direct_sale
+FROM articles
+WHERE is_direct_sale = TRUE
+ORDER BY id
+`
+
+type ListBalloonArticlesRow struct {
+	ID                string
+	Name              string
+	CategoryID        string
+	PhotoKey          string
+	DailyPriceDop     int
+	TotalStock        int
+	AvailableStock    int
+	LowStockThreshold int
+	Description       string
+	Visible           bool
+	Dimensions        string
+	Material          string
+	ColorVariants     []string
+	IsDirectSale      bool
+}
+
+func (q *Queries) ListBalloonArticles(ctx context.Context) ([]ListBalloonArticlesRow, error) {
+	rows, err := q.db.Query(ctx, listBalloonArticles)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListBalloonArticlesRow
+	for rows.Next() {
+		var i ListBalloonArticlesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.CategoryID,
+			&i.PhotoKey,
+			&i.DailyPriceDop,
+			&i.TotalStock,
+			&i.AvailableStock,
+			&i.LowStockThreshold,
+			&i.Description,
+			&i.Visible,
+			&i.Dimensions,
+			&i.Material,
+			&i.ColorVariants,
+			&i.IsDirectSale,
 		); err != nil {
 			return nil, err
 		}
@@ -75,8 +232,40 @@ func (q *Queries) ListCategories(ctx context.Context) ([]Category, error) {
 	return items, nil
 }
 
+const listPackageItems = `-- name: ListPackageItems :many
+SELECT package_id, article_id, article_name, quantity, unit_price_dop
+FROM package_items
+ORDER BY package_id, article_id
+`
+
+func (q *Queries) ListPackageItems(ctx context.Context) ([]PackageItem, error) {
+	rows, err := q.db.Query(ctx, listPackageItems)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []PackageItem
+	for rows.Next() {
+		var i PackageItem
+		if err := rows.Scan(
+			&i.PackageID,
+			&i.ArticleID,
+			&i.ArticleName,
+			&i.Quantity,
+			&i.UnitPriceDop,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listPackages = `-- name: ListPackages :many
-SELECT id, name, event_type, photo_key, total_price_dop, guest_capacity, items_summary
+SELECT id, name, event_type, photo_key, total_price_dop, guest_capacity, items_summary, visible
 FROM packages
 ORDER BY id
 `
@@ -98,6 +287,7 @@ func (q *Queries) ListPackages(ctx context.Context) ([]Package, error) {
 			&i.TotalPriceDop,
 			&i.GuestCapacity,
 			&i.ItemsSummary,
+			&i.Visible,
 		); err != nil {
 			return nil, err
 		}
@@ -110,16 +300,29 @@ func (q *Queries) ListPackages(ctx context.Context) ([]Package, error) {
 }
 
 const upsertArticle = `-- name: UpsertArticle :exec
-INSERT INTO articles (id, name, category_id, photo_key, daily_price_dop, total_stock, low_stock_threshold, description)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+INSERT INTO articles (
+    id, name, category_id, photo_key, daily_price_dop, total_stock,
+    available_stock, low_stock_threshold, description, visible,
+    dimensions, material, color_variants, is_direct_sale
+) VALUES (
+    $1, $2, $3, $4, $5, $6,
+    $7, $8, $9, $10,
+    $11, $12, $13, $14
+)
 ON CONFLICT (id) DO UPDATE SET
     name = EXCLUDED.name,
     category_id = EXCLUDED.category_id,
     photo_key = EXCLUDED.photo_key,
     daily_price_dop = EXCLUDED.daily_price_dop,
     total_stock = EXCLUDED.total_stock,
+    available_stock = EXCLUDED.available_stock,
     low_stock_threshold = EXCLUDED.low_stock_threshold,
-    description = EXCLUDED.description
+    description = EXCLUDED.description,
+    visible = EXCLUDED.visible,
+    dimensions = EXCLUDED.dimensions,
+    material = EXCLUDED.material,
+    color_variants = EXCLUDED.color_variants,
+    is_direct_sale = EXCLUDED.is_direct_sale
 `
 
 type UpsertArticleParams struct {
@@ -129,8 +332,14 @@ type UpsertArticleParams struct {
 	PhotoKey          string
 	DailyPriceDop     int
 	TotalStock        int
+	AvailableStock    int
 	LowStockThreshold int
 	Description       string
+	Visible           bool
+	Dimensions        string
+	Material          string
+	ColorVariants     []string
+	IsDirectSale      bool
 }
 
 func (q *Queries) UpsertArticle(ctx context.Context, arg UpsertArticleParams) error {
@@ -141,8 +350,14 @@ func (q *Queries) UpsertArticle(ctx context.Context, arg UpsertArticleParams) er
 		arg.PhotoKey,
 		arg.DailyPriceDop,
 		arg.TotalStock,
+		arg.AvailableStock,
 		arg.LowStockThreshold,
 		arg.Description,
+		arg.Visible,
+		arg.Dimensions,
+		arg.Material,
+		arg.ColorVariants,
+		arg.IsDirectSale,
 	)
 	return err
 }
@@ -174,15 +389,16 @@ func (q *Queries) UpsertCategory(ctx context.Context, arg UpsertCategoryParams) 
 }
 
 const upsertPackage = `-- name: UpsertPackage :exec
-INSERT INTO packages (id, name, event_type, photo_key, total_price_dop, guest_capacity, items_summary)
-VALUES ($1, $2, $3, $4, $5, $6, $7)
+INSERT INTO packages (id, name, event_type, photo_key, total_price_dop, guest_capacity, items_summary, visible)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 ON CONFLICT (id) DO UPDATE SET
     name = EXCLUDED.name,
     event_type = EXCLUDED.event_type,
     photo_key = EXCLUDED.photo_key,
     total_price_dop = EXCLUDED.total_price_dop,
     guest_capacity = EXCLUDED.guest_capacity,
-    items_summary = EXCLUDED.items_summary
+    items_summary = EXCLUDED.items_summary,
+    visible = EXCLUDED.visible
 `
 
 type UpsertPackageParams struct {
@@ -193,6 +409,7 @@ type UpsertPackageParams struct {
 	TotalPriceDop int
 	GuestCapacity int
 	ItemsSummary  string
+	Visible       bool
 }
 
 func (q *Queries) UpsertPackage(ctx context.Context, arg UpsertPackageParams) error {
@@ -204,6 +421,35 @@ func (q *Queries) UpsertPackage(ctx context.Context, arg UpsertPackageParams) er
 		arg.TotalPriceDop,
 		arg.GuestCapacity,
 		arg.ItemsSummary,
+		arg.Visible,
+	)
+	return err
+}
+
+const upsertPackageItem = `-- name: UpsertPackageItem :exec
+INSERT INTO package_items (package_id, article_id, article_name, quantity, unit_price_dop)
+VALUES ($1, $2, $3, $4, $5)
+ON CONFLICT (package_id, article_id) DO UPDATE SET
+    article_name = EXCLUDED.article_name,
+    quantity = EXCLUDED.quantity,
+    unit_price_dop = EXCLUDED.unit_price_dop
+`
+
+type UpsertPackageItemParams struct {
+	PackageID    string
+	ArticleID    string
+	ArticleName  string
+	Quantity     int
+	UnitPriceDop int
+}
+
+func (q *Queries) UpsertPackageItem(ctx context.Context, arg UpsertPackageItemParams) error {
+	_, err := q.db.Exec(ctx, upsertPackageItem,
+		arg.PackageID,
+		arg.ArticleID,
+		arg.ArticleName,
+		arg.Quantity,
+		arg.UnitPriceDop,
 	)
 	return err
 }

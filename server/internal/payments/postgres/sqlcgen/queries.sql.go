@@ -11,28 +11,53 @@ import (
 )
 
 const listPayments = `-- name: ListPayments :many
-SELECT id, idempotency_key, event_id, client_name, amount_dop,
-       method, paid_date_label, status, created_at
+SELECT id, receipt_number, idempotency_key, event_id, event_title, client_id,
+       client_email, client_name, amount_dop, method, kind, bank_name,
+       paid_date_label, status, created_at
 FROM payments
 ORDER BY created_at, id
 `
 
-func (q *Queries) ListPayments(ctx context.Context) ([]Payment, error) {
+type ListPaymentsRow struct {
+	ID             string
+	ReceiptNumber  string
+	IdempotencyKey string
+	EventID        string
+	EventTitle     string
+	ClientID       string
+	ClientEmail    string
+	ClientName     string
+	AmountDop      int
+	Method         string
+	Kind           string
+	BankName       string
+	PaidDateLabel  string
+	Status         string
+	CreatedAt      time.Time
+}
+
+func (q *Queries) ListPayments(ctx context.Context) ([]ListPaymentsRow, error) {
 	rows, err := q.db.Query(ctx, listPayments)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Payment
+	var items []ListPaymentsRow
 	for rows.Next() {
-		var i Payment
+		var i ListPaymentsRow
 		if err := rows.Scan(
 			&i.ID,
+			&i.ReceiptNumber,
 			&i.IdempotencyKey,
 			&i.EventID,
+			&i.EventTitle,
+			&i.ClientID,
+			&i.ClientEmail,
 			&i.ClientName,
 			&i.AmountDop,
 			&i.Method,
+			&i.Kind,
+			&i.BankName,
 			&i.PaidDateLabel,
 			&i.Status,
 			&i.CreatedAt,
@@ -47,24 +72,94 @@ func (q *Queries) ListPayments(ctx context.Context) ([]Payment, error) {
 	return items, nil
 }
 
+const listRefunds = `-- name: ListRefunds :many
+SELECT id, idempotency_key, event_id, event_title, client_name, paid_dop,
+       refund_percent, refund_dop, reason, status, approved_by, approved_at_label, created_at
+FROM refunds
+ORDER BY created_at DESC, id ASC
+`
+
+type ListRefundsRow struct {
+	ID              string
+	IdempotencyKey  string
+	EventID         string
+	EventTitle      string
+	ClientName      string
+	PaidDop         int
+	RefundPercent   int
+	RefundDop       int
+	Reason          string
+	Status          string
+	ApprovedBy      string
+	ApprovedAtLabel string
+	CreatedAt       time.Time
+}
+
+func (q *Queries) ListRefunds(ctx context.Context) ([]ListRefundsRow, error) {
+	rows, err := q.db.Query(ctx, listRefunds)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListRefundsRow
+	for rows.Next() {
+		var i ListRefundsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.IdempotencyKey,
+			&i.EventID,
+			&i.EventTitle,
+			&i.ClientName,
+			&i.PaidDop,
+			&i.RefundPercent,
+			&i.RefundDop,
+			&i.Reason,
+			&i.Status,
+			&i.ApprovedBy,
+			&i.ApprovedAtLabel,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const upsertPayment = `-- name: UpsertPayment :exec
 INSERT INTO payments (
-    id, idempotency_key, event_id, client_name, amount_dop,
-    method, paid_date_label, status, created_at
+    id, receipt_number, idempotency_key, event_id, event_title, client_id,
+    client_email, client_name, amount_dop, method, kind, bank_name,
+    paid_date_label, status, created_at
 ) VALUES (
-    $1, $2, $3, $4, $5,
-    $6, $7, $8, $9
+    $1, $2, $3, $4, $5, $6,
+    $7, $8, $9, $10, $11, $12,
+    $13, $14, $15
 )
-ON CONFLICT (idempotency_key) DO NOTHING
+ON CONFLICT (idempotency_key) DO UPDATE SET
+    status = EXCLUDED.status,
+    bank_name = EXCLUDED.bank_name,
+    receipt_number = EXCLUDED.receipt_number,
+    event_title = EXCLUDED.event_title,
+    kind = EXCLUDED.kind
 `
 
 type UpsertPaymentParams struct {
 	ID             string
+	ReceiptNumber  string
 	IdempotencyKey string
 	EventID        string
+	EventTitle     string
+	ClientID       string
+	ClientEmail    string
 	ClientName     string
 	AmountDop      int
 	Method         string
+	Kind           string
+	BankName       string
 	PaidDateLabel  string
 	Status         string
 	CreatedAt      time.Time
@@ -73,11 +168,17 @@ type UpsertPaymentParams struct {
 func (q *Queries) UpsertPayment(ctx context.Context, arg UpsertPaymentParams) error {
 	_, err := q.db.Exec(ctx, upsertPayment,
 		arg.ID,
+		arg.ReceiptNumber,
 		arg.IdempotencyKey,
 		arg.EventID,
+		arg.EventTitle,
+		arg.ClientID,
+		arg.ClientEmail,
 		arg.ClientName,
 		arg.AmountDop,
 		arg.Method,
+		arg.Kind,
+		arg.BankName,
 		arg.PaidDateLabel,
 		arg.Status,
 		arg.CreatedAt,
@@ -87,22 +188,33 @@ func (q *Queries) UpsertPayment(ctx context.Context, arg UpsertPaymentParams) er
 
 const upsertRefund = `-- name: UpsertRefund :exec
 INSERT INTO refunds (
-    id, idempotency_key, event_id, paid_dop, refund_percent, refund_dop, reason, created_at
+    id, idempotency_key, event_id, event_title, client_name, paid_dop,
+    refund_percent, refund_dop, reason, status, approved_by, approved_at_label, created_at
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8
+    $1, $2, $3, $4, $5, $6,
+    $7, $8, $9, $10, $11, $12, $13
 )
-ON CONFLICT (idempotency_key) DO NOTHING
+ON CONFLICT (id) DO UPDATE SET
+    status = EXCLUDED.status,
+    approved_by = EXCLUDED.approved_by,
+    approved_at_label = EXCLUDED.approved_at_label,
+    reason = EXCLUDED.reason
 `
 
 type UpsertRefundParams struct {
-	ID             string
-	IdempotencyKey string
-	EventID        string
-	PaidDop        int
-	RefundPercent  int
-	RefundDop      int
-	Reason         string
-	CreatedAt      time.Time
+	ID              string
+	IdempotencyKey  string
+	EventID         string
+	EventTitle      string
+	ClientName      string
+	PaidDop         int
+	RefundPercent   int
+	RefundDop       int
+	Reason          string
+	Status          string
+	ApprovedBy      string
+	ApprovedAtLabel string
+	CreatedAt       time.Time
 }
 
 func (q *Queries) UpsertRefund(ctx context.Context, arg UpsertRefundParams) error {
@@ -110,10 +222,15 @@ func (q *Queries) UpsertRefund(ctx context.Context, arg UpsertRefundParams) erro
 		arg.ID,
 		arg.IdempotencyKey,
 		arg.EventID,
+		arg.EventTitle,
+		arg.ClientName,
 		arg.PaidDop,
 		arg.RefundPercent,
 		arg.RefundDop,
 		arg.Reason,
+		arg.Status,
+		arg.ApprovedBy,
+		arg.ApprovedAtLabel,
 		arg.CreatedAt,
 	)
 	return err

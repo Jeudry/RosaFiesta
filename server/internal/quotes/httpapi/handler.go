@@ -1,4 +1,3 @@
-// Package httpapi expone los endpoints HTTP de cotizaciones, contratos y Rosa IA.
 package httpapi
 
 import (
@@ -7,221 +6,206 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
-	"github.com/Jeudry/rosafiesta/server/internal/platform/httpapi"
+	platformhttp "github.com/Jeudry/rosafiesta/server/internal/platform/httpapi"
 	"github.com/Jeudry/rosafiesta/server/internal/quotes/app"
-	"github.com/Jeudry/rosafiesta/server/internal/quotes/domain"
 )
 
-// Module conecta el servicio de cotizaciones al enrutador Huma.
 type Module struct {
 	Service *app.Service
+	Auth    platformhttp.PrincipalResolver
 }
 
-// QuotesListInput filtra cotizaciones por estado.
-type QuotesListInput struct {
-	Status string `query:"status" doc:"Estado opcional (pending, sent, approved, signed, declined)"`
-}
-
-// QuotesListOutput devuelve el listado de cotizaciones.
-type QuotesListOutput struct {
-	Body struct {
-		Quotes []domain.Quote `json:"quotes"`
-	}
-}
-
-// QuoteByIDInput recibe el ID de la cotización.
-type QuoteByIDInput struct {
-	ID string `path:"id" doc:"ID de la cotización"`
-}
-
-// QuoteOutput envuelve una cotización individual.
-type QuoteOutput struct {
-	Body struct {
-		Quote domain.Quote `json:"quote"`
-	}
-}
-
-// CreateQuoteInput recibe los datos para emitir una cotización nueva.
-type CreateQuoteInput struct {
-	Body struct {
-		EventTitle     string             `json:"eventTitle" minLength:"2"`
-		ClientName     string             `json:"clientName" minLength:"2"`
-		EventDateLabel string             `json:"eventDateLabel" minLength:"2"`
-		Venue          string             `json:"venue" minLength:"2"`
-		Guests         int                `json:"guests" minimum:"1"`
-		Lines          []domain.QuoteLine `json:"lines"`
-		DeliveryFeeRD  int                `json:"deliveryFeeRD" minimum:"0"`
-		DiscountRD     int                `json:"discountRD" minimum:"0"`
-	}
-}
-
-// SignContractInput recibe la firma digital del cliente (s28).
-type SignContractInput struct {
-	ID   string `path:"id" doc:"ID de la cotización"`
-	Body struct {
-		SignedByName string `json:"signedByName" minLength:"2"`
-		SignatureSVG string `json:"signatureSvg" minLength:"5"`
-	}
-}
-
-// DeclineQuoteInput recibe el motivo de rechazo (A08).
-type DeclineQuoteInput struct {
-	ID   string `path:"id" doc:"ID de la cotización"`
-	Body struct {
-		Reason string `json:"reason" minLength:"2"`
-	}
-}
-
-// RosaProposalInput recibe parámetros para el asistente conversacional Rosa IA.
-type RosaProposalInput struct {
-	Body struct {
-		EventType string `json:"eventType"`
-		Guests    int    `json:"guests" minimum:"10"`
-		BudgetRD  int    `json:"budgetRD" minimum:"200"`
-	}
-}
-
-// RosaProposalOutput devuelve la propuesta y moodboard de Rosa IA.
-type RosaProposalOutput struct {
-	Body struct {
-		Proposal domain.RosaMoodboardProposal `json:"proposal"`
-	}
-}
-
-// Register registra los endpoints HTTP del módulo de cotizaciones.
 func (m Module) Register(api huma.API) {
-	m.registerReadRoutes(api)
-	m.registerCreateRoute(api)
-	m.registerDecisionAndAssistantRoutes(api)
+	m.registerReadAndCreateRoutes(api)
+	m.registerDecisionRoutes(api)
+	m.registerRosaAssistantRoutes(api)
 }
 
-func (m Module) registerReadRoutes(api huma.API) {
+func (m Module) authMiddlewares(api huma.API) huma.Middlewares {
+	if m.Auth == nil {
+		return nil
+	}
+	return huma.Middlewares{platformhttp.RequireAuth(api, m.Auth)}
+}
+
+func (m Module) optionalAuthMiddlewares(api huma.API) huma.Middlewares {
+	if m.Auth == nil {
+		return nil
+	}
+	return huma.Middlewares{platformhttp.OptionalAuth(api, m.Auth)}
+}
+
+func (m Module) registerReadAndCreateRoutes(api huma.API) {
+	mw := m.authMiddlewares(api)
+
 	huma.Register(api, huma.Operation{
 		OperationID: "quotes-list",
 		Method:      http.MethodGet,
 		Path:        "/v1/quotes",
-		Summary:     "Listar cotizaciones y solicitudes recibidas",
+		Summary:     "List quotes and contract proposals scoped by caller role",
 		Tags:        []string{"Quotes"},
-	}, func(_ context.Context, in *QuotesListInput) (*QuotesListOutput, error) {
-		out := &QuotesListOutput{}
-		out.Body.Quotes = m.Service.ListQuotes(in.Status)
-		return out, nil
-	})
+		Security:    platformhttp.Secured(),
+		Middlewares: mw,
+	}, m.handleListQuotes)
 
 	huma.Register(api, huma.Operation{
 		OperationID: "quotes-get-by-id",
 		Method:      http.MethodGet,
 		Path:        "/v1/quotes/{id}",
-		Summary:     "Obtener detalle de cotización y contrato",
+		Summary:     "Get quote and digital contract detail",
 		Tags:        []string{"Quotes"},
-	}, func(_ context.Context, in *QuoteByIDInput) (*QuoteOutput, error) {
-		q, err := m.Service.GetQuote(in.ID)
-		if err != nil {
-			return nil, httpapi.NewAPIError(
-				http.StatusNotFound,
-				"QUOTE_NOT_FOUND",
-				err.Error(),
-				"GET /v1/quotes/"+in.ID,
-				"QuoteMustExist",
-				err.Error(),
-			)
-		}
-		out := &QuoteOutput{}
-		out.Body.Quote = q
-		return out, nil
-	})
-}
+		Security:    platformhttp.Secured(),
+		Middlewares: mw,
+	}, m.handleGetQuote)
 
-func (m Module) registerCreateRoute(api huma.API) {
 	huma.Register(api, huma.Operation{
 		OperationID: "quotes-create",
 		Method:      http.MethodPost,
 		Path:        "/v1/quotes",
-		Summary:     "Crear nueva cotización con cálculo automático de 30% de anticipo",
+		Summary:     "Create a new quote with 30 percent deposit calculation",
 		Tags:        []string{"Quotes"},
-	}, func(_ context.Context, in *CreateQuoteInput) (*QuoteOutput, error) {
-		q, err := m.Service.CreateQuote(
-			in.Body.EventTitle,
-			in.Body.ClientName,
-			in.Body.EventDateLabel,
-			in.Body.Venue,
-			in.Body.Guests,
-			in.Body.Lines,
-			in.Body.DeliveryFeeRD,
-			in.Body.DiscountRD,
-		)
-		if err != nil {
-			return nil, httpapi.NewAPIError(
-				http.StatusBadRequest,
-				"QUOTE_VALIDATION_FAILED",
-				err.Error(),
-				"POST /v1/quotes",
-				"CreateQuoteValidation",
-				err.Error(),
-			)
-		}
-		out := &QuoteOutput{}
-		out.Body.Quote = q
-		return out, nil
-	})
+		Security:    platformhttp.Secured(),
+		Middlewares: mw,
+	}, m.handleCreateQuote)
 }
 
-func (m Module) registerDecisionAndAssistantRoutes(api huma.API) {
+func (m Module) registerDecisionRoutes(api huma.API) {
+	mw := m.authMiddlewares(api)
+
 	huma.Register(api, huma.Operation{
 		OperationID: "quotes-sign-contract",
 		Method:      http.MethodPost,
 		Path:        "/v1/quotes/{id}/sign",
-		Summary:     "Firmar contrato digital de alquiler (s28)",
+		Summary:     "Sign rental digital contract with SVG signature",
 		Tags:        []string{"Quotes"},
-	}, func(_ context.Context, in *SignContractInput) (*QuoteOutput, error) {
-		q, err := m.Service.SignContract(in.ID, in.Body.SignedByName, in.Body.SignatureSVG)
-		if err != nil {
-			return nil, httpapi.NewAPIError(
-				http.StatusBadRequest,
-				"QUOTE_SIGNATURE_INVALID",
-				err.Error(),
-				"POST /v1/quotes/"+in.ID+"/sign",
-				"DigitalSignatureRequired",
-				err.Error(),
-			)
-		}
-		out := &QuoteOutput{}
-		out.Body.Quote = q
-		return out, nil
-	})
+		Security:    platformhttp.Secured(),
+		Middlewares: mw,
+	}, m.handleSignContract)
 
 	huma.Register(api, huma.Operation{
 		OperationID: "quotes-decline",
 		Method:      http.MethodPost,
 		Path:        "/v1/quotes/{id}/decline",
-		Summary:     "Declinar solicitud con respuesta amable (A08)",
+		Summary:     "Decline quote proposal with reason",
 		Tags:        []string{"Quotes"},
-	}, func(_ context.Context, in *DeclineQuoteInput) (*QuoteOutput, error) {
-		q, err := m.Service.DeclineQuote(in.ID, in.Body.Reason)
-		if err != nil {
-			return nil, httpapi.NewAPIError(
-				http.StatusNotFound,
-				"QUOTE_NOT_FOUND",
-				err.Error(),
-				"POST /v1/quotes/"+in.ID+"/decline",
-				"DeclineQuoteValidation",
-				err.Error(),
-			)
-		}
-		out := &QuoteOutput{}
-		out.Body.Quote = q
-		return out, nil
-	})
+		Security:    platformhttp.Secured(),
+		Middlewares: mw,
+	}, m.handleDeclineQuote)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "quotes-duplicate",
+		Method:      http.MethodPost,
+		Path:        "/v1/quotes/{id}/duplicate",
+		Summary:     "Duplicate an existing quote into a new pending draft",
+		Tags:        []string{"Quotes"},
+		Security:    platformhttp.Secured(),
+		Middlewares: mw,
+	}, m.handleDuplicateQuote)
+}
+
+func (m Module) registerRosaAssistantRoutes(api huma.API) {
+	optMW := m.optionalAuthMiddlewares(api)
 
 	huma.Register(api, huma.Operation{
 		OperationID: "quotes-rosa-assistant-proposal",
 		Method:      http.MethodPost,
 		Path:        "/v1/quotes/rosa-proposal",
-		Summary:     "Generar propuesta y moodboard con el asistente Rosa IA (s40-s48, A16-A18)",
+		Summary:     "Generate Rosa AI moodboard and live SKU quote proposal",
 		Tags:        []string{"Quotes"},
-	}, func(_ context.Context, in *RosaProposalInput) (*RosaProposalOutput, error) {
-		out := &RosaProposalOutput{}
-		out.Body.Proposal = m.Service.GenerateRosaProposal(in.Body.EventType, in.Body.Guests, in.Body.BudgetRD)
-		return out, nil
-	})
+		Middlewares: optMW,
+	}, m.handleRosaProposal)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "rosa-chat",
+		Method:      http.MethodPost,
+		Path:        "/v1/rosa/chat",
+		Summary:     "Conversational Rosa AI design and operational assistant",
+		Tags:        []string{"Quotes"},
+		Middlewares: optMW,
+	}, m.handleRosaChat)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "rosa-transcribe",
+		Method:      http.MethodPost,
+		Path:        "/v1/rosa/transcribe",
+		Summary:     "Analyze and transcribe voice notes for Rosa AI",
+		Tags:        []string{"Quotes"},
+		Middlewares: optMW,
+	}, m.handleRosaTranscribe)
+}
+
+func (m Module) handleListQuotes(ctx context.Context, in *QuotesListInput) (*QuotesListOutput, error) {
+	caller, authenticated := platformhttp.CurrentPrincipal(ctx)
+	out := &QuotesListOutput{}
+	out.Body.Quotes = m.Service.ListQuotesForCaller(ctx, in.Status, caller, authenticated)
+	return out, nil
+}
+
+func (m Module) handleGetQuote(ctx context.Context, in *QuoteByIDInput) (*QuoteOutput, error) {
+	caller, authenticated := platformhttp.CurrentPrincipal(ctx)
+	quote, err := m.Service.GetQuoteForCaller(ctx, in.ID, caller, authenticated)
+	if err != nil {
+		return nil, mapQuoteError(err, "GET /v1/quotes/"+in.ID, "QUOTE_NOT_FOUND", "QuoteMustExist", http.StatusNotFound)
+	}
+	return newQuoteOutput(quote), nil
+}
+
+func (m Module) handleCreateQuote(ctx context.Context, in *CreateQuoteInput) (*QuoteOutput, error) {
+	caller, _ := platformhttp.CurrentPrincipal(ctx)
+	cmd := in.ToCommand()
+	quote, err := m.Service.CreateQuoteForCaller(ctx, cmd, caller)
+	if err != nil {
+		return nil, mapQuoteError(err, "POST /v1/quotes", "QUOTE_VALIDATION_FAILED", "CreateQuoteValidation", http.StatusBadRequest)
+	}
+	return newQuoteOutput(quote), nil
+}
+
+func (m Module) handleSignContract(ctx context.Context, in *SignContractInput) (*QuoteOutput, error) {
+	caller, _ := platformhttp.CurrentPrincipal(ctx)
+	quote, err := m.Service.SignContractForCaller(ctx, in.ID, in.Body.SignedByName, in.Body.SignatureSVG, caller)
+	if err != nil {
+		return nil, mapQuoteError(err, "POST /v1/quotes/"+in.ID+"/sign", "QUOTE_SIGNATURE_INVALID", "DigitalSignatureRequired", http.StatusBadRequest)
+	}
+	return newQuoteOutput(quote), nil
+}
+
+func (m Module) handleDeclineQuote(ctx context.Context, in *DeclineQuoteInput) (*QuoteOutput, error) {
+	caller, _ := platformhttp.CurrentPrincipal(ctx)
+	quote, err := m.Service.DeclineQuoteForCaller(ctx, in.ID, in.Body.Reason, caller)
+	if err != nil {
+		return nil, mapQuoteError(err, "POST /v1/quotes/"+in.ID+"/decline", "QUOTE_DECLINE_FAILED", "DeclineQuoteValidation", http.StatusBadRequest)
+	}
+	return newQuoteOutput(quote), nil
+}
+
+func (m Module) handleDuplicateQuote(ctx context.Context, in *QuoteByIDInput) (*QuoteOutput, error) {
+	caller, _ := platformhttp.CurrentPrincipal(ctx)
+	quote, err := m.Service.DuplicateQuoteForCaller(ctx, in.ID, caller)
+	if err != nil {
+		return nil, mapQuoteError(err, "POST /v1/quotes/"+in.ID+"/duplicate", "QUOTE_DUPLICATE_FAILED", "DuplicateQuote", http.StatusBadRequest)
+	}
+	return newQuoteOutput(quote), nil
+}
+
+func (m Module) handleRosaProposal(ctx context.Context, in *RosaProposalInput) (*RosaProposalOutput, error) {
+	req := in.ToRequest()
+	out := &RosaProposalOutput{}
+	out.Body.Proposal = m.Service.GenerateRosaProposal(ctx, req)
+	return out, nil
+}
+
+func (m Module) handleRosaChat(ctx context.Context, in *RosaChatInput) (*RosaChatOutput, error) {
+	caller, _ := platformhttp.CurrentPrincipal(ctx)
+	req := in.ToRequest()
+	reply := m.Service.ChatWithRosa(ctx, in.Body.Message, req, caller)
+	return &RosaChatOutput{Body: reply}, nil
+}
+
+func (m Module) handleRosaTranscribe(ctx context.Context, in *RosaTranscribeInput) (*RosaTranscribeOutput, error) {
+	cmd := in.ToCommand()
+	res, err := m.Service.TranscribeAudio(ctx, cmd)
+	if err != nil {
+		return nil, mapQuoteError(err, "POST /v1/rosa/transcribe", "ROSA_AUDIO_INVALID", "ValidateBase64Audio", http.StatusBadRequest)
+	}
+	return &RosaTranscribeOutput{Body: res}, nil
 }

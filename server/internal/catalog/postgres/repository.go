@@ -1,4 +1,3 @@
-// Package postgres implementa la persistencia PostgreSQL del módulo catalog con consultas generadas por sqlc.
 package postgres
 
 import (
@@ -10,13 +9,11 @@ import (
 	"github.com/Jeudry/rosafiesta/server/internal/catalog/postgres/sqlcgen"
 )
 
-// Repository persiste categorías, artículos y paquetes en PostgreSQL.
 type Repository struct {
 	pool    *pgxpool.Pool
 	queries *sqlcgen.Queries
 }
 
-// NewRepository crea el repositorio PostgreSQL de catálogo.
 func NewRepository(pool *pgxpool.Pool) *Repository {
 	if pool == nil {
 		return &Repository{}
@@ -24,12 +21,13 @@ func NewRepository(pool *pgxpool.Pool) *Repository {
 	return &Repository{pool: pool, queries: sqlcgen.New(pool)}
 }
 
-// Enabled indica si hay un pool PostgreSQL activo.
 func (r *Repository) Enabled() bool {
-	return r != nil && r.pool != nil
+	if r == nil {
+		return false
+	}
+	return r.pool != nil
 }
 
-// Seed inserta de forma idempotente las categorías, artículos y paquetes canónicos.
 func (r *Repository) Seed(
 	ctx context.Context,
 	categories []domain.Category,
@@ -39,47 +37,35 @@ func (r *Repository) Seed(
 	if !r.Enabled() {
 		return nil
 	}
-	for _, c := range categories {
-		if err := r.queries.UpsertCategory(ctx, sqlcgen.UpsertCategoryParams{
-			ID:        c.ID,
-			Name:      c.Name,
-			IlloKey:   c.IlloKey,
-			ItemCount: c.ItemCount,
-		}); err != nil {
+	for _, cat := range categories {
+		err := r.queries.UpsertCategory(ctx, sqlcgen.UpsertCategoryParams{
+			ID:        cat.ID,
+			Name:      cat.Name,
+			IlloKey:   cat.IlloKey,
+			ItemCount: cat.ItemCount,
+		})
+		if err != nil {
 			return err
 		}
 	}
-	for _, a := range articles {
-		if err := r.queries.UpsertArticle(ctx, sqlcgen.UpsertArticleParams{
-			ID:                a.ID,
-			Name:              a.Name,
-			CategoryID:        a.CategoryID,
-			PhotoKey:          a.PhotoKey,
-			DailyPriceDop:     a.DailyPriceDop,
-			TotalStock:        a.TotalStock,
-			LowStockThreshold: a.LowStockThreshold,
-			Description:       a.Description,
-		}); err != nil {
+	for _, art := range articles {
+		if err := r.UpsertArticle(ctx, art); err != nil {
 			return err
 		}
 	}
-	for _, p := range packages {
-		if err := r.queries.UpsertPackage(ctx, sqlcgen.UpsertPackageParams{
-			ID:            p.ID,
-			Name:          p.Name,
-			EventType:     p.EventType,
-			PhotoKey:      p.PhotoKey,
-			TotalPriceDop: p.TotalPriceDop,
-			GuestCapacity: p.GuestCapacity,
-			ItemsSummary:  p.ItemsSummary,
-		}); err != nil {
+	for _, balloon := range domain.CanonicalBalloonArticles() {
+		if err := r.UpsertArticle(ctx, balloon); err != nil {
+			return err
+		}
+	}
+	for _, pkg := range packages {
+		if err := r.UpsertPackage(ctx, pkg); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-// ListArticles consulta los artículos almacenados en PostgreSQL.
 func (r *Repository) ListArticles(ctx context.Context) ([]domain.Article, error) {
 	if !r.Enabled() {
 		return nil, nil
@@ -90,21 +76,86 @@ func (r *Repository) ListArticles(ctx context.Context) ([]domain.Article, error)
 	}
 	out := make([]domain.Article, 0, len(rows))
 	for _, row := range rows {
-		out = append(out, domain.Article{
-			ID:                row.ID,
-			Name:              row.Name,
-			CategoryID:        row.CategoryID,
-			PhotoKey:          row.PhotoKey,
-			DailyPriceDop:     row.DailyPriceDop,
-			TotalStock:        row.TotalStock,
-			LowStockThreshold: row.LowStockThreshold,
-			Description:       row.Description,
-		})
+		out = append(out, mapArticleFields(
+			row.ID,
+			row.Name,
+			row.CategoryID,
+			row.PhotoKey,
+			row.DailyPriceDop,
+			row.TotalStock,
+			row.AvailableStock,
+			row.LowStockThreshold,
+			row.Description,
+			row.Visible,
+			row.Dimensions,
+			row.Material,
+			row.ColorVariants,
+			row.IsDirectSale,
+		))
 	}
 	return out, nil
 }
 
-// ListCategories consulta las categorías almacenadas en PostgreSQL.
+func (r *Repository) ListBalloonArticles(ctx context.Context) ([]domain.Article, error) {
+	if !r.Enabled() {
+		return nil, nil
+	}
+	rows, err := r.queries.ListBalloonArticles(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]domain.Article, 0, len(rows))
+	for _, row := range rows {
+		out = append(out, mapArticleFields(
+			row.ID,
+			row.Name,
+			row.CategoryID,
+			row.PhotoKey,
+			row.DailyPriceDop,
+			row.TotalStock,
+			row.AvailableStock,
+			row.LowStockThreshold,
+			row.Description,
+			row.Visible,
+			row.Dimensions,
+			row.Material,
+			row.ColorVariants,
+			row.IsDirectSale,
+		))
+	}
+	return out, nil
+}
+
+func (r *Repository) ListAllArticles(ctx context.Context) ([]domain.Article, error) {
+	if !r.Enabled() {
+		return nil, nil
+	}
+	rows, err := r.queries.ListAllArticles(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]domain.Article, 0, len(rows))
+	for _, row := range rows {
+		out = append(out, mapArticleFields(
+			row.ID,
+			row.Name,
+			row.CategoryID,
+			row.PhotoKey,
+			row.DailyPriceDop,
+			row.TotalStock,
+			row.AvailableStock,
+			row.LowStockThreshold,
+			row.Description,
+			row.Visible,
+			row.Dimensions,
+			row.Material,
+			row.ColorVariants,
+			row.IsDirectSale,
+		))
+	}
+	return out, nil
+}
+
 func (r *Repository) ListCategories(ctx context.Context) ([]domain.Category, error) {
 	if !r.Enabled() {
 		return nil, nil
@@ -125,7 +176,6 @@ func (r *Repository) ListCategories(ctx context.Context) ([]domain.Category, err
 	return out, nil
 }
 
-// ListPackages consulta los paquetes almacenados en PostgreSQL.
 func (r *Repository) ListPackages(ctx context.Context) ([]domain.PackageBundle, error) {
 	if !r.Enabled() {
 		return nil, nil
@@ -133,6 +183,19 @@ func (r *Repository) ListPackages(ctx context.Context) ([]domain.PackageBundle, 
 	rows, err := r.queries.ListPackages(ctx)
 	if err != nil {
 		return nil, err
+	}
+	itemRows, err := r.queries.ListPackageItems(ctx)
+	if err != nil {
+		return nil, err
+	}
+	itemsByPkg := make(map[string][]domain.PackageItem)
+	for _, item := range itemRows {
+		itemsByPkg[item.PackageID] = append(itemsByPkg[item.PackageID], domain.PackageItem{
+			ArticleID:    item.ArticleID,
+			ArticleName:  item.ArticleName,
+			Quantity:     item.Quantity,
+			UnitPriceDop: item.UnitPriceDop,
+		})
 	}
 	out := make([]domain.PackageBundle, 0, len(rows))
 	for _, row := range rows {
@@ -144,24 +207,104 @@ func (r *Repository) ListPackages(ctx context.Context) ([]domain.PackageBundle, 
 			TotalPriceDop: row.TotalPriceDop,
 			GuestCapacity: row.GuestCapacity,
 			ItemsSummary:  row.ItemsSummary,
+			Visible:       row.Visible,
+			Items:         itemsByPkg[row.ID],
 		})
 	}
 	return out, nil
 }
 
-// UpsertArticle inserta o actualiza un artículo en PostgreSQL.
-func (r *Repository) UpsertArticle(ctx context.Context, a domain.Article) error {
+func (r *Repository) UpsertArticle(ctx context.Context, article domain.Article) error {
 	if !r.Enabled() {
 		return nil
 	}
+	variants := article.ColorVariants
+	if variants == nil {
+		variants = []string{}
+	}
 	return r.queries.UpsertArticle(ctx, sqlcgen.UpsertArticleParams{
-		ID:                a.ID,
-		Name:              a.Name,
-		CategoryID:        a.CategoryID,
-		PhotoKey:          a.PhotoKey,
-		DailyPriceDop:     a.DailyPriceDop,
-		TotalStock:        a.TotalStock,
-		LowStockThreshold: a.LowStockThreshold,
-		Description:       a.Description,
+		ID:                article.ID,
+		Name:              article.Name,
+		CategoryID:        article.CategoryID,
+		PhotoKey:          article.PhotoKey,
+		DailyPriceDop:     article.DailyPriceDop,
+		TotalStock:        article.TotalStock,
+		AvailableStock:    article.AvailableStock,
+		LowStockThreshold: article.LowStockThreshold,
+		Description:       article.Description,
+		Visible:           article.Visible,
+		Dimensions:        article.Dimensions,
+		Material:          article.Material,
+		ColorVariants:     variants,
+		IsDirectSale:      article.IsDirectSale,
 	})
+}
+
+func (r *Repository) UpsertPackage(ctx context.Context, pkg domain.PackageBundle) error {
+	if !r.Enabled() {
+		return nil
+	}
+	err := r.queries.UpsertPackage(ctx, sqlcgen.UpsertPackageParams{
+		ID:            pkg.ID,
+		Name:          pkg.Name,
+		EventType:     pkg.EventType,
+		PhotoKey:      pkg.PhotoKey,
+		TotalPriceDop: pkg.TotalPriceDop,
+		GuestCapacity: pkg.GuestCapacity,
+		ItemsSummary:  pkg.ItemsSummary,
+		Visible:       pkg.Visible,
+	})
+	if err != nil {
+		return err
+	}
+	if err := r.queries.DeletePackageItems(ctx, pkg.ID); err != nil {
+		return err
+	}
+	for _, item := range pkg.Items {
+		err := r.queries.UpsertPackageItem(ctx, sqlcgen.UpsertPackageItemParams{
+			PackageID:    pkg.ID,
+			ArticleID:    item.ArticleID,
+			ArticleName:  item.ArticleName,
+			Quantity:     item.Quantity,
+			UnitPriceDop: item.UnitPriceDop,
+		})
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func mapArticleFields(
+	id string,
+	name string,
+	categoryID string,
+	photoKey string,
+	dailyPrice int,
+	totalStock int,
+	availableStock int,
+	lowStock int,
+	description string,
+	visible bool,
+	dimensions string,
+	material string,
+	colorVariants []string,
+	isDirectSale bool,
+) domain.Article {
+	return domain.Article{
+		ID:                id,
+		Name:              name,
+		CategoryID:        categoryID,
+		PhotoKey:          photoKey,
+		DailyPriceDop:     dailyPrice,
+		TotalStock:        totalStock,
+		AvailableStock:    availableStock,
+		LowStockThreshold: lowStock,
+		Description:       description,
+		Visible:           visible,
+		Dimensions:        dimensions,
+		Material:          material,
+		ColorVariants:     colorVariants,
+		IsDirectSale:      isDirectSale,
+	}
 }

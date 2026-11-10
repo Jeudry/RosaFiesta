@@ -1,61 +1,104 @@
-// Package domain define las entidades y reglas de pagos, comprobantes y finanzas de RosaFiesta.
 package domain
 
-import "errors"
-
-// Errores del dominio de pagos.
-var (
-	ErrPaymentNotFound      = errors.New("pago no encontrado")
-	ErrInvalidPaymentAmount = errors.New("el monto del pago debe ser mayor a cero")
-	ErrInvalidPaymentMethod = errors.New("método de pago inválido; use transferencia, tarjeta o efectivo")
+import (
+	"errors"
+	"fmt"
+	"strings"
+	"time"
 )
 
-// PaymentMethod representa un canal de pago permitido en RosaFiesta.
+var (
+	ErrPaymentNotFound      = errors.New("payment not found")
+	ErrPaymentForbidden     = errors.New("caller is not allowed to access this payment")
+	ErrRefundNotFound       = errors.New("refund not found")
+	ErrInvalidPaymentAmount = errors.New("payment amount must be greater than zero")
+	ErrInvalidPaymentMethod = errors.New("invalid payment method; use transferencia, tarjeta, or efectivo")
+)
+
 type PaymentMethod string
 
-// Métodos de pago soportados.
 const (
 	MethodTransfer PaymentMethod = "transferencia"
 	MethodCard     PaymentMethod = "tarjeta"
 	MethodCash     PaymentMethod = "efectivo"
 )
 
-// PaymentKind indica si el pago corresponde a anticipo, saldo o cargo adicional.
 type PaymentKind string
 
-// Tipos de pago.
 const (
 	KindDeposit PaymentKind = "anticipo"
 	KindBalance PaymentKind = "saldo"
 	KindDamage  PaymentKind = "reposicion"
 )
 
-// PaymentStatus representa el estado de verificación del pago.
 type PaymentStatus string
 
-// Estados de pago.
 const (
 	PaymentPendingVerification PaymentStatus = "pending_verification"
 	PaymentVerified            PaymentStatus = "verified"
 	PaymentFailed              PaymentStatus = "failed"
 )
 
-// Payment representa un registro de pago o abono asociado a un evento.
+type RefundStatus string
+
+const (
+	RefundStatusPending  RefundStatus = "pending"
+	RefundStatusApproved RefundStatus = "approved"
+)
+
 type Payment struct {
 	ID            string        `json:"id"`
 	ReceiptNumber string        `json:"receiptNumber"`
 	EventID       string        `json:"eventId"`
 	EventTitle    string        `json:"eventTitle"`
+	ClientID      string        `json:"clientId,omitempty"`
+	ClientEmail   string        `json:"clientEmail,omitempty"`
 	ClientName    string        `json:"clientName"`
 	AmountRD      int           `json:"amountRD"`
 	Method        PaymentMethod `json:"method"`
 	Kind          PaymentKind   `json:"kind"`
+	BankName      string        `json:"bankName,omitempty"`
 	PaidDateLabel string        `json:"paidDateLabel"`
 	ReferenceCode string        `json:"referenceCode"`
 	Status        PaymentStatus `json:"status"`
 }
 
-// FinanceSummary resume las métricas financieras del mes (s69, A20).
+func (p Payment) BelongsToClient(userID, email, fullName string) bool {
+	trimmedUserID := strings.TrimSpace(userID)
+	if trimmedUserID != "" {
+		if p.ClientID == trimmedUserID {
+			return true
+		}
+	}
+	trimmedEmail := strings.TrimSpace(email)
+	if trimmedEmail != "" {
+		if strings.EqualFold(p.ClientEmail, trimmedEmail) {
+			return true
+		}
+	}
+	trimmedName := strings.TrimSpace(fullName)
+	if trimmedName != "" {
+		if strings.EqualFold(p.ClientName, trimmedName) {
+			return true
+		}
+	}
+	return false
+}
+
+type Refund struct {
+	ID              string       `json:"id"`
+	EventID         string       `json:"eventId"`
+	EventTitle      string       `json:"eventTitle"`
+	ClientName      string       `json:"clientName"`
+	PaidRD          int          `json:"paidRD"`
+	RefundPercent   int          `json:"refundPercent"`
+	RefundDop       int          `json:"refundRD"`
+	Reason          string       `json:"reason"`
+	Status          RefundStatus `json:"status"`
+	ApprovedBy      string       `json:"approvedBy,omitempty"`
+	ApprovedAtLabel string       `json:"approvedAtLabel,omitempty"`
+}
+
 type FinanceSummary struct {
 	MonthLabel          string `json:"monthLabel"`
 	OctRevenueRD        int    `json:"octRevenueRD"`
@@ -65,9 +108,8 @@ type FinanceSummary struct {
 	PendingVerification int    `json:"pendingVerificationCount"`
 }
 
-// ValidateMethod comprueba que el método de pago sea uno de los 3 permitidos.
-func ValidateMethod(m PaymentMethod) error {
-	switch m {
+func ValidateMethod(method PaymentMethod) error {
+	switch method {
 	case MethodTransfer, MethodCard, MethodCash:
 		return nil
 	default:
@@ -75,18 +117,106 @@ func ValidateMethod(m PaymentMethod) error {
 	}
 }
 
-// CanonicalPayments devuelve los pagos canónicos del sistema de diseño (Sección 6).
+func NormalizePaymentMethod(rawMethod, explicitBank string) (PaymentMethod, string, error) {
+	cleanedMethod := strings.TrimSpace(rawMethod)
+	lower := strings.ToLower(cleanedMethod)
+	bank := strings.TrimSpace(explicitBank)
+
+	if direct, matched := matchNonTransferMethod(lower); matched {
+		return direct, bank, nil
+	}
+	if inferredBank, isTransfer := matchTransferMethod(lower); isTransfer {
+		if bank == "" {
+			bank = inferredBank
+		}
+		return MethodTransfer, bank, nil
+	}
+	return "", "", ErrInvalidPaymentMethod
+}
+
+func matchNonTransferMethod(lower string) (PaymentMethod, bool) {
+	switch lower {
+	case "efectivo", "cash":
+		return MethodCash, true
+	case "tarjeta", "card", "visa", "mastercard", "credito", "crédito", "debito", "débito":
+		return MethodCard, true
+	default:
+		return "", false
+	}
+}
+
+func matchTransferMethod(lower string) (string, bool) {
+	if strings.Contains(lower, "popular") {
+		return "Banco Popular", true
+	}
+	if strings.Contains(lower, "banreservas") {
+		return "Banreservas", true
+	}
+	if strings.Contains(lower, "reservas") {
+		return "Banreservas", true
+	}
+	if strings.Contains(lower, "bhd") {
+		return "BHD León", true
+	}
+	if strings.Contains(lower, "scotiabank") {
+		return "Scotiabank", true
+	}
+	switch lower {
+	case "transferencia", "transfer", "wire", "ach", "lbtr":
+		return "", true
+	default:
+		return "", false
+	}
+}
+
+func NormalizePaymentKind(rawKind string) PaymentKind {
+	lower := strings.ToLower(strings.TrimSpace(rawKind))
+	switch lower {
+	case "saldo", "balance":
+		return KindBalance
+	case "reposicion", "reposición", "damage":
+		return KindDamage
+	default:
+		return KindDeposit
+	}
+}
+
+func FormatSpanishShortDate(ts time.Time) string {
+	months := [12]string{
+		"ene", "feb", "mar", "abr", "may", "jun",
+		"jul", "ago", "sep", "oct", "nov", "dic",
+	}
+	idx := int(ts.Month()) - 1
+	if idx < 0 {
+		idx = 0
+	}
+	if idx >= len(months) {
+		idx = len(months) - 1
+	}
+	return fmt.Sprintf("%d %s", ts.Day(), months[idx])
+}
+
 func CanonicalPayments() []Payment {
+	camila := canonicalCamilaPayments()
+	others := canonicalExternalPayments()
+	return append(camila, others...)
+}
+
+func canonicalCamilaPayments() []Payment {
+	camilaID := "11111111-1111-1111-1111-111111111111"
 	return []Payment{
 		{
 			ID:            "pay-boda-anticipo",
 			ReceiptNumber: "REC-2026-0184",
 			EventID:       "evt-boda-real",
 			EventTitle:    "Boda Real Rosa & Dorado",
+			ClientID:      camilaID,
+			ClientEmail:   "camila@rosafiesta.do",
 			ClientName:    "Camila Rodríguez",
 			AmountRD:      1350,
 			Method:        MethodTransfer,
 			Kind:          KindDeposit,
+			BankName:      "Banreservas",
 			PaidDateLabel: "18 oct",
 			ReferenceCode: "BR-9948120",
 			Status:        PaymentVerified,
@@ -96,6 +226,8 @@ func CanonicalPayments() []Payment {
 			ReceiptNumber: "REC-2026-0179",
 			EventID:       "evt-quince-valentina",
 			EventTitle:    "Quinceañera Valentina Crystal",
+			ClientID:      camilaID,
+			ClientEmail:   "camila@rosafiesta.do",
 			ClientName:    "Camila Rodríguez",
 			AmountRD:      1860,
 			Method:        MethodCash,
@@ -104,15 +236,22 @@ func CanonicalPayments() []Payment {
 			ReferenceCode: "EFE-CAJA-04",
 			Status:        PaymentVerified,
 		},
+	}
+}
+
+func canonicalExternalPayments() []Payment {
+	return []Payment{
 		{
 			ID:            "pay-grad-anticipo",
 			ReceiptNumber: "REC-2026-0192",
 			EventID:       "evt-grad-promo",
 			EventTitle:    "Graduación Promo 2026",
+			ClientEmail:   "ana.gomez@correo.do",
 			ClientName:    "Ana Gómez",
 			AmountRD:      642,
 			Method:        MethodTransfer,
 			Kind:          KindDeposit,
+			BankName:      "Banco Popular",
 			PaidDateLabel: "19 oct",
 			ReferenceCode: "POP-772104",
 			Status:        PaymentPendingVerification,
@@ -122,10 +261,12 @@ func CanonicalPayments() []Payment {
 			ReceiptNumber: "REC-2026-0161",
 			EventID:       "evt-gala-caribe",
 			EventTitle:    "Gala Corporativa Grupo Caribe",
+			ClientEmail:   "eventos@grupocaribe.do",
 			ClientName:    "Grupo Caribe",
 			AmountRD:      8500,
 			Method:        MethodCard,
 			Kind:          KindBalance,
+			BankName:      "Visa Empresarial",
 			PaidDateLabel: "12 oct",
 			ReferenceCode: "VISA-4821",
 			Status:        PaymentVerified,
@@ -133,7 +274,22 @@ func CanonicalPayments() []Payment {
 	}
 }
 
-// CanonicalFinanceSummary devuelve los indicadores financieros canónicos (Sección 6: RD$ 12,450 ingresos, RD$ 7,724 por cobrar).
+func CanonicalRefunds() []Refund {
+	return []Refund{
+		{
+			ID:            "ref-baby-lucia",
+			EventID:       "evt-baby-lucia",
+			EventTitle:    "Baby Shower Lucía Pastel",
+			ClientName:    "Lucía Fernández",
+			PaidRD:        900,
+			RefundPercent: 90,
+			RefundDop:     810,
+			Reason:        "Cancelación con 12 días de anticipación (política 90%)",
+			Status:        RefundStatusPending,
+		},
+	}
+}
+
 func CanonicalFinanceSummary() FinanceSummary {
 	return FinanceSummary{
 		MonthLabel:          "Octubre 2026",

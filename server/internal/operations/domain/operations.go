@@ -1,19 +1,22 @@
-// Package domain contiene las entidades de logística, checklist de montaje, rutas, daños y cola offline.
 package domain
 
 import "errors"
 
-// Errores del dominio de operaciones.
 var (
-	ErrOperationNotFound  = errors.New("orden operativa no encontrada")
-	ErrChecklistNotFound  = errors.New("ítem de checklist no encontrado")
-	ErrInvalidReplacement = errors.New("el cargo por reposición debe ser mayor o igual a cero")
+	ErrOperationNotFound      = errors.New("event logistics order not found")
+	ErrChecklistNotFound      = errors.New("checklist item not found")
+	ErrInvalidReplacement     = errors.New("replacement charge must be greater than or equal to zero")
+	ErrReviewNotFound         = errors.New("review not found")
+	ErrLeadNotFound           = errors.New("crm lead not found")
+	ErrNotificationNotFound   = errors.New("notification not found")
+	ErrBotThreadNotFound      = errors.New("whatsapp bot thread not found")
+	ErrInvalidRating          = errors.New("review rating must be between 1 and 5")
+	ErrInvalidOperationsInput = errors.New("invalid operations payload")
+	ErrInvalidReportRequest   = errors.New("invalid report type or period; use income|events|clients|inventory|dgii and 6m|12m")
 )
 
-// ChecklistStage agrupa las etapas de ejecución en campo (s68, A11).
 type ChecklistStage string
 
-// Etapas de montaje y desmontaje.
 const (
 	StageWarehouseLoad ChecklistStage = "carga_bodega"
 	StageInTransit     ChecklistStage = "en_transito"
@@ -21,7 +24,6 @@ const (
 	StageTeardown      ChecklistStage = "desmontaje_recogida"
 )
 
-// ChecklistItem representa un paso verificable por el líder de montaje (Pedro).
 type ChecklistItem struct {
 	ID          string         `json:"id"`
 	Stage       ChecklistStage `json:"stage"`
@@ -31,7 +33,6 @@ type ChecklistItem struct {
 	CompletedAt string         `json:"completedAt,omitempty"`
 }
 
-// RouteStop representa una parada dentro de la ruta de entrega del día (A13).
 type RouteStop struct {
 	Order           int    `json:"order"`
 	EventID         string `json:"eventId"`
@@ -42,7 +43,6 @@ type RouteStop struct {
 	Status          string `json:"status"`
 }
 
-// DamageReport registra incidencias o faltantes post-evento (A14).
 type DamageReport struct {
 	ID            string `json:"id"`
 	EventID       string `json:"eventId"`
@@ -54,7 +54,6 @@ type DamageReport struct {
 	Notes         string `json:"notes"`
 }
 
-// OfflineMutation representa un cambio guardado localmente cuando no hay señal en el salón (A37).
 type OfflineMutation struct {
 	ID          string `json:"id"`
 	ActionLabel string `json:"actionLabel"`
@@ -63,7 +62,6 @@ type OfflineMutation struct {
 	Synced      bool   `json:"synced"`
 }
 
-// EventLogistics agrupa toda la operación de montaje, equipo, ruta y checklist de un evento.
 type EventLogistics struct {
 	EventID        string          `json:"eventId"`
 	EventTitle     string          `json:"eventTitle"`
@@ -79,7 +77,6 @@ type EventLogistics struct {
 	DamageReports  []DamageReport  `json:"damageReports"`
 }
 
-// CompletionPercent calcula el porcentaje de avance del checklist (0 a 100).
 func (l EventLogistics) CompletionPercent() int {
 	if len(l.Checklist) == 0 {
 		return 0
@@ -93,10 +90,9 @@ func (l EventLogistics) CompletionPercent() int {
 	return (done * 100) / len(l.Checklist)
 }
 
-// CanonicalLogistics devuelve la logística canónica del evento principal (Boda Real Rosa & Dorado).
 func CanonicalLogistics() []EventLogistics {
 	return []EventLogistics{
-		{ //nolint:gosec // datos canónicos de muestra sin credenciales
+		{ //nolint:gosec
 			EventID:        "evt-boda-real",
 			EventTitle:     "Boda Real Rosa & Dorado",
 			DateLabel:      "Vie 23 oct",
@@ -128,38 +124,47 @@ func bodaChecklist() []ChecklistItem {
 	return []ChecklistItem{
 		{
 			ID: "chk-1", Stage: StageWarehouseLoad,
-			Title:     "Contar y proteger 120 sillas Tiffany doradas con fundas",
-			Completed: true, CompletedBy: "Andrés Cuevas", CompletedAt: "08:15 AM",
+			Title:       "Contar y proteger 120 sillas Tiffany doradas con fundas",
+			Completed:   true,
+			CompletedBy: "Andrés Cuevas",
+			CompletedAt: "08:15 AM",
 		},
 		{
 			ID: "chk-2", Stage: StageWarehouseLoad,
-			Title:     "Cargar 15 mesas redondas y estructura de arco orgánico",
-			Completed: true, CompletedBy: "Pedro Santos", CompletedAt: "08:40 AM",
+			Title:       "Cargar 15 mesas redondas y estructura de arco orgánico",
+			Completed:   true,
+			CompletedBy: "Pedro Santos",
+			CompletedAt: "08:40 AM",
 		},
 		{
 			ID: "chk-3", Stage: StageInTransit,
-			Title:     "Salida hacia Jardín Botánico y registro en garita de servicio",
-			Completed: true, CompletedBy: "Pedro Santos", CompletedAt: "09:20 AM",
+			Title:       "Salida hacia Jardín Botánico y registro en garita de servicio",
+			Completed:   true,
+			CompletedBy: "Pedro Santos",
+			CompletedAt: "09:20 AM",
 		},
 		{
 			ID: "chk-4", Stage: StageOnSiteSetup,
-			Title:     "Distribución de 15 mesas según plano del salón",
-			Completed: true, CompletedBy: "Pedro Santos", CompletedAt: "10:45 AM",
+			Title:       "Distribución de 15 mesas según plano del salón",
+			Completed:   true,
+			CompletedBy: "Pedro Santos",
+			CompletedAt: "10:45 AM",
 		},
 		{
-			ID: "chk-5", Stage: StageOnSiteSetup,
+			ID:        "chk-5",
+			Stage:     StageOnSiteSetup,
 			Title:     "Instalación de arco orgánico rosa de 3.2 m y 8 centros florales",
 			Completed: false,
 		},
 		{
-			ID: "chk-6", Stage: StageTeardown,
+			ID:        "chk-6",
+			Stage:     StageTeardown,
 			Title:     "Conteo final de retorno y revisión de daños post-evento",
 			Completed: false,
 		},
 	}
 }
 
-// CanonicalRouteStops devuelve las paradas de la hoja de ruta del día (A13).
 func CanonicalRouteStops() []RouteStop {
 	return []RouteStop{
 		{
@@ -183,7 +188,6 @@ func CanonicalRouteStops() []RouteStop {
 	}
 }
 
-// CanonicalOfflineQueue devuelve los cambios pendientes de sincronizar en modo sin conexión (A37).
 func CanonicalOfflineQueue() []OfflineMutation {
 	return []OfflineMutation{
 		{

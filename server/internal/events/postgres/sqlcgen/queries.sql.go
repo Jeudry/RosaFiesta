@@ -12,25 +12,83 @@ import (
 	"github.com/google/uuid"
 )
 
+const deleteEventItems = `-- name: DeleteEventItems :exec
+DELETE FROM event_items
+WHERE event_id = $1
+`
+
+func (q *Queries) DeleteEventItems(ctx context.Context, eventID string) error {
+	_, err := q.db.Exec(ctx, deleteEventItems, eventID)
+	return err
+}
+
+const deleteScheduleBlock = `-- name: DeleteScheduleBlock :exec
+DELETE FROM event_schedule_blocks
+WHERE event_id = $1 AND id = $2
+`
+
+type DeleteScheduleBlockParams struct {
+	EventID string
+	ID      string
+}
+
+func (q *Queries) DeleteScheduleBlock(ctx context.Context, arg DeleteScheduleBlockParams) error {
+	_, err := q.db.Exec(ctx, deleteScheduleBlock, arg.EventID, arg.ID)
+	return err
+}
+
 const getEventByID = `-- name: GetEventByID :one
-SELECT id, client_id, client_name, title, event_type, photo_key, venue, event_date_label,
-       days_until, guests_count, articles_count, total_dop, deposit_dop, paid_dop,
-       balance_dop, balance_due_label, status, date_changes_count, created_at
+SELECT id, code, client_id, client_name, client_email, title, event_type, photo_key, venue, zone,
+       event_date_label, days_until, guests_count, articles_count, total_dop, deposit_dop,
+       paid_dop, paid_deposit_dop, balance_dop, balance_due_label, status, date_changes_count,
+       assigned_lead, sketch_json, cancellation_reason, created_at
 FROM events
 WHERE id = $1
 `
 
-func (q *Queries) GetEventByID(ctx context.Context, id string) (Event, error) {
+type GetEventByIDRow struct {
+	ID                 string
+	Code               string
+	ClientID           uuid.UUID
+	ClientName         string
+	ClientEmail        string
+	Title              string
+	EventType          string
+	PhotoKey           string
+	Venue              string
+	Zone               string
+	EventDateLabel     string
+	DaysUntil          int
+	GuestsCount        int
+	ArticlesCount      int
+	TotalDop           int
+	DepositDop         int
+	PaidDop            int
+	PaidDepositDop     int
+	BalanceDop         int
+	BalanceDueLabel    string
+	Status             string
+	DateChangesCount   int
+	AssignedLead       string
+	SketchJson         string
+	CancellationReason string
+	CreatedAt          time.Time
+}
+
+func (q *Queries) GetEventByID(ctx context.Context, id string) (GetEventByIDRow, error) {
 	row := q.db.QueryRow(ctx, getEventByID, id)
-	var i Event
+	var i GetEventByIDRow
 	err := row.Scan(
 		&i.ID,
+		&i.Code,
 		&i.ClientID,
 		&i.ClientName,
+		&i.ClientEmail,
 		&i.Title,
 		&i.EventType,
 		&i.PhotoKey,
 		&i.Venue,
+		&i.Zone,
 		&i.EventDateLabel,
 		&i.DaysUntil,
 		&i.GuestsCount,
@@ -38,40 +96,225 @@ func (q *Queries) GetEventByID(ctx context.Context, id string) (Event, error) {
 		&i.TotalDop,
 		&i.DepositDop,
 		&i.PaidDop,
+		&i.PaidDepositDop,
 		&i.BalanceDop,
 		&i.BalanceDueLabel,
 		&i.Status,
 		&i.DateChangesCount,
+		&i.AssignedLead,
+		&i.SketchJson,
+		&i.CancellationReason,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
+const listAllChatMessages = `-- name: ListAllChatMessages :many
+SELECT id, thread_id, event_id, event_title, sender_id, sender_name,
+       sender_role, recipient_label, body, attachment_name, unread, created_at
+FROM chat_messages
+ORDER BY created_at ASC, id ASC
+`
+
+func (q *Queries) ListAllChatMessages(ctx context.Context) ([]ChatMessage, error) {
+	rows, err := q.db.Query(ctx, listAllChatMessages)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ChatMessage
+	for rows.Next() {
+		var i ChatMessage
+		if err := rows.Scan(
+			&i.ID,
+			&i.ThreadID,
+			&i.EventID,
+			&i.EventTitle,
+			&i.SenderID,
+			&i.SenderName,
+			&i.SenderRole,
+			&i.RecipientLabel,
+			&i.Body,
+			&i.AttachmentName,
+			&i.Unread,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listAllEventItems = `-- name: ListAllEventItems :many
+SELECT event_id, article_code, name, quantity, unit_price_dop
+FROM event_items
+ORDER BY event_id, article_code
+`
+
+func (q *Queries) ListAllEventItems(ctx context.Context) ([]EventItem, error) {
+	rows, err := q.db.Query(ctx, listAllEventItems)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []EventItem
+	for rows.Next() {
+		var i EventItem
+		if err := rows.Scan(
+			&i.EventID,
+			&i.ArticleCode,
+			&i.Name,
+			&i.Quantity,
+			&i.UnitPriceDop,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listChatMessagesByThread = `-- name: ListChatMessagesByThread :many
+SELECT id, thread_id, event_id, event_title, sender_id, sender_name,
+       sender_role, recipient_label, body, attachment_name, unread, created_at
+FROM chat_messages
+WHERE thread_id = $1
+ORDER BY created_at ASC, id ASC
+`
+
+func (q *Queries) ListChatMessagesByThread(ctx context.Context, threadID string) ([]ChatMessage, error) {
+	rows, err := q.db.Query(ctx, listChatMessagesByThread, threadID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ChatMessage
+	for rows.Next() {
+		var i ChatMessage
+		if err := rows.Scan(
+			&i.ID,
+			&i.ThreadID,
+			&i.EventID,
+			&i.EventTitle,
+			&i.SenderID,
+			&i.SenderName,
+			&i.SenderRole,
+			&i.RecipientLabel,
+			&i.Body,
+			&i.AttachmentName,
+			&i.Unread,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listEventGuests = `-- name: ListEventGuests :many
+SELECT id, event_id, full_name, rsvp_status, table_label, dietary_notes, created_at
+FROM event_guests
+WHERE event_id = $1
+ORDER BY created_at ASC, id ASC
+`
+
+func (q *Queries) ListEventGuests(ctx context.Context, eventID string) ([]EventGuest, error) {
+	rows, err := q.db.Query(ctx, listEventGuests, eventID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []EventGuest
+	for rows.Next() {
+		var i EventGuest
+		if err := rows.Scan(
+			&i.ID,
+			&i.EventID,
+			&i.FullName,
+			&i.RsvpStatus,
+			&i.TableLabel,
+			&i.DietaryNotes,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listEvents = `-- name: ListEvents :many
-SELECT id, client_id, client_name, title, event_type, photo_key, venue, event_date_label,
-       days_until, guests_count, articles_count, total_dop, deposit_dop, paid_dop,
-       balance_dop, balance_due_label, status, date_changes_count, created_at
+SELECT id, code, client_id, client_name, client_email, title, event_type, photo_key, venue, zone,
+       event_date_label, days_until, guests_count, articles_count, total_dop, deposit_dop,
+       paid_dop, paid_deposit_dop, balance_dop, balance_due_label, status, date_changes_count,
+       assigned_lead, sketch_json, cancellation_reason, created_at
 FROM events
 ORDER BY created_at, id
 `
 
-func (q *Queries) ListEvents(ctx context.Context) ([]Event, error) {
+type ListEventsRow struct {
+	ID                 string
+	Code               string
+	ClientID           uuid.UUID
+	ClientName         string
+	ClientEmail        string
+	Title              string
+	EventType          string
+	PhotoKey           string
+	Venue              string
+	Zone               string
+	EventDateLabel     string
+	DaysUntil          int
+	GuestsCount        int
+	ArticlesCount      int
+	TotalDop           int
+	DepositDop         int
+	PaidDop            int
+	PaidDepositDop     int
+	BalanceDop         int
+	BalanceDueLabel    string
+	Status             string
+	DateChangesCount   int
+	AssignedLead       string
+	SketchJson         string
+	CancellationReason string
+	CreatedAt          time.Time
+}
+
+func (q *Queries) ListEvents(ctx context.Context) ([]ListEventsRow, error) {
 	rows, err := q.db.Query(ctx, listEvents)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Event
+	var items []ListEventsRow
 	for rows.Next() {
-		var i Event
+		var i ListEventsRow
 		if err := rows.Scan(
 			&i.ID,
+			&i.Code,
 			&i.ClientID,
 			&i.ClientName,
+			&i.ClientEmail,
 			&i.Title,
 			&i.EventType,
 			&i.PhotoKey,
 			&i.Venue,
+			&i.Zone,
 			&i.EventDateLabel,
 			&i.DaysUntil,
 			&i.GuestsCount,
@@ -79,11 +322,50 @@ func (q *Queries) ListEvents(ctx context.Context) ([]Event, error) {
 			&i.TotalDop,
 			&i.DepositDop,
 			&i.PaidDop,
+			&i.PaidDepositDop,
 			&i.BalanceDop,
 			&i.BalanceDueLabel,
 			&i.Status,
 			&i.DateChangesCount,
+			&i.AssignedLead,
+			&i.SketchJson,
+			&i.CancellationReason,
 			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listScheduleBlocks = `-- name: ListScheduleBlocks :many
+SELECT id, event_id, time_range, title, owner_name, status, sort_order
+FROM event_schedule_blocks
+WHERE event_id = $1
+ORDER BY sort_order ASC, id ASC
+`
+
+func (q *Queries) ListScheduleBlocks(ctx context.Context, eventID string) ([]EventScheduleBlock, error) {
+	rows, err := q.db.Query(ctx, listScheduleBlocks, eventID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []EventScheduleBlock
+	for rows.Next() {
+		var i EventScheduleBlock
+		if err := rows.Scan(
+			&i.ID,
+			&i.EventID,
+			&i.TimeRange,
+			&i.Title,
+			&i.OwnerName,
+			&i.Status,
+			&i.SortOrder,
 		); err != nil {
 			return nil, err
 		}
@@ -100,7 +382,8 @@ UPDATE events
 SET event_date_label = $2,
     days_until = $3,
     date_changes_count = $4,
-    total_dop = $5
+    total_dop = $5,
+    balance_dop = $6
 WHERE id = $1
 `
 
@@ -110,6 +393,7 @@ type UpdateEventDateParams struct {
 	DaysUntil        int
 	DateChangesCount int
 	TotalDop         int
+	BalanceDop       int
 }
 
 func (q *Queries) UpdateEventDate(ctx context.Context, arg UpdateEventDateParams) error {
@@ -119,75 +403,155 @@ func (q *Queries) UpdateEventDate(ctx context.Context, arg UpdateEventDateParams
 		arg.DaysUntil,
 		arg.DateChangesCount,
 		arg.TotalDop,
+		arg.BalanceDop,
 	)
 	return err
 }
 
-const updateEventStatus = `-- name: UpdateEventStatus :exec
+const updateEventStatusAndReason = `-- name: UpdateEventStatusAndReason :exec
 UPDATE events
-SET status = $2
+SET status = $2,
+    cancellation_reason = $3
 WHERE id = $1
 `
 
-type UpdateEventStatusParams struct {
-	ID     string
-	Status string
+type UpdateEventStatusAndReasonParams struct {
+	ID                 string
+	Status             string
+	CancellationReason string
 }
 
-func (q *Queries) UpdateEventStatus(ctx context.Context, arg UpdateEventStatusParams) error {
-	_, err := q.db.Exec(ctx, updateEventStatus, arg.ID, arg.Status)
+func (q *Queries) UpdateEventStatusAndReason(ctx context.Context, arg UpdateEventStatusAndReasonParams) error {
+	_, err := q.db.Exec(ctx, updateEventStatusAndReason, arg.ID, arg.Status, arg.CancellationReason)
+	return err
+}
+
+const upsertChatMessage = `-- name: UpsertChatMessage :exec
+INSERT INTO chat_messages (
+    id, thread_id, event_id, event_title, sender_id, sender_name,
+    sender_role, recipient_label, body, attachment_name, unread, created_at
+) VALUES (
+    $1, $2, $3, $4, $5, $6,
+    $7, $8, $9, $10, $11, $12
+)
+ON CONFLICT (id) DO UPDATE SET
+    body = EXCLUDED.body,
+    unread = EXCLUDED.unread
+`
+
+type UpsertChatMessageParams struct {
+	ID             string
+	ThreadID       string
+	EventID        string
+	EventTitle     string
+	SenderID       string
+	SenderName     string
+	SenderRole     string
+	RecipientLabel string
+	Body           string
+	AttachmentName string
+	Unread         bool
+	CreatedAt      time.Time
+}
+
+func (q *Queries) UpsertChatMessage(ctx context.Context, arg UpsertChatMessageParams) error {
+	_, err := q.db.Exec(ctx, upsertChatMessage,
+		arg.ID,
+		arg.ThreadID,
+		arg.EventID,
+		arg.EventTitle,
+		arg.SenderID,
+		arg.SenderName,
+		arg.SenderRole,
+		arg.RecipientLabel,
+		arg.Body,
+		arg.AttachmentName,
+		arg.Unread,
+		arg.CreatedAt,
+	)
 	return err
 }
 
 const upsertEvent = `-- name: UpsertEvent :exec
 INSERT INTO events (
-    id, client_id, client_name, title, event_type, photo_key, venue, event_date_label,
-    days_until, guests_count, articles_count, total_dop, deposit_dop, paid_dop,
-    balance_dop, balance_due_label, status, date_changes_count, created_at
+    id, code, client_id, client_name, client_email, title, event_type, photo_key, venue, zone,
+    event_date_label, days_until, guests_count, articles_count, total_dop, deposit_dop,
+    paid_dop, paid_deposit_dop, balance_dop, balance_due_label, status, date_changes_count,
+    assigned_lead, sketch_json, cancellation_reason, created_at
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8,
-    $9, $10, $11, $12, $13, $14,
-    $15, $16, $17, $18, $19
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
+    $11, $12, $13, $14, $15, $16,
+    $17, $18, $19, $20, $21, $22,
+    $23, $24, $25, $26
 )
 ON CONFLICT (id) DO UPDATE SET
+    code = EXCLUDED.code,
+    client_id = EXCLUDED.client_id,
+    client_name = EXCLUDED.client_name,
+    client_email = EXCLUDED.client_email,
+    title = EXCLUDED.title,
+    event_type = EXCLUDED.event_type,
+    photo_key = EXCLUDED.photo_key,
+    venue = EXCLUDED.venue,
+    zone = EXCLUDED.zone,
     event_date_label = EXCLUDED.event_date_label,
     days_until = EXCLUDED.days_until,
+    guests_count = EXCLUDED.guests_count,
+    articles_count = EXCLUDED.articles_count,
     total_dop = EXCLUDED.total_dop,
+    deposit_dop = EXCLUDED.deposit_dop,
+    paid_dop = EXCLUDED.paid_dop,
+    paid_deposit_dop = EXCLUDED.paid_deposit_dop,
+    balance_dop = EXCLUDED.balance_dop,
+    balance_due_label = EXCLUDED.balance_due_label,
     status = EXCLUDED.status,
-    date_changes_count = EXCLUDED.date_changes_count
+    date_changes_count = EXCLUDED.date_changes_count,
+    assigned_lead = EXCLUDED.assigned_lead,
+    sketch_json = EXCLUDED.sketch_json,
+    cancellation_reason = EXCLUDED.cancellation_reason
 `
 
 type UpsertEventParams struct {
-	ID               string
-	ClientID         uuid.UUID
-	ClientName       string
-	Title            string
-	EventType        string
-	PhotoKey         string
-	Venue            string
-	EventDateLabel   string
-	DaysUntil        int
-	GuestsCount      int
-	ArticlesCount    int
-	TotalDop         int
-	DepositDop       int
-	PaidDop          int
-	BalanceDop       int
-	BalanceDueLabel  string
-	Status           string
-	DateChangesCount int
-	CreatedAt        time.Time
+	ID                 string
+	Code               string
+	ClientID           uuid.UUID
+	ClientName         string
+	ClientEmail        string
+	Title              string
+	EventType          string
+	PhotoKey           string
+	Venue              string
+	Zone               string
+	EventDateLabel     string
+	DaysUntil          int
+	GuestsCount        int
+	ArticlesCount      int
+	TotalDop           int
+	DepositDop         int
+	PaidDop            int
+	PaidDepositDop     int
+	BalanceDop         int
+	BalanceDueLabel    string
+	Status             string
+	DateChangesCount   int
+	AssignedLead       string
+	SketchJson         string
+	CancellationReason string
+	CreatedAt          time.Time
 }
 
 func (q *Queries) UpsertEvent(ctx context.Context, arg UpsertEventParams) error {
 	_, err := q.db.Exec(ctx, upsertEvent,
 		arg.ID,
+		arg.Code,
 		arg.ClientID,
 		arg.ClientName,
+		arg.ClientEmail,
 		arg.Title,
 		arg.EventType,
 		arg.PhotoKey,
 		arg.Venue,
+		arg.Zone,
 		arg.EventDateLabel,
 		arg.DaysUntil,
 		arg.GuestsCount,
@@ -195,38 +559,110 @@ func (q *Queries) UpsertEvent(ctx context.Context, arg UpsertEventParams) error 
 		arg.TotalDop,
 		arg.DepositDop,
 		arg.PaidDop,
+		arg.PaidDepositDop,
 		arg.BalanceDop,
 		arg.BalanceDueLabel,
 		arg.Status,
 		arg.DateChangesCount,
+		arg.AssignedLead,
+		arg.SketchJson,
+		arg.CancellationReason,
 		arg.CreatedAt,
 	)
 	return err
 }
 
-const upsertEventTask = `-- name: UpsertEventTask :exec
-INSERT INTO event_tasks (id, event_id, title, assignee_name, completed)
-VALUES ($1, $2, $3, $4, $5)
+const upsertEventGuest = `-- name: UpsertEventGuest :exec
+INSERT INTO event_guests (id, event_id, full_name, rsvp_status, table_label, dietary_notes, created_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
 ON CONFLICT (id) DO UPDATE SET
-    completed = EXCLUDED.completed,
-    assignee_name = EXCLUDED.assignee_name
+    full_name = EXCLUDED.full_name,
+    rsvp_status = EXCLUDED.rsvp_status,
+    table_label = EXCLUDED.table_label,
+    dietary_notes = EXCLUDED.dietary_notes
 `
 
-type UpsertEventTaskParams struct {
+type UpsertEventGuestParams struct {
 	ID           string
 	EventID      string
-	Title        string
-	AssigneeName string
-	Completed    bool
+	FullName     string
+	RsvpStatus   string
+	TableLabel   string
+	DietaryNotes string
+	CreatedAt    time.Time
 }
 
-func (q *Queries) UpsertEventTask(ctx context.Context, arg UpsertEventTaskParams) error {
-	_, err := q.db.Exec(ctx, upsertEventTask,
+func (q *Queries) UpsertEventGuest(ctx context.Context, arg UpsertEventGuestParams) error {
+	_, err := q.db.Exec(ctx, upsertEventGuest,
 		arg.ID,
 		arg.EventID,
+		arg.FullName,
+		arg.RsvpStatus,
+		arg.TableLabel,
+		arg.DietaryNotes,
+		arg.CreatedAt,
+	)
+	return err
+}
+
+const upsertEventItem = `-- name: UpsertEventItem :exec
+INSERT INTO event_items (event_id, article_code, name, quantity, unit_price_dop)
+VALUES ($1, $2, $3, $4, $5)
+ON CONFLICT (event_id, article_code) DO UPDATE SET
+    name = EXCLUDED.name,
+    quantity = EXCLUDED.quantity,
+    unit_price_dop = EXCLUDED.unit_price_dop
+`
+
+type UpsertEventItemParams struct {
+	EventID      string
+	ArticleCode  string
+	Name         string
+	Quantity     int
+	UnitPriceDop int
+}
+
+func (q *Queries) UpsertEventItem(ctx context.Context, arg UpsertEventItemParams) error {
+	_, err := q.db.Exec(ctx, upsertEventItem,
+		arg.EventID,
+		arg.ArticleCode,
+		arg.Name,
+		arg.Quantity,
+		arg.UnitPriceDop,
+	)
+	return err
+}
+
+const upsertScheduleBlock = `-- name: UpsertScheduleBlock :exec
+INSERT INTO event_schedule_blocks (id, event_id, time_range, title, owner_name, status, sort_order)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
+ON CONFLICT (id) DO UPDATE SET
+    time_range = EXCLUDED.time_range,
+    title = EXCLUDED.title,
+    owner_name = EXCLUDED.owner_name,
+    status = EXCLUDED.status,
+    sort_order = EXCLUDED.sort_order
+`
+
+type UpsertScheduleBlockParams struct {
+	ID        string
+	EventID   string
+	TimeRange string
+	Title     string
+	OwnerName string
+	Status    string
+	SortOrder int
+}
+
+func (q *Queries) UpsertScheduleBlock(ctx context.Context, arg UpsertScheduleBlockParams) error {
+	_, err := q.db.Exec(ctx, upsertScheduleBlock,
+		arg.ID,
+		arg.EventID,
+		arg.TimeRange,
 		arg.Title,
-		arg.AssigneeName,
-		arg.Completed,
+		arg.OwnerName,
+		arg.Status,
+		arg.SortOrder,
 	)
 	return err
 }

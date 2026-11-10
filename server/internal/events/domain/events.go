@@ -1,21 +1,27 @@
-// Package domain contiene las entidades y reglas de eventos, plantillas y estados de reserva.
 package domain
 
-import "errors"
+import (
+	"errors"
+	"strings"
 
-// Errores del dominio de eventos.
-var (
-	ErrEventNotFound          = errors.New("evento no encontrado")
-	ErrInvalidEventStatus     = errors.New("estado de evento inválido")
-	ErrCannotCancelCompleted  = errors.New("no se puede cancelar un evento completado")
-	ErrInvalidGuestCount      = errors.New("el número de invitados debe ser mayor a cero")
-	ErrDateChangeNotPermitted = errors.New("el cambio de fecha no está permitido a menos de 48 horas del evento")
+	"github.com/google/uuid"
 )
 
-// EventStatus representa el ciclo de vida de un evento en RosaFiesta.
+var (
+	ErrEventNotFound          = errors.New("event not found")
+	ErrEventForbidden         = errors.New("caller is not allowed to access this event")
+	ErrGuestNotFound          = errors.New("event guest not found")
+	ErrScheduleBlockNotFound  = errors.New("schedule block not found")
+	ErrChatThreadNotFound     = errors.New("chat thread not found")
+	ErrInvalidEventInput      = errors.New("invalid event input")
+	ErrInvalidEventStatus     = errors.New("invalid event status")
+	ErrCannotCancelCompleted  = errors.New("cannot cancel a completed event")
+	ErrInvalidGuestCount      = errors.New("guest count must be greater than zero")
+	ErrDateChangeNotPermitted = errors.New("date change is not permitted less than 48 hours before event")
+)
+
 type EventStatus string
 
-// Estados de un evento.
 const (
 	StatusDraft      EventStatus = "draft"
 	StatusPending    EventStatus = "pending"
@@ -25,7 +31,15 @@ const (
 	StatusCancelled  EventStatus = "cancelled"
 )
 
-// EventTemplate representa una plantilla de tipo de evento (Bodas, Quinceañeras, etc.).
+func IsValidEventStatus(status EventStatus) bool {
+	switch status {
+	case StatusDraft, StatusPending, StatusConfirmed, StatusInProgress, StatusCompleted, StatusCancelled:
+		return true
+	default:
+		return false
+	}
+}
+
 type EventTemplate struct {
 	ID            string   `json:"id"`
 	Slug          string   `json:"slug"`
@@ -37,7 +51,6 @@ type EventTemplate struct {
 	PaletteColors []string `json:"paletteColors"`
 }
 
-// EventItem representa un artículo reservado dentro de un evento.
 type EventItem struct {
 	ArticleCode string `json:"articleCode"`
 	Name        string `json:"name"`
@@ -45,34 +58,35 @@ type EventItem struct {
 	UnitPriceRD int    `json:"unitPriceRD"`
 }
 
-// SubtotalRD calcula el subtotal de la línea en RD$.
 func (i EventItem) SubtotalRD() int {
 	return i.Quantity * i.UnitPriceRD
 }
 
-// Event representa un evento planificado o confirmado de un cliente.
 type Event struct {
-	ID              string      `json:"id"`
-	Code            string      `json:"code"`
-	ClientName      string      `json:"clientName"`
-	Title           string      `json:"title"`
-	EventType       string      `json:"eventType"`
-	DateLabel       string      `json:"dateLabel"`
-	DaysUntilEvent  int         `json:"daysUntilEvent"`
-	Venue           string      `json:"venue"`
-	Zone            string      `json:"zone"`
-	Guests          int         `json:"guests"`
-	ArticleCount    int         `json:"articleCount"`
-	TotalRD         int         `json:"totalRD"`
-	PaidDepositRD   int         `json:"paidDepositRD"`
-	BalanceDueDate  string      `json:"balanceDueDate"`
-	Status          EventStatus `json:"status"`
-	DateChangesUsed int         `json:"dateChangesUsed"`
-	AssignedLead    string      `json:"assignedLead"`
-	Items           []EventItem `json:"items"`
+	ID                 string      `json:"id"`
+	Code               string      `json:"code"`
+	ClientID           uuid.UUID   `json:"clientId,omitempty"`
+	ClientName         string      `json:"clientName"`
+	ClientEmail        string      `json:"clientEmail,omitempty"`
+	Title              string      `json:"title"`
+	EventType          string      `json:"eventType"`
+	DateLabel          string      `json:"dateLabel"`
+	DaysUntilEvent     int         `json:"daysUntilEvent"`
+	Venue              string      `json:"venue"`
+	Zone               string      `json:"zone"`
+	Guests             int         `json:"guests"`
+	ArticleCount       int         `json:"articleCount"`
+	TotalRD            int         `json:"totalRD"`
+	PaidDepositRD      int         `json:"paidDepositRD"`
+	BalanceDueDate     string      `json:"balanceDueDate"`
+	Status             EventStatus `json:"status"`
+	DateChangesUsed    int         `json:"dateChangesUsed"`
+	AssignedLead       string      `json:"assignedLead"`
+	SketchJSON         string      `json:"sketchJson,omitempty"`
+	CancellationReason string      `json:"cancellationReason,omitempty"`
+	Items              []EventItem `json:"items"`
 }
 
-// BalanceRD devuelve el saldo pendiente por pagar en RD$.
 func (e Event) BalanceRD() int {
 	balance := e.TotalRD - e.PaidDepositRD
 	if balance < 0 {
@@ -81,12 +95,37 @@ func (e Event) BalanceRD() int {
 	return balance
 }
 
-// IsActive indica si el evento cuenta como activo (bloquea eliminación de cuenta s88).
 func (e Event) IsActive() bool {
-	return e.Status == StatusPending || e.Status == StatusConfirmed || e.Status == StatusInProgress
+	if e.Status == StatusPending {
+		return true
+	}
+	if e.Status == StatusConfirmed {
+		return true
+	}
+	return e.Status == StatusInProgress
 }
 
-// RefundPolicyResult resume el cálculo de reembolso por cancelación (s37/s76).
+func (e Event) BelongsToClient(userID uuid.UUID, email, fullName string) bool {
+	if userID != uuid.Nil {
+		if e.ClientID == userID {
+			return true
+		}
+	}
+	trimmedEmail := strings.TrimSpace(email)
+	if trimmedEmail != "" {
+		if strings.EqualFold(e.ClientEmail, trimmedEmail) {
+			return true
+		}
+	}
+	trimmedName := strings.TrimSpace(fullName)
+	if trimmedName != "" {
+		if strings.EqualFold(e.ClientName, trimmedName) {
+			return true
+		}
+	}
+	return false
+}
+
 type RefundPolicyResult struct {
 	RefundPercent int    `json:"refundPercent"`
 	RefundRD      int    `json:"refundRD"`
@@ -94,10 +133,6 @@ type RefundPolicyResult struct {
 	PolicyTier    string `json:"policyTier"`
 }
 
-// CalculateCancellationRefund aplica la política oficial de cancelación:
-// - Más de 7 días antes del evento: reembolso del 90% del anticipo.
-// - Entre 3 y 7 días antes: reembolso del 50% del anticipo.
-// - Menos de 3 días: sin reembolso (0%).
 func CalculateCancellationRefund(paidDepositRD int, daysUntilEvent int) RefundPolicyResult {
 	if paidDepositRD <= 0 {
 		return RefundPolicyResult{
@@ -133,7 +168,6 @@ func CalculateCancellationRefund(paidDepositRD int, daysUntilEvent int) RefundPo
 	}
 }
 
-// DateChangeEvaluation indica si un cambio de fecha es gratuito o requiere recargo (s36).
 type DateChangeEvaluation struct {
 	Allowed   bool   `json:"allowed"`
 	IsFree    bool   `json:"isFree"`
@@ -142,9 +176,11 @@ type DateChangeEvaluation struct {
 	NextCount int    `json:"nextCount"`
 }
 
-// EvaluateDateChange evalúa la política de cambio de fecha (primer cambio gratis sujeta a disponibilidad).
 func EvaluateDateChange(e Event) (DateChangeEvaluation, error) {
-	if e.Status == StatusCompleted || e.Status == StatusCancelled {
+	if e.Status == StatusCompleted {
+		return DateChangeEvaluation{}, ErrCannotCancelCompleted
+	}
+	if e.Status == StatusCancelled {
 		return DateChangeEvaluation{}, ErrCannotCancelCompleted
 	}
 	if e.DaysUntilEvent < 2 {
@@ -168,7 +204,6 @@ func EvaluateDateChange(e Event) (DateChangeEvaluation, error) {
 	}, nil
 }
 
-// CanonicalTemplates devuelve las 6 plantillas de tipos de evento de RosaFiesta.
 func CanonicalTemplates() []EventTemplate {
 	return []EventTemplate{
 		{
@@ -210,19 +245,35 @@ func CanonicalTemplates() []EventTemplate {
 	}
 }
 
-// CanonicalEvents devuelve los eventos canónicos del sistema de diseño (Sección 6).
 func CanonicalEvents() []Event {
-	return append(canonicalCamilaEvents(), canonicalOtherEvents()...)
+	camilaEvents := canonicalCamilaEvents()
+	otherEvents := canonicalOtherEvents()
+	return append(camilaEvents, otherEvents...)
 }
 
 func canonicalCamilaEvents() []Event {
+	camilaID := uuid.MustParse("11111111-1111-1111-1111-111111111111")
 	return []Event{
 		{
-			ID: "evt-boda-real", Code: "RF-2026-1023", ClientName: "Camila Rodríguez",
-			Title: "Boda Real Rosa & Dorado", EventType: "Boda", DateLabel: "Vie 23 oct",
-			DaysUntilEvent: 3, Venue: "Jardín Botánico", Zone: "Santo Domingo DN",
-			Guests: 120, ArticleCount: 145, TotalRD: 4500, PaidDepositRD: 1350,
-			BalanceDueDate: "Jue 22 oct", Status: StatusConfirmed, AssignedLead: "Pedro Santos",
+			ID:             "evt-boda-real",
+			Code:           "RF-2026-1023",
+			ClientID:       camilaID,
+			ClientName:     "Camila Rodríguez",
+			ClientEmail:    "camila@rosafiesta.do",
+			Title:          "Boda Real Rosa & Dorado",
+			EventType:      "Boda",
+			DateLabel:      "Vie 23 oct",
+			DaysUntilEvent: 3,
+			Venue:          "Jardín Botánico",
+			Zone:           "Santo Domingo DN",
+			Guests:         120,
+			ArticleCount:   145,
+			TotalRD:        4500,
+			PaidDepositRD:  1350,
+			BalanceDueDate: "Jue 22 oct",
+			Status:         StatusConfirmed,
+			AssignedLead:   "Pedro Santos",
+			SketchJSON:     `{"tables":15,"chairs":120,"arch":1,"sweetTable":1}`,
 			Items: []EventItem{
 				{ArticleCode: "RF-001", Name: "Silla Tiffany dorada", Quantity: 120, UnitPriceRD: 4},
 				{ArticleCode: "RF-003", Name: "Mesa redonda 8 personas", Quantity: 15, UnitPriceRD: 25},
@@ -232,11 +283,25 @@ func canonicalCamilaEvents() []Event {
 			},
 		},
 		{
-			ID: "evt-quince-valentina", Code: "RF-2026-1102", ClientName: "Camila Rodríguez",
-			Title: "Quinceañera Valentina Crystal", EventType: "Quinceañera", DateLabel: "Lun 2 nov",
-			DaysUntilEvent: 13, Venue: "Salón Gran Mirador", Zone: "Piantini, DN",
-			Guests: 100, ArticleCount: 118, TotalRD: 6200, PaidDepositRD: 1860,
-			BalanceDueDate: "Vie 30 oct", Status: StatusConfirmed, AssignedLead: "Yuli Mercedes",
+			ID:             "evt-quince-valentina",
+			Code:           "RF-2026-1102",
+			ClientID:       camilaID,
+			ClientName:     "Camila Rodríguez",
+			ClientEmail:    "camila@rosafiesta.do",
+			Title:          "Quinceañera Valentina Crystal",
+			EventType:      "Quinceañera",
+			DateLabel:      "Lun 2 nov",
+			DaysUntilEvent: 13,
+			Venue:          "Salón Gran Mirador",
+			Zone:           "Piantini, DN",
+			Guests:         100,
+			ArticleCount:   118,
+			TotalRD:        6200,
+			PaidDepositRD:  1860,
+			BalanceDueDate: "Vie 30 oct",
+			Status:         StatusConfirmed,
+			AssignedLead:   "Yuli Mercedes",
+			SketchJSON:     `{"tables":13,"chairs":100,"arch":1,"sweetTable":1}`,
 			Items: []EventItem{
 				{ArticleCode: "RF-001", Name: "Silla Tiffany dorada", Quantity: 100, UnitPriceRD: 4},
 				{ArticleCode: "RF-003", Name: "Mesa redonda 8 personas", Quantity: 13, UnitPriceRD: 25},
@@ -249,13 +314,33 @@ func canonicalCamilaEvents() []Event {
 }
 
 func canonicalOtherEvents() []Event {
+	out := canonicalCelebrationEvents()
+	out = append(out, canonicalCorporateEvent())
+	return out
+}
+
+func canonicalCelebrationEvents() []Event {
 	return []Event{
 		{
-			ID: "evt-cumple-mateo", Code: "RF-2026-1107", ClientName: "Laura Peña",
-			Title: "Cumpleaños de Mateo", EventType: "Cumpleaños infantil", DateLabel: "Sáb 7 nov",
-			DaysUntilEvent: 18, Venue: "Terraza Los Prados", Zone: "Los Prados, DN",
-			Guests: 40, ArticleCount: 46, TotalRD: 405, PaidDepositRD: 0,
-			BalanceDueDate: "Jue 5 nov", Status: StatusPending, AssignedLead: "Pedro Santos",
+			ID:             "evt-cumple-mateo",
+			Code:           "RF-2026-1107",
+			ClientID:       uuid.Nil,
+			ClientName:     "Laura Peña",
+			ClientEmail:    "laura@rosafiesta.do",
+			Title:          "Cumpleaños de Mateo",
+			EventType:      "Cumpleaños infantil",
+			DateLabel:      "Sáb 7 nov",
+			DaysUntilEvent: 18,
+			Venue:          "Terraza Los Prados",
+			Zone:           "Los Prados, DN",
+			Guests:         40,
+			ArticleCount:   46,
+			TotalRD:        405,
+			PaidDepositRD:  0,
+			BalanceDueDate: "Jue 5 nov",
+			Status:         StatusPending,
+			AssignedLead:   "Pedro Santos",
+			SketchJSON:     `{"tables":5,"chairs":40,"arch":1}`,
 			Items: []EventItem{
 				{ArticleCode: "RF-001", Name: "Silla Tiffany dorada", Quantity: 40, UnitPriceRD: 4},
 				{ArticleCode: "RF-002", Name: "Mesa rectangular plegable", Quantity: 5, UnitPriceRD: 20},
@@ -263,11 +348,25 @@ func canonicalOtherEvents() []Event {
 			},
 		},
 		{
-			ID: "evt-grad-promo", Code: "RF-2026-1113", ClientName: "Ana Gómez",
-			Title: "Graduación Promo 2026", EventType: "Graduación", DateLabel: "Vie 13 nov",
-			DaysUntilEvent: 24, Venue: "Club Naco", Zone: "Naco, DN",
-			Guests: 80, ArticleCount: 92, TotalRD: 2140, PaidDepositRD: 642,
-			BalanceDueDate: "Mié 11 nov", Status: StatusConfirmed, AssignedLead: "Andrés Cuevas",
+			ID:             "evt-grad-promo",
+			Code:           "RF-2026-1113",
+			ClientID:       uuid.Nil,
+			ClientName:     "Ana Gómez",
+			ClientEmail:    "ana@rosafiesta.do",
+			Title:          "Graduación Promo 2026",
+			EventType:      "Graduación",
+			DateLabel:      "Vie 13 nov",
+			DaysUntilEvent: 24,
+			Venue:          "Club Naco",
+			Zone:           "Naco, DN",
+			Guests:         80,
+			ArticleCount:   92,
+			TotalRD:        2140,
+			PaidDepositRD:  642,
+			BalanceDueDate: "Mié 11 nov",
+			Status:         StatusConfirmed,
+			AssignedLead:   "Andrés Cuevas",
+			SketchJSON:     `{"tables":10,"chairs":80,"arch":1,"sweetTable":1}`,
 			Items: []EventItem{
 				{ArticleCode: "RF-001", Name: "Silla Tiffany dorada", Quantity: 80, UnitPriceRD: 4},
 				{ArticleCode: "RF-003", Name: "Mesa redonda 8 personas", Quantity: 10, UnitPriceRD: 25},
@@ -275,17 +374,34 @@ func canonicalOtherEvents() []Event {
 				{ArticleCode: "RF-006", Name: "Mesa de dulces / helados", Quantity: 1, UnitPriceRD: 150},
 			},
 		},
-		{
-			ID: "evt-gala-caribe", Code: "RF-2026-1012", ClientName: "Grupo Caribe",
-			Title: "Gala Corporativa Grupo Caribe", EventType: "Corporativo", DateLabel: "Lun 12 oct",
-			DaysUntilEvent: -8, Venue: "Hotel Embajador", Zone: "Bella Vista, DN",
-			Guests: 180, ArticleCount: 210, TotalRD: 8500, PaidDepositRD: 8500,
-			BalanceDueDate: "Vie 9 oct", Status: StatusCompleted, AssignedLead: "Pedro Santos",
-			Items: []EventItem{
-				{ArticleCode: "RF-001", Name: "Silla Tiffany dorada", Quantity: 180, UnitPriceRD: 4},
-				{ArticleCode: "RF-003", Name: "Mesa redonda 8 personas", Quantity: 22, UnitPriceRD: 25},
-				{ArticleCode: "RF-004", Name: "Centro de mesa floral", Quantity: 8, UnitPriceRD: 35},
-			},
+	}
+}
+
+func canonicalCorporateEvent() Event {
+	return Event{
+		ID:             "evt-gala-caribe",
+		Code:           "RF-2026-1012",
+		ClientID:       uuid.Nil,
+		ClientName:     "Grupo Caribe",
+		ClientEmail:    "eventos@grupocaribe.do",
+		Title:          "Gala Corporativa Grupo Caribe",
+		EventType:      "Corporativo",
+		DateLabel:      "Lun 12 oct",
+		DaysUntilEvent: -8,
+		Venue:          "Hotel Embajador",
+		Zone:           "Bella Vista, DN",
+		Guests:         180,
+		ArticleCount:   210,
+		TotalRD:        8500,
+		PaidDepositRD:  8500,
+		BalanceDueDate: "Vie 9 oct",
+		Status:         StatusCompleted,
+		AssignedLead:   "Pedro Santos",
+		SketchJSON:     `{"tables":22,"chairs":180,"centerpieces":8}`,
+		Items: []EventItem{
+			{ArticleCode: "RF-001", Name: "Silla Tiffany dorada", Quantity: 180, UnitPriceRD: 4},
+			{ArticleCode: "RF-003", Name: "Mesa redonda 8 personas", Quantity: 22, UnitPriceRD: 25},
+			{ArticleCode: "RF-004", Name: "Centro de mesa floral", Quantity: 8, UnitPriceRD: 35},
 		},
 	}
 }

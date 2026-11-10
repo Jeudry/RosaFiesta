@@ -1,52 +1,60 @@
-// Package domain define las reglas puras de identidad, roles, permisos de equipo y eliminación de cuenta.
 package domain
 
 import (
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
+	"fmt"
+	"math/big"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
 )
 
-// Role representa el rol de un usuario dentro de RosaFiesta.
 type Role string
 
 const (
-	// RoleClient solo ve la App Personal.
 	RoleClient Role = "client"
-	// RoleAdmin (dueña María) ve toda la App Administrativa y puede entrar como cliente en A30.
-	RoleAdmin Role = "admin"
-	// RoleStaff (equipo: Pedro, Yuli, Andrés) ve la App Administrativa con los permisos de A28.
-	RoleStaff Role = "staff"
+	RoleAdmin  Role = "admin"
+	RoleStaff  Role = "staff"
 )
 
-// AppView representa cuál de las dos aplicaciones está activa en la sesión (`A30`).
 type AppView string
 
 const (
-	// ViewPersonal es la App Personal (clientes).
 	ViewPersonal AppView = "personal"
-	// ViewAdmin es la App Administrativa (negocio).
-	ViewAdmin AppView = "admin"
+	ViewAdmin    AppView = "admin"
 )
 
 var (
-	// ErrInvalidCredentials indica correo o contraseña incorrectos.
-	ErrInvalidCredentials = errors.New("invalid email or password")
-	// ErrEmailAlreadyRegistered indica que el correo ya está registrado.
-	ErrEmailAlreadyRegistered = errors.New("email already registered")
-	// ErrInvalidInput indica datos de entrada vacíos o inválidos.
-	ErrInvalidInput = errors.New("invalid identity input")
-	// ErrActiveEventsPreventDeletion impide eliminar la cuenta si existen eventos activos (`s88`).
+	ErrInvalidCredentials          = errors.New("invalid email or password")
+	ErrTokenExpired                = errors.New("access token has expired")
+	ErrEmailAlreadyRegistered      = errors.New("email already registered")
+	ErrUsernameAlreadyTaken        = errors.New("username already taken")
+	ErrInvalidInput                = errors.New("invalid identity input")
 	ErrActiveEventsPreventDeletion = errors.New("cannot delete account with active events")
-	// ErrForbiddenView indica que el rol no puede entrar en la vista solicitada (`A30`).
-	ErrForbiddenView = errors.New("role is not allowed to enter requested app view")
-	// ErrPermissionDenied indica que el miembro del equipo no posee el permiso requerido (`A28`).
-	ErrPermissionDenied = errors.New("staff member lacks required permission")
+	ErrForbiddenView               = errors.New("role is not allowed to enter requested app view")
+	ErrPermissionDenied            = errors.New("staff member lacks required permission")
+	ErrUserNotFound                = errors.New("account not found")
+	ErrOTPInvalidOrExpired         = errors.New("verification code is invalid or expired")
+	ErrResetTokenInvalid           = errors.New("password reset token is missing, invalid, or expired")
+	ErrOAuthProviderNotConfigured  = errors.New("oauth provider is not configured on server")
+	ErrOAuthInvalidToken           = errors.New("oauth identity token is invalid or expired")
 )
 
-// User representa una cuenta registrada en RosaFiesta.
+var canonicalStaffPermissions = map[string]struct{}{
+	"eventos":    {},
+	"decoracion": {},
+	"tareas":     {},
+	"inventario": {},
+	"pagos":      {},
+	"reembolsos": {},
+	"reportes":   {},
+	"ajustes":    {},
+}
+
 type User struct {
 	ID           uuid.UUID `json:"id"`
 	Username     string    `json:"username"`
@@ -54,6 +62,7 @@ type User struct {
 	Email        string    `json:"email"`
 	Phone        string    `json:"phone"`
 	BirthDate    string    `json:"birthDate"`
+	AvatarKey    string    `json:"avatarKey,omitempty"`
 	Role         Role      `json:"role"`
 	Permissions  []string  `json:"permissions"`
 	ActiveView   AppView   `json:"activeView"`
@@ -61,18 +70,22 @@ type User struct {
 	PasswordHash string    `json:"-"`
 }
 
-// CanAccessView valida si el usuario puede abrir la vista indicada (`A30`).
 func (u User) CanAccessView(view AppView) bool {
 	if view == ViewPersonal {
-		return u.Role == RoleClient || u.Role == RoleAdmin
+		if u.Role == RoleClient {
+			return true
+		}
+		return u.Role == RoleAdmin
 	}
 	if view == ViewAdmin {
-		return u.Role == RoleAdmin || u.Role == RoleStaff
+		if u.Role == RoleAdmin {
+			return true
+		}
+		return u.Role == RoleStaff
 	}
 	return false
 }
 
-// HasPermission valida si el usuario posee un permiso operativo (`A28`).
 func (u User) HasPermission(permission string) bool {
 	if u.Role == RoleAdmin {
 		return true
@@ -80,16 +93,17 @@ func (u User) HasPermission(permission string) bool {
 	if u.Role != RoleStaff {
 		return false
 	}
-	target := strings.TrimSpace(strings.ToLower(permission))
+	trimmedTarget := strings.TrimSpace(permission)
+	target := strings.ToLower(trimmedTarget)
 	for _, item := range u.Permissions {
-		if strings.TrimSpace(strings.ToLower(item)) == target {
+		trimmedItem := strings.TrimSpace(item)
+		if strings.ToLower(trimmedItem) == target {
 			return true
 		}
 	}
 	return false
 }
 
-// ValidateAccountDeletion aplica la regla `s88`: no se puede eliminar la cuenta con eventos activos.
 func ValidateAccountDeletion(activeEventsCount int) error {
 	if activeEventsCount > 0 {
 		return ErrActiveEventsPreventDeletion
@@ -97,11 +111,67 @@ func ValidateAccountDeletion(activeEventsCount int) error {
 	return nil
 }
 
-// NormalizeEmail limpia y normaliza un correo electrónico.
 func NormalizeEmail(raw string) (string, error) {
-	cleaned := strings.ToLower(strings.TrimSpace(raw))
-	if len(cleaned) < 5 || !strings.Contains(cleaned, "@") || !strings.Contains(cleaned, ".") {
+	trimmed := strings.TrimSpace(raw)
+	cleaned := strings.ToLower(trimmed)
+	if len(cleaned) < 5 {
+		return "", ErrInvalidInput
+	}
+	if !strings.Contains(cleaned, "@") {
+		return "", ErrInvalidInput
+	}
+	atIdx := strings.IndexByte(cleaned, '@')
+	domainPart := cleaned[atIdx+1:]
+	if !strings.Contains(domainPart, ".") {
 		return "", ErrInvalidInput
 	}
 	return cleaned, nil
+}
+
+func NormalizeStaffPermissions(raw []string) ([]string, error) {
+	seen := make(map[string]struct{}, len(raw))
+	out := make([]string, 0, len(raw))
+	for _, item := range raw {
+		trimmed := strings.TrimSpace(item)
+		lower := strings.ToLower(trimmed)
+		if lower == "" {
+			continue
+		}
+		_, allowed := canonicalStaffPermissions[lower]
+		if !allowed {
+			return nil, ErrInvalidInput
+		}
+		_, duplicate := seen[lower]
+		if !duplicate {
+			seen[lower] = struct{}{}
+			out = append(out, lower)
+		}
+	}
+	return out, nil
+}
+
+func HashToken(raw string) string {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return ""
+	}
+	sum := sha256.Sum256([]byte(trimmed))
+	return hex.EncodeToString(sum[:])
+}
+
+func GenerateDigitsOTP() (string, error) {
+	maxVal := big.NewInt(1_000_000)
+	num, err := rand.Int(rand.Reader, maxVal)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%06d", num.Int64()), nil
+}
+
+func GenerateRandomHex(numBytes int) (string, error) {
+	buf := make([]byte, numBytes)
+	if _, err := rand.Read(buf); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(buf), nil
 }

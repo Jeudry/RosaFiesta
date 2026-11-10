@@ -11,58 +11,138 @@ import (
 )
 
 const getQuoteByID = `-- name: GetQuoteByID :one
-SELECT id, event_id, client_name, event_title, total_dop, deposit_dop,
-       balance_dop, status, version, notes, created_at
+SELECT id, code, event_id, client_id, client_email, client_name, event_title,
+       event_date_label, venue, guests, lines_json, delivery_fee_dop, discount_dop,
+       total_dop, deposit_dop, balance_dop, status, version, notes,
+       signature_svg, signed_by_name, rejection_reason, created_at
 FROM quotes
 WHERE id = $1
 `
 
-func (q *Queries) GetQuoteByID(ctx context.Context, id string) (Quote, error) {
+type GetQuoteByIDRow struct {
+	ID              string
+	Code            string
+	EventID         string
+	ClientID        string
+	ClientEmail     string
+	ClientName      string
+	EventTitle      string
+	EventDateLabel  string
+	Venue           string
+	Guests          int
+	LinesJson       []byte
+	DeliveryFeeDop  int
+	DiscountDop     int
+	TotalDop        int
+	DepositDop      int
+	BalanceDop      int
+	Status          string
+	Version         int
+	Notes           string
+	SignatureSvg    string
+	SignedByName    string
+	RejectionReason string
+	CreatedAt       time.Time
+}
+
+func (q *Queries) GetQuoteByID(ctx context.Context, id string) (GetQuoteByIDRow, error) {
 	row := q.db.QueryRow(ctx, getQuoteByID, id)
-	var i Quote
+	var i GetQuoteByIDRow
 	err := row.Scan(
 		&i.ID,
+		&i.Code,
 		&i.EventID,
+		&i.ClientID,
+		&i.ClientEmail,
 		&i.ClientName,
 		&i.EventTitle,
+		&i.EventDateLabel,
+		&i.Venue,
+		&i.Guests,
+		&i.LinesJson,
+		&i.DeliveryFeeDop,
+		&i.DiscountDop,
 		&i.TotalDop,
 		&i.DepositDop,
 		&i.BalanceDop,
 		&i.Status,
 		&i.Version,
 		&i.Notes,
+		&i.SignatureSvg,
+		&i.SignedByName,
+		&i.RejectionReason,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const listQuotes = `-- name: ListQuotes :many
-SELECT id, event_id, client_name, event_title, total_dop, deposit_dop,
-       balance_dop, status, version, notes, created_at
+SELECT id, code, event_id, client_id, client_email, client_name, event_title,
+       event_date_label, venue, guests, lines_json, delivery_fee_dop, discount_dop,
+       total_dop, deposit_dop, balance_dop, status, version, notes,
+       signature_svg, signed_by_name, rejection_reason, created_at
 FROM quotes
 ORDER BY created_at, id
 `
 
-func (q *Queries) ListQuotes(ctx context.Context) ([]Quote, error) {
+type ListQuotesRow struct {
+	ID              string
+	Code            string
+	EventID         string
+	ClientID        string
+	ClientEmail     string
+	ClientName      string
+	EventTitle      string
+	EventDateLabel  string
+	Venue           string
+	Guests          int
+	LinesJson       []byte
+	DeliveryFeeDop  int
+	DiscountDop     int
+	TotalDop        int
+	DepositDop      int
+	BalanceDop      int
+	Status          string
+	Version         int
+	Notes           string
+	SignatureSvg    string
+	SignedByName    string
+	RejectionReason string
+	CreatedAt       time.Time
+}
+
+func (q *Queries) ListQuotes(ctx context.Context) ([]ListQuotesRow, error) {
 	rows, err := q.db.Query(ctx, listQuotes)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Quote
+	var items []ListQuotesRow
 	for rows.Next() {
-		var i Quote
+		var i ListQuotesRow
 		if err := rows.Scan(
 			&i.ID,
+			&i.Code,
 			&i.EventID,
+			&i.ClientID,
+			&i.ClientEmail,
 			&i.ClientName,
 			&i.EventTitle,
+			&i.EventDateLabel,
+			&i.Venue,
+			&i.Guests,
+			&i.LinesJson,
+			&i.DeliveryFeeDop,
+			&i.DiscountDop,
 			&i.TotalDop,
 			&i.DepositDop,
 			&i.BalanceDop,
 			&i.Status,
 			&i.Version,
 			&i.Notes,
+			&i.SignatureSvg,
+			&i.SignedByName,
+			&i.RejectionReason,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -75,64 +155,92 @@ func (q *Queries) ListQuotes(ctx context.Context) ([]Quote, error) {
 	return items, nil
 }
 
-const updateQuoteStatusAndNotes = `-- name: UpdateQuoteStatusAndNotes :exec
-UPDATE quotes
-SET status = $2,
-    notes = $3
-WHERE id = $1
-`
-
-type UpdateQuoteStatusAndNotesParams struct {
-	ID     string
-	Status string
-	Notes  string
-}
-
-func (q *Queries) UpdateQuoteStatusAndNotes(ctx context.Context, arg UpdateQuoteStatusAndNotesParams) error {
-	_, err := q.db.Exec(ctx, updateQuoteStatusAndNotes, arg.ID, arg.Status, arg.Notes)
-	return err
-}
-
 const upsertQuote = `-- name: UpsertQuote :exec
 INSERT INTO quotes (
-    id, event_id, client_name, event_title, total_dop, deposit_dop,
-    balance_dop, status, version, notes, created_at
+    id, code, event_id, client_id, client_email, client_name, event_title,
+    event_date_label, venue, guests, lines_json, delivery_fee_dop, discount_dop,
+    total_dop, deposit_dop, balance_dop, status, version, notes,
+    signature_svg, signed_by_name, rejection_reason, created_at
 ) VALUES (
-    $1, $2, $3, $4, $5, $6,
-    $7, $8, $9, $10, $11
+    $1, $2, $3, $4, $5, $6, $7,
+    $8, $9, $10, $11, $12, $13,
+    $14, $15, $16, $17, $18, $19,
+    $20, $21, $22, $23
 )
 ON CONFLICT (id) DO UPDATE SET
+    code = EXCLUDED.code,
+    event_id = EXCLUDED.event_id,
+    client_id = EXCLUDED.client_id,
+    client_email = EXCLUDED.client_email,
+    client_name = EXCLUDED.client_name,
+    event_title = EXCLUDED.event_title,
+    event_date_label = EXCLUDED.event_date_label,
+    venue = EXCLUDED.venue,
+    guests = EXCLUDED.guests,
+    lines_json = EXCLUDED.lines_json,
+    delivery_fee_dop = EXCLUDED.delivery_fee_dop,
+    discount_dop = EXCLUDED.discount_dop,
+    total_dop = EXCLUDED.total_dop,
+    deposit_dop = EXCLUDED.deposit_dop,
+    balance_dop = EXCLUDED.balance_dop,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes,
-    version = EXCLUDED.version
+    version = EXCLUDED.version,
+    signature_svg = EXCLUDED.signature_svg,
+    signed_by_name = EXCLUDED.signed_by_name,
+    rejection_reason = EXCLUDED.rejection_reason
 `
 
 type UpsertQuoteParams struct {
-	ID         string
-	EventID    string
-	ClientName string
-	EventTitle string
-	TotalDop   int
-	DepositDop int
-	BalanceDop int
-	Status     string
-	Version    int
-	Notes      string
-	CreatedAt  time.Time
+	ID              string
+	Code            string
+	EventID         string
+	ClientID        string
+	ClientEmail     string
+	ClientName      string
+	EventTitle      string
+	EventDateLabel  string
+	Venue           string
+	Guests          int
+	LinesJson       []byte
+	DeliveryFeeDop  int
+	DiscountDop     int
+	TotalDop        int
+	DepositDop      int
+	BalanceDop      int
+	Status          string
+	Version         int
+	Notes           string
+	SignatureSvg    string
+	SignedByName    string
+	RejectionReason string
+	CreatedAt       time.Time
 }
 
 func (q *Queries) UpsertQuote(ctx context.Context, arg UpsertQuoteParams) error {
 	_, err := q.db.Exec(ctx, upsertQuote,
 		arg.ID,
+		arg.Code,
 		arg.EventID,
+		arg.ClientID,
+		arg.ClientEmail,
 		arg.ClientName,
 		arg.EventTitle,
+		arg.EventDateLabel,
+		arg.Venue,
+		arg.Guests,
+		arg.LinesJson,
+		arg.DeliveryFeeDop,
+		arg.DiscountDop,
 		arg.TotalDop,
 		arg.DepositDop,
 		arg.BalanceDop,
 		arg.Status,
 		arg.Version,
 		arg.Notes,
+		arg.SignatureSvg,
+		arg.SignedByName,
+		arg.RejectionReason,
 		arg.CreatedAt,
 	)
 	return err

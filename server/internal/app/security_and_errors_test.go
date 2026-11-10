@@ -42,10 +42,19 @@ func TestSecurityHeadersAndStructuredRedactedErrors(t *testing.T) {
 	if err := json.Unmarshal(loginRec.Body.Bytes(), &apiErr); err != nil {
 		t.Fatalf("decode structured APIError: %v", err)
 	}
-	if apiErr.Code != "AUTH_INVALID_CREDENTIALS" || apiErr.Endpoint != "POST /v1/auth/login" || apiErr.Policy != "VerifyCredentialsBcrypt" {
-		t.Fatalf("unexpected structured error payload: %+v", apiErr)
+	if apiErr.Code != "AUTH_INVALID_CREDENTIALS" {
+		t.Fatalf("unexpected error code: %+v", apiErr)
 	}
-	if len(apiErr.Reasons) == 0 || !strings.Contains(apiErr.Reasons[0], "c***a@rosafiesta.do") {
+	if apiErr.Endpoint != "POST /v1/auth/login" {
+		t.Fatalf("unexpected error endpoint: %+v", apiErr)
+	}
+	if apiErr.Policy != "VerifyCredentialsBcrypt" {
+		t.Fatalf("unexpected error policy: %+v", apiErr)
+	}
+	if len(apiErr.Reasons) == 0 {
+		t.Fatalf("expected error reasons, got %+v", apiErr.Reasons)
+	}
+	if !strings.Contains(apiErr.Reasons[0], "c***a@rosafiesta.do") {
 		t.Fatalf("expected redacted email in error reasons, got %+v", apiErr.Reasons)
 	}
 	if strings.Contains(loginRec.Body.String(), "camila@rosafiesta.do") {
@@ -53,10 +62,26 @@ func TestSecurityHeadersAndStructuredRedactedErrors(t *testing.T) {
 	}
 }
 
-func TestRBACPermissionEnforcementOnAdminRoutes(t *testing.T) {
+func TestAnonymousAdminRoutesReturn401AndRBACEnforcement(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
 	handler, _ := httpapi.New(slog.New(slog.DiscardHandler), app.Modules(app.Dependencies{})...)
+
+	for _, adminPath := range []string{"/v1/admin/staff", "/v1/admin/clients", "/v1/payments/summary"} {
+		anonReq := httptest.NewRequestWithContext(ctx, http.MethodGet, adminPath, nil)
+		anonRec := httptest.NewRecorder()
+		handler.ServeHTTP(anonRec, anonReq)
+		if anonRec.Code != http.StatusUnauthorized {
+			t.Fatalf("expected 401 for anonymous request on %s, got %d: %s", adminPath, anonRec.Code, anonRec.Body.String())
+		}
+		var missingErr httpapi.APIError
+		if err := json.Unmarshal(anonRec.Body.Bytes(), &missingErr); err != nil {
+			t.Fatalf("decode 401 APIError on %s: %v", adminPath, err)
+		}
+		if missingErr.Code != "AUTH_MISSING_TOKEN" {
+			t.Fatalf("expected AUTH_MISSING_TOKEN on %s, got %+v", adminPath, missingErr)
+		}
+	}
 
 	yuliReq := httptest.NewRequestWithContext(ctx, http.MethodGet, "/v1/admin/staff", nil)
 	yuliReq.Header.Set("Authorization", "Bearer rf-token-yuli")
@@ -70,8 +95,11 @@ func TestRBACPermissionEnforcementOnAdminRoutes(t *testing.T) {
 	if err := json.Unmarshal(yuliRec.Body.Bytes(), &forbiddenErr); err != nil {
 		t.Fatalf("decode forbidden APIError: %v", err)
 	}
-	if forbiddenErr.Code != "FORBIDDEN_PERMISSION" || forbiddenErr.Policy != "RequirePermission:ajustes" {
-		t.Fatalf("unexpected RBAC error payload: %+v", forbiddenErr)
+	if forbiddenErr.Code != "FORBIDDEN_PERMISSION" {
+		t.Fatalf("unexpected RBAC error code: %+v", forbiddenErr)
+	}
+	if forbiddenErr.Policy != "RequirePermission:ajustes" {
+		t.Fatalf("unexpected RBAC error policy: %+v", forbiddenErr)
 	}
 
 	mariaReq := httptest.NewRequestWithContext(ctx, http.MethodGet, "/v1/admin/staff", nil)
@@ -79,7 +107,110 @@ func TestRBACPermissionEnforcementOnAdminRoutes(t *testing.T) {
 	mariaRec := httptest.NewRecorder()
 	handler.ServeHTTP(mariaRec, mariaReq)
 	if mariaRec.Code != http.StatusOK {
-		t.Fatalf("expected 200 for Admin María on /v1/admin/staff, got %d: %s", mariaRec.Code, mariaRec.Body.String())
+		t.Fatalf("expected 200 for Admin Maria on /v1/admin/staff, got %d: %s", mariaRec.Code, mariaRec.Body.String())
+	}
+}
+
+func TestOTPPasswordResetEndToEndFlow(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	handler, _ := httpapi.New(slog.New(slog.DiscardHandler), app.Modules(app.Dependencies{})...)
+
+	otpReq := httptest.NewRequestWithContext(
+		ctx,
+		http.MethodPost,
+		"/v1/auth/otp/request",
+		strings.NewReader(`{"email":"camila@rosafiesta.do"}`),
+	)
+	otpReq.Header.Set("Content-Type", "application/json")
+	otpRec := httptest.NewRecorder()
+	handler.ServeHTTP(otpRec, otpReq)
+	if otpRec.Code != http.StatusOK {
+		t.Fatalf("expected 200 on /v1/auth/otp/request, got %d: %s", otpRec.Code, otpRec.Body.String())
+	}
+	var otpOut struct {
+		Sent    bool   `json:"sent"`
+		DevCode string `json:"devCode"`
+	}
+	if err := json.Unmarshal(otpRec.Body.Bytes(), &otpOut); err != nil {
+		t.Fatalf("decode otp request output: %v", err)
+	}
+	if len(otpOut.DevCode) != 6 {
+		t.Fatalf("expected 6-digit devCode in dev environment, got %q", otpOut.DevCode)
+	}
+
+	verifyPayload := `{"email":"camila@rosafiesta.do","code":"` + otpOut.DevCode + `"}`
+	verifyReq := httptest.NewRequestWithContext(ctx, http.MethodPost, "/v1/auth/otp/verify", strings.NewReader(verifyPayload))
+	verifyReq.Header.Set("Content-Type", "application/json")
+	verifyRec := httptest.NewRecorder()
+	handler.ServeHTTP(verifyRec, verifyReq)
+	if verifyRec.Code != http.StatusOK {
+		t.Fatalf("expected 200 on /v1/auth/otp/verify, got %d: %s", verifyRec.Code, verifyRec.Body.String())
+	}
+	var verifyOut struct {
+		Verified   bool   `json:"verified"`
+		ResetToken string `json:"resetToken"`
+	}
+	if err := json.Unmarshal(verifyRec.Body.Bytes(), &verifyOut); err != nil {
+		t.Fatalf("decode otp verify output: %v", err)
+	}
+	if !verifyOut.Verified {
+		t.Fatal("expected verified=true")
+	}
+
+	resetPayload := `{"email":"camila@rosafiesta.do","resetToken":"` + verifyOut.ResetToken + `","newPassword":"NewSecurePass2026!"}`
+	resetReq := httptest.NewRequestWithContext(ctx, http.MethodPost, "/v1/auth/reset-password", strings.NewReader(resetPayload))
+	resetReq.Header.Set("Content-Type", "application/json")
+	resetRec := httptest.NewRecorder()
+	handler.ServeHTTP(resetRec, resetReq)
+	if resetRec.Code != http.StatusOK {
+		t.Fatalf("expected 200 on /v1/auth/reset-password, got %d: %s", resetRec.Code, resetRec.Body.String())
+	}
+
+	loginReq := httptest.NewRequestWithContext(
+		ctx,
+		http.MethodPost,
+		"/v1/auth/login",
+		strings.NewReader(`{"email":"camila@rosafiesta.do","password":"NewSecurePass2026!"}`),
+	)
+	loginReq.Header.Set("Content-Type", "application/json")
+	loginRec := httptest.NewRecorder()
+	handler.ServeHTTP(loginRec, loginReq)
+	if loginRec.Code != http.StatusOK {
+		t.Fatalf("expected 200 logging in with reset password, got %d: %s", loginRec.Code, loginRec.Body.String())
+	}
+}
+
+func TestClientEventIsolationEnforced(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	handler, _ := httpapi.New(slog.New(slog.DiscardHandler), app.Modules(app.Dependencies{})...)
+
+	camilaListReq := httptest.NewRequestWithContext(ctx, http.MethodGet, "/v1/events", nil)
+	camilaListReq.Header.Set("Authorization", "Bearer rf-token-camila")
+	camilaListRec := httptest.NewRecorder()
+	handler.ServeHTTP(camilaListRec, camilaListReq)
+	if camilaListRec.Code != http.StatusOK {
+		t.Fatalf("expected 200 for Camila on /v1/events, got %d: %s", camilaListRec.Code, camilaListRec.Body.String())
+	}
+	var listOut struct {
+		Events []struct {
+			ID string `json:"id"`
+		} `json:"events"`
+	}
+	if err := json.Unmarshal(camilaListRec.Body.Bytes(), &listOut); err != nil {
+		t.Fatalf("decode Camila events: %v", err)
+	}
+	if len(listOut.Events) != 2 {
+		t.Fatalf("expected Camila to see only her 2 events, got %d", len(listOut.Events))
+	}
+
+	otherEvtReq := httptest.NewRequestWithContext(ctx, http.MethodGet, "/v1/events/evt-grad-promo", nil)
+	otherEvtReq.Header.Set("Authorization", "Bearer rf-token-camila")
+	otherEvtRec := httptest.NewRecorder()
+	handler.ServeHTTP(otherEvtRec, otherEvtReq)
+	if otherEvtRec.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 FORBIDDEN_EVENT_ACCESS for Camila on another client's event, got %d: %s", otherEvtRec.Code, otherEvtRec.Body.String())
 	}
 }
 
@@ -112,7 +243,10 @@ func TestRateLimiterBlocksExcessTrafficWithStructured429(t *testing.T) {
 	if err := json.Unmarshal(blockedRec.Body.Bytes(), &rateErr); err != nil {
 		t.Fatalf("decode 429 APIError: %v", err)
 	}
-	if rateErr.Code != "RATE_LIMIT_EXCEEDED" || rateErr.Policy != "RateLimitAuthLogin" {
-		t.Fatalf("unexpected 429 APIError payload: %+v", rateErr)
+	if rateErr.Code != "RATE_LIMIT_EXCEEDED" {
+		t.Fatalf("unexpected 429 APIError code: %+v", rateErr)
+	}
+	if rateErr.Policy != "RateLimitAuthLogin" {
+		t.Fatalf("unexpected 429 APIError policy: %+v", rateErr)
 	}
 }

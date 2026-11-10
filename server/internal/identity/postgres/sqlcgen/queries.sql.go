@@ -12,6 +12,26 @@ import (
 	"github.com/google/uuid"
 )
 
+const deleteSessionByTokenHash = `-- name: DeleteSessionByTokenHash :exec
+DELETE FROM sessions
+WHERE token_hash = $1
+`
+
+func (q *Queries) DeleteSessionByTokenHash(ctx context.Context, tokenHash string) error {
+	_, err := q.db.Exec(ctx, deleteSessionByTokenHash, tokenHash)
+	return err
+}
+
+const deleteSessionsByUserID = `-- name: DeleteSessionsByUserID :exec
+DELETE FROM sessions
+WHERE user_id = $1
+`
+
+func (q *Queries) DeleteSessionsByUserID(ctx context.Context, userID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteSessionsByUserID, userID)
+	return err
+}
+
 const deleteUserByID = `-- name: DeleteUserByID :exec
 DELETE FROM users
 WHERE id = $1
@@ -22,14 +42,42 @@ func (q *Queries) DeleteUserByID(ctx context.Context, id uuid.UUID) error {
 	return err
 }
 
-const getSessionByToken = `-- name: GetSessionByToken :one
-SELECT token_hash, user_id, active_view, created_at, expires_at
-FROM sessions
-WHERE token_hash = $1
+const getOTPCodeByEmail = `-- name: GetOTPCodeByEmail :one
+SELECT email, code_hash, attempts, verified, reset_token_hash, used, expires_at, reset_expires_at, created_at
+FROM auth_otp_codes
+WHERE email = $1
 `
 
-func (q *Queries) GetSessionByToken(ctx context.Context, tokenHash string) (Session, error) {
-	row := q.db.QueryRow(ctx, getSessionByToken, tokenHash)
+func (q *Queries) GetOTPCodeByEmail(ctx context.Context, email string) (AuthOtpCode, error) {
+	row := q.db.QueryRow(ctx, getOTPCodeByEmail, email)
+	var i AuthOtpCode
+	err := row.Scan(
+		&i.Email,
+		&i.CodeHash,
+		&i.Attempts,
+		&i.Verified,
+		&i.ResetTokenHash,
+		&i.Used,
+		&i.ExpiresAt,
+		&i.ResetExpiresAt,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getSessionByTokenHash = `-- name: GetSessionByTokenHash :one
+SELECT token_hash, user_id, active_view, created_at, expires_at
+FROM sessions
+WHERE token_hash = $1 AND expires_at > $2
+`
+
+type GetSessionByTokenHashParams struct {
+	TokenHash string
+	ExpiresAt time.Time
+}
+
+func (q *Queries) GetSessionByTokenHash(ctx context.Context, arg GetSessionByTokenHashParams) (Session, error) {
+	row := q.db.QueryRow(ctx, getSessionByTokenHash, arg.TokenHash, arg.ExpiresAt)
 	var i Session
 	err := row.Scan(
 		&i.TokenHash,
@@ -42,7 +90,7 @@ func (q *Queries) GetSessionByToken(ctx context.Context, tokenHash string) (Sess
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, full_name, email, phone, password_hash, role, permissions, created_at, username, birth_date
+SELECT id, full_name, email, phone, password_hash, role, permissions, created_at, username, birth_date, avatar_key
 FROM users
 WHERE email = $1
 `
@@ -61,12 +109,13 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.CreatedAt,
 		&i.Username,
 		&i.BirthDate,
+		&i.AvatarKey,
 	)
 	return i, err
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, full_name, email, phone, password_hash, role, permissions, created_at, username, birth_date
+SELECT id, full_name, email, phone, password_hash, role, permissions, created_at, username, birth_date, avatar_key
 FROM users
 WHERE id = $1
 `
@@ -85,12 +134,60 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 		&i.CreatedAt,
 		&i.Username,
 		&i.BirthDate,
+		&i.AvatarKey,
 	)
 	return i, err
 }
 
+const incrementOTPAttempts = `-- name: IncrementOTPAttempts :exec
+UPDATE auth_otp_codes
+SET attempts = attempts + 1
+WHERE email = $1
+`
+
+func (q *Queries) IncrementOTPAttempts(ctx context.Context, email string) error {
+	_, err := q.db.Exec(ctx, incrementOTPAttempts, email)
+	return err
+}
+
+const listAdminClients = `-- name: ListAdminClients :many
+SELECT id, full_name, email, phone, notes, events_count, total_spent_dop, balance_dop, updated_at
+FROM admin_clients
+ORDER BY id ASC
+`
+
+func (q *Queries) ListAdminClients(ctx context.Context) ([]AdminClient, error) {
+	rows, err := q.db.Query(ctx, listAdminClients)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []AdminClient
+	for rows.Next() {
+		var i AdminClient
+		if err := rows.Scan(
+			&i.ID,
+			&i.FullName,
+			&i.Email,
+			&i.Phone,
+			&i.Notes,
+			&i.EventsCount,
+			&i.TotalSpentDop,
+			&i.BalanceDop,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listAllUsers = `-- name: ListAllUsers :many
-SELECT id, full_name, email, phone, password_hash, role, permissions, created_at, username, birth_date
+SELECT id, full_name, email, phone, password_hash, role, permissions, created_at, username, birth_date, avatar_key
 FROM users
 ORDER BY created_at ASC
 `
@@ -115,6 +212,7 @@ func (q *Queries) ListAllUsers(ctx context.Context) ([]User, error) {
 			&i.CreatedAt,
 			&i.Username,
 			&i.BirthDate,
+			&i.AvatarKey,
 		); err != nil {
 			return nil, err
 		}
@@ -124,6 +222,73 @@ func (q *Queries) ListAllUsers(ctx context.Context) ([]User, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const listStaffMembers = `-- name: ListStaffMembers :many
+SELECT id, user_id, full_name, email, phone, role_label, role, permissions, active, created_at
+FROM staff_members
+ORDER BY created_at ASC, id ASC
+`
+
+func (q *Queries) ListStaffMembers(ctx context.Context) ([]StaffMember, error) {
+	rows, err := q.db.Query(ctx, listStaffMembers)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []StaffMember
+	for rows.Next() {
+		var i StaffMember
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.FullName,
+			&i.Email,
+			&i.Phone,
+			&i.RoleLabel,
+			&i.Role,
+			&i.Permissions,
+			&i.Active,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const markOTPUsed = `-- name: MarkOTPUsed :exec
+UPDATE auth_otp_codes
+SET used = TRUE
+WHERE email = $1
+`
+
+func (q *Queries) MarkOTPUsed(ctx context.Context, email string) error {
+	_, err := q.db.Exec(ctx, markOTPUsed, email)
+	return err
+}
+
+const markOTPVerified = `-- name: MarkOTPVerified :exec
+UPDATE auth_otp_codes
+SET verified = TRUE,
+    reset_token_hash = $2,
+    reset_expires_at = $3
+WHERE email = $1
+`
+
+type MarkOTPVerifiedParams struct {
+	Email          string
+	ResetTokenHash string
+	ResetExpiresAt time.Time
+}
+
+func (q *Queries) MarkOTPVerified(ctx context.Context, arg MarkOTPVerifiedParams) error {
+	_, err := q.db.Exec(ctx, markOTPVerified, arg.Email, arg.ResetTokenHash, arg.ResetExpiresAt)
+	return err
 }
 
 const updateUserPasswordByEmail = `-- name: UpdateUserPasswordByEmail :exec
@@ -142,6 +307,22 @@ func (q *Queries) UpdateUserPasswordByEmail(ctx context.Context, arg UpdateUserP
 	return err
 }
 
+const updateUserPasswordByID = `-- name: UpdateUserPasswordByID :exec
+UPDATE users
+SET password_hash = $2
+WHERE id = $1
+`
+
+type UpdateUserPasswordByIDParams struct {
+	ID           uuid.UUID
+	PasswordHash string
+}
+
+func (q *Queries) UpdateUserPasswordByID(ctx context.Context, arg UpdateUserPasswordByIDParams) error {
+	_, err := q.db.Exec(ctx, updateUserPasswordByID, arg.ID, arg.PasswordHash)
+	return err
+}
+
 const updateUserSessionsView = `-- name: UpdateUserSessionsView :exec
 UPDATE sessions
 SET active_view = $2
@@ -155,6 +336,94 @@ type UpdateUserSessionsViewParams struct {
 
 func (q *Queries) UpdateUserSessionsView(ctx context.Context, arg UpdateUserSessionsViewParams) error {
 	_, err := q.db.Exec(ctx, updateUserSessionsView, arg.UserID, arg.ActiveView)
+	return err
+}
+
+const upsertAdminClient = `-- name: UpsertAdminClient :exec
+INSERT INTO admin_clients (
+    id, full_name, email, phone, notes, events_count, total_spent_dop, balance_dop, updated_at
+) VALUES (
+    $1, $2, $3, $4, $5, $6, $7, $8, $9
+)
+ON CONFLICT (id) DO UPDATE SET
+    full_name = EXCLUDED.full_name,
+    email = EXCLUDED.email,
+    phone = EXCLUDED.phone,
+    notes = EXCLUDED.notes,
+    events_count = EXCLUDED.events_count,
+    total_spent_dop = EXCLUDED.total_spent_dop,
+    balance_dop = EXCLUDED.balance_dop,
+    updated_at = EXCLUDED.updated_at
+`
+
+type UpsertAdminClientParams struct {
+	ID            string
+	FullName      string
+	Email         string
+	Phone         string
+	Notes         string
+	EventsCount   int
+	TotalSpentDop int
+	BalanceDop    int
+	UpdatedAt     time.Time
+}
+
+func (q *Queries) UpsertAdminClient(ctx context.Context, arg UpsertAdminClientParams) error {
+	_, err := q.db.Exec(ctx, upsertAdminClient,
+		arg.ID,
+		arg.FullName,
+		arg.Email,
+		arg.Phone,
+		arg.Notes,
+		arg.EventsCount,
+		arg.TotalSpentDop,
+		arg.BalanceDop,
+		arg.UpdatedAt,
+	)
+	return err
+}
+
+const upsertOTPCode = `-- name: UpsertOTPCode :exec
+INSERT INTO auth_otp_codes (
+    email, code_hash, attempts, verified, reset_token_hash, used, expires_at, reset_expires_at, created_at
+) VALUES (
+    $1, $2, $3, $4, $5, $6, $7, $8, $9
+)
+ON CONFLICT (email) DO UPDATE SET
+    code_hash = EXCLUDED.code_hash,
+    attempts = EXCLUDED.attempts,
+    verified = EXCLUDED.verified,
+    reset_token_hash = EXCLUDED.reset_token_hash,
+    used = EXCLUDED.used,
+    expires_at = EXCLUDED.expires_at,
+    reset_expires_at = EXCLUDED.reset_expires_at,
+    created_at = EXCLUDED.created_at
+`
+
+type UpsertOTPCodeParams struct {
+	Email          string
+	CodeHash       string
+	Attempts       int
+	Verified       bool
+	ResetTokenHash string
+	Used           bool
+	ExpiresAt      time.Time
+	ResetExpiresAt time.Time
+	CreatedAt      time.Time
+}
+
+func (q *Queries) UpsertOTPCode(ctx context.Context, arg UpsertOTPCodeParams) error {
+	_, err := q.db.Exec(ctx, upsertOTPCode,
+		arg.Email,
+		arg.CodeHash,
+		arg.Attempts,
+		arg.Verified,
+		arg.ResetTokenHash,
+		arg.Used,
+		arg.ExpiresAt,
+		arg.ResetExpiresAt,
+		arg.CreatedAt,
+	)
 	return err
 }
 
@@ -185,9 +454,54 @@ func (q *Queries) UpsertSession(ctx context.Context, arg UpsertSessionParams) er
 	return err
 }
 
+const upsertStaffMember = `-- name: UpsertStaffMember :exec
+INSERT INTO staff_members (
+    id, user_id, full_name, email, phone, role_label, role, permissions, active, created_at
+) VALUES (
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+)
+ON CONFLICT (id) DO UPDATE SET
+    full_name = EXCLUDED.full_name,
+    email = EXCLUDED.email,
+    phone = EXCLUDED.phone,
+    role_label = EXCLUDED.role_label,
+    role = EXCLUDED.role,
+    permissions = EXCLUDED.permissions,
+    active = EXCLUDED.active
+`
+
+type UpsertStaffMemberParams struct {
+	ID          string
+	UserID      uuid.UUID
+	FullName    string
+	Email       string
+	Phone       string
+	RoleLabel   string
+	Role        string
+	Permissions string
+	Active      bool
+	CreatedAt   time.Time
+}
+
+func (q *Queries) UpsertStaffMember(ctx context.Context, arg UpsertStaffMemberParams) error {
+	_, err := q.db.Exec(ctx, upsertStaffMember,
+		arg.ID,
+		arg.UserID,
+		arg.FullName,
+		arg.Email,
+		arg.Phone,
+		arg.RoleLabel,
+		arg.Role,
+		arg.Permissions,
+		arg.Active,
+		arg.CreatedAt,
+	)
+	return err
+}
+
 const upsertUser = `-- name: UpsertUser :exec
-INSERT INTO users (id, full_name, email, phone, password_hash, role, permissions, created_at, username, birth_date)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+INSERT INTO users (id, full_name, email, phone, password_hash, role, permissions, created_at, username, birth_date, avatar_key)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 ON CONFLICT (id) DO UPDATE SET
     full_name = EXCLUDED.full_name,
     email = EXCLUDED.email,
@@ -196,7 +510,8 @@ ON CONFLICT (id) DO UPDATE SET
     role = EXCLUDED.role,
     permissions = EXCLUDED.permissions,
     username = EXCLUDED.username,
-    birth_date = EXCLUDED.birth_date
+    birth_date = EXCLUDED.birth_date,
+    avatar_key = EXCLUDED.avatar_key
 `
 
 type UpsertUserParams struct {
@@ -210,6 +525,7 @@ type UpsertUserParams struct {
 	CreatedAt    time.Time
 	Username     string
 	BirthDate    string
+	AvatarKey    string
 }
 
 func (q *Queries) UpsertUser(ctx context.Context, arg UpsertUserParams) error {
@@ -224,6 +540,7 @@ func (q *Queries) UpsertUser(ctx context.Context, arg UpsertUserParams) error {
 		arg.CreatedAt,
 		arg.Username,
 		arg.BirthDate,
+		arg.AvatarKey,
 	)
 	return err
 }

@@ -10,28 +10,499 @@ import (
 	"time"
 )
 
+const getBusinessSettings = `-- name: GetBusinessSettings :one
+SELECT id, company_name, rnc, address, phone, whatsapp, email,
+       instagram, facebook, business_hours, itbis_percent, deposit_percent, updated_at
+FROM business_settings
+WHERE id = 'default'
+`
+
+func (q *Queries) GetBusinessSettings(ctx context.Context) (BusinessSetting, error) {
+	row := q.db.QueryRow(ctx, getBusinessSettings)
+	var i BusinessSetting
+	err := row.Scan(
+		&i.ID,
+		&i.CompanyName,
+		&i.Rnc,
+		&i.Address,
+		&i.Phone,
+		&i.Whatsapp,
+		&i.Email,
+		&i.Instagram,
+		&i.Facebook,
+		&i.BusinessHours,
+		&i.ItbisPercent,
+		&i.DepositPercent,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const listAuditLogs = `-- name: ListAuditLogs :many
+SELECT id, actor_name, actor_role, action, entity_type, entity_id, summary, created_at_label, created_at
+FROM audit_logs
+ORDER BY created_at DESC, id ASC
+`
+
+func (q *Queries) ListAuditLogs(ctx context.Context) ([]AuditLog, error) {
+	rows, err := q.db.Query(ctx, listAuditLogs)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []AuditLog
+	for rows.Next() {
+		var i AuditLog
+		if err := rows.Scan(
+			&i.ID,
+			&i.ActorName,
+			&i.ActorRole,
+			&i.Action,
+			&i.EntityType,
+			&i.EntityID,
+			&i.Summary,
+			&i.CreatedAtLabel,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listBotFAQs = `-- name: ListBotFAQs :many
+SELECT id, question, answer, category, active
+FROM bot_faqs
+ORDER BY id ASC
+`
+
+func (q *Queries) ListBotFAQs(ctx context.Context) ([]BotFaq, error) {
+	rows, err := q.db.Query(ctx, listBotFAQs)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []BotFaq
+	for rows.Next() {
+		var i BotFaq
+		if err := rows.Scan(
+			&i.ID,
+			&i.Question,
+			&i.Answer,
+			&i.Category,
+			&i.Active,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listBotKeywords = `-- name: ListBotKeywords :many
+SELECT id, keyword, auto_reply, handoff_to_human
+FROM bot_keywords
+ORDER BY id ASC
+`
+
+func (q *Queries) ListBotKeywords(ctx context.Context) ([]BotKeyword, error) {
+	rows, err := q.db.Query(ctx, listBotKeywords)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []BotKeyword
+	for rows.Next() {
+		var i BotKeyword
+		if err := rows.Scan(
+			&i.ID,
+			&i.Keyword,
+			&i.AutoReply,
+			&i.HandoffToHuman,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listBotThreads = `-- name: ListBotThreads :many
+SELECT id, customer_name, phone, last_message, bot_paused, assigned_agent, updated_at_label
+FROM bot_threads
+ORDER BY id ASC
+`
+
+func (q *Queries) ListBotThreads(ctx context.Context) ([]BotThread, error) {
+	rows, err := q.db.Query(ctx, listBotThreads)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []BotThread
+	for rows.Next() {
+		var i BotThread
+		if err := rows.Scan(
+			&i.ID,
+			&i.CustomerName,
+			&i.Phone,
+			&i.LastMessage,
+			&i.BotPaused,
+			&i.AssignedAgent,
+			&i.UpdatedAtLabel,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listChecklistTasksByEvent = `-- name: ListChecklistTasksByEvent :many
+SELECT id, event_id, stage, title, assignee_name, completed, completed_at_label
+FROM event_tasks
+WHERE event_id = $1
+ORDER BY id
+`
+
+type ListChecklistTasksByEventRow struct {
+	ID               string
+	EventID          string
+	Stage            string
+	Title            string
+	AssigneeName     string
+	Completed        bool
+	CompletedAtLabel string
+}
+
+func (q *Queries) ListChecklistTasksByEvent(ctx context.Context, eventID string) ([]ListChecklistTasksByEventRow, error) {
+	rows, err := q.db.Query(ctx, listChecklistTasksByEvent, eventID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListChecklistTasksByEventRow
+	for rows.Next() {
+		var i ListChecklistTasksByEventRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.EventID,
+			&i.Stage,
+			&i.Title,
+			&i.AssigneeName,
+			&i.Completed,
+			&i.CompletedAtLabel,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listDamageIncidents = `-- name: ListDamageIncidents :many
+SELECT id, event_id, article_code, article_name, damaged_units,
+       missing_units, replacement_dop, notes, status, created_at
+FROM damage_incidents
+ORDER BY created_at DESC, id ASC
+`
+
+func (q *Queries) ListDamageIncidents(ctx context.Context) ([]DamageIncident, error) {
+	rows, err := q.db.Query(ctx, listDamageIncidents)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []DamageIncident
+	for rows.Next() {
+		var i DamageIncident
+		if err := rows.Scan(
+			&i.ID,
+			&i.EventID,
+			&i.ArticleCode,
+			&i.ArticleName,
+			&i.DamagedUnits,
+			&i.MissingUnits,
+			&i.ReplacementDop,
+			&i.Notes,
+			&i.Status,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listDamageIncidentsByEvent = `-- name: ListDamageIncidentsByEvent :many
+SELECT id, event_id, article_code, article_name, damaged_units,
+       missing_units, replacement_dop, notes, status, created_at
+FROM damage_incidents
+WHERE event_id = $1
+ORDER BY created_at ASC, id ASC
+`
+
+func (q *Queries) ListDamageIncidentsByEvent(ctx context.Context, eventID string) ([]DamageIncident, error) {
+	rows, err := q.db.Query(ctx, listDamageIncidentsByEvent, eventID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []DamageIncident
+	for rows.Next() {
+		var i DamageIncident
+		if err := rows.Scan(
+			&i.ID,
+			&i.EventID,
+			&i.ArticleCode,
+			&i.ArticleName,
+			&i.DamagedUnits,
+			&i.MissingUnits,
+			&i.ReplacementDop,
+			&i.Notes,
+			&i.Status,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listDeliveryZones = `-- name: ListDeliveryZones :many
+SELECT id, name, fee_dop, eta_minutes, active
+FROM delivery_zones
+ORDER BY id ASC
+`
+
+func (q *Queries) ListDeliveryZones(ctx context.Context) ([]DeliveryZone, error) {
+	rows, err := q.db.Query(ctx, listDeliveryZones)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []DeliveryZone
+	for rows.Next() {
+		var i DeliveryZone
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.FeeDop,
+			&i.EtaMinutes,
+			&i.Active,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listInsurancePolicies = `-- name: ListInsurancePolicies :many
+SELECT id, provider_name, policy_number, coverage_type, max_coverage_dop, valid_until_label, status
+FROM insurance_policies
+ORDER BY id ASC
+`
+
+func (q *Queries) ListInsurancePolicies(ctx context.Context) ([]InsurancePolicy, error) {
+	rows, err := q.db.Query(ctx, listInsurancePolicies)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []InsurancePolicy
+	for rows.Next() {
+		var i InsurancePolicy
+		if err := rows.Scan(
+			&i.ID,
+			&i.ProviderName,
+			&i.PolicyNumber,
+			&i.CoverageType,
+			&i.MaxCoverageDop,
+			&i.ValidUntilLabel,
+			&i.Status,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listLeads = `-- name: ListLeads :many
-SELECT id, full_name, phone, event_type, estimated_dop, stage, created_at
+SELECT id, full_name, phone, email, event_type, event_date_label, guests, estimated_dop, stage, notes, created_at
 FROM leads
 ORDER BY created_at, id
 `
 
-func (q *Queries) ListLeads(ctx context.Context) ([]Lead, error) {
+type ListLeadsRow struct {
+	ID             string
+	FullName       string
+	Phone          string
+	Email          string
+	EventType      string
+	EventDateLabel string
+	Guests         int
+	EstimatedDop   int
+	Stage          string
+	Notes          string
+	CreatedAt      time.Time
+}
+
+func (q *Queries) ListLeads(ctx context.Context) ([]ListLeadsRow, error) {
 	rows, err := q.db.Query(ctx, listLeads)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Lead
+	var items []ListLeadsRow
 	for rows.Next() {
-		var i Lead
+		var i ListLeadsRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.FullName,
 			&i.Phone,
+			&i.Email,
 			&i.EventType,
+			&i.EventDateLabel,
+			&i.Guests,
 			&i.EstimatedDop,
 			&i.Stage,
+			&i.Notes,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listNotifications = `-- name: ListNotifications :many
+SELECT id, recipient_role, user_id, title, body, category, action_path, is_read, created_at_label, created_at
+FROM notifications
+ORDER BY created_at DESC, id ASC
+`
+
+func (q *Queries) ListNotifications(ctx context.Context) ([]Notification, error) {
+	rows, err := q.db.Query(ctx, listNotifications)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Notification
+	for rows.Next() {
+		var i Notification
+		if err := rows.Scan(
+			&i.ID,
+			&i.RecipientRole,
+			&i.UserID,
+			&i.Title,
+			&i.Body,
+			&i.Category,
+			&i.ActionPath,
+			&i.IsRead,
+			&i.CreatedAtLabel,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listOfflineMutations = `-- name: ListOfflineMutations :many
+SELECT id, action_label, entity_code, created_at_label, synced, created_at
+FROM offline_queue
+ORDER BY created_at ASC, id ASC
+`
+
+func (q *Queries) ListOfflineMutations(ctx context.Context) ([]OfflineQueue, error) {
+	rows, err := q.db.Query(ctx, listOfflineMutations)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []OfflineQueue
+	for rows.Next() {
+		var i OfflineQueue
+		if err := rows.Scan(
+			&i.ID,
+			&i.ActionLabel,
+			&i.EntityCode,
+			&i.CreatedAtLabel,
+			&i.Synced,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listReviews = `-- name: ListReviews :many
+SELECT id, event_id, client_name, rating, comment, admin_reply, created_at
+FROM reviews
+ORDER BY created_at DESC, id ASC
+`
+
+func (q *Queries) ListReviews(ctx context.Context) ([]Review, error) {
+	rows, err := q.db.Query(ctx, listReviews)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Review
+	for rows.Next() {
+		var i Review
+		if err := rows.Scan(
+			&i.ID,
+			&i.EventID,
+			&i.ClientName,
+			&i.Rating,
+			&i.Comment,
+			&i.AdminReply,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -45,26 +516,44 @@ func (q *Queries) ListLeads(ctx context.Context) ([]Lead, error) {
 }
 
 const listSuppliers = `-- name: ListSuppliers :many
-SELECT id, name, specialty, phone, rating
+SELECT id, name, category, specialty, contact_name, phone, email, website, rating, notes
 FROM suppliers
 ORDER BY id
 `
 
-func (q *Queries) ListSuppliers(ctx context.Context) ([]Supplier, error) {
+type ListSuppliersRow struct {
+	ID          string
+	Name        string
+	Category    string
+	Specialty   string
+	ContactName string
+	Phone       string
+	Email       string
+	Website     string
+	Rating      string
+	Notes       string
+}
+
+func (q *Queries) ListSuppliers(ctx context.Context) ([]ListSuppliersRow, error) {
 	rows, err := q.db.Query(ctx, listSuppliers)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Supplier
+	var items []ListSuppliersRow
 	for rows.Next() {
-		var i Supplier
+		var i ListSuppliersRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
+			&i.Category,
 			&i.Specialty,
+			&i.ContactName,
 			&i.Phone,
+			&i.Email,
+			&i.Website,
 			&i.Rating,
+			&i.Notes,
 		); err != nil {
 			return nil, err
 		}
@@ -76,22 +565,384 @@ func (q *Queries) ListSuppliers(ctx context.Context) ([]Supplier, error) {
 	return items, nil
 }
 
-const upsertLead = `-- name: UpsertLead :exec
-INSERT INTO leads (id, full_name, phone, event_type, estimated_dop, stage, created_at)
+const markAllOfflineMutationsSynced = `-- name: MarkAllOfflineMutationsSynced :exec
+UPDATE offline_queue
+SET synced = TRUE
+WHERE synced = FALSE
+`
+
+func (q *Queries) MarkAllOfflineMutationsSynced(ctx context.Context) error {
+	_, err := q.db.Exec(ctx, markAllOfflineMutationsSynced)
+	return err
+}
+
+const markNotificationRead = `-- name: MarkNotificationRead :exec
+UPDATE notifications
+SET is_read = TRUE
+WHERE id = $1
+`
+
+func (q *Queries) MarkNotificationRead(ctx context.Context, id string) error {
+	_, err := q.db.Exec(ctx, markNotificationRead, id)
+	return err
+}
+
+const markOfflineMutationSyncedByID = `-- name: MarkOfflineMutationSyncedByID :exec
+UPDATE offline_queue
+SET synced = TRUE
+WHERE id = $1
+`
+
+func (q *Queries) MarkOfflineMutationSyncedByID(ctx context.Context, id string) error {
+	_, err := q.db.Exec(ctx, markOfflineMutationSyncedByID, id)
+	return err
+}
+
+const upsertAuditLog = `-- name: UpsertAuditLog :exec
+INSERT INTO audit_logs (id, actor_name, actor_role, action, entity_type, entity_id, summary, created_at_label, created_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+ON CONFLICT (id) DO NOTHING
+`
+
+type UpsertAuditLogParams struct {
+	ID             string
+	ActorName      string
+	ActorRole      string
+	Action         string
+	EntityType     string
+	EntityID       string
+	Summary        string
+	CreatedAtLabel string
+	CreatedAt      time.Time
+}
+
+func (q *Queries) UpsertAuditLog(ctx context.Context, arg UpsertAuditLogParams) error {
+	_, err := q.db.Exec(ctx, upsertAuditLog,
+		arg.ID,
+		arg.ActorName,
+		arg.ActorRole,
+		arg.Action,
+		arg.EntityType,
+		arg.EntityID,
+		arg.Summary,
+		arg.CreatedAtLabel,
+		arg.CreatedAt,
+	)
+	return err
+}
+
+const upsertBotFAQ = `-- name: UpsertBotFAQ :exec
+INSERT INTO bot_faqs (id, question, answer, category, active)
+VALUES ($1, $2, $3, $4, $5)
+ON CONFLICT (id) DO UPDATE SET
+    question = EXCLUDED.question,
+    answer = EXCLUDED.answer,
+    category = EXCLUDED.category,
+    active = EXCLUDED.active
+`
+
+type UpsertBotFAQParams struct {
+	ID       string
+	Question string
+	Answer   string
+	Category string
+	Active   bool
+}
+
+func (q *Queries) UpsertBotFAQ(ctx context.Context, arg UpsertBotFAQParams) error {
+	_, err := q.db.Exec(ctx, upsertBotFAQ,
+		arg.ID,
+		arg.Question,
+		arg.Answer,
+		arg.Category,
+		arg.Active,
+	)
+	return err
+}
+
+const upsertBotKeyword = `-- name: UpsertBotKeyword :exec
+INSERT INTO bot_keywords (id, keyword, auto_reply, handoff_to_human)
+VALUES ($1, $2, $3, $4)
+ON CONFLICT (id) DO UPDATE SET
+    keyword = EXCLUDED.keyword,
+    auto_reply = EXCLUDED.auto_reply,
+    handoff_to_human = EXCLUDED.handoff_to_human
+`
+
+type UpsertBotKeywordParams struct {
+	ID             string
+	Keyword        string
+	AutoReply      string
+	HandoffToHuman bool
+}
+
+func (q *Queries) UpsertBotKeyword(ctx context.Context, arg UpsertBotKeywordParams) error {
+	_, err := q.db.Exec(ctx, upsertBotKeyword,
+		arg.ID,
+		arg.Keyword,
+		arg.AutoReply,
+		arg.HandoffToHuman,
+	)
+	return err
+}
+
+const upsertBotThread = `-- name: UpsertBotThread :exec
+INSERT INTO bot_threads (id, customer_name, phone, last_message, bot_paused, assigned_agent, updated_at_label)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
+ON CONFLICT (id) DO UPDATE SET
+    last_message = EXCLUDED.last_message,
+    bot_paused = EXCLUDED.bot_paused,
+    assigned_agent = EXCLUDED.assigned_agent,
+    updated_at_label = EXCLUDED.updated_at_label
+`
+
+type UpsertBotThreadParams struct {
+	ID             string
+	CustomerName   string
+	Phone          string
+	LastMessage    string
+	BotPaused      bool
+	AssignedAgent  string
+	UpdatedAtLabel string
+}
+
+func (q *Queries) UpsertBotThread(ctx context.Context, arg UpsertBotThreadParams) error {
+	_, err := q.db.Exec(ctx, upsertBotThread,
+		arg.ID,
+		arg.CustomerName,
+		arg.Phone,
+		arg.LastMessage,
+		arg.BotPaused,
+		arg.AssignedAgent,
+		arg.UpdatedAtLabel,
+	)
+	return err
+}
+
+const upsertBusinessSettings = `-- name: UpsertBusinessSettings :exec
+INSERT INTO business_settings (
+    id, company_name, rnc, address, phone, whatsapp, email,
+    instagram, facebook, business_hours, itbis_percent, deposit_percent, updated_at
+) VALUES (
+    $1, $2, $3, $4, $5, $6, $7,
+    $8, $9, $10, $11, $12, $13
+)
+ON CONFLICT (id) DO UPDATE SET
+    company_name = EXCLUDED.company_name,
+    rnc = EXCLUDED.rnc,
+    address = EXCLUDED.address,
+    phone = EXCLUDED.phone,
+    whatsapp = EXCLUDED.whatsapp,
+    email = EXCLUDED.email,
+    instagram = EXCLUDED.instagram,
+    facebook = EXCLUDED.facebook,
+    business_hours = EXCLUDED.business_hours,
+    itbis_percent = EXCLUDED.itbis_percent,
+    deposit_percent = EXCLUDED.deposit_percent,
+    updated_at = EXCLUDED.updated_at
+`
+
+type UpsertBusinessSettingsParams struct {
+	ID             string
+	CompanyName    string
+	Rnc            string
+	Address        string
+	Phone          string
+	Whatsapp       string
+	Email          string
+	Instagram      string
+	Facebook       string
+	BusinessHours  string
+	ItbisPercent   int
+	DepositPercent int
+	UpdatedAt      time.Time
+}
+
+func (q *Queries) UpsertBusinessSettings(ctx context.Context, arg UpsertBusinessSettingsParams) error {
+	_, err := q.db.Exec(ctx, upsertBusinessSettings,
+		arg.ID,
+		arg.CompanyName,
+		arg.Rnc,
+		arg.Address,
+		arg.Phone,
+		arg.Whatsapp,
+		arg.Email,
+		arg.Instagram,
+		arg.Facebook,
+		arg.BusinessHours,
+		arg.ItbisPercent,
+		arg.DepositPercent,
+		arg.UpdatedAt,
+	)
+	return err
+}
+
+const upsertChecklistTask = `-- name: UpsertChecklistTask :exec
+INSERT INTO event_tasks (id, event_id, stage, title, assignee_name, completed, completed_at_label)
 VALUES ($1, $2, $3, $4, $5, $6, $7)
 ON CONFLICT (id) DO UPDATE SET
     stage = EXCLUDED.stage,
-    estimated_dop = EXCLUDED.estimated_dop
+    completed = EXCLUDED.completed,
+    assignee_name = EXCLUDED.assignee_name,
+    completed_at_label = EXCLUDED.completed_at_label
+`
+
+type UpsertChecklistTaskParams struct {
+	ID               string
+	EventID          string
+	Stage            string
+	Title            string
+	AssigneeName     string
+	Completed        bool
+	CompletedAtLabel string
+}
+
+func (q *Queries) UpsertChecklistTask(ctx context.Context, arg UpsertChecklistTaskParams) error {
+	_, err := q.db.Exec(ctx, upsertChecklistTask,
+		arg.ID,
+		arg.EventID,
+		arg.Stage,
+		arg.Title,
+		arg.AssigneeName,
+		arg.Completed,
+		arg.CompletedAtLabel,
+	)
+	return err
+}
+
+const upsertDamageIncident = `-- name: UpsertDamageIncident :exec
+INSERT INTO damage_incidents (
+    id, event_id, article_code, article_name, damaged_units,
+    missing_units, replacement_dop, notes, status, created_at
+) VALUES (
+    $1, $2, $3, $4, $5,
+    $6, $7, $8, $9, $10
+)
+ON CONFLICT (id) DO UPDATE SET
+    damaged_units = EXCLUDED.damaged_units,
+    missing_units = EXCLUDED.missing_units,
+    replacement_dop = EXCLUDED.replacement_dop,
+    notes = EXCLUDED.notes,
+    status = EXCLUDED.status
+`
+
+type UpsertDamageIncidentParams struct {
+	ID             string
+	EventID        string
+	ArticleCode    string
+	ArticleName    string
+	DamagedUnits   int
+	MissingUnits   int
+	ReplacementDop int
+	Notes          string
+	Status         string
+	CreatedAt      time.Time
+}
+
+func (q *Queries) UpsertDamageIncident(ctx context.Context, arg UpsertDamageIncidentParams) error {
+	_, err := q.db.Exec(ctx, upsertDamageIncident,
+		arg.ID,
+		arg.EventID,
+		arg.ArticleCode,
+		arg.ArticleName,
+		arg.DamagedUnits,
+		arg.MissingUnits,
+		arg.ReplacementDop,
+		arg.Notes,
+		arg.Status,
+		arg.CreatedAt,
+	)
+	return err
+}
+
+const upsertDeliveryZone = `-- name: UpsertDeliveryZone :exec
+INSERT INTO delivery_zones (id, name, fee_dop, eta_minutes, active)
+VALUES ($1, $2, $3, $4, $5)
+ON CONFLICT (id) DO UPDATE SET
+    name = EXCLUDED.name,
+    fee_dop = EXCLUDED.fee_dop,
+    eta_minutes = EXCLUDED.eta_minutes,
+    active = EXCLUDED.active
+`
+
+type UpsertDeliveryZoneParams struct {
+	ID         string
+	Name       string
+	FeeDop     int
+	EtaMinutes int
+	Active     bool
+}
+
+func (q *Queries) UpsertDeliveryZone(ctx context.Context, arg UpsertDeliveryZoneParams) error {
+	_, err := q.db.Exec(ctx, upsertDeliveryZone,
+		arg.ID,
+		arg.Name,
+		arg.FeeDop,
+		arg.EtaMinutes,
+		arg.Active,
+	)
+	return err
+}
+
+const upsertInsurancePolicy = `-- name: UpsertInsurancePolicy :exec
+INSERT INTO insurance_policies (id, provider_name, policy_number, coverage_type, max_coverage_dop, valid_until_label, status)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
+ON CONFLICT (id) DO UPDATE SET
+    status = EXCLUDED.status,
+    max_coverage_dop = EXCLUDED.max_coverage_dop,
+    valid_until_label = EXCLUDED.valid_until_label
+`
+
+type UpsertInsurancePolicyParams struct {
+	ID              string
+	ProviderName    string
+	PolicyNumber    string
+	CoverageType    string
+	MaxCoverageDop  int
+	ValidUntilLabel string
+	Status          string
+}
+
+func (q *Queries) UpsertInsurancePolicy(ctx context.Context, arg UpsertInsurancePolicyParams) error {
+	_, err := q.db.Exec(ctx, upsertInsurancePolicy,
+		arg.ID,
+		arg.ProviderName,
+		arg.PolicyNumber,
+		arg.CoverageType,
+		arg.MaxCoverageDop,
+		arg.ValidUntilLabel,
+		arg.Status,
+	)
+	return err
+}
+
+const upsertLead = `-- name: UpsertLead :exec
+INSERT INTO leads (id, full_name, phone, email, event_type, event_date_label, guests, estimated_dop, stage, notes, created_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+ON CONFLICT (id) DO UPDATE SET
+    full_name = EXCLUDED.full_name,
+    phone = EXCLUDED.phone,
+    email = EXCLUDED.email,
+    event_type = EXCLUDED.event_type,
+    event_date_label = EXCLUDED.event_date_label,
+    guests = EXCLUDED.guests,
+    stage = EXCLUDED.stage,
+    estimated_dop = EXCLUDED.estimated_dop,
+    notes = EXCLUDED.notes
 `
 
 type UpsertLeadParams struct {
-	ID           string
-	FullName     string
-	Phone        string
-	EventType    string
-	EstimatedDop int
-	Stage        string
-	CreatedAt    time.Time
+	ID             string
+	FullName       string
+	Phone          string
+	Email          string
+	EventType      string
+	EventDateLabel string
+	Guests         int
+	EstimatedDop   int
+	Stage          string
+	Notes          string
+	CreatedAt      time.Time
 }
 
 func (q *Queries) UpsertLead(ctx context.Context, arg UpsertLeadParams) error {
@@ -99,9 +950,80 @@ func (q *Queries) UpsertLead(ctx context.Context, arg UpsertLeadParams) error {
 		arg.ID,
 		arg.FullName,
 		arg.Phone,
+		arg.Email,
 		arg.EventType,
+		arg.EventDateLabel,
+		arg.Guests,
 		arg.EstimatedDop,
 		arg.Stage,
+		arg.Notes,
+		arg.CreatedAt,
+	)
+	return err
+}
+
+const upsertNotification = `-- name: UpsertNotification :exec
+INSERT INTO notifications (
+    id, recipient_role, user_id, title, body, category, action_path, is_read, created_at_label, created_at
+) VALUES (
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+)
+ON CONFLICT (id) DO UPDATE SET
+    is_read = EXCLUDED.is_read
+`
+
+type UpsertNotificationParams struct {
+	ID             string
+	RecipientRole  string
+	UserID         string
+	Title          string
+	Body           string
+	Category       string
+	ActionPath     string
+	IsRead         bool
+	CreatedAtLabel string
+	CreatedAt      time.Time
+}
+
+func (q *Queries) UpsertNotification(ctx context.Context, arg UpsertNotificationParams) error {
+	_, err := q.db.Exec(ctx, upsertNotification,
+		arg.ID,
+		arg.RecipientRole,
+		arg.UserID,
+		arg.Title,
+		arg.Body,
+		arg.Category,
+		arg.ActionPath,
+		arg.IsRead,
+		arg.CreatedAtLabel,
+		arg.CreatedAt,
+	)
+	return err
+}
+
+const upsertOfflineMutation = `-- name: UpsertOfflineMutation :exec
+INSERT INTO offline_queue (id, action_label, entity_code, created_at_label, synced, created_at)
+VALUES ($1, $2, $3, $4, $5, $6)
+ON CONFLICT (id) DO UPDATE SET
+    synced = EXCLUDED.synced
+`
+
+type UpsertOfflineMutationParams struct {
+	ID             string
+	ActionLabel    string
+	EntityCode     string
+	CreatedAtLabel string
+	Synced         bool
+	CreatedAt      time.Time
+}
+
+func (q *Queries) UpsertOfflineMutation(ctx context.Context, arg UpsertOfflineMutationParams) error {
+	_, err := q.db.Exec(ctx, upsertOfflineMutation,
+		arg.ID,
+		arg.ActionLabel,
+		arg.EntityCode,
+		arg.CreatedAtLabel,
+		arg.Synced,
 		arg.CreatedAt,
 	)
 	return err
@@ -111,7 +1033,9 @@ const upsertReview = `-- name: UpsertReview :exec
 INSERT INTO reviews (id, event_id, client_name, rating, comment, admin_reply, created_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7)
 ON CONFLICT (id) DO UPDATE SET
-    admin_reply = EXCLUDED.admin_reply
+    admin_reply = EXCLUDED.admin_reply,
+    comment = EXCLUDED.comment,
+    rating = EXCLUDED.rating
 `
 
 type UpsertReviewParams struct {
@@ -138,30 +1062,45 @@ func (q *Queries) UpsertReview(ctx context.Context, arg UpsertReviewParams) erro
 }
 
 const upsertSupplier = `-- name: UpsertSupplier :exec
-INSERT INTO suppliers (id, name, specialty, phone, rating)
-VALUES ($1, $2, $3, $4, $5)
+INSERT INTO suppliers (id, name, category, specialty, contact_name, phone, email, website, rating, notes)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 ON CONFLICT (id) DO UPDATE SET
     name = EXCLUDED.name,
+    category = EXCLUDED.category,
     specialty = EXCLUDED.specialty,
+    contact_name = EXCLUDED.contact_name,
     phone = EXCLUDED.phone,
-    rating = EXCLUDED.rating
+    email = EXCLUDED.email,
+    website = EXCLUDED.website,
+    rating = EXCLUDED.rating,
+    notes = EXCLUDED.notes
 `
 
 type UpsertSupplierParams struct {
-	ID        string
-	Name      string
-	Specialty string
-	Phone     string
-	Rating    string
+	ID          string
+	Name        string
+	Category    string
+	Specialty   string
+	ContactName string
+	Phone       string
+	Email       string
+	Website     string
+	Rating      string
+	Notes       string
 }
 
 func (q *Queries) UpsertSupplier(ctx context.Context, arg UpsertSupplierParams) error {
 	_, err := q.db.Exec(ctx, upsertSupplier,
 		arg.ID,
 		arg.Name,
+		arg.Category,
 		arg.Specialty,
+		arg.ContactName,
 		arg.Phone,
+		arg.Email,
+		arg.Website,
 		arg.Rating,
+		arg.Notes,
 	)
 	return err
 }

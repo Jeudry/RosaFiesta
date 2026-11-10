@@ -1,9 +1,7 @@
-// Package httpapi publica los endpoints de autenticación, registro, cambio de vista (`A30`), clientes (`A26`/`A27`) y equipo (`A28`).
 package httpapi
 
 import (
 	"context"
-	"errors"
 	"net/http"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -13,260 +11,131 @@ import (
 	platformhttp "github.com/Jeudry/rosafiesta/server/internal/platform/httpapi"
 )
 
-// Module conecta el servicio de identidad al enrutador Huma.
 type Module struct {
 	Service *identityapp.Service
 }
 
-// LoginInput es el cuerpo de `/v1/auth/login` (`s07`).
-type LoginInput struct {
-	Body struct {
-		Email    string `json:"email" doc:"Correo electrónico o username del usuario."`
-		Password string `json:"password" doc:"Contraseña de la cuenta."`
-	}
-}
-
-// RegisterInput es el cuerpo de `/v1/auth/register` (`s08`).
-type RegisterInput struct {
-	Body struct {
-		Username  string `json:"username" doc:"Nombre de usuario de la cuenta."`
-		FullName  string `json:"fullName" doc:"Nombre completo del cliente."`
-		Email     string `json:"email" doc:"Correo electrónico del cliente."`
-		Password  string `json:"password" doc:"Contraseña de la cuenta (mínimo 6 caracteres)."`
-		BirthDate string `json:"birthDate,omitempty" doc:"Fecha de nacimiento (DD/MM/AAAA)."`
-		Phone     string `json:"phone,omitempty" doc:"Teléfono de contacto."`
-	}
-}
-
-// ResetPasswordInput es el cuerpo de `/v1/auth/reset-password` (`s10`).
-type ResetPasswordInput struct {
-	Body struct {
-		Identifier  string `json:"identifier" doc:"Correo electrónico o username de la cuenta."`
-		NewPassword string `json:"newPassword" doc:"Nueva contraseña (mínimo 6 caracteres)."`
-	}
-}
-
-// LoginOutput devuelve el usuario autenticado y su token.
-type LoginOutput struct {
-	Body struct {
-		AccessToken string      `json:"accessToken" doc:"Token Bearer para llamadas autenticadas."`
-		User        domain.User `json:"user" doc:"Datos del usuario y vista activa."`
-	}
-}
-
-// RegisteredUsersOutput devuelve la lista de cuentas registradas en PostgreSQL.
-type RegisteredUsersOutput struct {
-	Body struct {
-		Users []domain.User `json:"users" doc:"Cuentas registradas en PostgreSQL."`
-	}
-}
-
-// SwitchViewInput permite que un administrador alterne entre la App Administrativa y la App Personal (`A30`).
-type SwitchViewInput struct {
-	Body struct {
-		View string `json:"view" doc:"Vista destino: personal o admin."`
-	}
-}
-
-// SwitchViewOutput devuelve el usuario con la vista actualizada.
-type SwitchViewOutput struct {
-	Body struct {
-		User domain.User `json:"user" doc:"Usuario con su nueva vista activa."`
-	}
-}
-
-// ClientsOutput devuelve los clientes registrados (`A26`).
-type ClientsOutput struct {
-	Body struct {
-		Clients []identityapp.ClientSummary `json:"clients" doc:"Lista de clientes de RosaFiesta."`
-	}
-}
-
-// StaffOutput devuelve el equipo y sus permisos (`A28`).
-type StaffOutput struct {
-	Body struct {
-		Staff []identityapp.StaffMember `json:"staff" doc:"Equipo operativo y sus permisos."`
-	}
-}
-
-// DeleteAccountOutput confirma el estado de eliminación de cuenta (`s88`).
-type DeleteAccountOutput struct {
-	Body struct {
-		Deleted bool `json:"deleted" doc:"Indica si la cuenta fue eliminada."`
-	}
-}
-
-// Register registra las operaciones HTTP del módulo identity.
 func (m Module) Register(api huma.API) {
-	m.registerLoginAndSwitchRoutes(api)
-	m.registerRegistrationRoutes(api)
-	m.registerSessionRoutes(api)
+	m.registerLoginAndOAuthRoutes(api)
+	m.registerRegistrationAndOTPRoutes(api)
+	m.registerSessionAndProfileRoutes(api)
 	m.registerDeleteAccountRoute(api)
-	m.registerAdminRoutes(api)
+	m.registerAdminClientRoutes(api)
+	m.registerAdminStaffRoutes(api)
 }
 
-func (m Module) registerLoginAndSwitchRoutes(api huma.API) {
+func (m Module) registerLoginAndOAuthRoutes(api huma.API) {
 	huma.Register(api, huma.Operation{
 		OperationID: "auth-login",
 		Method:      http.MethodPost,
 		Path:        "/v1/auth/login",
-		Summary:     "Inicia sesión en RosaFiesta (s07)",
+		Summary:     "Authenticate user credentials with bcrypt",
 		Tags:        []string{"Identity"},
-	}, func(ctx context.Context, in *LoginInput) (*LoginOutput, error) {
-		user, token, err := m.Service.Login(ctx, in.Body.Email, in.Body.Password)
-		if err != nil {
-			return nil, platformhttp.NewAPIError(
-				http.StatusUnauthorized,
-				"AUTH_INVALID_CREDENTIALS",
-				"invalid email or password",
-				"POST /v1/auth/login",
-				"VerifyCredentialsBcrypt",
-				"credenciales inválidas para "+in.Body.Email,
-			)
-		}
-		out := &LoginOutput{}
-		out.Body.AccessToken = token
-		out.Body.User = user
-		return out, nil
-	})
+	}, m.handleLogin)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "auth-oauth",
+		Method:      http.MethodPost,
+		Path:        "/v1/auth/oauth",
+		Summary:     "Authenticate with OAuth provider identity token",
+		Tags:        []string{"Identity"},
+	}, m.handleOAuthLogin)
 
 	huma.Register(api, huma.Operation{
 		OperationID: "auth-switch-view",
 		Method:      http.MethodPost,
 		Path:        "/v1/auth/switch-view",
-		Summary:     "Permite a un admin entrar como cliente o volver a negocio (A30)",
+		Summary:     "Switch between administrative and personal views",
 		Tags:        []string{"Identity"},
 		Security:    platformhttp.Secured(),
 		Middlewares: huma.Middlewares{platformhttp.RequireAuth(api, m.Service)},
-	}, func(ctx context.Context, in *SwitchViewInput) (*SwitchViewOutput, error) {
-		userID, _ := platformhttp.UserID(ctx)
-		user, err := m.Service.SwitchView(ctx, userID, domain.AppView(in.Body.View))
-		if err != nil {
-			return nil, platformhttp.NewAPIError(
-				http.StatusForbidden,
-				"FORBIDDEN_APP_VIEW",
-				err.Error(),
-				"POST /v1/auth/switch-view",
-				"CanAccessView:"+in.Body.View,
-				err.Error(),
-			)
-		}
-		out := &SwitchViewOutput{}
-		out.Body.User = user
-		return out, nil
-	})
+	}, m.handleSwitchView)
 }
 
-func (m Module) registerRegistrationRoutes(api huma.API) {
+func (m Module) registerRegistrationAndOTPRoutes(api huma.API) {
 	huma.Register(api, huma.Operation{
 		OperationID: "auth-register",
 		Method:      http.MethodPost,
 		Path:        "/v1/auth/register",
-		Summary:     "Registra una cuenta nueva en PostgreSQL y emite su JWT (s08)",
+		Summary:     "Register a new account and issue a signed JWT",
 		Tags:        []string{"Identity"},
-	}, func(ctx context.Context, in *RegisterInput) (*LoginOutput, error) {
-		cmd := identityapp.RegisterCommand{
-			Username:  in.Body.Username,
-			FullName:  in.Body.FullName,
-			Email:     in.Body.Email,
-			Password:  in.Body.Password,
-			BirthDate: in.Body.BirthDate,
-			Phone:     in.Body.Phone,
-		}
-		user, token, err := m.Service.Register(ctx, cmd)
-		if err != nil {
-			return nil, mapRegistrationError(err, in.Body.Email)
-		}
-		out := &LoginOutput{}
-		out.Body.AccessToken = token
-		out.Body.User = user
-		return out, nil
-	})
+	}, m.handleRegister)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "auth-otp-request",
+		Method:      http.MethodPost,
+		Path:        "/v1/auth/otp/request",
+		Summary:     "Generate and dispatch a cryptographic six-digit verification code",
+		Tags:        []string{"Identity"},
+	}, m.handleOTPRequest)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "auth-otp-verify",
+		Method:      http.MethodPost,
+		Path:        "/v1/auth/otp/verify",
+		Summary:     "Verify OTP code and issue a single-use password reset token",
+		Tags:        []string{"Identity"},
+	}, m.handleOTPVerify)
 
 	huma.Register(api, huma.Operation{
 		OperationID: "auth-reset-password",
 		Method:      http.MethodPost,
 		Path:        "/v1/auth/reset-password",
-		Summary:     "Actualiza la contraseña de una cuenta en PostgreSQL (s10)",
+		Summary:     "Reset account password using a verified reset token or OTP code",
 		Tags:        []string{"Identity"},
-	}, func(ctx context.Context, in *ResetPasswordInput) (*LoginOutput, error) {
-		user, token, err := m.Service.ResetPassword(ctx, in.Body.Identifier, in.Body.NewPassword)
-		if err != nil {
-			return nil, platformhttp.NewAPIError(
-				http.StatusBadRequest,
-				"AUTH_PASSWORD_RESET_FAILED",
-				err.Error(),
-				"POST /v1/auth/reset-password",
-				"ResetUserPasswordBcrypt",
-				err.Error(),
-			)
-		}
-		out := &LoginOutput{}
-		out.Body.AccessToken = token
-		out.Body.User = user
-		return out, nil
-	})
+	}, m.handleResetPassword)
 }
 
-func (m Module) registerSessionRoutes(api huma.API) {
+func (m Module) registerSessionAndProfileRoutes(api huma.API) {
+	huma.Register(api, huma.Operation{
+		OperationID: "auth-logout",
+		Method:      http.MethodPost,
+		Path:        "/v1/auth/logout",
+		Summary:     "Revoke and delete the current bearer session",
+		Tags:        []string{"Identity"},
+		Security:    platformhttp.Secured(),
+		Middlewares: huma.Middlewares{platformhttp.RequireAuth(api, m.Service)},
+	}, m.handleLogout)
+
 	huma.Register(api, huma.Operation{
 		OperationID: "auth-me",
 		Method:      http.MethodGet,
 		Path:        "/v1/auth/me",
-		Summary:     "Devuelve el usuario autenticado por su token Bearer",
+		Summary:     "Return the authenticated user profile",
 		Tags:        []string{"Identity"},
 		Security:    platformhttp.Secured(),
 		Middlewares: huma.Middlewares{platformhttp.RequireAuth(api, m.Service)},
-	}, func(ctx context.Context, _ *struct{}) (*SwitchViewOutput, error) {
-		userID, _ := platformhttp.UserID(ctx)
-		user, err := m.Service.CurrentUser(ctx, userID)
-		if err != nil {
-			return nil, platformhttp.NewAPIError(
-				http.StatusUnauthorized,
-				"AUTH_INVALID_TOKEN",
-				"session user not found",
-				"GET /v1/auth/me",
-				"ResolveSessionUser",
-				err.Error(),
-			)
-		}
-		out := &SwitchViewOutput{}
-		out.Body.User = user
-		return out, nil
-	})
+	}, m.handleMe)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "auth-update-me",
+		Method:      http.MethodPatch,
+		Path:        "/v1/auth/me",
+		Summary:     "Update the authenticated user profile",
+		Tags:        []string{"Identity"},
+		Security:    platformhttp.Secured(),
+		Middlewares: huma.Middlewares{platformhttp.RequireAuth(api, m.Service)},
+	}, m.handleUpdateMe)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "auth-change-password",
+		Method:      http.MethodPost,
+		Path:        "/v1/auth/change-password",
+		Summary:     "Verify current password and update password hash",
+		Tags:        []string{"Identity"},
+		Security:    platformhttp.Secured(),
+		Middlewares: huma.Middlewares{platformhttp.RequireAuth(api, m.Service)},
+	}, m.handleChangePassword)
 
 	huma.Register(api, huma.Operation{
 		OperationID: "auth-list-users",
 		Method:      http.MethodGet,
 		Path:        "/v1/auth/users",
-		Summary:     "Lista las cuentas registradas en PostgreSQL",
+		Summary:     "List registered accounts for administrators",
 		Tags:        []string{"Identity"},
-	}, func(ctx context.Context, _ *struct{}) (*RegisteredUsersOutput, error) {
-		out := &RegisteredUsersOutput{}
-		out.Body.Users = m.Service.ListRegisteredUsers(ctx)
-		return out, nil
-	})
-}
-
-func mapRegistrationError(err error, email string) *platformhttp.APIError {
-	if errors.Is(err, domain.ErrEmailAlreadyRegistered) {
-		return platformhttp.NewAPIError(
-			http.StatusConflict,
-			"AUTH_EMAIL_TAKEN",
-			"email already registered",
-			"POST /v1/auth/register",
-			"UniqueEmailConstraint",
-			"el correo ya está registrado: "+email,
-		)
-	}
-	return platformhttp.NewAPIError(
-		http.StatusBadRequest,
-		"AUTH_INVALID_REGISTRATION",
-		err.Error(),
-		"POST /v1/auth/register",
-		"ValidateRegistrationInput",
-		err.Error(),
-	)
+		Security:    platformhttp.Secured(),
+		Middlewares: huma.Middlewares{platformhttp.RequirePermission(api, m.Service, "ajustes")},
+	}, m.handleListUsers)
 }
 
 func (m Module) registerDeleteAccountRoute(api huma.API) {
@@ -274,62 +143,265 @@ func (m Module) registerDeleteAccountRoute(api huma.API) {
 		OperationID: "auth-delete-account",
 		Method:      http.MethodDelete,
 		Path:        "/v1/account",
-		Summary:     "Elimina la cuenta validando que no existan eventos activos (s88)",
+		Summary:     "Delete authenticated account when no active events remain",
 		Tags:        []string{"Identity"},
 		Security:    platformhttp.Secured(),
 		Middlewares: huma.Middlewares{platformhttp.RequireAuth(api, m.Service)},
-	}, func(ctx context.Context, _ *struct{}) (*DeleteAccountOutput, error) {
-		userID, _ := platformhttp.UserID(ctx)
-		if err := m.Service.DeleteAccount(ctx, userID); err != nil {
-			if errors.Is(err, domain.ErrActiveEventsPreventDeletion) {
-				return nil, platformhttp.NewAPIError(
-					http.StatusConflict,
-					"ACCOUNT_HAS_ACTIVE_EVENTS",
-					"cannot delete account while active events exist",
-					"DELETE /v1/account",
-					"NoActiveEventsOnDelete",
-					err.Error(),
-				)
-			}
-			return nil, platformhttp.NewAPIError(
-				http.StatusBadRequest,
-				"ACCOUNT_DELETE_INVALID",
-				err.Error(),
-				"DELETE /v1/account",
-				"ValidateAccountDeletion",
-				err.Error(),
-			)
-		}
-		out := &DeleteAccountOutput{}
-		out.Body.Deleted = true
-		return out, nil
-	})
+	}, m.handleDeleteAccount)
 }
 
-func (m Module) registerAdminRoutes(api huma.API) {
+func (m Module) registerAdminClientRoutes(api huma.API) {
 	huma.Register(api, huma.Operation{
 		OperationID: "admin-list-clients",
 		Method:      http.MethodGet,
 		Path:        "/v1/admin/clients",
-		Summary:     "Lista los clientes y su saldo (A26, A27)",
+		Summary:     "List clients and balances",
 		Tags:        []string{"Identity"},
-		Middlewares: huma.Middlewares{platformhttp.EnforcePermissionWhenAuthenticated(api, m.Service, "eventos")},
-	}, func(ctx context.Context, _ *struct{}) (*ClientsOutput, error) {
-		out := &ClientsOutput{}
-		out.Body.Clients = m.Service.Clients(ctx)
-		return out, nil
-	})
+		Security:    platformhttp.Secured(),
+		Middlewares: huma.Middlewares{platformhttp.RequirePermission(api, m.Service, "eventos")},
+	}, m.handleListClients)
 
+	huma.Register(api, huma.Operation{
+		OperationID: "admin-update-client",
+		Method:      http.MethodPatch,
+		Path:        "/v1/admin/clients/{id}",
+		Summary:     "Update administrative client contact details and notes",
+		Tags:        []string{"Identity"},
+		Security:    platformhttp.Secured(),
+		Middlewares: huma.Middlewares{platformhttp.RequirePermission(api, m.Service, "eventos")},
+	}, m.handleUpdateClient)
+}
+
+func (m Module) registerAdminStaffRoutes(api huma.API) {
 	huma.Register(api, huma.Operation{
 		OperationID: "admin-list-staff",
 		Method:      http.MethodGet,
 		Path:        "/v1/admin/staff",
-		Summary:     "Lista el equipo y sus permisos operativos (A28)",
+		Summary:     "List operational staff members and permissions",
 		Tags:        []string{"Identity"},
-		Middlewares: huma.Middlewares{platformhttp.EnforcePermissionWhenAuthenticated(api, m.Service, "ajustes")},
-	}, func(ctx context.Context, _ *struct{}) (*StaffOutput, error) {
-		out := &StaffOutput{}
-		out.Body.Staff = m.Service.Staff(ctx)
-		return out, nil
-	})
+		Security:    platformhttp.Secured(),
+		Middlewares: huma.Middlewares{platformhttp.RequirePermission(api, m.Service, "ajustes")},
+	}, m.handleListStaff)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "admin-invite-staff",
+		Method:      http.MethodPost,
+		Path:        "/v1/admin/staff",
+		Summary:     "Invite a new staff member and configure permissions",
+		Tags:        []string{"Identity"},
+		Security:    platformhttp.Secured(),
+		Middlewares: huma.Middlewares{platformhttp.RequirePermission(api, m.Service, "ajustes")},
+	}, m.handleInviteStaff)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "admin-update-staff",
+		Method:      http.MethodPatch,
+		Path:        "/v1/admin/staff/{id}",
+		Summary:     "Update staff member role and operational permissions",
+		Tags:        []string{"Identity"},
+		Security:    platformhttp.Secured(),
+		Middlewares: huma.Middlewares{platformhttp.RequirePermission(api, m.Service, "ajustes")},
+	}, m.handleUpdateStaff)
+}
+
+func (m Module) handleLogin(ctx context.Context, in *LoginInput) (*LoginOutput, error) {
+	user, token, err := m.Service.Login(ctx, in.Body.Email, in.Body.Password)
+	if err != nil {
+		reason := "invalid credentials for " + in.Body.Email
+		return nil, platformhttp.NewAPIError(
+			http.StatusUnauthorized,
+			"AUTH_INVALID_CREDENTIALS",
+			"invalid email or password",
+			"POST /v1/auth/login",
+			"VerifyCredentialsBcrypt",
+			reason,
+		)
+	}
+	return newLoginOutput(user, token), nil
+}
+
+func (m Module) handleOAuthLogin(ctx context.Context, in *OAuthLoginInput) (*LoginOutput, error) {
+	user, token, err := m.Service.OAuthLogin(ctx, in.Body.Provider, in.Body.IDToken)
+	if err != nil {
+		return nil, mapOAuthError(err)
+	}
+	return newLoginOutput(user, token), nil
+}
+
+func (m Module) handleSwitchView(ctx context.Context, in *SwitchViewInput) (*SwitchViewOutput, error) {
+	userID, _ := platformhttp.UserID(ctx)
+	targetView := domain.AppView(in.Body.View)
+	user, err := m.Service.SwitchView(ctx, userID, targetView)
+	if err != nil {
+		policy := "CanAccessView:" + in.Body.View
+		return nil, platformhttp.NewAPIError(
+			http.StatusForbidden,
+			"FORBIDDEN_APP_VIEW",
+			err.Error(),
+			"POST /v1/auth/switch-view",
+			policy,
+			err.Error(),
+		)
+	}
+	return newUserOutput(user), nil
+}
+
+func (m Module) handleRegister(ctx context.Context, in *RegisterInput) (*LoginOutput, error) {
+	cmd := in.ToCommand()
+	user, token, err := m.Service.Register(ctx, cmd)
+	if err != nil {
+		return nil, mapRegistrationError(err, in.Body.Email, "POST /v1/auth/register")
+	}
+	return newLoginOutput(user, token), nil
+}
+
+func (m Module) handleOTPRequest(ctx context.Context, in *OTPRequestInput) (*OTPRequestOutput, error) {
+	res, err := m.Service.RequestOTP(ctx, in.Body.Email)
+	if err != nil {
+		return nil, mapOTPRequestError(err)
+	}
+	return &OTPRequestOutput{Body: res}, nil
+}
+
+func (m Module) handleOTPVerify(ctx context.Context, in *OTPVerifyInput) (*OTPVerifyOutput, error) {
+	res, err := m.Service.VerifyOTP(ctx, in.Body.Email, in.Body.Code)
+	if err != nil {
+		return nil, platformhttp.NewAPIError(
+			http.StatusUnauthorized,
+			"AUTH_OTP_INVALID",
+			err.Error(),
+			"POST /v1/auth/otp/verify",
+			"VerifyCryptographicOTP",
+			err.Error(),
+		)
+	}
+	return &OTPVerifyOutput{Body: res}, nil
+}
+
+func (m Module) handleResetPassword(ctx context.Context, in *ResetPasswordInput) (*LoginOutput, error) {
+	cmd := in.ToCommand()
+	user, token, err := m.Service.ResetPassword(ctx, cmd)
+	if err != nil {
+		return nil, mapPasswordResetError(err)
+	}
+	return newLoginOutput(user, token), nil
+}
+
+func (m Module) handleLogout(ctx context.Context, _ *struct{}) (*LogoutOutput, error) {
+	rawToken, _ := platformhttp.AccessToken(ctx)
+	if err := m.Service.Logout(ctx, rawToken); err != nil {
+		return nil, platformhttp.NewAPIError(
+			http.StatusUnauthorized,
+			"AUTH_INVALID_TOKEN",
+			err.Error(),
+			"POST /v1/auth/logout",
+			"RevokeSessionToken",
+			err.Error(),
+		)
+	}
+	out := &LogoutOutput{}
+	out.Body.LoggedOut = true
+	return out, nil
+}
+
+func (m Module) handleMe(ctx context.Context, _ *struct{}) (*SwitchViewOutput, error) {
+	userID, _ := platformhttp.UserID(ctx)
+	user, err := m.Service.CurrentUser(ctx, userID)
+	if err != nil {
+		return nil, platformhttp.NewAPIError(
+			http.StatusUnauthorized,
+			"AUTH_INVALID_TOKEN",
+			"session user not found",
+			"GET /v1/auth/me",
+			"ResolveSessionUser",
+			err.Error(),
+		)
+	}
+	return newUserOutput(user), nil
+}
+
+func (m Module) handleUpdateMe(ctx context.Context, in *UpdateProfileInput) (*SwitchViewOutput, error) {
+	userID, _ := platformhttp.UserID(ctx)
+	cmd := in.ToCommand()
+	user, err := m.Service.UpdateProfile(ctx, userID, cmd)
+	if err != nil {
+		emailHint := ""
+		if in.Body.Email != nil {
+			emailHint = *in.Body.Email
+		}
+		return nil, mapRegistrationError(err, emailHint, "PATCH /v1/auth/me")
+	}
+	return newUserOutput(user), nil
+}
+
+func (m Module) handleChangePassword(ctx context.Context, in *ChangePasswordInput) (*PasswordChangedOutput, error) {
+	userID, _ := platformhttp.UserID(ctx)
+	err := m.Service.ChangePassword(ctx, userID, in.Body.CurrentPassword, in.Body.NewPassword)
+	if err != nil {
+		return nil, mapChangePasswordError(err)
+	}
+	out := &PasswordChangedOutput{}
+	out.Body.Updated = true
+	return out, nil
+}
+
+func (m Module) handleListUsers(ctx context.Context, _ *struct{}) (*RegisteredUsersOutput, error) {
+	out := &RegisteredUsersOutput{}
+	out.Body.Users = m.Service.ListRegisteredUsers(ctx)
+	return out, nil
+}
+
+func (m Module) handleDeleteAccount(ctx context.Context, _ *struct{}) (*DeleteAccountOutput, error) {
+	userID, _ := platformhttp.UserID(ctx)
+	if err := m.Service.DeleteAccount(ctx, userID); err != nil {
+		return nil, mapDeleteAccountError(err)
+	}
+	out := &DeleteAccountOutput{}
+	out.Body.Deleted = true
+	return out, nil
+}
+
+func (m Module) handleListClients(ctx context.Context, _ *struct{}) (*ClientsOutput, error) {
+	out := &ClientsOutput{}
+	out.Body.Clients = m.Service.Clients(ctx)
+	return out, nil
+}
+
+func (m Module) handleUpdateClient(ctx context.Context, in *UpdateClientInput) (*ClientOutput, error) {
+	cmd := in.ToCommand()
+	updated, err := m.Service.UpdateClient(ctx, in.ID, cmd)
+	if err != nil {
+		return nil, mapAdminMutationError(err, "PATCH /v1/admin/clients/"+in.ID)
+	}
+	out := &ClientOutput{}
+	out.Body.Client = updated
+	return out, nil
+}
+
+func (m Module) handleListStaff(ctx context.Context, _ *struct{}) (*StaffOutput, error) {
+	out := &StaffOutput{}
+	out.Body.Staff = m.Service.Staff(ctx)
+	return out, nil
+}
+
+func (m Module) handleInviteStaff(ctx context.Context, in *InviteStaffInput) (*StaffMemberOutput, error) {
+	cmd := in.ToCommand()
+	created, err := m.Service.InviteStaff(ctx, cmd)
+	if err != nil {
+		return nil, mapAdminMutationError(err, "POST /v1/admin/staff")
+	}
+	out := &StaffMemberOutput{}
+	out.Body.Member = created
+	return out, nil
+}
+
+func (m Module) handleUpdateStaff(ctx context.Context, in *UpdateStaffInput) (*StaffMemberOutput, error) {
+	cmd := in.ToCommand()
+	updated, err := m.Service.UpdateStaff(ctx, in.ID, cmd)
+	if err != nil {
+		return nil, mapAdminMutationError(err, "PATCH /v1/admin/staff/"+in.ID)
+	}
+	out := &StaffMemberOutput{}
+	out.Body.Member = updated
+	return out, nil
 }

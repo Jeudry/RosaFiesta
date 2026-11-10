@@ -1,4 +1,3 @@
-// Package health expone el estado de salud del servicio.
 package health
 
 import (
@@ -6,31 +5,66 @@ import (
 	"net/http"
 
 	"github.com/danielgtaylor/huma/v2"
+
+	platformhttp "github.com/Jeudry/rosafiesta/server/internal/platform/httpapi"
 )
 
-// Module registra la ruta `/healthz` en la API.
-type Module struct{}
+type ReadinessChecker interface {
+	Ping(ctx context.Context) error
+}
 
-// Output es la respuesta de `/healthz`.
+type Module struct {
+	Readiness ReadinessChecker
+}
+
 type Output struct {
 	Body struct {
-		Status  string `json:"status" doc:"Estado del servicio."`
-		Product string `json:"product" doc:"Nombre del sistema."`
+		Status  string `json:"status" doc:"Service status."`
+		Product string `json:"product" doc:"System name."`
 	}
 }
 
-// Register agrega `/healthz` a api.
-func (Module) Register(api huma.API) {
+func (m Module) Register(api huma.API) {
 	huma.Register(api, huma.Operation{
 		OperationID: "get-health",
 		Method:      http.MethodGet,
 		Path:        "/healthz",
-		Summary:     "Verifica que el servidor esté vivo",
+		Summary:     "Check service liveness",
 		Tags:        []string{"Health"},
-	}, func(_ context.Context, _ *struct{}) (*Output, error) {
-		out := &Output{}
-		out.Body.Status = "ok"
-		out.Body.Product = "RosaFiesta"
-		return out, nil
-	})
+	}, m.handleLiveness)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "get-readiness",
+		Method:      http.MethodGet,
+		Path:        "/readyz",
+		Summary:     "Check service and database readiness",
+		Tags:        []string{"Health"},
+	}, m.handleReadiness)
+}
+
+func (m Module) handleLiveness(_ context.Context, _ *struct{}) (*Output, error) {
+	out := &Output{}
+	out.Body.Status = "ok"
+	out.Body.Product = "RosaFiesta"
+	return out, nil
+}
+
+func (m Module) handleReadiness(ctx context.Context, _ *struct{}) (*Output, error) {
+	if m.Readiness != nil {
+		if err := m.Readiness.Ping(ctx); err != nil {
+			msg := err.Error()
+			return nil, platformhttp.NewAPIError(
+				http.StatusServiceUnavailable,
+				"SERVICE_NOT_READY",
+				"database readiness check failed",
+				"GET /readyz",
+				"DatabasePingRequired",
+				msg,
+			)
+		}
+	}
+	out := &Output{}
+	out.Body.Status = "ready"
+	out.Body.Product = "RosaFiesta"
+	return out, nil
 }
