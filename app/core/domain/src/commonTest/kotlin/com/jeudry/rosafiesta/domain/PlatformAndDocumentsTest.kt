@@ -63,7 +63,7 @@ class PlatformAndDocumentsTest {
         assertTrue(latin1String.endsWith("%%EOF\n"))
         assertTrue(latin1String.contains("/BaseFont /Helvetica"))
         assertTrue(latin1String.contains("/BaseFont /Helvetica-Bold"))
-        assertTrue(latin1String.contains("RNC: 1-31-88492-2"))
+        assertTrue(latin1String.contains("RNC: 1-31-84920-2"))
         assertTrue(latin1String.contains("REC-2026-0842"))
         assertTrue(latin1String.contains("Camila Rodr"))
         assertTrue(latin1String.contains("VERIFICADO"))

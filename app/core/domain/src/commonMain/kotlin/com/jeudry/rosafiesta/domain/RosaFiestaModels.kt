@@ -20,6 +20,17 @@ public enum class PhotoAsset(public val key: String, public val label: String) {
     BABY_SHOWER("baby_shower", "Baby shower"),
     GRADUACION("graduacion", "Graduaciones"),
     CORPORATIVO("corporativo", "Corporativos"),
+    ;
+
+    public companion object {
+        /**
+         * Resolves a [PhotoAsset] by its wire [rawKey], falling back to [ARCO_ROSA] when unknown.
+         */
+        public fun fromKey(rawKey: String): PhotoAsset {
+            val normalizedKey = rawKey.trim().lowercase()
+            return entries.firstOrNull { candidate -> candidate.key == normalizedKey } ?: ARCO_ROSA
+        }
+    }
 }
 
 /**
@@ -53,6 +64,9 @@ public data class CatalogArticle(
     public val availableOct23: Int,
     public val photo: PhotoAsset,
     public val variants: List<String>,
+    public val dimensions: String = "Estándar",
+    public val material: String = "Resina y acabado premium",
+    public val visibleInCatalog: Boolean = true,
 ) {
     public val formattedDailyRate: String
         get() = RosaFiestaEngine.formatDailyRateDop(pricePerDayDop)
@@ -70,6 +84,8 @@ public data class EventPackage(
     public val savingsDop: Int,
     public val photo: PhotoAsset,
     public val includedItems: List<String>,
+    public val eventType: String = "Boda",
+    public val visibleInCatalog: Boolean = true,
 )
 
 /**
@@ -135,6 +151,9 @@ public data class ClientEvent(
     public val photo: PhotoAsset,
     public val items: List<EventLineItem>,
     public val priorChangesCount: Int = 0,
+    public val clientEmail: String = "",
+    public val cancellationReason: String = "",
+    public val sketchJson: String = "",
 ) {
     public val balanceDop: Int
         get() = (totalDop - paidDepositDop).coerceAtLeast(0)
@@ -170,6 +189,7 @@ public data class ChecklistStep(
     public val completed: Boolean,
     public val completedBy: String,
     public val timeLabel: String,
+    public val eventId: String = "evt-boda-real",
 )
 
 /**
@@ -182,6 +202,7 @@ public data class DeliveryStop(
     public val windowLabel: String,
     public val vehicleAndCrew: String,
     public val statusLabel: String,
+    public val eventId: String = "evt-boda-real",
 )
 
 /**
@@ -195,6 +216,8 @@ public data class DamageIncident(
     public val missingUnits: Int,
     public val replacementDop: Int,
     public val notes: String,
+    public val eventId: String = "evt-boda-real",
+    public val articleCode: String = "RF-004",
 )
 
 /**
@@ -219,6 +242,9 @@ public data class StaffProfile(
     public val activeEventsCount: Int,
     public val permissions: Set<StaffPermission>,
     public val canViewPayments: Boolean = name != "Yuli",
+    public val email: String = "",
+    public val phone: String = "",
+    public val active: Boolean = true,
 )
 
 public typealias StaffMember = StaffProfile
@@ -236,6 +262,7 @@ public data class ClientProfile(
     public val totalContractedDop: Int,
     public val pendingBalanceDop: Int,
     public val vipTag: String,
+    public val notes: String = "",
 )
 
 /**

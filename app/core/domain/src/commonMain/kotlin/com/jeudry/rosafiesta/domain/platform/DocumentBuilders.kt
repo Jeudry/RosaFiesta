@@ -25,7 +25,7 @@ public data class ReceiptPdfDocument(
     public val subtotalDop: Long,
     public val paidAmountDop: Long,
     public val companyName: String = "RosaFiesta Eventos & Alquileres SRL",
-    public val companyRnc: String = "1-31-88492-2",
+    public val companyRnc: String = "1-31-84920-2",
     public val ncfNumber: String = "",
     public val clientDocumentOrEmail: String = "",
     public val eventDateText: String = "",
@@ -126,7 +126,7 @@ public object ReceiptPdfBuilder {
         stream.appendAscii("36 748 523 62 re f\n")
 
         val companyHeader = document.companyName.trim().ifEmpty { "RosaFiesta Eventos & Alquileres SRL" }
-        val rncText = "RNC: ${document.companyRnc.trim().ifEmpty { "1-31-88492-2" }}"
+        val rncText = "RNC: ${document.companyRnc.trim().ifEmpty { "1-31-84920-2" }}"
         val receiptNo = "Comprobante: ${document.receiptNumber.trim()}"
 
         appendPdfText(stream, font = "F2", fontSize = 16, x = 50, y = 786, rgb = "1 1 1", text = companyHeader)

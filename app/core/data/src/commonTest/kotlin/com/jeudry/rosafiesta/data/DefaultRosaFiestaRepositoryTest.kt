@@ -1,7 +1,22 @@
 package com.jeudry.rosafiesta.data
 
+import com.jeudry.rosafiesta.domain.EventLineItem
+import com.jeudry.rosafiesta.domain.PhotoAsset
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.mock.MockEngine
+import io.ktor.client.engine.mock.respond
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
+import io.ktor.http.headersOf
+import io.ktor.serialization.kotlinx.json.json
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class DefaultRosaFiestaRepositoryTest {
@@ -98,5 +113,196 @@ class DefaultRosaFiestaRepositoryTest {
         val resetOutcome = repo.resetUserPassword("valeria@rosafiesta.do", "NuevaClave2026!")
         assertTrue(resetOutcome.success)
         assertTrue(repo.authenticateUser("valeria@rosafiesta.do", "NuevaClave2026!").success)
+    }
+
+    @Test
+    fun `prevents privilege escalation when registering email starting with maria`() {
+        val repo = DefaultRosaFiestaRepository()
+        val hackerRegistration = repo.registerUser(
+            firstName = "Maria",
+            lastName = "Hacker",
+            username = "maria_hacker",
+            email = "maria_hacker@gmail.com",
+            birthDate = "10/10/1995",
+            phone = "809-555-0144",
+            password = "ClaveSegura2026!",
+        )
+        assertTrue(hackerRegistration.success)
+        assertEquals("client", hackerRegistration.account?.role)
+        assertEquals("client", repo.activeRole.value)
+    }
+
+    @Test
+    fun `manages quotes refunds reviews threads guests leads suppliers and reports`() = runTest {
+        val repo = DefaultRosaFiestaRepository()
+
+        val createdQuote = repo.createQuote(
+            eventTitle = "Cena Dorada",
+            clientName = "Elena Gómez",
+            clientEmail = "elena@gmail.com",
+            venue = "Hotel Embajador",
+            dateLabel = "18 dic 2026",
+            guests = 80,
+            lines = listOf(
+                EventLineItem(
+                    articleCode = "RF-001",
+                    name = "Silla Tiffany Dorada",
+                    quantity = 80,
+                    unitPriceDop = 4,
+                    photo = PhotoAsset.SILLA_TIFFANY,
+                ),
+            ),
+            deliveryFeeDop = 500,
+            discountDop = 20,
+        )
+        assertEquals(800, createdQuote.totalDop)
+
+        val approvedQuote = repo.approveQuote(createdQuote.id, "Elena Gómez", "<svg/>")
+        assertEquals("APPROVED", approvedQuote?.status)
+
+        val duplicatedQuote = repo.duplicateQuote(createdQuote.id)
+        assertNotNull(duplicatedQuote)
+        val declinedQuote = repo.declineQuote(duplicatedQuote.id, "Cambio de presupuesto")
+        assertEquals("DECLINED", declinedQuote?.status)
+
+        val gabrielaRefund = repo.refundRequests.value.first { refund ->
+            refund.clientName == "Gabriela Núñez"
+        }
+        val approvedRefund = repo.approveRefund(gabrielaRefund.id)
+        assertEquals("APPROVED", approvedRefund?.status)
+
+        val createdReview = repo.createReview(
+            eventId = "evt-boda-real",
+            authorName = "Invitada VIP",
+            rating = 5,
+            comment = "Montaje impecable",
+        )
+        val repliedReview = repo.replyToReview(createdReview.id, "Gracias por confiar en RosaFiesta")
+        assertEquals("Gracias por confiar en RosaFiesta", repliedReview?.adminReply)
+
+        val camilaThread = repo.chatThreads.value.first { thread -> thread.contactName.contains("Camila") }
+        val sentMsg = repo.sendThreadMessage(
+            threadId = camilaThread.id,
+            senderName = "María",
+            body = "Enviamos plano actualizado",
+            attachmentName = "plano.pdf",
+        )
+        assertEquals("plano.pdf", sentMsg.attachmentName)
+
+        val guest = repo.addEventGuest("evt-boda-real", "Lucía Herrera", "Confirmado", "Mesa 4", "Sin gluten")
+        val updatedGuest = repo.updateEventGuest(
+            eventId = "evt-boda-real",
+            guestId = guest.id,
+            rsvpStatus = "Asistirá",
+            tableLabel = "Mesa 1",
+            notes = "VIP",
+        )
+        assertEquals("Mesa 1", updatedGuest?.tableLabel)
+
+        val block = repo.addEventScheduleBlock("evt-boda-real", "16:00 - 17:00", "Prueba de luces", "Jorge")
+        assertTrue(repo.deleteEventScheduleBlock("evt-boda-real", block.id))
+
+        val lead = repo.createLead(
+            clientName = "Paola Díaz",
+            eventType = "Boda",
+            dateLabel = "14 feb 2027",
+            guests = 150,
+            estimatedDop = 9500,
+            channel = "Instagram",
+            phone = "809-555-0177",
+        )
+        val updatedLead = repo.updateLead(
+            leadId = lead.id,
+            stage = "Cotizado",
+            followUpNote = "Propuesta enviada por correo",
+        )
+        assertEquals("Cotizado", updatedLead?.stage)
+
+        val supplier = repo.createSupplier(
+            name = "Flores del Valle",
+            category = "Floristería",
+            contactName = "Rosa Mejía",
+            phone = "+18095550188",
+            email = "ventas@floresvalle.do",
+        )
+        assertEquals("Flores del Valle", supplier.name)
+
+        val report = repo.exportReport("ingresos", "2026-10")
+        assertTrue(report.csvContent.isNotEmpty())
+    }
+
+    @Test
+    fun `synchronizes in memory repository with backend api client for web and wasm`() = runTest {
+        val testDispatcher = StandardTestDispatcher(testScheduler)
+        var capturedAuthHeader: String? = null
+        val mockEngine = MockEngine { request ->
+            val currentAuth = request.headers[HttpHeaders.Authorization]
+            if (currentAuth != null) {
+                capturedAuthHeader = currentAuth
+            }
+            val payload = when (request.url.encodedPath) {
+                "/v1/auth/login" -> """
+                    {
+                      "accessToken": "jwt-wasm-session-99",
+                      "user": {
+                        "id": "usr-camila",
+                        "username": "camila",
+                        "fullName": "Camila Rodríguez",
+                        "email": "camila@gmail.com",
+                        "role": "client"
+                      }
+                    }
+                """.trimIndent()
+
+                "/v1/catalog/balloons" -> """
+                    {
+                      "articles": [
+                        {
+                          "id": "balloon-bouquet-helio",
+                          "name": "Bouquet helio sincronizado",
+                          "categoryId": "Globos",
+                          "photoKey": "arco_globos",
+                          "dailyPriceDop": 28,
+                          "totalStock": 40,
+                          "availableStock": 35,
+                          "lowStockThreshold": 5,
+                          "description": "Set de globos con helio",
+                          "isDirectSale": true,
+                          "visible": true
+                        }
+                      ]
+                    }
+                """.trimIndent()
+
+                else -> """{"queue":[]}"""
+            }
+            respond(
+                content = payload,
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+            )
+        }
+        val httpClient = HttpClient(mockEngine) {
+            install(ContentNegotiation) {
+                json(Json { ignoreUnknownKeys = true })
+            }
+        }
+        val apiClient = RosaFiestaApiClient(
+            baseUrl = "http://localhost:8788",
+            ioDispatcher = testDispatcher,
+            httpClient = httpClient,
+        )
+        val repo = DefaultRosaFiestaRepository(
+            apiClient = apiClient,
+            ioDispatcher = testDispatcher,
+        )
+
+        val loginOutcome = repo.authenticateUserOnline("camila@gmail.com", "ClaveCamila2026!")
+        assertTrue(loginOutcome.success)
+        assertEquals("jwt-wasm-session-99", apiClient.currentAccessToken())
+
+        repo.syncFromBackendAsync()
+        assertEquals("Bearer jwt-wasm-session-99", capturedAuthHeader)
+        assertEquals("Bouquet helio sincronizado", repo.balloonProducts.value.first().name)
     }
 }

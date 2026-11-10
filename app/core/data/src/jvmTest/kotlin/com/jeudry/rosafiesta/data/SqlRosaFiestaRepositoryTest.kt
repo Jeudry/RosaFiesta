@@ -138,4 +138,154 @@ class SqlRosaFiestaRepositoryTest {
         assertTrue(reloadedRepo.chatMessages.value.last().contains("Confirmado el montaje a las 9 AM"))
         assertEquals(17450, reloadedRepo.metrics.value.octoberRevenueDop)
     }
+
+    @Test
+    fun `prevents privilege escalation on maria emails and rejects fake password on remote accounts`() = runTest {
+        val testDispatcher = StandardTestDispatcher(testScheduler)
+        val driver = DriverFactory().createDriver()
+        val mockEngine = MockEngine { request ->
+            val payload = when (request.url.encodedPath) {
+                "/v1/auth/users" -> """
+                    {
+                      "users": [
+                        {
+                          "id": "usr-remoto-ana",
+                          "username": "ana_remota",
+                          "fullName": "Ana Remota",
+                          "email": "ana_remota@rosafiesta.do",
+                          "role": "client"
+                        }
+                      ]
+                    }
+                """.trimIndent()
+
+                "/v1/auth/login" -> """
+                    {
+                      "accessToken": "jwt-ana-real-2026",
+                      "user": {
+                        "id": "usr-remoto-ana",
+                        "username": "ana_remota",
+                        "fullName": "Ana Remota",
+                        "email": "ana_remota@rosafiesta.do",
+                        "role": "client"
+                      }
+                    }
+                """.trimIndent()
+
+                else -> """{"queue":[]}"""
+            }
+            respond(
+                content = payload,
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+            )
+        }
+        val httpClient = HttpClient(mockEngine) {
+            install(ContentNegotiation) {
+                json(Json { ignoreUnknownKeys = true })
+            }
+        }
+        val apiClient = RosaFiestaApiClient(
+            baseUrl = "http://localhost:8788",
+            ioDispatcher = testDispatcher,
+            httpClient = httpClient,
+        )
+        val repo = SqlRosaFiestaRepository(
+            driver = driver,
+            ioDispatcher = testDispatcher,
+            apiClient = apiClient,
+        )
+
+        val mariaHackerOutcome = repo.registerUser(
+            firstName = "Maria",
+            lastName = "Externa",
+            username = "maria_hacker",
+            email = "maria_hacker@gmail.com",
+            birthDate = "12/08/1996",
+            phone = "809-555-0166",
+            password = "MiClavePropia2026!",
+        )
+        assertTrue(mariaHackerOutcome.success)
+        assertEquals("client", mariaHackerOutcome.account?.role)
+        assertEquals("client", repo.activeRole.value)
+
+        repo.syncFromBackendAsync()
+        val fakePasswordAttempt = repo.authenticateUser("ana_remota@rosafiesta.do", "rosa2026")
+        assertFalse(fakePasswordAttempt.success)
+
+        val realOnlineLogin = repo.authenticateUserOnline("ana_remota@rosafiesta.do", "ClaveServidorReal99!")
+        assertTrue(realOnlineLogin.success)
+        assertEquals("jwt-ana-real-2026", apiClient.currentAccessToken())
+    }
+
+    @Test
+    fun `computes real days until event dynamic staff normalized payments and clock checklist time`() = runTest {
+        val testDispatcher = StandardTestDispatcher(testScheduler)
+        val driver = DriverFactory().createDriver()
+        val capturedPaths = mutableListOf<String>()
+        var capturedPaymentBody = ""
+        val mockEngine = MockEngine { request ->
+            capturedPaths += request.url.encodedPath
+            if (request.url.encodedPath == "/v1/payments") {
+                capturedPaymentBody = request.body.toString()
+            }
+            respond(
+                content = """{"queue":[]}""",
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+            )
+        }
+        val httpClient = HttpClient(mockEngine) {
+            install(ContentNegotiation) {
+                json(Json { ignoreUnknownKeys = true })
+            }
+        }
+        val apiClient = RosaFiestaApiClient(
+            baseUrl = "http://localhost:8788",
+            ioDispatcher = testDispatcher,
+            httpClient = httpClient,
+        )
+        val repo = SqlRosaFiestaRepository(
+            driver = driver,
+            ioDispatcher = testDispatcher,
+            apiClient = apiClient,
+        )
+
+        repo.createEventAsync(
+            title = "Recepción Coral",
+            clientName = "Nadia Pérez",
+            dateLabel = "29 dic 2026",
+            venue = "Zona Colonial",
+            guests = 90,
+        )
+        repo.createEventAsync(
+            title = "Coctel Esmeralda",
+            clientName = "Roberto Díaz",
+            dateLabel = "25 ene 2027",
+            venue = "Santo Domingo Este",
+            guests = 70,
+        )
+
+        val coralEvent = repo.events.value.first { event -> event.title == "Recepción Coral" }
+        val esmeraldaEvent = repo.events.value.first { event -> event.title == "Coctel Esmeralda" }
+        assertTrue(esmeraldaEvent.daysUntilEvent > coralEvent.daysUntilEvent)
+        val assignedLeads = setOf(coralEvent.leadStaffName, esmeraldaEvent.leadStaffName)
+        assertTrue(assignedLeads.all { lead -> lead.isNotBlank() })
+
+        repo.toggleChecklistStepAsync("chk-5")
+        val toggledStep = repo.checklist.value.first { step -> step.id == "chk-5" }
+        assertTrue(toggledStep.completed)
+        assertFalse(toggledStep.timeLabel.contains("AM"))
+        assertTrue(capturedPaths.contains("/v1/operations/events/${toggledStep.eventId}/checklist/chk-5"))
+
+        val registeredPayment = repo.registerPaymentAsync(
+            eventId = coralEvent.id,
+            amountDop = 2500,
+            methodLabel = "Transferencia Popular",
+            referenceCode = "POP-445566",
+        )
+        assertEquals(2500, registeredPayment?.amountDop)
+        assertFalse(registeredPayment?.dateLabel == "20 oct 2026")
+        assertTrue(capturedPaymentBody.isNotEmpty())
+    }
 }

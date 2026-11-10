@@ -7,18 +7,46 @@ import com.jeudry.rosafiesta.core.engine.RosaFiestaEngine
 import com.jeudry.rosafiesta.core.engine.StaffPermission
 import com.jeudry.rosafiesta.core.engine.UserRole
 import com.jeudry.rosafiesta.data.db.RosaFiestaDatabase
+import com.jeudry.rosafiesta.domain.ArticleAvailabilityCalendar
+import com.jeudry.rosafiesta.domain.AuditLogRecord
+import com.jeudry.rosafiesta.domain.BalloonProduct
+import com.jeudry.rosafiesta.domain.BotFaqRecord
+import com.jeudry.rosafiesta.domain.BotKeywordRecord
+import com.jeudry.rosafiesta.domain.BotThreadRecord
 import com.jeudry.rosafiesta.domain.BusinessMetrics
+import com.jeudry.rosafiesta.domain.BusinessSettings
 import com.jeudry.rosafiesta.domain.CanonicalSampleData
 import com.jeudry.rosafiesta.domain.CatalogArticle
+import com.jeudry.rosafiesta.domain.ChatMessageRecord
+import com.jeudry.rosafiesta.domain.ChatThread
 import com.jeudry.rosafiesta.domain.ChecklistStep
 import com.jeudry.rosafiesta.domain.ClientEvent
+import com.jeudry.rosafiesta.domain.ClientProfile
+import com.jeudry.rosafiesta.domain.DamageIncident
+import com.jeudry.rosafiesta.domain.DeliveryStop
+import com.jeudry.rosafiesta.domain.DomainClockFormatter
+import com.jeudry.rosafiesta.domain.EventGuest
 import com.jeudry.rosafiesta.domain.EventLineItem
+import com.jeudry.rosafiesta.domain.EventPackage
+import com.jeudry.rosafiesta.domain.EventScheduleBlock
 import com.jeudry.rosafiesta.domain.EventStatus
+import com.jeudry.rosafiesta.domain.EventTypeTemplate
+import com.jeudry.rosafiesta.domain.InsurancePolicyRecord
+import com.jeudry.rosafiesta.domain.LeadRecord
+import com.jeudry.rosafiesta.domain.NotificationRecord
 import com.jeudry.rosafiesta.domain.OfflineQueueItem
+import com.jeudry.rosafiesta.domain.OtpChallengeOutcome
 import com.jeudry.rosafiesta.domain.PaymentRecord
 import com.jeudry.rosafiesta.domain.PhotoAsset
+import com.jeudry.rosafiesta.domain.QuoteRecord
+import com.jeudry.rosafiesta.domain.RefundRequest
+import com.jeudry.rosafiesta.domain.ReportExportResult
+import com.jeudry.rosafiesta.domain.ReviewRecord
+import com.jeudry.rosafiesta.domain.RosaChatReply
 import com.jeudry.rosafiesta.domain.RosaFiestaRepository
 import com.jeudry.rosafiesta.domain.StaffMember
+import com.jeudry.rosafiesta.domain.SupplierRecord
+import com.jeudry.rosafiesta.domain.VoiceTranscriptionOutcome
 import com.jeudry.rosafiesta.domain.security.AuthOutcome
 import com.jeudry.rosafiesta.domain.security.JwtAuthManager
 import com.jeudry.rosafiesta.domain.security.RegisteredUserAccount
@@ -38,8 +66,8 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 /**
- * Implementación persistente de [RosaFiestaRepository] respaldada por SQLDelight ([RosaFiestaDatabase]).
- * Todas las consultas y mutaciones SQL se ejecutan fuera del hilo principal usando [ioDispatcher].
+ * Persistent SQLDelight-backed implementation of [RosaFiestaRepository] synchronized with [RosaFiestaApiClient].
+ * Executes all SQLite reads/writes and HTTP requests off the main thread via [ioDispatcher].
  */
 public class SqlRosaFiestaRepository(
     driver: SqlDriver,
@@ -50,6 +78,10 @@ public class SqlRosaFiestaRepository(
     private val queries = database.rosaFiestaDatabaseQueries
     private val scope = CoroutineScope(SupervisorJob() + ioDispatcher)
     private val sqlMutex = Mutex()
+
+    private val checklistEventIdsByStepId: MutableMap<String, String> = CanonicalSampleData.bodaChecklist
+        .associate { step -> step.id to step.eventId }
+        .toMutableMap()
 
     private val _articles = MutableStateFlow(CanonicalSampleData.articles)
     override val articles: StateFlow<List<CatalogArticle>> = _articles.asStateFlow()
@@ -99,10 +131,189 @@ public class SqlRosaFiestaRepository(
     private val _chatMessages = MutableStateFlow(CanonicalSampleData.initialChatMessages)
     override val chatMessages: StateFlow<List<String>> = _chatMessages.asStateFlow()
 
+    private val submodules = RosaFiestaSubmoduleCoordinator(
+        apiClient = apiClient,
+        ioDispatcher = ioDispatcher,
+        scope = scope,
+        articlesFlow = _articles,
+        eventsFlow = _events,
+        paymentsFlow = _payments,
+        offlineQueueFlow = _offlineQueue,
+        metricsFlow = _metrics,
+        staffFlow = _staffMembers,
+        chatMessagesFlow = _chatMessages,
+        activeRoleFlow = _activeRole,
+        currentUserEmailFlow = _currentUserEmail,
+        currentSessionJwtFlow = _currentSessionJwt,
+        currentAuthenticatedUserFlow = _currentAuthenticatedUser,
+        userAccountsFlow = userAccountsState,
+        onPersistAccountAndSession = ::persistAccountAndSessionInSql,
+        onPersistCoreSync = ::persistInMemoryCoreFlowsToSql,
+    )
+
+    override val packages: StateFlow<List<EventPackage>>
+        get() = submodules.packages
+    override val templates: StateFlow<List<EventTypeTemplate>>
+        get() = submodules.templates
+    override val balloonProducts: StateFlow<List<BalloonProduct>>
+        get() = submodules.balloonProducts
+    override val clients: StateFlow<List<ClientProfile>>
+        get() = submodules.clients
+    override val deliveryStops: StateFlow<List<DeliveryStop>>
+        get() = submodules.deliveryStops
+    override val damageIncidents: StateFlow<List<DamageIncident>>
+        get() = submodules.damageIncidents
+    override val quotes: StateFlow<List<QuoteRecord>>
+        get() = submodules.quotes
+    override val refundRequests: StateFlow<List<RefundRequest>>
+        get() = submodules.refundRequests
+    override val reviews: StateFlow<List<ReviewRecord>>
+        get() = submodules.reviews
+    override val businessSettings: StateFlow<BusinessSettings>
+        get() = submodules.businessSettings
+    override val suppliers: StateFlow<List<SupplierRecord>>
+        get() = submodules.suppliers
+    override val leads: StateFlow<List<LeadRecord>>
+        get() = submodules.leads
+    override val chatThreads: StateFlow<List<ChatThread>>
+        get() = submodules.chatThreads
+    override val threadMessages: StateFlow<List<ChatMessageRecord>>
+        get() = submodules.threadMessages
+    override val eventGuests: StateFlow<List<EventGuest>>
+        get() = submodules.eventGuests
+    override val eventSchedule: StateFlow<List<EventScheduleBlock>>
+        get() = submodules.eventSchedule
+    override val notifications: StateFlow<List<NotificationRecord>>
+        get() = submodules.notifications
+    override val insurancePolicies: StateFlow<List<InsurancePolicyRecord>>
+        get() = submodules.insurancePolicies
+    override val auditLogs: StateFlow<List<AuditLogRecord>>
+        get() = submodules.auditLogs
+    override val botFaqs: StateFlow<List<BotFaqRecord>>
+        get() = submodules.botFaqs
+    override val botKeywords: StateFlow<List<BotKeywordRecord>>
+        get() = submodules.botKeywords
+    override val botThreads: StateFlow<List<BotThreadRecord>>
+        get() = submodules.botThreads
+
     init {
         seedInitialDataSynchronouslyIfEmpty()
         restorePersistedSessionFromSql()
-        syncUsersFromBackendAsync()
+        submodules.propagateSessionTokenToApi(_currentSessionJwt.value)
+        if (apiClient != null) {
+            scope.launch {
+                syncUsersFromBackendSuspend()
+                syncFromBackendAsync()
+            }
+        }
+    }
+
+    override suspend fun syncFromBackendAsync(): Boolean = submodules.syncFromBackendAsync()
+
+    private suspend fun persistAccountAndSessionInSql(
+        account: RegisteredUserAccount,
+        accessToken: String,
+    ) {
+        sqlMutex.withLock {
+            queries.upsertUserAccount(
+                id = account.id,
+                username = account.username,
+                email = account.email,
+                fullName = account.fullName,
+                passwordHash = account.passwordHash,
+                salt = account.salt,
+                birthDate = account.birthDate,
+                phone = account.phone,
+                role = account.role,
+            )
+            queries.upsertActiveSession(
+                userId = account.id,
+                accessToken = accessToken,
+            )
+            reloadUserAccountsFromSql()
+        }
+    }
+
+    private suspend fun persistInMemoryCoreFlowsToSql() {
+        sqlMutex.withLock {
+            database.transaction {
+                _articles.value.forEach { article ->
+                    queries.upsertArticle(
+                        id = article.id,
+                        code = article.code,
+                        name = article.name,
+                        category = article.category,
+                        description = article.description,
+                        pricePerDayDop = article.pricePerDayDop.toLong(),
+                        totalStock = article.totalStock.toLong(),
+                        availableOct23 = article.availableOct23.toLong(),
+                        photoKey = article.photo.key,
+                    )
+                }
+                _events.value.forEachIndexed { index, evt ->
+                    queries.upsertEvent(
+                        id = evt.id,
+                        code = evt.code,
+                        title = evt.title,
+                        clientName = evt.clientName,
+                        eventType = evt.eventType,
+                        dateLabel = evt.dateLabel,
+                        daysUntilEvent = evt.daysUntilEvent.toLong(),
+                        venue = evt.venue,
+                        zone = evt.zone,
+                        guests = evt.guests.toLong(),
+                        articleCount = evt.articleCount.toLong(),
+                        totalDop = evt.totalDop.toLong(),
+                        paidDepositDop = evt.paidDepositDop.toLong(),
+                        depositMethodLabel = evt.depositMethodLabel,
+                        depositDateLabel = evt.depositDateLabel,
+                        balanceDueDateLabel = evt.balanceDueDateLabel,
+                        status = evt.status.name,
+                        leadStaffName = evt.leadStaffName,
+                        photoKey = evt.photo.key,
+                        priorChangesCount = evt.priorChangesCount.toLong(),
+                        sortOrder = index.toLong(),
+                    )
+                }
+                _payments.value.forEachIndexed { index, payment ->
+                    queries.upsertPayment(
+                        id = payment.id,
+                        receiptNumber = payment.receiptNumber,
+                        eventId = payment.eventId,
+                        eventTitle = payment.eventTitle,
+                        clientName = payment.clientName,
+                        amountDop = payment.amountDop.toLong(),
+                        methodLabel = payment.methodLabel,
+                        kindLabel = payment.kindLabel,
+                        dateLabel = payment.dateLabel,
+                        referenceCode = payment.referenceCode,
+                        verified = if (payment.verified) 1L else 0L,
+                        sortOrder = index.toLong(),
+                    )
+                }
+                _offlineQueue.value.forEach { mutation ->
+                    queries.upsertOfflineMutation(
+                        id = mutation.id,
+                        actionLabel = mutation.actionLabel,
+                        entityCode = mutation.entityCode,
+                        timeAgo = mutation.timeAgo,
+                        synced = if (mutation.synced) 1L else 0L,
+                    )
+                }
+                _staffMembers.value.forEachIndexed { index, member ->
+                    queries.upsertStaffPermission(
+                        id = member.id,
+                        name = member.name,
+                        roleLabel = member.roleLabel,
+                        role = member.role.name,
+                        activeEventsCount = member.activeEventsCount.toLong(),
+                        permissionsCsv = member.permissions.joinToString(",") { perm -> perm.name },
+                        canViewPayments = if (member.canViewPayments) 1L else 0L,
+                        sortOrder = index.toLong(),
+                    )
+                }
+            }
+        }
     }
 
     private fun seedInitialDataSynchronouslyIfEmpty() {
@@ -123,6 +334,7 @@ public class SqlRosaFiestaRepository(
                     )
                 }
                 CanonicalSampleData.bodaChecklist.forEach { step ->
+                    checklistEventIdsByStepId[step.id] = step.eventId
                     queries.upsertChecklistStep(
                         id = step.id,
                         stageLabel = step.stageLabel,
@@ -192,7 +404,7 @@ public class SqlRosaFiestaRepository(
                         roleLabel = member.roleLabel,
                         role = member.role.name,
                         activeEventsCount = member.activeEventsCount.toLong(),
-                        permissionsCsv = member.permissions.joinToString(",") { it.name },
+                        permissionsCsv = member.permissions.joinToString(",") { perm -> perm.name },
                         canViewPayments = if (member.canViewPayments) 1L else 0L,
                         sortOrder = index.toLong(),
                     )
@@ -286,55 +498,57 @@ public class SqlRosaFiestaRepository(
         }
     }
 
-    private fun syncUsersFromBackendAsync() {
+    private suspend fun syncUsersFromBackendSuspend() {
         val client = apiClient ?: return
-        scope.launch {
-            runCatching {
-                val response = client.listRegisteredUsers()
-                val remoteUsers = response.users.orEmpty()
-                if (remoteUsers.isEmpty()) return@runCatching
-                sqlMutex.withLock {
-                    database.transaction {
-                        remoteUsers.forEach { remote ->
-                            val existing = queries.selectAllUserAccounts().executeAsList().firstOrNull { row ->
-                                row.email.equals(remote.email, ignoreCase = true)
-                            }
-                            val resolvedUsername = remote.username.trim().ifEmpty {
-                                remote.email.substringBefore("@")
-                            }
-                            val defaultSalt = JwtAuthManager.generateDeterministicSalt("${remote.email}:$resolvedUsername")
-                            val defaultHash = JwtAuthManager.hashPassword("rosa2026", defaultSalt)
-                            val existingRole = existing?.role.orEmpty()
-                            val normalizedEmail = remote.email.trim().lowercase()
-                            val resolvedRole = when {
-                                existingRole.isNotEmpty() -> existingRole
-                                normalizedEmail == "yuli@rosafiesta.do" -> "staff_yuli"
-                                remote.role.trim().isNotEmpty() -> remote.role.trim()
-                                else -> "client"
-                            }
-                            queries.upsertUserAccount(
-                                id = existing?.id ?: remote.id,
-                                username = existing?.username?.ifEmpty { resolvedUsername } ?: resolvedUsername,
-                                email = normalizedEmail,
-                                fullName = remote.fullName.trim().ifEmpty { resolvedUsername },
-                                passwordHash = existing?.passwordHash ?: defaultHash,
-                                salt = existing?.salt ?: defaultSalt,
-                                birthDate = remote.birthDate.trim().ifEmpty { existing?.birthDate.orEmpty() },
-                                phone = remote.phone.trim().ifEmpty { existing?.phone.orEmpty() },
-                                role = resolvedRole,
-                            )
+        runCatching {
+            val response = client.listRegisteredUsers()
+            val remoteUsers = response.users.orEmpty()
+            if (remoteUsers.isEmpty()) return@runCatching
+            sqlMutex.withLock {
+                val existingRows = queries.selectAllUserAccounts().executeAsList()
+                database.transaction {
+                    remoteUsers.forEach { remote ->
+                        val existing = existingRows.firstOrNull { row ->
+                            row.email.equals(remote.email, ignoreCase = true)
                         }
+                        val resolvedUsername = remote.username.trim().ifEmpty {
+                            remote.email.substringBefore("@")
+                        }
+                        val remoteSalt = JwtAuthManager.generateDeterministicSalt("${remote.email}:$resolvedUsername")
+                        val existingRole = existing?.role.orEmpty()
+                        val normalizedEmail = remote.email.trim().lowercase()
+                        val resolvedRole = when {
+                            existingRole.isNotEmpty() -> existingRole
+                            normalizedEmail == "yuli@rosafiesta.do" -> "staff_yuli"
+                            remote.role.trim().isNotEmpty() -> remote.role.trim()
+                            else -> "client"
+                        }
+                        queries.upsertUserAccount(
+                            id = existing?.id ?: remote.id,
+                            username = existing?.username?.ifEmpty { resolvedUsername } ?: resolvedUsername,
+                            email = normalizedEmail,
+                            fullName = remote.fullName.trim().ifEmpty { resolvedUsername },
+                            passwordHash = existing?.passwordHash.orEmpty(),
+                            salt = existing?.salt?.ifEmpty { remoteSalt } ?: remoteSalt,
+                            birthDate = remote.birthDate.trim().ifEmpty { existing?.birthDate.orEmpty() },
+                            phone = remote.phone.trim().ifEmpty { existing?.phone.orEmpty() },
+                            role = resolvedRole,
+                        )
                     }
-                    reloadUserAccountsFromSql()
                 }
+                reloadUserAccountsFromSql()
             }
         }
     }
 
     private fun reloadArticlesFromSql() {
-        val variantsById = CanonicalSampleData.articles.associate { it.id to it.variants }
+        val canonicalById = CanonicalSampleData.articles.associateBy { article -> article.id }
+        val inMemoryById = _articles.value.associateBy { article -> article.id }
         _articles.value = queries.selectAllArticles().executeAsList().map { row ->
-            val photoAsset = PhotoAsset.entries.firstOrNull { it.key == row.photoKey } ?: PhotoAsset.SILLA_TIFFANY
+            val currentInMemory = inMemoryById[row.id]
+            val canonical = canonicalById[row.id]
+            val photoAsset = PhotoAsset.entries.firstOrNull { candidate -> candidate.key == row.photoKey }
+                ?: PhotoAsset.SILLA_TIFFANY
             CatalogArticle(
                 id = row.id,
                 code = row.code,
@@ -345,13 +559,18 @@ public class SqlRosaFiestaRepository(
                 totalStock = row.totalStock.toInt(),
                 availableOct23 = row.availableOct23.toInt(),
                 photo = photoAsset,
-                variants = variantsById[row.id] ?: listOf("Estándar"),
+                variants = currentInMemory?.variants ?: canonical?.variants ?: listOf("Estándar"),
+                dimensions = currentInMemory?.dimensions ?: canonical?.dimensions ?: "Estándar",
+                material = currentInMemory?.material ?: canonical?.material ?: "Resina y acabado premium",
+                visibleInCatalog = currentInMemory?.visibleInCatalog ?: canonical?.visibleInCatalog ?: true,
             )
         }
     }
 
     private fun reloadChecklistFromSql() {
+        val defaultEventId = _events.value.firstOrNull()?.id ?: "evt-boda-real"
         _checklist.value = queries.selectAllChecklistSteps().executeAsList().map { row ->
+            val linkedEventId = checklistEventIdsByStepId[row.id] ?: defaultEventId
             ChecklistStep(
                 id = row.id,
                 stageLabel = row.stageLabel,
@@ -359,6 +578,7 @@ public class SqlRosaFiestaRepository(
                 completed = row.completed != 0L,
                 completedBy = row.completedBy,
                 timeLabel = row.timeLabel,
+                eventId = linkedEventId,
             )
         }
     }
@@ -376,11 +596,17 @@ public class SqlRosaFiestaRepository(
     }
 
     private fun reloadEventsFromSql() {
-        val itemsByEventId = CanonicalSampleData.events.associate { it.id to it.items }
+        val itemsByEventId = CanonicalSampleData.events.associate { event -> event.id to event.items }
+        val inMemoryById = _events.value.associateBy { event -> event.id }
         val loadedEvents = queries.selectAllEvents().executeAsList().map { row ->
-            val photoAsset = PhotoAsset.entries.firstOrNull { it.key == row.photoKey } ?: PhotoAsset.BODA
-            val statusEnum = EventStatus.entries.firstOrNull { it.name == row.status } ?: EventStatus.CONFIRMED
-            val fallbackItems = itemsByEventId[row.id] ?: buildFallbackItems(row.title, row.guests.toInt())
+            val photoAsset = PhotoAsset.entries.firstOrNull { candidate -> candidate.key == row.photoKey }
+                ?: PhotoAsset.BODA
+            val statusEnum = EventStatus.entries.firstOrNull { candidate -> candidate.name == row.status }
+                ?: EventStatus.CONFIRMED
+            val currentInMemory = inMemoryById[row.id]
+            val fallbackItems = currentInMemory?.items
+                ?: itemsByEventId[row.id]
+                ?: buildFallbackItems(row.title, row.guests.toInt())
             ClientEvent(
                 id = row.id,
                 code = row.code,
@@ -403,6 +629,9 @@ public class SqlRosaFiestaRepository(
                 photo = photoAsset,
                 items = fallbackItems,
                 priorChangesCount = row.priorChangesCount.toInt(),
+                clientEmail = currentInMemory?.clientEmail.orEmpty(),
+                cancellationReason = currentInMemory?.cancellationReason.orEmpty(),
+                sketchJson = currentInMemory?.sketchJson.orEmpty(),
             )
         }
         if (loadedEvents.isNotEmpty()) {
@@ -434,19 +663,11 @@ public class SqlRosaFiestaRepository(
     }
 
     private fun recalculateMetricsFromState() {
-        val currentEvents = _events.value
-        val currentPayments = _payments.value
-        val activeEvents = currentEvents.filter {
-            it.status != EventStatus.CANCELLED && it.status != EventStatus.COMPLETED
-        }
-        val pendingQuoteCount = currentEvents.count { it.status == EventStatus.PENDING_QUOTE }
-        val totalPaymentsDop = currentPayments.sumOf { it.amountDop }
-        val activeBalanceDop = activeEvents.sumOf { it.balanceDop }
-        _metrics.value = CanonicalSampleData.businessMetrics.copy(
-            octoberRevenueDop = (98 + totalPaymentsDop).coerceAtLeast(0),
-            accountsReceivableDop = (activeBalanceDop - 1669).coerceAtLeast(0),
-            activeEventsCount = activeEvents.size,
-            newRequestsCount = 1 + pendingQuoteCount,
+        _metrics.value = RosaFiestaBackendMappers.computeHonestMetrics(
+            events = _events.value,
+            payments = _payments.value,
+            quotes = submodules.quotes.value,
+            baseMetrics = CanonicalSampleData.businessMetrics,
         )
     }
 
@@ -455,12 +676,18 @@ public class SqlRosaFiestaRepository(
     }
 
     private fun reloadStaffFromSql() {
+        val canonicalById = CanonicalSampleData.staffMembers.associateBy { member -> member.id }
+        val inMemoryById = _staffMembers.value.associateBy { member -> member.id }
         val loadedStaff = queries.selectAllStaffPermissions().executeAsList().map { row ->
-            val roleEnum = UserRole.entries.firstOrNull { it.name == row.role } ?: UserRole.STAFF_DECORATION
+            val roleEnum = UserRole.entries.firstOrNull { candidate -> candidate.name == row.role }
+                ?: UserRole.STAFF_DECORATION
             val perms = row.permissionsCsv
                 .split(",")
-                .mapNotNull { token -> StaffPermission.entries.firstOrNull { it.name == token.trim() } }
+                .mapNotNull { token ->
+                    StaffPermission.entries.firstOrNull { candidate -> candidate.name == token.trim() }
+                }
                 .toSet()
+            val prev = inMemoryById[row.id] ?: canonicalById[row.id]
             StaffMember(
                 id = row.id,
                 name = row.name,
@@ -469,6 +696,9 @@ public class SqlRosaFiestaRepository(
                 activeEventsCount = row.activeEventsCount.toInt(),
                 permissions = perms,
                 canViewPayments = row.canViewPayments != 0L,
+                email = prev?.email.orEmpty(),
+                phone = prev?.phone.orEmpty(),
+                active = prev?.active ?: true,
             )
         }
         if (loadedStaff.isNotEmpty()) {
@@ -491,43 +721,52 @@ public class SqlRosaFiestaRepository(
                 name = line.name,
                 quantity = line.quantity,
                 unitPriceDop = line.unitPriceDop,
-                photo = PhotoAsset.SILLA_TIFFANY,
+                photo = RosaFiestaBackendMappers.selectPhotoForArticle("", line.name),
             )
         }
     }
 
     /**
-     * Ejecuta el cambio de estado de un paso del checklist en SQLite fuera del hilo principal.
+     * Toggles a field checklist step in SQLite off the main thread and synchronizes with the backend.
      */
     public suspend fun toggleChecklistStepAsync(stepId: String): Unit = withContext(ioDispatcher) {
+        val cleanStepId = stepId.trim()
+        val nowHm = DomainClockFormatter.currentTimeHmLabel()
         var staffName = ""
         var nextCompleted = false
+        var resolvedEventId = ""
         sqlMutex.withLock {
-            val current = queries.selectAllChecklistSteps().executeAsList().firstOrNull { it.id == stepId } ?: return@withContext
+            val current = queries.selectAllChecklistSteps().executeAsList()
+                .firstOrNull { row -> row.id == cleanStepId } ?: return@withContext
             nextCompleted = current.completed == 0L
             staffName = current.completedBy
-            val nextTimeLabel = if (nextCompleted) "11:20 AM" else "Pendiente"
+            resolvedEventId = checklistEventIdsByStepId[cleanStepId]
+                ?: _checklist.value.firstOrNull { item -> item.id == cleanStepId }?.eventId
+                ?: _events.value.firstOrNull()?.id.orEmpty()
+            val nextTimeLabel = if (nextCompleted) nowHm else "Pendiente"
             queries.updateChecklistStepStatus(
                 completed = if (nextCompleted) 1L else 0L,
                 timeLabel = nextTimeLabel,
-                id = stepId,
+                id = cleanStepId,
             )
             reloadChecklistFromSql()
         }
-        runCatching {
-            apiClient?.toggleChecklistItem(
-                eventId = "evt-boda-real",
-                itemId = stepId,
-                input = ToggleChecklistInputDto(
-                    completed = nextCompleted,
-                    staffName = staffName,
-                ),
-            )
+        if (resolvedEventId.isNotEmpty()) {
+            runCatching {
+                apiClient?.toggleChecklistItem(
+                    eventId = resolvedEventId,
+                    itemId = cleanStepId,
+                    input = ToggleChecklistInputDto(
+                        completed = nextCompleted,
+                        staffName = staffName,
+                    ),
+                )
+            }
         }
     }
 
     /**
-     * Marca toda la cola offline como sincronizada en SQLite fuera del hilo principal.
+     * Marks all offline mutations as synchronized in SQLite and flushes the remote offline queue.
      */
     public suspend fun syncOfflineQueueAsync(): Unit = withContext(ioDispatcher) {
         runCatching {
@@ -540,13 +779,16 @@ public class SqlRosaFiestaRepository(
     }
 
     /**
-     * Ajusta el stock de un artículo en SQLite fuera del hilo principal.
+     * Adjusts warehouse stock for [articleId] in SQLite off the main thread.
      */
     public suspend fun adjustArticleStockAsync(articleId: String, delta: Int): Unit = withContext(ioDispatcher) {
+        var newStock = 0
+        var newAvail = 0
         sqlMutex.withLock {
-            val current = queries.selectAllArticles().executeAsList().firstOrNull { it.id == articleId } ?: return@withContext
-            val newStock = (current.totalStock.toInt() + delta).coerceAtLeast(0)
-            val newAvail = (current.availableOct23.toInt() + delta).coerceIn(0, newStock)
+            val current = queries.selectAllArticles().executeAsList()
+                .firstOrNull { row -> row.id == articleId } ?: return@withContext
+            newStock = (current.totalStock.toInt() + delta).coerceAtLeast(0)
+            newAvail = (current.availableOct23.toInt() + delta).coerceIn(0, newStock)
             queries.updateArticleStock(
                 totalStock = newStock.toLong(),
                 availableOct23 = newAvail.toLong(),
@@ -554,10 +796,19 @@ public class SqlRosaFiestaRepository(
             )
             reloadArticlesFromSql()
         }
+        runCatching {
+            apiClient?.updateCatalogArticle(
+                articleId = articleId,
+                input = UpdateArticleInputDto(
+                    totalStock = newStock.toLong(),
+                    availableStock = newAvail.toLong(),
+                ),
+            )
+        }
     }
 
     /**
-     * Alterna un favorito en SQLite fuera del hilo principal.
+     * Toggles [articleId] in the persisted favorites list off the main thread.
      */
     public suspend fun toggleFavoriteAsync(articleId: String): Unit = withContext(ioDispatcher) {
         val cleanId = articleId.trim()
@@ -574,41 +825,63 @@ public class SqlRosaFiestaRepository(
     }
 
     /**
-     * Alterna el permiso de visualización de pagos de un miembro del staff en SQLite fuera del hilo principal.
+     * Toggles payment visibility permission for [staffName] in SQLite off the main thread.
      */
     public suspend fun toggleStaffPaymentAccessAsync(staffName: String): Unit = withContext(ioDispatcher) {
         val target = staffName.trim()
         if (target.isEmpty()) return@withContext
+        var staffId = ""
+        var updatedPerms: List<String> = emptyList()
+        var updatedLabel = ""
         sqlMutex.withLock {
             val current = queries.selectAllStaffPermissions().executeAsList()
-                .firstOrNull { it.name.equals(target, ignoreCase = true) } ?: return@withContext
+                .firstOrNull { row -> row.name.equals(target, ignoreCase = true) } ?: return@withContext
+            staffId = current.id
             val nextCanView = current.canViewPayments == 0L
             val existingPerms = current.permissionsCsv
                 .split(",")
-                .mapNotNull { token -> StaffPermission.entries.firstOrNull { it.name == token.trim() } }
+                .mapNotNull { token ->
+                    StaffPermission.entries.firstOrNull { candidate -> candidate.name == token.trim() }
+                }
                 .toSet()
             val nextPerms = if (nextCanView) {
                 existingPerms + StaffPermission.PAYMENTS
             } else {
                 existingPerms - StaffPermission.PAYMENTS
             }
-            val nextLabel = if (current.name.equals("Yuli", ignoreCase = true)) {
-                if (nextCanView) "Decoración, tareas y consulta de pagos" else "Decoración y tareas (sin acceso a pagos)"
+            updatedPerms = nextPerms.map { perm -> perm.name }
+            updatedLabel = if (current.name.equals("Yuli", ignoreCase = true)) {
+                if (nextCanView) {
+                    "Decoración, tareas y consulta de pagos"
+                } else {
+                    "Decoración y tareas (sin acceso a pagos)"
+                }
             } else {
                 current.roleLabel
             }
             queries.updateStaffPaymentAccess(
                 canViewPayments = if (nextCanView) 1L else 0L,
-                permissionsCsv = nextPerms.joinToString(",") { it.name },
-                roleLabel = nextLabel,
+                permissionsCsv = updatedPerms.joinToString(","),
+                roleLabel = updatedLabel,
                 name = current.name,
             )
             reloadStaffFromSql()
         }
+        if (staffId.isNotEmpty()) {
+            runCatching {
+                apiClient?.updateStaffMember(
+                    staffId = staffId,
+                    input = UpdateStaffInputDto(
+                        roleLabel = updatedLabel,
+                        permissions = updatedPerms,
+                    ),
+                )
+            }
+        }
     }
 
     /**
-     * Inserta un mensaje de chat en SQLite fuera del hilo principal.
+     * Inserts a formatted chat message into SQLite off the main thread.
      */
     public suspend fun sendChatMessageAsync(author: String, message: String): Unit = withContext(ioDispatcher) {
         val cleanMsg = message.trim()
@@ -621,7 +894,7 @@ public class SqlRosaFiestaRepository(
     }
 
     /**
-     * Crea o actualiza un artículo en SQLite fuera del hilo principal.
+     * Creates or updates a rental catalog article in SQLite and synchronizes with the backend.
      */
     public suspend fun createArticleAsync(
         code: String,
@@ -633,17 +906,21 @@ public class SqlRosaFiestaRepository(
         val cleanCode = code.trim()
         val cleanName = name.trim()
         val cleanCategory = category.trim().ifEmpty { "Mobiliario" }
-        if (cleanCode.isEmpty() || cleanName.isEmpty() || pricePerDayDop <= 0 || totalStock < 0) {
-            return@withContext
-        }
-        val photo = selectPhotoForArticle(cleanCategory, cleanName)
+        if (cleanCode.isEmpty()) return@withContext
+        if (cleanName.isEmpty()) return@withContext
+        if (pricePerDayDop <= 0) return@withContext
+        if (totalStock < 0) return@withContext
+
+        val articleId = "art-${cleanCode.lowercase()}"
+        val description = "$cleanName para eventos y celebraciones en Santo Domingo."
+        val photo = RosaFiestaBackendMappers.selectPhotoForArticle(cleanCategory, cleanName)
         sqlMutex.withLock {
             queries.upsertArticle(
-                id = "art-${cleanCode.lowercase()}",
+                id = articleId,
                 code = cleanCode,
                 name = cleanName,
                 category = cleanCategory,
-                description = "$cleanName para eventos y celebraciones en Santo Domingo.",
+                description = description,
                 pricePerDayDop = pricePerDayDop.toLong(),
                 totalStock = totalStock.toLong(),
                 availableOct23 = totalStock.toLong(),
@@ -651,10 +928,25 @@ public class SqlRosaFiestaRepository(
             )
             reloadArticlesFromSql()
         }
+        runCatching {
+            apiClient?.createCatalogArticle(
+                CreateArticleInputDto(
+                    id = articleId,
+                    name = cleanName,
+                    categoryId = cleanCategory,
+                    photoKey = photo.key,
+                    dailyPriceDop = pricePerDayDop.toLong(),
+                    totalStock = totalStock.toLong(),
+                    availableStock = totalStock.toLong(),
+                    description = description,
+                    visible = true,
+                ),
+            )
+        }
     }
 
     /**
-     * Crea un evento nuevo en SQLite fuera del hilo principal.
+     * Creates a new event in SQLite with real computed days-until-event, consistent delivery fee, and dynamic staff assignment.
      */
     public suspend fun createEventAsync(
         title: String,
@@ -662,45 +954,87 @@ public class SqlRosaFiestaRepository(
         dateLabel: String,
         venue: String,
         guests: Int,
+        preassignedEventId: String? = null,
     ): Unit = withContext(ioDispatcher) {
         val cleanTitle = title.trim()
         val cleanClient = clientName.trim()
         val cleanDate = dateLabel.trim()
         val cleanVenue = venue.trim()
-        if (cleanTitle.isEmpty() || cleanClient.isEmpty() || cleanDate.isEmpty() || cleanVenue.isEmpty() || guests <= 0) {
-            return@withContext
-        }
+        if (cleanTitle.isEmpty()) return@withContext
+        if (cleanClient.isEmpty()) return@withContext
+        if (cleanDate.isEmpty()) return@withContext
+        if (cleanVenue.isEmpty()) return@withContext
+        if (guests <= 0) return@withContext
+
+        val proposal = RosaFiestaEngine.buildRosaProposal(cleanTitle, guests)
+        val deliveryFeeDop = RosaFiestaBackendMappers.resolveDeliveryFeeDop(cleanVenue, businessSettings.value)
+        val linesSubtotal = proposal.lines.sumOf { line -> line.subtotalDop }
+        val consistentTotalDop = linesSubtotal + deliveryFeeDop
+        val computedDaysUntil = DomainClockFormatter.computeDaysUntilEvent(cleanDate)
+        var assignedLead = ""
+        var resolvedEventId = ""
+
         sqlMutex.withLock {
-            val existingCount = queries.selectAllEvents().executeAsList().size
-            val proposal = RosaFiestaEngine.buildRosaProposal(cleanTitle, guests)
-            val seq = 1120 + existingCount
+            val existingRows = queries.selectAllEvents().executeAsList()
+            val existingByPreassigned = preassignedEventId?.let { targetId ->
+                existingRows.indexOfFirst { row -> row.id == targetId }.takeIf { idx -> idx >= 0 }
+            }
+            val sortIndex = existingByPreassigned ?: existingRows.size
+            val seq = 1120 + sortIndex
+            resolvedEventId = preassignedEventId ?: "evt-$seq"
+            val code = "RF-2026-$seq"
+            assignedLead = RosaFiestaBackendMappers.selectLeastLoadedStaffLead(_staffMembers.value, _events.value)
             queries.upsertEvent(
-                id = "evt-$seq",
-                code = "RF-2026-$seq",
+                id = resolvedEventId,
+                code = code,
                 title = cleanTitle,
                 clientName = cleanClient,
                 eventType = "Evento",
                 dateLabel = cleanDate,
-                daysUntilEvent = 14L,
+                daysUntilEvent = computedDaysUntil.toLong(),
                 venue = cleanVenue,
                 zone = "Santo Domingo DN",
                 guests = guests.toLong(),
-                articleCount = proposal.lines.sumOf { it.quantity }.toLong(),
-                totalDop = proposal.totalDop.toLong(),
+                articleCount = proposal.lines.sumOf { line -> line.quantity }.toLong(),
+                totalDop = consistentTotalDop.toLong(),
                 paidDepositDop = 0L,
                 depositMethodLabel = "Pendiente de anticipo",
                 depositDateLabel = "—",
                 balanceDueDateLabel = cleanDate,
                 status = EventStatus.PENDING_QUOTE.name,
-                leadStaffName = "Pedro",
+                leadStaffName = assignedLead,
                 photoKey = PhotoAsset.BODA.key,
                 priorChangesCount = 0L,
-                sortOrder = existingCount.toLong(),
+                sortOrder = sortIndex.toLong(),
             )
             reloadEventsFromSql()
         }
+
         runCatching {
-            val proposal = RosaFiestaEngine.buildRosaProposal(cleanTitle, guests)
+            val eventItems = proposal.lines.map { line ->
+                EventItemDto(
+                    articleCode = line.code,
+                    name = line.name,
+                    quantity = line.quantity.toLong(),
+                    unitPriceRD = line.unitPriceDop.toLong(),
+                )
+            }
+            apiClient?.createRemoteEvent(
+                CreateEventInputDto(
+                    title = cleanTitle,
+                    clientName = cleanClient,
+                    dateLabel = cleanDate,
+                    daysUntilEvent = computedDaysUntil.toLong(),
+                    venue = cleanVenue,
+                    zone = "Santo Domingo DN",
+                    guests = guests.toLong(),
+                    assignedLead = assignedLead,
+                    totalRD = consistentTotalDop.toLong(),
+                    items = eventItems,
+                ),
+            )
+        }
+        runCatching {
             val dtoLines = proposal.lines.map { line ->
                 QuoteLineDto(
                     articleCode = line.code,
@@ -717,22 +1051,26 @@ public class SqlRosaFiestaRepository(
                     venue = cleanVenue,
                     guests = guests.toLong(),
                     lines = dtoLines,
-                    deliveryFeeRD = 350L,
+                    deliveryFeeRD = deliveryFeeDop.toLong(),
                     discountRD = 0L,
+                    eventId = resolvedEventId,
                 ),
             )
         }
     }
 
     /**
-     * Evalúa y persiste el cambio de fecha de un evento en SQLite fuera del hilo principal.
+     * Evaluates and persists an event date change in SQLite off the main thread.
      */
     public suspend fun changeEventDateAsync(eventId: String, newDateLabel: String): DateChangeResult = withContext(ioDispatcher) {
         val cleanDate = newDateLabel.trim()
         val evalResult = sqlMutex.withLock {
             val rows = queries.selectAllEvents().executeAsList()
             val target = rows.firstOrNull { row -> row.id == eventId.trim() } ?: rows.first()
-            val eval = RosaFiestaEngine.evaluateDateChange(target.daysUntilEvent.toInt(), target.priorChangesCount.toInt())
+            val eval = RosaFiestaEngine.evaluateDateChange(
+                daysUntilEvent = target.daysUntilEvent.toInt(),
+                priorChangesCount = target.priorChangesCount.toInt(),
+            )
             val canPersistDate = if (eval.allowed) cleanDate.isNotEmpty() else false
             if (canPersistDate) {
                 queries.updateEventDateAndTotal(
@@ -747,12 +1085,13 @@ public class SqlRosaFiestaRepository(
         }
         val canSyncDateChange = if (evalResult.allowed) cleanDate.isNotEmpty() else false
         if (canSyncDateChange) {
+            val computedDays = DomainClockFormatter.computeDaysUntilEvent(cleanDate).toLong()
             runCatching {
                 apiClient?.requestDateChange(
                     id = eventId,
                     input = DateChangeInputDto(
                         newDateLabel = cleanDate,
-                        newDaysUntilEvent = 14L,
+                        newDaysUntilEvent = computedDays,
                     ),
                 )
             }
@@ -761,13 +1100,16 @@ public class SqlRosaFiestaRepository(
     }
 
     /**
-     * Cancela un evento en SQLite fuera del hilo principal y devuelve el desglose de reembolso.
+     * Cancels an event in SQLite off the main thread and returns its refund breakdown.
      */
     public suspend fun cancelEventAsync(eventId: String): CancellationRefund = withContext(ioDispatcher) {
         val refundResult = sqlMutex.withLock {
             val rows = queries.selectAllEvents().executeAsList()
-            val target = rows.firstOrNull { it.id == eventId.trim() } ?: rows.first()
-            val refund = RosaFiestaEngine.calculateCancellationRefund(target.paidDepositDop.toInt(), target.daysUntilEvent.toInt())
+            val target = rows.firstOrNull { row -> row.id == eventId.trim() } ?: rows.first()
+            val refund = RosaFiestaEngine.calculateCancellationRefund(
+                paidDepositDop = target.paidDepositDop.toInt(),
+                daysUntilEvent = target.daysUntilEvent.toInt(),
+            )
             queries.updateEventStatus(
                 status = EventStatus.CANCELLED.name,
                 id = target.id,
@@ -782,7 +1124,7 @@ public class SqlRosaFiestaRepository(
     }
 
     /**
-     * Registra un pago en SQLite fuera del hilo principal y devuelve el comprobante generado.
+     * Registers a payment in SQLite off the main thread using current system date labels and normalized API method names.
      */
     public suspend fun registerPaymentAsync(
         eventId: String,
@@ -792,13 +1134,39 @@ public class SqlRosaFiestaRepository(
     ): PaymentRecord? = withContext(ioDispatcher) {
         val cleanMethod = methodLabel.trim()
         val cleanRef = referenceCode.trim().ifEmpty { "REF-2026" }
-        if (amountDop <= 0 || cleanMethod.isEmpty()) {
-            return@withContext null
-        }
+        if (amountDop <= 0) return@withContext null
+        if (cleanMethod.isEmpty()) return@withContext null
+
+        val shortDateLabel = DomainClockFormatter.currentShortDateLabel()
+        val fullDateLabel = DomainClockFormatter.currentFullDateLabel()
+        val normalizedPayment = RosaFiestaBackendMappers.normalizePaymentMethod(cleanMethod)
+
         val createdRecord = sqlMutex.withLock {
             val eventRows = queries.selectAllEvents().executeAsList()
-            val target = eventRows.firstOrNull { it.id == eventId.trim() } ?: eventRows.first()
+            val target = eventRows.firstOrNull { row -> row.id == eventId.trim() } ?: eventRows.first()
             val existingPayments = queries.selectAllPayments().executeAsList()
+            val alreadyPersisted = existingPayments.firstOrNull { row ->
+                val sameEvent = row.eventId == target.id
+                val sameRef = row.referenceCode == cleanRef
+                val sameAmount = row.amountDop == amountDop.toLong()
+                val matchesRefAndAmount = if (sameRef) sameAmount else false
+                if (sameEvent) matchesRefAndAmount else false
+            }
+            if (alreadyPersisted != null) {
+                return@withLock PaymentRecord(
+                    id = alreadyPersisted.id,
+                    receiptNumber = alreadyPersisted.receiptNumber,
+                    eventId = alreadyPersisted.eventId,
+                    eventTitle = alreadyPersisted.eventTitle,
+                    clientName = alreadyPersisted.clientName,
+                    amountDop = alreadyPersisted.amountDop.toInt(),
+                    methodLabel = alreadyPersisted.methodLabel,
+                    kindLabel = alreadyPersisted.kindLabel,
+                    dateLabel = alreadyPersisted.dateLabel,
+                    referenceCode = alreadyPersisted.referenceCode,
+                    verified = alreadyPersisted.verified != 0L,
+                )
+            }
             val nextNumber = 185 + existingPayments.size
             val receipt = "REC-2026-${nextNumber.toString().padStart(4, '0')}"
             val balanceDop = (target.totalDop - target.paidDepositDop).toInt().coerceAtLeast(0)
@@ -809,9 +1177,9 @@ public class SqlRosaFiestaRepository(
                 eventTitle = target.title,
                 clientName = target.clientName,
                 amountDop = amountDop,
-                methodLabel = "$cleanMethod · 20 oct",
+                methodLabel = "$cleanMethod · $shortDateLabel",
                 kindLabel = if (amountDop >= balanceDop) "Liquidación" else "Abono",
-                dateLabel = "20 oct 2026",
+                dateLabel = fullDateLabel,
                 referenceCode = cleanRef,
                 verified = true,
             )
@@ -846,9 +1214,10 @@ public class SqlRosaFiestaRepository(
                     eventTitle = createdRecord.eventTitle,
                     clientName = createdRecord.clientName,
                     amountRD = createdRecord.amountDop.toLong(),
-                    method = cleanMethod,
+                    method = normalizedPayment.canonicalMethod,
                     kind = createdRecord.kindLabel,
                     referenceCode = cleanRef,
+                    bankName = normalizedPayment.bankName,
                 ),
             )
         }
@@ -856,12 +1225,14 @@ public class SqlRosaFiestaRepository(
     }
 
     override fun toggleChecklistStep(stepId: String) {
+        val nowHm = DomainClockFormatter.currentTimeHmLabel()
         _checklist.update { list ->
             list.map { step ->
                 if (step.id == stepId) {
+                    val nextCompleted = !step.completed
                     step.copy(
-                        completed = !step.completed,
-                        timeLabel = if (!step.completed) "11:20 AM" else "Pendiente",
+                        completed = nextCompleted,
+                        timeLabel = if (nextCompleted) nowHm else "Pendiente",
                     )
                 } else {
                     step
@@ -875,7 +1246,7 @@ public class SqlRosaFiestaRepository(
 
     override fun syncOfflineQueue() {
         _offlineQueue.update { list ->
-            list.map { it.copy(synced = true) }
+            list.map { item -> item.copy(synced = true) }
         }
         scope.launch {
             syncOfflineQueueAsync()
@@ -901,6 +1272,8 @@ public class SqlRosaFiestaRepository(
 
     override fun login(email: String, password: String): Boolean = authenticateUser(email, password).success
 
+    override suspend fun authenticateUserOnline(identifier: String, password: String): AuthOutcome = submodules.authenticateUserOnline(identifier, password, ::authenticateUser)
+
     override fun authenticateUser(identifier: String, password: String): AuthOutcome {
         val cleanIdentifier = identifier.trim().lowercase()
         val cleanPass = password.trim()
@@ -925,6 +1298,12 @@ public class SqlRosaFiestaRepository(
                 errorMessage = SensitiveDataRedactor.translateBusinessError("AUTH_INVALID_CREDENTIALS", null),
             )
         }
+        if (matchedAccount.passwordHash.isEmpty()) {
+            return AuthOutcome.failure(
+                errorCode = "AUTH_INVALID_CREDENTIALS",
+                errorMessage = SensitiveDataRedactor.translateBusinessError("AUTH_INVALID_CREDENTIALS", null),
+            )
+        }
         val passwordValid = JwtAuthManager.verifyPassword(
             rawPassword = cleanPass,
             salt = matchedAccount.salt,
@@ -941,6 +1320,7 @@ public class SqlRosaFiestaRepository(
         _currentSessionJwt.value = token
         _currentUserEmail.value = matchedAccount.email
         _activeRole.value = matchedAccount.role
+        submodules.propagateSessionTokenToApi(token)
         persistActiveSessionAndSyncLoginAsync(matchedAccount, cleanPass, token)
         return AuthOutcome.authenticated(accessToken = token, account = matchedAccount)
     }
@@ -958,26 +1338,24 @@ public class SqlRosaFiestaRepository(
                 )
             }
             val client = apiClient ?: return@launch
-            runCatching {
+            val remoteLogin = runCatching {
                 client.login(
                     LoginInputDto(
                         email = account.email,
                         password = rawPassword,
                     ),
                 )
-            }.onFailure {
-                runCatching {
-                    client.register(
-                        RegisterInputDto(
-                            username = account.username,
-                            fullName = account.fullName,
-                            email = account.email,
-                            password = rawPassword,
-                            birthDate = account.birthDate,
-                            phone = account.phone,
-                        ),
+            }.getOrNull()
+            if (remoteLogin != null) {
+                _currentSessionJwt.value = remoteLogin.accessToken
+                client.setAccessToken(remoteLogin.accessToken)
+                sqlMutex.withLock {
+                    queries.upsertActiveSession(
+                        userId = account.id,
+                        accessToken = remoteLogin.accessToken,
                     )
                 }
+                syncFromBackendAsync()
             }
         }
     }
@@ -1055,11 +1433,6 @@ public class SqlRosaFiestaRepository(
 
         val salt = JwtAuthManager.generateDeterministicSalt("$cleanEmail:$resolvedUsername")
         val passwordHash = JwtAuthManager.hashPassword(cleanPassword, salt)
-        val resolvedRole = when {
-            cleanEmail.startsWith("maria") -> "admin"
-            cleanEmail.startsWith("yuli") -> "staff_yuli"
-            else -> "client"
-        }
         val newAccount = RegisteredUserAccount(
             id = "usr-${existingAccounts.size + 1}-$resolvedUsername",
             username = resolvedUsername,
@@ -1069,7 +1442,7 @@ public class SqlRosaFiestaRepository(
             salt = salt,
             birthDate = cleanBirthDate,
             phone = cleanPhone,
-            role = resolvedRole,
+            role = "client",
         )
         userAccountsState.update { accounts -> accounts + newAccount }
         val token = JwtAuthManager.issueAccessToken(newAccount)
@@ -1077,6 +1450,7 @@ public class SqlRosaFiestaRepository(
         _currentSessionJwt.value = token
         _currentUserEmail.value = newAccount.email
         _activeRole.value = newAccount.role
+        submodules.propagateSessionTokenToApi(token)
         scope.launch {
             sqlMutex.withLock {
                 queries.upsertUserAccount(
@@ -1096,8 +1470,9 @@ public class SqlRosaFiestaRepository(
                 )
                 reloadUserAccountsFromSql()
             }
-            runCatching {
-                apiClient?.register(
+            val client = apiClient ?: return@launch
+            val remoteReg = runCatching {
+                client.register(
                     RegisterInputDto(
                         username = newAccount.username,
                         fullName = newAccount.fullName,
@@ -1107,6 +1482,17 @@ public class SqlRosaFiestaRepository(
                         phone = newAccount.phone,
                     ),
                 )
+            }.getOrNull()
+            if (remoteReg != null) {
+                _currentSessionJwt.value = remoteReg.accessToken
+                client.setAccessToken(remoteReg.accessToken)
+                sqlMutex.withLock {
+                    queries.upsertActiveSession(
+                        userId = newAccount.id,
+                        accessToken = remoteReg.accessToken,
+                    )
+                }
+                syncFromBackendAsync()
             }
         }
         return AuthOutcome.authenticated(accessToken = token, account = newAccount)
@@ -1151,6 +1537,7 @@ public class SqlRosaFiestaRepository(
         val token = JwtAuthManager.issueAccessToken(updatedAccount)
         _currentAuthenticatedUser.value = updatedAccount
         _currentSessionJwt.value = token
+        submodules.propagateSessionTokenToApi(token)
         scope.launch {
             sqlMutex.withLock {
                 queries.updateUserAccountPassword(
@@ -1168,6 +1555,7 @@ public class SqlRosaFiestaRepository(
                 apiClient?.resetPassword(
                     ResetPasswordInputDto(
                         identifier = updatedAccount.email,
+                        email = updatedAccount.email,
                         newPassword = cleanPassword,
                     ),
                 )
@@ -1259,6 +1647,7 @@ public class SqlRosaFiestaRepository(
         _currentAuthenticatedUser.value = updatedAccount
         _currentSessionJwt.value = token
         _currentUserEmail.value = updatedAccount.email
+        submodules.propagateSessionTokenToApi(token)
         scope.launch {
             sqlMutex.withLock {
                 queries.upsertUserAccount(
@@ -1278,8 +1667,38 @@ public class SqlRosaFiestaRepository(
                 )
                 reloadUserAccountsFromSql()
             }
+            runCatching {
+                apiClient?.updateMyProfile(
+                    UpdateProfileInputDto(
+                        fullName = cleanName,
+                        email = cleanEmail,
+                        phone = cleanPhone,
+                        birthDate = cleanBirthDate,
+                        username = cleanUsername,
+                    ),
+                )
+            }
         }
         return AuthOutcome.authenticated(accessToken = token, account = updatedAccount)
+    }
+
+    override suspend fun requestPasswordOtp(email: String): OtpChallengeOutcome = submodules.requestPasswordOtp(email)
+
+    override suspend fun verifyPasswordOtp(email: String, code: String): OtpChallengeOutcome = submodules.verifyPasswordOtp(email, code)
+
+    override suspend fun resetPasswordWithOtp(
+        email: String,
+        newPassword: String,
+        resetToken: String,
+        otpCode: String,
+    ): AuthOutcome = submodules.resetPasswordWithOtp(email, newPassword, resetToken, otpCode, ::resetUserPassword)
+
+    override suspend fun loginWithOAuth(provider: String, idToken: String): AuthOutcome = submodules.loginWithOAuth(provider, idToken)
+
+    override fun changeUserPassword(currentPassword: String, newPassword: String): AuthOutcome = submodules.changeUserPassword(currentPassword, newPassword)
+
+    override fun logoutSession() {
+        submodules.logoutSession(::clearSession)
     }
 
     override fun restoreSessionFromJwt(accessToken: String): RegisteredUserAccount? {
@@ -1291,17 +1710,16 @@ public class SqlRosaFiestaRepository(
             existingAccount
         } else {
             val defaultSalt = JwtAuthManager.generateDeterministicSalt("${claims.email}:${claims.username}")
-            val defaultHash = JwtAuthManager.hashPassword("rosa2026", defaultSalt)
             val reconstructed = RegisteredUserAccount(
                 id = claims.subjectId,
                 username = claims.username.ifEmpty { claims.email.substringBefore("@") },
                 email = claims.email,
                 fullName = claims.fullName.ifEmpty { claims.username },
-                passwordHash = defaultHash,
+                passwordHash = "",
                 salt = defaultSalt,
                 birthDate = claims.birthDate,
-                phone = "809-555-0142",
-                role = claims.role,
+                phone = "",
+                role = claims.role.ifBlank { "client" },
             )
             userAccountsState.update { accounts -> accounts + reconstructed }
             scope.launch {
@@ -1323,18 +1741,6 @@ public class SqlRosaFiestaRepository(
                     )
                     reloadUserAccountsFromSql()
                 }
-                runCatching {
-                    apiClient?.register(
-                        RegisterInputDto(
-                            username = reconstructed.username,
-                            fullName = reconstructed.fullName,
-                            email = reconstructed.email,
-                            password = "rosa2026",
-                            birthDate = reconstructed.birthDate,
-                            phone = reconstructed.phone,
-                        ),
-                    )
-                }
             }
             reconstructed
         }
@@ -1342,6 +1748,7 @@ public class SqlRosaFiestaRepository(
         _currentSessionJwt.value = cleanToken
         _currentUserEmail.value = resolvedAccount.email
         _activeRole.value = resolvedAccount.role
+        submodules.propagateSessionTokenToApi(cleanToken)
         scope.launch {
             sqlMutex.withLock {
                 queries.upsertActiveSession(
@@ -1355,6 +1762,7 @@ public class SqlRosaFiestaRepository(
 
     override fun clearSession() {
         _currentSessionJwt.value = null
+        apiClient?.setAccessToken(null)
         scope.launch {
             sqlMutex.withLock {
                 queries.clearActiveSession()
@@ -1367,6 +1775,7 @@ public class SqlRosaFiestaRepository(
         _currentSessionJwt.value = null
         _currentAuthenticatedUser.value = null
         _activeRole.value = "guest"
+        apiClient?.setAccessToken(null)
         scope.launch {
             sqlMutex.withLock {
                 queries.clearActiveSession()
@@ -1386,6 +1795,9 @@ public class SqlRosaFiestaRepository(
                 runCatching {
                     reloadFromSql()
                 }
+            }
+            if (apiClient != null) {
+                syncFromBackendAsync()
             }
         }
     }
@@ -1447,7 +1859,11 @@ public class SqlRosaFiestaRepository(
                         member.permissions - StaffPermission.PAYMENTS
                     }
                     val nextLabel = if (member.name.equals("Yuli", ignoreCase = true)) {
-                        if (nextCanView) "Decoración, tareas y consulta de pagos" else "Decoración y tareas (sin acceso a pagos)"
+                        if (nextCanView) {
+                            "Decoración, tareas y consulta de pagos"
+                        } else {
+                            "Decoración y tareas (sin acceso a pagos)"
+                        }
                     } else {
                         member.roleLabel
                     }
@@ -1470,7 +1886,7 @@ public class SqlRosaFiestaRepository(
         val cleanMsg = message.trim()
         if (cleanMsg.isEmpty()) return
         val cleanAuthor = author.trim().ifEmpty { "Camila" }
-        _chatMessages.update { it + "$cleanAuthor: $cleanMsg" }
+        _chatMessages.update { messages -> messages + "$cleanAuthor: $cleanMsg" }
         scope.launch {
             sendChatMessageAsync(cleanAuthor, cleanMsg)
         }
@@ -1486,10 +1902,12 @@ public class SqlRosaFiestaRepository(
         val cleanCode = code.trim()
         val cleanName = name.trim()
         val cleanCategory = category.trim().ifEmpty { "Mobiliario" }
-        if (cleanCode.isEmpty() || cleanName.isEmpty() || pricePerDayDop <= 0 || totalStock < 0) {
-            return
-        }
-        val photo = selectPhotoForArticle(cleanCategory, cleanName)
+        if (cleanCode.isEmpty()) return
+        if (cleanName.isEmpty()) return
+        if (pricePerDayDop <= 0) return
+        if (totalStock < 0) return
+
+        val photo = RosaFiestaBackendMappers.selectPhotoForArticle(cleanCategory, cleanName)
         val newArticle = CatalogArticle(
             id = "art-${cleanCode.lowercase()}",
             code = cleanCode,
@@ -1503,7 +1921,11 @@ public class SqlRosaFiestaRepository(
             variants = listOf("Estándar"),
         )
         _articles.update { list ->
-            val filtered = list.filterNot { it.id == newArticle.id || it.code.equals(cleanCode, ignoreCase = true) }
+            val filtered = list.filterNot { candidate ->
+                val sameId = candidate.id == newArticle.id
+                val sameCode = candidate.code.equals(cleanCode, ignoreCase = true)
+                if (sameId) true else sameCode
+            }
             filtered + newArticle
         }
         scope.launch {
@@ -1522,54 +1944,56 @@ public class SqlRosaFiestaRepository(
         val cleanClient = clientName.trim()
         val cleanDate = dateLabel.trim()
         val cleanVenue = venue.trim()
-        if (cleanTitle.isEmpty() || cleanClient.isEmpty() || cleanDate.isEmpty() || cleanVenue.isEmpty() || guests <= 0) {
-            return
-        }
-        val proposal = RosaFiestaEngine.buildRosaProposal(cleanTitle, guests)
+        if (cleanTitle.isEmpty()) return
+        if (cleanClient.isEmpty()) return
+        if (cleanDate.isEmpty()) return
+        if (cleanVenue.isEmpty()) return
+        if (guests <= 0) return
+
         val lines = buildFallbackItems(cleanTitle, guests)
+        val deliveryFeeDop = RosaFiestaBackendMappers.resolveDeliveryFeeDop(cleanVenue, businessSettings.value)
+        val linesSubtotal = lines.sumOf { line -> line.subtotalDop }
+        val consistentTotalDop = linesSubtotal + deliveryFeeDop
+        val computedDaysUntil = DomainClockFormatter.computeDaysUntilEvent(cleanDate)
+        val assignedLead = RosaFiestaBackendMappers.selectLeastLoadedStaffLead(_staffMembers.value, _events.value)
         val seq = 1120 + _events.value.size
+        val eventId = "evt-$seq"
         val newEvent = ClientEvent(
-            id = "evt-$seq",
+            id = eventId,
             code = "RF-2026-$seq",
             title = cleanTitle,
             clientName = cleanClient,
             eventType = "Evento",
             dateLabel = cleanDate,
-            daysUntilEvent = 14,
+            daysUntilEvent = computedDaysUntil,
             venue = cleanVenue,
             zone = "Santo Domingo DN",
             guests = guests,
-            articleCount = lines.sumOf { it.quantity },
-            totalDop = proposal.totalDop,
+            articleCount = lines.sumOf { line -> line.quantity },
+            totalDop = consistentTotalDop,
             paidDepositDop = 0,
             depositMethodLabel = "Pendiente de anticipo",
             depositDateLabel = "—",
             balanceDueDateLabel = cleanDate,
             status = EventStatus.PENDING_QUOTE,
-            leadStaffName = "Pedro",
+            leadStaffName = assignedLead,
             photo = PhotoAsset.BODA,
             items = lines,
         )
-        _events.update { it + newEvent }
-        _metrics.update { current ->
-            current.copy(
-                activeEventsCount = current.activeEventsCount + 1,
-                newRequestsCount = current.newRequestsCount + 1,
-                accountsReceivableDop = current.accountsReceivableDop + newEvent.totalDop,
-            )
-        }
+        _events.update { existing -> existing + newEvent }
+        recalculateMetricsFromState()
         scope.launch {
-            createEventAsync(cleanTitle, cleanClient, cleanDate, cleanVenue, guests)
+            createEventAsync(cleanTitle, cleanClient, cleanDate, cleanVenue, guests, preassignedEventId = eventId)
         }
     }
 
     override fun changeEventDate(eventId: String, newDateLabel: String): DateChangeResult {
         val cleanDate = newDateLabel.trim()
-        val currentEvent = _events.value.firstOrNull { it.id == eventId.trim() } ?: _events.value.first()
+        val currentEvent = _events.value.firstOrNull { event -> event.id == eventId.trim() } ?: _events.value.first()
         val eval = RosaFiestaEngine.evaluateDateChange(currentEvent.daysUntilEvent, currentEvent.priorChangesCount)
-        if (!eval.allowed || cleanDate.isEmpty()) {
-            return eval
-        }
+        if (!eval.allowed) return eval
+        if (cleanDate.isEmpty()) return eval
+
         _events.update { list ->
             list.map { evt ->
                 if (evt.id == currentEvent.id) {
@@ -1583,9 +2007,7 @@ public class SqlRosaFiestaRepository(
                 }
             }
         }
-        if (eval.feeDop > 0) {
-            _metrics.update { it.copy(accountsReceivableDop = it.accountsReceivableDop + eval.feeDop) }
-        }
+        recalculateMetricsFromState()
         scope.launch {
             changeEventDateAsync(currentEvent.id, cleanDate)
         }
@@ -1593,7 +2015,7 @@ public class SqlRosaFiestaRepository(
     }
 
     override fun cancelEvent(eventId: String): CancellationRefund {
-        val currentEvent = _events.value.firstOrNull { it.id == eventId.trim() } ?: _events.value.first()
+        val currentEvent = _events.value.firstOrNull { event -> event.id == eventId.trim() } ?: _events.value.first()
         val refund = RosaFiestaEngine.calculateCancellationRefund(currentEvent.paidDepositDop, currentEvent.daysUntilEvent)
         _events.update { list ->
             list.map { evt ->
@@ -1604,12 +2026,7 @@ public class SqlRosaFiestaRepository(
                 }
             }
         }
-        _metrics.update { current ->
-            current.copy(
-                activeEventsCount = (current.activeEventsCount - 1).coerceAtLeast(0),
-                accountsReceivableDop = (current.accountsReceivableDop - currentEvent.balanceDop).coerceAtLeast(0),
-            )
-        }
+        recalculateMetricsFromState()
         scope.launch {
             cancelEventAsync(currentEvent.id)
         }
@@ -1624,12 +2041,14 @@ public class SqlRosaFiestaRepository(
     ): PaymentRecord? {
         val cleanMethod = methodLabel.trim()
         val cleanRef = referenceCode.trim().ifEmpty { "REF-2026" }
-        if (amountDop <= 0 || cleanMethod.isEmpty()) {
-            return null
-        }
-        val targetEvent = _events.value.firstOrNull { it.id == eventId.trim() } ?: _events.value.first()
+        if (amountDop <= 0) return null
+        if (cleanMethod.isEmpty()) return null
+
+        val targetEvent = _events.value.firstOrNull { event -> event.id == eventId.trim() } ?: _events.value.first()
         val nextNumber = 185 + _payments.value.size
         val receipt = "REC-2026-${nextNumber.toString().padStart(4, '0')}"
+        val shortDateLabel = DomainClockFormatter.currentShortDateLabel()
+        val fullDateLabel = DomainClockFormatter.currentFullDateLabel()
         val record = PaymentRecord(
             id = "pay-${_payments.value.size + 1}",
             receiptNumber = receipt,
@@ -1637,13 +2056,13 @@ public class SqlRosaFiestaRepository(
             eventTitle = targetEvent.title,
             clientName = targetEvent.clientName,
             amountDop = amountDop,
-            methodLabel = "$cleanMethod · 20 oct",
+            methodLabel = "$cleanMethod · $shortDateLabel",
             kindLabel = if (amountDop >= targetEvent.balanceDop) "Liquidación" else "Abono",
-            dateLabel = "20 oct 2026",
+            dateLabel = fullDateLabel,
             referenceCode = cleanRef,
             verified = true,
         )
-        _payments.update { listOf(record) + it }
+        _payments.update { existing -> listOf(record) + existing }
         _events.update { list ->
             list.map { evt ->
                 if (evt.id == targetEvent.id) {
@@ -1656,23 +2075,293 @@ public class SqlRosaFiestaRepository(
                 }
             }
         }
-        _metrics.update { current ->
-            current.copy(
-                octoberRevenueDop = current.octoberRevenueDop + amountDop,
-                accountsReceivableDop = (current.accountsReceivableDop - amountDop).coerceAtLeast(0),
-            )
-        }
+        recalculateMetricsFromState()
         scope.launch {
             registerPaymentAsync(targetEvent.id, amountDop, cleanMethod, cleanRef)
         }
         return record
     }
 
-    private fun selectPhotoForArticle(category: String, name: String): PhotoAsset = when {
-        category.contains("flor", ignoreCase = true) -> PhotoAsset.CENTRO_FLORAL
-        category.contains("arco", ignoreCase = true) || category.contains("globo", ignoreCase = true) -> PhotoAsset.ARCO_ROSA
-        category.contains("dulce", ignoreCase = true) || category.contains("helado", ignoreCase = true) -> PhotoAsset.MESA_HELADOS
-        name.contains("mesa", ignoreCase = true) -> PhotoAsset.MESA_REDONDA
-        else -> PhotoAsset.SILLA_TIFFANY
-    }
+    override fun createQuote(
+        eventTitle: String,
+        clientName: String,
+        clientEmail: String,
+        venue: String,
+        dateLabel: String,
+        guests: Int,
+        lines: List<EventLineItem>,
+        deliveryFeeDop: Int,
+        discountDop: Int,
+        eventId: String,
+    ): QuoteRecord = submodules.createQuote(
+        eventTitle = eventTitle,
+        clientName = clientName,
+        clientEmail = clientEmail,
+        venue = venue,
+        dateLabel = dateLabel,
+        guests = guests,
+        lines = lines,
+        deliveryFeeDop = deliveryFeeDop,
+        discountDop = discountDop,
+        eventId = eventId,
+    )
+
+    override fun approveQuote(quoteId: String, signedByName: String, signatureSvg: String): QuoteRecord? = submodules.approveQuote(quoteId, signedByName, signatureSvg)
+
+    override fun declineQuote(quoteId: String, reason: String): QuoteRecord? = submodules.declineQuote(quoteId, reason)
+
+    override fun duplicateQuote(quoteId: String): QuoteRecord? = submodules.duplicateQuote(quoteId)
+
+    override suspend fun sendRosaPrompt(
+        message: String,
+        eventType: String,
+        guests: Int,
+        budgetDop: Int,
+        excludedCategories: List<String>,
+    ): RosaChatReply = submodules.sendRosaPrompt(message, eventType, guests, budgetDop, excludedCategories)
+
+    override suspend fun transcribeVoicePrompt(wavBase64: String, locale: String): VoiceTranscriptionOutcome = submodules.transcribeVoicePrompt(wavBase64, locale)
+
+    override fun approveRefund(refundId: String): RefundRequest? = submodules.approveRefund(refundId)
+
+    override fun createReview(
+        eventId: String,
+        authorName: String,
+        rating: Int,
+        comment: String,
+    ): ReviewRecord = submodules.createReview(eventId, authorName, rating, comment)
+
+    override fun replyToReview(reviewId: String, adminReply: String): ReviewRecord? = submodules.replyToReview(reviewId, adminReply)
+
+    override fun createSupplier(
+        name: String,
+        category: String,
+        contactName: String,
+        phone: String,
+        email: String,
+        website: String,
+        notes: String,
+    ): SupplierRecord = submodules.createSupplier(name, category, contactName, phone, email, website, notes)
+
+    override fun createLead(
+        clientName: String,
+        eventType: String,
+        dateLabel: String,
+        guests: Int,
+        estimatedDop: Int,
+        channel: String,
+        stage: String,
+        followUpNote: String,
+        phone: String,
+        email: String,
+    ): LeadRecord = submodules.createLead(
+        clientName = clientName,
+        eventType = eventType,
+        dateLabel = dateLabel,
+        guests = guests,
+        estimatedDop = estimatedDop,
+        channel = channel,
+        stage = stage,
+        followUpNote = followUpNote,
+        phone = phone,
+        email = email,
+    )
+
+    override fun updateLead(
+        leadId: String,
+        stage: String?,
+        estimatedDop: Int?,
+        followUpNote: String?,
+    ): LeadRecord? = submodules.updateLead(leadId, stage, estimatedDop, followUpNote)
+
+    override fun updateEventDetails(
+        eventId: String,
+        title: String?,
+        venue: String?,
+        zone: String?,
+        guests: Int?,
+        status: EventStatus?,
+        leadStaffName: String?,
+        sketchJson: String?,
+    ): ClientEvent? = submodules.updateEventDetails(
+        eventId = eventId,
+        title = title,
+        venue = venue,
+        zone = zone,
+        guests = guests,
+        status = status,
+        leadStaffName = leadStaffName,
+        sketchJson = sketchJson,
+    )
+
+    override fun duplicateEvent(eventId: String): ClientEvent? = submodules.duplicateEvent(eventId)
+
+    override fun addEventGuest(
+        eventId: String,
+        fullName: String,
+        rsvpStatus: String,
+        tableLabel: String,
+        notes: String,
+    ): EventGuest = submodules.addEventGuest(eventId, fullName, rsvpStatus, tableLabel, notes)
+
+    override fun updateEventGuest(
+        eventId: String,
+        guestId: String,
+        fullName: String?,
+        rsvpStatus: String?,
+        tableLabel: String?,
+        notes: String?,
+    ): EventGuest? = submodules.updateEventGuest(eventId, guestId, fullName, rsvpStatus, tableLabel, notes)
+
+    override fun addEventScheduleBlock(
+        eventId: String,
+        timeRange: String,
+        title: String,
+        ownerName: String,
+        completed: Boolean,
+    ): EventScheduleBlock = submodules.addEventScheduleBlock(eventId, timeRange, title, ownerName, completed)
+
+    override fun deleteEventScheduleBlock(eventId: String, blockId: String): Boolean = submodules.deleteEventScheduleBlock(eventId, blockId)
+
+    override fun sendThreadMessage(
+        threadId: String,
+        senderName: String,
+        body: String,
+        attachmentName: String,
+    ): ChatMessageRecord = submodules.sendThreadMessage(threadId, senderName, body, attachmentName)
+
+    override fun saveBusinessSettings(updated: BusinessSettings): BusinessSettings = submodules.saveBusinessSettings(updated)
+
+    override fun inviteStaffMember(
+        fullName: String,
+        email: String,
+        roleLabel: String,
+        role: String,
+        phone: String,
+        permissions: List<String>,
+    ): StaffMember = submodules.inviteStaffMember(fullName, email, roleLabel, role, phone, permissions)
+
+    override fun updateStaffMember(
+        staffId: String,
+        fullName: String?,
+        roleLabel: String?,
+        active: Boolean?,
+        permissions: List<String>?,
+    ): StaffMember? = submodules.updateStaffMember(staffId, fullName, roleLabel, active, permissions)
+
+    override fun updateClientProfile(
+        clientId: String,
+        fullName: String?,
+        email: String?,
+        phone: String?,
+        notes: String?,
+    ): ClientProfile? = submodules.updateClientProfile(clientId, fullName, email, phone, notes)
+
+    override fun createPackage(
+        name: String,
+        subtitle: String,
+        eventType: String,
+        suggestedGuests: Int,
+        priceDop: Int,
+        includedItems: List<String>,
+        visibleInCatalog: Boolean,
+    ): EventPackage = submodules.createPackage(
+        name = name,
+        subtitle = subtitle,
+        eventType = eventType,
+        suggestedGuests = suggestedGuests,
+        priceDop = priceDop,
+        includedItems = includedItems,
+        visibleInCatalog = visibleInCatalog,
+    )
+
+    override fun updatePackage(
+        packageId: String,
+        name: String,
+        subtitle: String,
+        eventType: String,
+        suggestedGuests: Int,
+        priceDop: Int,
+        includedItems: List<String>,
+        visibleInCatalog: Boolean,
+    ): EventPackage? = submodules.updatePackage(
+        packageId = packageId,
+        name = name,
+        subtitle = subtitle,
+        eventType = eventType,
+        suggestedGuests = suggestedGuests,
+        priceDop = priceDop,
+        includedItems = includedItems,
+        visibleInCatalog = visibleInCatalog,
+    )
+
+    override fun updateArticle(
+        articleId: String,
+        name: String?,
+        category: String?,
+        description: String?,
+        pricePerDayDop: Int?,
+        totalStock: Int?,
+        availableStock: Int?,
+        dimensions: String?,
+        material: String?,
+        visibleInCatalog: Boolean?,
+    ): CatalogArticle? = submodules.updateArticle(
+        articleId = articleId,
+        name = name,
+        category = category,
+        description = description,
+        pricePerDayDop = pricePerDayDop,
+        totalStock = totalStock,
+        availableStock = availableStock,
+        dimensions = dimensions,
+        material = material,
+        visibleInCatalog = visibleInCatalog,
+    )
+
+    override suspend fun queryArticleAvailability(articleId: String, monthIso: String): ArticleAvailabilityCalendar = submodules.queryArticleAvailability(articleId, monthIso)
+
+    override fun reportDamage(
+        eventId: String,
+        articleCode: String,
+        articleName: String,
+        damagedUnits: Int,
+        missingUnits: Int,
+        replacementDop: Int,
+        notes: String,
+    ): DamageIncident = submodules.reportDamage(
+        eventId = eventId,
+        articleCode = articleCode,
+        articleName = articleName,
+        damagedUnits = damagedUnits,
+        missingUnits = missingUnits,
+        replacementDop = replacementDop,
+        notes = notes,
+    )
+
+    override fun markNotificationRead(notificationId: String): NotificationRecord? = submodules.markNotificationRead(notificationId)
+
+    override fun saveBotFaq(
+        question: String,
+        answer: String,
+        category: String,
+        active: Boolean,
+        id: String,
+    ): BotFaqRecord = submodules.saveBotFaq(question, answer, category, active, id)
+
+    override fun saveBotKeyword(
+        keyword: String,
+        autoReply: String,
+        handoffToHuman: Boolean,
+        id: String,
+    ): BotKeywordRecord = submodules.saveBotKeyword(keyword, autoReply, handoffToHuman, id)
+
+    override fun updateBotThread(
+        threadId: String,
+        botPaused: Boolean?,
+        assignedAgent: String?,
+        lastMessage: String?,
+    ): BotThreadRecord? = submodules.updateBotThread(threadId, botPaused, assignedAgent, lastMessage)
+
+    override suspend fun exportReport(reportType: String, period: String): ReportExportResult = submodules.exportReport(reportType, period)
 }
