@@ -2716,6 +2716,7 @@ internal fun RenderRosaSummaryS32(
 // ==============================================================================
 @Composable
 internal fun RenderRosaSubmittedS33(
+    viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current

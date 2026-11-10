@@ -1750,7 +1750,9 @@ private data class Quadruple<A, B, C, D>(val first: A, val second: B, val third:
 // ==============================================================================
 @Composable
 internal fun RenderAdminMoreA12(
+    viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
+    onSwitchAppMode: () -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
 
@@ -1901,7 +1903,7 @@ internal fun RenderAdminMoreA12(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { onSelectScreenCode("s14") }
+                        .clickable { onSwitchAppMode() }
                         .padding(horizontal = 14.dp, vertical = 11.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -2841,6 +2843,7 @@ internal fun RenderAdminEventDetailA13(
 // ==============================================================================
 @Composable
 internal fun RenderAdminExecutionA16(
+    viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
@@ -3122,6 +3125,7 @@ private data class QuadExecution(
 // ==============================================================================
 @Composable
 internal fun RenderAdminTasksA17(
+    viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
@@ -3590,6 +3594,7 @@ internal fun RenderAdminTasksA17(
 // ==============================================================================
 @Composable
 internal fun RenderAdminSketchA18(
+    viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
@@ -3860,6 +3865,7 @@ internal fun RenderAdminSketchA18(
 // ==============================================================================
 @Composable
 internal fun RenderAdminCloseoutA19(
+    viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
@@ -4690,6 +4696,7 @@ private data class TeamMemberData(
 // ==============================================================================
 @Composable
 internal fun RenderAdminPackagesA24(
+    viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
@@ -4818,6 +4825,7 @@ internal fun RenderAdminPackagesA24(
 // ==============================================================================
 @Composable
 internal fun RenderAdminPackageEditA25(
+    viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current

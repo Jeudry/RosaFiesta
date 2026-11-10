@@ -57,13 +57,27 @@ public class Navigator(
 
     public fun navigateTo(code: String) {
         if (code.startsWith("BACK")) {
-            if (popBack()) return
-            val fallback = code.substringAfter("BACK:", missingDelimiterValue = "").ifBlank {
-                if (activeView == AppView.ADMIN) "A01" else "s14"
+            val explicitTarget = code.substringAfter("BACK:", missingDelimiterValue = "").trim()
+            val hasExplicitTarget = explicitTarget.isNotEmpty()
+            if (hasExplicitTarget) {
+                val targetBackIndex = backStack.lastIndexOf(explicitTarget)
+                if (targetBackIndex >= 0) {
+                    backStack.removeRange(targetBackIndex, backStack.size)
+                    lastTransition = NavigationTransitionKind.BACKWARD
+                    currentCode = explicitTarget
+                    return
+                }
             }
-            if (fallback == currentCode) return
+            if (popBack()) {
+                return
+            }
+            val defaultHomeCode = if (activeView == AppView.ADMIN) "A01" else "s14"
+            val fallbackTarget = explicitTarget.ifBlank { defaultHomeCode }
+            if (fallbackTarget == currentCode) {
+                return
+            }
             lastTransition = NavigationTransitionKind.BACKWARD
-            currentCode = fallback
+            currentCode = fallbackTarget
             return
         }
         if (code == currentCode) return

@@ -30,7 +30,9 @@ import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -51,6 +53,7 @@ import com.jeudry.rosafiesta.di.appModule
 import com.jeudry.rosafiesta.ui.NavigationTransitionKind
 import com.jeudry.rosafiesta.ui.Navigator
 import com.jeudry.rosafiesta.ui.RenderAppBottomBar
+import com.jeudry.rosafiesta.ui.RenderPersonalMoreOptionsPanel
 import com.jeudry.rosafiesta.ui.RenderScreenSpec
 import com.jeudry.rosafiesta.ui.RosaFiestaViewModel
 import com.jeudry.rosafiesta.ui.ScreenCatalog
@@ -257,6 +260,16 @@ public fun RosaFiestaApp(
                 }
             }
 
+            var showPersonalMoreMenu by remember(spec.code) { mutableStateOf(false) }
+            val navigateToCode: (String) -> Unit = { nextCode ->
+                showPersonalMoreMenu = false
+                viewModel.soundPlayer.playTap()
+                navigator.navigateTo(nextCode)
+            }
+            val isMobileScreen = !spec.isDesktopWeb
+            val isBottomBarScreen = shouldShowBottomBar(spec.code)
+            val hasBottomBar = if (isMobileScreen) isBottomBarScreen else false
+
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
@@ -264,10 +277,6 @@ public fun RosaFiestaApp(
                     .fillMaxWidth(),
             ) {
                 val transitionKind = navigator.lastTransition
-                val navigateToCode: (String) -> Unit = { nextCode ->
-                    viewModel.soundPlayer.playTap()
-                    navigator.navigateTo(nextCode)
-                }
                 AnimatedContent(
                     targetState = spec,
                     transitionSpec = { buildScreenTransition(transitionKind) },
@@ -285,21 +294,23 @@ public fun RosaFiestaApp(
                         includeBottomBar = false,
                         onSelectScreenCode = navigateToCode,
                         onSwitchAppMode = {
+                            showPersonalMoreMenu = false
                             viewModel.soundPlayer.playTap()
                             if (navigator.activeView == AppView.ADMIN) {
                                 navigator.switchToPersonal("s14", fromAdminPreview = true)
                             } else {
-                                navigator.switchToAdmin("A39")
+                                navigator.switchToAdmin("A01")
                             }
                         },
                         onPrimaryAction = {
+                            showPersonalMoreMenu = false
                             viewModel.soundPlayer.playTap()
                             val currentUser = viewModel.currentAuthenticatedUser.value
                             val isSplashScreen = navigator.currentCode == "p00"
                             val hasCustomUser = currentUser != null
                             val isNotDefaultSeed = currentUser?.id != "usr-camila"
-                            val isCustomSession = hasCustomUser && isNotDefaultSeed
-                            val shouldSkipOnboarding = isSplashScreen && isCustomSession
+                            val isCustomSession = if (hasCustomUser) isNotDefaultSeed else false
+                            val shouldSkipOnboarding = if (isSplashScreen) isCustomSession else false
                             if (shouldSkipOnboarding) {
                                 navigator.navigateTo("s14")
                             } else {
@@ -309,30 +320,39 @@ public fun RosaFiestaApp(
                     )
                 }
 
-                val hasBottomBar = !spec.isDesktopWeb && shouldShowBottomBar(spec.code)
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .fillMaxWidth(),
-                ) {
-                    androidx.compose.animation.AnimatedVisibility(
-                        visible = hasBottomBar,
-                        enter = slideInVertically(
-                            animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing),
-                            initialOffsetY = { fullHeight -> fullHeight },
-                        ) + fadeIn(animationSpec = tween(durationMillis = 180)),
-                        exit = slideOutVertically(
-                            animationSpec = tween(durationMillis = 180, easing = FastOutSlowInEasing),
-                            targetOffsetY = { fullHeight -> fullHeight },
-                        ) + fadeOut(animationSpec = tween(durationMillis = 140)),
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        RenderAppBottomBar(
-                            spec = spec,
-                            onSelectScreenCode = navigateToCode,
-                        )
-                    }
+                if (showPersonalMoreMenu) {
+                    RenderPersonalMoreOptionsPanel(
+                        currentScreenCode = spec.code,
+                        onDismiss = { showPersonalMoreMenu = false },
+                        onSelectOption = { targetCode ->
+                            showPersonalMoreMenu = false
+                            navigateToCode(targetCode)
+                        },
+                    )
                 }
+            }
+
+            AnimatedVisibility(
+                visible = hasBottomBar,
+                enter = slideInVertically(
+                    animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing),
+                    initialOffsetY = { fullHeight -> fullHeight },
+                ) + fadeIn(animationSpec = tween(durationMillis = 180)),
+                exit = slideOutVertically(
+                    animationSpec = tween(durationMillis = 180, easing = FastOutSlowInEasing),
+                    targetOffsetY = { fullHeight -> fullHeight },
+                ) + fadeOut(animationSpec = tween(durationMillis = 140)),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                RenderAppBottomBar(
+                    spec = spec,
+                    onSelectScreenCode = navigateToCode,
+                    onTogglePersonalMoreMenu = {
+                        viewModel.soundPlayer.playTap()
+                        showPersonalMoreMenu = !showPersonalMoreMenu
+                    },
+                    isMoreMenuOpen = showPersonalMoreMenu,
+                )
             }
         }
     }

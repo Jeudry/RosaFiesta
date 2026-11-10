@@ -2045,6 +2045,7 @@ internal fun RenderEventChatS42(
 // ==============================================================================
 @Composable
 internal fun RenderFinanceDashboardS59(
+    viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
@@ -2192,7 +2193,10 @@ private fun PanelMovementRow59(
 // s60 a s74 · PANELES DE ANALÍTICA, LEADS, REPORTES Y BOT WHATSAPP
 // ==============================================================================
 @Composable
-internal fun RenderInventoryCalendarS63(onSelectScreenCode: (String) -> Unit = {}) {
+internal fun RenderInventoryCalendarS63(
+    viewModel: RosaFiestaViewModel? = null,
+    onSelectScreenCode: (String) -> Unit = {},
+) {
     val typo = LocalRfTypography.current
     var selectedDay63 by remember { mutableStateOf(20) }
     var currentMonthLabel by remember { mutableStateOf("Octubre 2026") }
@@ -2388,7 +2392,10 @@ private fun CalendarLegend63(label: String, color: Color) {
 }
 
 @Composable
-internal fun RenderLeadsPipelineS64(onSelectScreenCode: (String) -> Unit = {}) {
+internal fun RenderLeadsPipelineS64(
+    viewModel: RosaFiestaViewModel? = null,
+    onSelectScreenCode: (String) -> Unit = {},
+) {
     var selectedLeadFilter by remember { mutableStateOf("Todos · 3") }
 
     LeadsScaffold(activeCode = "s64", onSelectScreenCode = onSelectScreenCode) {
@@ -2603,7 +2610,10 @@ private fun LeadPipelineCard64(
 }
 
 @Composable
-internal fun RenderLeadsFollowupS65(onSelectScreenCode: (String) -> Unit = {}) {
+internal fun RenderLeadsFollowupS65(
+    viewModel: RosaFiestaViewModel? = null,
+    onSelectScreenCode: (String) -> Unit = {},
+) {
     val typo = LocalRfTypography.current
 
     LeadsScaffold(activeCode = "s65", onSelectScreenCode = onSelectScreenCode) {
@@ -2671,7 +2681,10 @@ private fun LeadFollowupCard65(task: String, due: String) {
 }
 
 @Composable
-internal fun RenderLeadsStatsS66(onSelectScreenCode: (String) -> Unit = {}) {
+internal fun RenderLeadsStatsS66(
+    viewModel: RosaFiestaViewModel? = null,
+    onSelectScreenCode: (String) -> Unit = {},
+) {
     val typo = LocalRfTypography.current
 
     AdminSubScaffold(
@@ -3016,7 +3029,10 @@ private fun EventTypeRow68(
 }
 
 @Composable
-internal fun RenderReportsClientsS69(onSelectScreenCode: (String) -> Unit = {}) {
+internal fun RenderReportsClientsS69(
+    viewModel: RosaFiestaViewModel? = null,
+    onSelectScreenCode: (String) -> Unit = {},
+) {
     val typo = LocalRfTypography.current
 
     AdminSubScaffold(
@@ -3137,7 +3153,10 @@ private fun RetentionLegend(label: String, value: String, color: Color) {
 }
 
 @Composable
-internal fun RenderReportsInventoryS70(onSelectScreenCode: (String) -> Unit = {}) {
+internal fun RenderReportsInventoryS70(
+    viewModel: RosaFiestaViewModel? = null,
+    onSelectScreenCode: (String) -> Unit = {},
+) {
     val typo = LocalRfTypography.current
 
     AdminSubScaffold(
@@ -3750,7 +3769,10 @@ private fun ReviewCard71(
 }
 
 @Composable
-internal fun RenderBotQuestionsS72(onSelectScreenCode: (String) -> Unit = {}) {
+internal fun RenderBotQuestionsS72(
+    viewModel: RosaFiestaViewModel? = null,
+    onSelectScreenCode: (String) -> Unit = {},
+) {
     var extraQuestions by remember { mutableStateOf(emptyList<Triple<String, String, String>>()) }
 
     BotScaffold(
@@ -3881,7 +3903,10 @@ private fun BotQuestionCard72(tag: String, question: String, answer: String) {
 }
 
 @Composable
-internal fun RenderBotKeywordsS73(onSelectScreenCode: (String) -> Unit = {}) {
+internal fun RenderBotKeywordsS73(
+    viewModel: RosaFiestaViewModel? = null,
+    onSelectScreenCode: (String) -> Unit = {},
+) {
     val typo = LocalRfTypography.current
     var extraKeywords by remember { mutableStateOf(emptyList<Triple<String, String, String>>()) }
     val rows = listOf(
@@ -3950,7 +3975,10 @@ internal fun RenderBotKeywordsS73(onSelectScreenCode: (String) -> Unit = {}) {
 }
 
 @Composable
-internal fun RenderBotConversationsS74(onSelectScreenCode: (String) -> Unit = {}) {
+internal fun RenderBotConversationsS74(
+    viewModel: RosaFiestaViewModel? = null,
+    onSelectScreenCode: (String) -> Unit = {},
+) {
     var valeriaResolved by remember { mutableStateOf(false) }
 
     BotScaffold(
@@ -4129,7 +4157,10 @@ private fun AdminPanelScaffold(
 }
 
 @Composable
-internal fun RenderInsurancePanelS60(onSelectScreenCode: (String) -> Unit = {}) {
+internal fun RenderInsurancePanelS60(
+    viewModel: RosaFiestaViewModel? = null,
+    onSelectScreenCode: (String) -> Unit = {},
+) {
     val typo = LocalRfTypography.current
 
     AdminPanelScaffold(activeCode = "s60", onSelectScreenCode = onSelectScreenCode) {
@@ -4204,7 +4235,10 @@ private fun PolicyRow60(
 }
 
 @Composable
-internal fun RenderAuditPanelS61(onSelectScreenCode: (String) -> Unit = {}) {
+internal fun RenderAuditPanelS61(
+    viewModel: RosaFiestaViewModel? = null,
+    onSelectScreenCode: (String) -> Unit = {},
+) {
     var selectedAuditFilter by remember { mutableStateOf("Todo") }
 
     AdminPanelScaffold(activeCode = "s61", onSelectScreenCode = onSelectScreenCode, tabScroll = 56.dp) {
@@ -4449,74 +4483,5 @@ private fun ClientActionRow62(
             BasicText(badge, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Medium, fontSize = 15.sp, color = Color(0xFF5F6377)))
         }
         RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = Color(0xFF5F6377), size = 16.dp)
-    }
-}
-
-@Composable
-private fun RenderGenericPersonalSubPanel(
-    title: String,
-    subtitle: String,
-    onSelectScreenCode: (String) -> Unit,
-) {
-    val typo = LocalRfTypography.current
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFFFF6F8)),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp),
-        ) {
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    BasicText(text = title, style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp, color = Color(0xFF1E1E24)))
-                    BasicText(text = subtitle, style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFF7A7177), fontSize = 13.sp))
-                }
-
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .shadow(6.dp, CircleShape, spotColor = Color(0x33FF3366))
-                        .clip(CircleShape)
-                        .background(RfThemeState.currentPalette.surface)
-                        .clickable { onSelectScreenCode("BACK:s14") },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF1E1E24), size = 20.dp)
-                }
-            }
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(RfThemeState.currentPalette.surface)
-                    .border(1.dp, Color(0xFFFFE3EC), RoundedCornerShape(20.dp))
-                    .padding(20.dp),
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        RfIcon(kind = RfIconKind.SPARK, tint = Color(0xFFFF3366), size = 24.dp)
-                        BasicText("Sincronizado con Rosa IA", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24), fontSize = 16.sp))
-                    }
-                    BasicText("Información actualizada en tiempo real conforme a los eventos y cotizaciones activas de Rosa Fiesta.", style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFF7A7177), fontSize = 13.sp))
-                }
-            }
-
-            Spacer(modifier = Modifier.height(30.dp))
-        }
     }
 }

@@ -1632,6 +1632,7 @@ private fun SettingsSwitch86(checked: Boolean) {
 // ==============================================================================
 @Composable
 internal fun RenderTermsS87(
+    viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
@@ -2033,6 +2034,7 @@ internal fun RenderDeleteAccountS88(
 // ==============================================================================
 @Composable
 internal fun RenderPersonalEmptyStateS89(
+    viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
@@ -2251,6 +2253,7 @@ private fun BalloonsIllustration89(modifier: Modifier = Modifier) {
 // ==============================================================================
 @Composable
 internal fun RenderPersonalLoadingStateS90(
+    viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
@@ -2423,6 +2426,7 @@ private fun CatalogProductSkeletonCardS90(
 // ==============================================================================
 @Composable
 internal fun RenderGuestAuthModalS75(
+    viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
@@ -2433,7 +2437,7 @@ internal fun RenderGuestAuthModalS75(
             .background(RfThemeState.currentPalette.bg),
     ) {
         // Background guest catalog (s01)
-        RenderGuestCatalogS01(onSelectScreenCode = onSelectScreenCode)
+        RenderGuestCatalogS01(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
 
         // Scrim
         Box(
@@ -4109,6 +4113,7 @@ internal fun RenderCancelEventModalS85(
 // ==============================================================================
 @Composable
 internal fun RenderPersonalOfflineStateS91(
+    viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current

@@ -1,9 +1,12 @@
 package com.jeudry.rosafiesta
 
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.jeudry.rosafiesta.core.engine.AppView
 import com.jeudry.rosafiesta.designsystem.AdminTab
@@ -129,7 +132,7 @@ class ScreenCatalogAndFlowTest {
         assertEquals("http://localhost:8788", apiClient.baseUrl)
         assertEquals(6, viewModel.articles.value.size)
         assertEquals(5, viewModel.events.value.size)
-        assertEquals(4, viewModel.payments.value.size)
+        assertEquals(5, viewModel.payments.value.size)
 
         viewModel.toggleChecklistStep("chk-5")
         assertTrue(viewModel.checklist.value.first { it.id == "chk-5" }.completed)
@@ -415,11 +418,154 @@ class ScreenCatalogAndFlowTest {
 
         val initialChatCount = viewModel.directChatMessages.value.size
         viewModel.sendDirectChatMessage("Quiero cotizar sillas Tiffany")
-        assertEquals(initialChatCount + 2, viewModel.directChatMessages.value.size)
+        assertEquals(initialChatCount + 1, viewModel.directChatMessages.value.size)
+
+        val registeredNewClient = viewModel.submitRegistration(
+            firstName = "Carlos",
+            lastName = "Santana",
+            username = "carlos_santana",
+            email = "carlos.santana@correo.do",
+            password = "Password2026",
+            birthDate = "10/05/1994",
+            acceptedTerms = true,
+            phone = "809-555-0991",
+        )
+        assertTrue(registeredNewClient)
+        assertTrue(viewModel.clientEventsForCurrentUser().isEmpty())
+        assertTrue(viewModel.clientPaymentsForCurrentUser().isEmpty())
 
         viewModel.setDarkTheme(true)
         assertTrue(viewModel.isDarkTheme.value)
         viewModel.setDarkTheme(false)
         assertFalse(viewModel.isDarkTheme.value)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun `Yuli sin permiso de pagos ve pantalla restringida en A20 hasta habilitar acceso en ViewModel`() = runComposeUiTest {
+        val koin = org.koin.dsl.koinApplication {
+            modules(com.jeudry.rosafiesta.di.appModule)
+        }.koin
+        val viewModel = koin.get<com.jeudry.rosafiesta.ui.RosaFiestaViewModel>()
+        viewModel.switchRole("staff_yuli")
+
+        val restrictedCodes = listOf("A20", "A21", "A32", "A33", "s57", "s58", "s59", "s67")
+        restrictedCodes.forEach { restrictedCode ->
+            assertTrue(viewModel.isScreenRestrictedForActiveStaff(restrictedCode))
+        }
+        assertFalse(viewModel.isScreenRestrictedForActiveStaff("A01"))
+
+        setContent {
+            RosaFiestaApp(
+                initialAppView = AppView.ADMIN,
+                initialScreenCode = "A20",
+                viewModel = viewModel,
+            )
+        }
+
+        onNodeWithTag("screen-A20").assertExists()
+        onNodeWithTag("staff-payment-restricted-A20").assertExists()
+
+        viewModel.toggleStaffPaymentAccess("Yuli")
+        waitForIdle()
+
+        assertFalse(viewModel.isScreenRestrictedForActiveStaff("A20"))
+        onNodeWithTag("staff-payment-restricted-A20").assertDoesNotExist()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun `PersonalApp abre panel Mas consume toques internos sin cerrar y navega a Mis reservas s53`() = runComposeUiTest {
+        setContent {
+            PersonalApp(initialScreenCode = "s14")
+        }
+
+        onNodeWithTag("screen-s14").assertExists()
+        onNodeWithText("Más").performClick()
+
+        onNodeWithTag("personal-more-panel").assertExists()
+        onNodeWithTag("more-option-s24").assertExists()
+        onNodeWithTag("more-option-s82").assertExists()
+        onNodeWithTag("more-option-s53").assertExists()
+        onNodeWithTag("more-option-s86").assertExists()
+        onNodeWithTag("more-option-s16").assertExists()
+        onNodeWithTag("more-option-s54").assertExists()
+
+        onNodeWithTag("personal-more-panel").performTouchInput {
+            val headerPoint = Offset(centerX, top + 10f)
+            click(headerPoint)
+        }
+        onNodeWithTag("personal-more-panel").assertExists()
+        onNodeWithTag("screen-s14").assertExists()
+
+        onNodeWithTag("personal-more-scrim").performTouchInput {
+            val outsideScrimPoint = Offset(centerX, top + 10f)
+            click(outsideScrimPoint)
+        }
+        onNodeWithTag("personal-more-panel").assertDoesNotExist()
+
+        onNodeWithText("Más").performClick()
+        onNodeWithTag("more-option-s53").performClick()
+        onNodeWithTag("personal-more-panel").assertDoesNotExist()
+        onNodeWithTag("screen-s53").assertExists()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun `modo invitado en s01 redirige pestana Paquetes al modal de autenticacion s75`() = runComposeUiTest {
+        setContent {
+            PersonalApp(initialScreenCode = "s01")
+        }
+
+        onNodeWithTag("screen-s01").assertExists()
+        onNodeWithText("Paquetes").performClick()
+        onNodeWithTag("screen-s75").assertExists()
+    }
+
+    @Test
+    fun `Navigator resuelve BACK con destino explicito en pila o vacio y catalogo sincroniza titulos y defaultNextCode`() {
+        val stackedNav = Navigator(initialAppView = AppView.PERSONAL, initialScreenCode = "s14")
+        stackedNav.navigateTo("s37")
+        stackedNav.navigateTo("s40")
+        stackedNav.navigateTo("s46")
+
+        stackedNav.navigateTo("BACK:s37")
+        assertEquals("s37", stackedNav.currentCode)
+        assertTrue(stackedNav.popBack())
+        assertEquals("s14", stackedNav.currentCode)
+
+        val emptyStackNav = Navigator(initialAppView = AppView.PERSONAL, initialScreenCode = "s87")
+        emptyStackNav.navigateTo("BACK:s86")
+        assertEquals("s86", emptyStackNav.currentCode)
+
+        assertEquals("s14", ScreenCatalog.defaultNextCode("s07"))
+        assertEquals("s14", ScreenCatalog.defaultNextCode("s11"))
+        assertEquals("s10", ScreenCatalog.defaultNextCode("s12"))
+        assertEquals("s18", ScreenCatalog.defaultNextCode("s81"))
+        assertEquals("s83", ScreenCatalog.defaultNextCode("s51"))
+        assertEquals("s54", ScreenCatalog.defaultNextCode("s86"))
+        assertEquals("s86", ScreenCatalog.defaultNextCode("s87"))
+
+        assertEquals("Cuenta activada", ScreenCatalog.findByCode("s11").title)
+        assertEquals("Correo verificado", ScreenCatalog.findByCode("s12").title)
+        assertEquals("Nuevo proveedor", ScreenCatalog.findByCode("s56").title)
+        assertEquals("Análisis", ScreenCatalog.findByCode("s57").title)
+        assertEquals("Panel · Resumen", ScreenCatalog.findByCode("s58").title)
+        assertEquals("Panel · Finanzas", ScreenCatalog.findByCode("s59").title)
+        assertEquals("Panel · Seguros", ScreenCatalog.findByCode("s60").title)
+        assertEquals("Panel · Auditoría", ScreenCatalog.findByCode("s61").title)
+        assertEquals("Panel · Clientes", ScreenCatalog.findByCode("s62").title)
+        assertEquals("Leads · Seguimientos", ScreenCatalog.findByCode("s65").title)
+        assertEquals("Leads · Estadísticas", ScreenCatalog.findByCode("s66").title)
+        assertEquals("Reportes · Ingresos", ScreenCatalog.findByCode("s67").title)
+        assertEquals("Reportes · Eventos", ScreenCatalog.findByCode("s68").title)
+        assertEquals("Reportes · Clientes", ScreenCatalog.findByCode("s69").title)
+        assertEquals("Reportes · Inventario", ScreenCatalog.findByCode("s70").title)
+        assertEquals("Bot de WhatsApp · Preguntas", ScreenCatalog.findByCode("s72").title)
+        assertEquals("Bot de WhatsApp · Palabras clave", ScreenCatalog.findByCode("s73").title)
+
+        val s87Spec = ScreenCatalog.findByCode("s87")
+        assertFalse(s87Spec.title.contains("ejemplo", ignoreCase = true))
+        assertFalse(s87Spec.subtitle.contains("ejemplo", ignoreCase = true))
     }
 }

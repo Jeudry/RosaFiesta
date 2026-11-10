@@ -72,8 +72,8 @@ object ScreenCatalog {
         add(ScreenSpec("s08", 1, "Acceso", "Registro", "Crea tu cuenta personal para armar eventos, bocetos y cotizaciones", RfThemeVariant.PERSONAL, ScreenArchetype.AUTH_FORM, RfPhotoKey.BODA, "Crear mi cuenta", "Camila Rodríguez"))
         add(ScreenSpec("s09", 1, "Acceso", "Recuperar contraseña", "Te enviaremos un código o enlace seguro a camila@rosafiesta.do", RfThemeVariant.PERSONAL, ScreenArchetype.AUTH_FORM, RfPhotoKey.BODA, "Enviar instrucciones", "Recuperación"))
         add(ScreenSpec("s10", 1, "Acceso", "Nueva contraseña", "Revisa tu correo y define una nueva clave segura de al menos 8 caracteres", RfThemeVariant.PERSONAL, ScreenArchetype.AUTH_FORM, RfPhotoKey.BODA, "Actualizar contraseña", "Clave segura"))
-        add(ScreenSpec("s11", 1, "Acceso", "Confirmación de correo", "Código de 6 dígitos enviado a camila@rosafiesta.do para verificar tu cuenta", RfThemeVariant.PERSONAL, ScreenArchetype.AUTH_FORM, RfPhotoKey.BODA, "Confirmar correo", "4 · 8 · 2 · 9 · 1 · 0"))
-        add(ScreenSpec("s12", 1, "Acceso", "Confirmación de teléfono", "Verificación SMS enviada al +1 (809) 555-0142 para avisos de montaje", RfThemeVariant.PERSONAL, ScreenArchetype.AUTH_FORM, RfPhotoKey.BODA, "Confirmar teléfono", "Verificado"))
+        add(ScreenSpec("s11", 1, "Acceso", "Cuenta activada", "¡Tu cuenta está activa! Ya puedes iniciar sesión y empezar a planificar tu evento", RfThemeVariant.PERSONAL, ScreenArchetype.AUTH_FORM, RfPhotoKey.BODA, "Ir a iniciar sesión", "Cuenta activa"))
+        add(ScreenSpec("s12", 1, "Acceso", "Correo verificado", "Tu cuenta quedó activada. Ya puedes iniciar sesión", RfThemeVariant.PERSONAL, ScreenArchetype.AUTH_FORM, RfPhotoKey.BODA, "Iniciar sesión", "Verificado"))
         add(ScreenSpec("s13", 1, "Acceso", "Sesión iniciada", "¡Bienvenida, Camila Rodríguez! Tu cuenta y tus eventos están listos", RfThemeVariant.PERSONAL, ScreenArchetype.AUTH_FORM, RfPhotoKey.BODA, "Ir al inicio", "Cuenta activa"))
 
         // 4.1 Descubrir (`s14`–`s25`)
@@ -140,7 +140,7 @@ object ScreenCatalog {
         add(ScreenSpec("s84", 7, "Hojas y estados", "Cambiar fecha", "Hoja inferior: el primer cambio de fecha es gratis con más de 7 días de anticipación", RfThemeVariant.PERSONAL, ScreenArchetype.PERSONAL_DATE_CANCEL, RfPhotoKey.BODA, "Confirmar nueva fecha gratis", "1er cambio gratis"))
         add(ScreenSpec("s85", 7, "Hojas y estados", "Cancelar evento", "Hoja inferior: >7 días 90 % reembolso · 3 a 7 días 50 % · menos de 3 días sin reembolso", RfThemeVariant.PERSONAL, ScreenArchetype.PERSONAL_DATE_CANCEL, RfPhotoKey.BODA, "Solicitar cancelación", "Política 90/50/0 %"))
         add(ScreenSpec("s86", 7, "Hojas y estados", "Ajustes", "Idioma español, notificaciones push, moneda RD$, seguridad y privacidad de cuenta", RfThemeVariant.PERSONAL, ScreenArchetype.PERSONAL_PROFILE, RfPhotoKey.BODA, "Guardar ajustes", "Preferencias"))
-        add(ScreenSpec("s87", 7, "Hojas y estados", "Términos y privacidad", "Política de alquiler, depósito de garantía, cancelaciones y tratamiento de datos", RfThemeVariant.PERSONAL, ScreenArchetype.PERSONAL_PROFILE, RfPhotoKey.BODA, "Aceptar condiciones", "Legal (ejemplo)"))
+        add(ScreenSpec("s87", 7, "Hojas y estados", "Términos y privacidad", "Política de alquiler, depósito de garantía, cancelaciones y tratamiento de datos", RfThemeVariant.PERSONAL, ScreenArchetype.PERSONAL_PROFILE, RfPhotoKey.BODA, "Entendido", "Legal"))
         add(ScreenSpec("s88", 7, "Hojas y estados", "Eliminar cuenta", "Se valida primero que no haya eventos activos · Botón deshabilitado al 35 % de opacidad", RfThemeVariant.PERSONAL, ScreenArchetype.PERSONAL_PROFILE, RfPhotoKey.BODA, "Eliminar mi cuenta", "35 % deshabilitado"))
         add(ScreenSpec("s89", 7, "Hojas y estados", "Estado vacío · Mis eventos", "Aún no tienes eventos creados · Ilustración de globos, título 22/800 y dos acciones", RfThemeVariant.PERSONAL, ScreenArchetype.PERSONAL_SYSTEM_STATE, RfPhotoKey.ARCO_ROSA, "Crear evento con Rosa IA", "Estado vacío"))
         add(ScreenSpec("s90", 7, "Hojas y estados", "Estado cargando", "Esqueleto con la misma estructura de la pantalla y brillo de 1.2 s de izquierda a derecha", RfThemeVariant.PERSONAL, ScreenArchetype.PERSONAL_SYSTEM_STATE, RfPhotoKey.SILLA_TIFFANY, "Cargando…", "Brillo 1.2 s"))
@@ -197,24 +197,24 @@ object ScreenCatalog {
         // 4.2 Más (`A12`, `s55`–`s62`, `s64`–`s74`, `A34`, `A31`, `A39`)
         add(ScreenSpec("A12", 14, "Más", "Más", "Panel ejecutivo, reportes, leads, proveedores, reseñas, bot de WhatsApp y versión web", RfThemeVariant.ADMIN, ScreenArchetype.ADMIN_DASHBOARD, RfPhotoKey.CORPORATIVO, "Abrir panel ejecutivo", "Herramientas"))
         add(ScreenSpec("s55", 14, "Más", "Proveedores", "Florería Jardín Real, Transporte Del Caribe, Globos & Arte RD y Mantelería Imperial", RfThemeVariant.ADMIN, ScreenArchetype.ADMIN_INVENTORY_STAFF, RfPhotoKey.CENTRO_FLORAL, "Ver ficha de proveedor", "6 proveedores"))
-        add(ScreenSpec("s56", 14, "Más", "Detalle de proveedor", "Florería Jardín Real · Entrega de rosas frescas para Boda Real el vie 23 oct 07:00 a. m.", RfThemeVariant.ADMIN, ScreenArchetype.ADMIN_INVENTORY_STAFF, RfPhotoKey.CENTRO_FLORAL, "Emitir orden de compra", "RD$ 680"))
-        add(ScreenSpec("s57", 14, "Más", "Artículos más rentados", "Ranking de rotación e ingresos por pieza: Silla Tiffany, Mesa redonda y Arco orgánico", RfThemeVariant.ADMIN, ScreenArchetype.ADMIN_FINANCE, RfPhotoKey.SILLA_TIFFANY, "Ver rotación completa", "92 % rotación"))
-        add(ScreenSpec("s58", 14, "Más", "Panel · Ingresos", "Evolución de ingresos de octubre: RD$ 12,450 cobrados (+18 % vs septiembre)", RfThemeVariant.ADMIN, ScreenArchetype.ADMIN_DASHBOARD, RfPhotoKey.CORPORATIVO, "Ver desglose por evento", "RD$ 12,450"))
-        add(ScreenSpec("s59", 14, "Más", "Panel · Por cobrar", "Saldos próximos a vencer: RD$ 3,150 (jue 22 oct) y RD$ 4,340 (vie 30 oct)", RfThemeVariant.ADMIN, ScreenArchetype.ADMIN_FINANCE, RfPhotoKey.BODA, "Enviar recordatorios", "RD$ 7,724"))
-        add(ScreenSpec("s60", 14, "Más", "Panel · Eventos activos", "Mapa de los 4 eventos activos en Santo Domingo y estado de preparación", RfThemeVariant.ADMIN, ScreenArchetype.ADMIN_DASHBOARD, RfPhotoKey.BODA, "Ver agenda operativa", "4 activos"))
-        add(ScreenSpec("s61", 14, "Más", "Panel · Calendario", "Ocupación mensual de octubre y noviembre con alertas de días pico", RfThemeVariant.ADMIN, ScreenArchetype.ADMIN_CALENDAR, RfPhotoKey.BODA, "Explorar semana del 23 oct", "Oct – Nov"))
-        add(ScreenSpec("s62", 14, "Más", "Panel · Alertas de stock", "4 sillas Tiffany en retoque de pintura y reposición de bases de cristal", RfThemeVariant.ADMIN, ScreenArchetype.ADMIN_INVENTORY_STAFF, RfPhotoKey.SILLA_TIFFANY, "Liberar mantenimiento", "2 alertas"))
+        add(ScreenSpec("s56", 14, "Más", "Nuevo proveedor", "Registra nombre de la empresa, persona de contacto, teléfono, correo, sitio web y notas", RfThemeVariant.ADMIN, ScreenArchetype.ADMIN_INVENTORY_STAFF, RfPhotoKey.CENTRO_FLORAL, "Guardar proveedor", "Alta"))
+        add(ScreenSpec("s57", 14, "Más", "Análisis", "Ingresos totales RD$ 22,100 · 4 eventos · Tendencia de ingresos y eventos por estado", RfThemeVariant.ADMIN, ScreenArchetype.ADMIN_FINANCE, RfPhotoKey.SILLA_TIFFANY, "Ver resumen del año", "RD$ 22,100"))
+        add(ScreenSpec("s58", 14, "Más", "Panel · Resumen", "Ingresos del mes RD$ 12,450 · 4 eventos activos · 3 siniestros pendientes · 2 clientes nuevos", RfThemeVariant.ADMIN, ScreenArchetype.ADMIN_DASHBOARD, RfPhotoKey.CORPORATIVO, "Ver desglose por evento", "RD$ 12,450"))
+        add(ScreenSpec("s59", 14, "Más", "Panel · Finanzas", "Movimientos, facturas y proveedores · Entradas RD$ 10,360 y salidas RD$ 1,450", RfThemeVariant.ADMIN, ScreenArchetype.ADMIN_FINANCE, RfPhotoKey.BODA, "Ver movimientos", "RD$ 10,360"))
+        add(ScreenSpec("s60", 14, "Más", "Panel · Seguros", "3 pólizas activas con Seguros Universal RD · Cobertura RD$ 2,500 por póliza", RfThemeVariant.ADMIN, ScreenArchetype.ADMIN_DASHBOARD, RfPhotoKey.BODA, "Ver pólizas activas", "3 pólizas"))
+        add(ScreenSpec("s61", 14, "Más", "Panel · Auditoría", "Registro cronológico de cotizaciones ajustadas, abonos iniciales y eventos finalizados", RfThemeVariant.ADMIN, ScreenArchetype.ADMIN_CALENDAR, RfPhotoKey.BODA, "Filtrar auditoría", "Octubre 2026"))
+        add(ScreenSpec("s62", 14, "Más", "Panel · Clientes", "Camila Rodríguez · Próximo evento Boda Real Rosa & Dorado · Eventos, pagos y notificaciones", RfThemeVariant.ADMIN, ScreenArchetype.ADMIN_INVENTORY_STAFF, RfPhotoKey.SILLA_TIFFANY, "Ver eventos del cliente", "3 eventos"))
         add(ScreenSpec("s64", 14, "Más", "Leads · Embudo comercial", "Prospectos de Instagram, WhatsApp y web en etapas: Nuevo, Contactado y Cotizado", RfThemeVariant.ADMIN, ScreenArchetype.ADMIN_QUOTES, RfPhotoKey.QUINCEANERA, "Abrir prospecto", "9 leads activos"))
-        add(ScreenSpec("s65", 14, "Más", "Leads · Ficha de prospecto", "Laura Peña · Cumpleaños de Mateo · Sáb 7 nov · 40 invitados · Est. RD$ 405", RfThemeVariant.ADMIN, ScreenArchetype.ADMIN_QUOTES, RfPhotoKey.CUMPLE_INFANTIL, "Convertir en cotización", "Est. RD$ 405"))
-        add(ScreenSpec("s66", 14, "Más", "Leads · Seguimiento", "Recordatorios automáticos con Rosa IA para cerrar cotizaciones pendientes", RfThemeVariant.ADMIN, ScreenArchetype.ADMIN_ROSA_COPILOT, RfPhotoKey.GRADUACION, "Enviar seguimiento IA", "Ana Gómez · RD$ 2,140"))
-        add(ScreenSpec("s67", 14, "Más", "Reportes · Financiero", "Ingresos RD$ 12,450 · Costos operativos RD$ 3,210 · Utilidad neta RD$ 9,240", RfThemeVariant.ADMIN, ScreenArchetype.ADMIN_FINANCE, RfPhotoKey.CORPORATIVO, "Ver balance detallado", "Margen 74 %"))
-        add(ScreenSpec("s68", 14, "Más", "Reportes · Uso de inventario", "Tasa de utilización por categoría y retorno sobre inversión de mobiliario", RfThemeVariant.ADMIN, ScreenArchetype.ADMIN_FINANCE, RfPhotoKey.MESA_REDONDA, "Analizar categoría", "84 % uso"))
-        add(ScreenSpec("s69", 14, "Más", "Reportes · Equipo y entregas", "Puntualidad de montajes (98 %) y tareas completadas por Pedro, Yuli y Andrés", RfThemeVariant.ADMIN, ScreenArchetype.ADMIN_LOGISTICS, RfPhotoKey.BODA, "Ver métricas por integrante", "98 % puntualidad"))
-        add(ScreenSpec("s70", 14, "Más", "Reportes · Exportar", "Descarga reportes en PDF, Excel y CSV para contabilidad e impuestos DGII", RfThemeVariant.ADMIN, ScreenArchetype.ADMIN_FINANCE, RfPhotoKey.CORPORATIVO, "Exportar corte de octubre", "PDF / CSV"))
+        add(ScreenSpec("s65", 14, "Más", "Leads · Seguimientos", "2 pendientes: enviar catálogo actualizado de mobiliario cristal y llamada de cierre", RfThemeVariant.ADMIN, ScreenArchetype.ADMIN_QUOTES, RfPhotoKey.CUMPLE_INFANTIL, "Completar seguimiento", "2 pendientes"))
+        add(ScreenSpec("s66", 14, "Más", "Leads · Estadísticas", "Tasa de conversión 33.3 % · 1 de 3 leads ganados · Embudo comercial activo", RfThemeVariant.ADMIN, ScreenArchetype.ADMIN_ROSA_COPILOT, RfPhotoKey.GRADUACION, "Actualizar estadísticas", "33.3 %"))
+        add(ScreenSpec("s67", 14, "Más", "Reportes · Ingresos", "Ganancia neta RD$ 32,780 · Ingresos RD$ 45,230 · Gastos RD$ 12,450 por categoría", RfThemeVariant.ADMIN, ScreenArchetype.ADMIN_FINANCE, RfPhotoKey.CORPORATIVO, "Exportar reporte de ingresos", "RD$ 32,780"))
+        add(ScreenSpec("s68", 14, "Más", "Reportes · Eventos", "156 eventos en total · 134 completados, 18 en proceso y 4 cancelados por tipo de evento", RfThemeVariant.ADMIN, ScreenArchetype.ADMIN_FINANCE, RfPhotoKey.MESA_REDONDA, "Exportar reporte de eventos", "156 eventos"))
+        add(ScreenSpec("s69", 14, "Más", "Reportes · Clientes", "248 clientes (+18 este mes) · Mejores clientes y retención primera vez, recurrentes y VIP", RfThemeVariant.ADMIN, ScreenArchetype.ADMIN_LOGISTICS, RfPhotoKey.BODA, "Exportar reporte de clientes", "248 clientes"))
+        add(ScreenSpec("s70", 14, "Más", "Reportes · Inventario", "892 de 1,245 artículos en uso ahora (72 %) · 23 stock bajo y 8 en mantenimiento", RfThemeVariant.ADMIN, ScreenArchetype.ADMIN_FINANCE, RfPhotoKey.CORPORATIVO, "Exportar reporte de inventario", "72 % en uso"))
         add(ScreenSpec("s71", 14, "Más", "Reseñas", "Calificaciones verificadas de clientes (5.0 ★) con fotos del evento terminado", RfThemeVariant.ADMIN, ScreenArchetype.ADMIN_DASHBOARD, RfPhotoKey.BODA, "Responder reseña de Camila", "5.0 ★"))
         add(ScreenSpec("A34", 14, "Más", "Responder reseña", "Redacta o aprueba con Rosa IA el agradecimiento público a Camila Rodríguez", RfThemeVariant.ADMIN, ScreenArchetype.ADMIN_ROSA_COPILOT, RfPhotoKey.BODA, "Publicar respuesta", "5 ★ · Boda Real"))
-        add(ScreenSpec("s72", 14, "Más", "Bot de WhatsApp · Estado", "Conexión activa con +1 (809) 555-0199 · Respuesta automática 24/7 con Rosa IA", RfThemeVariant.ADMIN, ScreenArchetype.ADMIN_ROSA_COPILOT, RfPhotoKey.CORPORATIVO, "Configurar horario del bot", "Conectado"))
-        add(ScreenSpec("s73", 14, "Más", "Bot de WhatsApp · Plantillas", "Mensajes automáticos de bienvenida, catálogo de precios y recordatorio de saldo", RfThemeVariant.ADMIN, ScreenArchetype.ADMIN_ROSA_COPILOT, RfPhotoKey.BODA, "Guardar plantilla", "6 plantillas"))
+        add(ScreenSpec("s72", 14, "Más", "Bot de WhatsApp · Preguntas", "Respuestas automáticas frecuentes sobre precio, disponibilidad, alquiler y paquetes de boda", RfThemeVariant.ADMIN, ScreenArchetype.ADMIN_ROSA_COPILOT, RfPhotoKey.CORPORATIVO, "Agregar pregunta frecuente", "4 preguntas"))
+        add(ScreenSpec("s73", 14, "Más", "Bot de WhatsApp · Palabras clave", "Disparadores automáticos vinculados a respuestas: precio, disponibilidad, alquiler y boda", RfThemeVariant.ADMIN, ScreenArchetype.ADMIN_ROSA_COPILOT, RfPhotoKey.BODA, "Agregar palabra clave", "4 palabras"))
         add(ScreenSpec("s74", 14, "Más", "Bot de WhatsApp · Conversaciones", "Consultas atendidas por el bot y traspaso a María cuando piden cotización formal", RfThemeVariant.ADMIN, ScreenArchetype.ADMIN_ROSA_COPILOT, RfPhotoKey.CUMPLE_INFANTIL, "Tomar conversación", "12 hoy"))
         add(ScreenSpec("A31", 14, "Más", "Ajustes del negocio", "Datos fiscales, cuentas Banreservas/Popular, anticipo 30 % y política 90/50/0 %", RfThemeVariant.ADMIN, ScreenArchetype.ADMIN_INVENTORY_STAFF, RfPhotoKey.CORPORATIVO, "Guardar ajustes", "Anticipo 30 %"))
         add(ScreenSpec("A39", 14, "Más", "Panel Administrativo Web", "Resumen operativo, eventos activos y disponibilidad de inventario", RfThemeVariant.ADMIN, ScreenArchetype.ADMIN_WEB_DESKTOP, RfPhotoKey.CORPORATIVO, "Exportar reporte ejecutivo", "1440×900 Web", isDesktopWeb = true))
@@ -228,7 +228,7 @@ object ScreenCatalog {
 
     val allScreens: List<ScreenSpec> = personalScreens + adminScreens
 
-    private val byCode: Map<String, ScreenSpec> = allScreens.associateBy { it.code }
+    private val byCode: Map<String, ScreenSpec> = allScreens.associateBy { screenSpec -> screenSpec.code }
 
     fun findByCode(code: String): ScreenSpec = byCode[code] ?: personalScreens.first()
 
@@ -295,7 +295,7 @@ object ScreenCatalog {
 
         "s06" -> "s07"
 
-        "s07" -> "s11"
+        "s07" -> "s14"
 
         "s08" -> "s11"
 
@@ -303,9 +303,9 @@ object ScreenCatalog {
 
         "s10" -> "s07"
 
-        "s11" -> "s12"
+        "s11" -> "s14"
 
-        "s12" -> "s13"
+        "s12" -> "s10"
 
         "s13" -> "s14"
 
@@ -328,7 +328,7 @@ object ScreenCatalog {
 
         "s80" -> "s81"
 
-        "s81" -> "s19"
+        "s81" -> "s18"
 
         "s19" -> "s25"
 
@@ -403,7 +403,7 @@ object ScreenCatalog {
 
         "s50" -> "s51"
 
-        "s51" -> "s52"
+        "s51" -> "s83"
 
         "s52" -> "s77"
 
@@ -418,9 +418,9 @@ object ScreenCatalog {
 
         "s83" -> "s54"
 
-        "s86" -> "s87"
+        "s86" -> "s54"
 
-        "s87" -> "s88"
+        "s87" -> "s86"
 
         "s88" -> "s54"
 

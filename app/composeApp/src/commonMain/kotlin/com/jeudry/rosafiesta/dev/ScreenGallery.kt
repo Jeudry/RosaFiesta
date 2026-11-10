@@ -18,6 +18,7 @@ import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -32,22 +33,53 @@ import com.jeudry.rosafiesta.designsystem.RfTag
 import com.jeudry.rosafiesta.designsystem.RfTagTone
 import com.jeudry.rosafiesta.designsystem.RfTheme
 import com.jeudry.rosafiesta.designsystem.RfThemeVariant
+import com.jeudry.rosafiesta.di.appModule
 import com.jeudry.rosafiesta.ui.RenderScreenSpec
+import com.jeudry.rosafiesta.ui.RosaFiestaViewModel
 import com.jeudry.rosafiesta.ui.ScreenCatalog
+import org.koin.dsl.koinApplication
+
+private val AdminSubpanelScreenCodes: Set<String> = setOf(
+    "s55",
+    "s56",
+    "s57",
+    "s58",
+    "s59",
+    "s60",
+    "s61",
+    "s62",
+    "s63",
+    "s64",
+    "s65",
+    "s66",
+    "s67",
+    "s68",
+    "s69",
+    "s70",
+    "s71",
+    "s72",
+    "s73",
+    "s74",
+)
 
 /**
  * Todos los 133 tableros del sistema de diseño agrupados por las 17 secciones de `entrega-de-diseno.md`.
  */
 internal val BoardGroups: List<Pair<String, List<Board>>> =
     ScreenCatalog.allScreens
-        .groupBy { "Sección ${it.sectionNumber} · ${it.sectionTitle}" }
+        .groupBy { screenSpec -> "Sección ${screenSpec.sectionNumber} · ${screenSpec.sectionTitle}" }
         .map { (groupTitle, specs) ->
             groupTitle to specs.map { spec ->
                 Board(
                     code = spec.code,
                     name = "${spec.code} — ${spec.title}",
                     isDesktop = spec.isDesktopWeb,
-                    content = { RenderScreenSpec(spec = spec) },
+                    content = {
+                        val viewModel = remember {
+                            koinApplication { modules(appModule) }.koin.get<RosaFiestaViewModel>()
+                        }
+                        RenderScreenSpec(spec = spec, viewModel = viewModel)
+                    },
                 )
             }
         }
@@ -89,7 +121,12 @@ internal val GoldenScreenshotBoards: List<Board> = listOf(
         code = spec.code,
         name = "${spec.code}_${spec.title}",
         isDesktop = spec.isDesktopWeb,
-        content = { RenderScreenSpec(spec = spec) },
+        content = {
+            val viewModel = remember {
+                koinApplication { modules(appModule) }.koin.get<RosaFiestaViewModel>()
+            }
+            RenderScreenSpec(spec = spec, viewModel = viewModel)
+        },
     )
 }
 
@@ -99,8 +136,8 @@ internal val GoldenScreenshotBoards: List<Board> = listOf(
 @Composable
 internal fun ScreenGallery(onBack: () -> Unit) {
     var openCode by rememberSaveable { mutableStateOf<String?>(null) }
-    val selectedBoard = openCode?.let { code ->
-        BoardGroups.flatMap { it.second }.firstOrNull { it.code == code }
+    val selectedBoard = openCode?.let { targetCode ->
+        BoardGroups.flatMap { groupPair -> groupPair.second }.firstOrNull { boardItem -> boardItem.code == targetCode }
     }
 
     if (selectedBoard != null) {
@@ -165,7 +202,10 @@ internal fun ScreenGallery(onBack: () -> Unit) {
                             modifier = Modifier.padding(top = 12.dp, bottom = 4.dp),
                         )
                     }
-                    items(boards, key = { it.code }) { board ->
+                    items(boards, key = { boardItem -> boardItem.code }) { board ->
+                        val isAdminScreen = board.code.startsWith("A")
+                        val isAdminSubpanel = board.code in AdminSubpanelScreenCodes
+                        val useIndigoTone = if (isAdminScreen) true else isAdminSubpanel
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -179,11 +219,7 @@ internal fun ScreenGallery(onBack: () -> Unit) {
                             BasicText(board.name, style = typo.bodyStrong)
                             RfTag(
                                 text = board.code,
-                                tone = if (board.code.startsWith("A") || board.code in setOf("s55", "s56", "s57", "s58", "s59", "s60", "s61", "s62", "s63", "s64", "s65", "s66", "s67", "s68", "s69", "s70", "s71", "s72", "s73", "s74")) {
-                                    RfTagTone.INDIGO
-                                } else {
-                                    RfTagTone.ROSA
-                                },
+                                tone = if (useIndigoTone) RfTagTone.INDIGO else RfTagTone.ROSA,
                             )
                         }
                     }

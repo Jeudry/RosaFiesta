@@ -92,13 +92,14 @@ private val AdminButtonGradient = Brush.horizontalGradient(
 // ==============================================================================
 @Composable
 internal fun RenderAdminCreateEventA04(
+    viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
 
     Box(modifier = Modifier.fillMaxSize()) {
         // Underlying A01 screen
-        RenderAdminHomeA01(onSelectScreenCode = onSelectScreenCode)
+        RenderAdminHomeA01(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
 
         // Dim overlay
         Box(
@@ -238,6 +239,7 @@ internal fun RenderAdminCreateEventA04(
 // ==============================================================================
 @Composable
 internal fun RenderAdminManualEventA05(
+    viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
@@ -619,6 +621,7 @@ internal fun RenderAdminManualEventA05(
 // ==============================================================================
 @Composable
 internal fun RenderAdminEventArticlesA06(
+    viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
@@ -1911,6 +1914,7 @@ private data class AdminQuoteItem(
 
 @Composable
 internal fun RenderAdminQuotesA22(
+    viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
@@ -2348,6 +2352,7 @@ internal fun RenderAdminNotificationsA29(
 internal fun RenderAdminEntryChoiceA30(
     viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
+    onSwitchAppMode: () -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
     var step by remember { mutableStateOf(1) }
@@ -2530,7 +2535,7 @@ internal fun RenderAdminEntryChoiceA30(
                                     .clip(RoundedCornerShape(24.dp))
                                     .background(Color.White)
                                     .border(1.dp, Color(0xFFECE7F1), RoundedCornerShape(24.dp))
-                                    .clickable { onSelectScreenCode("s14") }
+                                    .clickable { onSwitchAppMode() }
                                     .padding(18.dp),
                             ) {
                                 Row(
@@ -3246,6 +3251,7 @@ private fun AdminOnboardingEventMiniRow(
 // ==============================================================================
 @Composable
 internal fun RenderAdminSettingsA31(
+    viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
@@ -3508,6 +3514,7 @@ internal fun RenderAdminSettingsA31(
 // ==============================================================================
 @Composable
 internal fun RenderAdminCancellationsA32(
+    viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
@@ -3872,6 +3879,7 @@ internal fun RenderAdminCancellationsA32(
 // ==============================================================================
 @Composable
 internal fun RenderAdminRefundA33(
+    viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
@@ -4148,6 +4156,7 @@ internal fun RenderAdminRefundA33(
 // ==============================================================================
 @Composable
 internal fun RenderAdminReplyReviewA34(
+    viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
@@ -4404,6 +4413,7 @@ internal fun RenderAdminReplyReviewA34(
 // ==============================================================================
 @Composable
 internal fun RenderAdminEmptyStateA35(
+    viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
@@ -4608,6 +4618,7 @@ internal fun RenderAdminEmptyStateA35(
 // ==============================================================================
 @Composable
 internal fun RenderAdminLoadingStateA36(
+    viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val skGradient = Brush.horizontalGradient(
@@ -4736,6 +4747,7 @@ internal fun RenderAdminLoadingStateA36(
 // ==============================================================================
 @Composable
 internal fun RenderAdminErrorStateA37(
+    viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
@@ -4894,13 +4906,14 @@ internal fun RenderAdminErrorStateA37(
 // ==============================================================================
 @Composable
 internal fun RenderAdminSuccessStateA38(
+    viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
 
     Box(modifier = Modifier.fillMaxSize()) {
         // Pantalla A13 subyacente
-        RenderAdminEventDetailA13(onSelectScreenCode = onSelectScreenCode)
+        RenderAdminEventDetailA13(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
 
         // Toast de éxito flotante superior
         Box(

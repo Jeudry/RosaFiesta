@@ -109,7 +109,10 @@ import androidx.compose.ui.graphics.drawscope.rotate as drawScopeRotate
 // ==============================================================================
 
 @Composable
-internal fun RenderPersonalSplashP00(onPrimaryAction: () -> Unit) {
+internal fun RenderPersonalSplashP00(
+    viewModel: RosaFiestaViewModel? = null,
+    onPrimaryAction: () -> Unit,
+) {
     val typo = LocalRfTypography.current
     LaunchedEffect(Unit) {
         delay(1300L)
@@ -278,7 +281,10 @@ private fun DrawScope.drawSvgStar(center: Offset, scale: Float, color: Color) {
 // ==============================================================================
 
 @Composable
-internal fun RenderAdminSplashA00(onPrimaryAction: () -> Unit) {
+internal fun RenderAdminSplashA00(
+    viewModel: RosaFiestaViewModel? = null,
+    onPrimaryAction: () -> Unit,
+) {
     val typo = LocalRfTypography.current
     LaunchedEffect(Unit) {
         delay(1300L)
@@ -396,6 +402,7 @@ internal fun RenderAdminSplashA00(onPrimaryAction: () -> Unit) {
 @Composable
 internal fun RenderOnboardingScreen(
     spec: ScreenSpec,
+    viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit,
 ) {
     val typo = LocalRfTypography.current
@@ -1478,6 +1485,7 @@ private fun OnboardingIllustrationStep3() {
 @Composable
 internal fun RenderBienvenidaScreen(
     spec: ScreenSpec,
+    viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit,
 ) {
     val typo = LocalRfTypography.current
@@ -4560,6 +4568,7 @@ private fun GuestProductCard(
 
 @Composable
 internal fun RenderGuestFavoritesS02(
+    viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit,
 ) {
     val typo = LocalRfTypography.current
