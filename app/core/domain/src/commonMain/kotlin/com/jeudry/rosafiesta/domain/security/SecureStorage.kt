@@ -21,6 +21,7 @@ public interface SecureStorage {
 
     public companion object {
         public const val KEY_ACCESS_TOKEN: String = "rf_access_token"
+        public const val KEY_SESSION_METADATA: String = "rf_session_metadata"
         public const val KEY_ACTIVE_VIEW: String = "rf_active_view"
         public const val KEY_USER_ROLE: String = "rf_user_role"
         public const val KEY_DARK_THEME: String = "rf_dark_theme"
@@ -39,12 +40,15 @@ public interface SecureStorage {
 }
 
 /**
- * Thread-safe in-memory [SecureStorage] implementation for unit tests and ephemeral sessions.
+ * In-memory [SecureStorage] implementation for deterministic unit tests and headless environments.
  */
 public class InMemorySecureStorage : SecureStorage {
     private val entries: MutableMap<String, String> = mutableMapOf()
 
-    override suspend fun get(key: String): String? = entries[key.trim()]
+    override suspend fun get(key: String): String? {
+        val cleanKey = key.trim()
+        return entries[cleanKey]
+    }
 
     override suspend fun put(key: String, value: String) {
         val cleanKey = key.trim()
@@ -55,6 +59,7 @@ public class InMemorySecureStorage : SecureStorage {
     }
 
     override suspend fun remove(key: String) {
-        entries.remove(key.trim())
+        val cleanKey = key.trim()
+        entries.remove(cleanKey)
     }
 }

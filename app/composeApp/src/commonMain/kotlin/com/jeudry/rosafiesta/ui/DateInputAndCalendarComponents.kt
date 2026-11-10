@@ -72,14 +72,19 @@ public fun formatDateDigitsWithSlashes(
 
     return when (digitsOnly.length) {
         0 -> ""
+
         1 -> digitsOnly
+
         2 -> if (isTypingForward) "$digitsOnly/" else digitsOnly
+
         3 -> "${digitsOnly.substring(0, 2)}/${digitsOnly.substring(2)}"
+
         4 -> {
             val dayPart = digitsOnly.substring(0, 2)
             val monthPart = digitsOnly.substring(2, 4)
             if (isTypingForward) "$dayPart/$monthPart/" else "$dayPart/$monthPart"
         }
+
         else -> {
             val dayPart = digitsOnly.substring(0, 2)
             val monthPart = digitsOnly.substring(2, 4)
@@ -263,7 +268,9 @@ internal fun RfInteractiveCalendarModal(
             val isLeapYear = if (isDivisibleBy4) isCenturyOrFourYear else false
             if (isLeapYear) 29 else 28
         }
+
         4, 6, 9, 11 -> 30
+
         else -> 31
     }
 

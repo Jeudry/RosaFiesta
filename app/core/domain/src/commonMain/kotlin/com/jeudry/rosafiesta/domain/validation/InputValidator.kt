@@ -234,12 +234,10 @@ public object InputValidator {
         return character == ')'
     }
 
-    private fun maxDaysInMonth(month: Int, year: Int): Int {
-        return when (month) {
-            2 -> if (isLeapYear(year)) 29 else 28
-            4, 6, 9, 11 -> 30
-            else -> 31
-        }
+    private fun maxDaysInMonth(month: Int, year: Int): Int = when (month) {
+        2 -> if (isLeapYear(year)) 29 else 28
+        4, 6, 9, 11 -> 30
+        else -> 31
     }
 
     private fun isLeapYear(year: Int): Boolean {

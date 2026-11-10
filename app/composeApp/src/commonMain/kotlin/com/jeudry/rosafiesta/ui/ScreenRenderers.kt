@@ -123,10 +123,15 @@ public fun RenderAppBottomBar(
             onSelectTab = { tab ->
                 when (tab) {
                     PersonalTab.INICIO -> onSelectScreenCode(if (guestMode) "s01" else "s14")
+
                     PersonalTab.CATALOGO -> onSelectScreenCode(if (guestMode) "s01" else "s18")
+
                     PersonalTab.ROSA -> onSelectScreenCode(if (guestMode) "s75" else "s26")
+
                     PersonalTab.EVENTOS -> onSelectScreenCode("s37")
+
                     PersonalTab.FAVORITOS -> onSelectScreenCode(if (guestMode) "s02" else "s24")
+
                     PersonalTab.MAS -> {
                         if (onTogglePersonalMoreMenu != null) {
                             onTogglePersonalMoreMenu()
@@ -134,7 +139,9 @@ public fun RenderAppBottomBar(
                             onSelectScreenCode("s24")
                         }
                     }
+
                     PersonalTab.PAQUETES -> onSelectScreenCode("s21")
+
                     PersonalTab.ENTRAR -> onSelectScreenCode("s07")
                 }
             },

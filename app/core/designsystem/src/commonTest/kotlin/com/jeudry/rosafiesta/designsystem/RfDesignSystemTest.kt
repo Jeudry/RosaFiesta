@@ -1,5 +1,6 @@
 package com.jeudry.rosafiesta.designsystem
 
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -7,6 +8,7 @@ import androidx.compose.ui.unit.sp
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 
 class RfDesignSystemTest {
@@ -71,5 +73,29 @@ class RfDesignSystemTest {
         assertEquals(44.dp, RfDimens.IconButtonSize)
         assertEquals(46.dp, RfDimens.SwitchWidth)
         assertEquals(28.dp, RfDimens.SwitchHeight)
+    }
+
+    @Test
+    fun `verifica que los tokens de esqueleto shimmer preserven modo claro y adapten modo oscuro`() {
+        val personalLightBase = resolveRfSkeletonBaseColor(isAdmin = false, isDark = false)
+        val adminLightBase = resolveRfSkeletonBaseColor(isAdmin = true, isDark = false)
+        val personalDarkBase = resolveRfSkeletonBaseColor(isAdmin = false, isDark = true)
+        val adminDarkBase = resolveRfSkeletonBaseColor(isAdmin = true, isDark = true)
+
+        assertEquals(Color(0xFFEDE5F1), personalLightBase)
+        assertEquals(Color(0xFFE4E5F0), adminLightBase)
+        assertNotEquals(personalLightBase, personalDarkBase)
+        assertNotEquals(adminLightBase, adminDarkBase)
+
+        val personalLightHighlight = resolveRfSkeletonHighlightColor(isAdmin = false, isDark = false)
+        val personalDarkHighlight = resolveRfSkeletonHighlightColor(isAdmin = false, isDark = true)
+        assertEquals(Color(0xFFFAF7FC), personalLightHighlight)
+        assertNotEquals(personalLightHighlight, personalDarkHighlight)
+
+        val lightPalette = paletteForVariant(RfThemeVariant.PERSONAL)
+        val darkPalette = paletteForVariant(RfThemeVariant.PERSONAL_DARK)
+        assertEquals(Color.White, lightPalette.surface)
+        assertNotEquals(Color.White, darkPalette.surface)
+        assertNotEquals(lightPalette.ink, darkPalette.ink)
     }
 }

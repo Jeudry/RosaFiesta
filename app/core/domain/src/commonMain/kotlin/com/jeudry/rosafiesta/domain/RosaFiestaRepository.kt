@@ -46,12 +46,10 @@ public interface RosaFiestaRepository {
         phone: String,
         birthDate: String,
         username: String,
-    ): AuthOutcome {
-        return AuthOutcome.failure(
-            errorCode = "PROFILE_UPDATE_UNSUPPORTED",
-            errorMessage = "No se pudo actualizar el perfil.",
-        )
-    }
+    ): AuthOutcome = AuthOutcome.failure(
+        errorCode = "PROFILE_UPDATE_UNSUPPORTED",
+        errorMessage = "No se pudo actualizar el perfil.",
+    )
     public fun restoreSessionFromJwt(accessToken: String): RegisteredUserAccount?
     public fun clearSession()
     public fun switchRole(role: String)

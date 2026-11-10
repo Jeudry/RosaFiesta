@@ -5,7 +5,8 @@ package com.jeudry.rosafiesta.domain.security
  */
 public object SensitiveDataRedactor {
     private val bearerRegex = Regex("""(?i)\bBearer\s+[A-Za-z0-9\-._~+/]+=*""")
-    private val jwtRegex = Regex("""\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b""")
+    private val jwtRegex = Regex("""\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b""")
+    private val localSessionRegex = Regex("""\brf-local\.[A-Za-z0-9_-]{8,}\b""")
     private val secretKvRegex = Regex("""(?i)\b(password|passwd|secret|token|api_key|apikey)\s*([:=])\s*("[^"]*"|'[^']*'|[^\s,;]+)""")
     private val emailRegex = Regex("""\b([A-Za-z0-9._%+-]+)@([A-Za-z0-9.-]+\.[A-Za-z]{2,})\b""")
     private val phoneRegex = Regex("""\b(809|829|849)[-\s]?(\d{3})[-\s]?(\d{4})\b""")
@@ -22,16 +23,17 @@ public object SensitiveDataRedactor {
 
         var sanitized = bearerRegex.replace(trimmed, "Bearer [REDACTED]")
         sanitized = jwtRegex.replace(sanitized, "[JWT_REDACTED]")
-        sanitized = secretKvRegex.replace(sanitized) { match ->
-            val key = match.groupValues[1]
-            val separator = match.groupValues[2]
+        sanitized = localSessionRegex.replace(sanitized, "[SESSION_REDACTED]")
+        sanitized = secretKvRegex.replace(sanitized) { matchResult ->
+            val key = matchResult.groupValues[1]
+            val separator = matchResult.groupValues[2]
             "$key$separator[REDACTED]"
         }
         sanitized = pgUrlRegex.replace(sanitized, "postgres://[REDACTED]")
         sanitized = sqlStateRegex.replace(sanitized, "[DB_DETAIL_REDACTED]")
-        sanitized = emailRegex.replace(sanitized) { match -> maskEmail(match.value) }
-        sanitized = phoneRegex.replace(sanitized) { match -> maskPhone(match.value) }
-        sanitized = bankRefRegex.replace(sanitized) { match -> maskBankReference(match.value) }
+        sanitized = emailRegex.replace(sanitized) { matchResult -> maskEmail(matchResult.value) }
+        sanitized = phoneRegex.replace(sanitized) { matchResult -> maskPhone(matchResult.value) }
+        sanitized = bankRefRegex.replace(sanitized) { matchResult -> maskBankReference(matchResult.value) }
         return sanitized
     }
 
@@ -43,6 +45,7 @@ public object SensitiveDataRedactor {
         if (parts.size != 2) return "[EMAIL_REDACTED]"
         val local = parts[0]
         val domain = parts[1]
+        if (local.isEmpty()) return "[EMAIL_REDACTED]"
         return if (local.length <= 2) {
             "${local.first()}***@$domain"
         } else {
@@ -67,7 +70,10 @@ public object SensitiveDataRedactor {
     public fun maskBankReference(raw: String): String {
         val cleaned = raw.trim()
         val dashIndex = cleaned.indexOf('-')
-        if (dashIndex <= 0 || cleaned.length < dashIndex + 3) return "[REF_REDACTED]"
+        val hasMissingPrefix = dashIndex <= 0
+        val isTooShortForMask = cleaned.length < dashIndex + 3
+        if (hasMissingPrefix) return "[REF_REDACTED]"
+        if (isTooShortForMask) return "[REF_REDACTED]"
         val bank = cleaned.substring(0, dashIndex)
         val suffix = cleaned.takeLast(2)
         return "$bank-***-$suffix"
@@ -103,7 +109,8 @@ public object SensitiveDataRedactor {
             else -> null
         }
         if (mapped != null) return mapped
-        val fallback = redactText(serverMessage.orEmpty())
+        val rawFallback = serverMessage.orEmpty()
+        val fallback = redactText(rawFallback)
         return fallback.ifBlank { "Ocurrió un inconveniente temporal. Por favor, inténtalo de nuevo." }
     }
 }

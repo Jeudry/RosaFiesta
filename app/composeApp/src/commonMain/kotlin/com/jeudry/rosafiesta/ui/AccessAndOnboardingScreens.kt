@@ -1,6 +1,5 @@
 package com.jeudry.rosafiesta.ui
 
-import com.jeudry.rosafiesta.domain.CanonicalSampleData
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ContentTransform
@@ -83,7 +82,6 @@ import androidx.compose.ui.zIndex
 import com.jeudry.rosafiesta.designsystem.BalloonClusterIllustration
 import com.jeudry.rosafiesta.designsystem.HeartOrbitIllustration
 import com.jeudry.rosafiesta.designsystem.LocalRfTypography
-import com.jeudry.rosafiesta.designsystem.RfThemeState
 import com.jeudry.rosafiesta.designsystem.RfBrandWordmark
 import com.jeudry.rosafiesta.designsystem.RfColors
 import com.jeudry.rosafiesta.designsystem.RfDimens
@@ -93,6 +91,7 @@ import com.jeudry.rosafiesta.designsystem.RfLogo
 import com.jeudry.rosafiesta.designsystem.RfLogoSize
 import com.jeudry.rosafiesta.designsystem.RfPhoto
 import com.jeudry.rosafiesta.designsystem.RfPhotoKey
+import com.jeudry.rosafiesta.designsystem.RfThemeState
 import com.jeudry.rosafiesta.designsystem.RosaAvatar
 import com.jeudry.rosafiesta.designsystem.RosaAvatarSize
 import com.jeudry.rosafiesta.designsystem.rfCardShadow
@@ -100,6 +99,7 @@ import com.jeudry.rosafiesta.designsystem.rfHeroBannerShadow
 import com.jeudry.rosafiesta.designsystem.rfIconButtonShadow
 import com.jeudry.rosafiesta.designsystem.rfInputShadow
 import com.jeudry.rosafiesta.designsystem.rfPrimaryButtonShadow
+import com.jeudry.rosafiesta.domain.CanonicalSampleData
 import com.jeudry.rosafiesta.domain.validation.InputValidator
 import kotlinx.coroutines.delay
 import androidx.compose.ui.graphics.drawscope.rotate as drawScopeRotate

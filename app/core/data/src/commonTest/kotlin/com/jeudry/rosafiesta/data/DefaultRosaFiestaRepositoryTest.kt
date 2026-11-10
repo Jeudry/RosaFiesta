@@ -64,7 +64,7 @@ class DefaultRosaFiestaRepositoryTest {
     }
 
     @Test
-    fun `registra nuevos usuarios reales emite JWT HS256 y permite login por usuario o correo`() {
+    fun `registra nuevos usuarios reales emite sesion local segura y permite login por usuario o correo`() {
         val repo = DefaultRosaFiestaRepository()
         val regOutcome = repo.registerUser(
             firstName = "Valeria",
@@ -76,7 +76,8 @@ class DefaultRosaFiestaRepositoryTest {
             password = "Valeria2026!",
         )
         assertTrue(regOutcome.success)
-        assertEquals(3, regOutcome.accessToken?.split('.')?.size)
+        val issuedToken = regOutcome.accessToken.orEmpty()
+        assertTrue(issuedToken.startsWith("rf-local."))
         assertEquals("valeria_m", repo.currentAuthenticatedUser.value?.username)
 
         val duplicateUser = repo.registerUser(

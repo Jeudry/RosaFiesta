@@ -1,5 +1,7 @@
 package com.jeudry.rosafiesta.domain.security
 
+import kotlin.time.Clock
+
 /**
  * Persistent user account model containing salted password hash and identity metadata.
  */
@@ -16,7 +18,7 @@ public data class RegisteredUserAccount(
 )
 
 /**
- * Verified claims extracted from a signed HS256 JWT session token.
+ * Decoded claims extracted from a server JWT or local offline session envelope after expiration validation.
  */
 public data class JwtClaims(
     public val subjectId: String,
@@ -27,6 +29,38 @@ public data class JwtClaims(
     public val birthDate: String,
     public val issuedAtEpochSeconds: Long,
     public val expiresAtEpochSeconds: Long,
+)
+
+/**
+ * Structured client session metadata persisted in [SecureStorage] alongside a server access token.
+ */
+public data class ClientSessionMetadata(
+    public val userId: String,
+    public val username: String = "",
+    public val email: String,
+    public val fullName: String = "",
+    public val role: String,
+    public val birthDate: String = "",
+    public val activeView: String = "personal",
+    public val issuedAtEpochSeconds: Long = 0L,
+    public val expiresAtEpochSeconds: Long = 0L,
+)
+
+/**
+ * Active client session restored from [SecureStorage] after validating token expiration.
+ */
+public data class PersistedClientSession(
+    public val accessToken: String,
+    public val userId: String,
+    public val username: String,
+    public val email: String,
+    public val fullName: String,
+    public val role: String,
+    public val birthDate: String,
+    public val activeView: String,
+    public val issuedAtEpochSeconds: Long,
+    public val expiresAtEpochSeconds: Long,
+    public val claims: JwtClaims? = null,
 )
 
 /**
@@ -41,7 +75,7 @@ public data class AuthOutcome(
 ) {
     public companion object {
         /**
-         * Builds a successful authentication outcome with a signed JWT and account.
+         * Builds a successful authentication outcome with an access token and account.
          */
         public fun authenticated(
             accessToken: String,
@@ -67,12 +101,15 @@ public data class AuthOutcome(
 }
 
 /**
- * Multiplatform cryptographic manager for salted SHA-256 password hashing and RFC 7519 HS256 JWT tokens.
+ * Multiplatform client authentication manager for salted SHA-256 local credential verification,
+ * server JWT claim inspection with strict expiration enforcement, and encrypted [SecureStorage] session persistence.
+ *
+ * Client binaries never embed server JWT signing secrets or forge server-signed HS256 tokens.
  */
 public object JwtAuthManager {
-    private const val JWT_SIGNING_SECRET: String = "rf-2026-jwt-hs256-signing-secret-key-do-santo-domingo"
     private const val PASSWORD_HASH_ROUNDS: Int = 64
     private const val DEFAULT_TOKEN_TTL_SECONDS: Long = 86_400L * 7L
+    private const val LOCAL_SESSION_PREFIX: String = "rf-local"
     private const val BASE64_URL_ALPHABET: String = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
 
     private val sha256RoundConstants: IntArray = intArrayOf(
@@ -87,7 +124,7 @@ public object JwtAuthManager {
     )
 
     /**
-     * Canonical seeded accounts with pre-hashed credentials (`rosa2026`).
+     * Canonical offline demo accounts with pre-hashed local credentials.
      */
     public val defaultSeedAccounts: List<RegisteredUserAccount> by lazy {
         listOf(
@@ -148,6 +185,11 @@ public object JwtAuthManager {
         )
     }
 
+    /**
+     * Returns the current wall-clock UTC epoch time in seconds.
+     */
+    public fun currentEpochSeconds(): Long = Clock.System.now().epochSeconds
+
     private fun createSeedAccount(
         id: String,
         username: String,
@@ -177,7 +219,8 @@ public object JwtAuthManager {
      */
     public fun generateDeterministicSalt(identifier: String): String {
         val normalized = identifier.trim().lowercase()
-        val digest = sha256("rf-salt-v1:$normalized".encodeToByteArray())
+        val saltedInput = "rf-salt-v1:$normalized".encodeToByteArray()
+        val digest = sha256(saltedInput)
         return bytesToHex(digest).take(24)
     }
 
@@ -186,8 +229,9 @@ public object JwtAuthManager {
      */
     public fun hashPassword(rawPassword: String, salt: String): String {
         val cleanSalt = salt.trim().ifEmpty { "rf-default-salt" }
-        val keyBytes = "rf-pwd-pepper:$cleanSalt".encodeToByteArray()
-        var currentBlock = "$cleanSalt:${rawPassword.trim()}".encodeToByteArray()
+        val keyBytes = "rf-kdf-domain:$cleanSalt".encodeToByteArray()
+        val trimmedPassword = rawPassword.trim()
+        var currentBlock = "$cleanSalt:$trimmedPassword".encodeToByteArray()
         for (roundIndex in 0 until PASSWORD_HASH_ROUNDS) {
             currentBlock = hmacSha256(keyBytes, currentBlock)
         }
@@ -203,72 +247,355 @@ public object JwtAuthManager {
         expectedHash: String,
     ): Boolean {
         val computed = hashPassword(rawPassword, salt)
-        return constantTimeEquals(computed, expectedHash.trim())
+        val normalizedExpected = expectedHash.trim()
+        return constantTimeEquals(computed, normalizedExpected)
     }
 
     /**
-     * Issues a signed RFC 7519 HS256 JWT token for the authenticated user account.
+     * Creates a non-forged local offline session envelope (`rf-local.<payload>`) using real epoch timestamps.
+     * Never signs or claims a server HS256 JWT.
      */
     public fun issueAccessToken(
         account: RegisteredUserAccount,
-        issuedAtEpochSeconds: Long = 1_793_052_000L,
+        issuedAtEpochSeconds: Long = currentEpochSeconds(),
+        ttlSeconds: Long = DEFAULT_TOKEN_TTL_SECONDS,
     ): String {
-        val expiresAt = issuedAtEpochSeconds + DEFAULT_TOKEN_TTL_SECONDS
-        val headerJson = """{"alg":"HS256","typ":"JWT"}"""
-        val payloadJson = buildString {
-            append("{")
-            append("\"sub\":\"").append(escapeJsonString(account.id)).append("\",")
-            append("\"username\":\"").append(escapeJsonString(account.username)).append("\",")
-            append("\"email\":\"").append(escapeJsonString(account.email)).append("\",")
-            append("\"name\":\"").append(escapeJsonString(account.fullName)).append("\",")
-            append("\"role\":\"").append(escapeJsonString(account.role)).append("\",")
-            append("\"birthdate\":\"").append(escapeJsonString(account.birthDate)).append("\",")
-            append("\"iat\":").append(issuedAtEpochSeconds).append(",")
-            append("\"exp\":").append(expiresAt)
-            append("}")
-        }
-        val encodedHeader = base64UrlEncode(headerJson.encodeToByteArray())
-        val encodedPayload = base64UrlEncode(payloadJson.encodeToByteArray())
-        val signingInput = "$encodedHeader.$encodedPayload"
-        val signatureBytes = hmacSha256(
-            key = JWT_SIGNING_SECRET.encodeToByteArray(),
-            message = signingInput.encodeToByteArray(),
+        val safeTtl = ttlSeconds.coerceAtLeast(1L)
+        val expiresAt = issuedAtEpochSeconds + safeTtl
+        val payloadJson = buildClaimsPayloadJson(
+            account = account,
+            issuedAtEpochSeconds = issuedAtEpochSeconds,
+            expiresAtEpochSeconds = expiresAt,
         )
-        val encodedSignature = base64UrlEncode(signatureBytes)
-        return "$signingInput.$encodedSignature"
+        val payloadBytes = payloadJson.encodeToByteArray()
+        val encodedPayload = base64UrlEncode(payloadBytes)
+        return "$LOCAL_SESSION_PREFIX.$encodedPayload"
     }
 
     /**
-     * Verifies the HS256 signature and structure of a JWT token and extracts its claims.
+     * Decodes a 3-part server JWT (`header.payload.signature`) or local offline session envelope
+     * and strictly validates its `exp` claim against [clockEpochSeconds].
+     *
+     * Returns `null` when malformed, missing `exp`, or when `clockEpochSeconds() >= exp`.
      */
-    public fun verifyAccessToken(token: String): JwtClaims? {
-        val parts = token.trim().split(".")
-        if (parts.size != 3) {
-            return null
+    public fun verifyAccessToken(
+        token: String,
+        clockEpochSeconds: () -> Long = ::currentEpochSeconds,
+    ): JwtClaims? {
+        val cleanToken = token.trim()
+        if (cleanToken.isEmpty()) return null
+
+        val parts = cleanToken.split(".")
+        if (parts.size == 3) {
+            return decodeThreePartJwtClaims(parts, clockEpochSeconds)
         }
+        val isLocalEnvelope = parts.size == 2
+        if (isLocalEnvelope) {
+            val prefixMatches = parts[0] == LOCAL_SESSION_PREFIX
+            if (!prefixMatches) return null
+            return decodePayloadClaimsAndCheckExpiry(parts[1], clockEpochSeconds)
+        }
+        return null
+    }
+
+    /**
+     * Persists a server access token (3-part JWT or opaque token) and optional [ClientSessionMetadata]
+     * into [SecureStorage] after verifying that the session is not already expired.
+     */
+    public suspend fun persistSession(
+        storage: SecureStorage,
+        accessToken: String,
+        metadata: ClientSessionMetadata? = null,
+        clockEpochSeconds: () -> Long = ::currentEpochSeconds,
+    ): PersistedClientSession? {
+        val cleanToken = accessToken.trim()
+        if (cleanToken.isEmpty()) return null
+
+        val nowSeconds = clockEpochSeconds()
+        val structuredToken = isStructuredJwtOrLocalToken(cleanToken)
+        if (structuredToken) {
+            val claims = verifyAccessToken(cleanToken, clockEpochSeconds)
+            if (claims == null) {
+                clearSession(storage)
+                return null
+            }
+            val resolvedActiveView = metadata?.activeView?.trim()?.ifEmpty { "personal" } ?: "personal"
+            val mergedMetadata = ClientSessionMetadata(
+                userId = claims.subjectId,
+                username = claims.username.ifEmpty { metadata?.username.orEmpty() },
+                email = claims.email.ifEmpty { metadata?.email.orEmpty() },
+                fullName = claims.fullName.ifEmpty { metadata?.fullName.orEmpty() },
+                role = claims.role.ifEmpty { metadata?.role ?: "client" },
+                birthDate = claims.birthDate.ifEmpty { metadata?.birthDate.orEmpty() },
+                activeView = resolvedActiveView,
+                issuedAtEpochSeconds = claims.issuedAtEpochSeconds,
+                expiresAtEpochSeconds = claims.expiresAtEpochSeconds,
+            )
+            storage.put(SecureStorage.KEY_ACCESS_TOKEN, cleanToken)
+            val serializedMetadata = serializeSessionMetadata(mergedMetadata)
+            storage.put(SecureStorage.KEY_SESSION_METADATA, serializedMetadata)
+            storage.put(SecureStorage.KEY_USER_ROLE, mergedMetadata.role)
+            storage.put(SecureStorage.KEY_ACTIVE_VIEW, mergedMetadata.activeView)
+            return buildPersistedSession(cleanToken, mergedMetadata, claims)
+        }
+
+        val hasExplicitExpiry = metadata != null
+        if (hasExplicitExpiry) {
+            val metadataExpiry = metadata.expiresAtEpochSeconds
+            val hasPositiveExpiry = metadataExpiry > 0L
+            if (hasPositiveExpiry) {
+                val isMetadataExpired = nowSeconds >= metadataExpiry
+                if (isMetadataExpired) {
+                    clearSession(storage)
+                    return null
+                }
+            }
+        }
+
+        val resolvedMetadata = metadata ?: ClientSessionMetadata(
+            userId = "authenticated-user",
+            email = "",
+            role = "client",
+            activeView = "personal",
+            issuedAtEpochSeconds = nowSeconds,
+            expiresAtEpochSeconds = 0L,
+        )
+        storage.put(SecureStorage.KEY_ACCESS_TOKEN, cleanToken)
+        val serializedMetadata = serializeSessionMetadata(resolvedMetadata)
+        storage.put(SecureStorage.KEY_SESSION_METADATA, serializedMetadata)
+        if (resolvedMetadata.role.isNotBlank()) {
+            storage.put(SecureStorage.KEY_USER_ROLE, resolvedMetadata.role)
+        }
+        if (resolvedMetadata.activeView.isNotBlank()) {
+            storage.put(SecureStorage.KEY_ACTIVE_VIEW, resolvedMetadata.activeView)
+        }
+        return buildPersistedSession(cleanToken, resolvedMetadata, null)
+    }
+
+    /**
+     * Restores an active session from [SecureStorage], validating `exp` against [clockEpochSeconds].
+     * If the stored JWT or session metadata is expired, clears it from [SecureStorage] and returns `null`.
+     */
+    public suspend fun restoreValidSession(
+        storage: SecureStorage,
+        clockEpochSeconds: () -> Long = ::currentEpochSeconds,
+    ): PersistedClientSession? {
+        val rawToken = storage.get(SecureStorage.KEY_ACCESS_TOKEN)?.trim() ?: return null
+        if (rawToken.isEmpty()) return null
+
+        val rawMetadataJson = storage.get(SecureStorage.KEY_SESSION_METADATA)
+        val storedMetadata = rawMetadataJson?.let { jsonText -> deserializeSessionMetadata(jsonText) }
+
+        val structuredToken = isStructuredJwtOrLocalToken(rawToken)
+        if (structuredToken) {
+            val claims = verifyAccessToken(rawToken, clockEpochSeconds)
+            if (claims == null) {
+                clearSession(storage)
+                return null
+            }
+            val activeViewFromStorage = storage.get(SecureStorage.KEY_ACTIVE_VIEW)?.trim().orEmpty()
+            val resolvedActiveView = storedMetadata?.activeView?.ifBlank { activeViewFromStorage }
+                ?: activeViewFromStorage.ifBlank { "personal" }
+            val resolvedMetadata = ClientSessionMetadata(
+                userId = claims.subjectId,
+                username = claims.username.ifEmpty { storedMetadata?.username.orEmpty() },
+                email = claims.email.ifEmpty { storedMetadata?.email.orEmpty() },
+                fullName = claims.fullName.ifEmpty { storedMetadata?.fullName.orEmpty() },
+                role = claims.role.ifEmpty { storedMetadata?.role ?: "client" },
+                birthDate = claims.birthDate.ifEmpty { storedMetadata?.birthDate.orEmpty() },
+                activeView = resolvedActiveView,
+                issuedAtEpochSeconds = claims.issuedAtEpochSeconds,
+                expiresAtEpochSeconds = claims.expiresAtEpochSeconds,
+            )
+            return buildPersistedSession(rawToken, resolvedMetadata, claims)
+        }
+
+        val nowSeconds = clockEpochSeconds()
+        if (storedMetadata != null) {
+            val hasPositiveExpiry = storedMetadata.expiresAtEpochSeconds > 0L
+            if (hasPositiveExpiry) {
+                val isExpired = nowSeconds >= storedMetadata.expiresAtEpochSeconds
+                if (isExpired) {
+                    clearSession(storage)
+                    return null
+                }
+            }
+            return buildPersistedSession(rawToken, storedMetadata, null)
+        }
+
+        val fallbackRole = storage.get(SecureStorage.KEY_USER_ROLE)?.trim()?.ifEmpty { "client" } ?: "client"
+        val fallbackView = storage.get(SecureStorage.KEY_ACTIVE_VIEW)?.trim()?.ifEmpty { "personal" } ?: "personal"
+        val minimalMetadata = ClientSessionMetadata(
+            userId = "authenticated-user",
+            email = "",
+            role = fallbackRole,
+            activeView = fallbackView,
+        )
+        return buildPersistedSession(rawToken, minimalMetadata, null)
+    }
+
+    /**
+     * Reads the stored access token only if it has not expired according to [clockEpochSeconds].
+     * Automatically clears expired tokens from [SecureStorage].
+     */
+    public suspend fun readValidAccessToken(
+        storage: SecureStorage,
+        clockEpochSeconds: () -> Long = ::currentEpochSeconds,
+    ): String? {
+        val validSession = restoreValidSession(storage, clockEpochSeconds)
+        return validSession?.accessToken
+    }
+
+    /**
+     * Clears persisted authentication tokens and session metadata from [SecureStorage].
+     */
+    public suspend fun clearSession(storage: SecureStorage) {
+        storage.remove(SecureStorage.KEY_ACCESS_TOKEN)
+        storage.remove(SecureStorage.KEY_SESSION_METADATA)
+        storage.remove(SecureStorage.KEY_USER_ROLE)
+        storage.remove(SecureStorage.KEY_ACTIVE_VIEW)
+    }
+
+    /**
+     * Serializes [ClientSessionMetadata] into compact JSON suitable for [SecureStorage].
+     */
+    public fun serializeSessionMetadata(metadata: ClientSessionMetadata): String = buildString {
+        append("{")
+        append("\"userId\":\"").append(escapeJsonString(metadata.userId.trim())).append("\",")
+        append("\"username\":\"").append(escapeJsonString(metadata.username.trim())).append("\",")
+        append("\"email\":\"").append(escapeJsonString(metadata.email.trim())).append("\",")
+        append("\"fullName\":\"").append(escapeJsonString(metadata.fullName.trim())).append("\",")
+        append("\"role\":\"").append(escapeJsonString(metadata.role.trim())).append("\",")
+        append("\"birthDate\":\"").append(escapeJsonString(metadata.birthDate.trim())).append("\",")
+        append("\"activeView\":\"").append(escapeJsonString(metadata.activeView.trim())).append("\",")
+        append("\"iat\":").append(metadata.issuedAtEpochSeconds).append(",")
+        append("\"exp\":").append(metadata.expiresAtEpochSeconds)
+        append("}")
+    }
+
+    /**
+     * Deserializes [ClientSessionMetadata] from JSON stored in [SecureStorage].
+     */
+    public fun deserializeSessionMetadata(rawJson: String): ClientSessionMetadata? {
+        val trimmed = rawJson.trim()
+        if (!trimmed.startsWith("{")) return null
+        val userId = extractJsonStringField(trimmed, "userId") ?: return null
+        if (userId.isBlank()) return null
+        val username = extractJsonStringField(trimmed, "username").orEmpty()
+        val email = extractJsonStringField(trimmed, "email").orEmpty()
+        val fullName = extractJsonStringField(trimmed, "fullName").orEmpty()
+        val role = extractJsonStringField(trimmed, "role")?.ifBlank { "client" } ?: "client"
+        val birthDate = extractJsonStringField(trimmed, "birthDate").orEmpty()
+        val activeView = extractJsonStringField(trimmed, "activeView")?.ifBlank { "personal" } ?: "personal"
+        val issuedAt = extractJsonLongField(trimmed, "iat") ?: 0L
+        val expiresAt = extractJsonLongField(trimmed, "exp") ?: 0L
+        return ClientSessionMetadata(
+            userId = userId,
+            username = username,
+            email = email,
+            fullName = fullName,
+            role = role,
+            birthDate = birthDate,
+            activeView = activeView,
+            issuedAtEpochSeconds = issuedAt,
+            expiresAtEpochSeconds = expiresAt,
+        )
+    }
+
+    private fun isStructuredJwtOrLocalToken(token: String): Boolean {
+        val dotCount = token.count { character -> character == '.' }
+        if (dotCount == 2) return true
+        return token.startsWith("$LOCAL_SESSION_PREFIX.")
+    }
+
+    private fun buildPersistedSession(
+        accessToken: String,
+        metadata: ClientSessionMetadata,
+        claims: JwtClaims?,
+    ): PersistedClientSession = PersistedClientSession(
+        accessToken = accessToken,
+        userId = metadata.userId,
+        username = metadata.username,
+        email = metadata.email,
+        fullName = metadata.fullName,
+        role = metadata.role,
+        birthDate = metadata.birthDate,
+        activeView = metadata.activeView,
+        issuedAtEpochSeconds = metadata.issuedAtEpochSeconds,
+        expiresAtEpochSeconds = metadata.expiresAtEpochSeconds,
+        claims = claims,
+    )
+
+    private fun buildClaimsPayloadJson(
+        account: RegisteredUserAccount,
+        issuedAtEpochSeconds: Long,
+        expiresAtEpochSeconds: Long,
+    ): String = buildString {
+        append("{")
+        append("\"sub\":\"").append(escapeJsonString(account.id)).append("\",")
+        append("\"username\":\"").append(escapeJsonString(account.username)).append("\",")
+        append("\"email\":\"").append(escapeJsonString(account.email)).append("\",")
+        append("\"name\":\"").append(escapeJsonString(account.fullName)).append("\",")
+        append("\"role\":\"").append(escapeJsonString(account.role)).append("\",")
+        append("\"birthdate\":\"").append(escapeJsonString(account.birthDate)).append("\",")
+        append("\"iat\":").append(issuedAtEpochSeconds).append(",")
+        append("\"exp\":").append(expiresAtEpochSeconds)
+        append("}")
+    }
+
+    private fun decodeThreePartJwtClaims(
+        parts: List<String>,
+        clockEpochSeconds: () -> Long,
+    ): JwtClaims? {
         val encodedHeader = parts[0]
         val encodedPayload = parts[1]
         val encodedSignature = parts[2]
-        val signingInput = "$encodedHeader.$encodedPayload"
-        val expectedSigBytes = hmacSha256(
-            key = JWT_SIGNING_SECRET.encodeToByteArray(),
-            message = signingInput.encodeToByteArray(),
-        )
-        val expectedSignature = base64UrlEncode(expectedSigBytes)
-        val signatureValid = constantTimeEquals(encodedSignature, expectedSignature)
-        if (!signatureValid) {
-            return null
-        }
+        if (encodedHeader.isEmpty()) return null
+        if (encodedPayload.isEmpty()) return null
+        if (encodedSignature.isEmpty()) return null
+
+        val headerBytes = base64UrlDecode(encodedHeader) ?: return null
+        val signatureBytes = base64UrlDecode(encodedSignature) ?: return null
+        if (signatureBytes.size < 16) return null
+
+        val headerJson = runCatching { headerBytes.decodeToString() }.getOrNull()?.trim() ?: return null
+        if (!headerJson.startsWith("{")) return null
+        val algorithm = extractJsonStringField(headerJson, "alg")?.trim()?.uppercase() ?: return null
+        if (algorithm.isEmpty()) return null
+        if (algorithm == "NONE") return null
+
+        return decodePayloadClaimsAndCheckExpiry(encodedPayload, clockEpochSeconds)
+    }
+
+    private fun decodePayloadClaimsAndCheckExpiry(
+        encodedPayload: String,
+        clockEpochSeconds: () -> Long,
+    ): JwtClaims? {
         val payloadBytes = base64UrlDecode(encodedPayload) ?: return null
-        val payloadJson = payloadBytes.decodeToString()
-        val subjectId = extractJsonStringField(payloadJson, "sub") ?: return null
-        val username = extractJsonStringField(payloadJson, "username") ?: ""
-        val email = extractJsonStringField(payloadJson, "email") ?: return null
-        val fullName = extractJsonStringField(payloadJson, "name") ?: ""
-        val role = extractJsonStringField(payloadJson, "role") ?: "client"
-        val birthDate = extractJsonStringField(payloadJson, "birthdate") ?: ""
+        val payloadJson = runCatching { payloadBytes.decodeToString() }.getOrNull()?.trim() ?: return null
+        if (!payloadJson.startsWith("{")) return null
+
+        val subjectId = extractJsonStringField(payloadJson, "sub")
+            ?: extractJsonStringField(payloadJson, "user_id")
+            ?: return null
+        if (subjectId.isBlank()) return null
+
+        val expiresAt = extractJsonLongField(payloadJson, "exp") ?: return null
+        if (expiresAt <= 0L) return null
+
+        val nowSeconds = clockEpochSeconds()
+        val isExpired = nowSeconds >= expiresAt
+        if (isExpired) return null
+
+        val username = extractJsonStringField(payloadJson, "username").orEmpty()
+        val email = extractJsonStringField(payloadJson, "email").orEmpty()
+        val fullName = extractJsonStringField(payloadJson, "name")
+            ?: extractJsonStringField(payloadJson, "full_name")
+            ?: ""
+        val role = extractJsonStringField(payloadJson, "role")?.ifBlank { "client" } ?: "client"
+        val birthDate = extractJsonStringField(payloadJson, "birthdate").orEmpty()
         val issuedAt = extractJsonLongField(payloadJson, "iat") ?: 0L
-        val expiresAt = extractJsonLongField(payloadJson, "exp") ?: 0L
+
         return JwtClaims(
             subjectId = subjectId,
             username = username,
@@ -338,8 +665,7 @@ public object JwtAuthManager {
         }
 
         val words = IntArray(64)
-        var chunkOffset = 0
-        while (chunkOffset < paddedSize) {
+        for (chunkOffset in 0 until paddedSize step 64) {
             for (wordIndex in 0 until 16) {
                 val base = chunkOffset + wordIndex * 4
                 val b0 = (padded[base].toInt() and 0xFF) shl 24
@@ -391,8 +717,6 @@ public object JwtAuthManager {
             h5 += f
             h6 += g
             h7 += h
-
-            chunkOffset += 64
         }
 
         val digest = ByteArray(32)
@@ -413,8 +737,7 @@ public object JwtAuthManager {
      */
     public fun base64UrlEncode(bytes: ByteArray): String {
         val output = StringBuilder((bytes.size * 4 + 2) / 3)
-        var index = 0
-        while (index < bytes.size) {
+        for (index in bytes.indices step 3) {
             val byte0 = bytes[index].toInt() and 0xFF
             val hasByte1 = index + 1 < bytes.size
             val hasByte2 = index + 2 < bytes.size
@@ -430,7 +753,6 @@ public object JwtAuthManager {
             if (hasByte2) {
                 output.append(BASE64_URL_ALPHABET[triple and 0x3F])
             }
-            index += 3
         }
         return output.toString()
     }
@@ -441,24 +763,24 @@ public object JwtAuthManager {
     public fun base64UrlDecode(encoded: String): ByteArray? {
         val clean = encoded.trim().trimEnd('=')
         if (clean.isEmpty()) return ByteArray(0)
+        if (clean.length % 4 == 1) return null
         val outputSize = (clean.length * 3) / 4
         val result = ByteArray(outputSize)
         var outIndex = 0
-        var charIndex = 0
-        while (charIndex < clean.length) {
+        for (charIndex in clean.indices step 4) {
             val c0 = BASE64_URL_ALPHABET.indexOf(clean[charIndex])
             val has1 = charIndex + 1 < clean.length
             if (!has1) return null
             val c1 = BASE64_URL_ALPHABET.indexOf(clean[charIndex + 1])
-            val isInvalidPair = c0 < 0 || c1 < 0
-            if (isInvalidPair) return null
+            if (c0 < 0) return null
+            if (c1 < 0) return null
 
             val has2 = charIndex + 2 < clean.length
             val c2 = if (has2) BASE64_URL_ALPHABET.indexOf(clean[charIndex + 2]) else 0
             val has3 = charIndex + 3 < clean.length
             val c3 = if (has3) BASE64_URL_ALPHABET.indexOf(clean[charIndex + 3]) else 0
-            val isInvalidTail = c2 < 0 || c3 < 0
-            if (isInvalidTail) return null
+            if (c2 < 0) return null
+            if (c3 < 0) return null
 
             val triple = (c0 shl 18) or (c1 shl 12) or (c2 shl 6) or c3
             if (outIndex < outputSize) {
@@ -474,7 +796,6 @@ public object JwtAuthManager {
                     result[outIndex++] = (triple and 0xFF).toByte()
                 }
             }
-            charIndex += 4
         }
         return result
     }
@@ -482,8 +803,8 @@ public object JwtAuthManager {
     private fun bytesToHex(bytes: ByteArray): String {
         val hexChars = "0123456789abcdef"
         val builder = StringBuilder(bytes.size * 2)
-        for (byteVal in bytes) {
-            val unsigned = byteVal.toInt() and 0xFF
+        for (byteValue in bytes) {
+            val unsigned = byteValue.toInt() and 0xFF
             builder.append(hexChars[unsigned ushr 4])
             builder.append(hexChars[unsigned and 0x0F])
         }
@@ -510,7 +831,7 @@ public object JwtAuthManager {
     }
 
     private fun extractJsonLongField(json: String, fieldName: String): Long? {
-        val pattern = Regex(""""$fieldName"\s*:\s*(\d+)""")
+        val pattern = Regex(""""$fieldName"\s*:\s*(-?\d+)""")
         val match = pattern.find(json) ?: return null
         return match.groupValues[1].toLongOrNull()
     }

@@ -58,6 +58,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -324,13 +325,16 @@ public fun AdminTabBar(
     showBadges: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
+    val palette = LocalRfPalette.current
     val typo = LocalRfTypography.current
-    val barBg = Color(0xFFFFFFFF)
-    val barLine = Color(0xFFECECF5)
-    val inactiveColor = Color(0xFF5F6377)
+    val dark = palette.isDark
+    val barBg = if (dark) palette.surface else Color(0xFFFFFFFF)
+    val barLine = if (dark) palette.line else Color(0xFFECECF5)
+    val inactiveColor = if (dark) palette.muted else Color(0xFF5F6377)
     val activePillBg = Brush.linearGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0)))
-    val activeLabelColor = Color(0xFF4B47D6)
-    val rosaLabelColor = Color(0xFF151729)
+    val activeLabelColor = if (dark) Color(0xFFA59BFF) else Color(0xFF4B47D6)
+    val rosaLabelColor = if (dark) palette.ink else Color(0xFF151729)
+    val topShadowColor = if (dark) Color(0x28000000) else Color(0x0E1A1A2E)
 
     Box(
         modifier = modifier
@@ -344,7 +348,7 @@ public fun AdminTabBar(
                 .drawBehind {
                     drawRect(
                         brush = Brush.verticalGradient(
-                            colors = listOf(Color.Transparent, Color(0x0E1A1A2E)),
+                            colors = listOf(Color.Transparent, topShadowColor),
                             startY = -14f,
                             endY = 0f,
                         ),
@@ -999,6 +1003,7 @@ public fun RfField(
                 .padding(horizontal = 14.dp),
         ) {
             if (onValueChange != null) {
+                val showPlaceholder = if (value.isEmpty()) placeholder.isNotEmpty() else false
                 BasicTextField(
                     value = value,
                     onValueChange = onValueChange,
@@ -1011,7 +1016,7 @@ public fun RfField(
                             contentAlignment = Alignment.CenterStart,
                             modifier = Modifier.fillMaxWidth(),
                         ) {
-                            if (value.isEmpty() && placeholder.isNotEmpty()) {
+                            if (showPlaceholder) {
                                 BasicText(
                                     text = placeholder,
                                     style = typo.body.copy(color = palette.muted),
@@ -1023,8 +1028,9 @@ public fun RfField(
                     },
                 )
             } else {
-                val displayText = if (value.isEmpty() && placeholder.isNotEmpty()) placeholder else value
-                val displayColor = if (value.isEmpty() && placeholder.isNotEmpty()) palette.muted else palette.ink
+                val usePlaceholder = if (value.isEmpty()) placeholder.isNotEmpty() else false
+                val displayText = if (usePlaceholder) placeholder else value
+                val displayColor = if (usePlaceholder) palette.muted else palette.ink
                 BasicText(
                     text = displayText,
                     style = typo.body.copy(color = displayColor),
@@ -1039,6 +1045,156 @@ public fun RfField(
                 style = typo.secondary.copy(
                     color = if (isError) RfColors.Error else palette.muted,
                 ),
+            )
+        }
+    }
+}
+
+/**
+ * Theme-aware search field reading surface, border, and text tokens from [LocalRfPalette].
+ */
+@Composable
+public fun RfSearchField(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    placeholder: String = "Buscar artículos, paquetes o eventos...",
+    onClear: (() -> Unit)? = null,
+    trailingIcon: RfIconKind? = null,
+    trailingAccessibilityLabel: String = "",
+    onTrailingClick: (() -> Unit)? = null,
+) {
+    val palette = LocalRfPalette.current
+    val typo = LocalRfTypography.current
+    val shape = RoundedCornerShape(RfDimens.InputRadius)
+    val showPlaceholder = if (query.isEmpty()) placeholder.isNotEmpty() else false
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .height(RfDimens.FieldHeight)
+            .rfInputShadow(shape, isAdmin = palette.isAdmin, isActive = query.isNotEmpty())
+            .clip(shape)
+            .background(palette.surface)
+            .border(1.2.dp, palette.fieldBorder, shape)
+            .padding(horizontal = 14.dp),
+    ) {
+        RfIcon(kind = RfIconKind.SEARCH, tint = palette.muted, size = 18.dp)
+        BasicTextField(
+            value = query,
+            onValueChange = onQueryChange,
+            singleLine = true,
+            textStyle = typo.body.copy(color = palette.ink),
+            cursorBrush = SolidColor(palette.primaryAccent),
+            modifier = Modifier.weight(1f),
+            decorationBox = { innerTextField ->
+                Box(
+                    contentAlignment = Alignment.CenterStart,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    if (showPlaceholder) {
+                        BasicText(
+                            text = placeholder,
+                            style = typo.body.copy(color = palette.muted),
+                            maxLines = 1,
+                        )
+                    }
+                    innerTextField()
+                }
+            },
+        )
+        if (query.isNotEmpty()) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(26.dp)
+                    .clip(CircleShape)
+                    .background(palette.chipBg)
+                    .clickable {
+                        if (onClear != null) {
+                            onClear()
+                        } else {
+                            onQueryChange("")
+                        }
+                    },
+            ) {
+                RfIcon(kind = RfIconKind.CLOSE, tint = palette.muted, size = 13.dp)
+            }
+        }
+        if (trailingIcon != null) {
+            val resolvedLabel = trailingAccessibilityLabel.ifEmpty { trailingIcon.name }
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(CircleShape)
+                    .semantics { contentDescription = resolvedLabel }
+                    .then(
+                        if (onTrailingClick != null) {
+                            Modifier.rfTactileClickable(pressedScale = 0.92f, onClick = onTrailingClick)
+                        } else {
+                            Modifier
+                        },
+                    ),
+            ) {
+                RfIcon(kind = trailingIcon, tint = palette.primaryAccent, size = 18.dp)
+            }
+        }
+    }
+}
+
+/**
+ * Theme-aware empty state card reading surface, line, ink, and muted tokens from [LocalRfPalette].
+ */
+@Composable
+public fun RfEmptyState(
+    title: String,
+    description: String,
+    modifier: Modifier = Modifier,
+    icon: RfIconKind = RfIconKind.SPARK,
+    tone: RfTagTone = RfTagTone.ROSA,
+    actionLabel: String? = null,
+    onActionClick: (() -> Unit)? = null,
+) {
+    val palette = LocalRfPalette.current
+    val typo = LocalRfTypography.current
+    val shape = RoundedCornerShape(RfDimens.CardRadius)
+    val hasAction = if (!actionLabel.isNullOrBlank()) onActionClick != null else false
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .rfCardShadow(shape, isAdmin = palette.isAdmin)
+            .clip(shape)
+            .background(palette.surface)
+            .border(1.dp, palette.line, shape)
+            .padding(horizontal = 22.dp, vertical = 28.dp),
+    ) {
+        RfIconTile(icon = icon, tone = tone)
+        Spacer(Modifier.height(2.dp))
+        BasicText(
+            text = title,
+            style = typo.sheetOrEmptyTitle.copy(
+                color = palette.ink,
+                textAlign = TextAlign.Center,
+            ),
+        )
+        BasicText(
+            text = description,
+            style = typo.secondary.copy(
+                color = palette.muted,
+                textAlign = TextAlign.Center,
+            ),
+        )
+        if (hasAction) {
+            Spacer(Modifier.height(6.dp))
+            RfButton(
+                label = actionLabel.orEmpty(),
+                onClick = { onActionClick?.invoke() },
             )
         }
     }
@@ -1279,15 +1435,36 @@ public fun RfBottomSheet(
 }
 
 /**
- * Pincel oficial de brillo para esqueletos (`s90`, `A36`, Sección 5).
+ * Resolves the base skeleton shimmer color for light and dark theme variants while keeping light-mode gallery parity.
+ */
+public fun resolveRfSkeletonBaseColor(isAdmin: Boolean, isDark: Boolean): Color {
+    if (isDark) {
+        return if (isAdmin) Color(0xFF23253A) else Color(0xFF262136)
+    }
+    return if (isAdmin) Color(0xFFE4E5F0) else Color(0xFFEDE5F1)
+}
+
+/**
+ * Resolves the highlight skeleton shimmer color for light and dark theme variants.
+ */
+public fun resolveRfSkeletonHighlightColor(isAdmin: Boolean, isDark: Boolean): Color {
+    if (isDark) {
+        return if (isAdmin) Color(0xFF343857) else Color(0xFF393150)
+    }
+    return if (isAdmin) Color(0xFFF7F8FD) else Color(0xFFFAF7FC)
+}
+
+/**
+ * Official shimmer brush for skeleton placeholders with dark-mode support and deterministic static capture mode.
  */
 @Composable
 public fun rememberRfSkeletonBrush(
     isAdmin: Boolean = LocalRfPalette.current.isAdmin,
     animate: Boolean = true,
 ): Brush {
-    val baseColor = if (isAdmin) Color(0xFFE4E5F0) else Color(0xFFEDE5F1)
-    val highlightColor = if (isAdmin) Color(0xFFF7F8FD) else Color(0xFFFAF7FC)
+    val palette = LocalRfPalette.current
+    val baseColor = resolveRfSkeletonBaseColor(isAdmin = isAdmin, isDark = palette.isDark)
+    val highlightColor = resolveRfSkeletonHighlightColor(isAdmin = isAdmin, isDark = palette.isDark)
     return if (animate) {
         val transition = rememberInfiniteTransition(label = "rf-skeleton-shimmer")
         val progress by transition.animateFloat(
@@ -1305,7 +1482,11 @@ public fun rememberRfSkeletonBrush(
             end = Offset(progress + 320f, 60f),
         )
     } else {
-        Brush.horizontalGradient(listOf(baseColor, highlightColor, baseColor))
+        Brush.linearGradient(
+            colors = listOf(baseColor, highlightColor, baseColor),
+            start = Offset(0f, 0f),
+            end = Offset(320f, 60f),
+        )
     }
 }
 
@@ -1323,6 +1504,62 @@ public fun Modifier.rfSkeleton(
 }
 
 /**
+ * Animated shimmer skeleton card translating a linear highlight gradient across the card surface,
+ * while remaining deterministic when [animate] is `false` for static screenshot capture.
+ */
+@Composable
+public fun RfShimmerCard(
+    modifier: Modifier = Modifier,
+    isAdmin: Boolean = LocalRfPalette.current.isAdmin,
+    animate: Boolean = true,
+) {
+    val palette = LocalRfPalette.current
+    val shimmerBrush = rememberRfSkeletonBrush(isAdmin = isAdmin, animate = animate)
+    val baseColor = resolveRfSkeletonBaseColor(isAdmin = isAdmin, isDark = palette.isDark)
+    val cardSurface = if (palette.isDark) palette.surface else Color.White
+    val cardBorder = if (palette.isDark) palette.line else baseColor
+    val shape = RoundedCornerShape(RfDimens.CardRadius)
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
+            .fillMaxWidth()
+            .rfCardShadow(shape, isAdmin = isAdmin)
+            .clip(shape)
+            .background(cardSurface)
+            .border(1.dp, cardBorder, shape)
+            .padding(14.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(60.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(shimmerBrush),
+        )
+        Spacer(Modifier.width(12.dp))
+        Column(
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.weight(1f),
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.75f)
+                    .height(16.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(shimmerBrush),
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.50f)
+                    .height(12.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(shimmerBrush),
+            )
+        }
+    }
+}
+
+/**
  * Componente `Esqueleto` de carga (`s90`, `A36`, Sección 5):
  * Misma estructura que la pantalla y un brillo de izquierda a derecha de 1.2 s (`1200` ms).
  * Nada de spinners a pantalla completa.
@@ -1331,15 +1568,14 @@ public fun Modifier.rfSkeleton(
 public fun RfSkeleton(
     modifier: Modifier = Modifier,
     isAdmin: Boolean = LocalRfPalette.current.isAdmin,
+    animate: Boolean = true,
 ) {
-    val shimmerBrush = rememberRfSkeletonBrush(isAdmin = isAdmin, animate = true)
-    val baseColor = if (isAdmin) Color(0xFFE4E5F0) else Color(0xFFEDE5F1)
+    val shimmerBrush = rememberRfSkeletonBrush(isAdmin = isAdmin, animate = animate)
 
     Column(
         verticalArrangement = Arrangement.spacedBy(RfDimens.BlockSpacing),
         modifier = modifier.fillMaxWidth(),
     ) {
-        // Esqueleto de tarjeta hero / resumen superior
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -1347,7 +1583,6 @@ public fun RfSkeleton(
                 .clip(RoundedCornerShape(RfDimens.CardRadius))
                 .background(shimmerBrush),
         )
-        // Chips de filtro en esqueleto
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             repeat(3) {
                 Box(
@@ -1359,45 +1594,8 @@ public fun RfSkeleton(
                 )
             }
         }
-        // 3 tarjetas con la misma estructura de la pantalla
         repeat(3) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .rfCardShadow(RoundedCornerShape(RfDimens.CardRadius), isAdmin = isAdmin)
-                    .clip(RoundedCornerShape(RfDimens.CardRadius))
-                    .background(Color.White)
-                    .border(1.dp, baseColor, RoundedCornerShape(RfDimens.CardRadius))
-                    .padding(14.dp),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(60.dp)
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(shimmerBrush),
-                )
-                Spacer(Modifier.width(12.dp))
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(0.75f)
-                            .height(16.dp)
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(shimmerBrush),
-                    )
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(0.50f)
-                            .height(12.dp)
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(shimmerBrush),
-                    )
-                }
-            }
+            RfShimmerCard(isAdmin = isAdmin, animate = animate)
         }
     }
 }
@@ -1422,10 +1620,14 @@ public enum class RfSkeletonLayout {
 public fun RfSkeletonScreen(
     layout: RfSkeletonLayout = RfSkeletonLayout.GENERIC,
     isAdmin: Boolean = LocalRfPalette.current.isAdmin,
+    animate: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
-    val shimmerBrush = rememberRfSkeletonBrush(isAdmin = isAdmin, animate = true)
-    val baseColor = if (isAdmin) Color(0xFFE4E5F0) else Color(0xFFEDE5F1)
+    val palette = LocalRfPalette.current
+    val shimmerBrush = rememberRfSkeletonBrush(isAdmin = isAdmin, animate = animate)
+    val baseColor = resolveRfSkeletonBaseColor(isAdmin = isAdmin, isDark = palette.isDark)
+    val cardSurface = if (palette.isDark) palette.surface else Color.White
+    val cardBorder = if (palette.isDark) palette.line else baseColor
 
     RfRadialBackgroundBox(modifier = modifier.fillMaxSize()) {
         Column(
@@ -1496,8 +1698,8 @@ public fun RfSkeletonScreen(
                                 .fillMaxWidth()
                                 .rfCardShadow(RoundedCornerShape(RfDimens.CardRadius), isAdmin = isAdmin)
                                 .clip(RoundedCornerShape(RfDimens.CardRadius))
-                                .background(Color.White)
-                                .border(1.dp, baseColor, RoundedCornerShape(RfDimens.CardRadius))
+                                .background(cardSurface)
+                                .border(1.dp, cardBorder, RoundedCornerShape(RfDimens.CardRadius))
                                 .padding(16.dp),
                             verticalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
@@ -1509,7 +1711,7 @@ public fun RfSkeletonScreen(
                                 }
                                 Box(modifier = Modifier.width(60.dp).height(24.dp).clip(RoundedCornerShape(999.dp)).background(shimmerBrush))
                             }
-                            Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(baseColor))
+                            Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(cardBorder))
                             Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
                                 Box(modifier = Modifier.width(80.dp).height(14.dp).clip(RoundedCornerShape(6.dp)).background(shimmerBrush))
                                 Box(modifier = Modifier.width(70.dp).height(14.dp).clip(RoundedCornerShape(6.dp)).background(shimmerBrush))
@@ -1533,8 +1735,8 @@ public fun RfSkeletonScreen(
                             .fillMaxWidth()
                             .rfCardShadow(RoundedCornerShape(RfDimens.CardRadius), isAdmin = isAdmin)
                             .clip(RoundedCornerShape(RfDimens.CardRadius))
-                            .background(Color.White)
-                            .border(1.dp, baseColor, RoundedCornerShape(RfDimens.CardRadius))
+                            .background(cardSurface)
+                            .border(1.dp, cardBorder, RoundedCornerShape(RfDimens.CardRadius))
                             .padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
@@ -1558,7 +1760,7 @@ public fun RfSkeletonScreen(
                 }
 
                 RfSkeletonLayout.GENERIC -> {
-                    RfSkeleton(isAdmin = isAdmin)
+                    RfSkeleton(isAdmin = isAdmin, animate = animate)
                 }
             }
         }
@@ -1571,12 +1773,16 @@ private fun RfSkeletonProductCard(
     isAdmin: Boolean,
     modifier: Modifier = Modifier,
 ) {
+    val palette = LocalRfPalette.current
+    val cardSurface = if (palette.isDark) palette.surface else Color.White
+    val cardBorder = if (palette.isDark) palette.line else Color(0xFFF2EDF5)
+
     Column(
         modifier = modifier
             .rfCardShadow(RoundedCornerShape(RfDimens.CardRadius), isAdmin = isAdmin)
             .clip(RoundedCornerShape(RfDimens.CardRadius))
-            .background(Color.White)
-            .border(1.dp, Color(0xFFF2EDF5), RoundedCornerShape(RfDimens.CardRadius)),
+            .background(cardSurface)
+            .border(1.dp, cardBorder, RoundedCornerShape(RfDimens.CardRadius)),
     ) {
         Box(
             modifier = Modifier

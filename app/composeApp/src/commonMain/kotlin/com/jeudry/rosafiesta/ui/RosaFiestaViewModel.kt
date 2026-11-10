@@ -589,71 +589,65 @@ public class RosaFiestaViewModel(
         }
     }
 
-    private fun parseSuppliersFromStorage(serialized: String): List<SupplierUiModel> =
-        serialized.split("||").mapNotNull { entry ->
-            val parts = entry.split("::")
-            if (parts.size >= 6) {
-                SupplierUiModel(
-                    id = parts[0],
-                    name = parts[1],
-                    category = parts[2],
-                    phone = parts[3],
-                    ratingLabel = parts[4],
-                    statusLabel = parts[5],
-                )
-            } else {
-                null
-            }
+    private fun parseSuppliersFromStorage(serialized: String): List<SupplierUiModel> = serialized.split("||").mapNotNull { entry ->
+        val parts = entry.split("::")
+        if (parts.size >= 6) {
+            SupplierUiModel(
+                id = parts[0],
+                name = parts[1],
+                category = parts[2],
+                phone = parts[3],
+                ratingLabel = parts[4],
+                statusLabel = parts[5],
+            )
+        } else {
+            null
         }
+    }
 
-    private fun serializeSuppliersForStorage(suppliers: List<SupplierUiModel>): String =
-        suppliers.joinToString("||") { item ->
-            "${item.id}::${item.name.replace("::", " ")}::${item.category.replace("::", " ")}::${item.phone.replace("::", " ")}::${item.ratingLabel}::${item.statusLabel}"
-        }
+    private fun serializeSuppliersForStorage(suppliers: List<SupplierUiModel>): String = suppliers.joinToString("||") { item ->
+        "${item.id}::${item.name.replace("::", " ")}::${item.category.replace("::", " ")}::${item.phone.replace("::", " ")}::${item.ratingLabel}::${item.statusLabel}"
+    }
 
-    private fun parseReviewsFromStorage(serialized: String): List<CompanyReviewUiModel> =
-        serialized.split("||").mapNotNull { entry ->
-            val parts = entry.split("::")
-            if (parts.size >= 6) {
-                CompanyReviewUiModel(
-                    id = parts[0],
-                    author = parts[1],
-                    initial = parts[2],
-                    dateLabel = parts[3],
-                    rating = parts[4].toIntOrNull() ?: 5,
-                    comment = parts[5],
-                    isVerified = true,
-                )
-            } else {
-                null
-            }
+    private fun parseReviewsFromStorage(serialized: String): List<CompanyReviewUiModel> = serialized.split("||").mapNotNull { entry ->
+        val parts = entry.split("::")
+        if (parts.size >= 6) {
+            CompanyReviewUiModel(
+                id = parts[0],
+                author = parts[1],
+                initial = parts[2],
+                dateLabel = parts[3],
+                rating = parts[4].toIntOrNull() ?: 5,
+                comment = parts[5],
+                isVerified = true,
+            )
+        } else {
+            null
         }
+    }
 
-    private fun serializeReviewsForStorage(reviews: List<CompanyReviewUiModel>): String =
-        reviews.joinToString("||") { reviewItem ->
-            "${reviewItem.id}::${reviewItem.author}::${reviewItem.initial}::${reviewItem.dateLabel}::${reviewItem.rating}::${reviewItem.comment.replace("::", " ").replace("||", " ")}"
-        }
+    private fun serializeReviewsForStorage(reviews: List<CompanyReviewUiModel>): String = reviews.joinToString("||") { reviewItem ->
+        "${reviewItem.id}::${reviewItem.author}::${reviewItem.initial}::${reviewItem.dateLabel}::${reviewItem.rating}::${reviewItem.comment.replace("::", " ").replace("||", " ")}"
+    }
 
-    private fun parseChatFromStorage(serialized: String): List<DirectChatMessageUiModel> =
-        serialized.split("||").mapNotNull { entry ->
-            val parts = entry.split("::")
-            if (parts.size >= 5) {
-                DirectChatMessageUiModel(
-                    id = parts[0],
-                    senderName = parts[1],
-                    text = parts[2],
-                    timeLabel = parts[3],
-                    isFromClient = parts[4] == "true",
-                )
-            } else {
-                null
-            }
+    private fun parseChatFromStorage(serialized: String): List<DirectChatMessageUiModel> = serialized.split("||").mapNotNull { entry ->
+        val parts = entry.split("::")
+        if (parts.size >= 5) {
+            DirectChatMessageUiModel(
+                id = parts[0],
+                senderName = parts[1],
+                text = parts[2],
+                timeLabel = parts[3],
+                isFromClient = parts[4] == "true",
+            )
+        } else {
+            null
         }
+    }
 
-    private fun serializeChatForStorage(messages: List<DirectChatMessageUiModel>): String =
-        messages.joinToString("||") { msgItem ->
-            "${msgItem.id}::${msgItem.senderName}::${msgItem.text.replace("::", " ").replace("||", " ")}::${msgItem.timeLabel}::${msgItem.isFromClient}"
-        }
+    private fun serializeChatForStorage(messages: List<DirectChatMessageUiModel>): String = messages.joinToString("||") { msgItem ->
+        "${msgItem.id}::${msgItem.senderName}::${msgItem.text.replace("::", " ").replace("||", " ")}::${msgItem.timeLabel}::${msgItem.isFromClient}"
+    }
 
     private fun applyProfileFieldsFromAccount(account: RegisteredUserAccount) {
         _profileName.value = account.fullName
@@ -1629,7 +1623,7 @@ public class RosaFiestaViewModel(
         soundPlayer.playTap()
         val nextNum = _eventTasksList.value.size + 1
         val activeEvt = activeClientEvent()
-        val resolvedTitle = customTitle.trim().ifBlank { "Coordinación #${nextNum} · ${activeEvt.title}" }
+        val resolvedTitle = customTitle.trim().ifBlank { "Coordinación #$nextNum · ${activeEvt.title}" }
         val newTask = EventTaskUiModel(
             id = "tsk-$nextNum",
             title = resolvedTitle,
