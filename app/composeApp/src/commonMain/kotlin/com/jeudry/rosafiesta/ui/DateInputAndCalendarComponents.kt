@@ -21,10 +21,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -41,6 +43,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.jeudry.rosafiesta.data.createPlatformActions
 import com.jeudry.rosafiesta.designsystem.LocalRfPalette
 import com.jeudry.rosafiesta.designsystem.LocalRfTypography
 import com.jeudry.rosafiesta.designsystem.RfColors
@@ -48,6 +51,38 @@ import com.jeudry.rosafiesta.designsystem.RfIcon
 import com.jeudry.rosafiesta.designsystem.RfIconKind
 import com.jeudry.rosafiesta.designsystem.RfPhoto
 import com.jeudry.rosafiesta.designsystem.RfPhotoKey
+import kotlinx.coroutines.launch
+
+internal fun computeDaysInGregorianMonth(year: Int, month: Int): Int = when (month) {
+    2 -> {
+        val isDivisibleBy4 = year % 4 == 0
+        val isNotCentury = year % 100 != 0
+        val isDivisibleBy400 = year % 400 == 0
+        val isCenturyOrFourYear = if (isNotCentury) true else isDivisibleBy400
+        val isLeapYear = if (isDivisibleBy4) isCenturyOrFourYear else false
+        if (isLeapYear) 29 else 28
+    }
+
+    4, 6, 9, 11 -> 30
+
+    else -> 31
+}
+
+internal fun computeGregorianMondayFirstOffset(year: Int, month: Int): Int {
+    val monthOffsets = intArrayOf(0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4)
+    val safeMonth = month.coerceIn(1, 12)
+    val adjustedYear = if (safeMonth < 3) year - 1 else year
+    val sundayZeroWeekday = (
+        adjustedYear +
+            adjustedYear / 4 -
+            adjustedYear / 100 +
+            adjustedYear / 400 +
+            monthOffsets[safeMonth - 1] +
+            1
+        ) % 7
+    val nonNegativeWeekday = (sundayZeroWeekday + 7) % 7
+    return (nonNegativeWeekday + 6) % 7
+}
 
 /**
  * Formats raw digit input into `DD/MM/YYYY` automatically inserting `/` separators
@@ -259,20 +294,8 @@ internal fun RfInteractiveCalendarModal(
         )
     }
 
-    val daysInSelectedMonth = when (selectedMonth) {
-        2 -> {
-            val isDivisibleBy4 = selectedYear % 4 == 0
-            val isNotCentury = selectedYear % 100 != 0
-            val isDivisibleBy400 = selectedYear % 400 == 0
-            val isCenturyOrFourYear = if (isNotCentury) true else isDivisibleBy400
-            val isLeapYear = if (isDivisibleBy4) isCenturyOrFourYear else false
-            if (isLeapYear) 29 else 28
-        }
-
-        4, 6, 9, 11 -> 30
-
-        else -> 31
-    }
+    val daysInSelectedMonth = computeDaysInGregorianMonth(selectedYear, selectedMonth)
+    val leadingWeekdayOffset = computeGregorianMondayFirstOffset(selectedYear, selectedMonth)
 
     val clampedSelectedDay = selectedDay.coerceAtMost(daysInSelectedMonth)
     val primaryBrush = if (isAdmin) {
@@ -352,7 +375,9 @@ internal fun RfInteractiveCalendarModal(
                             .clip(CircleShape)
                             .background(palette.surface)
                             .clickable {
-                                selectedMonth = if (selectedMonth == 1) 12 else selectedMonth - 1
+                                val nextMonth = if (selectedMonth == 1) 12 else selectedMonth - 1
+                                selectedMonth = nextMonth
+                                selectedDay = selectedDay.coerceAtMost(computeDaysInGregorianMonth(selectedYear, nextMonth))
                             },
                     ) {
                         RfIcon(kind = RfIconKind.BACK, tint = palette.ink, size = 14.dp)
@@ -369,7 +394,9 @@ internal fun RfInteractiveCalendarModal(
                             .clip(CircleShape)
                             .background(palette.surface)
                             .clickable {
-                                selectedMonth = if (selectedMonth == 12) 1 else selectedMonth + 1
+                                val nextMonth = if (selectedMonth == 12) 1 else selectedMonth + 1
+                                selectedMonth = nextMonth
+                                selectedDay = selectedDay.coerceAtMost(computeDaysInGregorianMonth(selectedYear, nextMonth))
                             },
                     ) {
                         RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = palette.ink, size = 14.dp)
@@ -393,7 +420,9 @@ internal fun RfInteractiveCalendarModal(
                             .clip(CircleShape)
                             .background(palette.surface)
                             .clickable {
-                                selectedYear = (selectedYear - 1).coerceAtLeast(minYear)
+                                val nextYear = (selectedYear - 1).coerceAtLeast(minYear)
+                                selectedYear = nextYear
+                                selectedDay = selectedDay.coerceAtMost(computeDaysInGregorianMonth(nextYear, selectedMonth))
                             },
                     ) {
                         RfIcon(kind = RfIconKind.BACK, tint = palette.ink, size = 14.dp)
@@ -409,7 +438,9 @@ internal fun RfInteractiveCalendarModal(
                             .clip(CircleShape)
                             .background(palette.surface)
                             .clickable {
-                                selectedYear = (selectedYear + 1).coerceAtMost(maxYear)
+                                val nextYear = (selectedYear + 1).coerceAtMost(maxYear)
+                                selectedYear = nextYear
+                                selectedDay = selectedDay.coerceAtMost(computeDaysInGregorianMonth(nextYear, selectedMonth))
                             },
                     ) {
                         RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = palette.ink, size = 14.dp)
@@ -431,7 +462,10 @@ internal fun RfInteractiveCalendarModal(
                             .height(28.dp)
                             .clip(RoundedCornerShape(999.dp))
                             .background(if (isSelectedYear) activeChipColor else selectorBoxBg)
-                            .clickable { selectedYear = yearOption }
+                            .clickable {
+                                selectedYear = yearOption
+                                selectedDay = selectedDay.coerceAtMost(computeDaysInGregorianMonth(yearOption, selectedMonth))
+                            }
                             .padding(horizontal = 10.dp),
                     ) {
                         BasicText(
@@ -465,8 +499,10 @@ internal fun RfInteractiveCalendarModal(
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                val allDays = (1..daysInSelectedMonth).toList()
-                allDays.chunked(7).forEach { weekDays ->
+                val leadingEmptyCells = List<Int?>(leadingWeekdayOffset) { null }
+                val monthDayCells = (1..daysInSelectedMonth).map { dayNumber -> dayNumber as Int? }
+                val calendarCells = leadingEmptyCells + monthDayCells
+                calendarCells.chunked(7).forEach { weekDays ->
                     Row(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         modifier = Modifier.fillMaxWidth(),
@@ -547,6 +583,12 @@ internal fun RfEditableProfileAvatar(
     val typo = LocalRfTypography.current
     val palette = LocalRfPalette.current
     val matchedPhotoKey = RfPhotoKey.entries.firstOrNull { entry -> entry.name == avatarKey }
+    val isCustomDeviceAvatar = avatarKey?.startsWith("CUSTOM:") == true
+    val customAvatarFileName = if (isCustomDeviceAvatar) {
+        avatarKey.orEmpty().removePrefix("CUSTOM:").trim()
+    } else {
+        ""
+    }
 
     val innerBgColor = when (avatarKey) {
         "MONO_VIOLET" -> Color(0xFFEFE8FD)
@@ -599,6 +641,42 @@ internal fun RfEditableProfileAvatar(
                             cornerRadius = size / 2,
                             modifier = Modifier.fillMaxSize().clip(CircleShape),
                         )
+                    } else if (isCustomDeviceAvatar) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(CircleShape)
+                                .background(
+                                    Brush.linearGradient(
+                                        listOf(Color(0xFFFDE6F2), Color(0xFFEAE6FD)),
+                                    ),
+                                ),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(2.dp),
+                                modifier = Modifier.padding(horizontal = 6.dp),
+                            ) {
+                                RfIcon(
+                                    kind = RfIconKind.CAMERA,
+                                    tint = Color(0xFFC2338F),
+                                    size = (size.value * 0.24f).dp,
+                                )
+                                val badgeLabel = customAvatarFileName.ifBlank { initials }
+                                BasicText(
+                                    text = badgeLabel,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    style = TextStyle(
+                                        fontFamily = typo.bodyFamily,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = (size.value * 0.14f).coerceAtLeast(9f).sp,
+                                        color = Color(0xFF7A4FD8),
+                                    ),
+                                )
+                            }
+                        }
                     } else {
                         Box(
                             modifier = Modifier
@@ -678,10 +756,19 @@ internal fun RfProfilePhotoPickerModal(
     currentAvatarKey: String?,
     onSelectAvatarKey: (String?) -> Unit,
     onDismiss: () -> Unit,
+    viewModel: RosaFiestaViewModel? = null,
+    onPickDevicePhoto: (() -> Unit)? = null,
 ) {
     val typo = LocalRfTypography.current
     val palette = LocalRfPalette.current
+    val coroutineScope = rememberCoroutineScope()
     var previewKey by remember(currentAvatarKey) { mutableStateOf(currentAvatarKey) }
+    val isCustomPreviewSelected = previewKey?.startsWith("CUSTOM:") == true
+    val customPreviewFileName = if (isCustomPreviewSelected) {
+        previewKey.orEmpty().removePrefix("CUSTOM:").trim()
+    } else {
+        ""
+    }
 
     val photoOptions = remember {
         listOf(
@@ -721,9 +808,10 @@ internal fun RfProfilePhotoPickerModal(
                 .background(palette.surface)
                 .border(1.dp, palette.line, RoundedCornerShape(24.dp))
                 .clickable(enabled = false) {}
+                .verticalScroll(rememberScrollState())
                 .padding(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -758,6 +846,65 @@ internal fun RfProfilePhotoPickerModal(
                 size = 88.dp,
                 isEditing = false,
             )
+
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(44.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(if (isCustomPreviewSelected) Color(0xFFFDE6F2) else palette.chipBg)
+                    .border(
+                        width = if (isCustomPreviewSelected) 1.5.dp else 1.dp,
+                        color = if (isCustomPreviewSelected) Color(0xFFEA4EA9) else palette.line,
+                        shape = RoundedCornerShape(14.dp),
+                    )
+                    .clickable {
+                        if (onPickDevicePhoto != null) {
+                            onPickDevicePhoto()
+                        } else if (viewModel != null) {
+                            viewModel.pickProfileAvatarFromDevice { pickedFile ->
+                                val customKey = "CUSTOM:${pickedFile.fileName}"
+                                previewKey = customKey
+                                onSelectAvatarKey(customKey)
+                            }
+                        } else {
+                            coroutineScope.launch {
+                                val platformActions = createPlatformActions()
+                                val pickedFile = platformActions.pickMediaFile(listOf("jpg", "jpeg", "png"))
+                                if (pickedFile != null) {
+                                    val customKey = "CUSTOM:${pickedFile.fileName}"
+                                    previewKey = customKey
+                                    onSelectAvatarKey(customKey)
+                                }
+                            }
+                        }
+                    }
+                    .padding(horizontal = 14.dp),
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    RfIcon(kind = RfIconKind.CAMERA, tint = Color(0xFFC2338F), size = 18.dp)
+                    val uploadButtonText = if (customPreviewFileName.isNotEmpty()) {
+                        "Subir foto desde dispositivo ($customPreviewFileName)"
+                    } else {
+                        "Subir foto desde dispositivo"
+                    }
+                    BasicText(
+                        text = uploadButtonText,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        style = TextStyle(
+                            fontFamily = typo.bodyFamily,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.5.sp,
+                            color = Color(0xFFC2338F),
+                        ),
+                    )
+                }
+            }
 
             BasicText(
                 text = "FOTOGRAFÍAS DE PERFIL",

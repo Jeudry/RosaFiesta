@@ -313,7 +313,17 @@ internal fun RenderPersonalHomeScreen(
 
     val vmSearchQuery = viewModel?.searchQuery?.collectAsState()?.value ?: ""
     var homeQuery by remember(vmSearchQuery) { mutableStateOf(vmSearchQuery) }
-    val allHomeArticles = viewModel?.articles?.collectAsState()?.value ?: com.jeudry.rosafiesta.domain.CanonicalSampleData.articles
+    val allHomeArticles = viewModel?.articles?.collectAsState()?.value ?: CanonicalSampleData.articles
+    val featuredHomeArticles = remember(allHomeArticles) {
+        allHomeArticles.filter { article -> article.visibleInCatalog }.take(4)
+    }
+    val notificationsList = viewModel?.notifications?.collectAsState()?.value
+    val hasUnreadNotifications = notificationsList?.any { item -> !item.isRead } ?: true
+    val companyReviewsState = viewModel?.companyReviews?.collectAsState()?.value
+    val averageRatingLabel = remember(companyReviewsState, viewModel) {
+        val formattedRating = viewModel?.companyAverageRatingFormatted()
+        if (formattedRating.isNullOrBlank()) "4.9" else formattedRating
+    }
     val matchingHomeArticles = remember(homeQuery, allHomeArticles) {
         val trimmedQuery = homeQuery.trim()
         if (trimmedQuery.isEmpty()) {
@@ -368,6 +378,7 @@ internal fun RenderPersonalHomeScreen(
                             RfPhotoKey.entries.firstOrNull { entry -> entry.name == avatarKey }
                         }
                     }
+                    val isCustomAvatar = avatarKey?.startsWith("CUSTOM:") == true
                     if (matchedPhoto != null) {
                         RfPhoto(
                             photoKey = matchedPhoto,
@@ -375,6 +386,8 @@ internal fun RenderPersonalHomeScreen(
                             cornerRadius = 999.dp,
                             modifier = Modifier.fillMaxSize(),
                         )
+                    } else if (isCustomAvatar) {
+                        RfIcon(kind = RfIconKind.CAMERA, tint = Color(0xFFC84FB8), size = 20.dp)
                     } else {
                         BasicText(
                             text = avatarInitial,
@@ -408,7 +421,6 @@ internal fun RenderPersonalHomeScreen(
                 )
             }
 
-            // Notifications Bell
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
@@ -420,40 +432,41 @@ internal fun RenderPersonalHomeScreen(
                     .clickable { onSelectScreenCode("s79") },
             ) {
                 RfIcon(kind = RfIconKind.BELL, tint = textColor, size = 22.dp)
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(top = 9.dp, end = 10.dp)
-                        .size(9.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFFFBCA3F))
-                        .border(2.dp, cardBg, CircleShape),
-                )
+                if (hasUnreadNotifications) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(top = 9.dp, end = 10.dp)
+                            .size(9.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFE53958))
+                            .border(2.dp, cardBg, CircleShape),
+                    )
+                }
             }
 
-            // Points Pill
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
                 modifier = Modifier
                     .height(44.dp)
                     .clip(CircleShape)
                     .background(Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC))))
-                    .clickable { onSelectScreenCode("s37") }
-                    .padding(start = 12.dp, end = 8.dp),
+                    .clickable { onSelectScreenCode("s17") }
+                    .padding(start = 10.dp, end = 8.dp),
             ) {
-                RfIcon(kind = RfIconKind.PARTY, tint = Color.White, size = 20.dp)
+                RfIcon(kind = RfIconKind.STAR, tint = Color.White, size = 18.dp)
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
                         .height(24.dp)
-                        .widthIn(min = 30.dp)
+                        .widthIn(min = 34.dp)
                         .clip(CircleShape)
                         .background(Color(0xFFFFD45C))
-                        .padding(horizontal = 7.dp),
+                        .padding(horizontal = 8.dp),
                 ) {
                     BasicText(
-                        text = "160",
+                        text = "★ $averageRatingLabel",
                         style = typo.caption.copy(
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
@@ -525,6 +538,18 @@ internal fun RenderPersonalHomeScreen(
             val isInlineVoiceListening = viewModel?.isVoiceListening?.collectAsState()?.value ?: false
             val voiceOrigin = viewModel?.voiceInputOrigin?.collectAsState()?.value ?: VoiceInputOrigin.NONE
             val isSearchMicActive = if (isInlineVoiceListening) voiceOrigin == VoiceInputOrigin.SEARCH else false
+            if (homeQuery.isBlank()) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(chipBg)
+                        .clickable { onSelectScreenCode("s81") },
+                ) {
+                    RfIcon(kind = RfIconKind.FILTER, tint = chipText, size = 18.dp)
+                }
+            }
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
@@ -539,7 +564,7 @@ internal fun RenderPersonalHomeScreen(
                     )
                     .clickable {
                         if (homeQuery.isNotBlank()) {
-                            onSelectScreenCode("s80")
+                            onSelectScreenCode("s81")
                         } else {
                             viewModel?.toggleInlineVoiceSearch()
                         }
@@ -583,7 +608,7 @@ internal fun RenderPersonalHomeScreen(
                     BasicText(
                         text = "Ver filtros →",
                         style = typo.caption.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFFC2338F)),
-                        modifier = Modifier.clickable { onSelectScreenCode("s80") },
+                        modifier = Modifier.clickable { onSelectScreenCode("s81") },
                     )
                 }
                 if (matchingHomeArticles.isEmpty()) {
@@ -798,20 +823,18 @@ internal fun RenderPersonalHomeScreen(
                     .horizontalScroll(rememberScrollState())
                     .padding(horizontal = 20.dp, vertical = 4.dp),
             ) {
-                // Decoración
                 HomeServiceItem(
                     label = "Decoración",
                     bgColor = decoracionBg,
                     textColor = textColor,
                     onClick = {
-                        viewModel?.setSelectedCategory("Floral")
+                        viewModel?.setSelectedCategory("Decoración")
                         onSelectScreenCode("s18")
                     },
                 ) {
                     ServiceIllustrationFloral(modifier = Modifier.size(56.dp))
                 }
 
-                // Mobiliario
                 HomeServiceItem(
                     label = "Mobiliario",
                     bgColor = mobiliarioBg,
@@ -824,20 +847,18 @@ internal fun RenderPersonalHomeScreen(
                     ServiceIllustrationMobiliario(modifier = Modifier.size(56.dp))
                 }
 
-                // Mesa dulce
                 HomeServiceItem(
-                    label = "Mesa dulce",
+                    label = "Estaciones dulces",
                     bgColor = mesaDulceBg,
                     textColor = textColor,
                     onClick = {
-                        viewModel?.setSelectedCategory("Mesa dulce")
+                        viewModel?.setSelectedCategory("Estaciones dulces")
                         onSelectScreenCode("s18")
                     },
                 ) {
                     ServiceIllustrationDulce(modifier = Modifier.size(56.dp))
                 }
 
-                // Iluminación
                 HomeServiceItem(
                     label = "Iluminación",
                     bgColor = iluminacionBg,
@@ -850,39 +871,36 @@ internal fun RenderPersonalHomeScreen(
                     ServiceIllustrationLuz(modifier = Modifier.size(56.dp))
                 }
 
-                // Arcos & Globos
                 HomeServiceItem(
-                    label = "Arcos & Globos",
+                    label = "Arcos y globos",
                     bgColor = arcosBg,
                     textColor = textColor,
                     onClick = {
-                        viewModel?.setSelectedCategory("Globos")
+                        viewModel?.setSelectedCategory("Arcos y globos")
                         onSelectScreenCode("s18")
                     },
                 ) {
                     RfIcon(kind = RfIconKind.SPARK, tint = Color(0xFFE04FAF), size = 30.dp)
                 }
 
-                // Centros florales
                 HomeServiceItem(
                     label = "Centros florales",
                     bgColor = centrosBg,
                     textColor = textColor,
                     onClick = {
-                        viewModel?.setSelectedCategory("Floral")
+                        viewModel?.setSelectedCategory("Centros florales")
                         onSelectScreenCode("s18")
                     },
                 ) {
                     RfIcon(kind = RfIconKind.STAR, tint = Color(0xFF1F9D8B), size = 30.dp)
                 }
 
-                // Mantelería
                 HomeServiceItem(
                     label = "Mantelería",
                     bgColor = manteleriaBg,
                     textColor = textColor,
                     onClick = {
-                        viewModel?.setSelectedCategory("Mobiliario")
+                        viewModel?.setSelectedCategory("Mantelería")
                         onSelectScreenCode("s18")
                     },
                 ) {
@@ -951,14 +969,17 @@ internal fun RenderPersonalHomeScreen(
                 )
                 HomeTrendCard(
                     title = "Bodas",
-                    eventsLabel = if (isDark) "3.1K eventos" else "1.8K eventos",
+                    eventsLabel = "1.8K eventos",
                     photoKey = RfPhotoKey.BODA,
                     photoBg = if (isDark) Color(0xFF3A1630) else Color(0xFFFDE6F2),
                     cardBg = cardBg,
                     cardBorder = cardBorder,
                     textColor = textColor,
                     mutedColor = mutedColor,
-                    onClick = { onSelectScreenCode("s22") },
+                    onClick = {
+                        viewModel?.selectPackage("pkg-boda-real")
+                        onSelectScreenCode("s22")
+                    },
                 )
                 HomeTrendCard(
                     title = "Quinceañeras",
@@ -982,6 +1003,108 @@ internal fun RenderPersonalHomeScreen(
                     mutedColor = mutedColor,
                     onClick = { onSelectScreenCode("s21") },
                 )
+            }
+        }
+
+        if (featuredHomeArticles.isNotEmpty()) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp),
+                ) {
+                    BasicText(
+                        text = "Artículos destacados",
+                        style = typo.rootTabTitle.copy(
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = textColor,
+                        ),
+                    )
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .height(32.dp)
+                            .clip(CircleShape)
+                            .background(chipBg)
+                            .clickable {
+                                viewModel?.setSelectedCategory("Todas")
+                                onSelectScreenCode("s18")
+                            }
+                            .padding(horizontal = 12.dp),
+                    ) {
+                        BasicText(
+                            text = "Catálogo",
+                            style = typo.caption.copy(
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = chipText,
+                            ),
+                        )
+                    }
+                }
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = 20.dp, vertical = 4.dp),
+                ) {
+                    featuredHomeArticles.forEach { featuredArticle ->
+                        val resolvedFeaturedPhoto = RfPhotoKey.entries.firstOrNull { entry ->
+                            val matchesAsset = entry.assetKey == featuredArticle.photo.key
+                            val matchesName = entry.name.equals(featuredArticle.photo.key, ignoreCase = true)
+                            listOf(matchesAsset, matchesName).any { matched -> matched }
+                        } ?: RfPhotoKey.ARCO_ROSA
+                        Column(
+                            modifier = Modifier
+                                .width(196.dp)
+                                .rfCardShadow(RoundedCornerShape(18.dp))
+                                .clip(RoundedCornerShape(18.dp))
+                                .background(cardBg)
+                                .border(1.dp, cardBorder, RoundedCornerShape(18.dp))
+                                .clickable {
+                                    viewModel?.selectArticle(featuredArticle.id)
+                                    onSelectScreenCode("s19")
+                                },
+                        ) {
+                            RfPhoto(
+                                photoKey = resolvedFeaturedPhoto,
+                                contentDescription = featuredArticle.name,
+                                cornerRadius = 0.dp,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(94.dp),
+                            )
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(3.dp),
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                            ) {
+                                BasicText(
+                                    text = featuredArticle.name,
+                                    style = typo.bodyStrong.copy(fontSize = 14.sp, color = textColor),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                                BasicText(
+                                    text = "RD$ ${featuredArticle.pricePerDayDop} /día",
+                                    style = typo.caption.copy(
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFFC2338F),
+                                    ),
+                                    maxLines = 1,
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
     }

@@ -5,6 +5,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -100,6 +101,7 @@ import com.jeudry.rosafiesta.designsystem.rfIconButtonShadow
 import com.jeudry.rosafiesta.designsystem.rfInputShadow
 import com.jeudry.rosafiesta.designsystem.rfPrimaryButtonShadow
 import com.jeudry.rosafiesta.domain.CanonicalSampleData
+import com.jeudry.rosafiesta.domain.CatalogArticle
 import com.jeudry.rosafiesta.domain.validation.InputValidator
 import kotlinx.coroutines.delay
 import androidx.compose.ui.graphics.drawscope.rotate as drawScopeRotate
@@ -112,11 +114,26 @@ import androidx.compose.ui.graphics.drawscope.rotate as drawScopeRotate
 internal fun RenderPersonalSplashP00(
     viewModel: RosaFiestaViewModel? = null,
     onPrimaryAction: () -> Unit,
+    onSelectScreenCode: (String) -> Unit = {},
+    onSwitchAppMode: () -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
+    val navigateFromPersonalSplash: () -> Unit = {
+        val hasAuthenticatedSession = viewModel?.hasValidAuthenticatedSession() == true
+        if (hasAuthenticatedSession) {
+            val isAdminOrStaffSession = viewModel.isCurrentSessionAdminOrStaff()
+            if (isAdminOrStaffSession) {
+                onSwitchAppMode()
+            } else {
+                onSelectScreenCode("s14")
+            }
+        } else {
+            onPrimaryAction()
+        }
+    }
     LaunchedEffect(Unit) {
         delay(1300L)
-        onPrimaryAction()
+        navigateFromPersonalSplash()
     }
     Box(
         modifier = Modifier
@@ -129,7 +146,7 @@ internal fun RenderPersonalSplashP00(
                     1.0f to Color(0xFF6664E9),
                 ),
             )
-            .clickable(onClick = onPrimaryAction),
+            .clickable(onClick = navigateFromPersonalSplash),
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             drawGarlandAndConfettiPersonal()
@@ -284,11 +301,34 @@ private fun DrawScope.drawSvgStar(center: Offset, scale: Float, color: Color) {
 internal fun RenderAdminSplashA00(
     viewModel: RosaFiestaViewModel? = null,
     onPrimaryAction: () -> Unit,
+    onSelectScreenCode: (String) -> Unit = {},
+    onSwitchAppMode: () -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
+    var progressTarget by remember { mutableStateOf(0.55f) }
+    val animatedProgress by animateFloatAsState(
+        targetValue = progressTarget,
+        animationSpec = tween(durationMillis = 1100, easing = FastOutSlowInEasing),
+        label = "admin-splash-progress",
+    )
+    val navigateFromAdminSplash: () -> Unit = {
+        if (viewModel != null) {
+            val hasSession = viewModel.hasValidAuthenticatedSession()
+            val isStaffOrAdmin = viewModel.isCurrentSessionAdminOrStaff()
+            val canEnterDashboard = if (hasSession) isStaffOrAdmin else false
+            if (canEnterDashboard) {
+                onSelectScreenCode("A01")
+            } else {
+                onSelectScreenCode("A30")
+            }
+        } else {
+            onPrimaryAction()
+        }
+    }
     LaunchedEffect(Unit) {
+        progressTarget = 1.0f
         delay(1300L)
-        onPrimaryAction()
+        navigateFromAdminSplash()
     }
     Box(
         modifier = Modifier
@@ -300,7 +340,7 @@ internal fun RenderAdminSplashA00(
                     1.0f to Color(0xFF2FB8C8),
                 ),
             )
-            .clickable(onClick = onPrimaryAction),
+            .clickable(onClick = navigateFromAdminSplash),
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val scaleFactor = this.size.width / 390f
@@ -386,7 +426,7 @@ internal fun RenderAdminSplashA00(
         ) {
             Box(
                 modifier = Modifier
-                    .fillMaxWidth(0.55f)
+                    .fillMaxWidth(animatedProgress)
                     .height(6.dp)
                     .clip(RoundedCornerShape(3.dp))
                     .background(Color(0xFFFFD45C)),
@@ -552,8 +592,16 @@ internal fun RenderOnboardingScreen(
                 ) {
                     when (animatedStep) {
                         1 -> OnboardingIllustrationStep1()
+
                         2 -> OnboardingIllustrationStep2()
-                        3 -> OnboardingIllustrationStep3()
+
+                        3 -> OnboardingIllustrationStep3(
+                            onSendWhatsApp = {
+                                viewModel?.openWhatsAppChat(
+                                    message = "Hola RosaFiesta, quiero cotizar mi lista de evento",
+                                )
+                            },
+                        )
                     }
                 }
 
@@ -615,7 +663,7 @@ internal fun RenderOnboardingScreen(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                for (stepDotIndex in 1..4) {
+                for (stepDotIndex in 1..3) {
                     val isActive = stepDotIndex == step
                     val dotWidth by animateDpAsState(
                         targetValue = if (isActive) 28.dp else 8.dp,
@@ -630,8 +678,7 @@ internal fun RenderOnboardingScreen(
                     val dotTargetCode = when (stepDotIndex) {
                         1 -> if (step > 1) "BACK:s03" else "s03"
                         2 -> if (step > 2) "BACK:s04" else "s04"
-                        3 -> "s05"
-                        else -> "s06"
+                        else -> "s05"
                     }
                     val dotBrush = if (isActive) {
                         when (step) {
@@ -1312,7 +1359,9 @@ private fun OnboardingIllustrationStep2() {
 }
 
 @Composable
-private fun OnboardingIllustrationStep3() {
+private fun OnboardingIllustrationStep3(
+    onSendWhatsApp: () -> Unit = {},
+) {
     Box(
         modifier = Modifier.fillMaxWidth(),
     ) {
@@ -1425,7 +1474,8 @@ private fun OnboardingIllustrationStep3() {
                             .fillMaxWidth()
                             .height(40.dp)
                             .clip(RoundedCornerShape(12.dp))
-                            .background(Color(0xFF2E9E5B)),
+                            .background(Color(0xFF2E9E5B))
+                            .clickable(onClick = onSendWhatsApp),
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             RfIcon(kind = RfIconKind.WHATSAPP, tint = Color.White, size = 18.dp)
@@ -1665,6 +1715,29 @@ internal fun RenderBienvenidaScreen(
                     ),
                 )
             }
+
+            Spacer(Modifier.height(14.dp))
+
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .clickable {
+                        viewModel?.enterGuestMode()
+                        onSelectScreenCode("s01")
+                    }
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+            ) {
+                BasicText(
+                    text = "Explorar como invitado",
+                    style = typo.body.copy(
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFD63F98),
+                        textDecoration = TextDecoration.Underline,
+                    ),
+                )
+            }
         }
     }
 }
@@ -1754,6 +1827,7 @@ internal fun RenderLoginScreenS07(
     viewModel: RosaFiestaViewModel?,
     onPrimaryAction: () -> Unit,
     onSelectScreenCode: (String) -> Unit,
+    onSwitchAppMode: () -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
     var email by remember { mutableStateOf("") }
@@ -1762,6 +1836,7 @@ internal fun RenderLoginScreenS07(
     var hasAttemptedLogin by remember { mutableStateOf(false) }
     var localLoginError by remember { mutableStateOf<String?>(null) }
     val formError = viewModel?.formError?.collectAsState()?.value
+    val isSubmitting = viewModel?.isSubmitting?.collectAsState()?.value ?: false
 
     val shouldValidateEmail = if (hasAttemptedLogin) true else email.isNotEmpty()
     val emailFieldError = if (shouldValidateEmail) InputValidator.validateLoginIdentifier(email) else null
@@ -2038,6 +2113,13 @@ internal fun RenderLoginScreenS07(
 
             Spacer(Modifier.height(20.dp))
 
+            val loginButtonBrush = if (isSubmitting) {
+                Brush.horizontalGradient(listOf(Color(0xFFEA4EA9).copy(alpha = 0.65f), Color(0xFF865DEC).copy(alpha = 0.65f)))
+            } else {
+                Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC)))
+            }
+            val loginButtonLabel = if (isSubmitting) "Ingresando..." else "Ingresar"
+
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
@@ -2045,10 +2127,8 @@ internal fun RenderLoginScreenS07(
                     .height(56.dp)
                     .shadow(elevation = 12.dp, shape = RoundedCornerShape(16.dp), spotColor = Color(0xB3C846B4), ambientColor = Color.Transparent)
                     .clip(RoundedCornerShape(16.dp))
-                    .background(
-                        Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC))),
-                    )
-                    .clickable {
+                    .background(loginButtonBrush)
+                    .clickable(enabled = !isSubmitting) {
                         hasAttemptedLogin = true
                         val trimmedIdentifier = email.trim()
                         val checkIdError = InputValidator.validateLoginIdentifier(trimmedIdentifier)
@@ -2063,12 +2143,17 @@ internal fun RenderLoginScreenS07(
                             viewModel?.setLoginPassword(password)
                             val success = viewModel?.submitLogin() ?: true
                             if (success) {
-                                onSelectScreenCode("s14")
+                                val isAdminOrStaff = viewModel?.isCurrentSessionAdminOrStaff() == true
+                                if (isAdminOrStaff) {
+                                    onSwitchAppMode()
+                                } else {
+                                    onSelectScreenCode("s14")
+                                }
                             }
                         }
                     },
             ) {
-                BasicText("Ingresar", style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White))
+                BasicText(loginButtonLabel, style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White))
             }
 
             Spacer(Modifier.height(18.dp))
@@ -2095,9 +2180,11 @@ internal fun RenderLoginScreenS07(
                         .clip(RoundedCornerShape(16.dp))
                         .background(RfThemeState.currentPalette.surface)
                         .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(16.dp))
-                        .clickable {
-                            viewModel?.authenticateSocialAccount("Google", email)
-                            onSelectScreenCode("s14")
+                        .clickable(enabled = !isSubmitting) {
+                            val socialSuccess = viewModel?.authenticateSocialAccount("Google", "") == true
+                            if (socialSuccess) {
+                                onSelectScreenCode("s14")
+                            }
                         },
                 ) {
                     BasicText("Google", style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = RfThemeState.currentPalette.ink))
@@ -2111,9 +2198,11 @@ internal fun RenderLoginScreenS07(
                         .clip(RoundedCornerShape(16.dp))
                         .background(RfThemeState.currentPalette.surface)
                         .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(16.dp))
-                        .clickable {
-                            viewModel?.authenticateSocialAccount("Apple", email)
-                            onSelectScreenCode("s14")
+                        .clickable(enabled = !isSubmitting) {
+                            val socialSuccess = viewModel?.authenticateSocialAccount("Apple", "") == true
+                            if (socialSuccess) {
+                                onSelectScreenCode("s14")
+                            }
                         },
                 ) {
                     BasicText("Apple", style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = RfThemeState.currentPalette.ink))
@@ -2406,10 +2495,13 @@ internal fun RenderRegisterScreenS08(
     var showPassword by remember { mutableStateOf(false) }
     var birthDate by remember { mutableStateOf("") }
     var showBirthDatePicker by remember { mutableStateOf(false) }
-    var acceptedTerms by remember { mutableStateOf(true) }
+    var acceptedTerms by remember { mutableStateOf(false) }
     var hasAttemptedRegister by remember { mutableStateOf(false) }
     var localRegisterError by remember { mutableStateOf<String?>(null) }
+    val vmRegisterPhone = viewModel?.registerPhone?.collectAsState()?.value ?: ""
+    var phone by remember(vmRegisterPhone) { mutableStateOf(vmRegisterPhone) }
     val formError = viewModel?.formError?.collectAsState()?.value
+    val isSubmitting = viewModel?.isSubmitting?.collectAsState()?.value ?: false
 
     val shouldCheckFirst = if (hasAttemptedRegister) true else firstName.isNotEmpty()
     val firstNameError = if (shouldCheckFirst) InputValidator.validatePersonNamePart(firstName, "El nombre") else null
@@ -2421,6 +2513,8 @@ internal fun RenderRegisterScreenS08(
     val passwordError = if (shouldCheckPass) InputValidator.validatePassword(password) else null
     val shouldCheckEmail = if (hasAttemptedRegister) true else email.isNotEmpty()
     val emailError = if (shouldCheckEmail) InputValidator.validateEmail(email) else null
+    val shouldCheckPhone = phone.isNotBlank()
+    val phoneError = if (shouldCheckPhone) InputValidator.validatePhone(phone) else null
     val shouldCheckBirth = if (hasAttemptedRegister) true else birthDate.isNotEmpty()
     val birthDateError = if (shouldCheckBirth) InputValidator.validateBirthDate(birthDate, isRequired = true) else null
 
@@ -2761,6 +2855,57 @@ internal fun RenderRegisterScreenS08(
 
             Spacer(Modifier.height(10.dp))
 
+            val phoneBorderColor = if (phoneError != null) RfColors.Error else RfThemeState.currentPalette.line
+            val phoneBorderWidth = if (phoneError != null) 1.5.dp else 1.dp
+            Box(
+                contentAlignment = Alignment.CenterStart,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
+                    .rfInputShadow(RoundedCornerShape(16.dp))
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(RfThemeState.currentPalette.surface)
+                    .border(phoneBorderWidth, phoneBorderColor, RoundedCornerShape(16.dp))
+                    .padding(horizontal = 16.dp),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    RfIcon(
+                        kind = RfIconKind.PHONE,
+                        tint = if (phoneError != null) RfColors.Error else Color(0xFF62627A),
+                        size = 20.dp,
+                    )
+                    BasicTextField(
+                        value = phone,
+                        onValueChange = { nextPhone ->
+                            val cappedPhone = nextPhone.take(InputValidator.MAX_PHONE_LENGTH)
+                            phone = cappedPhone
+                            localRegisterError = null
+                            viewModel?.setRegisterPhone(cappedPhone)
+                            viewModel?.clearFormError()
+                        },
+                        singleLine = true,
+                        textStyle = typo.body.copy(fontSize = 15.sp, color = RfThemeState.currentPalette.ink),
+                        cursorBrush = SolidColor(Color(0xFFD63F98)),
+                        modifier = Modifier.fillMaxWidth(),
+                        decorationBox = { innerField ->
+                            if (phone.isEmpty()) {
+                                BasicText("Teléfono (ej. 809-555-0102)", style = typo.body.copy(fontSize = 14.5.sp, color = RfThemeState.currentPalette.muted))
+                            }
+                            innerField()
+                        },
+                    )
+                }
+            }
+            if (phoneError != null) {
+                Spacer(Modifier.height(4.dp))
+                BasicText(
+                    text = phoneError,
+                    style = typo.caption.copy(fontSize = 11.5.sp, color = RfColors.Error, fontWeight = FontWeight.SemiBold),
+                )
+            }
+
+            Spacer(Modifier.height(10.dp))
+
             val birthBorderColor = if (birthDateError != null) RfColors.Error else RfThemeState.currentPalette.line
             val birthBorderWidth = if (birthDateError != null) 1.5.dp else 1.dp
             Box(
@@ -2821,27 +2966,42 @@ internal fun RenderRegisterScreenS08(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 2.dp, top = 8.dp)
-                    .clickable {
-                        acceptedTerms = !acceptedTerms
-                        localRegisterError = null
-                    },
+                    .padding(start = 2.dp, top = 8.dp),
             ) {
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
                         .size(22.dp)
                         .clip(RoundedCornerShape(6.dp))
-                        .background(if (acceptedTerms) Color(0xFFD63F98) else RfThemeState.currentPalette.line),
+                        .background(if (acceptedTerms) Color(0xFFD63F98) else RfThemeState.currentPalette.line)
+                        .clickable {
+                            acceptedTerms = !acceptedTerms
+                            localRegisterError = null
+                        },
                 ) {
                     if (acceptedTerms) {
                         RfIcon(kind = RfIconKind.CHECK, tint = Color.White, size = 14.dp)
                     }
                 }
-                Row(modifier = Modifier.weight(1f)) {
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     BasicText(
-                        "Acepto los Términos y condiciones y la Política de privacidad.",
-                        style = typo.body.copy(fontSize = 14.sp, lineHeight = 20.sp, color = RfThemeState.currentPalette.muted),
+                        text = "Acepto los términos de uso del servicio:",
+                        style = typo.body.copy(fontSize = 13.5.sp, lineHeight = 19.sp, color = RfThemeState.currentPalette.muted),
+                        modifier = Modifier.clickable {
+                            acceptedTerms = !acceptedTerms
+                            localRegisterError = null
+                        },
+                    )
+                    BasicText(
+                        text = "Términos y condiciones y Política de privacidad",
+                        style = typo.body.copy(
+                            fontSize = 13.5.sp,
+                            lineHeight = 19.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFD63F98),
+                            textDecoration = TextDecoration.Underline,
+                        ),
+                        modifier = Modifier.clickable { onSelectScreenCode("s87") },
                     )
                 }
             }
@@ -2866,6 +3026,13 @@ internal fun RenderRegisterScreenS08(
 
             Spacer(Modifier.height(14.dp))
 
+            val registerButtonBrush = if (isSubmitting) {
+                Brush.horizontalGradient(listOf(Color(0xFFEA4EA9).copy(alpha = 0.65f), Color(0xFF865DEC).copy(alpha = 0.65f)))
+            } else {
+                Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC)))
+            }
+            val registerButtonLabel = if (isSubmitting) "Creando cuenta..." else "Crear cuenta"
+
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
@@ -2873,14 +3040,15 @@ internal fun RenderRegisterScreenS08(
                     .height(54.dp)
                     .shadow(elevation = 12.dp, shape = RoundedCornerShape(16.dp), spotColor = Color(0xB3C846B4), ambientColor = Color.Transparent)
                     .clip(RoundedCornerShape(16.dp))
-                    .background(Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC))))
-                    .clickable {
+                    .background(registerButtonBrush)
+                    .clickable(enabled = !isSubmitting) {
                         hasAttemptedRegister = true
                         val checkFirstError = InputValidator.validatePersonNamePart(firstName, "El nombre")
                         val checkLastError = InputValidator.validatePersonNamePart(lastName, "El apellido")
                         val checkUserError = InputValidator.validateUsername(username)
                         val checkPassError = InputValidator.validatePassword(password)
                         val checkEmailError = InputValidator.validateEmail(email)
+                        val checkPhoneError = if (phone.isNotBlank()) InputValidator.validatePhone(phone) else null
                         val checkBirthError = InputValidator.validateBirthDate(birthDate, isRequired = true)
                         val termsError = if (!acceptedTerms) "Debes aceptar los Términos y condiciones para continuar." else null
                         val firstValidationError = checkFirstError
@@ -2888,6 +3056,7 @@ internal fun RenderRegisterScreenS08(
                             ?: checkUserError
                             ?: checkPassError
                             ?: checkEmailError
+                            ?: checkPhoneError
                             ?: checkBirthError
                             ?: termsError
                         if (firstValidationError != null) {
@@ -2895,6 +3064,7 @@ internal fun RenderRegisterScreenS08(
                             viewModel?.soundPlayer?.playAlertError()
                         } else {
                             localRegisterError = null
+                            viewModel?.setRegisterPhone(phone)
                             val registered = viewModel?.submitRegistration(
                                 firstName = firstName,
                                 lastName = lastName,
@@ -2903,6 +3073,7 @@ internal fun RenderRegisterScreenS08(
                                 password = password,
                                 birthDate = birthDate,
                                 acceptedTerms = acceptedTerms,
+                                phone = phone,
                             ) ?: true
                             if (registered) {
                                 onSelectScreenCode("s14")
@@ -2910,7 +3081,7 @@ internal fun RenderRegisterScreenS08(
                         }
                     },
             ) {
-                BasicText("Crear cuenta", style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White))
+                BasicText(registerButtonLabel, style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White))
             }
 
             Spacer(Modifier.height(16.dp))
@@ -2937,7 +3108,12 @@ internal fun RenderRegisterScreenS08(
                         .clip(RoundedCornerShape(16.dp))
                         .background(RfThemeState.currentPalette.surface)
                         .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(16.dp))
-                        .clickable { onPrimaryAction() },
+                        .clickable(enabled = !isSubmitting) {
+                            val socialSuccess = viewModel?.authenticateSocialAccount("Google", "") == true
+                            if (socialSuccess) {
+                                onPrimaryAction()
+                            }
+                        },
                 ) {
                     BasicText("Google", style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = RfThemeState.currentPalette.ink))
                 }
@@ -2950,7 +3126,12 @@ internal fun RenderRegisterScreenS08(
                         .clip(RoundedCornerShape(16.dp))
                         .background(RfThemeState.currentPalette.surface)
                         .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(16.dp))
-                        .clickable { onPrimaryAction() },
+                        .clickable(enabled = !isSubmitting) {
+                            val socialSuccess = viewModel?.authenticateSocialAccount("Apple", "") == true
+                            if (socialSuccess) {
+                                onPrimaryAction()
+                            }
+                        },
                 ) {
                     BasicText("Apple", style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = RfThemeState.currentPalette.ink))
                 }
@@ -3055,9 +3236,10 @@ private fun BirthDateCalendarModal(
 ) {
     val typo = LocalRfTypography.current
     val initialParts = currentBirthDate.split("/")
-    val parsedDay = initialParts.getOrNull(0)?.toIntOrNull()?.coerceIn(1, 31) ?: 15
     val parsedMonth = initialParts.getOrNull(1)?.toIntOrNull()?.coerceIn(1, 12) ?: 8
-    val parsedYear = initialParts.getOrNull(2)?.toIntOrNull()?.coerceIn(1940, 2024) ?: 1998
+    val parsedYear = initialParts.getOrNull(2)?.toIntOrNull()?.coerceIn(1940, 2008) ?: 1998
+    val initialMaxDays = computeDaysInGregorianMonth(parsedYear, parsedMonth)
+    val parsedDay = initialParts.getOrNull(0)?.toIntOrNull()?.coerceIn(1, initialMaxDays) ?: 15
 
     var selectedDay by remember { mutableStateOf(parsedDay) }
     var selectedMonth by remember { mutableStateOf(parsedMonth) }
@@ -3080,22 +3262,9 @@ private fun BirthDateCalendarModal(
         )
     }
 
-    val daysInSelectedMonth = when (selectedMonth) {
-        2 -> {
-            val isDivisibleBy4 = selectedYear % 4 == 0
-            val isNotCentury = selectedYear % 100 != 0
-            val isDivisibleBy400 = selectedYear % 400 == 0
-            val isCenturyOrFourYear = isNotCentury || isDivisibleBy400
-            val isLeapYear = isDivisibleBy4 && isCenturyOrFourYear
-            if (isLeapYear) 29 else 28
-        }
-
-        4, 6, 9, 11 -> 30
-
-        else -> 31
-    }
-
-    val clampedSelectedDay = selectedDay.coerceAtMost(daysInSelectedMonth)
+    val daysInSelectedMonth = computeDaysInGregorianMonth(selectedYear, selectedMonth)
+    val leadingWeekdayOffset = computeGregorianMondayFirstOffset(selectedYear, selectedMonth)
+    val clampedSelectedDay = selectedDay.coerceIn(1, daysInSelectedMonth)
 
     Box(
         contentAlignment = Alignment.Center,
@@ -3165,7 +3334,9 @@ private fun BirthDateCalendarModal(
                             .clip(CircleShape)
                             .background(RfThemeState.currentPalette.surface)
                             .clickable {
-                                selectedMonth = if (selectedMonth == 1) 12 else selectedMonth - 1
+                                val nextMonth = if (selectedMonth == 1) 12 else selectedMonth - 1
+                                selectedMonth = nextMonth
+                                selectedDay = selectedDay.coerceAtMost(computeDaysInGregorianMonth(selectedYear, nextMonth))
                             },
                     ) {
                         RfIcon(kind = RfIconKind.BACK, tint = RfThemeState.currentPalette.ink, size = 14.dp)
@@ -3182,7 +3353,9 @@ private fun BirthDateCalendarModal(
                             .clip(CircleShape)
                             .background(RfThemeState.currentPalette.surface)
                             .clickable {
-                                selectedMonth = if (selectedMonth == 12) 1 else selectedMonth + 1
+                                val nextMonth = if (selectedMonth == 12) 1 else selectedMonth + 1
+                                selectedMonth = nextMonth
+                                selectedDay = selectedDay.coerceAtMost(computeDaysInGregorianMonth(selectedYear, nextMonth))
                             },
                     ) {
                         RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = RfThemeState.currentPalette.ink, size = 14.dp)
@@ -3206,7 +3379,9 @@ private fun BirthDateCalendarModal(
                             .clip(CircleShape)
                             .background(RfThemeState.currentPalette.surface)
                             .clickable {
-                                selectedYear = (selectedYear - 1).coerceAtLeast(1940)
+                                val nextYear = (selectedYear - 1).coerceAtLeast(1940)
+                                selectedYear = nextYear
+                                selectedDay = selectedDay.coerceAtMost(computeDaysInGregorianMonth(nextYear, selectedMonth))
                             },
                     ) {
                         RfIcon(kind = RfIconKind.BACK, tint = RfThemeState.currentPalette.ink, size = 14.dp)
@@ -3222,7 +3397,9 @@ private fun BirthDateCalendarModal(
                             .clip(CircleShape)
                             .background(RfThemeState.currentPalette.surface)
                             .clickable {
-                                selectedYear = (selectedYear + 1).coerceAtMost(2024)
+                                val nextYear = (selectedYear + 1).coerceAtMost(2008)
+                                selectedYear = nextYear
+                                selectedDay = selectedDay.coerceAtMost(computeDaysInGregorianMonth(nextYear, selectedMonth))
                             },
                     ) {
                         RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = RfThemeState.currentPalette.ink, size = 14.dp)
@@ -3236,7 +3413,7 @@ private fun BirthDateCalendarModal(
                     .fillMaxWidth()
                     .horizontalScroll(rememberScrollState()),
             ) {
-                val quickYears = listOf(1985, 1990, 1995, 1998, 2000, 2002, 2005)
+                val quickYears = listOf(1980, 1985, 1990, 1995, 1998, 2002, 2008)
                 quickYears.forEach { yearOption ->
                     val isSelectedYear = yearOption == selectedYear
                     Box(
@@ -3245,7 +3422,10 @@ private fun BirthDateCalendarModal(
                             .height(28.dp)
                             .clip(RoundedCornerShape(999.dp))
                             .background(if (isSelectedYear) Color(0xFF865DEC) else Color(0xFFF3EFF8))
-                            .clickable { selectedYear = yearOption }
+                            .clickable {
+                                selectedYear = yearOption
+                                selectedDay = selectedDay.coerceAtMost(computeDaysInGregorianMonth(yearOption, selectedMonth))
+                            }
                             .padding(horizontal = 10.dp),
                     ) {
                         BasicText(
@@ -3279,8 +3459,8 @@ private fun BirthDateCalendarModal(
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                val allDays = (1..daysInSelectedMonth).toList()
-                allDays.chunked(7).forEach { weekDays ->
+                val calendarSlots = List<Int?>(leadingWeekdayOffset) { null } + (1..daysInSelectedMonth).toList()
+                calendarSlots.chunked(7).forEach { weekDays ->
                     Row(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         modifier = Modifier.fillMaxWidth(),
@@ -3359,12 +3539,15 @@ internal fun RenderRecoveryAndConfirmationScreens(
 ) {
     val typo = LocalRfTypography.current
     var recoveryEmail by remember { mutableStateOf("") }
+    var otpCode by remember { mutableStateOf("") }
+    var verificationOtp by remember { mutableStateOf("") }
     var newPassword by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
     var showNewPassword by remember { mutableStateOf(false) }
     var showConfirmPassword by remember { mutableStateOf(false) }
     var recoveryEmailError by remember { mutableStateOf<String?>(null) }
     val formError = viewModel?.formError?.collectAsState()?.value
+    val formFeedback = viewModel?.formFeedback?.collectAsState()?.value
     LaunchedEffect(spec.code) {
         recoveryEmailError = null
         viewModel?.clearFormError()
@@ -3492,6 +3675,12 @@ internal fun RenderRecoveryAndConfirmationScreens(
                             text = liveRecError,
                             style = typo.caption.copy(fontSize = 12.sp, color = RfColors.Error, fontWeight = FontWeight.SemiBold),
                         )
+                    } else if (!formError.isNullOrBlank()) {
+                        Spacer(Modifier.height(6.dp))
+                        BasicText(
+                            text = formError,
+                            style = typo.caption.copy(fontSize = 12.sp, color = RfColors.Error, fontWeight = FontWeight.SemiBold),
+                        )
                     }
 
                     Spacer(Modifier.height(20.dp))
@@ -3513,9 +3702,14 @@ internal fun RenderRecoveryAndConfirmationScreens(
                                 } else {
                                     recoveryEmailError = null
                                     viewModel?.setLoginEmail(trimmedRec)
-                                    viewModel?.applyUserIdentityFromLogin(trimmedRec)
-                                    viewModel?.requestPasswordResetOtp(trimmedRec)
-                                    onSelectScreenCode("s10")
+                                    val sent = if (viewModel != null) {
+                                        viewModel.requestPasswordResetOtp(trimmedRec)
+                                    } else {
+                                        true
+                                    }
+                                    if (sent) {
+                                        onSelectScreenCode("s12")
+                                    }
                                 }
                             },
                     ) {
@@ -3617,22 +3811,54 @@ internal fun RenderRecoveryAndConfirmationScreens(
                         .verticalScroll(rememberScrollState())
                         .padding(top = 104.dp, start = 24.dp, end = 24.dp, bottom = 20.dp),
                 ) {
-                    val activeOtp = viewModel?.activeOtpCode?.collectAsState()?.value
-                    if (activeOtp != null) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 12.dp)
-                                .clip(RoundedCornerShape(14.dp))
-                                .background(Color(0xFFEEF6D6))
-                                .padding(horizontal = 14.dp, vertical = 10.dp),
+                    BasicText("Código de verificación (6 dígitos)", style = typo.fieldLabel.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = RfThemeState.currentPalette.ink))
+                    Spacer(Modifier.height(8.dp))
+                    Box(
+                        contentAlignment = Alignment.CenterStart,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp)
+                            .rfInputShadow(RoundedCornerShape(16.dp))
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(RfThemeState.currentPalette.surface)
+                            .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(16.dp))
+                            .padding(horizontal = 16.dp),
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            modifier = Modifier.fillMaxWidth(),
                         ) {
-                            BasicText(
-                                text = "Código de verificación verificado: $activeOtp",
-                                style = typo.body.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF4E6A10)),
+                            RfIcon(kind = RfIconKind.SHIELD, tint = RfThemeState.currentPalette.muted, size = 20.dp)
+                            BasicTextField(
+                                value = otpCode,
+                                onValueChange = { nextOtp ->
+                                    otpCode = nextOtp.filter { character -> character.isDigit() }.take(6)
+                                    viewModel?.clearFormError()
+                                },
+                                singleLine = true,
+                                textStyle = typo.body.copy(
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 3.sp,
+                                    color = RfThemeState.currentPalette.ink,
+                                ),
+                                cursorBrush = SolidColor(Color(0xFFD63F98)),
+                                modifier = Modifier.fillMaxWidth(),
+                                decorationBox = { innerField ->
+                                    Box(contentAlignment = Alignment.CenterStart) {
+                                        if (otpCode.isEmpty()) {
+                                            BasicText("000000", style = typo.body.copy(fontSize = 15.sp, letterSpacing = 2.sp, color = Color(0xFF9A98AD)))
+                                        }
+                                        innerField()
+                                    }
+                                },
                             )
                         }
                     }
+
+                    Spacer(Modifier.height(14.dp))
+
                     BasicText("Nueva contraseña", style = typo.fieldLabel.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = RfThemeState.currentPalette.ink))
                     Spacer(Modifier.height(8.dp))
                     Box(
@@ -3728,6 +3954,12 @@ internal fun RenderRecoveryAndConfirmationScreens(
                     val lengthColor = if (hasMinLength) Color(0xFF4E6A10) else Color(0xFF62627A)
                     val numberColor = if (hasNumber) Color(0xFF4E6A10) else Color(0xFF62627A)
                     val symbolColor = if (hasSymbol) Color(0xFF4E6A10) else Color(0xFF62627A)
+
+                    BasicText(
+                        text = "Mínimo 8 caracteres e incluye al menos un número",
+                        style = typo.caption.copy(fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, color = RfThemeState.currentPalette.muted),
+                    )
+                    Spacer(Modifier.height(8.dp))
 
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Canvas(modifier = Modifier.size(18.dp)) {
@@ -3850,9 +4082,10 @@ internal fun RenderRecoveryAndConfirmationScreens(
                                     identifier = targetEmail,
                                     newPassword = newPassword,
                                     confirmPassword = confirmPassword,
+                                    otpCode = otpCode,
                                 ) ?: true
                                 if (resetOk) {
-                                    onSelectScreenCode("s11")
+                                    onSelectScreenCode("s07")
                                 }
                             },
                     ) {
@@ -3971,7 +4204,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                     Spacer(Modifier.height(10.dp))
 
                     BasicText(
-                        "Correo verificado",
+                        "Verifica tu correo",
                         style = typo.heroTitle.copy(
                             fontSize = 30.sp,
                             fontWeight = FontWeight.ExtraBold,
@@ -3985,12 +4218,91 @@ internal fun RenderRecoveryAndConfirmationScreens(
                     Spacer(Modifier.height(10.dp))
 
                     BasicText(
-                        "Tu cuenta ya está lista. Entra y comienza a planificar.",
+                        "Ingresa el código de 6 dígitos que enviamos a tu bandeja.",
                         style = typo.body.copy(fontSize = 16.sp, lineHeight = 24.sp, color = RfThemeState.currentPalette.muted, textAlign = TextAlign.Center),
                         modifier = Modifier.padding(horizontal = 12.dp),
                     )
 
-                    Spacer(Modifier.weight(1f).heightIn(min = 28.dp))
+                    Spacer(Modifier.height(18.dp))
+
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp)
+                            .rfInputShadow(RoundedCornerShape(16.dp))
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(RfThemeState.currentPalette.surface)
+                            .border(1.5.dp, Color(0xFFB754CB), RoundedCornerShape(16.dp))
+                            .padding(horizontal = 16.dp),
+                    ) {
+                        BasicTextField(
+                            value = verificationOtp,
+                            onValueChange = { nextCode ->
+                                verificationOtp = nextCode.filter { character -> character.isDigit() }.take(6)
+                                viewModel?.clearFormError()
+                            },
+                            singleLine = true,
+                            textStyle = typo.heroTitle.copy(
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                letterSpacing = 6.sp,
+                                color = RfThemeState.currentPalette.ink,
+                                textAlign = TextAlign.Center,
+                            ),
+                            cursorBrush = SolidColor(Color(0xFFD63F98)),
+                            modifier = Modifier.fillMaxWidth(),
+                            decorationBox = { innerField ->
+                                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxWidth()) {
+                                    if (verificationOtp.isEmpty()) {
+                                        BasicText(
+                                            text = "000000",
+                                            style = typo.heroTitle.copy(
+                                                fontSize = 22.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                letterSpacing = 6.sp,
+                                                color = Color(0xFF9A98AD),
+                                                textAlign = TextAlign.Center,
+                                            ),
+                                        )
+                                    }
+                                    innerField()
+                                }
+                            },
+                        )
+                    }
+
+                    if (!formError.isNullOrBlank()) {
+                        Spacer(Modifier.height(8.dp))
+                        BasicText(
+                            text = formError,
+                            style = typo.caption.copy(fontSize = 12.5.sp, color = RfColors.Error, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center),
+                        )
+                    } else if (!formFeedback.isNullOrBlank()) {
+                        Spacer(Modifier.height(8.dp))
+                        BasicText(
+                            text = formFeedback,
+                            style = typo.caption.copy(fontSize = 12.5.sp, color = Color(0xFF4E6A10), fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center),
+                        )
+                    }
+
+                    Spacer(Modifier.height(14.dp))
+
+                    BasicText(
+                        text = "Reenviar código",
+                        style = typo.body.copy(
+                            fontSize = 14.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFD63F98),
+                            textDecoration = TextDecoration.Underline,
+                        ),
+                        modifier = Modifier.clickable {
+                            val resendTarget = recoveryEmail.ifBlank { viewModel?.loginEmail?.value.orEmpty() }
+                            viewModel?.requestPasswordResetOtp(resendTarget)
+                        },
+                    )
+
+                    Spacer(Modifier.weight(1f).heightIn(min = 24.dp))
 
                     Box(
                         contentAlignment = Alignment.Center,
@@ -4000,9 +4312,19 @@ internal fun RenderRecoveryAndConfirmationScreens(
                             .shadow(elevation = 12.dp, shape = RoundedCornerShape(16.dp), spotColor = Color(0xB3C846B4))
                             .clip(RoundedCornerShape(16.dp))
                             .background(Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC))))
-                            .clickable { onSelectScreenCode("s07") },
+                            .clickable {
+                                if (viewModel != null) {
+                                    viewModel.verifyPasswordResetOtpCode(verificationOtp) { verified ->
+                                        if (verified) {
+                                            onSelectScreenCode("s10")
+                                        }
+                                    }
+                                } else {
+                                    onSelectScreenCode("s10")
+                                }
+                            },
                     ) {
-                        BasicText("Ir a iniciar sesión", style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White))
+                        BasicText("Verificar código", style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White))
                     }
                 }
             }
@@ -4081,7 +4403,10 @@ internal fun RenderRecoveryAndConfirmationScreens(
 
                     Spacer(Modifier.height(28.dp))
 
-                    val s13Events = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
+                    val observedEvents = viewModel?.events?.collectAsState()?.value
+                    val s13Events = remember(observedEvents, s13Email, viewModel) {
+                        viewModel?.clientEventsForCurrentUser() ?: emptyList()
+                    }
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -4104,37 +4429,103 @@ internal fun RenderRecoveryAndConfirmationScreens(
                                 BasicText("${s13Events.size} activos", style = typo.body.copy(fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
                             }
 
-                            s13Events.take(3).forEachIndexed { eventIndex, eventItem ->
-                                val dateParts = eventItem.dateLabel.split(" ")
-                                val dayText = dateParts.firstOrNull { token -> token.any { ch -> ch.isDigit() } } ?: "${23 + eventIndex}"
-                                val monthText = dateParts.lastOrNull { token -> token.all { ch -> ch.isLetter() } }?.take(3)?.uppercase() ?: "OCT"
-                                val dateBg = when (eventIndex % 3) {
-                                    0 -> Color(0xFFFDE6F2)
-                                    1 -> Color(0xFFEFE8FD)
-                                    else -> Color(0xFFDDF4F3)
+                            if (s13Events.isEmpty()) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 18.dp),
+                                ) {
+                                    BasicText(
+                                        text = "Aún no tienes eventos activos en tu cuenta.",
+                                        style = typo.body.copy(
+                                            fontSize = 14.5.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = RfThemeState.currentPalette.ink,
+                                            textAlign = TextAlign.Center,
+                                        ),
+                                    )
+                                    BasicText(
+                                        text = "Explora nuestro catálogo o diseña tu celebración paso a paso con Rosa IA.",
+                                        style = typo.secondary.copy(
+                                            fontSize = 13.sp,
+                                            lineHeight = 19.sp,
+                                            color = RfThemeState.currentPalette.muted,
+                                            textAlign = TextAlign.Center,
+                                        ),
+                                    )
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                                    ) {
+                                        Box(
+                                            contentAlignment = Alignment.Center,
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .height(42.dp)
+                                                .clip(RoundedCornerShape(12.dp))
+                                                .background(Color(0xFFFDE6F2))
+                                                .clickable { onSelectScreenCode("s18") },
+                                        ) {
+                                            BasicText(
+                                                text = "Explorar catálogo",
+                                                style = typo.body.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFFC2338F)),
+                                            )
+                                        }
+                                        Box(
+                                            contentAlignment = Alignment.Center,
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .height(42.dp)
+                                                .clip(RoundedCornerShape(12.dp))
+                                                .background(Color(0xFFEFE8FD))
+                                                .clickable { onSelectScreenCode("s26") },
+                                        ) {
+                                            BasicText(
+                                                text = "Rosa IA",
+                                                style = typo.body.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF7A4FD8)),
+                                            )
+                                        }
+                                    }
                                 }
-                                val isConfirmed = eventItem.statusLabel.contains("Confirmad", ignoreCase = true)
-                                val isPendingPay = eventItem.statusLabel.contains("pagar", ignoreCase = true)
-                                val tagBg = when {
-                                    isConfirmed -> Color(0xFFEEF6D6)
-                                    isPendingPay -> Color(0xFFFFF2C9)
-                                    else -> RfThemeState.currentPalette.chipBg
+                            } else {
+                                s13Events.take(3).forEachIndexed { eventIndex, eventItem ->
+                                    val dateParts = eventItem.dateLabel.split(" ")
+                                    val dayText = dateParts.firstOrNull { token -> token.any { character -> character.isDigit() } } ?: "${23 + eventIndex}"
+                                    val monthText = dateParts.lastOrNull { token -> token.all { character -> character.isLetter() } }?.take(3)?.uppercase() ?: "OCT"
+                                    val dateBg = when (eventIndex % 3) {
+                                        0 -> Color(0xFFFDE6F2)
+                                        1 -> Color(0xFFEFE8FD)
+                                        else -> Color(0xFFDDF4F3)
+                                    }
+                                    val isConfirmed = eventItem.statusLabel.contains("Confirmad", ignoreCase = true)
+                                    val isPendingPay = eventItem.statusLabel.contains("pagar", ignoreCase = true)
+                                    val tagBg = when {
+                                        isConfirmed -> Color(0xFFEEF6D6)
+                                        isPendingPay -> Color(0xFFFFF2C9)
+                                        else -> RfThemeState.currentPalette.chipBg
+                                    }
+                                    val tagColor = when {
+                                        isConfirmed -> Color(0xFF4E6A10)
+                                        isPendingPay -> Color(0xFF7A5700)
+                                        else -> Color(0xFF62627A)
+                                    }
+                                    EventActiveItemRow(
+                                        day = dayText,
+                                        month = monthText,
+                                        dateBg = dateBg,
+                                        title = eventItem.title,
+                                        tagText = eventItem.statusLabel,
+                                        tagBg = tagBg,
+                                        tagColor = tagColor,
+                                        timing = eventItem.venue,
+                                        onClick = {
+                                            viewModel?.selectEvent(eventItem.id)
+                                            onSelectScreenCode("s40")
+                                        },
+                                    )
                                 }
-                                val tagColor = when {
-                                    isConfirmed -> Color(0xFF4E6A10)
-                                    isPendingPay -> Color(0xFF7A5700)
-                                    else -> Color(0xFF62627A)
-                                }
-                                EventActiveItemRow(
-                                    day = dayText,
-                                    month = monthText,
-                                    dateBg = dateBg,
-                                    title = eventItem.title,
-                                    tagText = eventItem.statusLabel,
-                                    tagBg = tagBg,
-                                    tagColor = tagColor,
-                                    timing = eventItem.venue,
-                                )
                             }
                         }
                     }
@@ -4170,6 +4561,7 @@ private fun EventActiveItemRow(
     tagBg: Color,
     tagColor: Color,
     timing: String,
+    onClick: () -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
     Row(
@@ -4178,6 +4570,8 @@ private fun EventActiveItemRow(
         modifier = Modifier
             .fillMaxWidth()
             .height(76.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick)
             .padding(12.dp),
     ) {
         Box(
@@ -4238,39 +4632,70 @@ private fun EventActiveItemRow(
 // s01 · CATÁLOGO (MODO INVITADO)
 // ==============================================================================
 
-private data class GuestCatalogItem(
-    val title: String,
-    val desc: String,
-    val price: String,
-    val category: String,
-    val photoKey: RfPhotoKey,
-    val bg: Color,
-)
-
 @Composable
 internal fun RenderGuestCatalogS01(
     onSelectScreenCode: (String) -> Unit,
     viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
-    var selectedCategory by remember { mutableStateOf("Todas") }
+    val vmSelectedCategory = viewModel?.selectedCategory?.collectAsState()?.value ?: "Todas"
+    var selectedCategory by remember(vmSelectedCategory) {
+        mutableStateOf(vmSelectedCategory.ifBlank { "Todas" })
+    }
     val vmSearchQuery = viewModel?.searchQuery?.collectAsState()?.value ?: ""
     var searchQuery by remember(vmSearchQuery) { mutableStateOf(vmSearchQuery) }
+    val observedArticles = viewModel?.articles?.collectAsState()?.value ?: CanonicalSampleData.articles
+    val vmSortOrder = viewModel?.searchSortOrder?.collectAsState()?.value ?: "Más populares"
+    var localSortOrder by remember(vmSortOrder) { mutableStateOf(vmSortOrder) }
+    var showSortSelector by remember { mutableStateOf(false) }
+    val observedMaxPrice = viewModel?.maxPriceFilterDop?.collectAsState()?.value ?: Int.MAX_VALUE
+    val observedOnlyAvailable = viewModel?.onlyAvailableFilter?.collectAsState()?.value ?: false
+    val favoriteIds = viewModel?.favorites?.collectAsState()?.value ?: emptySet()
     val isInlineVoiceListening = viewModel?.isVoiceListening?.collectAsState()?.value ?: false
     val voiceOrigin = viewModel?.voiceInputOrigin?.collectAsState()?.value ?: VoiceInputOrigin.NONE
     val isSearchMicActive = if (isInlineVoiceListening) voiceOrigin == VoiceInputOrigin.SEARCH else false
-    val allGuestProducts = remember {
-        listOf(
-            GuestCatalogItem("Silla Tiffany Cristal", "Acrílica transparente", "RD$ 4", "Mobiliario", RfPhotoKey.SILLA_TIFFANY, Color(0xFFEFE8FD)),
-            GuestCatalogItem("Arco Orgánico Rosa", "3 metros · personalizable", "RD$ 95", "Globos", RfPhotoKey.ARCO_ROSA, Color(0xFFFDE6F2)),
-            GuestCatalogItem("Mesa de Postres Completa", "Incluye bases y mantel", "RD$ 150", "Mobiliario", RfPhotoKey.MESA_HELADOS, Color(0xFFEEF6D6)),
-            GuestCatalogItem("Centro Floral Silvestre", "Flores frescas de temporada", "RD$ 45", "Floral", RfPhotoKey.CENTRO_FLORAL, Color(0xFFFFF2C9)),
-        )
+
+    val filteredItems: List<CatalogArticle> = remember(
+        observedArticles,
+        selectedCategory,
+        searchQuery,
+        localSortOrder,
+        observedMaxPrice,
+        observedOnlyAvailable,
+        viewModel,
+    ) {
+        if (viewModel != null) {
+            viewModel.filteredCatalogArticles(
+                categoryOverride = selectedCategory,
+                queryOverride = searchQuery,
+            )
+        } else {
+            val baseFiltered = CanonicalSampleData.articles.filter { article ->
+                val visibleMatch = article.visibleInCatalog
+                val categoryMatch = if (selectedCategory == "Todas") {
+                    true
+                } else {
+                    article.category.contains(selectedCategory, ignoreCase = true)
+                }
+                val queryMatch = if (searchQuery.isBlank()) {
+                    true
+                } else {
+                    article.name.contains(searchQuery, ignoreCase = true)
+                }
+                val matchesCatAndQuery = if (categoryMatch) queryMatch else false
+                if (visibleMatch) matchesCatAndQuery else false
+            }
+            when (localSortOrder) {
+                "Menor precio" -> baseFiltered.sortedBy { article -> article.pricePerDayDop }
+                "Mayor precio" -> baseFiltered.sortedByDescending { article -> article.pricePerDayDop }
+                "Alfabético" -> baseFiltered.sortedBy { article -> article.name }
+                else -> baseFiltered.sortedByDescending { article -> article.totalStock }
+            }
+        }
     }
-    val filteredProducts = allGuestProducts.filter { item ->
-        val matchesCategory = if (selectedCategory == "Todas") true else item.category == selectedCategory
-        val matchesQuery = if (searchQuery.isBlank()) true else item.title.contains(searchQuery, ignoreCase = true)
-        if (matchesCategory) matchesQuery else false
+
+    val sortOptions = remember {
+        listOf("Más populares", "Menor precio", "Mayor precio", "Alfabético")
     }
 
     Box(
@@ -4361,7 +4786,10 @@ internal fun RenderGuestCatalogS01(
                             }
                             BasicTextField(
                                 value = searchQuery,
-                                onValueChange = { updatedQuery -> searchQuery = updatedQuery },
+                                onValueChange = { updatedQuery ->
+                                    searchQuery = updatedQuery
+                                    viewModel?.setSearchQuery(updatedQuery)
+                                },
                                 singleLine = true,
                                 textStyle = typo.body.copy(fontSize = 15.sp, color = RfThemeState.currentPalette.ink),
                                 modifier = Modifier.fillMaxWidth(),
@@ -4408,9 +4836,14 @@ internal fun RenderGuestCatalogS01(
                     .height(38.dp)
                     .horizontalScroll(rememberScrollState()),
             ) {
-                val categories = listOf("Todas", "Iluminación", "Floral", "Globos", "Mobiliario")
-                categories.forEach { cat ->
-                    val isSelected = cat == selectedCategory
+                val baseCategories = listOf("Todas", "Iluminación", "Floral", "Globos", "Mobiliario")
+                val categories = if (baseCategories.contains(selectedCategory)) {
+                    baseCategories
+                } else {
+                    listOf("Todas", selectedCategory) + baseCategories.drop(1)
+                }
+                categories.forEach { categoryOption ->
+                    val isSelected = categoryOption == selectedCategory
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
@@ -4420,15 +4853,18 @@ internal fun RenderGuestCatalogS01(
                                 if (isSelected) {
                                     Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)))
                                 } else {
-                                    SolidColor(Color.White)
+                                    SolidColor(RfThemeState.currentPalette.surface)
                                 },
                             )
                             .border(1.dp, if (isSelected) Color.Transparent else RfThemeState.currentPalette.line, CircleShape)
-                            .clickable { selectedCategory = cat }
+                            .clickable {
+                                selectedCategory = categoryOption
+                                viewModel?.setSelectedCategory(categoryOption)
+                            }
                             .padding(horizontal = 15.dp),
                     ) {
                         BasicText(
-                            text = cat,
+                            text = categoryOption,
                             style = typo.body.copy(
                                 fontSize = 14.sp,
                                 fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
@@ -4446,38 +4882,157 @@ internal fun RenderGuestCatalogS01(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.fillMaxWidth().height(32.dp),
             ) {
-                BasicText("15 artículos de alquiler", style = typo.secondary.copy(fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
+                BasicText(
+                    text = "${filteredItems.size} artículos",
+                    style = typo.secondary.copy(fontSize = 14.sp, color = RfThemeState.currentPalette.muted),
+                )
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(10.dp))
+                        .clickable { showSortSelector = !showSortSelector }
+                        .padding(horizontal = 6.dp, vertical = 4.dp),
                 ) {
-                    BasicText("Populares", style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = RfThemeState.currentPalette.ink))
+                    BasicText(
+                        text = localSortOrder,
+                        style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = RfThemeState.currentPalette.ink),
+                    )
                     RfIcon(kind = RfIconKind.CHEVRON_DOWN, tint = RfThemeState.currentPalette.ink, size = 16.dp)
+                }
+            }
+
+            AnimatedVisibility(visible = showSortSelector) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp)
+                        .horizontalScroll(rememberScrollState()),
+                ) {
+                    sortOptions.forEach { sortOption ->
+                        val isSortActive = sortOption == localSortOrder
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .height(32.dp)
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(if (isSortActive) Color(0xFFEFE8FD) else RfThemeState.currentPalette.surface)
+                                .border(
+                                    1.dp,
+                                    if (isSortActive) Color(0xFF865DEC) else RfThemeState.currentPalette.line,
+                                    RoundedCornerShape(999.dp),
+                                )
+                                .clickable {
+                                    localSortOrder = sortOption
+                                    viewModel?.setSearchSortOrder(sortOption)
+                                    showSortSelector = false
+                                }
+                                .padding(horizontal = 12.dp),
+                        ) {
+                            BasicText(
+                                text = sortOption,
+                                style = typo.body.copy(
+                                    fontSize = 12.5.sp,
+                                    fontWeight = if (isSortActive) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (isSortActive) Color(0xFF7A4FD8) else RfThemeState.currentPalette.muted,
+                                ),
+                            )
+                        }
+                    }
                 }
             }
 
             Spacer(Modifier.height(16.dp))
 
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                filteredProducts.chunked(2).forEach { rowItems ->
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                        rowItems.forEach { product ->
-                            GuestProductCard(
-                                title = product.title,
-                                desc = product.desc,
-                                price = product.price,
-                                photoKey = product.photoKey,
-                                bg = product.bg,
-                                onClick = { onSelectScreenCode("s75") },
-                                modifier = Modifier.weight(1f),
-                            )
-                        }
-                        if (rowItems.size == 1) {
-                            Spacer(modifier = Modifier.weight(1f))
-                        }
+            if (filteredItems.isEmpty()) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(RfThemeState.currentPalette.surface)
+                        .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(20.dp))
+                        .padding(horizontal = 20.dp, vertical = 28.dp),
+                ) {
+                    RfIcon(kind = RfIconKind.SEARCH, tint = RfThemeState.currentPalette.muted, size = 28.dp)
+                    BasicText(
+                        text = "No encontramos artículos con estos filtros",
+                        style = typo.heroTitle.copy(
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = RfThemeState.currentPalette.ink,
+                            textAlign = TextAlign.Center,
+                        ),
+                    )
+                    BasicText(
+                        text = "Prueba otra categoría o limpia la búsqueda para ver todo el catálogo.",
+                        style = typo.secondary.copy(
+                            fontSize = 13.5.sp,
+                            color = RfThemeState.currentPalette.muted,
+                            textAlign = TextAlign.Center,
+                        ),
+                    )
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .height(42.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(Brush.horizontalGradient(listOf(Color(0xFFE04FAF), Color(0xFF865DEC))))
+                            .clickable {
+                                selectedCategory = "Todas"
+                                searchQuery = ""
+                                localSortOrder = "Más populares"
+                                viewModel?.resetCatalogFilters()
+                                viewModel?.setSearchQuery("")
+                            }
+                            .padding(horizontal = 18.dp),
+                    ) {
+                        BasicText(
+                            text = "Limpiar filtros",
+                            style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White),
+                        )
                     }
                 }
-                Spacer(Modifier.height(110.dp))
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    filteredItems.chunked(2).forEachIndexed { rowIndex, rowItems ->
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                            rowItems.forEachIndexed { columnIndex, article ->
+                                val cardBg = when ((rowIndex * 2 + columnIndex) % 4) {
+                                    0 -> Color(0xFFEFE8FD)
+                                    1 -> Color(0xFFFDE6F2)
+                                    2 -> Color(0xFFEEF6D6)
+                                    else -> Color(0xFFFFF2C9)
+                                }
+                                val isFav = favoriteIds.contains(article.id)
+                                GuestProductCard(
+                                    title = article.name,
+                                    desc = article.description,
+                                    price = "RD$ ${article.pricePerDayDop}",
+                                    photoKey = article.photo.toPhotoKey(),
+                                    bg = cardBg,
+                                    isFavorite = isFav,
+                                    onCardClick = {
+                                        viewModel?.selectArticle(article.id)
+                                        onSelectScreenCode("s19")
+                                    },
+                                    onGuestRestrictedAction = {
+                                        viewModel?.enterGuestMode()
+                                        onSelectScreenCode("s75")
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                            if (rowItems.size == 1) {
+                                Spacer(modifier = Modifier.weight(1f))
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(110.dp))
+                }
             }
         }
     }
@@ -4490,7 +5045,9 @@ private fun GuestProductCard(
     price: String,
     photoKey: RfPhotoKey,
     bg: Color,
-    onClick: () -> Unit = {},
+    isFavorite: Boolean = false,
+    onCardClick: () -> Unit = {},
+    onGuestRestrictedAction: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val typo = LocalRfTypography.current
@@ -4500,7 +5057,7 @@ private fun GuestProductCard(
             .clip(RoundedCornerShape(20.dp))
             .background(RfThemeState.currentPalette.surface)
             .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(20.dp))
-            .clickable { onClick() },
+            .clickable(onClick = onCardClick),
     ) {
         Column {
             Box(
@@ -4515,7 +5072,6 @@ private fun GuestProductCard(
                     cornerRadius = 0.dp,
                     modifier = Modifier.fillMaxSize(),
                 )
-                // Botón favorito
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
@@ -4523,16 +5079,18 @@ private fun GuestProductCard(
                         .padding(8.dp)
                         .size(36.dp)
                         .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.92f)),
+                        .background(Color.White.copy(alpha = 0.92f))
+                        .clickable(onClick = onGuestRestrictedAction),
                 ) {
-                    RfIcon(kind = RfIconKind.HEART, tint = RfThemeState.currentPalette.ink, size = 18.dp)
+                    val heartTint = if (isFavorite) Color(0xFFE04FAF) else RfThemeState.currentPalette.ink
+                    RfIcon(kind = RfIconKind.HEART, tint = heartTint, filled = isFavorite, size = 18.dp)
                 }
             }
 
             Column(modifier = Modifier.padding(start = 14.dp, end = 12.dp, top = 12.dp, bottom = 12.dp)) {
-                BasicText(title, maxLines = 1, style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2E324A)))
+                BasicText(title, maxLines = 1, overflow = TextOverflow.Ellipsis, style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = RfThemeState.currentPalette.ink))
                 Spacer(Modifier.height(3.dp))
-                BasicText(desc, maxLines = 1, style = typo.secondary.copy(fontSize = 13.sp, color = Color(0xFF5F6377)))
+                BasicText(desc, maxLines = 1, overflow = TextOverflow.Ellipsis, style = typo.secondary.copy(fontSize = 13.sp, color = RfThemeState.currentPalette.muted))
                 Spacer(Modifier.height(8.dp))
 
                 Row(
@@ -4541,8 +5099,8 @@ private fun GuestProductCard(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Row(verticalAlignment = Alignment.Bottom) {
-                        BasicText(price, style = typo.heroTitle.copy(fontSize = 19.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E324A)))
-                        BasicText(" /día", style = typo.secondary.copy(fontSize = 12.sp, color = Color(0xFF5F6377)))
+                        BasicText(price, style = typo.heroTitle.copy(fontSize = 19.sp, fontWeight = FontWeight.Bold, color = RfThemeState.currentPalette.ink))
+                        BasicText(" /día", style = typo.secondary.copy(fontSize = 12.sp, color = RfThemeState.currentPalette.muted))
                     }
 
                     Box(
@@ -4552,7 +5110,8 @@ private fun GuestProductCard(
                             .clip(CircleShape)
                             .background(
                                 Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))),
-                            ),
+                            )
+                            .clickable(onClick = onGuestRestrictedAction),
                     ) {
                         RfIcon(kind = RfIconKind.PLUS, tint = Color.White, size = 18.dp)
                     }
@@ -4572,6 +5131,11 @@ internal fun RenderGuestFavoritesS02(
     onSelectScreenCode: (String) -> Unit,
 ) {
     val typo = LocalRfTypography.current
+    val favoriteIds = viewModel?.favorites?.collectAsState()?.value ?: emptySet()
+    val allArticles = viewModel?.articles?.collectAsState()?.value ?: CanonicalSampleData.articles
+    val favoritedArticles = remember(favoriteIds, allArticles) {
+        allArticles.filter { article -> favoriteIds.contains(article.id) }
+    }
 
     Column(
         modifier = Modifier
@@ -4590,7 +5154,6 @@ internal fun RenderGuestFavoritesS02(
 
         Spacer(Modifier.height(20.dp))
 
-        // Banner para iniciar sesión (diseño oficial: fondo #EFE8FD, radio 20 dp, icono usuario blanco)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -4618,7 +5181,7 @@ internal fun RenderGuestFavoritesS02(
                 }
 
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
                     modifier = Modifier.weight(1f),
                 ) {
                     BasicText(
@@ -4631,95 +5194,151 @@ internal fun RenderGuestFavoritesS02(
                     )
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        modifier = Modifier
-                            .height(28.dp)
-                            .clickable { onSelectScreenCode("s07") },
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
                     ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier = Modifier
+                                .height(28.dp)
+                                .clickable { onSelectScreenCode("s07") },
+                        ) {
+                            BasicText(
+                                text = "Iniciar sesión",
+                                style = typo.body.copy(
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF7A4FD8),
+                                ),
+                            )
+                            RfIcon(
+                                kind = RfIconKind.CHEVRON_RIGHT,
+                                tint = Color(0xFF7A4FD8),
+                                size = 16.dp,
+                            )
+                        }
                         BasicText(
-                            text = "Iniciar sesión",
+                            text = "Crear cuenta",
                             style = typo.body.copy(
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFF7A4FD8),
+                                color = Color(0xFFD63F98),
+                                textDecoration = TextDecoration.Underline,
                             ),
-                        )
-                        RfIcon(
-                            kind = RfIconKind.CHEVRON_RIGHT,
-                            tint = Color(0xFF7A4FD8),
-                            size = 16.dp,
+                            modifier = Modifier.clickable { onSelectScreenCode("s08") },
                         )
                     }
                 }
             }
         }
 
-        Spacer(Modifier.height(64.dp))
-
-        // Estado vacío ilustrado con órbita estelar
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp),
-        ) {
-            HeartOrbitIllustration(
-                modifier = Modifier.size(190.dp),
-            )
-
-            Spacer(Modifier.height(8.dp))
-
+        if (favoritedArticles.isNotEmpty()) {
+            Spacer(Modifier.height(18.dp))
             BasicText(
-                text = "Aún no tienes favoritos",
-                style = typo.heroTitle.copy(
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = RfThemeState.currentPalette.ink,
-                ),
+                text = "${favoritedArticles.size} guardados",
+                style = typo.secondary.copy(fontSize = 14.sp, color = RfThemeState.currentPalette.muted),
             )
-
-            Spacer(Modifier.height(8.dp))
-
-            BasicText(
-                text = "Toca el corazón en cualquier artículo y lo guardamos aquí para más tarde.",
-                style = typo.body.copy(
-                    fontSize = 15.sp,
-                    lineHeight = 22.5.sp,
-                    color = RfThemeState.currentPalette.muted,
-                    textAlign = TextAlign.Center,
-                ),
-            )
-
             Spacer(Modifier.height(12.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                favoritedArticles.chunked(2).forEachIndexed { rowIndex, rowItems ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                        rowItems.forEachIndexed { columnIndex, article ->
+                            val cardBg = when ((rowIndex * 2 + columnIndex) % 4) {
+                                0 -> Color(0xFFEFE8FD)
+                                1 -> Color(0xFFFDE6F2)
+                                2 -> Color(0xFFEEF6D6)
+                                else -> Color(0xFFFFF2C9)
+                            }
+                            GuestProductCard(
+                                title = article.name,
+                                desc = article.description,
+                                price = "RD$ ${article.pricePerDayDop}",
+                                photoKey = article.photo.toPhotoKey(),
+                                bg = cardBg,
+                                isFavorite = true,
+                                onCardClick = {
+                                    viewModel?.selectArticle(article.id)
+                                    onSelectScreenCode("s19")
+                                },
+                                onGuestRestrictedAction = {
+                                    viewModel?.toggleFavorite(article.id)
+                                },
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                        if (rowItems.size == 1) {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
+                    }
+                }
+            }
+        } else {
+            Spacer(Modifier.height(64.dp))
 
-            Box(
-                contentAlignment = Alignment.Center,
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
-                    .width(220.dp)
-                    .height(54.dp)
-                    .shadow(elevation = 2.dp, shape = RoundedCornerShape(16.dp), spotColor = Color(0x667850A0))
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(RfThemeState.currentPalette.surface)
-                    .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(16.dp))
-                    .clickable { onSelectScreenCode("s01") },
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                HeartOrbitIllustration(
+                    modifier = Modifier.size(190.dp),
+                )
+
+                Spacer(Modifier.height(8.dp))
+
+                BasicText(
+                    text = "Aún no tienes favoritos",
+                    style = typo.heroTitle.copy(
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = RfThemeState.currentPalette.ink,
+                    ),
+                )
+
+                Spacer(Modifier.height(8.dp))
+
+                BasicText(
+                    text = "Toca el corazón en cualquier artículo y lo guardamos aquí para más tarde.",
+                    style = typo.body.copy(
+                        fontSize = 15.sp,
+                        lineHeight = 22.5.sp,
+                        color = RfThemeState.currentPalette.muted,
+                        textAlign = TextAlign.Center,
+                    ),
+                )
+
+                Spacer(Modifier.height(12.dp))
+
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .width(220.dp)
+                        .height(54.dp)
+                        .shadow(elevation = 2.dp, shape = RoundedCornerShape(16.dp), spotColor = Color(0x667850A0))
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(RfThemeState.currentPalette.surface)
+                        .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(16.dp))
+                        .clickable { onSelectScreenCode("s01") },
                 ) {
-                    RfIcon(
-                        kind = RfIconKind.CATALOG,
-                        tint = RfThemeState.currentPalette.ink,
-                        size = 20.dp,
-                    )
-                    BasicText(
-                        text = "Explorar catálogo",
-                        style = typo.body.copy(
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = RfThemeState.currentPalette.ink,
-                        ),
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        RfIcon(
+                            kind = RfIconKind.CATALOG,
+                            tint = RfThemeState.currentPalette.ink,
+                            size = 20.dp,
+                        )
+                        BasicText(
+                            text = "Explorar catálogo",
+                            style = typo.body.copy(
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = RfThemeState.currentPalette.ink,
+                            ),
+                        )
+                    }
                 }
             }
         }

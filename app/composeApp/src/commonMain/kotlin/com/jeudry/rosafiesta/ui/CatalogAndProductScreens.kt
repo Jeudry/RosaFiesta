@@ -1,5 +1,6 @@
 package com.jeudry.rosafiesta.ui
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -48,6 +49,8 @@ import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -67,7 +70,10 @@ import com.jeudry.rosafiesta.designsystem.rfHeroBannerShadow
 import com.jeudry.rosafiesta.designsystem.rfIconButtonShadow
 import com.jeudry.rosafiesta.designsystem.rfInputShadow
 import com.jeudry.rosafiesta.designsystem.rfPrimaryButtonShadow
+import com.jeudry.rosafiesta.domain.BalloonProduct
 import com.jeudry.rosafiesta.domain.CanonicalSampleData
+import com.jeudry.rosafiesta.domain.CatalogArticle
+import com.jeudry.rosafiesta.domain.EventPackage
 
 // ==============================================================================
 // s18 · CATÁLOGO (APP PERSONAL)
@@ -81,30 +87,53 @@ internal fun RenderPersonalCatalogS18(
     val typo = LocalRfTypography.current
     val articlesState = viewModel?.articles?.collectAsState()?.value ?: CanonicalSampleData.articles
     val draftQuantitiesState = viewModel?.draftQuantities?.collectAsState()?.value ?: emptyMap()
-    val totalDraftCount = draftQuantitiesState.values.sum()
+    val totalDraftCount = remember(draftQuantitiesState, viewModel) {
+        viewModel?.totalDraftCartUnits() ?: draftQuantitiesState.values.sum()
+    }
     val vmCategory = viewModel?.selectedCategory?.collectAsState()?.value ?: "Todas"
-
-    val validCategories = remember { listOf("Todas", "Iluminación", "Floral", "Globos", "Mobiliario", "Mesa dulce") }
     var selectedCategory by remember(vmCategory) {
-        mutableStateOf(if (vmCategory in validCategories) vmCategory else "Todas")
+        mutableStateOf(vmCategory.ifBlank { "Todas" })
     }
     val vmQuery = viewModel?.searchQuery?.collectAsState()?.value ?: ""
     var searchQuery by remember(vmQuery) { mutableStateOf(vmQuery) }
-    val favoritesSet = viewModel?.favorites?.collectAsState()?.value ?: setOf("art-silla-tiffany", "art-mesa-redonda")
+    val observedMaxPrice = viewModel?.maxPriceFilterDop?.collectAsState()?.value ?: Int.MAX_VALUE
+    val observedOnlyAvailable = viewModel?.onlyAvailableFilter?.collectAsState()?.value ?: false
+    val observedSortOrder = viewModel?.searchSortOrder?.collectAsState()?.value ?: "Más populares"
+    val favoritesSet = viewModel?.favorites?.collectAsState()?.value ?: emptySet()
     val isInlineVoiceListening = viewModel?.isVoiceListening?.collectAsState()?.value ?: false
     val voiceOrigin = viewModel?.voiceInputOrigin?.collectAsState()?.value ?: VoiceInputOrigin.NONE
     val isSearchMicActive = if (isInlineVoiceListening) voiceOrigin == VoiceInputOrigin.SEARCH else false
 
-    val filteredArticles = remember(articlesState, selectedCategory, searchQuery) {
-        articlesState.filter { article ->
-            val isAllSelected = selectedCategory.startsWith("Todas")
-            val matchesCategoryName = article.category.equals(selectedCategory, ignoreCase = true)
-            val matchesCategory = listOf(isAllSelected, matchesCategoryName).any { matched -> matched }
-            val queryBlank = searchQuery.isBlank()
-            val matchesName = article.name.contains(searchQuery, ignoreCase = true)
-            val matchesDescription = article.description.contains(searchQuery, ignoreCase = true)
-            val matchesSearch = listOf(queryBlank, matchesName, matchesDescription).any { matched -> matched }
-            listOf(matchesCategory, matchesSearch).all { matched -> matched }
+    val visibleArticlesCount = remember(articlesState) {
+        articlesState.count { article -> article.visibleInCatalog }
+    }
+
+    val filteredArticles: List<CatalogArticle> = remember(
+        articlesState,
+        selectedCategory,
+        searchQuery,
+        observedMaxPrice,
+        observedOnlyAvailable,
+        observedSortOrder,
+        viewModel,
+    ) {
+        if (viewModel != null) {
+            viewModel.filteredCatalogArticles(
+                categoryOverride = selectedCategory,
+                queryOverride = searchQuery,
+            )
+        } else {
+            articlesState.filter { article ->
+                val isVisible = article.visibleInCatalog
+                val isAllSelected = selectedCategory.startsWith("Todas")
+                val matchesCategoryName = article.category.equals(selectedCategory, ignoreCase = true)
+                val matchesCategory = listOf(isAllSelected, matchesCategoryName).any { matched -> matched }
+                val queryBlank = searchQuery.isBlank()
+                val matchesName = article.name.contains(searchQuery, ignoreCase = true)
+                val matchesDescription = article.description.contains(searchQuery, ignoreCase = true)
+                val matchesSearch = listOf(queryBlank, matchesName, matchesDescription).any { matched -> matched }
+                listOf(isVisible, matchesCategory, matchesSearch).all { matched -> matched }
+            }
         }
     }
 
@@ -120,10 +149,10 @@ internal fun RenderPersonalCatalogS18(
         ) {
             BasicText(
                 text = "Catálogo",
-                style = typo.heroTitle.copy(fontSize = 26.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E324A)),
+                style = typo.heroTitle.copy(fontSize = 26.sp, fontWeight = FontWeight.Bold, color = RfThemeState.currentPalette.ink),
             )
 
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
@@ -131,10 +160,23 @@ internal fun RenderPersonalCatalogS18(
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(RfThemeState.currentPalette.surface)
-                        .border(1.dp, Color(0xFFECECF5), CircleShape)
+                        .border(1.dp, RfThemeState.currentPalette.line, CircleShape)
+                        .clickable { onSelectScreenCode("s81") },
+                ) {
+                    RfIcon(kind = RfIconKind.FILTER, tint = RfThemeState.currentPalette.ink, size = 20.dp)
+                }
+
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(44.dp)
+                        .rfIconButtonShadow(CircleShape, isAdmin = false)
+                        .clip(CircleShape)
+                        .background(RfThemeState.currentPalette.surface)
+                        .border(1.dp, RfThemeState.currentPalette.line, CircleShape)
                         .clickable { onSelectScreenCode("s20") },
                 ) {
-                    RfIcon(kind = RfIconKind.GRID, tint = Color(0xFF151729), size = 20.dp)
+                    RfIcon(kind = RfIconKind.GRID, tint = RfThemeState.currentPalette.ink, size = 20.dp)
                 }
 
                 Box(
@@ -149,23 +191,25 @@ internal fun RenderPersonalCatalogS18(
                             .rfIconButtonShadow(CircleShape, isAdmin = false)
                             .clip(CircleShape)
                             .background(RfThemeState.currentPalette.surface)
-                            .border(1.dp, Color(0xFFECECF5), CircleShape),
+                            .border(1.dp, RfThemeState.currentPalette.line, CircleShape),
                     ) {
-                        RfIcon(kind = RfIconKind.PARTY, tint = Color(0xFF151729), size = 20.dp)
+                        RfIcon(kind = RfIconKind.PARTY, tint = RfThemeState.currentPalette.ink, size = 20.dp)
                     }
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .offset(x = 4.dp, y = (-4).dp)
-                            .size(20.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFFFFD45C)),
-                    ) {
-                        BasicText(
-                            text = if (totalDraftCount > 0) totalDraftCount.toString() else "16",
-                            style = typo.sectionCap.copy(fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF2E1A47)),
-                        )
+                    if (totalDraftCount > 0) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .offset(x = 4.dp, y = (-4).dp)
+                                .size(20.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFFFFD45C)),
+                        ) {
+                            BasicText(
+                                text = totalDraftCount.toString(),
+                                style = typo.sectionCap.copy(fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF2E1A47)),
+                            )
+                        }
                     }
                 }
             }
@@ -194,10 +238,10 @@ internal fun RenderPersonalCatalogS18(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     modifier = Modifier.weight(1f),
                 ) {
-                    RfIcon(kind = RfIconKind.SEARCH, tint = Color(0xFF5F6377), size = 20.dp)
+                    RfIcon(kind = RfIconKind.SEARCH, tint = RfThemeState.currentPalette.muted, size = 20.dp)
                     Box(modifier = Modifier.weight(1f)) {
                         if (searchQuery.isEmpty()) {
-                            BasicText("Buscar sillas, mesas, flores…", style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF5F6377)))
+                            BasicText("Buscar sillas, mesas, flores…", style = typo.body.copy(fontSize = 15.sp, color = RfThemeState.currentPalette.muted))
                         }
                         BasicTextField(
                             value = searchQuery,
@@ -205,7 +249,7 @@ internal fun RenderPersonalCatalogS18(
                                 searchQuery = updatedQuery
                                 viewModel?.setSearchQuery(updatedQuery)
                             },
-                            textStyle = typo.body.copy(fontSize = 15.sp, color = Color(0xFF151729)),
+                            textStyle = typo.body.copy(fontSize = 15.sp, color = RfThemeState.currentPalette.ink),
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
                         )
@@ -250,10 +294,31 @@ internal fun RenderPersonalCatalogS18(
                 .fillMaxWidth()
                 .horizontalScroll(rememberScrollState()),
         ) {
-            val categories = listOf("Todas · ${articlesState.size}", "Iluminación", "Floral", "Globos", "Mobiliario", "Mesa dulce")
+            val baseCategoryChips = listOf(
+                "Todas · $visibleArticlesCount",
+                "Mobiliario",
+                "Decoración",
+                "Centros florales",
+                "Arcos y globos",
+                "Mantelería",
+                "Estaciones dulces",
+                "Iluminación",
+                "Letreros",
+            )
+            val normalizedBaseNames = baseCategoryChips.map { label ->
+                if (label.startsWith("Todas")) "Todas" else label
+            }
+            val isAllCategoryActive = selectedCategory.startsWith("Todas")
+            val isKnownChip = normalizedBaseNames.any { chipName -> chipName.equals(selectedCategory, ignoreCase = true) }
+            val shouldInjectSelectedChip = if (isAllCategoryActive) false else !isKnownChip
+            val categories = if (shouldInjectSelectedChip) {
+                listOf(baseCategoryChips.first(), selectedCategory) + baseCategoryChips.drop(1)
+            } else {
+                baseCategoryChips
+            }
             categories.forEach { categoryLabel ->
                 val cleanCategory = if (categoryLabel.startsWith("Todas")) "Todas" else categoryLabel
-                val exactMatch = selectedCategory == cleanCategory
+                val exactMatch = selectedCategory.equals(cleanCategory, ignoreCase = true)
                 val allPrefixMatch = if (selectedCategory.startsWith("Todas")) cleanCategory == "Todas" else false
                 val isSelected = listOf(exactMatch, allPrefixMatch).any { matched -> matched }
                 Box(
@@ -268,7 +333,7 @@ internal fun RenderPersonalCatalogS18(
                                 SolidColor(RfThemeState.currentPalette.chipBg)
                             },
                         )
-                        .border(1.dp, if (isSelected) Color.Transparent else Color(0xFFE9E9F2), RoundedCornerShape(999.dp))
+                        .border(1.dp, if (isSelected) Color.Transparent else RfThemeState.currentPalette.line, RoundedCornerShape(999.dp))
                         .clickable {
                             viewModel?.soundPlayer?.playTap()
                             selectedCategory = cleanCategory
@@ -281,7 +346,7 @@ internal fun RenderPersonalCatalogS18(
                         style = typo.body.copy(
                             fontSize = 14.sp,
                             fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                            color = if (isSelected) Color.White else Color(0xFF5F6377),
+                            color = if (isSelected) Color.White else RfThemeState.currentPalette.muted,
                         ),
                     )
                 }
@@ -315,69 +380,113 @@ internal fun RenderPersonalCatalogS18(
             verticalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.verticalScroll(rememberScrollState()),
         ) {
-            filteredArticles.chunked(2).forEach { rowPair ->
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                    val first = rowPair[0]
-                    val firstPhoto = RfPhotoKey.entries.firstOrNull { photoEntry ->
-                        val matchesAsset = photoEntry.assetKey == first.photo.key
-                        val matchesName = photoEntry.name.equals(first.photo.key, ignoreCase = true)
-                        listOf(matchesAsset, matchesName).any { matched -> matched }
-                    } ?: RfPhotoKey.SILLA_TIFFANY
-                    PersonalProductCard(
-                        title = first.name,
-                        desc = first.description,
-                        price = first.pricePerDayDop.toString(),
-                        photoKey = firstPhoto,
-                        bg = Color(0xFFEFE8FD),
-                        initialFavorite = favoritesSet.contains(first.id),
-                        useGradientPrice = true,
-                        onOpenDetail = {
-                            viewModel?.soundPlayer?.playTap()
-                            viewModel?.selectArticle(first.id)
-                            onSelectScreenCode("s19")
-                        },
-                        onAddClick = {
-                            viewModel?.soundPlayer?.playTap()
-                            viewModel?.adjustDraftQuantity(first.id, 1)
-                        },
-                        onToggleFavorite = {
-                            viewModel?.soundPlayer?.playTap()
-                            viewModel?.toggleFavorite(first.id)
-                        },
-                        modifier = Modifier.weight(1f),
+            if (filteredArticles.isEmpty()) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(RfThemeState.currentPalette.surface)
+                        .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(20.dp))
+                        .padding(horizontal = 20.dp, vertical = 28.dp),
+                ) {
+                    RfIcon(kind = RfIconKind.SEARCH, tint = RfThemeState.currentPalette.muted, size = 28.dp)
+                    BasicText(
+                        text = "No hay artículos que coincidan con tus filtros",
+                        style = typo.heroTitle.copy(
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = RfThemeState.currentPalette.ink,
+                            textAlign = TextAlign.Center,
+                        ),
                     )
-                    if (rowPair.size > 1) {
-                        val second = rowPair[1]
-                        val secondPhoto = RfPhotoKey.entries.firstOrNull { photoEntry ->
-                            val matchesAsset = photoEntry.assetKey == second.photo.key
-                            val matchesName = photoEntry.name.equals(second.photo.key, ignoreCase = true)
-                            listOf(matchesAsset, matchesName).any { matched -> matched }
-                        } ?: RfPhotoKey.SILLA_TIFFANY
+                    BasicText(
+                        text = "Restablece la categoría, el precio o la búsqueda para explorar todo el catálogo.",
+                        style = typo.secondary.copy(
+                            fontSize = 13.5.sp,
+                            color = RfThemeState.currentPalette.muted,
+                            textAlign = TextAlign.Center,
+                        ),
+                    )
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .height(44.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(Brush.horizontalGradient(listOf(Color(0xFFE04FAF), Color(0xFF865DEC))))
+                            .clickable {
+                                selectedCategory = "Todas"
+                                searchQuery = ""
+                                viewModel?.resetCatalogFilters()
+                                viewModel?.setSearchQuery("")
+                            }
+                            .padding(horizontal = 18.dp),
+                    ) {
+                        BasicText(
+                            text = "Restablecer filtros",
+                            style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White),
+                        )
+                    }
+                }
+            } else {
+                filteredArticles.chunked(2).forEach { rowPair ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                        val first = rowPair[0]
+                        val firstPhoto = first.photo.toPhotoKey()
                         PersonalProductCard(
-                            title = second.name,
-                            desc = second.description,
-                            price = second.pricePerDayDop.toString(),
-                            photoKey = secondPhoto,
-                            bg = Color(0xFFEEF6D6),
-                            initialFavorite = favoritesSet.contains(second.id),
+                            title = first.name,
+                            desc = first.description,
+                            price = first.pricePerDayDop.toString(),
+                            photoKey = firstPhoto,
+                            bg = Color(0xFFEFE8FD),
+                            initialFavorite = favoritesSet.contains(first.id),
                             useGradientPrice = true,
                             onOpenDetail = {
                                 viewModel?.soundPlayer?.playTap()
-                                viewModel?.selectArticle(second.id)
+                                viewModel?.selectArticle(first.id)
                                 onSelectScreenCode("s19")
                             },
                             onAddClick = {
                                 viewModel?.soundPlayer?.playTap()
-                                viewModel?.adjustDraftQuantity(second.id, 1)
+                                viewModel?.adjustDraftQuantity(first.id, 1)
                             },
                             onToggleFavorite = {
                                 viewModel?.soundPlayer?.playTap()
-                                viewModel?.toggleFavorite(second.id)
+                                viewModel?.toggleFavorite(first.id)
                             },
                             modifier = Modifier.weight(1f),
                         )
-                    } else {
-                        Spacer(Modifier.weight(1f))
+                        if (rowPair.size > 1) {
+                            val second = rowPair[1]
+                            val secondPhoto = second.photo.toPhotoKey()
+                            PersonalProductCard(
+                                title = second.name,
+                                desc = second.description,
+                                price = second.pricePerDayDop.toString(),
+                                photoKey = secondPhoto,
+                                bg = Color(0xFFEEF6D6),
+                                initialFavorite = favoritesSet.contains(second.id),
+                                useGradientPrice = true,
+                                onOpenDetail = {
+                                    viewModel?.soundPlayer?.playTap()
+                                    viewModel?.selectArticle(second.id)
+                                    onSelectScreenCode("s19")
+                                },
+                                onAddClick = {
+                                    viewModel?.soundPlayer?.playTap()
+                                    viewModel?.adjustDraftQuantity(second.id, 1)
+                                },
+                                onToggleFavorite = {
+                                    viewModel?.soundPlayer?.playTap()
+                                    viewModel?.toggleFavorite(second.id)
+                                },
+                                modifier = Modifier.weight(1f),
+                            )
+                        } else {
+                            Spacer(Modifier.weight(1f))
+                        }
                     }
                 }
             }
@@ -522,21 +631,37 @@ internal fun RenderProductDetailS19(
     val typo = LocalRfTypography.current
     val selectedArticleId = viewModel?.selectedArticleId?.collectAsState()?.value ?: "art-silla-tiffany"
     val articlesState = viewModel?.articles?.collectAsState()?.value ?: CanonicalSampleData.articles
-    val currentArticle = articlesState.firstOrNull { it.id == selectedArticleId } ?: articlesState.first()
+    val currentArticle = articlesState.firstOrNull { article -> article.id == selectedArticleId } ?: articlesState.first()
     val draftQuantities = viewModel?.draftQuantities?.collectAsState()?.value ?: emptyMap()
-    val initialCount = (draftQuantities[currentArticle.id] ?: 80).coerceAtLeast(1)
+    val maxAvailableUnits = currentArticle.availableOct23.coerceAtLeast(1)
+    val initialDraftCount = draftQuantities[currentArticle.id] ?: 1
+    val initialCount = initialDraftCount.coerceIn(1, maxAvailableUnits)
 
-    var count by remember(currentArticle.id) { mutableStateOf(initialCount) }
-    var selectedColor by remember { mutableStateOf("Transparente") }
+    val persistedVariants = viewModel?.selectedArticleVariantColors?.collectAsState()?.value ?: emptyMap()
+    val variantOptions = remember(currentArticle.id, currentArticle.variants) {
+        currentArticle.variants.ifEmpty { listOf("Estándar") }
+    }
+    val persistedVariantForArticle = persistedVariants[currentArticle.id]
+    var selectedColor by remember(currentArticle.id, persistedVariantForArticle) {
+        mutableStateOf(persistedVariantForArticle ?: variantOptions.first())
+    }
+    var count by remember(currentArticle.id, maxAvailableUnits) { mutableStateOf(initialCount) }
     var selectedTab by remember { mutableStateOf("Descripción") }
 
-    val primaryPhoto = RfPhotoKey.entries.firstOrNull { entry ->
-        val matchesAsset = entry.assetKey == currentArticle.photo.key
-        val matchesName = entry.name.equals(currentArticle.photo.key, ignoreCase = true)
-        matchesAsset || matchesName
-    } ?: RfPhotoKey.SILLA_TIFFANY
-    val galleryPhotos = remember(primaryPhoto) {
-        listOf(primaryPhoto, RfPhotoKey.MESA_REDONDA, RfPhotoKey.CENTRO_FLORAL)
+    val companyReviews = viewModel?.companyReviews?.collectAsState()?.value.orEmpty()
+    val domainReviews = viewModel?.reviews?.collectAsState()?.value ?: CanonicalSampleData.reviews
+    val averageRatingLabel = remember(companyReviews, domainReviews, viewModel) {
+        viewModel?.companyAverageRatingFormatted() ?: "4.9"
+    }
+    val totalReviewCount = if (companyReviews.isNotEmpty()) companyReviews.size else domainReviews.size
+
+    val primaryPhoto = currentArticle.photo.toPhotoKey()
+    val galleryPhotos = remember(primaryPhoto, articlesState, currentArticle.category) {
+        val relatedPhotos = articlesState
+            .filter { candidate -> candidate.category.equals(currentArticle.category, ignoreCase = true) }
+            .map { candidate -> candidate.photo.toPhotoKey() }
+        val fallbackPhotos = articlesState.map { candidate -> candidate.photo.toPhotoKey() }
+        (listOf(primaryPhoto) + relatedPhotos + fallbackPhotos).distinct().take(3)
     }
     var selectedPhotoIndex by remember(currentArticle.id) { mutableStateOf(0) }
     val activeHeroPhoto = galleryPhotos.getOrElse(selectedPhotoIndex) { primaryPhoto }
@@ -611,15 +736,17 @@ internal fun RenderProductDetailS19(
                             )
                         }
                     }
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .size(50.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(RfThemeState.currentPalette.surface)
-                            .clickable { selectedPhotoIndex = (selectedPhotoIndex + 1) % galleryPhotos.size },
-                    ) {
-                        BasicText("+3", style = typo.body.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = RfThemeState.currentPalette.muted))
+                    if (galleryPhotos.size > 1) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .size(50.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(RfThemeState.currentPalette.surface)
+                                .clickable { selectedPhotoIndex = (selectedPhotoIndex + 1) % galleryPhotos.size },
+                        ) {
+                            BasicText("+${galleryPhotos.size}", style = typo.body.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = RfThemeState.currentPalette.muted))
+                        }
                     }
                 }
             }
@@ -650,7 +777,7 @@ internal fun RenderProductDetailS19(
                     Column(modifier = Modifier.weight(1f)) {
                         BasicText(
                             currentArticle.name,
-                            style = typo.heroTitle.copy(fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729)),
+                            style = typo.heroTitle.copy(fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = RfThemeState.currentPalette.ink),
                         )
                         Spacer(Modifier.height(6.dp))
                         Row(
@@ -661,11 +788,12 @@ internal fun RenderProductDetailS19(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(999.dp))
                                     .background(Color(0xFFFFF2C9))
+                                    .clickable { onSelectScreenCode("s17") }
                                     .padding(horizontal = 10.dp, vertical = 4.dp),
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    BasicText("★ 5.0", style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF7A5700)))
-                                    BasicText("12 reseñas", style = typo.secondary.copy(fontSize = 13.sp, color = Color(0xFF7A5700)))
+                                    BasicText("★ $averageRatingLabel", style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF7A5700)))
+                                    BasicText("$totalReviewCount reseñas", style = typo.secondary.copy(fontSize = 13.sp, color = Color(0xFF7A5700)))
                                 }
                             }
                             Box(
@@ -693,34 +821,59 @@ internal fun RenderProductDetailS19(
 
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row {
-                        BasicText("Color: ", style = typo.body.copy(fontSize = 14.sp, color = Color(0xFF5F6377)))
-                        BasicText(selectedColor, style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF151729)))
+                        BasicText("Variante: ", style = typo.body.copy(fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
+                        BasicText(selectedColor, style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = RfThemeState.currentPalette.ink))
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        val colors = listOf("Transparente" to Color(0xFF7C5CF0), "Rosa" to Color(0xFFEA4EA9), "Verde" to Color(0xFFA9CC3A), "Dorado" to Color(0xFFF0B92E))
-                        colors.forEach { (colorName, colorValue) ->
-                            val isSel = colorName == selectedColor
-                            val isSelectedTransparent = if (isSel) colorName == "Transparente" else false
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    ) {
+                        variantOptions.forEachIndexed { variantIndex, variantLabel ->
+                            val isSel = variantLabel == selectedColor
+                            val accentColor = when (variantIndex % 4) {
+                                0 -> Color(0xFF7C5CF0)
+                                1 -> Color(0xFFEA4EA9)
+                                2 -> Color(0xFFA9CC3A)
+                                else -> Color(0xFFF0B92E)
+                            }
                             val gradDiag = Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)))
                             Box(
                                 contentAlignment = Alignment.Center,
                                 modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(CircleShape)
+                                    .height(38.dp)
+                                    .clip(RoundedCornerShape(999.dp))
                                     .background(
-                                        if (isSelectedTransparent) {
+                                        if (isSel) {
                                             gradDiag
-                                        } else if (isSel) {
-                                            SolidColor(colorValue)
                                         } else {
-                                            SolidColor(Color.White)
+                                            SolidColor(RfThemeState.currentPalette.chipBg)
                                         },
                                     )
-                                    .border(2.5.dp, colorValue, CircleShape)
-                                    .clickable { selectedColor = colorName },
+                                    .border(
+                                        width = if (isSel) 0.dp else 1.5.dp,
+                                        color = if (isSel) Color.Transparent else accentColor.copy(alpha = 0.65f),
+                                        shape = RoundedCornerShape(999.dp),
+                                    )
+                                    .clickable {
+                                        selectedColor = variantLabel
+                                        viewModel?.setArticleColorVariant(currentArticle.id, variantLabel)
+                                    }
+                                    .padding(horizontal = 14.dp),
                             ) {
-                                if (isSel) {
-                                    RfIcon(kind = RfIconKind.CHECK, tint = Color.White, size = 18.dp)
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    if (isSel) {
+                                        RfIcon(kind = RfIconKind.CHECK, tint = Color.White, size = 14.dp)
+                                    } else {
+                                        Box(Modifier.size(8.dp).clip(CircleShape).background(accentColor))
+                                    }
+                                    BasicText(
+                                        text = variantLabel,
+                                        style = typo.body.copy(
+                                            fontSize = 13.5.sp,
+                                            fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium,
+                                            color = if (isSel) Color.White else RfThemeState.currentPalette.ink,
+                                        ),
+                                    )
                                 }
                             }
                         }
@@ -758,7 +911,7 @@ internal fun RenderProductDetailS19(
                                     style = typo.body.copy(
                                         fontSize = 14.sp,
                                         fontWeight = if (isSel) FontWeight.Medium else FontWeight.Normal,
-                                        color = if (isSel) Color.White else Color(0xFF5F6377),
+                                        color = if (isSel) Color.White else RfThemeState.currentPalette.muted,
                                     ),
                                 )
                             }
@@ -774,47 +927,73 @@ internal fun RenderProductDetailS19(
                                 "Categoría" to currentArticle.category,
                                 "Stock total en almacén" to "${currentArticle.totalStock} unidades",
                                 "Disponibles para el 23 oct" to "${currentArticle.availableOct23} unidades",
-                                "Material y acabado" to "Resina reforzada UV · Cojín impermeable incluido",
-                                "Dimensiones" to "92 cm alto × 40 cm ancho × 42 cm fondo",
+                                "Material y acabado" to currentArticle.material,
+                                "Dimensiones" to currentArticle.dimensions,
                                 "Incluye montaje" to "Sí, transporte e instalación por el equipo Rosa Fiesta",
                             ).forEach { (specLabel, specValue) ->
                                 Row(
                                     horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clip(RoundedCornerShape(12.dp))
-                                        .background(Color(0xFFF9F7FC))
+                                        .background(RfThemeState.currentPalette.chipBg)
                                         .padding(horizontal = 14.dp, vertical = 10.dp),
                                 ) {
-                                    BasicText(specLabel, style = typo.body.copy(fontSize = 13.5.sp, color = RfThemeState.currentPalette.muted))
-                                    BasicText(specValue, style = typo.body.copy(fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF151729)))
+                                    BasicText(specLabel, style = typo.body.copy(fontSize = 13.5.sp, color = RfThemeState.currentPalette.muted), modifier = Modifier.weight(0.45f))
+                                    BasicText(
+                                        specValue,
+                                        style = typo.body.copy(fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = RfThemeState.currentPalette.ink, textAlign = TextAlign.End),
+                                        modifier = Modifier.weight(0.55f),
+                                    )
                                 }
                             }
                         }
                     }
 
                     "Reseñas" -> {
+                        val displayReviews: List<Triple<String, String, String>> = if (companyReviews.isNotEmpty()) {
+                            companyReviews.take(4).map { reviewModel ->
+                                val starsLabel = "★".repeat(reviewModel.rating.coerceIn(1, 5))
+                                Triple(reviewModel.author, "$starsLabel · ${reviewModel.dateLabel}", reviewModel.comment)
+                            }
+                        } else {
+                            domainReviews.take(4).map { reviewRecord ->
+                                val starsLabel = "★".repeat(reviewRecord.rating.coerceIn(1, 5))
+                                Triple(reviewRecord.authorName, "$starsLabel · ${reviewRecord.eventTitle}", reviewRecord.comment)
+                            }
+                        }
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            listOf(
-                                Triple("Camila Rodríguez", "★★★★★ · Boda Real", "Llegaron impecables y con los cojines blancos nuevos. El montaje estuvo listo 2 horas antes."),
-                                Triple("Valentina Mejía", "★★★★★ · Quinceañera", "El acabado $selectedColor se vio espectacular con la iluminación cálida del salón."),
-                                Triple("Laura Peña", "★★★★★ · Evento Corporativo", "Muy cómodas y resistentes, pedimos 120 unidades y todas estaban en perfecto estado."),
-                            ).forEach { (authorName, ratingMeta, reviewComment) ->
+                            displayReviews.forEach { (authorName, ratingMeta, reviewComment) ->
                                 Column(
                                     verticalArrangement = Arrangement.spacedBy(4.dp),
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clip(RoundedCornerShape(14.dp))
-                                        .background(Color(0xFFF9F7FC))
-                                        .border(1.dp, Color(0xFFEEE9F5), RoundedCornerShape(14.dp))
+                                        .background(RfThemeState.currentPalette.chipBg)
+                                        .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(14.dp))
                                         .padding(14.dp),
                                 ) {
                                     Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                                        BasicText(authorName, style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF151729)))
+                                        BasicText(authorName, style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = RfThemeState.currentPalette.ink))
                                         BasicText(ratingMeta, style = typo.caption.copy(fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF7A5700)))
                                     }
-                                    BasicText(reviewComment, style = typo.body.copy(fontSize = 13.5.sp, color = Color(0xFF5F6377), lineHeight = 19.sp))
+                                    BasicText(reviewComment, style = typo.body.copy(fontSize = 13.5.sp, color = RfThemeState.currentPalette.muted, lineHeight = 19.sp))
                                 }
+                            }
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(42.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(Color(0xFFFDE6F2))
+                                    .clickable { onSelectScreenCode("s17") },
+                            ) {
+                                BasicText(
+                                    text = "Ver todas las reseñas ($totalReviewCount) →",
+                                    style = typo.body.copy(fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFFC2338F)),
+                                )
                             }
                         }
                     }
@@ -822,24 +1001,24 @@ internal fun RenderProductDetailS19(
                     else -> {
                         BasicText(
                             text = currentArticle.description,
-                            style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF5F6377), lineHeight = 22.sp),
+                            style = typo.body.copy(fontSize = 15.sp, color = RfThemeState.currentPalette.muted, lineHeight = 22.sp),
                         )
                         Column(
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(16.dp))
-                                .background(Color(0xFFF9F7FC))
-                                .border(1.dp, Color(0xFFEEE9F5), RoundedCornerShape(16.dp))
+                                .background(RfThemeState.currentPalette.chipBg)
+                                .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(16.dp))
                                 .padding(14.dp),
                         ) {
                             BasicText(
                                 "Especificaciones destacadas",
-                                style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF151729)),
+                                style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = RfThemeState.currentPalette.ink),
                             )
                             BasicText(
-                                "• Acabado seleccionado: $selectedColor (${currentArticle.code})\n• Cojín acolchado blanco marfil desmontable e impermeable\n• Limpieza y desinfección certificada antes de cada entrega\n• Garantía de reposición inmediata incluida en tu reserva",
-                                style = typo.body.copy(fontSize = 13.5.sp, color = Color(0xFF5F6377), lineHeight = 20.sp),
+                                "• Variante seleccionada: $selectedColor (${currentArticle.code})\n• Material: ${currentArticle.material}\n• Dimensiones: ${currentArticle.dimensions}\n• Limpieza certificada y garantía de reposición incluida",
+                                style = typo.body.copy(fontSize = 13.5.sp, color = RfThemeState.currentPalette.muted, lineHeight = 20.sp),
                             )
                         }
                     }
@@ -865,7 +1044,7 @@ internal fun RenderProductDetailS19(
                     .background(RfThemeState.currentPalette.surface)
                     .clickable { onSelectScreenCode("BACK:s18") },
             ) {
-                RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF151729), size = 20.dp)
+                RfIcon(kind = RfIconKind.BACK, tint = RfThemeState.currentPalette.ink, size = 20.dp)
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -875,12 +1054,18 @@ internal fun RenderProductDetailS19(
                         .size(44.dp)
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
-                        .background(RfThemeState.currentPalette.surface),
+                        .background(RfThemeState.currentPalette.surface)
+                        .clickable {
+                            viewModel?.sharePlainText(
+                                title = currentArticle.name,
+                                text = "${currentArticle.name} (${currentArticle.code}) · RD$ ${currentArticle.pricePerDayDop}/día — ${currentArticle.description}",
+                            )
+                        },
                 ) {
-                    RfIcon(kind = RfIconKind.SHARE, tint = Color(0xFF151729), size = 20.dp)
+                    RfIcon(kind = RfIconKind.SHARE, tint = RfThemeState.currentPalette.ink, size = 20.dp)
                 }
                 val favoritesSet = viewModel?.favorites?.collectAsState()?.value
-                val isArticleFavorite = favoritesSet?.contains(currentArticle.id) ?: true
+                val isArticleFavorite = favoritesSet?.contains(currentArticle.id) ?: false
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
@@ -895,7 +1080,7 @@ internal fun RenderProductDetailS19(
                 ) {
                     RfIcon(
                         kind = RfIconKind.HEART,
-                        tint = if (isArticleFavorite) Color(0xFFEA4EA9) else Color(0xFF151729),
+                        tint = if (isArticleFavorite) Color(0xFFEA4EA9) else RfThemeState.currentPalette.ink,
                         filled = isArticleFavorite,
                         size = 20.dp,
                     )
@@ -917,7 +1102,6 @@ internal fun RenderProductDetailS19(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                // Stepper
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
@@ -931,27 +1115,26 @@ internal fun RenderProductDetailS19(
                             contentAlignment = Alignment.Center,
                             modifier = Modifier
                                 .size(44.dp)
-                                .clickable { if (count > 1) count = (count - 10).coerceAtLeast(1) },
+                                .clickable { count = (count - 1).coerceIn(1, maxAvailableUnits) },
                         ) {
                             BasicText("-", style = typo.heroTitle.copy(fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color(0xFF865DEC)))
                         }
                         BasicText(
                             text = count.toString(),
-                            style = typo.heroTitle.copy(fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729)),
+                            style = typo.heroTitle.copy(fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = RfThemeState.currentPalette.ink),
                             modifier = Modifier.padding(horizontal = 8.dp),
                         )
                         Box(
                             contentAlignment = Alignment.Center,
                             modifier = Modifier
                                 .size(44.dp)
-                                .clickable { count += 10 },
+                                .clickable { count = (count + 1).coerceIn(1, maxAvailableUnits) },
                         ) {
                             BasicText("+", style = typo.heroTitle.copy(fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color(0xFF865DEC)))
                         }
                     }
                 }
 
-                // Botón primario dinámico
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
@@ -961,8 +1144,8 @@ internal fun RenderProductDetailS19(
                         .clip(RoundedCornerShape(16.dp))
                         .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))))
                         .clickable {
-                            val delta = count - (draftQuantities[currentArticle.id] ?: 0)
-                            viewModel?.adjustDraftQuantity(currentArticle.id, delta)
+                            viewModel?.setArticleColorVariant(currentArticle.id, selectedColor)
+                            viewModel?.setDraftQuantity(currentArticle.id, count)
                             viewModel?.soundPlayer?.playCartAdd()
                             onSelectScreenCode("s25")
                         },
@@ -990,6 +1173,49 @@ internal fun RenderCategoriesScreenS20(
     onSelectScreenCode: (String) -> Unit,
 ) {
     val typo = LocalRfTypography.current
+    val articlesState = viewModel?.articles?.collectAsState()?.value ?: CanonicalSampleData.articles
+    val balloonProductsState = viewModel?.balloonProducts?.collectAsState()?.value ?: CanonicalSampleData.balloonProducts
+
+    fun countForCategory(categoryName: String): Int {
+        val visibleArticles = articlesState.filter { article -> article.visibleInCatalog }
+        val lowerCat = categoryName.lowercase()
+        return visibleArticles.count { article ->
+            val articleCategory = article.category.lowercase()
+            val articleName = article.name.lowercase()
+            when {
+                lowerCat.contains("floral") -> articleCategory.contains("floral")
+
+                lowerCat.contains("globo") -> articleCategory.contains("globo")
+
+                lowerCat.contains("dulce") -> articleCategory.contains("dulce")
+
+                lowerCat.contains("estaci") -> articleCategory.contains("dulce")
+
+                lowerCat.contains("decoraci") -> listOf(
+                    articleCategory.contains("floral"),
+                    articleCategory.contains("globo"),
+                    articleCategory.contains("decor"),
+                ).any { matched -> matched }
+
+                lowerCat.contains("mantel") -> listOf(
+                    articleCategory.contains("mantel"),
+                    articleName.contains("mantel"),
+                ).any { matched -> matched }
+
+                lowerCat.contains("iluminaci") -> listOf(
+                    articleCategory.contains("ilumin"),
+                    articleName.contains("luce"),
+                ).any { matched -> matched }
+
+                lowerCat.contains("letrero") -> listOf(
+                    articleCategory.contains("letrero"),
+                    articleName.contains("letrero"),
+                ).any { matched -> matched }
+
+                else -> articleCategory.equals(lowerCat, ignoreCase = true)
+            }
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -1008,7 +1234,6 @@ internal fun RenderCategoriesScreenS20(
                 .padding(top = 16.dp, start = 20.dp, end = 20.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
-            // Header: back + title + subtitle
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
@@ -1037,52 +1262,99 @@ internal fun RenderCategoriesScreenS20(
                 }
             }
 
-            // Grid 2x4 — conectado reactivamente al ViewModel
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                    CategoryGridCard("Iluminación", Color(0xFFDDF4F3), CategoryIllustration.ILUMINACION, Modifier.weight(1f)) {
-                        viewModel?.setSelectedCategory("Iluminación")
+                    CategoryGridCard(
+                        title = "Mobiliario",
+                        subtitle = "${countForCategory("Mobiliario")} artículos",
+                        bg = Color(0xFFFFF2C9),
+                        illustration = CategoryIllustration.MOBILIARIO,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        viewModel?.setSelectedCategory("Mobiliario")
                         viewModel?.soundPlayer?.playTap()
                         onSelectScreenCode("s18")
                     }
-                    CategoryGridCard("Floral", Color(0xFFFDE6F2), CategoryIllustration.FLORAL, Modifier.weight(1f)) {
-                        viewModel?.setSelectedCategory("Floral")
+                    CategoryGridCard(
+                        title = "Centros florales",
+                        subtitle = "${countForCategory("Centros florales")} artículos",
+                        bg = Color(0xFFFDE6F2),
+                        illustration = CategoryIllustration.FLORAL,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        viewModel?.setSelectedCategory("Centros florales")
                         viewModel?.soundPlayer?.playTap()
                         onSelectScreenCode("s18")
                     }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                    CategoryGridCard("Globos", Color(0xFFFFF2C9), CategoryIllustration.GLOBOS, Modifier.weight(1f)) {
-                        viewModel?.setSelectedCategory("Globos")
+                    CategoryGridCard(
+                        title = "Globos de fiesta",
+                        subtitle = "${balloonProductsState.size} productos",
+                        bg = Color(0xFFFFF2C9),
+                        illustration = CategoryIllustration.GLOBOS,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        viewModel?.soundPlayer?.playTap()
+                        onSelectScreenCode("s23")
+                    }
+                    CategoryGridCard(
+                        title = "Decoración",
+                        subtitle = "${countForCategory("Decoración")} artículos",
+                        bg = Color(0xFFFDE6F2),
+                        illustration = CategoryIllustration.DECORACION,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        viewModel?.setSelectedCategory("Decoración")
                         viewModel?.soundPlayer?.playTap()
                         onSelectScreenCode("s18")
                     }
-                    CategoryGridCard("Mantelería", Color(0xFFEFE8FD), CategoryIllustration.MANTELERIA, Modifier.weight(1f)) {
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                    CategoryGridCard(
+                        title = "Estaciones dulces",
+                        subtitle = "${countForCategory("Estaciones dulces")} artículos",
+                        bg = Color(0xFFEEF6D6),
+                        illustration = CategoryIllustration.MESA_DULCE,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        viewModel?.setSelectedCategory("Estaciones dulces")
+                        viewModel?.soundPlayer?.playTap()
+                        onSelectScreenCode("s18")
+                    }
+                    CategoryGridCard(
+                        title = "Mantelería",
+                        subtitle = "${countForCategory("Mantelería")} artículos",
+                        bg = Color(0xFFEFE8FD),
+                        illustration = CategoryIllustration.MANTELERIA,
+                        modifier = Modifier.weight(1f),
+                    ) {
                         viewModel?.setSelectedCategory("Mantelería")
                         viewModel?.soundPlayer?.playTap()
                         onSelectScreenCode("s18")
                     }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                    CategoryGridCard("Mesa dulce", Color(0xFFEEF6D6), CategoryIllustration.MESA_DULCE, Modifier.weight(1f)) {
-                        viewModel?.setSelectedCategory("Mesa dulce")
+                    CategoryGridCard(
+                        title = "Iluminación",
+                        subtitle = "${countForCategory("Iluminación")} artículos",
+                        bg = Color(0xFFDDF4F3),
+                        illustration = CategoryIllustration.ILUMINACION,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        viewModel?.setSelectedCategory("Iluminación")
                         viewModel?.soundPlayer?.playTap()
                         onSelectScreenCode("s18")
                     }
-                    CategoryGridCard("Letreros", Color(0xFF1E1A2E), CategoryIllustration.LETREROS, Modifier.weight(1f), titleColor = Color(0xFFFFFFFF)) {
+                    CategoryGridCard(
+                        title = "Letreros",
+                        subtitle = "${countForCategory("Letreros")} artículos",
+                        bg = Color(0xFF1E1A2E),
+                        illustration = CategoryIllustration.LETREROS,
+                        modifier = Modifier.weight(1f),
+                        titleColor = Color(0xFFFFFFFF),
+                    ) {
                         viewModel?.setSelectedCategory("Letreros")
-                        viewModel?.soundPlayer?.playTap()
-                        onSelectScreenCode("s18")
-                    }
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                    CategoryGridCard("Mobiliario", Color(0xFFFFF2C9), CategoryIllustration.MOBILIARIO, Modifier.weight(1f)) {
-                        viewModel?.setSelectedCategory("Mobiliario")
-                        viewModel?.soundPlayer?.playTap()
-                        onSelectScreenCode("s18")
-                    }
-                    CategoryGridCard("Decoración", Color(0xFFFDE6F2), CategoryIllustration.DECORACION, Modifier.weight(1f)) {
-                        viewModel?.setSelectedCategory("Decoración")
                         viewModel?.soundPlayer?.playTap()
                         onSelectScreenCode("s18")
                     }
@@ -1108,6 +1380,7 @@ private enum class CategoryIllustration {
 @Composable
 private fun CategoryGridCard(
     title: String,
+    subtitle: String = "",
     bg: Color,
     illustration: CategoryIllustration,
     modifier: Modifier = Modifier,
@@ -1327,17 +1600,31 @@ private fun CategoryGridCard(
             }
         }
 
-        BasicText(
-            text = title,
-            style = TextStyle(
-                fontFamily = typo.displayFamily,
-                fontWeight = FontWeight.ExtraBold,
-                fontSize = 17.sp,
-                letterSpacing = (-0.34).sp,
-                color = titleColor,
-            ),
+        Column(
+            verticalArrangement = Arrangement.spacedBy(2.dp),
             modifier = Modifier.align(Alignment.BottomStart),
-        )
+        ) {
+            BasicText(
+                text = title,
+                style = TextStyle(
+                    fontFamily = typo.displayFamily,
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 17.sp,
+                    letterSpacing = (-0.34).sp,
+                    color = titleColor,
+                ),
+            )
+            if (subtitle.isNotBlank()) {
+                BasicText(
+                    text = subtitle,
+                    style = typo.secondary.copy(
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = titleColor.copy(alpha = 0.72f),
+                    ),
+                )
+            }
+        }
     }
 }
 
@@ -1351,6 +1638,10 @@ internal fun RenderPackagesScreenS21(
     viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
+    val allPackages = viewModel?.packages?.collectAsState()?.value ?: CanonicalSampleData.packages
+    val visiblePackages = remember(allPackages) {
+        allPackages.filter { packageItem -> packageItem.visibleInCatalog }
+    }
 
     Column(
         modifier = Modifier
@@ -1365,22 +1656,30 @@ internal fun RenderPackagesScreenS21(
 
         Spacer(Modifier.height(18.dp))
 
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.verticalScroll(rememberScrollState())) {
-            PackageSummaryCard("Bodas Rosa", "Paquete romántico completo para bodas, con arco floral y centros de mesa.", "RD$ 850", "Ahorra 15%", RfPhotoKey.BODA, Color(0xFFFDE6F2)) {
-                viewModel?.selectPackage("pkg-boda-real")
-                onSelectScreenCode("s22")
-            }
-            PackageSummaryCard("Quinceañera Premium", "Paquete de lujo para quinceañeras con arco floral.", "RD$ 1,200", "Ahorra 12%", RfPhotoKey.QUINCEANERA, Color(0xFFEFE8FD)) {
-                viewModel?.selectPackage("pkg-quince")
-                onSelectScreenCode("s22")
-            }
-            PackageSummaryCard("Cumpleaños Infantil", "Kit completo para fiestas infantiles: globos, banner y más.", "RD$ 450", "Ahorra 10%", RfPhotoKey.CUMPLE_INFANTIL, Color(0xFFEEF6D6)) {
-                viewModel?.selectPackage("pkg-infantil")
-                onSelectScreenCode("s22")
-            }
-            PackageSummaryCard("Evento Corporativo", "Solución profesional para eventos empresariales.", "RD$ 600", "Ahorra 8%", RfPhotoKey.CORPORATIVO, Color(0xFFFFF2C9)) {
-                viewModel?.selectPackage("pkg-corporativo")
-                onSelectScreenCode("s22")
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            visiblePackages.forEachIndexed { packageIndex, packageItem ->
+                val photoBg = when (packageIndex % 4) {
+                    0 -> Color(0xFFFDE6F2)
+                    1 -> Color(0xFFEFE8FD)
+                    2 -> Color(0xFFEEF6D6)
+                    else -> Color(0xFFFFF2C9)
+                }
+                val savingsBadge = if (packageItem.savingsDop > 0) {
+                    "Ahorra RD$ ${packageItem.savingsDop}"
+                } else {
+                    "${packageItem.suggestedGuests} invitados"
+                }
+                PackageSummaryCard(
+                    title = packageItem.name,
+                    desc = packageItem.subtitle,
+                    price = "RD$ ${packageItem.priceDop}",
+                    discountBadge = savingsBadge,
+                    photoKey = packageItem.photo.toPhotoKey(),
+                    photoBg = photoBg,
+                ) {
+                    viewModel?.selectPackage(packageItem.id)
+                    onSelectScreenCode("s22")
+                }
             }
             Spacer(Modifier.height(84.dp))
         }
@@ -1439,7 +1738,8 @@ private fun PackageSummaryCard(
 }
 
 private data class PackageLineItemConfig(
-    val articleId: String,
+    val rowKey: String,
+    val articleId: String?,
     val title: String,
     val unitPriceDop: Int,
     val defaultQuantity: Int,
@@ -1447,15 +1747,51 @@ private data class PackageLineItemConfig(
     val bg: Color,
 )
 
-private data class PackageCatalogDetailSpec(
-    val id: String,
-    val title: String,
-    val description: String,
-    val discountPercent: Int,
-    val coverPhoto: RfPhotoKey,
-    val coverBg: Color,
-    val items: List<PackageLineItemConfig>,
-)
+private fun resolvePackageIncludedItems(
+    packageItem: EventPackage,
+    articles: List<CatalogArticle>,
+): List<PackageLineItemConfig> = packageItem.includedItems.mapIndexed { index, rawDescription ->
+    val trimmedLine = rawDescription.trim()
+    val parsedQty = trimmedLine.takeWhile { character -> character.isDigit() }.toIntOrNull() ?: 1
+    val cleanLabel = trimmedLine.dropWhile { character ->
+        listOf(character.isDigit(), character.isWhitespace()).any { matched -> matched }
+    }.ifBlank { trimmedLine }
+    val lowerLine = trimmedLine.lowercase()
+    val matchedArticle = articles.firstOrNull { candidate ->
+        when {
+            lowerLine.contains("silla") -> candidate.id == "art-silla-tiffany"
+            lowerLine.contains("redonda") -> candidate.id == "art-mesa-redonda"
+            lowerLine.contains("rectangular") -> candidate.id == "art-mesa-plegable"
+            lowerLine.contains("plegable") -> candidate.id == "art-mesa-plegable"
+            lowerLine.contains("centro") -> candidate.id == "art-centro-floral"
+            lowerLine.contains("floral") -> candidate.id == "art-centro-floral"
+            lowerLine.contains("arco") -> candidate.id == "art-arco-rosa"
+            lowerLine.contains("globo") -> candidate.id == "art-arco-rosa"
+            lowerLine.contains("dulce") -> candidate.id == "art-mesa-helados"
+            lowerLine.contains("helado") -> candidate.id == "art-mesa-helados"
+            lowerLine.contains("postre") -> candidate.id == "art-mesa-helados"
+            else -> false
+        }
+    }
+    val bgTint = when (index % 4) {
+        0 -> Color(0xFFFDE6F2)
+        1 -> Color(0xFFFFF2C9)
+        2 -> Color(0xFFEFE8FD)
+        else -> Color(0xFFEEF6D6)
+    }
+    val resolvedTitle = matchedArticle?.name ?: cleanLabel
+    val resolvedPrice = matchedArticle?.pricePerDayDop ?: (packageItem.priceDop / packageItem.includedItems.size.coerceAtLeast(1)).coerceAtLeast(10)
+    val resolvedPhoto = matchedArticle?.photo?.toPhotoKey() ?: packageItem.photo.toPhotoKey()
+    PackageLineItemConfig(
+        rowKey = matchedArticle?.id ?: "pkg-line-$index",
+        articleId = matchedArticle?.id,
+        title = resolvedTitle,
+        unitPriceDop = resolvedPrice,
+        defaultQuantity = parsedQty,
+        photoKey = resolvedPhoto,
+        bg = bgTint,
+    )
+}
 
 // ==============================================================================
 // s22 · DETALLE DE PAQUETE
@@ -1467,90 +1803,53 @@ internal fun RenderPackageDetailScreenS22(
     viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
+    val palette = RfThemeState.currentPalette
     val selectedPkgId = viewModel?.selectedPackageId?.collectAsState()?.value ?: "pkg-boda-real"
-    val packageSpecs = remember {
-        listOf(
-            PackageCatalogDetailSpec(
-                id = "pkg-boda-real",
-                title = "Bodas Rosa",
-                description = "Paquete romántico completo para bodas. Incluye arco de globos, centros de mesa florales, sillas Tiffany y mesas redondas, con 15% de descuento.",
-                discountPercent = 15,
-                coverPhoto = RfPhotoKey.BODA,
-                coverBg = Color(0xFFFDE6F2),
-                items = listOf(
-                    PackageLineItemConfig("art-arco-rosa", "Arco de globos rosa", 95, 1, RfPhotoKey.ARCO_ROSA, Color(0xFFFDE6F2)),
-                    PackageLineItemConfig("art-centro-floral", "Centro de mesa floral", 35, 10, RfPhotoKey.CENTRO_FLORAL, Color(0xFFFFF2C9)),
-                    PackageLineItemConfig("art-silla-tiffany", "Silla Tiffany Cristal", 4, 120, RfPhotoKey.SILLA_TIFFANY, Color(0xFFEFE8FD)),
-                    PackageLineItemConfig("art-mesa-redonda", "Mesa redonda", 25, 3, RfPhotoKey.MESA_REDONDA, Color(0xFFEEF6D6)),
-                ),
-            ),
-            PackageCatalogDetailSpec(
-                id = "pkg-quince",
-                title = "Quinceañera Premium",
-                description = "Paquete de lujo para quinceañeras con arco floral, estación dulce, sillas Tiffany y mesas redondas con 12% de descuento.",
-                discountPercent = 12,
-                coverPhoto = RfPhotoKey.QUINCEANERA,
-                coverBg = Color(0xFFEFE8FD),
-                items = listOf(
-                    PackageLineItemConfig("art-arco-rosa", "Arco de globos rosa", 95, 2, RfPhotoKey.ARCO_ROSA, Color(0xFFFDE6F2)),
-                    PackageLineItemConfig("art-mesa-helados", "Estación mesa dulce", 150, 1, RfPhotoKey.MESA_HELADOS, Color(0xFFEEF6D6)),
-                    PackageLineItemConfig("art-centro-floral", "Centro de mesa floral", 35, 12, RfPhotoKey.CENTRO_FLORAL, Color(0xFFFFF2C9)),
-                    PackageLineItemConfig("art-silla-tiffany", "Silla Tiffany Cristal", 4, 150, RfPhotoKey.SILLA_TIFFANY, Color(0xFFEFE8FD)),
-                ),
-            ),
-            PackageCatalogDetailSpec(
-                id = "pkg-infantil",
-                title = "Cumpleaños Infantil",
-                description = "Kit completo para fiestas infantiles: arco orgánico de globos, carrito de helados, sillas y mesas plegables con 10% de descuento.",
-                discountPercent = 10,
-                coverPhoto = RfPhotoKey.CUMPLE_INFANTIL,
-                coverBg = Color(0xFFEEF6D6),
-                items = listOf(
-                    PackageLineItemConfig("art-arco-rosa", "Arco de globos rosa", 95, 1, RfPhotoKey.ARCO_ROSA, Color(0xFFFDE6F2)),
-                    PackageLineItemConfig("art-mesa-helados", "Mesa de helados", 150, 1, RfPhotoKey.MESA_HELADOS, Color(0xFFEEF6D6)),
-                    PackageLineItemConfig("art-mesa-plegable", "Mesa plegable", 18, 6, RfPhotoKey.MESA_PLEGABLE, Color(0xFFFFF2C9)),
-                    PackageLineItemConfig("art-silla-tiffany", "Silla Tiffany Cristal", 4, 40, RfPhotoKey.SILLA_TIFFANY, Color(0xFFEFE8FD)),
-                ),
-            ),
-            PackageCatalogDetailSpec(
-                id = "pkg-corporativo",
-                title = "Evento Corporativo",
-                description = "Solución profesional para eventos empresariales con mobiliario ejecutivo, centros florales sobrios y 8% de descuento.",
-                discountPercent = 8,
-                coverPhoto = RfPhotoKey.CORPORATIVO,
-                coverBg = Color(0xFFFFF2C9),
-                items = listOf(
-                    PackageLineItemConfig("art-mesa-redonda", "Mesa redonda", 25, 10, RfPhotoKey.MESA_REDONDA, Color(0xFFEEF6D6)),
-                    PackageLineItemConfig("art-silla-tiffany", "Silla Tiffany Cristal", 4, 80, RfPhotoKey.SILLA_TIFFANY, Color(0xFFEFE8FD)),
-                    PackageLineItemConfig("art-centro-floral", "Centro de mesa floral", 35, 4, RfPhotoKey.CENTRO_FLORAL, Color(0xFFFFF2C9)),
-                ),
-            ),
-        )
-    }
-    val currentPkg = packageSpecs.firstOrNull { spec -> spec.id == selectedPkgId } ?: packageSpecs.first()
-    var itemQuantities by remember(currentPkg.id) {
-        mutableStateOf(currentPkg.items.associate { item -> item.articleId to item.defaultQuantity })
-    }
-    var checkedItems by remember(currentPkg.id) {
-        mutableStateOf(currentPkg.items.map { item -> item.articleId }.toSet())
-    }
+    val allPackages = viewModel?.packages?.collectAsState()?.value ?: CanonicalSampleData.packages
+    val articlesState = viewModel?.articles?.collectAsState()?.value ?: CanonicalSampleData.articles
+    val selectedPackage = allPackages.firstOrNull { packageItem -> packageItem.id == selectedPkgId } ?: allPackages.first()
 
-    val totalSelectedItemsCount = currentPkg.items.sumOf { item ->
-        val isChecked = checkedItems.contains(item.articleId)
-        val qty = itemQuantities[item.articleId] ?: item.defaultQuantity
+    val resolvedItems = remember(selectedPackage, articlesState) {
+        resolvePackageIncludedItems(selectedPackage, articlesState)
+    }
+    var itemQuantities by remember(selectedPackage.id, resolvedItems) {
+        mutableStateOf(resolvedItems.associate { lineItem -> lineItem.rowKey to lineItem.defaultQuantity })
+    }
+    var checkedItems by remember(selectedPackage.id, resolvedItems) {
+        mutableStateOf(resolvedItems.map { lineItem -> lineItem.rowKey }.toSet())
+    }
+    var hasCustomizedRows by remember(selectedPackage.id) { mutableStateOf(false) }
+
+    val totalSelectedItemsCount = resolvedItems.sumOf { lineItem ->
+        val isChecked = checkedItems.contains(lineItem.rowKey)
+        val qty = itemQuantities[lineItem.rowKey] ?: lineItem.defaultQuantity
         if (isChecked) qty else 0
     }
-    val subtotalDop = currentPkg.items.sumOf { item ->
-        val isChecked = checkedItems.contains(item.articleId)
-        val qty = itemQuantities[item.articleId] ?: item.defaultQuantity
-        if (isChecked) qty * item.unitPriceDop else 0
+    val rawSelectedSubtotalDop = resolvedItems.sumOf { lineItem ->
+        val isChecked = checkedItems.contains(lineItem.rowKey)
+        val qty = itemQuantities[lineItem.rowKey] ?: lineItem.defaultQuantity
+        if (isChecked) qty * lineItem.unitPriceDop else 0
     }
-    val discountedTotalDop = ((subtotalDop * (100 - currentPkg.discountPercent)) / 100.0).toInt()
+    val discountedTotalDop = if (!hasCustomizedRows) {
+        selectedPackage.priceDop
+    } else {
+        (rawSelectedSubtotalDop - selectedPackage.savingsDop).coerceAtLeast(0)
+    }
+    val subtotalBeforeSavingsDop = if (!hasCustomizedRows) {
+        selectedPackage.priceDop + selectedPackage.savingsDop
+    } else {
+        rawSelectedSubtotalDop
+    }
+    val savingsLabel = if (selectedPackage.savingsDop > 0) {
+        "Ahorra RD$ ${selectedPackage.savingsDop}"
+    } else {
+        "${selectedPackage.suggestedGuests} invitados"
+    }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(RfThemeState.currentPalette.bg),
+            .background(palette.bg),
     ) {
         Column(
             modifier = Modifier
@@ -1561,11 +1860,11 @@ internal fun RenderPackageDetailScreenS22(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(300.dp)
-                    .background(currentPkg.coverBg),
+                    .background(palette.chipBg),
             ) {
                 RfPhoto(
-                    photoKey = currentPkg.coverPhoto,
-                    contentDescription = currentPkg.title,
+                    photoKey = selectedPackage.photo.toPhotoKey(),
+                    contentDescription = selectedPackage.name,
                     cornerRadius = 0.dp,
                     alignment = androidx.compose.ui.BiasAlignment(0f, -0.4f),
                     modifier = Modifier.fillMaxSize(),
@@ -1587,10 +1886,10 @@ internal fun RenderPackageDetailScreenS22(
                         .size(44.dp)
                         .rfIconButtonShadow(RoundedCornerShape(14.dp), isAdmin = false)
                         .clip(RoundedCornerShape(14.dp))
-                        .background(RfThemeState.currentPalette.surface)
+                        .background(palette.surface)
                         .clickable { onSelectScreenCode("BACK:s21") },
                 ) {
-                    RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF151729), size = 20.dp)
+                    RfIcon(kind = RfIconKind.BACK, tint = palette.ink, size = 20.dp)
                 }
             }
 
@@ -1601,7 +1900,7 @@ internal fun RenderPackageDetailScreenS22(
                         .background(Color(0xFFEEF6D6))
                         .padding(horizontal = 9.dp, vertical = 3.dp),
                 ) {
-                    BasicText("Ahorra ${currentPkg.discountPercent}%", style = typo.sectionCap.copy(fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF4E6A10)))
+                    BasicText(savingsLabel, style = typo.sectionCap.copy(fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF4E6A10)))
                 }
                 Spacer(Modifier.height(6.dp))
                 Row(
@@ -1609,16 +1908,20 @@ internal fun RenderPackageDetailScreenS22(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    BasicText(currentPkg.title, style = typo.heroTitle.copy(fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729)))
+                    BasicText(
+                        selectedPackage.name,
+                        style = typo.heroTitle.copy(fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, color = palette.ink),
+                        modifier = Modifier.weight(1f),
+                    )
                     Row(verticalAlignment = Alignment.Bottom) {
-                        BasicText("desde ", style = typo.secondary.copy(fontSize = 14.sp, color = Color(0xFF5F6377)))
+                        BasicText("desde ", style = typo.secondary.copy(fontSize = 14.sp, color = palette.muted))
                         BasicText("RD$ $discountedTotalDop", style = typo.heroTitle.copy(fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFFC2338F)))
                     }
                 }
                 Spacer(Modifier.height(8.dp))
                 BasicText(
-                    text = currentPkg.description,
-                    style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF5F6377), lineHeight = 22.sp),
+                    text = "${selectedPackage.subtitle} · Sugerido para ${selectedPackage.suggestedGuests} invitados.",
+                    style = typo.body.copy(fontSize = 15.sp, color = palette.muted, lineHeight = 22.sp),
                 )
 
                 Spacer(Modifier.height(20.dp))
@@ -1628,14 +1931,14 @@ internal fun RenderPackageDetailScreenS22(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    BasicText("Incluye", style = typo.heroTitle.copy(fontSize = 19.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729)))
-                    BasicText("Desmarca lo que no quieras", style = typo.secondary.copy(fontSize = 13.sp, color = RfThemeState.currentPalette.muted))
+                    BasicText("Incluye", style = typo.heroTitle.copy(fontSize = 19.sp, fontWeight = FontWeight.ExtraBold, color = palette.ink))
+                    BasicText("Desmarca lo que no quieras", style = typo.secondary.copy(fontSize = 13.sp, color = palette.muted))
                 }
                 Spacer(Modifier.height(10.dp))
 
-                currentPkg.items.forEachIndexed { itemIndex, lineItem ->
-                    val currentQty = itemQuantities[lineItem.articleId] ?: lineItem.defaultQuantity
-                    val isChecked = checkedItems.contains(lineItem.articleId)
+                resolvedItems.forEachIndexed { itemIndex, lineItem ->
+                    val currentQty = itemQuantities[lineItem.rowKey] ?: lineItem.defaultQuantity
+                    val isChecked = checkedItems.contains(lineItem.rowKey)
                     PackageItemRow(
                         title = lineItem.title,
                         price = "RD$ ${lineItem.unitPriceDop} / día",
@@ -1644,25 +1947,28 @@ internal fun RenderPackageDetailScreenS22(
                         bg = lineItem.bg,
                         isChecked = isChecked,
                         onToggleCheck = {
+                            hasCustomizedRows = true
                             checkedItems = if (isChecked) {
-                                checkedItems - lineItem.articleId
+                                checkedItems - lineItem.rowKey
                             } else {
-                                checkedItems + lineItem.articleId
+                                checkedItems + lineItem.rowKey
                             }
                         },
                         onDecrease = {
+                            hasCustomizedRows = true
                             val nextQty = (currentQty - 1).coerceAtLeast(1)
-                            itemQuantities = itemQuantities + (lineItem.articleId to nextQty)
+                            itemQuantities = itemQuantities + (lineItem.rowKey to nextQty)
                         },
                         onIncrease = {
+                            hasCustomizedRows = true
                             val nextQty = currentQty + 1
-                            itemQuantities = itemQuantities + (lineItem.articleId to nextQty)
+                            itemQuantities = itemQuantities + (lineItem.rowKey to nextQty)
                             if (!isChecked) {
-                                checkedItems = checkedItems + lineItem.articleId
+                                checkedItems = checkedItems + lineItem.rowKey
                             }
                         },
                     )
-                    if (itemIndex < currentPkg.items.lastIndex) {
+                    if (itemIndex < resolvedItems.lastIndex) {
                         Spacer(Modifier.height(8.dp))
                     }
                 }
@@ -1675,8 +1981,8 @@ internal fun RenderPackageDetailScreenS22(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter)
-                .background(RfThemeState.currentPalette.surface)
-                .border(1.dp, RfThemeState.currentPalette.line),
+                .background(palette.surface)
+                .border(1.dp, palette.line),
         ) {
             Row(
                 modifier = Modifier
@@ -1689,14 +1995,14 @@ internal fun RenderPackageDetailScreenS22(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         BasicText(
                             text = "$totalSelectedItemsCount artículos · ",
-                            style = typo.secondary.copy(fontSize = 12.sp, color = RfThemeState.currentPalette.muted),
+                            style = typo.secondary.copy(fontSize = 12.sp, color = palette.muted),
                         )
                         BasicText(
-                            text = "RD$ $subtotalDop",
+                            text = "RD$ $subtotalBeforeSavingsDop",
                             style = typo.secondary.copy(
                                 fontSize = 12.sp,
-                                color = RfThemeState.currentPalette.muted,
-                                textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough,
+                                color = palette.muted,
+                                textDecoration = TextDecoration.LineThrough,
                             ),
                         )
                     }
@@ -1706,7 +2012,7 @@ internal fun RenderPackageDetailScreenS22(
                             fontFamily = typo.displayFamily,
                             fontWeight = FontWeight.ExtraBold,
                             fontSize = 22.sp,
-                            color = RfThemeState.currentPalette.ink,
+                            color = palette.ink,
                         ),
                     )
                 }
@@ -1719,17 +2025,25 @@ internal fun RenderPackageDetailScreenS22(
                         .clip(RoundedCornerShape(16.dp))
                         .background(Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC))))
                         .clickable {
-                            currentPkg.items.forEach { item ->
-                                val isChecked = checkedItems.contains(item.articleId)
-                                val qty = itemQuantities[item.articleId] ?: item.defaultQuantity
-                                if (isChecked) {
-                                    viewModel?.adjustDraftQuantity(item.articleId, qty)
+                            viewModel?.applyPackageToDraftCart(selectedPackage)
+                            if (hasCustomizedRows) {
+                                resolvedItems.forEach { lineItem ->
+                                    val targetArticleId = lineItem.articleId
+                                    if (targetArticleId != null) {
+                                        val isRowChecked = checkedItems.contains(lineItem.rowKey)
+                                        val desiredQty = if (isRowChecked) {
+                                            itemQuantities[lineItem.rowKey] ?: lineItem.defaultQuantity
+                                        } else {
+                                            0
+                                        }
+                                        viewModel?.setDraftQuantity(targetArticleId, desiredQty)
+                                    }
                                 }
                             }
                             onSelectScreenCode("s25")
                         },
                 ) {
-                    BasicText("Agregar al evento", style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White))
+                    BasicText("Personalizar este paquete", style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.White))
                 }
             }
         }
@@ -1749,13 +2063,14 @@ private fun PackageItemRow(
     onIncrease: () -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
+    val palette = RfThemeState.currentPalette
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .rfCardShadow(RoundedCornerShape(18.dp), isAdmin = false)
             .clip(RoundedCornerShape(18.dp))
-            .background(RfThemeState.currentPalette.surface)
-            .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(18.dp))
+            .background(palette.surface)
+            .border(1.dp, palette.line, RoundedCornerShape(18.dp))
             .padding(10.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -1768,7 +2083,7 @@ private fun PackageItemRow(
                         if (isChecked) {
                             Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))
                         } else {
-                            SolidColor(RfThemeState.currentPalette.chipBg)
+                            SolidColor(palette.chipBg)
                         },
                     )
                     .clickable(onClick = onToggleCheck),
@@ -1783,14 +2098,14 @@ private fun PackageItemRow(
             }
 
             Column(modifier = Modifier.weight(1f)) {
-                BasicText(title, style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF151729)))
-                BasicText(price, style = typo.secondary.copy(fontSize = 13.sp, color = Color(0xFF5F6377)))
+                BasicText(title, maxLines = 1, overflow = TextOverflow.Ellipsis, style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = palette.ink))
+                BasicText(price, style = typo.secondary.copy(fontSize = 13.sp, color = palette.muted))
             }
 
             Row(
                 modifier = Modifier
                     .clip(RoundedCornerShape(12.dp))
-                    .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(12.dp))
+                    .border(1.dp, palette.line, RoundedCornerShape(12.dp))
                     .height(36.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -1800,16 +2115,16 @@ private fun PackageItemRow(
                         .clickable(onClick = onDecrease),
                     contentAlignment = Alignment.Center,
                 ) {
-                    RfIcon(kind = RfIconKind.MINUS, tint = RfThemeState.currentPalette.ink, size = 16.dp)
+                    RfIcon(kind = RfIconKind.MINUS, tint = palette.ink, size = 16.dp)
                 }
-                BasicText(qty, style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = RfThemeState.currentPalette.ink))
+                BasicText(qty, style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = palette.ink))
                 Box(
                     modifier = Modifier
                         .size(32.dp, 36.dp)
                         .clickable(onClick = onIncrease),
                     contentAlignment = Alignment.Center,
                 ) {
-                    RfIcon(kind = RfIconKind.PLUS, tint = RfThemeState.currentPalette.ink, size = 16.dp)
+                    RfIcon(kind = RfIconKind.PLUS, tint = palette.ink, size = 16.dp)
                 }
             }
         }
@@ -1821,14 +2136,85 @@ private fun PackageItemRow(
 // ==============================================================================
 
 private data class BalloonShopItemSpec(
+    val id: String,
     val title: String,
+    val description: String,
+    val code: String,
     val price: String,
     val bg: Color,
     val category: String,
-    val initialFavorite: Boolean = false,
     val hasOfferBadge: Boolean = false,
     val illustration: @Composable () -> Unit,
 )
+
+private fun classifyBalloonShopCategory(balloon: BalloonProduct): String {
+    val searchableText = "${balloon.id} ${balloon.name} ${balloon.material}".lowercase()
+    val isMetallic = listOf("metal", "numero", "número", "foil").any { keyword ->
+        searchableText.contains(keyword)
+    }
+    val isBouquet = listOf("bouquet", "helio", "ramo").any { keyword ->
+        searchableText.contains(keyword)
+    }
+    return when {
+        isMetallic -> "Metalizados"
+        isBouquet -> "Bouquets"
+        else -> "Látex"
+    }
+}
+
+private fun matchesBalloonSearchQuery(
+    item: BalloonShopItemSpec,
+    rawQuery: String,
+): Boolean {
+    val normalizedQuery = rawQuery.trim().lowercase()
+    if (normalizedQuery.isEmpty()) {
+        return true
+    }
+    val searchableFields = listOf(item.title, item.description, item.code, item.category)
+    return searchableFields.any { fieldValue ->
+        fieldValue.lowercase().contains(normalizedQuery)
+    }
+}
+
+@Composable
+private fun resolveBalloonShopIllustration(
+    balloonId: String,
+    fallbackIndex: Int,
+): @Composable () -> Unit = when {
+    balloonId.contains("numero") -> {
+        { BalloonStarIllustration(modifier = Modifier.size(108.dp)) }
+    }
+
+    balloonId.contains("bouquet") -> {
+        { BalloonTricolorIllustration(modifier = Modifier.size(108.dp)) }
+    }
+
+    balloonId.contains("guirnalda") -> {
+        { BalloonArchShopIllustration(modifier = Modifier.size(108.dp)) }
+    }
+
+    balloonId.contains("burbuja") -> {
+        { BalloonPastelSetIllustration(modifier = Modifier.size(108.dp)) }
+    }
+
+    else -> when (fallbackIndex % 4) {
+        0 -> {
+            { BalloonStarIllustration(modifier = Modifier.size(108.dp)) }
+        }
+
+        1 -> {
+            { BalloonPastelSetIllustration(modifier = Modifier.size(108.dp)) }
+        }
+
+        2 -> {
+            { BalloonTricolorIllustration(modifier = Modifier.size(108.dp)) }
+        }
+
+        else -> {
+            { BalloonArchShopIllustration(modifier = Modifier.size(108.dp)) }
+        }
+    }
+}
 
 @Composable
 internal fun RenderShopScreenS23(
@@ -1836,72 +2222,74 @@ internal fun RenderShopScreenS23(
     viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
+    val palette = RfThemeState.currentPalette
     val gradDiag = Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)))
     var selectedFilter by remember { mutableStateOf("Todos") }
-    val draftQuantities = viewModel?.draftQuantities?.collectAsState()?.value ?: emptyMap()
-    val vmCartTotal = draftQuantities.values.sum()
-    var localAddedCount by remember { mutableStateOf(0) }
-    val cartCount = if (vmCartTotal > 0) vmCartTotal + localAddedCount else 3 + localAddedCount
+    var showSearchInput by remember { mutableStateOf(false) }
+    var balloonSearchQuery by remember { mutableStateOf("") }
 
-    val allBalloonItems = remember {
+    val balloonProducts = viewModel?.balloonProducts?.collectAsState()?.value ?: CanonicalSampleData.balloonProducts
+    val favoritesSet = viewModel?.favorites?.collectAsState()?.value ?: emptySet()
+    val draftQuantities = viewModel?.draftQuantities?.collectAsState()?.value ?: emptyMap()
+    val cartCount = remember(draftQuantities, viewModel) {
+        viewModel?.totalDraftCartUnits() ?: draftQuantities.values.filter { quantity -> quantity > 0 }.sum()
+    }
+
+    val cardBackgrounds = remember {
         listOf(
-            BalloonShopItemSpec(
-                title = "Estrella dorada",
-                price = "RD$ 5.99",
-                bg = Color(0xFFFFF2C9),
-                category = "Metalizados",
-                initialFavorite = true,
-                illustration = { BalloonStarIllustration(modifier = Modifier.size(108.dp)) },
-            ),
-            BalloonShopItemSpec(
-                title = "Set rosa pastel",
-                price = "RD$ 3.50",
-                bg = Color(0xFFFDE6F2),
-                category = "Látex",
-                hasOfferBadge = true,
-                illustration = { BalloonPastelSetIllustration(modifier = Modifier.size(108.dp)) },
-            ),
-            BalloonShopItemSpec(
-                title = "Bouquet tricolor",
-                price = "RD$ 12.50",
-                bg = Color(0xFFDDF4F3),
-                category = "Bouquets",
-                illustration = { BalloonTricolorIllustration(modifier = Modifier.size(108.dp)) },
-            ),
-            BalloonShopItemSpec(
-                title = "Arco orgánico",
-                price = "RD$ 45.00",
-                bg = Color(0xFFEEF6D6),
-                category = "Látex",
-                illustration = { BalloonArchShopIllustration(modifier = Modifier.size(108.dp)) },
-            ),
+            Color(0xFFFFF2C9),
+            Color(0xFFFDE6F2),
+            Color(0xFFDDF4F3),
+            Color(0xFFEEF6D6),
         )
     }
 
-    val filteredItems = remember(allBalloonItems, selectedFilter) {
-        if (selectedFilter == "Todos") {
+    val allBalloonItems = balloonProducts.mapIndexed { balloonIndex, balloon ->
+        val cardBg = cardBackgrounds[balloonIndex % cardBackgrounds.size]
+        val cardIllustration = resolveBalloonShopIllustration(
+            balloonId = balloon.id,
+            fallbackIndex = balloonIndex,
+        )
+        BalloonShopItemSpec(
+            id = balloon.id,
+            title = balloon.name,
+            description = balloon.description,
+            code = balloon.code,
+            price = "RD$ ${balloon.unitPriceDop}",
+            bg = cardBg,
+            category = classifyBalloonShopCategory(balloon),
+            hasOfferBadge = balloonIndex == 1,
+            illustration = cardIllustration,
+        )
+    }
+
+    val filteredItems = remember(allBalloonItems, selectedFilter, balloonSearchQuery) {
+        val categoryMatched = if (selectedFilter == "Todos") {
             allBalloonItems
         } else {
             allBalloonItems.filter { item -> item.category == selectedFilter }
+        }
+        categoryMatched.filter { item ->
+            matchesBalloonSearchQuery(item = item, rawQuery = balloonSearchQuery)
         }
     }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(RfThemeState.currentPalette.bg),
+            .background(palette.bg),
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             drawRect(
                 Brush.radialGradient(
-                    colors = listOf(RfThemeState.currentPalette.radialPrimary, RfThemeState.currentPalette.radialPrimary.copy(alpha = 0f)),
+                    colors = listOf(palette.radialPrimary, palette.radialPrimary.copy(alpha = 0f)),
                     center = Offset(0f, 0f),
                     radius = size.width * 0.9f,
                 ),
             )
             drawRect(
                 Brush.radialGradient(
-                    colors = listOf(RfThemeState.currentPalette.radialSecondary, RfThemeState.currentPalette.radialSecondary.copy(alpha = 0f)),
+                    colors = listOf(palette.radialSecondary, palette.radialSecondary.copy(alpha = 0f)),
                     center = Offset(size.width, 0f),
                     radius = size.width * 0.8f,
                 ),
@@ -1921,7 +2309,7 @@ internal fun RenderShopScreenS23(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    BasicText("Tienda", style = typo.secondary.copy(fontSize = 13.sp, color = RfThemeState.currentPalette.muted))
+                    BasicText("Tienda", style = typo.secondary.copy(fontSize = 13.sp, color = palette.muted))
                     BasicText(
                         "Globos",
                         style = TextStyle(
@@ -1929,7 +2317,7 @@ internal fun RenderShopScreenS23(
                             fontWeight = FontWeight.ExtraBold,
                             fontSize = 26.sp,
                             letterSpacing = (-0.52).sp,
-                            color = RfThemeState.currentPalette.ink,
+                            color = palette.ink,
                         ),
                     )
                 }
@@ -1939,10 +2327,16 @@ internal fun RenderShopScreenS23(
                         .size(44.dp)
                         .shadow(8.dp, CircleShape, spotColor = Color(0x33B450B4))
                         .clip(CircleShape)
-                        .background(RfThemeState.currentPalette.surface)
-                        .clickable { onSelectScreenCode("s80") },
+                        .background(if (showSearchInput) palette.chipBg else palette.surface)
+                        .clickable {
+                            val nextSearchVisible = !showSearchInput
+                            showSearchInput = nextSearchVisible
+                            if (!nextSearchVisible) {
+                                balloonSearchQuery = ""
+                            }
+                        },
                 ) {
-                    RfIcon(kind = RfIconKind.SEARCH, tint = RfThemeState.currentPalette.ink, size = 20.dp)
+                    RfIcon(kind = RfIconKind.SEARCH, tint = palette.ink, size = 20.dp)
                 }
                 Box(
                     contentAlignment = Alignment.Center,
@@ -1961,6 +2355,52 @@ internal fun RenderShopScreenS23(
                             modifier = Modifier.size(24.dp).clip(CircleShape).background(Color(0xFFFFD45C)),
                         ) {
                             BasicText("$cartCount", style = typo.sectionCap.copy(fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF2E1A47)))
+                        }
+                    }
+                }
+            }
+
+            AnimatedVisibility(visible = showSearchInput) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp)
+                        .height(46.dp)
+                        .rfInputShadow(RoundedCornerShape(14.dp), isAdmin = false)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(palette.surface)
+                        .border(1.dp, palette.line, RoundedCornerShape(14.dp))
+                        .padding(horizontal = 14.dp),
+                ) {
+                    RfIcon(kind = RfIconKind.SEARCH, tint = palette.muted, size = 18.dp)
+                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                        if (balloonSearchQuery.isEmpty()) {
+                            BasicText(
+                                text = "Buscar globos por nombre o código...",
+                                style = typo.body.copy(fontSize = 14.sp, color = palette.muted),
+                            )
+                        }
+                        BasicTextField(
+                            value = balloonSearchQuery,
+                            onValueChange = { updatedQuery -> balloonSearchQuery = updatedQuery },
+                            singleLine = true,
+                            textStyle = typo.body.copy(fontSize = 14.sp, color = palette.ink),
+                            cursorBrush = SolidColor(palette.ink),
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                    if (balloonSearchQuery.isNotEmpty()) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .size(24.dp)
+                                .clip(CircleShape)
+                                .background(palette.chipBg)
+                                .clickable { balloonSearchQuery = "" },
+                        ) {
+                            RfIcon(kind = RfIconKind.CLOSE, tint = palette.muted, size = 13.dp)
                         }
                     }
                 }
@@ -1987,8 +2427,8 @@ internal fun RenderShopScreenS23(
                                 },
                             )
                             .clip(RoundedCornerShape(999.dp))
-                            .background(if (isSelected) gradDiag else SolidColor(Color.White))
-                            .border(1.dp, if (isSelected) Color.Transparent else RfThemeState.currentPalette.line, RoundedCornerShape(999.dp))
+                            .background(if (isSelected) gradDiag else SolidColor(palette.surface))
+                            .border(1.dp, if (isSelected) Color.Transparent else palette.line, RoundedCornerShape(999.dp))
                             .clickable { selectedFilter = label }
                             .padding(horizontal = 15.dp),
                     ) {
@@ -1997,7 +2437,7 @@ internal fun RenderShopScreenS23(
                             style = typo.body.copy(
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = if (isSelected) Color.White else Color(0xFF62627A),
+                                color = if (isSelected) Color.White else palette.muted,
                             ),
                         )
                     }
@@ -2034,7 +2474,7 @@ internal fun RenderShopScreenS23(
                     ) {
                         Box(
                             contentAlignment = Alignment.Center,
-                            modifier = Modifier.height(24.dp).clip(RoundedCornerShape(999.dp)).background(RfThemeState.currentPalette.surface).padding(horizontal = 9.dp),
+                            modifier = Modifier.height(24.dp).clip(RoundedCornerShape(999.dp)).background(Color.White).padding(horizontal = 9.dp),
                         ) {
                             BasicText("Nuevo", style = typo.sectionCap.copy(fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF7A4FD8)))
                         }
@@ -2046,7 +2486,7 @@ internal fun RenderShopScreenS23(
                                 fontSize = 21.sp,
                                 letterSpacing = (-0.42).sp,
                                 lineHeight = 22.sp,
-                                color = RfThemeState.currentPalette.ink,
+                                color = Color(0xFF1E1632),
                             ),
                         )
                     }
@@ -2077,14 +2517,57 @@ internal fun RenderShopScreenS23(
                         fontWeight = FontWeight.ExtraBold,
                         fontSize = 20.sp,
                         letterSpacing = (-0.40).sp,
-                        color = RfThemeState.currentPalette.ink,
+                        color = palette.ink,
                     ),
                 )
                 BasicText(
                     text = "Ver todo",
                     style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFFC2338F)),
-                    modifier = Modifier.clickable { selectedFilter = "Todos" },
+                    modifier = Modifier.clickable {
+                        selectedFilter = "Todos"
+                        balloonSearchQuery = ""
+                    },
                 )
+            }
+
+            if (filteredItems.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(palette.surface)
+                        .border(1.dp, palette.line, RoundedCornerShape(20.dp))
+                        .padding(24.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        BasicText(
+                            text = "No encontramos globos con ese filtro",
+                            style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = palette.ink),
+                        )
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .height(40.dp)
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(gradDiag)
+                                .clickable {
+                                    selectedFilter = "Todos"
+                                    balloonSearchQuery = ""
+                                }
+                                .padding(horizontal = 18.dp),
+                        ) {
+                            BasicText(
+                                text = "Ver todos los globos",
+                                style = typo.body.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White),
+                            )
+                        }
+                    }
+                }
             }
 
             filteredItems.chunked(2).forEach { rowPair ->
@@ -2093,32 +2576,30 @@ internal fun RenderShopScreenS23(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
                 ) {
                     val first = rowPair[0]
+                    val isFirstFavorite = favoritesSet.contains(first.id)
                     TiendaBalloonProductCard(
                         title = first.title,
                         price = first.price,
                         bg = first.bg,
-                        isFavorite = first.initialFavorite,
+                        isFavorite = isFirstFavorite,
                         hasOfferBadge = first.hasOfferBadge,
                         illustration = first.illustration,
-                        onAddClick = {
-                            localAddedCount += 1
-                            viewModel?.adjustDraftQuantity("art-arco-rosa", 1)
-                        },
+                        onToggleFavorite = { viewModel?.toggleFavorite(first.id) },
+                        onAddClick = { viewModel?.adjustDraftQuantity(first.id, 1) },
                         modifier = Modifier.weight(1f),
                     )
                     if (rowPair.size > 1) {
                         val second = rowPair[1]
+                        val isSecondFavorite = favoritesSet.contains(second.id)
                         TiendaBalloonProductCard(
                             title = second.title,
                             price = second.price,
                             bg = second.bg,
-                            isFavorite = second.initialFavorite,
+                            isFavorite = isSecondFavorite,
                             hasOfferBadge = second.hasOfferBadge,
                             illustration = second.illustration,
-                            onAddClick = {
-                                localAddedCount += 1
-                                viewModel?.adjustDraftQuantity("art-arco-rosa", 1)
-                            },
+                            onToggleFavorite = { viewModel?.toggleFavorite(second.id) },
+                            onAddClick = { viewModel?.adjustDraftQuantity(second.id, 1) },
                             modifier = Modifier.weight(1f),
                         )
                     } else {
@@ -2290,11 +2771,12 @@ private fun TiendaBalloonProductCard(
     isFavorite: Boolean = false,
     hasOfferBadge: Boolean = false,
     illustration: @Composable () -> Unit,
+    onToggleFavorite: () -> Unit = {},
     onAddClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val typo = LocalRfTypography.current
-    val palette = LocalRfPalette.current
+    val palette = RfThemeState.currentPalette
     val gradDiag = Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)))
     var favoriteState by remember(title, isFavorite) { mutableStateOf(isFavorite) }
 
@@ -2336,7 +2818,10 @@ private fun TiendaBalloonProductCard(
                         .size(36.dp)
                         .clip(RoundedCornerShape(12.dp))
                         .background(Color.White.copy(alpha = 0.95f))
-                        .clickable { favoriteState = !favoriteState },
+                        .clickable {
+                            favoriteState = !favoriteState
+                            onToggleFavorite()
+                        },
                 ) {
                     RfIcon(
                         kind = RfIconKind.HEART,
@@ -2353,16 +2838,17 @@ private fun TiendaBalloonProductCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column(modifier = Modifier.weight(1f)) {
+                Column(modifier = Modifier.weight(1f).padding(end = 6.dp)) {
                     BasicText(
                         text = title,
                         style = TextStyle(
                             fontFamily = typo.bodyFamily,
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
-                            color = RfThemeState.currentPalette.ink,
+                            color = palette.ink,
                         ),
                         maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                     BasicText(
                         text = price,
@@ -2370,7 +2856,7 @@ private fun TiendaBalloonProductCard(
                             fontFamily = typo.displayFamily,
                             fontSize = 17.sp,
                             fontWeight = FontWeight.ExtraBold,
-                            color = RfThemeState.currentPalette.ink,
+                            color = palette.ink,
                         ),
                     )
                 }
@@ -2393,26 +2879,95 @@ private fun TiendaBalloonProductCard(
 // s24 · FAVORITOS (CLIENTE LOGUEADO)
 // ==============================================================================
 
+private data class FavoriteDisplayCardSpec(
+    val id: String,
+    val title: String,
+    val description: String,
+    val priceLabel: String,
+    val photoKey: RfPhotoKey,
+    val bg: Color,
+    val isBalloon: Boolean,
+)
+
 @Composable
 internal fun RenderClientFavoritesScreenS24(
     onSelectScreenCode: (String) -> Unit,
     viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
-    val palette = LocalRfPalette.current
+    val palette = RfThemeState.currentPalette
     val allArticles = viewModel?.articles?.collectAsState()?.value ?: CanonicalSampleData.articles
+    val allBalloons = viewModel?.balloonProducts?.collectAsState()?.value ?: CanonicalSampleData.balloonProducts
     val favoriteIds = viewModel?.favorites?.collectAsState()?.value ?: setOf("art-silla-tiffany", "art-mesa-redonda")
-    val favoriteArticles = remember(allArticles, favoriteIds, viewModel) {
-        val matched = allArticles.filter { article -> favoriteIds.contains(article.id) }
+    val observedEvents = viewModel?.events?.collectAsState()?.value
+    val observedSelectedEventId = viewModel?.selectedEventId?.collectAsState()?.value
+
+    val favoriteDisplayItems = remember(allArticles, allBalloons, favoriteIds, viewModel) {
+        val pastelBackgrounds = listOf(
+            Color(0xFFDDF4F3),
+            Color(0xFFFFF2C9),
+            Color(0xFFFDE6F2),
+            Color(0xFFEEF6D6),
+        )
+        val matchedArticles = allArticles
+            .filter { article -> favoriteIds.contains(article.id) }
+            .mapIndexed { articleIndex, article ->
+                FavoriteDisplayCardSpec(
+                    id = article.id,
+                    title = article.name,
+                    description = article.description,
+                    priceLabel = article.pricePerDayDop.toString(),
+                    photoKey = article.photo.toPhotoKey(),
+                    bg = pastelBackgrounds[articleIndex % pastelBackgrounds.size],
+                    isBalloon = false,
+                )
+            }
+        val matchedBalloons = allBalloons
+            .filter { balloon -> favoriteIds.contains(balloon.id) }
+            .mapIndexed { balloonIndex, balloon ->
+                val bgOffset = (matchedArticles.size + balloonIndex) % pastelBackgrounds.size
+                FavoriteDisplayCardSpec(
+                    id = balloon.id,
+                    title = balloon.name,
+                    description = balloon.description,
+                    priceLabel = balloon.unitPriceDop.toString(),
+                    photoKey = balloon.photo.toPhotoKey(),
+                    bg = pastelBackgrounds[bgOffset],
+                    isBalloon = true,
+                )
+            }
+        val combinedFavorites = matchedArticles + matchedBalloons
         val shouldUseFallback = viewModel == null
-        if (matched.isNotEmpty()) {
-            matched
+        if (combinedFavorites.isNotEmpty()) {
+            combinedFavorites
         } else if (shouldUseFallback) {
-            allArticles.take(2)
+            allArticles.take(2).mapIndexed { fallbackIndex, article ->
+                FavoriteDisplayCardSpec(
+                    id = article.id,
+                    title = article.name,
+                    description = article.description,
+                    priceLabel = article.pricePerDayDop.toString(),
+                    photoKey = article.photo.toPhotoKey(),
+                    bg = pastelBackgrounds[fallbackIndex % pastelBackgrounds.size],
+                    isBalloon = false,
+                )
+            }
         } else {
             emptyList()
         }
     }
+
+    val totalFavoritesCount = favoriteDisplayItems.size
+    val activeClientEvent = remember(observedEvents, observedSelectedEventId, viewModel) {
+        viewModel?.activeClientEventOrNull()
+    }
+    val activeEventTitle = activeClientEvent?.title ?: "tu evento"
+    val rosaSuggestionDetail = if (activeClientEvent != null) {
+        "Los artículos seleccionados quedarían en “${activeClientEvent.title}”."
+    } else {
+        "Agrega tus favoritos al borrador o elige un evento activo."
+    }
+    val addAllButtonLabel = if (totalFavoritesCount == 2) "Agregar ambos" else "Agregar todos"
 
     Column(
         modifier = Modifier
@@ -2422,12 +2977,12 @@ internal fun RenderClientFavoritesScreenS24(
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             BasicText("Favoritos", style = typo.heroTitle.copy(fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, color = palette.ink))
-            BasicText("${favoriteArticles.size} artículos guardados", style = typo.secondary.copy(fontSize = 15.sp, color = palette.muted))
+            BasicText("$totalFavoritesCount artículos guardados", style = typo.secondary.copy(fontSize = 15.sp, color = palette.muted))
         }
 
         Spacer(Modifier.height(18.dp))
 
-        if (favoriteArticles.isEmpty()) {
+        if (favoriteDisplayItems.isEmpty()) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -2466,29 +3021,28 @@ internal fun RenderClientFavoritesScreenS24(
             }
         }
 
-        favoriteArticles.chunked(2).forEachIndexed { rowIdx, pair ->
+        favoriteDisplayItems.chunked(2).forEachIndexed { rowIdx, pair ->
             if (rowIdx > 0) {
                 Spacer(Modifier.height(12.dp))
             }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
                 val first = pair[0]
-                val firstPhoto = RfPhotoKey.entries.firstOrNull { entry ->
-                    val matchesAsset = entry.assetKey == first.photo.key
-                    val matchesName = entry.name.equals(first.photo.key, ignoreCase = true)
-                    listOf(matchesAsset, matchesName).any { matched -> matched }
-                } ?: RfPhotoKey.SILLA_TIFFANY
                 val isFirstFav = favoriteIds.contains(first.id)
                 androidx.compose.runtime.key(first.id) {
                     PersonalProductCard(
-                        title = first.name,
+                        title = first.title,
                         desc = first.description,
-                        price = first.pricePerDayDop.toString(),
-                        photoKey = firstPhoto,
-                        bg = Color(0xFFDDF4F3),
+                        price = first.priceLabel,
+                        photoKey = first.photoKey,
+                        bg = first.bg,
                         initialFavorite = isFirstFav,
                         onOpenDetail = {
-                            viewModel?.selectArticle(first.id)
-                            onSelectScreenCode("s19")
+                            if (first.isBalloon) {
+                                onSelectScreenCode("s23")
+                            } else {
+                                viewModel?.selectArticle(first.id)
+                                onSelectScreenCode("s19")
+                            }
                         },
                         onAddClick = {
                             viewModel?.adjustDraftQuantity(first.id, 1)
@@ -2501,23 +3055,22 @@ internal fun RenderClientFavoritesScreenS24(
                 }
                 if (pair.size > 1) {
                     val second = pair[1]
-                    val secondPhoto = RfPhotoKey.entries.firstOrNull { entry ->
-                        val matchesAsset = entry.assetKey == second.photo.key
-                        val matchesName = entry.name.equals(second.photo.key, ignoreCase = true)
-                        listOf(matchesAsset, matchesName).any { matched -> matched }
-                    } ?: RfPhotoKey.MESA_REDONDA
                     val isSecondFav = favoriteIds.contains(second.id)
                     androidx.compose.runtime.key(second.id) {
                         PersonalProductCard(
-                            title = second.name,
+                            title = second.title,
                             desc = second.description,
-                            price = second.pricePerDayDop.toString(),
-                            photoKey = secondPhoto,
-                            bg = Color(0xFFFFF2C9),
+                            price = second.priceLabel,
+                            photoKey = second.photoKey,
+                            bg = second.bg,
                             initialFavorite = isSecondFav,
                             onOpenDetail = {
-                                viewModel?.selectArticle(second.id)
-                                onSelectScreenCode("s19")
+                                if (second.isBalloon) {
+                                    onSelectScreenCode("s23")
+                                } else {
+                                    viewModel?.selectArticle(second.id)
+                                    onSelectScreenCode("s19")
+                                }
                             },
                             onAddClick = {
                                 viewModel?.adjustDraftQuantity(second.id, 1)
@@ -2534,55 +3087,64 @@ internal fun RenderClientFavoritesScreenS24(
             }
         }
 
-        Spacer(Modifier.height(20.dp))
+        if (totalFavoritesCount > 0) {
+            Spacer(Modifier.height(20.dp))
 
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = false)
-                .clip(RoundedCornerShape(22.dp))
-                .background(Color(0xFFEFE8FD))
-                .padding(16.dp),
-        ) {
-            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    RosaAvatar(size = RosaAvatarSize.MEDIUM)
-                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        BasicText("¿Los agrego a tu boda?", style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = RfThemeState.currentPalette.ink))
-                        BasicText("Los artículos seleccionados quedarían en “Boda Real Rosa & Dorado”.", style = typo.secondary.copy(fontSize = 14.sp, lineHeight = 20.sp, color = RfThemeState.currentPalette.muted))
-                    }
-                }
-
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(46.dp)
-                            .rfPrimaryButtonShadow(RoundedCornerShape(999.dp), isAdmin = false)
-                            .clip(RoundedCornerShape(999.dp))
-                            .background(Brush.horizontalGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))))
-                            .clickable {
-                                favoriteArticles.forEach { favArticle ->
-                                    viewModel?.adjustDraftQuantity(favArticle.id, 1)
-                                }
-                                onSelectScreenCode("s25")
-                            },
-                    ) {
-                        BasicText("Agregar ambos", style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.White))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = false)
+                    .clip(RoundedCornerShape(22.dp))
+                    .background(palette.chipBg)
+                    .border(1.dp, palette.line, RoundedCornerShape(22.dp))
+                    .padding(16.dp),
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        RosaAvatar(size = RosaAvatarSize.MEDIUM)
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            BasicText(
+                                text = "¿Los agrego a $activeEventTitle?",
+                                style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = palette.ink),
+                            )
+                            BasicText(
+                                text = rosaSuggestionDetail,
+                                style = typo.secondary.copy(fontSize = 14.sp, lineHeight = 20.sp, color = palette.muted),
+                            )
+                        }
                     }
 
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .height(46.dp)
-                            .rfCardShadow(RoundedCornerShape(14.dp), isAdmin = false)
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(RfThemeState.currentPalette.surface)
-                            .clickable { onSelectScreenCode("s37") }
-                            .padding(horizontal = 16.dp),
-                    ) {
-                        BasicText("Elegir evento", style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = RfThemeState.currentPalette.ink))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(46.dp)
+                                .rfPrimaryButtonShadow(RoundedCornerShape(999.dp), isAdmin = false)
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(Brush.horizontalGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))))
+                                .clickable {
+                                    favoriteDisplayItems.forEach { favItem ->
+                                        viewModel?.adjustDraftQuantity(favItem.id, 1)
+                                    }
+                                    onSelectScreenCode("s25")
+                                },
+                        ) {
+                            BasicText(addAllButtonLabel, style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.White))
+                        }
+
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .height(46.dp)
+                                .rfCardShadow(RoundedCornerShape(14.dp), isAdmin = false)
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(palette.surface)
+                                .clickable { onSelectScreenCode("s37") }
+                                .padding(horizontal = 16.dp),
+                        ) {
+                            BasicText("Elegir evento", style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = palette.ink))
+                        }
                     }
                 }
             }
