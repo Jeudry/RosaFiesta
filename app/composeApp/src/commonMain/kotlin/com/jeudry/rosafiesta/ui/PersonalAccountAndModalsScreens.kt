@@ -4,6 +4,8 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -46,6 +48,9 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -55,6 +60,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.jeudry.rosafiesta.core.engine.RosaFiestaEngine
 import com.jeudry.rosafiesta.designsystem.LocalRfTypography
 import com.jeudry.rosafiesta.designsystem.RfButton
 import com.jeudry.rosafiesta.designsystem.RfButtonStyle
@@ -76,31 +82,36 @@ import com.jeudry.rosafiesta.designsystem.rfIconButtonShadow
 import com.jeudry.rosafiesta.designsystem.rfInputShadow
 import com.jeudry.rosafiesta.designsystem.rfPrimaryButtonShadow
 import com.jeudry.rosafiesta.domain.CanonicalSampleData
-
-private val PersonalButtonGradient = Brush.horizontalGradient(
-    listOf(Color(0xFFFF3366), Color(0xFFE6007A)),
-)
+import com.jeudry.rosafiesta.domain.CatalogArticle
+import com.jeudry.rosafiesta.domain.DomainClockFormatter
+import com.jeudry.rosafiesta.domain.NotificationRecord
 
 private val RosaButtonGradient = Brush.horizontalGradient(
     listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC)),
 )
 
-// ==============================================================================
-// s79 · NOTIFICACIONES PERSONAL
-// ==============================================================================
 @Composable
 internal fun RenderPersonalNotificationsS79(
     viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
-    var allMarkedRead by remember { mutableStateOf(false) }
-    var selectedFilterIndex by remember { mutableStateOf(0) }
-    val activeEvent = viewModel?.activeClientEvent() ?: CanonicalSampleData.events.first()
-    val paymentsState = viewModel?.payments?.collectAsState()?.value ?: CanonicalSampleData.payments
-    val latestPayment = paymentsState.firstOrNull()
-    val chatMessages = viewModel?.directChatMessages?.collectAsState()?.value ?: emptyList()
-    val latestMessage = chatMessages.lastOrNull()
+    val notificationsList = viewModel?.notifications?.collectAsState()?.value ?: CanonicalSampleData.notifications
+    var locallyReadIds by remember { mutableStateOf(emptySet<String>()) }
+    var selectedFilterLabel by remember { mutableStateOf("Todas") }
+
+    val unreadCount = notificationsList.count { notification ->
+        val isMarkedLocally = locallyReadIds.contains(notification.id)
+        val isRead = if (notification.isRead) true else isMarkedLocally
+        !isRead
+    }
+    val allMarkedRead = unreadCount == 0
+
+    val filteredNotifications = notificationsList.filter { notification ->
+        val isMarkedLocally = locallyReadIds.contains(notification.id)
+        val isRead = if (notification.isRead) true else isMarkedLocally
+        matchesNotificationFilter79(notification, isRead, selectedFilterLabel)
+    }
 
     RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -110,7 +121,6 @@ internal fun RenderPersonalNotificationsS79(
                 .padding(start = 20.dp, end = 20.dp, top = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -136,7 +146,7 @@ internal fun RenderPersonalNotificationsS79(
                         style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = RfThemeState.currentPalette.ink),
                     )
                     BasicText(
-                        text = if (allMarkedRead) "Al día · 0 sin leer" else "3 sin leer",
+                        text = if (allMarkedRead) "Al día · 0 sin leer" else "$unreadCount sin leer",
                         maxLines = 1,
                         style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = RfThemeState.currentPalette.muted),
                     )
@@ -144,15 +154,24 @@ internal fun RenderPersonalNotificationsS79(
 
                 BasicText(
                     text = if (allMarkedRead) "Leídas" else "Marcar leídas",
-                    modifier = Modifier.clickable { allMarkedRead = !allMarkedRead },
+                    modifier = Modifier.clickable {
+                        locallyReadIds = notificationsList.map { notification -> notification.id }.toSet()
+                        notificationsList.forEach { notification ->
+                            viewModel?.markNotificationAsRead(notification.id)
+                        }
+                    },
                     style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFFC2338F)),
                 )
             }
 
-            // Filter chips
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf("Todas", "Pagos", "Mis eventos", "Mensajes").forEachIndexed { index, label ->
-                    val selected = index == selectedFilterIndex
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                listOf("Todas", "No leídas", "Pagos", "Eventos").forEach { filterLabel ->
+                    val selected = filterLabel == selectedFilterLabel
                     Box(
                         modifier = Modifier
                             .height(36.dp)
@@ -164,12 +183,12 @@ internal fun RenderPersonalNotificationsS79(
                                     SolidColor(RfThemeState.currentPalette.chipBg)
                                 },
                             )
-                            .clickable { selectedFilterIndex = index }
+                            .clickable { selectedFilterLabel = filterLabel }
                             .padding(horizontal = 14.dp),
                         contentAlignment = Alignment.Center,
                     ) {
                         BasicText(
-                            text = label,
+                            text = filterLabel,
                             style = TextStyle(
                                 fontFamily = typo.bodyFamily,
                                 fontWeight = FontWeight.SemiBold,
@@ -181,93 +200,132 @@ internal fun RenderPersonalNotificationsS79(
                 }
             }
 
-            val quoteBody = "${activeEvent.title} · Total RD$ ${activeEvent.totalDop}. Revísala y aparta tu fecha."
-            val messageBody = latestMessage?.text ?: "María: “¡Confirmado el arco de globos para el viernes!”"
-            val messageTime = latestMessage?.timeLabel ?: "8:15 a. m."
-            val balanceDop = (activeEvent.totalDop - activeEvent.paidDepositDop).coerceAtLeast(0)
-            val depositAmountDop = latestPayment?.amountDop ?: activeEvent.paidDepositDop
-
-            NotificationSectionLabel79("Hoy")
-            NotificationCard79(
-                items = listOf(
+            if (filteredNotifications.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(RfThemeState.currentPalette.surface)
+                        .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(20.dp))
+                        .padding(24.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        BasicText(
+                            text = "Sin notificaciones en “$selectedFilterLabel”",
+                            style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = RfThemeState.currentPalette.ink),
+                        )
+                        BasicText(
+                            text = "Cambia el filtro para revisar el resto de tu actividad.",
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = RfThemeState.currentPalette.muted),
+                        )
+                    }
+                }
+            } else {
+                val mappedItems = filteredNotifications.map { notification ->
+                    val isMarkedLocally = locallyReadIds.contains(notification.id)
+                    val isRead = if (notification.isRead) true else isMarkedLocally
+                    val visual = resolveNotificationVisual79(notification)
                     NotificationItem79(
-                        title = "Tu cotización está lista",
-                        body = quoteBody,
-                        time = "9:40 a. m.",
-                        icon = RfIconKind.NOTE,
-                        iconBg = Color(0xFFFDE6F2),
-                        iconTint = Color(0xFFC2338F),
-                        unread = !allMarkedRead,
-                        onClick = { onSelectScreenCode("s48") },
-                    ),
-                    NotificationItem79(
-                        title = "Nuevo mensaje de Rosa Fiesta",
-                        body = messageBody,
-                        time = messageTime,
-                        icon = RfIconKind.CHAT,
-                        iconBg = Color(0xFFEFE8FD),
-                        iconTint = Color(0xFF7A4FD8),
-                        unread = !allMarkedRead,
-                        onClick = { onSelectScreenCode("s42") },
-                    ),
-                    NotificationItem79(
-                        title = "Tu evento ${activeEvent.title}",
-                        body = "Revisa tu checklist y confirma la hora de montaje (${activeEvent.dateLabel}).",
-                        time = "7:00 a. m.",
-                        icon = RfIconKind.CALENDAR,
-                        iconBg = Color(0xFFFFF2C9),
-                        iconTint = Color(0xFF7A5700),
-                        unread = !allMarkedRead,
-                        onClick = { onSelectScreenCode("s46") },
-                    ),
-                ),
-            )
-
-            NotificationSectionLabel79("Ayer")
-            NotificationCard79(
-                items = listOf(
-                    NotificationItem79(
-                        title = "Recordatorio de pago",
-                        body = "El saldo de RD$ $balanceDop de ${activeEvent.title} vence pronto.",
-                        time = "6:30 p. m.",
-                        icon = RfIconKind.WALLET,
-                        iconBg = Color(0xFFEEF6D6),
-                        iconTint = Color(0xFF4E6A10),
-                        unread = false,
-                        onClick = { onSelectScreenCode("s82") },
-                    ),
-                    NotificationItem79(
-                        title = "Rosa tiene ideas para ti",
-                        body = "3 combinaciones para la decoración de ${activeEvent.title}.",
-                        time = "11:02 a. m.",
-                        icon = RfIconKind.SPARKLE,
-                        iconBg = Color(0xFFDDF4F3),
-                        iconTint = Color(0xFF1F8A84),
-                        unread = false,
-                        onClick = { onSelectScreenCode("s29") },
-                    ),
-                ),
-            )
-
-            NotificationSectionLabel79("Esta semana")
-            NotificationCard79(
-                items = listOf(
-                    NotificationItem79(
-                        title = "Recibimos tu anticipo",
-                        body = "RD$ $depositAmountDop · ${activeEvent.title}. Ver recibo.",
-                        time = "18 oct",
-                        icon = RfIconKind.CHECK,
-                        iconBg = Color(0xFFEEF6D6),
-                        iconTint = Color(0xFF4E6A10),
-                        unread = false,
-                        onClick = { onSelectScreenCode("s83") },
-                    ),
-                ),
-            )
+                        title = notification.title,
+                        body = notification.body,
+                        time = notification.createdAtLabel,
+                        icon = visual.icon,
+                        iconBg = visual.iconBg,
+                        iconTint = visual.iconTint,
+                        unread = !isRead,
+                        onClick = {
+                            locallyReadIds = locallyReadIds + notification.id
+                            viewModel?.markNotificationAsRead(notification.id)
+                            onSelectScreenCode(resolveNotificationDestination79(notification))
+                        },
+                    )
+                }
+                NotificationSectionLabel79("Actividad reciente (${mappedItems.size})")
+                NotificationCard79(items = mappedItems)
+            }
 
             Spacer(modifier = Modifier.height(30.dp))
         }
     }
+}
+
+private data class NotificationVisual79(
+    val icon: RfIconKind,
+    val iconBg: Color,
+    val iconTint: Color,
+)
+
+private fun isPaymentNotification79(notification: NotificationRecord): Boolean {
+    val categoryUpper = notification.category.uppercase()
+    if (categoryUpper == "PAYMENTS") return true
+    if (categoryUpper == "REFUNDS") return true
+    val combinedLower = "${notification.title} ${notification.body}".lowercase()
+    if (combinedLower.contains("pago")) return true
+    if (combinedLower.contains("anticipo")) return true
+    if (combinedLower.contains("reembolso")) return true
+    return combinedLower.contains("recibo")
+}
+
+private fun isQuoteNotification79(notification: NotificationRecord): Boolean {
+    val categoryUpper = notification.category.uppercase()
+    if (categoryUpper == "QUOTES") return true
+    if (notification.actionPath.contains("quote", ignoreCase = true)) return true
+    return notification.title.contains("cotización", ignoreCase = true)
+}
+
+private fun isEventNotification79(notification: NotificationRecord): Boolean {
+    val categoryUpper = notification.category.uppercase()
+    if (categoryUpper == "LOGISTICS") return true
+    if (categoryUpper == "EVENTS") return true
+    if (isQuoteNotification79(notification)) return true
+    val combinedLower = "${notification.title} ${notification.body}".lowercase()
+    if (combinedLower.contains("evento")) return true
+    if (combinedLower.contains("montaje")) return true
+    return combinedLower.contains("ruta")
+}
+
+private fun matchesNotificationFilter79(
+    notification: NotificationRecord,
+    isRead: Boolean,
+    selectedFilterLabel: String,
+): Boolean = when (selectedFilterLabel) {
+    "No leídas" -> !isRead
+    "Pagos" -> isPaymentNotification79(notification)
+    "Eventos" -> isEventNotification79(notification)
+    else -> true
+}
+
+private fun resolveNotificationDestination79(notification: NotificationRecord): String {
+    if (isQuoteNotification79(notification)) return "s48"
+    if (isPaymentNotification79(notification)) return "s82"
+    return "s40"
+}
+
+private fun resolveNotificationVisual79(notification: NotificationRecord): NotificationVisual79 {
+    if (isQuoteNotification79(notification)) {
+        return NotificationVisual79(
+            icon = RfIconKind.NOTE,
+            iconBg = Color(0xFFFDE6F2),
+            iconTint = Color(0xFFC2338F),
+        )
+    }
+    if (isPaymentNotification79(notification)) {
+        return NotificationVisual79(
+            icon = RfIconKind.WALLET,
+            iconBg = Color(0xFFEEF6D6),
+            iconTint = Color(0xFF4E6A10),
+        )
+    }
+    return NotificationVisual79(
+        icon = RfIconKind.CALENDAR,
+        iconBg = Color(0xFFFFF2C9),
+        iconTint = Color(0xFF7A5700),
+    )
 }
 
 private data class NotificationItem79(
@@ -369,9 +427,54 @@ private fun NotificationCard79(items: List<NotificationItem79>) {
     }
 }
 
-// ==============================================================================
-// s80 · BÚSQUEDA
-// ==============================================================================
+private fun isUnfilteredCategoryLabel80(categoryLabel: String): Boolean {
+    val normalized = categoryLabel.trim().lowercase()
+    if (normalized.isEmpty()) return true
+    if (normalized == "todos") return true
+    return normalized == "todas"
+}
+
+private fun filterFallbackArticles80(
+    articles: List<CatalogArticle>,
+    query: String,
+    selectedCategory: String,
+    maxPriceFilter: Int,
+    onlyAvailable: Boolean,
+    sortOrder: String,
+): List<CatalogArticle> {
+    val trimmedQuery = query.trim()
+    val matchingList = articles.filter { article ->
+        val matchesQuery = if (trimmedQuery.isEmpty()) {
+            true
+        } else {
+            val byName = article.name.contains(trimmedQuery, ignoreCase = true)
+            val byCategory = article.category.contains(trimmedQuery, ignoreCase = true)
+            val byCode = article.code.contains(trimmedQuery, ignoreCase = true)
+            val byDesc = article.description.contains(trimmedQuery, ignoreCase = true)
+            listOf(byName, byCategory, byCode, byDesc).any { matched -> matched }
+        }
+        val matchesCategory = if (isUnfilteredCategoryLabel80(selectedCategory)) {
+            true
+        } else {
+            article.category.contains(selectedCategory.trim(), ignoreCase = true)
+        }
+        val matchesPrice = article.pricePerDayDop <= maxPriceFilter
+        val matchesStock = if (onlyAvailable) article.availableOct23 > 0 else true
+        listOf(matchesQuery, matchesCategory, matchesPrice, matchesStock).all { matched -> matched }
+    }
+    val normalizedSort = sortOrder.trim().lowercase()
+    return when {
+        normalizedSort.contains("menor") -> matchingList.sortedBy { article -> article.pricePerDayDop }
+        normalizedSort.contains("mayor") -> matchingList.sortedByDescending { article -> article.pricePerDayDop }
+        normalizedSort.contains("alfab") -> matchingList.sortedBy { article -> article.name }
+        else -> matchingList.sortedByDescending { article -> article.totalStock }
+    }
+}
+
+private fun resolveArticlePhotoKey80(photoKeyText: String): RfPhotoKey = RfPhotoKey.entries.firstOrNull { entry ->
+    if (entry.assetKey == photoKeyText) true else entry.name.equals(photoKeyText, ignoreCase = true)
+} ?: RfPhotoKey.MESA_REDONDA
+
 @Composable
 internal fun RenderPersonalSearchS80(
     viewModel: RosaFiestaViewModel? = null,
@@ -381,50 +484,31 @@ internal fun RenderPersonalSearchS80(
     val cardShape = RoundedCornerShape(20.dp)
     val vmQuery = viewModel?.searchQuery?.collectAsState()?.value ?: ""
     var localQuery by remember(vmQuery) { mutableStateOf(vmQuery) }
-    val selectedCategory = viewModel?.selectedCategory?.collectAsState()?.value ?: "Todas"
+    val selectedCategory = viewModel?.selectedCategory?.collectAsState()?.value ?: "Todos"
     val maxPriceFilter = viewModel?.maxPriceFilterDop?.collectAsState()?.value ?: 5000
-    val onlyAvailable = viewModel?.onlyAvailableFilter?.collectAsState()?.value ?: true
-    val sortOrder = viewModel?.searchSortOrder?.collectAsState()?.value ?: "Populares"
-    val allArticles = viewModel?.articles?.collectAsState()?.value ?: com.jeudry.rosafiesta.domain.CanonicalSampleData.articles
+    val onlyAvailable = viewModel?.onlyAvailableFilter?.collectAsState()?.value ?: false
+    val sortOrder = viewModel?.searchSortOrder?.collectAsState()?.value ?: "Más populares"
+    val allArticles = viewModel?.articles?.collectAsState()?.value ?: CanonicalSampleData.articles
     val isInlineVoiceListening = viewModel?.isVoiceListening?.collectAsState()?.value ?: false
     val voiceOrigin = viewModel?.voiceInputOrigin?.collectAsState()?.value ?: VoiceInputOrigin.NONE
     val isSearchMicActive = if (isInlineVoiceListening) voiceOrigin == VoiceInputOrigin.SEARCH else false
 
-    val filteredArticles = remember(localQuery, selectedCategory, maxPriceFilter, onlyAvailable, sortOrder, allArticles) {
-        val trimmedQuery = localQuery.trim()
-        val matchingList = allArticles.filter { article ->
-            val matchesQuery = if (trimmedQuery.isEmpty()) {
-                true
-            } else {
-                val byName = article.name.contains(trimmedQuery, ignoreCase = true)
-                val byCategory = article.category.contains(trimmedQuery, ignoreCase = true)
-                val byCode = article.code.contains(trimmedQuery, ignoreCase = true)
-                val byDesc = article.description.contains(trimmedQuery, ignoreCase = true)
-                listOf(byName, byCategory, byCode, byDesc).any { matched -> matched }
-            }
-            val matchesCategory = if (selectedCategory == "Todas") {
-                true
-            } else {
-                article.category.equals(selectedCategory, ignoreCase = true)
-            }
-            val matchesPrice = article.pricePerDayDop <= maxPriceFilter
-            val matchesStock = if (onlyAvailable) {
-                article.totalStock > 0
-            } else {
-                true
-            }
-            listOf(matchesQuery, matchesCategory, matchesPrice, matchesStock).all { matched -> matched }
-        }
-        when (sortOrder) {
-            "Precio ↑" -> matchingList.sortedBy { article -> article.pricePerDayDop }
-            "Precio ↓" -> matchingList.sortedByDescending { article -> article.pricePerDayDop }
-            "Nuevos" -> matchingList.sortedByDescending { article -> article.code }
-            else -> matchingList
-        }
+    val filteredArticles = if (viewModel != null) {
+        viewModel.filteredCatalogArticles(queryOverride = localQuery)
+    } else {
+        filterFallbackArticles80(
+            articles = allArticles,
+            query = localQuery,
+            selectedCategory = selectedCategory,
+            maxPriceFilter = maxPriceFilter,
+            onlyAvailable = onlyAvailable,
+            sortOrder = sortOrder,
+        )
     }
 
+    val isCategoryFiltered = !isUnfilteredCategoryLabel80(selectedCategory)
     val activeFilterCount = listOf(
-        selectedCategory != "Todas",
+        isCategoryFiltered,
         maxPriceFilter < 5000,
         onlyAvailable,
     ).count { isActive -> isActive }
@@ -614,15 +698,15 @@ internal fun RenderPersonalSearchS80(
                     .horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                if (selectedCategory != "Todas") {
+                if (isCategoryFiltered) {
                     SearchFilterChip80(
                         label = selectedCategory,
                         isActive = true,
-                        onClick = { viewModel?.setSelectedCategory("Todas") },
+                        onClick = { viewModel?.setSelectedCategory("Todos") },
                     )
                 }
                 SearchFilterChip80(
-                    label = if (onlyAvailable) "Disponible vie 23 oct" else "Incluir agotados",
+                    label = if (onlyAvailable) "Solo disponibles" else "Incluir agotados",
                     isActive = onlyAvailable,
                     onClick = { viewModel?.setOnlyAvailableFilter(!onlyAvailable) },
                 )
@@ -663,11 +747,11 @@ internal fun RenderPersonalSearchS80(
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
                         .clickable {
-                            val nextOrder = when (sortOrder) {
-                                "Populares" -> "Precio ↑"
-                                "Precio ↑" -> "Precio ↓"
-                                "Precio ↓" -> "Nuevos"
-                                else -> "Populares"
+                            val nextOrder = when (sortLabel) {
+                                "Más populares" -> "Menor precio"
+                                "Menor precio" -> "Mayor precio"
+                                "Mayor precio" -> "Alfabético"
+                                else -> "Más populares"
                             }
                             viewModel?.setSearchSortOrder(nextOrder)
                         }
@@ -712,9 +796,7 @@ internal fun RenderPersonalSearchS80(
                                 .clickable {
                                     localQuery = ""
                                     viewModel?.setSearchQuery("")
-                                    viewModel?.setSelectedCategory("Todas")
-                                    viewModel?.setMaxPriceFilterDop(5000)
-                                    viewModel?.setOnlyAvailableFilter(false)
+                                    viewModel?.resetCatalogFilters()
                                 }
                                 .padding(horizontal = 16.dp),
                             contentAlignment = Alignment.Center,
@@ -729,13 +811,9 @@ internal fun RenderPersonalSearchS80(
             }
 
             filteredArticles.forEach { article ->
-                val freeCount = article.totalStock.coerceAtLeast(0)
+                val freeCount = article.availableOct23.coerceAtLeast(0)
                 val lowStock = freeCount <= 3
-                val photoKey = RfPhotoKey.entries.firstOrNull { entry ->
-                    val matchesAsset = entry.assetKey == article.photo.key
-                    val matchesName = entry.name.equals(article.photo.key, ignoreCase = true)
-                    matchesAsset || matchesName
-                } ?: RfPhotoKey.MESA_REDONDA
+                val photoKey = resolveArticlePhotoKey80(article.photo.key)
                 SearchResultCard80(
                     photoKey = photoKey,
                     title = article.name,
@@ -886,9 +964,6 @@ private fun SearchResultCard80(
     }
 }
 
-// ==============================================================================
-// s82 · MIS PAGOS
-// ==============================================================================
 @Composable
 internal fun RenderPersonalPaymentsS82(
     viewModel: RosaFiestaViewModel? = null,
@@ -897,19 +972,32 @@ internal fun RenderPersonalPaymentsS82(
     val typo = LocalRfTypography.current
     val palette = RfThemeState.currentPalette
     val cardShape = RoundedCornerShape(20.dp)
-    val allEventsState = viewModel?.events?.collectAsState()?.value ?: com.jeudry.rosafiesta.domain.CanonicalSampleData.events
-    val allPaymentsState = viewModel?.payments?.collectAsState()?.value ?: com.jeudry.rosafiesta.domain.CanonicalSampleData.payments
-    val userEvents = remember(allEventsState, viewModel) {
-        viewModel?.clientEventsForCurrentUser() ?: allEventsState
+    val fallbackEvents = CanonicalSampleData.events
+    val fallbackPayments = CanonicalSampleData.payments
+    viewModel?.events?.collectAsState()?.value
+    viewModel?.payments?.collectAsState()?.value
+    viewModel?.currentAuthenticatedUser?.collectAsState()?.value
+    viewModel?.profileName?.collectAsState()?.value
+    viewModel?.profileEmail?.collectAsState()?.value
+    viewModel?.isExplicitGuestSession?.collectAsState()?.value
+
+    val userEvents = if (viewModel != null) {
+        viewModel.clientEventsForCurrentUser()
+    } else {
+        fallbackEvents
     }
-    val userPayments = remember(allPaymentsState, userEvents, viewModel) {
-        viewModel?.clientPaymentsForCurrentUser() ?: allPaymentsState
+    val userPayments = if (viewModel != null) {
+        viewModel.clientPaymentsForCurrentUser()
+    } else {
+        fallbackPayments
     }
-    val savedPaymentMethod = viewModel?.savedPaymentMethod?.collectAsState()?.value ?: "Visa •••• 4821 · Transferencia"
+    val savedPaymentMethod = viewModel?.savedPaymentMethod?.collectAsState()?.value ?: "Transferencia Banreservas"
+    var localSavedMethod by remember(savedPaymentMethod) { mutableStateOf(savedPaymentMethod) }
     var showPaymentMethodSelector by remember { mutableStateOf(false) }
 
-    val totalPaidDop = userEvents.sumOf { eventItem -> eventItem.paidDepositDop }
-        .coerceAtLeast(userPayments.sumOf { paymentItem -> paymentItem.amountDop })
+    val paidFromEvents = userEvents.sumOf { eventItem -> eventItem.paidDepositDop }
+    val paidFromReceipts = userPayments.sumOf { paymentItem -> paymentItem.amountDop }
+    val totalPaidDop = paidFromEvents.coerceAtLeast(paidFromReceipts)
     val totalPendingDop = userEvents.sumOf { eventItem ->
         (eventItem.totalDop - eventItem.paidDepositDop).coerceAtLeast(0)
     }
@@ -982,7 +1070,7 @@ internal fun RenderPersonalPaymentsS82(
                         style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color.White.copy(alpha = 0.85f)),
                     )
                     BasicText(
-                        text = "RD$ $totalPaidDop",
+                        text = RosaFiestaEngine.formatDop(totalPaidDop),
                         style = TextStyle(
                             fontFamily = typo.displayFamily,
                             fontWeight = FontWeight.ExtraBold,
@@ -1004,7 +1092,7 @@ internal fun RenderPersonalPaymentsS82(
                         style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color.White.copy(alpha = 0.85f)),
                     )
                     BasicText(
-                        text = "RD$ $totalPendingDop",
+                        text = RosaFiestaEngine.formatDop(totalPendingDop),
                         style = TextStyle(
                             fontFamily = typo.displayFamily,
                             fontWeight = FontWeight.ExtraBold,
@@ -1034,12 +1122,45 @@ internal fun RenderPersonalPaymentsS82(
                     .clip(cardShape)
                     .background(palette.surface),
             ) {
-                if (pendingEvents.isEmpty()) {
+                if (userEvents.isEmpty()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        BasicText(
+                            text = "Aún no tienes eventos registrados",
+                            style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = palette.ink),
+                        )
+                        BasicText(
+                            text = "Arma tu evento en el catálogo para gestionar tus anticipos y saldos aquí.",
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = palette.muted, textAlign = TextAlign.Center),
+                        )
+                        Box(
+                            modifier = Modifier
+                                .padding(top = 2.dp)
+                                .height(36.dp)
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(Color(0xFFFDE6F2))
+                                .clickable { onSelectScreenCode("s18") }
+                                .padding(horizontal = 16.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            BasicText(
+                                text = "Explorar catálogo",
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFFC2338F)),
+                            )
+                        }
+                    }
+                } else if (pendingEvents.isEmpty()) {
                     PendingPaymentRow82(
                         title = "Todos tus eventos están al día",
                         due = "Sin saldos pendientes",
                         dueColor = Color(0xFF4E6A10),
                         amount = "RD$ 0",
+                        actionLabel = "Ver eventos",
                         highlighted = false,
                         onClick = { onSelectScreenCode("s37") },
                     )
@@ -1054,14 +1175,17 @@ internal fun RenderPersonalPaymentsS82(
                             )
                         }
                         val remainingAmount = (eventItem.totalDop - eventItem.paidDepositDop).coerceAtLeast(0)
+                        val actionLabel = if (eventItem.paidDepositDop > 0) "Pagar saldo" else "Abonar"
                         PendingPaymentRow82(
                             title = "${eventItem.title} · saldo",
                             due = "Vence ${eventItem.balanceDueDateLabel.ifBlank { eventItem.dateLabel }}",
                             dueColor = if (index == 0) Color(0xFFB42345) else Color(0xFF7A5700),
-                            amount = "RD$ $remainingAmount",
+                            amount = RosaFiestaEngine.formatDop(remainingAmount),
+                            actionLabel = actionLabel,
                             highlighted = index == 0,
                             onClick = {
                                 viewModel?.selectEvent(eventItem.id)
+                                viewModel?.setPaymentCheckoutMode("BALANCE")
                                 onSelectScreenCode("s50")
                             },
                         )
@@ -1087,24 +1211,38 @@ internal fun RenderPersonalPaymentsS82(
                     .clip(cardShape)
                     .background(palette.surface),
             ) {
-                userPayments.forEachIndexed { index, paymentItem ->
-                    if (index > 0) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(1.dp)
-                                .background(palette.lineSoft),
+                if (userPayments.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 18.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        BasicText(
+                            text = "Sin comprobantes de pago registrados todavía.",
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.5.sp, color = palette.muted),
                         )
                     }
-                    ReceiptRow82(
-                        title = "${paymentItem.kindLabel} · ${paymentItem.eventTitle}",
-                        subtitle = "${paymentItem.dateLabel} · ${paymentItem.methodLabel} (${paymentItem.receiptNumber})",
-                        amount = "RD$ ${paymentItem.amountDop}",
-                        onClick = {
-                            viewModel?.selectEvent(paymentItem.eventId)
-                            onSelectScreenCode("s83")
-                        },
-                    )
+                } else {
+                    userPayments.forEachIndexed { index, paymentItem ->
+                        if (index > 0) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(1.dp)
+                                    .background(palette.lineSoft),
+                            )
+                        }
+                        ReceiptRow82(
+                            title = "${paymentItem.kindLabel} · ${paymentItem.eventTitle}",
+                            subtitle = "${paymentItem.dateLabel} · ${paymentItem.methodLabel} (${paymentItem.receiptNumber})",
+                            amount = RosaFiestaEngine.formatDop(paymentItem.amountDop),
+                            onClick = {
+                                viewModel?.selectEvent(paymentItem.eventId)
+                                onSelectScreenCode("s83")
+                            },
+                        )
+                    }
                 }
             }
 
@@ -1122,11 +1260,11 @@ internal fun RenderPersonalPaymentsS82(
                 RfIcon(kind = RfIconKind.WALLET, tint = palette.ink, size = 18.dp)
                 Column(modifier = Modifier.weight(1f)) {
                     BasicText(
-                        text = "Métodos de pago",
+                        text = "Método de pago preferido",
                         style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Medium, fontSize = 15.sp, color = palette.ink),
                     )
                     BasicText(
-                        text = savedPaymentMethod,
+                        text = localSavedMethod,
                         style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = palette.muted),
                     )
                 }
@@ -1135,10 +1273,11 @@ internal fun RenderPersonalPaymentsS82(
 
             if (showPaymentMethodSelector) {
                 val methodOptions = listOf(
-                    "Visa •••• 4821 · Transferencia",
-                    "Mastercard •••• 8834 · Crédito",
                     "Transferencia Banreservas",
                     "Transferencia Banco Popular",
+                    "Transferencia BHD",
+                    "Tarjeta de crédito / débito",
+                    "Efectivo en tienda",
                 )
                 Column(
                     modifier = Modifier
@@ -1150,13 +1289,14 @@ internal fun RenderPersonalPaymentsS82(
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     methodOptions.forEach { optionLabel ->
-                        val isOptionSelected = optionLabel == savedPaymentMethod
+                        val isOptionSelected = optionLabel == localSavedMethod
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(12.dp))
                                 .background(if (isOptionSelected) palette.chipBg else Color.Transparent)
                                 .clickable {
+                                    localSavedMethod = optionLabel
                                     viewModel?.setSavedPaymentMethod(optionLabel)
                                     showPaymentMethodSelector = false
                                 }
@@ -1192,6 +1332,7 @@ private fun PendingPaymentRow82(
     due: String,
     dueColor: Color,
     amount: String,
+    actionLabel: String,
     highlighted: Boolean,
     onClick: () -> Unit,
 ) {
@@ -1241,7 +1382,7 @@ private fun PendingPaymentRow82(
                 .padding(horizontal = 12.dp),
         ) {
             BasicText(
-                text = "Pagar",
+                text = actionLabel,
                 style = TextStyle(
                     fontFamily = typo.bodyFamily,
                     fontWeight = FontWeight.Bold,
@@ -1311,10 +1452,6 @@ private fun ReceiptRow82(
     }
 }
 
-// ==============================================================================
-
-// s86 · AJUSTES DE CUENTA
-// ==============================================================================
 @Composable
 internal fun RenderAccountSettingsS86(
     viewModel: RosaFiestaViewModel? = null,
@@ -1322,11 +1459,39 @@ internal fun RenderAccountSettingsS86(
 ) {
     val typo = LocalRfTypography.current
     val palette = RfThemeState.currentPalette
-    val isDarkThemeActive = viewModel?.isDarkTheme?.collectAsState()?.value ?: palette.isDark
-    val selectedLanguage = viewModel?.preferredLanguage?.collectAsState()?.value ?: "Español"
-    val remindersEnabled = viewModel?.remindersEnabled?.collectAsState()?.value ?: true
-    val savedPaymentMethod = viewModel?.savedPaymentMethod?.collectAsState()?.value ?: "Visa •••• 4821"
-    val userEventsCount = viewModel?.clientEventsForCurrentUser()?.size ?: 2
+    val vmDarkTheme = viewModel?.isDarkTheme?.collectAsState()?.value ?: palette.isDark
+    val vmLanguage = viewModel?.preferredLanguage?.collectAsState()?.value ?: "Español"
+    val vmReminders = viewModel?.remindersEnabled?.collectAsState()?.value ?: true
+    val vmPushEnabled = viewModel?.pushNotificationsEnabled?.collectAsState()?.value ?: true
+    val vmWhatsappEnabled = viewModel?.whatsappAlertsEnabled?.collectAsState()?.value ?: true
+    val vmEmailReceipts = viewModel?.emailReceiptsEnabled?.collectAsState()?.value ?: true
+    val vmProfileZone = viewModel?.profileZone?.collectAsState()?.value ?: "Piantini, Santo Domingo"
+    val savedPaymentMethod = viewModel?.savedPaymentMethod?.collectAsState()?.value ?: "Transferencia Banreservas"
+    val vmFormError = viewModel?.formError?.collectAsState()?.value
+
+    var localDarkTheme by remember(vmDarkTheme) { mutableStateOf(vmDarkTheme) }
+    var localLanguage by remember(vmLanguage) { mutableStateOf(vmLanguage) }
+    var localReminders by remember(vmReminders) { mutableStateOf(vmReminders) }
+    var localPush by remember(vmPushEnabled) { mutableStateOf(vmPushEnabled) }
+    var localWhatsapp by remember(vmWhatsappEnabled) { mutableStateOf(vmWhatsappEnabled) }
+    var localEmailReceipts by remember(vmEmailReceipts) { mutableStateOf(vmEmailReceipts) }
+    var draftEventAddress by remember(vmProfileZone) { mutableStateOf(vmProfileZone) }
+    var showAddressEditor by remember { mutableStateOf(false) }
+    var addressStatusBanner by remember { mutableStateOf<String?>(null) }
+
+    var showPasswordEditor by remember { mutableStateOf(false) }
+    var currentPasswordInput by remember { mutableStateOf("") }
+    var newPasswordInput by remember { mutableStateOf("") }
+    var confirmPasswordInput by remember { mutableStateOf("") }
+    var passwordErrorBanner by remember { mutableStateOf<String?>(null) }
+    var passwordSuccessBanner by remember { mutableStateOf<String?>(null) }
+
+    val isEnglish = localLanguage.startsWith("Eng", ignoreCase = true)
+    val screenTitle = if (isEnglish) "Settings" else "Ajustes"
+    val preferencesHeader = if (isEnglish) "PREFERENCES" else "PREFERENCIAS"
+    val accountHeader = if (isEnglish) "SECURITY & ACCOUNT" else "CUENTA Y SEGURIDAD"
+    val notificationsHeader = if (isEnglish) "NOTIFICATIONS" else "AVISOS"
+    val legalHeader = if (isEnglish) "PRIVACY & LEGAL" else "PRIVACIDAD Y LEGAL"
 
     RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
@@ -1348,14 +1513,14 @@ internal fun RenderAccountSettingsS86(
                     RfIcon(kind = RfIconKind.BACK, tint = palette.ink, size = 22.dp)
                 }
                 BasicText(
-                    "Ajustes",
+                    screenTitle,
                     modifier = Modifier.weight(1f),
                     style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, lineHeight = 22.sp, color = palette.ink),
                 )
             }
 
             Spacer(modifier = Modifier.height(12.dp))
-            SettingsCaption86("PREFERENCIAS")
+            SettingsCaption86(preferencesHeader)
             Spacer(modifier = Modifier.height(8.dp))
             SettingsGroup86 {
                 Row(
@@ -1365,12 +1530,12 @@ internal fun RenderAccountSettingsS86(
                 ) {
                     RfIcon(kind = RfIconKind.MOON, tint = palette.ink, size = 20.dp)
                     BasicText(
-                        "Tema",
+                        if (isEnglish) "Theme" else "Tema",
                         modifier = Modifier.weight(1f),
                         style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = palette.ink),
                     )
-                    val lightSelected = !isDarkThemeActive
-                    val darkSelected = isDarkThemeActive
+                    val lightSelected = !localDarkTheme
+                    val darkSelected = localDarkTheme
                     Row(
                         modifier = Modifier.clip(RoundedCornerShape(10.dp)).background(palette.chipBg).padding(3.dp),
                         horizontalArrangement = Arrangement.spacedBy(2.dp),
@@ -1386,12 +1551,15 @@ internal fun RenderAccountSettingsS86(
                                         SolidColor(Color.Transparent)
                                     },
                                 )
-                                .clickable { viewModel?.setDarkTheme(false) }
+                                .clickable {
+                                    localDarkTheme = false
+                                    viewModel?.setDarkTheme(false)
+                                }
                                 .padding(horizontal = 10.dp),
                             contentAlignment = Alignment.Center,
                         ) {
                             BasicText(
-                                "Claro",
+                                if (isEnglish) "Light" else "Claro",
                                 style = TextStyle(
                                     fontFamily = typo.bodyFamily,
                                     fontWeight = if (lightSelected) FontWeight.Bold else FontWeight.SemiBold,
@@ -1411,12 +1579,15 @@ internal fun RenderAccountSettingsS86(
                                         SolidColor(Color.Transparent)
                                     },
                                 )
-                                .clickable { viewModel?.setDarkTheme(true) }
+                                .clickable {
+                                    localDarkTheme = true
+                                    viewModel?.setDarkTheme(true)
+                                }
                                 .padding(horizontal = 10.dp),
                             contentAlignment = Alignment.Center,
                         ) {
                             BasicText(
-                                "Oscuro",
+                                if (isEnglish) "Dark" else "Oscuro",
                                 style = TextStyle(
                                     fontFamily = typo.bodyFamily,
                                     fontWeight = if (darkSelected) FontWeight.Bold else FontWeight.SemiBold,
@@ -1429,13 +1600,14 @@ internal fun RenderAccountSettingsS86(
                 }
                 SettingsDivider86()
                 SettingsRow86(
-                    label = "Idioma",
+                    label = if (isEnglish) "Language" else "Idioma",
                     icon = RfIconKind.GLOBE,
                     onClick = {
+                        localLanguage = if (isEnglish) "Español" else "English"
                         viewModel?.togglePreferredLanguage()
                     },
                 ) {
-                    BasicText(selectedLanguage, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = palette.muted))
+                    BasicText(localLanguage, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = palette.muted))
                 }
                 SettingsDivider86()
                 Row(
@@ -1445,78 +1617,238 @@ internal fun RenderAccountSettingsS86(
                 ) {
                     RfIcon(kind = RfIconKind.BELL, tint = palette.ink, size = 20.dp)
                     Column(modifier = Modifier.weight(1f)) {
-                        BasicText("Recordatorios", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = palette.ink))
-                        BasicText("Antes y después de cada evento", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = palette.muted))
+                        BasicText(if (isEnglish) "Event reminders" else "Recordatorios", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = palette.ink))
+                        BasicText(if (isEnglish) "Before and after each event" else "Antes y después de cada evento", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = palette.muted))
                     }
-                    Box(
+                    SettingsSwitch86(
+                        checked = localReminders,
+                        onToggle = {
+                            localReminders = !localReminders
+                            viewModel?.toggleRemindersEnabled()
+                        },
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+            SettingsCaption86(accountHeader)
+            Spacer(modifier = Modifier.height(8.dp))
+            SettingsGroup86 {
+                SettingsRow86(
+                    label = if (isEnglish) "Personal profile" else "Datos personales",
+                    icon = RfIconKind.USER,
+                    onClick = { onSelectScreenCode("s54") },
+                )
+                SettingsDivider86()
+                SettingsRow86(
+                    label = if (isEnglish) "Change password" else "Cambiar contraseña",
+                    icon = RfIconKind.LOCK,
+                    onClick = {
+                        showPasswordEditor = !showPasswordEditor
+                        passwordErrorBanner = null
+                        passwordSuccessBanner = null
+                    },
+                )
+                if (showPasswordEditor) {
+                    Column(
                         modifier = Modifier
-                            .width(46.dp)
-                            .height(28.dp)
-                            .clip(RoundedCornerShape(999.dp))
-                            .background(
-                                if (remindersEnabled) {
-                                    Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))
-                                } else {
-                                    Brush.linearGradient(listOf(Color(0xFFE3DCE8), Color(0xFFE3DCE8)))
-                                },
-                            )
-                            .clickable { viewModel?.toggleRemindersEnabled() },
-                        contentAlignment = if (remindersEnabled) Alignment.CenterEnd else Alignment.CenterStart,
+                            .fillMaxWidth()
+                            .background(palette.chipBg.copy(alpha = 0.45f))
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Box(modifier = Modifier.padding(horizontal = 3.dp).size(22.dp).clip(CircleShape).background(palette.surface).shadow(1.dp, CircleShape))
+                        SettingsInlineInputField86(
+                            placeholder = if (isEnglish) "Current password" else "Contraseña actual",
+                            value = currentPasswordInput,
+                            onValueChange = { updated ->
+                                currentPasswordInput = updated
+                                passwordErrorBanner = null
+                            },
+                        )
+                        SettingsInlineInputField86(
+                            placeholder = if (isEnglish) "New password (min 8 chars + number)" else "Nueva contraseña (mín. 8 caract. y número)",
+                            value = newPasswordInput,
+                            onValueChange = { updated ->
+                                newPasswordInput = updated
+                                passwordErrorBanner = null
+                            },
+                        )
+                        SettingsInlineInputField86(
+                            placeholder = if (isEnglish) "Confirm new password" else "Confirmar nueva contraseña",
+                            value = confirmPasswordInput,
+                            onValueChange = { updated ->
+                                confirmPasswordInput = updated
+                                passwordErrorBanner = null
+                            },
+                        )
+                        val activePasswordError = passwordErrorBanner ?: vmFormError
+                        if (!activePasswordError.isNullOrBlank()) {
+                            BasicText(
+                                activePasswordError,
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 12.5.sp, color = Color(0xFFB42345)),
+                            )
+                        }
+                        if (!passwordSuccessBanner.isNullOrBlank()) {
+                            BasicText(
+                                passwordSuccessBanner ?: "",
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 12.5.sp, color = Color(0xFF3F560C)),
+                            )
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(38.dp)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(RosaButtonGradient)
+                                    .clickable {
+                                        val changed = if (viewModel != null) {
+                                            viewModel.changeCurrentPassword(
+                                                currentPassword = currentPasswordInput,
+                                                newPassword = newPasswordInput,
+                                                confirmPassword = confirmPasswordInput,
+                                            )
+                                        } else {
+                                            validateInlinePasswordChange86(currentPasswordInput, newPasswordInput, confirmPasswordInput)
+                                        }
+                                        if (changed) {
+                                            currentPasswordInput = ""
+                                            newPasswordInput = ""
+                                            confirmPasswordInput = ""
+                                            passwordErrorBanner = null
+                                            passwordSuccessBanner = if (isEnglish) "Password updated successfully." else "Contraseña actualizada correctamente."
+                                        } else if (viewModel == null) {
+                                            passwordErrorBanner = if (isEnglish) {
+                                                "Verify current password, 8+ chars with digit, and matching confirmation."
+                                            } else {
+                                                "Verifica tu contraseña actual, mínimo 8 caracteres con número y confirmación igual."
+                                            }
+                                        }
+                                    },
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                BasicText(
+                                    if (isEnglish) "Save password" else "Actualizar contraseña",
+                                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White),
+                                )
+                            }
+                        }
                     }
                 }
-            }
-
-            Spacer(modifier = Modifier.height(14.dp))
-            SettingsCaption86("CUENTA")
-            Spacer(modifier = Modifier.height(8.dp))
-            SettingsGroup86 {
-                SettingsRow86("Datos personales", RfIconKind.USER, onClick = { onSelectScreenCode("s54") })
                 SettingsDivider86()
-                SettingsRow86("Cambiar contraseña", RfIconKind.LOCK, onClick = { onSelectScreenCode("s09") })
-                SettingsDivider86()
-                SettingsRow86("Métodos de pago", RfIconKind.RECEIPT, onClick = { onSelectScreenCode("s82") }) {
-                    BasicText(savedPaymentMethod.substringBefore(" ·"), style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
-                }
-                SettingsDivider86()
-                SettingsRow86("Direcciones de mis eventos", RfIconKind.LOCATION, onClick = { onSelectScreenCode("s37") }) {
-                    BasicText("$userEventsCount", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
-                }
-            }
-
-            Spacer(modifier = Modifier.height(14.dp))
-            SettingsCaption86("AVISOS")
-            Spacer(modifier = Modifier.height(8.dp))
-            SettingsGroup86 {
-                SettingsRow86("Notificaciones push", RfIconKind.BELL) { SettingsSwitch86(checked = true) }
-                SettingsDivider86()
-                SettingsRow86("Mensajes por WhatsApp", RfIconKind.WHATSAPP) { SettingsSwitch86(checked = true) }
-                SettingsDivider86()
-                SettingsRow86("Correos de ofertas", RfIconKind.MAIL) { SettingsSwitch86(checked = false) }
-            }
-
-            Spacer(modifier = Modifier.height(14.dp))
-            SettingsCaption86("PRIVACIDAD Y LEGAL")
-            Spacer(modifier = Modifier.height(8.dp))
-            SettingsGroup86 {
-                SettingsRow86("Términos y condiciones", RfIconKind.NOTE, onClick = { onSelectScreenCode("s87") })
-                SettingsDivider86()
-                SettingsRow86("Política de privacidad", RfIconKind.SHIELD, onClick = { onSelectScreenCode("s87") })
-                SettingsDivider86()
-                var permissionsGranted by remember { mutableStateOf(true) }
-                Row(
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 54.dp).clickable { permissionsGranted = !permissionsGranted }.padding(horizontal = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                SettingsRow86(
+                    label = if (isEnglish) "Payment methods" else "Métodos de pago",
+                    icon = RfIconKind.RECEIPT,
+                    onClick = { onSelectScreenCode("s82") },
                 ) {
-                    RfIcon(kind = RfIconKind.CAMERA, tint = Color(0xFF3B3550), size = 20.dp)
-                    Column(modifier = Modifier.weight(1f)) {
-                        BasicText("Permisos de la app", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = RfThemeState.currentPalette.ink))
-                        BasicText(if (permissionsGranted) "Cámara y micrófono" else "Solo micrófono", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = RfThemeState.currentPalette.muted))
-                    }
-                    RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = RfThemeState.currentPalette.muted, size = 16.dp)
+                    BasicText(savedPaymentMethod.substringBefore(" ·"), style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = palette.muted))
                 }
+                SettingsDivider86()
+                SettingsRow86(
+                    label = if (isEnglish) "Default event address" else "Dirección habitual de eventos",
+                    icon = RfIconKind.LOCATION,
+                    onClick = {
+                        showAddressEditor = !showAddressEditor
+                        addressStatusBanner = null
+                    },
+                ) {
+                    BasicText(
+                        draftEventAddress.ifBlank { "Santo Domingo" },
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.widthIn(max = 135.dp),
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = palette.muted),
+                    )
+                }
+                if (showAddressEditor) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(palette.chipBg.copy(alpha = 0.45f))
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        SettingsInlineInputField86(
+                            placeholder = if (isEnglish) "Sector, street & venue reference" else "Sector, calle y referencia de entrega",
+                            value = draftEventAddress,
+                            onValueChange = { updated ->
+                                draftEventAddress = updated
+                                addressStatusBanner = null
+                            },
+                        )
+                        if (!addressStatusBanner.isNullOrBlank()) {
+                            BasicText(
+                                addressStatusBanner ?: "",
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 12.5.sp, color = Color(0xFF3F560C)),
+                            )
+                        }
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(38.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(RosaButtonGradient)
+                                .clickable {
+                                    val cleanZone = draftEventAddress.trim()
+                                    if (cleanZone.length >= 4) {
+                                        viewModel?.setProfileZone(cleanZone)
+                                        addressStatusBanner = if (isEnglish) "Default event address saved." else "Dirección guardada correctamente."
+                                        showAddressEditor = false
+                                    }
+                                },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            BasicText(
+                                if (isEnglish) "Save address" else "Guardar dirección",
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White),
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+            SettingsCaption86(notificationsHeader)
+            Spacer(modifier = Modifier.height(8.dp))
+            SettingsGroup86 {
+                SettingsRow86(if (isEnglish) "Push notifications" else "Notificaciones push", RfIconKind.BELL) {
+                    SettingsSwitch86(
+                        checked = localPush,
+                        onToggle = {
+                            localPush = !localPush
+                            viewModel?.togglePushNotifications()
+                        },
+                    )
+                }
+                SettingsDivider86()
+                SettingsRow86(if (isEnglish) "WhatsApp alerts" else "Mensajes por WhatsApp", RfIconKind.WHATSAPP) {
+                    SettingsSwitch86(
+                        checked = localWhatsapp,
+                        onToggle = {
+                            localWhatsapp = !localWhatsapp
+                            viewModel?.toggleWhatsappAlerts()
+                        },
+                    )
+                }
+                SettingsDivider86()
+                SettingsRow86(if (isEnglish) "Email receipts" else "Recibos por correo", RfIconKind.MAIL) {
+                    SettingsSwitch86(
+                        checked = localEmailReceipts,
+                        onToggle = {
+                            localEmailReceipts = !localEmailReceipts
+                            viewModel?.toggleEmailReceipts()
+                        },
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+            SettingsCaption86(legalHeader)
+            Spacer(modifier = Modifier.height(8.dp))
+            SettingsGroup86 {
+                SettingsRow86(if (isEnglish) "Terms & conditions" else "Términos y condiciones", RfIconKind.NOTE, onClick = { onSelectScreenCode("s87") })
+                SettingsDivider86()
+                SettingsRow86(if (isEnglish) "Privacy policy" else "Política de privacidad", RfIconKind.SHIELD, onClick = { onSelectScreenCode("s87") })
             }
 
             Spacer(modifier = Modifier.height(14.dp))
@@ -1528,7 +1860,7 @@ internal fun RenderAccountSettingsS86(
                 ) {
                     RfIcon(kind = RfIconKind.TRASH, tint = Color(0xFFB42345), size = 20.dp)
                     BasicText(
-                        "Eliminar cuenta",
+                        if (isEnglish) "Delete account" else "Eliminar cuenta",
                         modifier = Modifier.weight(1f),
                         style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = Color(0xFFB42345)),
                     )
@@ -1538,12 +1870,56 @@ internal fun RenderAccountSettingsS86(
 
             Spacer(modifier = Modifier.height(14.dp))
             BasicText(
-                "Rosa Fiesta · versión 2.4.0",
+                "RosaFiesta SRL · versión 2.4.0",
                 modifier = Modifier.fillMaxWidth(),
                 style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, textAlign = TextAlign.Center, color = RfThemeState.currentPalette.muted),
             )
             Spacer(modifier = Modifier.height(30.dp))
         }
+    }
+}
+
+private fun validateInlinePasswordChange86(
+    currentPassword: String,
+    newPassword: String,
+    confirmPassword: String,
+): Boolean {
+    if (currentPassword.trim().isEmpty()) return false
+    if (newPassword.trim().length < 8) return false
+    val hasDigit = newPassword.any { character -> character.isDigit() }
+    if (!hasDigit) return false
+    return newPassword.trim() == confirmPassword.trim()
+}
+
+@Composable
+private fun SettingsInlineInputField86(
+    placeholder: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+) {
+    val typo = LocalRfTypography.current
+    val palette = RfThemeState.currentPalette
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(42.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(palette.surface)
+            .border(1.dp, palette.line, RoundedCornerShape(10.dp))
+            .padding(horizontal = 12.dp),
+        contentAlignment = Alignment.CenterStart,
+    ) {
+        if (value.isEmpty()) {
+            BasicText(placeholder, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.5.sp, color = palette.muted))
+        }
+        BasicTextField(
+            value = value,
+            onValueChange = onValueChange,
+            singleLine = true,
+            textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.5.sp, color = palette.ink),
+            cursorBrush = SolidColor(Color(0xFFC2338F)),
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 }
 
@@ -1601,35 +1977,36 @@ private fun SettingsRow86(
             style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = RfThemeState.currentPalette.ink),
         )
         trailing()
-        RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = RfThemeState.currentPalette.muted, size = 16.dp)
+        if (onClick != null) {
+            RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = RfThemeState.currentPalette.muted, size = 16.dp)
+        }
     }
 }
 
 @Composable
-private fun SettingsSwitch86(checked: Boolean) {
-    var isSwitchChecked by remember { mutableStateOf(checked) }
+private fun SettingsSwitch86(
+    checked: Boolean,
+    onToggle: () -> Unit,
+) {
     Box(
         modifier = Modifier
             .width(46.dp)
             .height(28.dp)
             .clip(RoundedCornerShape(999.dp))
             .background(
-                if (isSwitchChecked) {
+                if (checked) {
                     Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))
                 } else {
                     Brush.linearGradient(listOf(Color(0xFFE3DCE8), Color(0xFFE3DCE8)))
                 },
             )
-            .clickable { isSwitchChecked = !isSwitchChecked },
-        contentAlignment = if (isSwitchChecked) Alignment.CenterEnd else Alignment.CenterStart,
+            .clickable(onClick = onToggle),
+        contentAlignment = if (checked) Alignment.CenterEnd else Alignment.CenterStart,
     ) {
         Box(modifier = Modifier.padding(horizontal = 3.dp).size(22.dp).clip(CircleShape).background(RfThemeState.currentPalette.surface).shadow(1.dp, CircleShape))
     }
 }
 
-// ==============================================================================
-// s87 · TÉRMINOS Y PRIVACIDAD
-// ==============================================================================
 @Composable
 internal fun RenderTermsS87(
     viewModel: RosaFiestaViewModel? = null,
@@ -1638,6 +2015,11 @@ internal fun RenderTermsS87(
     val typo = LocalRfTypography.current
     val cardShape = RoundedCornerShape(20.dp)
     var selectedSegmentIndex by remember { mutableStateOf(0) }
+    val businessSettings = viewModel?.businessSettings?.collectAsState()?.value
+    val commercialBrand = businessSettings?.businessName ?: "RosaFiesta Eventos & Alquileres"
+    val legalEntityName = "RosaFiesta SRL ($commercialBrand)"
+    val rncNumber = businessSettings?.rnc ?: "1-31-84920-2"
+    val companyAddress = businessSettings?.address ?: "Av. Winston Churchill 1099, Piantini, Santo Domingo"
 
     RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -1703,7 +2085,7 @@ internal fun RenderTermsS87(
                 }
 
                 BasicText(
-                    text = "Última actualización: 1 de octubre de 2026",
+                    text = "$legalEntityName · RNC $rncNumber · Vigente octubre 2026",
                     style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = RfThemeState.currentPalette.muted),
                 )
 
@@ -1716,35 +2098,42 @@ internal fun RenderTermsS87(
                         .padding(18.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
-                    TermsSection87(
-                        title = "1. Reservas y cotizaciones",
-                        body = "Tu fecha queda apartada cuando Rosa Fiesta confirma la cotización y recibe el anticipo. Las cotizaciones tienen validez de 7 días.",
-                    )
-                    TermsSection87(
-                        title = "2. Pagos y anticipos",
-                        body = "El anticipo es del 30% del total. El saldo se paga a más tardar un día antes del evento.",
-                    )
-                    TermsSection87(
-                        title = "3. Cambios y cancelaciones",
-                        body = "El primer cambio de fecha es gratis, sujeto a disponibilidad. Las cancelaciones se reembolsan según los días que falten para el evento.",
-                    )
-                    TermsSection87(
-                        title = "4. Cuidado de los artículos",
-                        body = "Los artículos dañados o perdidos se cobran según la lista de precios vigente, previa revisión con fotos.",
-                    )
+                    if (selectedSegmentIndex == 0) {
+                        TermsSection87(
+                            title = "1. Contratación y bloqueo de inventario",
+                            body = "El contrato de alquiler y montaje se celebra con $legalEntityName (RNC $rncNumber), con domicilio en $companyAddress. La disponibilidad de fecha e inventario queda bloqueada al confirmarse el anticipo y emitirse el comprobante oficial.",
+                        )
+                        TermsSection87(
+                            title = "2. Anticipos, impuestos y liquidación de saldo",
+                            body = "Para formalizar la reserva se requiere un anticipo del 30 % del monto cotizado (ITBIS del 18 % incluido según normativa de la DGII). El saldo restante debe liquidarse al menos 24 horas antes del inicio del montaje.",
+                        )
+                        TermsSection87(
+                            title = "3. Reprogramación y reembolsos escalonados",
+                            body = "El primer cambio de fecha solicitado con más de 48 horas de antelación no genera recargo, sujeto a disponibilidad. En caso de cancelación, el reembolso sobre el anticipo pagado aplica así: 90 % con más de 7 días de anticipación, 50 % entre 3 y 7 días, y sin reembolso con menos de 3 días.",
+                        )
+                        TermsSection87(
+                            title = "4. Entrega, custodia y reposición de piezas",
+                            body = "Durante el evento el cliente asume el resguardo de las piezas entregadas bajo acta de montaje. Cualquier rotura, extravío o deterioro irreparable se documenta fotográficamente al desmontar y se liquida conforme al valor unitario de reposición vigente en catálogo.",
+                        )
+                    } else {
+                        TermsSection87(
+                            title = "1. Responsable del tratamiento de datos",
+                            body = "$legalEntityName (RNC $rncNumber), domiciliada en $companyAddress, trata tus datos personales en estricto cumplimiento de la Ley No. 172-13 sobre Protección de Datos de Carácter Personal de la República Dominicana.",
+                        )
+                        TermsSection87(
+                            title = "2. Datos recopilados y finalidad operativa",
+                            body = "Recopilamos nombre, correo electrónico, teléfono de contacto, dirección del evento e historial de cotizaciones exclusivamente para coordinar entregas, emitir comprobantes fiscales, enviar alertas logísticas y brindar asistencia personalizada.",
+                        )
+                        TermsSection87(
+                            title = "3. Seguridad transaccional y retención fiscal",
+                            body = "RosaFiesta no almacena códigos CVV ni numeración completa de tarjetas bancarias. Los comprobantes de pago y facturas se conservan durante 5 años conforme a las obligaciones tributarias ante la Dirección General de Impuestos Internos (DGII).",
+                        )
+                        TermsSection87(
+                            title = "4. Ejercicio de derechos ARCO y supresión",
+                            body = "Puedes acceder, rectificar o solicitar la eliminación definitiva de tu perfil desde Ajustes > Eliminar cuenta siempre que no mantengas eventos activos con inventario comprometido o saldos abiertos.",
+                        )
+                    }
                 }
-
-                BasicText(
-                    text = "Texto de ejemplo para el diseño. El texto legal final lo redacta el negocio.",
-                    modifier = Modifier.fillMaxWidth(),
-                    style = TextStyle(
-                        fontFamily = typo.bodyFamily,
-                        fontSize = 12.sp,
-                        lineHeight = 17.sp,
-                        color = RfThemeState.currentPalette.muted,
-                        textAlign = TextAlign.Center,
-                    ),
-                )
             }
 
             Box(
@@ -1755,7 +2144,7 @@ internal fun RenderTermsS87(
             ) {
                 RfButton(
                     label = "Entendido",
-                    onClick = { onSelectScreenCode("s86") },
+                    onClick = { onSelectScreenCode("BACK:s86") },
                     modifier = Modifier.fillMaxWidth(),
                     style = RfButtonStyle.PRIMARY,
                 )
@@ -1830,19 +2219,26 @@ private fun TermsSection87(
     }
 }
 
-// ==============================================================================
-// s88 · ELIMINAR CUENTA
-// ==============================================================================
 @Composable
 internal fun RenderDeleteAccountS88(
     viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
-    var confirmationText by remember { mutableStateOf("ELIMINAR") }
-    val eventsState = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
-    val activeEventsCount = eventsState.count { eventItem -> !eventItem.statusLabel.contains("Cancelad", ignoreCase = true) }
-    val canConfirmDeletion = confirmationText.trim().equals("ELIMINAR", ignoreCase = true)
+    var confirmationText by remember { mutableStateOf("") }
+    var deletionErrorText by remember { mutableStateOf<String?>(null) }
+
+    viewModel?.events?.collectAsState()?.value
+    viewModel?.currentAuthenticatedUser?.collectAsState()?.value
+    viewModel?.profileName?.collectAsState()?.value
+    viewModel?.profileEmail?.collectAsState()?.value
+    viewModel?.isExplicitGuestSession?.collectAsState()?.value
+    val vmFormError = viewModel?.formError?.collectAsState()?.value
+
+    val activeEventsCount = viewModel?.activeClientEventCount() ?: 0
+    val matchesDeleteKeyword = confirmationText.trim() == "ELIMINAR"
+    val hasZeroActiveEvents = activeEventsCount == 0
+    val canConfirmDeletion = if (matchesDeleteKeyword) hasZeroActiveEvents else false
 
     RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -1852,7 +2248,6 @@ internal fun RenderDeleteAccountS88(
                 .padding(top = 16.dp, start = 20.dp, end = 20.dp, bottom = 140.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -1877,7 +2272,6 @@ internal fun RenderDeleteAccountS88(
                 )
             }
 
-            // Warning Icon + Title section
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1916,7 +2310,6 @@ internal fun RenderDeleteAccountS88(
                 )
             }
 
-            // Consequences Card
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1942,28 +2335,45 @@ internal fun RenderDeleteAccountS88(
                 }
             }
 
-            // Active events warning note
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color(0xFFFFF2C9))
-                    .padding(horizontal = 14.dp, vertical = 12.dp),
-            ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top) {
-                    RfIcon(kind = RfIconKind.WARNING, tint = Color(0xFF5E4300), size = 18.dp)
-                    BasicText(
-                        text = buildAnnotatedString {
-                            append("Tienes ")
-                            withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append("$activeEventsCount eventos activos") }
-                            append(". Cancélalos o espera a que terminen para poder eliminar tu cuenta.")
-                        },
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.5.sp, lineHeight = 18.9.sp, color = Color(0xFF5E4300)),
-                    )
+            if (activeEventsCount > 0) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color(0xFFFFF2C9))
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                ) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top) {
+                        RfIcon(kind = RfIconKind.WARNING, tint = Color(0xFF5E4300), size = 18.dp)
+                        BasicText(
+                            text = buildAnnotatedString {
+                                append("Tienes ")
+                                val eventLabel = if (activeEventsCount == 1) "1 evento activo" else "$activeEventsCount eventos activos"
+                                withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append(eventLabel) }
+                                append(". Cancélalos o espera a que terminen antes de poder eliminar tu cuenta.")
+                            },
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.5.sp, lineHeight = 18.9.sp, color = Color(0xFF5E4300)),
+                        )
+                    }
+                }
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color(0xFFEEF6D6))
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                ) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top) {
+                        RfIcon(kind = RfIconKind.CHECK, tint = Color(0xFF3F560C), size = 18.dp)
+                        BasicText(
+                            text = "No tienes eventos activos pendientes. Escribe ELIMINAR en mayúsculas para confirmar.",
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.5.sp, lineHeight = 18.9.sp, color = Color(0xFF3F560C)),
+                        )
+                    }
                 }
             }
 
-            // Confirmation field
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 BasicText("Escribe ELIMINAR para confirmar", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF3B3550)))
                 Box(
@@ -1981,16 +2391,26 @@ internal fun RenderDeleteAccountS88(
                     }
                     BasicTextField(
                         value = confirmationText,
-                        onValueChange = { updatedText -> confirmationText = updatedText },
+                        onValueChange = { updatedText ->
+                            confirmationText = updatedText
+                            deletionErrorText = null
+                        },
                         singleLine = true,
                         textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = RfThemeState.currentPalette.ink),
+                        cursorBrush = SolidColor(Color(0xFFB42345)),
                         modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+                val displayedError = deletionErrorText ?: vmFormError
+                if (!displayedError.isNullOrBlank()) {
+                    BasicText(
+                        text = displayedError,
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 12.5.sp, color = Color(0xFFB42345)),
                     )
                 }
             }
         }
 
-        // Bottom action buttons
         Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -2002,18 +2422,44 @@ internal fun RenderDeleteAccountS88(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(54.dp)
-                    .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
+                    .then(
+                        if (canConfirmDeletion) {
+                            Modifier.rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
+                        } else {
+                            Modifier
+                        },
+                    )
                     .clip(RoundedCornerShape(16.dp))
                     .background(if (canConfirmDeletion) Color(0xFFB42345) else Color(0xFFF1D5DB))
-                    .clickable {
+                    .then(
                         if (canConfirmDeletion) {
-                            viewModel?.deleteCurrentUserAccount()
-                            onSelectScreenCode("s01")
-                        }
-                    },
+                            Modifier.clickable {
+                                val deleted = if (viewModel != null) {
+                                    viewModel.deleteCurrentUserAccount()
+                                } else {
+                                    true
+                                }
+                                if (deleted) {
+                                    onSelectScreenCode("s06")
+                                } else {
+                                    deletionErrorText = "No fue posible eliminar la cuenta activa."
+                                }
+                            }
+                        } else {
+                            Modifier
+                        },
+                    ),
                 contentAlignment = Alignment.Center,
             ) {
-                BasicText("Eliminar cuenta", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White))
+                BasicText(
+                    "Eliminar cuenta",
+                    style = TextStyle(
+                        fontFamily = typo.bodyFamily,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        color = if (canConfirmDeletion) Color.White else Color.White.copy(alpha = 0.78f),
+                    ),
+                )
             }
 
             Box(
@@ -2029,15 +2475,14 @@ internal fun RenderDeleteAccountS88(
     }
 }
 
-// ==============================================================================
-// s89 · ESTADO VACÍO PERSONAL
-// ==============================================================================
 @Composable
 internal fun RenderPersonalEmptyStateS89(
     viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
+    var selectedTabIndex by remember { mutableStateOf(0) }
+    val suggestedCategories = listOf("Mobiliario", "Arcos y globos", "Diseño floral", "Mesas de dulces")
 
     RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -2058,31 +2503,40 @@ internal fun RenderPersonalEmptyStateS89(
             )
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                EmptyStateChip89(label = "Próximos", selected = true, onClick = {})
-                EmptyStateChip89(label = "Pasados", selected = false, onClick = {})
+                EmptyStateChip89(
+                    label = "Próximos",
+                    selected = selectedTabIndex == 0,
+                    onClick = { selectedTabIndex = 0 },
+                )
+                EmptyStateChip89(
+                    label = "Pasados",
+                    selected = selectedTabIndex == 1,
+                    onClick = { selectedTabIndex = 1 },
+                )
             }
 
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 40.dp),
+                    .padding(top = 28.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                BalloonsIllustration89(modifier = Modifier.size(190.dp))
+                BalloonsIllustration89(modifier = Modifier.size(180.dp))
 
                 BasicText(
-                    text = "Aún no tienes eventos",
+                    text = if (selectedTabIndex == 0) "Aún no tienes eventos próximos" else "Sin eventos pasados",
                     style = TextStyle(
                         fontFamily = typo.displayFamily,
                         fontWeight = FontWeight.ExtraBold,
                         fontSize = 22.sp,
                         color = RfThemeState.currentPalette.ink,
+                        textAlign = TextAlign.Center,
                     ),
                 )
                 BasicText(
-                    text = "Cuéntale a Rosa qué celebras y te armamos la lista en 2 minutos.",
-                    modifier = Modifier.widthIn(max = 290.dp),
+                    text = "Cuéntale a Rosa qué celebras o elige una categoría para armar tu lista en 2 minutos.",
+                    modifier = Modifier.widthIn(max = 300.dp),
                     style = TextStyle(
                         fontFamily = typo.bodyFamily,
                         fontSize = 15.sp,
@@ -2092,7 +2546,41 @@ internal fun RenderPersonalEmptyStateS89(
                     ),
                 )
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 4.dp)
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    suggestedCategories.forEach { categoryLabel ->
+                        Box(
+                            modifier = Modifier
+                                .height(34.dp)
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(Color(0xFFFDE6F2))
+                                .clickable {
+                                    viewModel?.resetCatalogFilters()
+                                    viewModel?.setSelectedCategory(categoryLabel)
+                                    onSelectScreenCode("s18")
+                                }
+                                .padding(horizontal = 14.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            BasicText(
+                                text = categoryLabel,
+                                style = TextStyle(
+                                    fontFamily = typo.bodyFamily,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp,
+                                    color = Color(0xFFC2338F),
+                                ),
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
 
                 Column(
                     modifier = Modifier.fillMaxWidth(),
@@ -2128,7 +2616,10 @@ internal fun RenderPersonalEmptyStateS89(
                             .clip(RoundedCornerShape(16.dp))
                             .background(RfThemeState.currentPalette.surface)
                             .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(16.dp))
-                            .clickable { onSelectScreenCode("s18") },
+                            .clickable {
+                                viewModel?.resetCatalogFilters()
+                                onSelectScreenCode("s18")
+                            },
                         contentAlignment = Alignment.Center,
                     ) {
                         BasicText(
@@ -2289,12 +2780,22 @@ internal fun RenderPersonalLoadingStateS90(
                 .padding(top = 16.dp, start = 20.dp, end = 20.dp, bottom = 116.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            // Header: "Catálogo" (26px, 800) + 2 circular buttons (44x44)
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 modifier = Modifier.fillMaxWidth(),
             ) {
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .rfIconButtonShadow(CircleShape, isAdmin = false)
+                        .clip(CircleShape)
+                        .background(RfThemeState.currentPalette.surface)
+                        .clickable { onSelectScreenCode("BACK:s14") },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    RfIcon(kind = RfIconKind.BACK, tint = RfThemeState.currentPalette.ink, size = 22.dp)
+                }
                 BasicText(
                     text = "Catálogo",
                     style = TextStyle(
@@ -2306,7 +2807,6 @@ internal fun RenderPersonalLoadingStateS90(
                     ),
                     modifier = Modifier.weight(1f),
                 )
-                Box(modifier = Modifier.size(44.dp).clip(CircleShape).background(skGradient))
                 Box(modifier = Modifier.size(44.dp).clip(CircleShape).background(skGradient))
             }
 
@@ -2613,7 +3113,6 @@ internal fun RenderGuestAuthModalS75(
                     )
                 }
 
-                // Ahora no
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
@@ -2622,7 +3121,7 @@ internal fun RenderGuestAuthModalS75(
                         .clickable { onSelectScreenCode("BACK:s01") },
                 ) {
                     BasicText(
-                        "Ahora no",
+                        "Seguir explorando",
                         style = TextStyle(
                             fontFamily = typo.bodyFamily,
                             fontWeight = FontWeight.SemiBold,
@@ -2636,9 +3135,6 @@ internal fun RenderGuestAuthModalS75(
     }
 }
 
-// ==============================================================================
-// s76 · MODAL CÓMO PLANIFICAR
-// ==============================================================================
 @Composable
 internal fun RenderPlanningModalS76(
     onSelectScreenCode: (String) -> Unit = {},
@@ -2657,7 +3153,6 @@ internal fun RenderPlanningModalS76(
             onSelectScreenCode = onSelectScreenCode,
         )
 
-        // Scrim
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -2665,7 +3160,6 @@ internal fun RenderPlanningModalS76(
                 .clickable { onSelectScreenCode("BACK:s14") },
         )
 
-        // Bottom sheet dialog
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -2675,10 +3169,11 @@ internal fun RenderPlanningModalS76(
                 .padding(top = 12.dp, start = 20.dp, end = 20.dp, bottom = 34.dp),
         ) {
             Column(
-                verticalArrangement = Arrangement.spacedBy(14.dp),
-                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
             ) {
-                // Grab handle
                 Box(
                     modifier = Modifier
                         .align(Alignment.CenterHorizontally)
@@ -2688,7 +3183,6 @@ internal fun RenderPlanningModalS76(
                         .background(Color(0xFFE3DCE8)),
                 )
 
-                // Title header
                 Column(modifier = Modifier.padding(horizontal = 4.dp)) {
                     BasicText(
                         "¿Cómo quieres planificar?",
@@ -2710,28 +3204,31 @@ internal fun RenderPlanningModalS76(
                     )
                 }
 
-                // Opción 1: WhatsApp con María
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(14.dp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(min = 84.dp)
+                        .heightIn(min = 76.dp)
                         .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
                         .clip(RoundedCornerShape(20.dp))
                         .background(RfThemeState.currentPalette.surface)
                         .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(20.dp))
-                        .clickable { onSelectScreenCode("s31") }
+                        .clickable {
+                            viewModel?.openWhatsAppChat(
+                                message = "Hola María, necesito asesoría para mi evento",
+                            )
+                        }
                         .padding(14.dp),
                 ) {
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
-                            .size(52.dp)
+                            .size(50.dp)
                             .clip(RoundedCornerShape(16.dp))
                             .background(Color(0xFFEEF6D6)),
                     ) {
-                        RfIcon(kind = RfIconKind.WHATSAPP, tint = Color(0xFF4E6A10), size = 26.dp)
+                        RfIcon(kind = RfIconKind.WHATSAPP, tint = Color(0xFF4E6A10), size = 25.dp)
                     }
                     Column(modifier = Modifier.weight(1f)) {
                         BasicText(
@@ -2745,10 +3242,10 @@ internal fun RenderPlanningModalS76(
                         )
                         Spacer(Modifier.height(2.dp))
                         BasicText(
-                            "Habla directo con la dueña",
+                            "Abre WhatsApp directo con asesoría",
                             style = TextStyle(
                                 fontFamily = typo.bodyFamily,
-                                fontSize = 14.sp,
+                                fontSize = 13.5.sp,
                                 color = RfThemeState.currentPalette.muted,
                             ),
                         )
@@ -2756,13 +3253,57 @@ internal fun RenderPlanningModalS76(
                     RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = RfThemeState.currentPalette.muted, size = 20.dp)
                 }
 
-                // Opción 2: Chat con Rosa (Seleccionado)
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(14.dp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(min = 84.dp)
+                        .heightIn(min = 76.dp)
+                        .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(RfThemeState.currentPalette.surface)
+                        .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(20.dp))
+                        .clickable { onSelectScreenCode("s42") }
+                        .padding(14.dp),
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(50.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color(0xFFFDE6F2)),
+                    ) {
+                        RfIcon(kind = RfIconKind.CHAT, tint = Color(0xFFC2338F), size = 24.dp)
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        BasicText(
+                            "Hablar en la app",
+                            style = TextStyle(
+                                fontFamily = typo.bodyFamily,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp,
+                                color = RfThemeState.currentPalette.ink,
+                            ),
+                        )
+                        Spacer(Modifier.height(2.dp))
+                        BasicText(
+                            "Mensajería directa dentro de RosaFiesta",
+                            style = TextStyle(
+                                fontFamily = typo.bodyFamily,
+                                fontSize = 13.5.sp,
+                                color = RfThemeState.currentPalette.muted,
+                            ),
+                        )
+                    }
+                    RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = RfThemeState.currentPalette.muted, size = 20.dp)
+                }
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 76.dp)
                         .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
                         .clip(RoundedCornerShape(20.dp))
                         .background(Color(0xFFFAF8FF))
@@ -2773,7 +3314,7 @@ internal fun RenderPlanningModalS76(
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
-                            .size(52.dp)
+                            .size(50.dp)
                             .clip(CircleShape),
                     ) {
                         RosaAvatar(size = RosaAvatarSize.MEDIUM)
@@ -2781,7 +3322,7 @@ internal fun RenderPlanningModalS76(
                     Column(modifier = Modifier.weight(1f)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             BasicText(
-                                "Chat con Rosa",
+                                "Usar Rosa IA",
                                 style = TextStyle(
                                     fontFamily = typo.bodyFamily,
                                     fontWeight = FontWeight.Bold,
@@ -2813,7 +3354,7 @@ internal fun RenderPlanningModalS76(
                             "Arma tu evento paso a paso",
                             style = TextStyle(
                                 fontFamily = typo.bodyFamily,
-                                fontSize = 14.sp,
+                                fontSize = 13.5.sp,
                                 color = RfThemeState.currentPalette.muted,
                             ),
                         )
@@ -2821,13 +3362,12 @@ internal fun RenderPlanningModalS76(
                     RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = Color(0xFF7A4FD8), size = 20.dp)
                 }
 
-                // Opción 3: Voz con Rosa
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(14.dp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(min = 84.dp)
+                        .heightIn(min = 76.dp)
                         .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
                         .clip(RoundedCornerShape(20.dp))
                         .background(RfThemeState.currentPalette.surface)
@@ -2841,7 +3381,7 @@ internal fun RenderPlanningModalS76(
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
-                            .size(52.dp)
+                            .size(50.dp)
                             .clip(RoundedCornerShape(16.dp))
                             .background(Color(0xFFFFF2C9)),
                     ) {
@@ -2849,11 +3389,11 @@ internal fun RenderPlanningModalS76(
                             val scale = size.width / 24f
                             val strokeW = 1.8f * scale
                             val waveColor = Color(0xFF7A5700)
-                            fun vLine(x: Float, y1: Float, y2: Float) {
+                            fun vLine(xCoord: Float, yStart: Float, yEnd: Float) {
                                 drawLine(
                                     color = waveColor,
-                                    start = Offset(x * scale, y1 * scale),
-                                    end = Offset(x * scale, y2 * scale),
+                                    start = Offset(xCoord * scale, yStart * scale),
+                                    end = Offset(xCoord * scale, yEnd * scale),
                                     strokeWidth = strokeW,
                                     cap = StrokeCap.Round,
                                 )
@@ -2901,7 +3441,7 @@ internal fun RenderPlanningModalS76(
                             "Solo habla, nosotros te escuchamos",
                             style = TextStyle(
                                 fontFamily = typo.bodyFamily,
-                                fontSize = 14.sp,
+                                fontSize = 13.5.sp,
                                 color = RfThemeState.currentPalette.muted,
                             ),
                         )
@@ -2913,9 +3453,6 @@ internal fun RenderPlanningModalS76(
     }
 }
 
-// ==============================================================================
-// s77 · MODAL RESEÑAS DEL EVENTO
-// ==============================================================================
 @Composable
 internal fun RenderEventReviewsModalS77(
     viewModel: RosaFiestaViewModel? = null,
@@ -2926,17 +3463,17 @@ internal fun RenderEventReviewsModalS77(
     val reviewsState = viewModel?.companyReviews?.collectAsState()?.value ?: emptyList()
     val latestReview = reviewsState.firstOrNull()
     var showComposer by remember { mutableStateOf(false) }
+    var selectedStars by remember { mutableStateOf(5) }
     var draftComment by remember { mutableStateOf("") }
+    var validationError by remember { mutableStateOf<String?>(null) }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(RfThemeState.currentPalette.bg),
     ) {
-        // Background my events (s37)
         RenderMyEventsScreenS37(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
 
-        // Scrim
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -2944,21 +3481,21 @@ internal fun RenderEventReviewsModalS77(
                 .clickable { onSelectScreenCode("BACK:s37") },
         )
 
-        // Bottom sheet dialog (height 540dp, bg #FAFAFC)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(540.dp)
+                .heightIn(max = 580.dp)
                 .align(Alignment.BottomCenter)
                 .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
                 .background(RfThemeState.currentPalette.bg)
                 .padding(top = 12.dp, start = 20.dp, end = 20.dp, bottom = 34.dp),
         ) {
             Column(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                // Grab handle
                 Box(
                     modifier = Modifier
                         .align(Alignment.CenterHorizontally)
@@ -2968,7 +3505,6 @@ internal fun RenderEventReviewsModalS77(
                         .background(Color(0xFFE3DCE8)),
                 )
 
-                // Header row
                 Row(
                     verticalAlignment = Alignment.Top,
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -3007,9 +3543,8 @@ internal fun RenderEventReviewsModalS77(
                     }
                 }
 
-                // Review card
                 val reviewInitial = latestReview?.initial ?: "A"
-                val reviewAuthor = latestReview?.author ?: "Anónimo"
+                val reviewAuthor = latestReview?.author ?: "Cliente verificado"
                 val reviewStars = latestReview?.rating ?: 5
                 val reviewDate = latestReview?.dateLabel ?: "19 oct"
                 val reviewBody = latestReview?.comment ?: "Excelente coordinación en nuestra Gala Corporativa. Todo el mobiliario llegó impecable."
@@ -3084,30 +3619,73 @@ internal fun RenderEventReviewsModalS77(
                 }
 
                 if (showComposer) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(74.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(RfThemeState.currentPalette.surface)
-                            .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(16.dp))
-                            .padding(12.dp),
-                    ) {
-                        if (draftComment.isEmpty()) {
-                            BasicText("Escribe tu comentario sobre el evento...", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            BasicText(
+                                "Califica tu experiencia",
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.5.sp, color = RfThemeState.currentPalette.ink),
+                            )
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                (1..5).forEach { starValue ->
+                                    val isStarFilled = starValue <= selectedStars
+                                    Box(
+                                        modifier = Modifier
+                                            .size(32.dp)
+                                            .clip(CircleShape)
+                                            .background(if (isStarFilled) Color(0xFFFFF2C9) else RfThemeState.currentPalette.chipBg)
+                                            .clickable { selectedStars = starValue },
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        RfIcon(
+                                            kind = RfIconKind.STAR,
+                                            tint = if (isStarFilled) Color(0xFFF7B500) else RfThemeState.currentPalette.muted,
+                                            size = 18.dp,
+                                        )
+                                    }
+                                }
+                            }
                         }
-                        BasicTextField(
-                            value = draftComment,
-                            onValueChange = { updatedText -> draftComment = updatedText },
-                            textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.ink),
-                            modifier = Modifier.fillMaxSize(),
-                        )
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(82.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(RfThemeState.currentPalette.surface)
+                                .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(16.dp))
+                                .padding(12.dp),
+                        ) {
+                            if (draftComment.isEmpty()) {
+                                BasicText(
+                                    "Escribe tu comentario sobre el evento (mínimo 6 caracteres)...",
+                                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.muted),
+                                )
+                            }
+                            BasicTextField(
+                                value = draftComment,
+                                onValueChange = { updatedText ->
+                                    draftComment = updatedText
+                                    validationError = null
+                                },
+                                textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.ink),
+                                cursorBrush = SolidColor(Color(0xFFC2338F)),
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                        }
+
+                        if (!validationError.isNullOrBlank()) {
+                            BasicText(
+                                validationError ?: "",
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 12.5.sp, color = Color(0xFFB42345)),
+                            )
+                        }
                     }
                 }
 
-                Spacer(Modifier.weight(1f))
-
-                // CTA button: Escribir reseña
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
@@ -3119,15 +3697,29 @@ internal fun RenderEventReviewsModalS77(
                         .clickable {
                             if (!showComposer) {
                                 showComposer = true
+                                validationError = null
                             } else {
-                                val resolvedBody = draftComment.trim().ifBlank { "Excelente servicio en ${activeEvent.title}." }
-                                viewModel?.submitCompanyReview(
-                                    comment = resolvedBody,
-                                    rating = 5,
-                                )
-                                showComposer = false
-                                draftComment = ""
-                                onSelectScreenCode("BACK:s37")
+                                val trimmedComment = draftComment.trim()
+                                if (trimmedComment.length < 6) {
+                                    validationError = "Escribe al menos 6 caracteres en tu reseña antes de publicar."
+                                } else {
+                                    val savedReview = if (viewModel != null) {
+                                        viewModel.submitCompanyReview(
+                                            comment = trimmedComment,
+                                            rating = selectedStars,
+                                        )
+                                    } else {
+                                        true
+                                    }
+                                    if (savedReview) {
+                                        showComposer = false
+                                        draftComment = ""
+                                        validationError = null
+                                        onSelectScreenCode("BACK:s37")
+                                    } else {
+                                        validationError = "No fue posible publicar la reseña. Revisa tu comentario."
+                                    }
+                                }
                             }
                         },
                 ) {
@@ -3152,21 +3744,23 @@ internal fun RenderEventReviewsModalS77(
     }
 }
 
-// ==============================================================================
 @Composable
 internal fun RenderCatalogFiltersModalS81(
     viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
-    val vmCategory = viewModel?.selectedCategory?.collectAsState()?.value ?: "Todas"
-    val vmAvailableOnly = viewModel?.onlyAvailableFilter?.collectAsState()?.value ?: true
-    val vmSortLabel = viewModel?.searchSortOrder?.collectAsState()?.value ?: "Populares"
+    val density = LocalDensity.current
+    val vmCategory = viewModel?.selectedCategory?.collectAsState()?.value ?: "Todos"
+    val vmAvailableOnly = viewModel?.onlyAvailableFilter?.collectAsState()?.value ?: false
+    val vmSortLabel = viewModel?.searchSortOrder?.collectAsState()?.value ?: "Más populares"
     val vmMaxPrice = viewModel?.maxPriceFilterDop?.collectAsState()?.value ?: 5000
+    val normalizedInitialSort = if (vmSortLabel == "Populares") "Más populares" else vmSortLabel
     var selectedCategory by remember(vmCategory) { mutableStateOf(vmCategory) }
     var availableOnly by remember(vmAvailableOnly) { mutableStateOf(vmAvailableOnly) }
-    var selectedSortOption by remember(vmSortLabel) { mutableStateOf(vmSortLabel) }
-    var selectedMaxPrice by remember(vmMaxPrice) { mutableStateOf(vmMaxPrice) }
+    var selectedSortOption by remember(normalizedInitialSort) { mutableStateOf(normalizedInitialSort) }
+    var selectedMaxPrice by remember(vmMaxPrice) { mutableStateOf(vmMaxPrice.coerceIn(0, 5000)) }
+    var sliderWidthPx by remember { mutableStateOf(0f) }
 
     Box(
         modifier = Modifier
@@ -3191,7 +3785,9 @@ internal fun RenderCatalogFiltersModalS81(
                 .padding(top = 12.dp, start = 20.dp, end = 20.dp, bottom = 34.dp),
         ) {
             Column(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 Box(
@@ -3215,14 +3811,11 @@ internal fun RenderCatalogFiltersModalS81(
                     BasicText(
                         "Limpiar",
                         modifier = Modifier.clickable {
-                            selectedCategory = "Todas"
-                            availableOnly = true
-                            selectedSortOption = "Populares"
+                            selectedCategory = "Todos"
+                            availableOnly = false
+                            selectedSortOption = "Más populares"
                             selectedMaxPrice = 5000
-                            viewModel?.setSelectedCategory("Todas")
-                            viewModel?.setOnlyAvailableFilter(true)
-                            viewModel?.setSearchSortOrder("Populares")
-                            viewModel?.setMaxPriceFilterDop(5000)
+                            viewModel?.resetCatalogFilters()
                         },
                         style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFFC2338F)),
                     )
@@ -3230,14 +3823,22 @@ internal fun RenderCatalogFiltersModalS81(
 
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     BasicText("Categoría", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF3B3550)))
-                    val rows = listOf(
-                        listOf("Todas", "Mobiliario", "Floral"),
-                        listOf("Iluminación", "Globos", "Mantelería"),
+                    val categoryRows = listOf(
+                        listOf("Todos", "Mobiliario", "Diseño floral"),
+                        listOf("Arcos y globos", "Mesas de dulces", "Mantelería"),
                     )
-                    rows.forEach { rowItems ->
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    categoryRows.forEach { rowItems ->
+                        Row(
+                            modifier = Modifier.horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
                             rowItems.forEach { categoryLabel ->
-                                val isSelected = categoryLabel == selectedCategory
+                                val isUnfilteredChip = categoryLabel == "Todos"
+                                val isSelected = if (isUnfilteredChip) {
+                                    isUnfilteredCategoryLabel80(selectedCategory)
+                                } else {
+                                    selectedCategory.equals(categoryLabel, ignoreCase = true)
+                                }
                                 Box(
                                     modifier = Modifier
                                         .height(36.dp)
@@ -3261,7 +3862,7 @@ internal fun RenderCatalogFiltersModalS81(
                                         style = TextStyle(
                                             fontFamily = typo.bodyFamily,
                                             fontWeight = FontWeight.SemiBold,
-                                            fontSize = 14.sp,
+                                            fontSize = 13.5.sp,
                                             color = if (isSelected) Color.White else Color(0xFF1A1A2E),
                                         ),
                                     )
@@ -3275,204 +3876,169 @@ internal fun RenderCatalogFiltersModalS81(
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        BasicText("Precio por día", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF3B3550)))
-                        val priceRangeLabel = if (selectedMaxPrice < 5000) "RD$ 0 – RD$ $selectedMaxPrice" else "Sin límite"
+                        BasicText("Precio máximo por día", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF3B3550)))
+                        val priceRangeLabel = if (selectedMaxPrice < 5000) "RD$ 0 – ${RosaFiestaEngine.formatDop(selectedMaxPrice)}" else "RD$ 0 – RD$ 5,000 (Sin límite)"
                         BasicText(
                             priceRangeLabel,
-                            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = RfThemeState.currentPalette.ink),
-                            modifier = Modifier.clickable {
-                                val nextCap = when (selectedMaxPrice) {
-                                    5000 -> 1500
-                                    1500 -> 500
-                                    else -> 5000
-                                }
-                                selectedMaxPrice = nextCap
-                                viewModel?.setMaxPriceFilterDop(nextCap)
-                            },
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.5.sp, color = RfThemeState.currentPalette.ink),
                         )
                     }
+
+                    val sliderFraction = (selectedMaxPrice.toFloat() / 5000f).coerceIn(0.02f, 1f)
+                    val thumbDiameterDp = 24.dp
+                    val thumbDiameterPx = with(density) { thumbDiameterDp.toPx() }
+                    val maxThumbOffsetPx = (sliderWidthPx - thumbDiameterPx).coerceAtLeast(0f)
+                    val thumbOffsetDp = with(density) { (maxThumbOffsetPx * sliderFraction).toDp() }
+
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(28.dp)
-                            .clickable {
-                                val nextCap = when (selectedMaxPrice) {
-                                    5000 -> 1500
-                                    1500 -> 500
-                                    else -> 5000
+                            .height(32.dp)
+                            .onSizeChanged { measuredSize ->
+                                sliderWidthPx = measuredSize.width.toFloat()
+                            }
+                            .pointerInput(sliderWidthPx) {
+                                detectTapGestures { tapOffset ->
+                                    val updatedPrice = computeSnappedSliderPrice81(tapOffset.x, sliderWidthPx)
+                                    selectedMaxPrice = updatedPrice
+                                    viewModel?.setMaxPriceFilterDop(updatedPrice)
                                 }
-                                selectedMaxPrice = nextCap
-                                viewModel?.setMaxPriceFilterDop(nextCap)
+                            }
+                            .pointerInput(sliderWidthPx) {
+                                detectHorizontalDragGestures { dragChange, _ ->
+                                    dragChange.consume()
+                                    val updatedPrice = computeSnappedSliderPrice81(dragChange.position.x, sliderWidthPx)
+                                    selectedMaxPrice = updatedPrice
+                                    viewModel?.setMaxPriceFilterDop(updatedPrice)
+                                }
                             },
                         contentAlignment = Alignment.CenterStart,
                     ) {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(5.dp)
+                                .height(6.dp)
                                 .clip(RoundedCornerShape(3.dp))
                                 .background(RfThemeState.currentPalette.chipBg),
                         )
-                        val trackFraction = when (selectedMaxPrice) {
-                            500 -> 0.35f
-                            1500 -> 0.65f
-                            else -> 1.0f
-                        }
                         Box(
                             modifier = Modifier
-                                .fillMaxWidth(trackFraction)
-                                .height(5.dp)
+                                .fillMaxWidth(sliderFraction)
+                                .height(6.dp)
                                 .clip(RoundedCornerShape(3.dp))
                                 .background(RosaButtonGradient),
                         )
                         Box(
                             modifier = Modifier
-                                .size(24.dp)
-                                .shadow(4.dp, CircleShape, spotColor = Color(0x80C846B4))
-                                .border(2.dp, Color(0xFFEA4EA9), CircleShape)
-                                .clip(CircleShape)
-                                .background(RfThemeState.currentPalette.surface),
-                        )
-                        val thumbOffsetDp = when (selectedMaxPrice) {
-                            500 -> 110.dp
-                            1500 -> 191.dp
-                            else -> 280.dp
-                        }
-                        Box(
-                            modifier = Modifier
                                 .align(Alignment.CenterStart)
                                 .offset(x = thumbOffsetDp)
-                                .size(24.dp)
+                                .size(thumbDiameterDp)
                                 .shadow(4.dp, CircleShape, spotColor = Color(0x80865DEC))
-                                .border(2.dp, Color(0xFF865DEC), CircleShape)
+                                .border(2.5.dp, Color(0xFF865DEC), CircleShape)
                                 .clip(CircleShape)
                                 .background(RfThemeState.currentPalette.surface),
                         )
-                    }
-                }
-
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    BasicText("Disponible para", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF3B3550)))
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                        var filterDateText by remember { mutableStateOf("23/10/2026") }
-                        var showFilterDatePicker by remember { mutableStateOf(false) }
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(48.dp)
-                                .shadow(2.dp, RoundedCornerShape(16.dp), spotColor = Color(0x20B450B4))
-                                .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(16.dp))
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(RfThemeState.currentPalette.surface)
-                                .padding(horizontal = 10.dp),
-                            contentAlignment = Alignment.CenterStart,
-                        ) {
-                            RfMaskedDateField(
-                                value = filterDateText,
-                                onValueChange = { updated -> filterDateText = updated },
-                                onOpenCalendar = { showFilterDatePicker = true },
-                                placeholder = "DD/MM/AAAA",
-                                isAdmin = false,
-                                compactInline = true,
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                        }
-                        if (showFilterDatePicker) {
-                            RfInteractiveCalendarModal(
-                                title = "Fecha para filtrar",
-                                currentDateText = filterDateText,
-                                minYear = 2026,
-                                maxYear = 2030,
-                                defaultYear = 2026,
-                                isAdmin = false,
-                                onDismiss = { showFilterDatePicker = false },
-                                onSelectDate = { formattedDate ->
-                                    filterDateText = formattedDate
-                                    showFilterDatePicker = false
-                                },
-                            )
-                        }
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(48.dp)
-                                .shadow(2.dp, RoundedCornerShape(16.dp), spotColor = Color(0x20B450B4))
-                                .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(16.dp))
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(RfThemeState.currentPalette.surface)
-                                .padding(horizontal = 14.dp),
-                            contentAlignment = Alignment.CenterStart,
-                        ) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                RfIcon(kind = RfIconKind.PARTY, tint = RfThemeState.currentPalette.ink, size = 18.dp)
-                                BasicText("Mi boda", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = RfThemeState.currentPalette.ink))
-                            }
-                        }
                     }
 
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        BasicText("Solo artículos disponibles", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = RfThemeState.currentPalette.ink))
-                        Box(
-                            modifier = Modifier
-                                .width(46.dp)
-                                .height(28.dp)
-                                .clip(CircleShape)
-                                .background(
-                                    if (availableOnly) {
-                                        Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))
-                                    } else {
-                                        Brush.linearGradient(listOf(Color(0xFFE3DCE8), Color(0xFFE3DCE8)))
-                                    },
-                                )
-                                .clickable {
-                                    val updatedAvailable = !availableOnly
-                                    availableOnly = updatedAvailable
-                                    viewModel?.setOnlyAvailableFilter(updatedAvailable)
-                                }
-                                .padding(3.dp),
-                            contentAlignment = if (availableOnly) Alignment.CenterEnd else Alignment.CenterStart,
-                        ) {
+                        val pricePresets = listOf(500, 1500, 3000, 5000)
+                        pricePresets.forEach { presetPrice ->
+                            val isPresetActive = selectedMaxPrice == presetPrice
+                            val presetText = if (presetPrice == 5000) "Sin límite" else "RD$ $presetPrice"
                             Box(
                                 modifier = Modifier
-                                    .size(22.dp)
-                                    .shadow(2.dp, CircleShape)
-                                    .clip(CircleShape)
-                                    .background(RfThemeState.currentPalette.surface),
-                            )
+                                    .weight(1f)
+                                    .height(30.dp)
+                                    .clip(RoundedCornerShape(999.dp))
+                                    .background(if (isPresetActive) Color(0xFFFDE6F2) else RfThemeState.currentPalette.chipBg)
+                                    .clickable {
+                                        selectedMaxPrice = presetPrice
+                                        viewModel?.setMaxPriceFilterDop(presetPrice)
+                                    },
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                BasicText(
+                                    presetText,
+                                    style = TextStyle(
+                                        fontFamily = typo.bodyFamily,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 11.5.sp,
+                                        color = if (isPresetActive) Color(0xFFC2338F) else RfThemeState.currentPalette.muted,
+                                    ),
+                                )
+                            }
                         }
+                    }
+                }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 2.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    BasicText("Solo artículos disponibles", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = RfThemeState.currentPalette.ink))
+                    Box(
+                        modifier = Modifier
+                            .width(46.dp)
+                            .height(28.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (availableOnly) {
+                                    Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))
+                                } else {
+                                    Brush.linearGradient(listOf(Color(0xFFE3DCE8), Color(0xFFE3DCE8)))
+                                },
+                            )
+                            .clickable {
+                                val updatedAvailable = !availableOnly
+                                availableOnly = updatedAvailable
+                                viewModel?.setOnlyAvailableFilter(updatedAvailable)
+                            }
+                            .padding(3.dp),
+                        contentAlignment = if (availableOnly) Alignment.CenterEnd else Alignment.CenterStart,
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(22.dp)
+                                .shadow(2.dp, CircleShape)
+                                .clip(CircleShape)
+                                .background(RfThemeState.currentPalette.surface),
+                        )
                     }
                 }
 
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     BasicText("Ordenar por", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF3B3550)))
+                    val sortOptions = listOf("Más populares", "Menor precio", "Mayor precio", "Alfabético")
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState())
                             .clip(RoundedCornerShape(14.dp))
                             .background(RfThemeState.currentPalette.chipBg)
                             .padding(4.dp),
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
-                        listOf("Populares", "Precio ↑", "Precio ↓", "Nuevos").forEach { sortOption ->
-                            val isSel = sortOption == selectedSortOption
+                        sortOptions.forEach { sortOption ->
+                            val isSel = sortOption.equals(selectedSortOption, ignoreCase = true)
                             Box(
                                 modifier = Modifier
-                                    .weight(1f)
-                                    .height(38.dp)
+                                    .height(36.dp)
                                     .then(if (isSel) Modifier.shadow(4.dp, RoundedCornerShape(12.dp), spotColor = Color(0x33B450B4), ambientColor = Color.Transparent) else Modifier)
                                     .clip(RoundedCornerShape(12.dp))
                                     .background(if (isSel) Color.White else Color.Transparent)
                                     .clickable {
                                         selectedSortOption = sortOption
                                         viewModel?.setSearchSortOrder(sortOption)
-                                    },
+                                    }
+                                    .padding(horizontal = 12.dp),
                                 contentAlignment = Alignment.Center,
                             ) {
                                 BasicText(
@@ -3480,7 +4046,7 @@ internal fun RenderCatalogFiltersModalS81(
                                     style = TextStyle(
                                         fontFamily = typo.bodyFamily,
                                         fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium,
-                                        fontSize = 13.sp,
+                                        fontSize = 12.5.sp,
                                         color = if (isSel) Color(0xFF1A1A2E) else Color(0xFF62627A),
                                     ),
                                 )
@@ -3496,11 +4062,11 @@ internal fun RenderCatalogFiltersModalS81(
                         .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
                         .clip(RoundedCornerShape(16.dp))
                         .background(RosaButtonGradient)
-                        .clickable { onSelectScreenCode("BACK:s80") },
+                        .clickable { onSelectScreenCode("s18") },
                     contentAlignment = Alignment.Center,
                 ) {
                     BasicText(
-                        "Aplicar filtros",
+                        "Ver resultados",
                         style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White),
                     )
                 }
@@ -3509,20 +4075,122 @@ internal fun RenderCatalogFiltersModalS81(
     }
 }
 
-// ==============================================================================
-// s84 · CAMBIAR FECHA DEL EVENTO
-// ==============================================================================
+private fun computeSnappedSliderPrice81(offsetX: Float, trackWidthPx: Float): Int {
+    if (trackWidthPx <= 1f) return 5000
+    val rawFraction = (offsetX / trackWidthPx).coerceIn(0.02f, 1f)
+    val rawPrice = (rawFraction * 5000f).toInt()
+    val snappedPrice = ((rawPrice + 25) / 50) * 50
+    return snappedPrice.coerceIn(100, 5000)
+}
+
+private fun spanishMonthFull84(month: Int): String = when (month) {
+    1 -> "Enero"
+    2 -> "Febrero"
+    3 -> "Marzo"
+    4 -> "Abril"
+    5 -> "Mayo"
+    6 -> "Junio"
+    7 -> "Julio"
+    8 -> "Agosto"
+    9 -> "Septiembre"
+    10 -> "Octubre"
+    11 -> "Noviembre"
+    else -> "Diciembre"
+}
+
+private fun spanishMonthShort84(month: Int): String = when (month) {
+    1 -> "ene"
+    2 -> "feb"
+    3 -> "mar"
+    4 -> "abr"
+    5 -> "may"
+    6 -> "jun"
+    7 -> "jul"
+    8 -> "ago"
+    9 -> "sep"
+    10 -> "oct"
+    11 -> "nov"
+    else -> "dic"
+}
+
+private fun spanishWeekdayShort84(year: Int, month: Int, day: Int): String {
+    val firstDayOffset = computeGregorianMondayFirstOffset(year, month)
+    val weekdayIndex = (firstDayOffset + (day - 1)).mod(7)
+    return when (weekdayIndex) {
+        0 -> "Lun"
+        1 -> "Mar"
+        2 -> "Mié"
+        3 -> "Jue"
+        4 -> "Vie"
+        5 -> "Sáb"
+        else -> "Dom"
+    }
+}
+
+private fun computeInitialSelectableDay84(year: Int, month: Int): Int {
+    val daysInMonth = computeDaysInGregorianMonth(year, month)
+    val monthShort = spanishMonthShort84(month)
+    for (candidateDay in 1..daysInMonth) {
+        val daysUntil = DomainClockFormatter.computeDaysUntilEvent("$candidateDay $monthShort $year")
+        if (daysUntil >= 3) {
+            return candidateDay
+        }
+    }
+    return daysInMonth
+}
+
+private fun buildCalendarWeeks84(year: Int, month: Int): List<List<Int?>> {
+    val leadingBlanks = computeGregorianMondayFirstOffset(year, month)
+    val totalDays = computeDaysInGregorianMonth(year, month)
+    val cells = mutableListOf<Int?>()
+    repeat(leadingBlanks) {
+        cells.add(null)
+    }
+    for (dayNumber in 1..totalDays) {
+        cells.add(dayNumber)
+    }
+    val remainder = cells.size.mod(7)
+    if (remainder != 0) {
+        repeat(7 - remainder) {
+            cells.add(null)
+        }
+    }
+    return cells.chunked(7)
+}
+
 @Composable
 internal fun RenderChangeDateModalS84(
     onSelectScreenCode: (String) -> Unit = {},
     viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
-    var selectedDay by remember { mutableStateOf("30") }
-    val eventsState = viewModel?.events?.collectAsState()?.value ?: com.jeudry.rosafiesta.domain.CanonicalSampleData.events
+    val eventsState = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
     val selectedEventId = viewModel?.selectedEventId?.collectAsState()?.value
-    val activeEvent = eventsState.firstOrNull { event -> event.id == selectedEventId } ?: eventsState.firstOrNull()
+    val activeEvent = viewModel?.activeClientEvent()
+        ?: eventsState.firstOrNull { eventItem -> eventItem.id == selectedEventId }
+        ?: eventsState.firstOrNull()
     val eventTitle = activeEvent?.title ?: "Boda Real Rosa & Dorado"
+    val itemCountTotal = activeEvent?.items?.sumOf { lineItem -> lineItem.quantity } ?: 145
+
+    val currentYearMonth = remember { DomainClockFormatter.currentYearMonthIso() }
+    val defaultYear = currentYearMonth.substringBefore("-").toIntOrNull() ?: 2026
+    val defaultMonth = currentYearMonth.substringAfter("-").toIntOrNull()?.coerceIn(1, 12) ?: 10
+
+    var displayedYear by remember { mutableStateOf(defaultYear) }
+    var displayedMonth by remember { mutableStateOf(defaultMonth) }
+    var selectedDayInt by remember { mutableStateOf(computeInitialSelectableDay84(defaultYear, defaultMonth)) }
+    val timeSlotOptions = listOf("10:00 AM", "04:00 PM", "07:00 PM")
+    var selectedTimeSlot by remember { mutableStateOf("04:00 PM") }
+    var feedbackBannerMessage by remember { mutableStateOf<String?>(null) }
+    var isFeedbackError by remember { mutableStateOf(false) }
+
+    val weeksGrid = remember(displayedYear, displayedMonth) {
+        buildCalendarWeeks84(displayedYear, displayedMonth)
+    }
+    val monthShort = spanishMonthShort84(displayedMonth)
+    val weekdayShort = spanishWeekdayShort84(displayedYear, displayedMonth, selectedDayInt)
+    val formattedSelection = "$weekdayShort $selectedDayInt $monthShort $displayedYear · $selectedTimeSlot"
+    val selectedDaysUntil = DomainClockFormatter.computeDaysUntilEvent("$selectedDayInt $monthShort $displayedYear")
 
     Box(
         modifier = Modifier
@@ -3538,10 +4206,9 @@ internal fun RenderChangeDateModalS84(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(top = 16.dp, start = 20.dp, end = 20.dp, bottom = 130.dp),
+                .padding(top = 16.dp, start = 20.dp, end = 20.dp, bottom = 136.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            // Header
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -3563,7 +4230,6 @@ internal fun RenderChangeDateModalS84(
                 }
             }
 
-            // Segmented tabs: Cambiar fecha / Cancelar evento
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -3595,7 +4261,6 @@ internal fun RenderChangeDateModalS84(
                 }
             }
 
-            // Calendar Card
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -3606,7 +4271,6 @@ internal fun RenderChangeDateModalS84(
                     .padding(14.dp),
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    // Month header
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -3617,89 +4281,117 @@ internal fun RenderChangeDateModalS84(
                             modifier = Modifier
                                 .size(34.dp)
                                 .clip(CircleShape)
-                                .background(RfThemeState.currentPalette.chipBg),
+                                .background(RfThemeState.currentPalette.chipBg)
+                                .clickable {
+                                    if (displayedMonth == 1) {
+                                        if (displayedYear > 2026) {
+                                            displayedYear -= 1
+                                            displayedMonth = 12
+                                        }
+                                    } else {
+                                        displayedMonth -= 1
+                                    }
+                                    val maxDaysNext = computeDaysInGregorianMonth(displayedYear, displayedMonth)
+                                    selectedDayInt = selectedDayInt.coerceIn(1, maxDaysNext)
+                                    feedbackBannerMessage = null
+                                },
                         ) {
                             RfIcon(kind = RfIconKind.BACK, tint = RfThemeState.currentPalette.ink, size = 16.dp)
                         }
-                        BasicText("Octubre 2026", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = RfThemeState.currentPalette.ink))
+                        BasicText(
+                            "${spanishMonthFull84(displayedMonth)} $displayedYear",
+                            style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = RfThemeState.currentPalette.ink),
+                        )
                         Box(
                             contentAlignment = Alignment.Center,
                             modifier = Modifier
                                 .size(34.dp)
                                 .clip(CircleShape)
-                                .background(RfThemeState.currentPalette.chipBg),
+                                .background(RfThemeState.currentPalette.chipBg)
+                                .clickable {
+                                    if (displayedMonth == 12) {
+                                        if (displayedYear < 2030) {
+                                            displayedYear += 1
+                                            displayedMonth = 1
+                                        }
+                                    } else {
+                                        displayedMonth += 1
+                                    }
+                                    val maxDaysNext = computeDaysInGregorianMonth(displayedYear, displayedMonth)
+                                    selectedDayInt = selectedDayInt.coerceIn(1, maxDaysNext)
+                                    feedbackBannerMessage = null
+                                },
                         ) {
                             RfIcon(kind = RfIconKind.ARROW_RIGHT, tint = RfThemeState.currentPalette.ink, size = 16.dp)
                         }
                     }
 
-                    // Weekday headers
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
                         listOf("L", "M", "X", "J", "V", "S", "D").forEach { weekdayLabel ->
                             BasicText(weekdayLabel, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = RfThemeState.currentPalette.muted))
                         }
                     }
 
-                    // Days grid
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        val weeks = listOf(
-                            listOf("", "", "", "1", "2", "3", "4"),
-                            listOf("5", "6", "7", "8", "9", "10", "11"),
-                            listOf("12", "13", "14", "15", "16", "17", "18"),
-                            listOf("19", "20", "21", "22", "23", "24", "25"),
-                            listOf("26", "27", "28", "29", "30", "31", ""),
-                        )
-                        weeks.forEach { week ->
+                        weeksGrid.forEach { weekCells ->
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
-                                week.forEach { day ->
-                                    val parsedDay = day.toIntOrNull() ?: 99
-                                    val isPast = parsedDay < 20
-                                    val isCurrent = day == "23"
-                                    val isSelected = day == selectedDay
-                                    val hasDot = setOf("24", "31").contains(day)
-                                    val isSelectable = day.isNotEmpty()
+                                weekCells.forEach { dayNumber ->
+                                    if (dayNumber == null) {
+                                        Box(modifier = Modifier.size(38.dp))
+                                    } else {
+                                        val daysUntilDay = DomainClockFormatter.computeDaysUntilEvent("$dayNumber $monthShort $displayedYear")
+                                        val isPastDate = daysUntilDay < 0
+                                        val isTooSoon = daysUntilDay in 0..1
+                                        val isBlockedDay = if (isPastDate) true else isTooSoon
+                                        val isToday = daysUntilDay == 0
+                                        val isSelected = dayNumber == selectedDayInt
+                                        val hasLowStockDot = dayNumber.mod(7) == 0
 
-                                    Box(
-                                        modifier = Modifier
-                                            .size(38.dp)
-                                            .then(
-                                                if (isSelected) {
-                                                    Modifier
-                                                        .shadow(8.dp, RoundedCornerShape(12.dp), spotColor = Color(0xB3865DEC), ambientColor = Color.Transparent)
-                                                        .clip(RoundedCornerShape(12.dp))
-                                                        .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))))
-                                                } else if (isCurrent) {
-                                                    Modifier.clip(RoundedCornerShape(12.dp)).border(1.5.dp, Color(0xFFE3DCE8), RoundedCornerShape(12.dp))
-                                                } else {
-                                                    Modifier.clip(RoundedCornerShape(12.dp))
+                                        Box(
+                                            modifier = Modifier
+                                                .size(38.dp)
+                                                .then(
+                                                    if (isSelected) {
+                                                        Modifier
+                                                            .shadow(8.dp, RoundedCornerShape(12.dp), spotColor = Color(0xB3865DEC), ambientColor = Color.Transparent)
+                                                            .clip(RoundedCornerShape(12.dp))
+                                                            .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))))
+                                                    } else if (isToday) {
+                                                        Modifier.clip(RoundedCornerShape(12.dp)).border(1.5.dp, Color(0xFFC2338F), RoundedCornerShape(12.dp))
+                                                    } else {
+                                                        Modifier.clip(RoundedCornerShape(12.dp))
+                                                    },
+                                                )
+                                                .clickable {
+                                                    if (isPastDate) {
+                                                        isFeedbackError = true
+                                                        feedbackBannerMessage = "No puedes reprogramar hacia una fecha pasada."
+                                                    } else if (isTooSoon) {
+                                                        isFeedbackError = true
+                                                        feedbackBannerMessage = "El cambio requiere mínimo 48 horas de anticipación."
+                                                    } else {
+                                                        selectedDayInt = dayNumber
+                                                        isFeedbackError = false
+                                                        feedbackBannerMessage = null
+                                                    }
                                                 },
-                                            )
-                                            .then(
-                                                if (isSelectable) Modifier.clickable { selectedDay = day } else Modifier,
-                                            ),
-                                        contentAlignment = Alignment.Center,
-                                    ) {
-                                        if (isSelectable) {
-                                            val isBoldDay = setOf(selectedDay, "20").contains(day)
-                                            val isMutedDay = if (isPast) true else isCurrent
+                                            contentAlignment = Alignment.Center,
+                                        ) {
                                             BasicText(
-                                                day,
+                                                dayNumber.toString(),
                                                 style = TextStyle(
                                                     fontFamily = typo.bodyFamily,
-                                                    fontWeight = if (isBoldDay) FontWeight.ExtraBold else FontWeight.SemiBold,
+                                                    fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.SemiBold,
                                                     fontSize = 14.sp,
-                                                    color = if (isSelected) {
-                                                        Color.White
-                                                    } else if (day == "20") {
-                                                        Color(0xFFC2338F)
-                                                    } else if (isMutedDay) {
-                                                        Color(0xFFC9C3D1)
-                                                    } else {
-                                                        Color(0xFF1A1A2E)
+                                                    color = when {
+                                                        isSelected -> Color.White
+                                                        isBlockedDay -> Color(0xFFC9C3D1)
+                                                        else -> RfThemeState.currentPalette.ink
                                                     },
                                                 ),
                                             )
-                                            if (hasDot) {
+                                            val showWarningDot = if (hasLowStockDot) !isBlockedDay else false
+                                            if (showWarningDot) {
                                                 Box(
                                                     modifier = Modifier
                                                         .align(Alignment.BottomCenter)
@@ -3716,99 +4408,96 @@ internal fun RenderChangeDateModalS84(
                         }
                     }
 
-                    // Legend
                     Row(horizontalArrangement = Arrangement.spacedBy(14.dp), modifier = Modifier.padding(top = 6.dp)) {
                         Row(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Box(modifier = Modifier.size(10.dp).border(1.5.dp, Color(0xFFE3DCE8), RoundedCornerShape(3.dp)))
-                            BasicText("Fecha actual", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = RfThemeState.currentPalette.muted))
+                            Box(modifier = Modifier.size(10.dp).border(1.5.dp, Color(0xFFC2338F), RoundedCornerShape(3.dp)))
+                            BasicText("Hoy", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = RfThemeState.currentPalette.muted))
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
                             Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(Color(0xFFF7B500)))
-                            BasicText("Poca disponibilidad", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = RfThemeState.currentPalette.muted))
+                            BasicText("Alta demanda", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = RfThemeState.currentPalette.muted))
                         }
                     }
                 }
             }
 
-            // Input fields row
-            var customDateText by remember(selectedDay) { mutableStateOf("${selectedDay.padStart(2, '0')}/10/2026") }
-            var showReprogramCalendar by remember { mutableStateOf(false) }
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(48.dp)
-                        .shadow(2.dp, RoundedCornerShape(16.dp), spotColor = Color(0x20B450B4))
-                        .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(16.dp))
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(RfThemeState.currentPalette.surface)
-                        .padding(horizontal = 10.dp),
-                    contentAlignment = Alignment.CenterStart,
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                BasicText(
+                    "Horario de montaje · $formattedSelection",
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = RfThemeState.currentPalette.ink),
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    RfMaskedDateField(
-                        value = customDateText,
-                        onValueChange = { updated -> customDateText = updated },
-                        onOpenCalendar = { showReprogramCalendar = true },
-                        placeholder = "DD/MM/AAAA",
-                        isAdmin = false,
-                        compactInline = true,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-                if (showReprogramCalendar) {
-                    RfInteractiveCalendarModal(
-                        title = "Nueva fecha del evento",
-                        currentDateText = customDateText,
-                        minYear = 2026,
-                        maxYear = 2030,
-                        defaultYear = 2026,
-                        isAdmin = false,
-                        onDismiss = { showReprogramCalendar = false },
-                        onSelectDate = { formattedDate ->
-                            customDateText = formattedDate
-                            val pickedDay = formattedDate.substringBefore("/").trimStart('0').ifEmpty { "1" }
-                            selectedDay = pickedDay
-                            showReprogramCalendar = false
-                        },
-                    )
-                }
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(48.dp)
-                        .shadow(2.dp, RoundedCornerShape(16.dp), spotColor = Color(0x20B450B4))
-                        .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(16.dp))
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(RfThemeState.currentPalette.surface)
-                        .padding(horizontal = 14.dp),
-                    contentAlignment = Alignment.CenterStart,
-                ) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        RfIcon(kind = RfIconKind.ORDERS, tint = RfThemeState.currentPalette.ink, size = 18.dp)
-                        BasicText("2:00 p. m.", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = RfThemeState.currentPalette.ink))
+                    timeSlotOptions.forEach { slotOption ->
+                        val isSlotSelected = slotOption == selectedTimeSlot
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(42.dp)
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(
+                                    if (isSlotSelected) {
+                                        Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF865DEC)))
+                                    } else {
+                                        SolidColor(RfThemeState.currentPalette.surface)
+                                    },
+                                )
+                                .border(
+                                    1.dp,
+                                    if (isSlotSelected) Color.Transparent else RfThemeState.currentPalette.line,
+                                    RoundedCornerShape(14.dp),
+                                )
+                                .clickable { selectedTimeSlot = slotOption },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            BasicText(
+                                slotOption,
+                                style = TextStyle(
+                                    fontFamily = typo.bodyFamily,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp,
+                                    color = if (isSlotSelected) Color.White else RfThemeState.currentPalette.ink,
+                                ),
+                            )
+                        }
                     }
                 }
             }
 
-            // Green banner
+            val bannerText = feedbackBannerMessage ?: if (selectedDaysUntil >= 2) {
+                "Tus $itemCountTotal artículos están disponibles para $formattedSelection. Tu primer cambio de fecha es gratis."
+            } else {
+                "Selecciona una fecha con al menos 48 horas de anticipación para solicitar el cambio."
+            }
+            val showErrorStyle = if (isFeedbackError) true else selectedDaysUntil < 2
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .background(Color(0xFFEEF6D6))
+                    .background(if (showErrorStyle) Color(0xFFFCE3E8) else Color(0xFFEEF6D6))
                     .padding(12.dp, 14.dp),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.Top,
             ) {
-                RfIcon(kind = RfIconKind.CHECK, tint = Color(0xFF3F560C), size = 18.dp)
+                RfIcon(
+                    kind = if (showErrorStyle) RfIconKind.WARNING else RfIconKind.CHECK,
+                    tint = if (showErrorStyle) Color(0xFFB42345) else Color(0xFF3F560C),
+                    size = 18.dp,
+                )
                 BasicText(
-                    "Tus 145 artículos están disponibles el vie 30 oct. Tu primer cambio de fecha es gratis.",
-                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.5.sp, lineHeight = 19.sp, color = Color(0xFF3F560C)),
+                    bannerText,
+                    style = TextStyle(
+                        fontFamily = typo.bodyFamily,
+                        fontSize = 13.5.sp,
+                        lineHeight = 19.sp,
+                        color = if (showErrorStyle) Color(0xFFB42345) else Color(0xFF3F560C),
+                    ),
                 )
             }
         }
 
-        // Bottom action button
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -3818,7 +4507,7 @@ internal fun RenderChangeDateModalS84(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             BasicText(
-                "Rosa Fiesta confirmará el cambio en menos de 24 h.",
+                "RosaFiesta confirmará el cambio en menos de 24 h.",
                 style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.5.sp, color = RfThemeState.currentPalette.muted),
             )
             Box(
@@ -3829,9 +4518,28 @@ internal fun RenderChangeDateModalS84(
                     .clip(RoundedCornerShape(16.dp))
                     .background(RosaButtonGradient)
                     .clickable {
-                        viewModel?.setDateChangeInput("Vie $selectedDay oct")
-                        viewModel?.submitDateChange()
-                        onSelectScreenCode("s40")
+                        if (selectedDaysUntil < 2) {
+                            isFeedbackError = true
+                            feedbackBannerMessage = "Elige una fecha futura con al menos 48 h de anticipación."
+                        } else if (viewModel != null) {
+                            viewModel.setDateChangeInput(formattedSelection)
+                            val targetId = activeEvent?.id ?: ""
+                            val changeResult = if (targetId.isNotBlank()) {
+                                viewModel.submitDateChange(targetId)
+                            } else {
+                                viewModel.submitDateChange()
+                            }
+                            if (changeResult.allowed) {
+                                isFeedbackError = false
+                                feedbackBannerMessage = null
+                                onSelectScreenCode("BACK:s40")
+                            } else {
+                                isFeedbackError = true
+                                feedbackBannerMessage = changeResult.message
+                            }
+                        } else {
+                            onSelectScreenCode("BACK:s40")
+                        }
                     },
                 contentAlignment = Alignment.Center,
             ) {
@@ -3844,27 +4552,33 @@ internal fun RenderChangeDateModalS84(
     }
 }
 
-// ==============================================================================
-// s85 · CANCELAR EVENTO
-// ==============================================================================
 @Composable
 internal fun RenderCancelEventModalS85(
     onSelectScreenCode: (String) -> Unit = {},
     viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
-    val eventsState = viewModel?.events?.collectAsState()?.value ?: com.jeudry.rosafiesta.domain.CanonicalSampleData.events
+    val eventsState = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
     val selectedEventId = viewModel?.selectedEventId?.collectAsState()?.value
-    val activeEvent = eventsState.firstOrNull { event -> event.id == selectedEventId } ?: eventsState.firstOrNull()
+    val activeEvent = viewModel?.activeClientEvent()
+        ?: eventsState.firstOrNull { eventItem -> eventItem.id == selectedEventId }
+        ?: eventsState.firstOrNull()
     val eventHeaderSubtitle = if (activeEvent != null) {
         "${activeEvent.title} · ${activeEvent.dateLabel}"
     } else {
-        "Quinceañera Valentina Crystal · Lun 2 nov"
+        "Evento activo"
     }
-    val paidDepositDop = activeEvent?.paidDepositDop ?: 1860
-    val feeDop = (paidDepositDop * 10) / 100
-    val refundDop = (paidDepositDop - feeDop).coerceAtLeast(0)
+    val paidDepositDop = activeEvent?.paidDepositDop ?: 0
+    val daysUntilEvent = activeEvent?.daysUntilEvent ?: 10
+    val refundPreview = RosaFiestaEngine.calculateCancellationRefund(
+        paidDepositDop = paidDepositDop,
+        daysUntilEvent = daysUntilEvent,
+    )
+    val retentionPercent = (100 - refundPreview.refundPercent).coerceIn(0, 100)
+
     var selectedReason by remember { mutableStateOf("Cambio de planes") }
+    var customReasonText by remember { mutableStateOf("") }
+    var reasonErrorText by remember { mutableStateOf<String?>(null) }
 
     Box(
         modifier = Modifier
@@ -3880,10 +4594,9 @@ internal fun RenderCancelEventModalS85(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(top = 16.dp, start = 20.dp, end = 20.dp, bottom = 140.dp),
+                .padding(top = 16.dp, start = 20.dp, end = 20.dp, bottom = 146.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            // Header
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -3905,7 +4618,6 @@ internal fun RenderCancelEventModalS85(
                 }
             }
 
-            // Segmented tabs
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -3937,7 +4649,6 @@ internal fun RenderCancelEventModalS85(
                 }
             }
 
-            // Card 1: Política de cancelación
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -3948,36 +4659,34 @@ internal fun RenderCancelEventModalS85(
                     .padding(14.dp, 16.dp),
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    val daysStatusSuffix = when {
+                        daysUntilEvent > 1 -> "· faltan $daysUntilEvent días"
+                        daysUntilEvent == 1 -> "· falta 1 día"
+                        daysUntilEvent == 0 -> "· es hoy"
+                        else -> "· fecha vencida"
+                    }
                     Row {
                         BasicText("Política de cancelación ", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = RfThemeState.currentPalette.ink))
-                        BasicText("· faltan 13 días", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
+                        BasicText(daysStatusSuffix, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
                     }
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Box(
-                            modifier = Modifier
-                                .size(18.dp)
-                                .shadow(4.dp, CircleShape, spotColor = Color(0x80FDE6F2))
-                                .border(4.dp, Color(0xFFFDE6F2), CircleShape)
-                                .clip(CircleShape)
-                                .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF6664E9)))),
-                        )
-                        BasicText("Más de 7 días antes", modifier = Modifier.weight(1f), style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = RfThemeState.currentPalette.ink))
-                        BasicText("90%", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, color = RfThemeState.currentPalette.ink))
-                    }
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Box(modifier = Modifier.size(18.dp).border(2.dp, Color(0xFFE3DCE8), CircleShape))
-                        BasicText("Entre 3 y 7 días", modifier = Modifier.weight(1f), style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF9A95A6)))
-                        BasicText("50%", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, color = Color(0xFF9A95A6)))
-                    }
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Box(modifier = Modifier.size(18.dp).border(2.dp, Color(0xFFE3DCE8), CircleShape))
-                        BasicText("Menos de 3 días", modifier = Modifier.weight(1f), style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF9A95A6)))
-                        BasicText("Sin reembolso", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, color = Color(0xFF9A95A6)))
-                    }
+                    CancelTierPolicyRow85(
+                        label = "Más de 7 días antes",
+                        percentText = "90%",
+                        isActive = refundPreview.refundPercent == 90,
+                    )
+                    CancelTierPolicyRow85(
+                        label = "Entre 3 y 7 días",
+                        percentText = "50%",
+                        isActive = refundPreview.refundPercent == 50,
+                    )
+                    CancelTierPolicyRow85(
+                        label = "Menos de 3 días",
+                        percentText = "Sin reembolso",
+                        isActive = refundPreview.refundPercent == 0,
+                    )
                 }
             }
 
-            // Card 2: Desglose financiero
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -3993,15 +4702,15 @@ internal fun RenderCancelEventModalS85(
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
                         BasicText("Anticipo pagado", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
-                        BasicText("RD$ $paidDepositDop", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = RfThemeState.currentPalette.ink))
+                        BasicText(RosaFiestaEngine.formatDop(paidDepositDop), style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = RfThemeState.currentPalette.ink))
                     }
                     Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(RfThemeState.currentPalette.lineSoft))
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
-                        BasicText("Cargo de gestión (10%)", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
-                        BasicText("− RD$ $feeDop", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = RfThemeState.currentPalette.ink))
+                        BasicText("Cargo por ventana ($retentionPercent%)", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
+                        BasicText("− ${RosaFiestaEngine.formatDop(refundPreview.retainedDop)}", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = RfThemeState.currentPalette.ink))
                     }
                     Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(RfThemeState.currentPalette.lineSoft))
                     Row(
@@ -4009,24 +4718,35 @@ internal fun RenderCancelEventModalS85(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        BasicText("Te devolvemos", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = RfThemeState.currentPalette.ink))
-                        BasicText("RD$ $refundDop", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp, color = Color(0xFF4E6A10)))
+                        BasicText("Te devolvemos (${refundPreview.refundPercent}%)", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = RfThemeState.currentPalette.ink))
+                        BasicText(
+                            RosaFiestaEngine.formatDop(refundPreview.refundDop),
+                            style = TextStyle(
+                                fontFamily = typo.displayFamily,
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 22.sp,
+                                color = if (refundPreview.refundDop > 0) Color(0xFF4E6A10) else Color(0xFFB42345),
+                            ),
+                        )
                     }
                 }
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 BasicText("¿Por qué cancelas?", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF3B3550)))
-                val cancelReasons = listOf("Cambio de planes", "El presupuesto no me alcanza", "Encontré otra opción")
-                cancelReasons.forEach { reason ->
-                    val isReasonSelected = selectedReason == reason
+                val cancelReasons = listOf("Cambio de planes", "Ajuste de presupuesto", "Cambio de fecha sin definir", "Otro motivo")
+                cancelReasons.forEach { reasonOption ->
+                    val isReasonSelected = selectedReason == reasonOption
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(38.dp)
-                            .clickable { selectedReason = reason },
+                            .clickable {
+                                selectedReason = reasonOption
+                                reasonErrorText = null
+                            },
                     ) {
                         Box(
                             modifier = Modifier
@@ -4038,7 +4758,7 @@ internal fun RenderCancelEventModalS85(
                                 ),
                         )
                         BasicText(
-                            reason,
+                            reasonOption,
                             style = TextStyle(
                                 fontFamily = typo.bodyFamily,
                                 fontWeight = if (isReasonSelected) FontWeight.SemiBold else FontWeight.Normal,
@@ -4048,9 +4768,41 @@ internal fun RenderCancelEventModalS85(
                         )
                     }
                 }
+                if (selectedReason == "Otro motivo") {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(46.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(RfThemeState.currentPalette.surface)
+                            .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(14.dp))
+                            .padding(horizontal = 14.dp),
+                        contentAlignment = Alignment.CenterStart,
+                    ) {
+                        if (customReasonText.isEmpty()) {
+                            BasicText("Cuéntanos brevemente el motivo...", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
+                        }
+                        BasicTextField(
+                            value = customReasonText,
+                            onValueChange = { updated ->
+                                customReasonText = updated
+                                reasonErrorText = null
+                            },
+                            singleLine = true,
+                            textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.ink),
+                            cursorBrush = SolidColor(Color(0xFFC2338F)),
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                }
+                if (!reasonErrorText.isNullOrBlank()) {
+                    BasicText(
+                        reasonErrorText ?: "",
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 12.5.sp, color = Color(0xFFB42345)),
+                    )
+                }
             }
 
-            // Alternative banner
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -4071,7 +4823,6 @@ internal fun RenderCancelEventModalS85(
             }
         }
 
-        // Bottom actions
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -4088,12 +4839,28 @@ internal fun RenderCancelEventModalS85(
                     .clip(RoundedCornerShape(16.dp))
                     .background(Color(0xFFB42345))
                     .clickable {
-                        viewModel?.submitCancelEvent()
-                        onSelectScreenCode("s37")
+                        val resolvedReason = if (selectedReason == "Otro motivo") {
+                            customReasonText.trim()
+                        } else {
+                            selectedReason.trim()
+                        }
+                        if (resolvedReason.isEmpty()) {
+                            reasonErrorText = "Indica el motivo de cancelación antes de continuar."
+                        } else {
+                            if (activeEvent != null) {
+                                viewModel?.submitCancelEvent(
+                                    eventId = activeEvent.id,
+                                    reason = resolvedReason,
+                                )
+                            } else {
+                                viewModel?.submitCancelEvent(reason = resolvedReason)
+                            }
+                            onSelectScreenCode("s37")
+                        }
                     },
                 contentAlignment = Alignment.Center,
             ) {
-                BasicText("Cancelar evento", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White))
+                BasicText("Confirmar cancelación", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White))
             }
             Box(
                 modifier = Modifier
@@ -4108,15 +4875,56 @@ internal fun RenderCancelEventModalS85(
     }
 }
 
-// ==============================================================================
-// s91 · ESTADO SIN CONEXIÓN PERSONAL
-// ==============================================================================
+@Composable
+private fun CancelTierPolicyRow85(
+    label: String,
+    percentText: String,
+    isActive: Boolean,
+) {
+    val typo = LocalRfTypography.current
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        if (isActive) {
+            Box(
+                modifier = Modifier
+                    .size(18.dp)
+                    .shadow(4.dp, CircleShape, spotColor = Color(0x80FDE6F2))
+                    .border(4.dp, Color(0xFFFDE6F2), CircleShape)
+                    .clip(CircleShape)
+                    .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF6664E9)))),
+            )
+        } else {
+            Box(modifier = Modifier.size(18.dp).border(2.dp, Color(0xFFE3DCE8), CircleShape))
+        }
+        BasicText(
+            label,
+            modifier = Modifier.weight(1f),
+            style = TextStyle(
+                fontFamily = typo.bodyFamily,
+                fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal,
+                fontSize = 14.sp,
+                color = if (isActive) RfThemeState.currentPalette.ink else Color(0xFF9A95A6),
+            ),
+        )
+        BasicText(
+            percentText,
+            style = TextStyle(
+                fontFamily = typo.displayFamily,
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = 14.sp,
+                color = if (isActive) RfThemeState.currentPalette.ink else Color(0xFF9A95A6),
+            ),
+        )
+    }
+}
+
 @Composable
 internal fun RenderPersonalOfflineStateS91(
     viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
+    var isRetrying by remember { mutableStateOf(false) }
+    var retryStatusMessage by remember { mutableStateOf<String?>(null) }
 
     Box(
         modifier = Modifier
@@ -4128,7 +4936,6 @@ internal fun RenderPersonalOfflineStateS91(
             drawRect(Brush.radialGradient(colors = listOf(RfThemeState.currentPalette.radialSecondary, RfThemeState.currentPalette.radialSecondary.copy(alpha = 0f)), center = Offset(size.width, 0f), radius = size.width * 0.8f))
         }
 
-        // Top dark banner
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -4155,7 +4962,6 @@ internal fun RenderPersonalOfflineStateS91(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            // Icon
             Box(
                 modifier = Modifier
                     .size(120.dp)
@@ -4171,13 +4977,19 @@ internal fun RenderPersonalOfflineStateS91(
 
             BasicText("No hay conexión", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp, color = RfThemeState.currentPalette.ink))
             BasicText(
-                "Revisa tu internet. Tu lista de Mi evento está guardada y la enviaremos cuando vuelvas a conectarte.",
-                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, lineHeight = 22.sp, color = RfThemeState.currentPalette.muted, textAlign = androidx.compose.ui.text.style.TextAlign.Center),
+                "Revisa tu internet. Tu lista de Mi evento está guardada localmente y se sincronizará en cuanto recuperes señal.",
+                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, lineHeight = 22.sp, color = RfThemeState.currentPalette.muted, textAlign = TextAlign.Center),
             )
+
+            if (!retryStatusMessage.isNullOrBlank()) {
+                BasicText(
+                    retryStatusMessage ?: "",
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Color(0xFFC2338F), textAlign = TextAlign.Center),
+                )
+            }
 
             Spacer(Modifier.height(6.dp))
 
-            // Reintentar button
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -4185,16 +4997,36 @@ internal fun RenderPersonalOfflineStateS91(
                     .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
                     .clip(RoundedCornerShape(16.dp))
                     .background(RosaButtonGradient)
-                    .clickable { onSelectScreenCode("s91") },
+                    .clickable {
+                        if (!isRetrying) {
+                            isRetrying = true
+                            retryStatusMessage = null
+                            if (viewModel != null) {
+                                viewModel.syncWithServer { synced ->
+                                    isRetrying = false
+                                    if (synced) {
+                                        onSelectScreenCode("s14")
+                                    } else {
+                                        retryStatusMessage = "Seguimos sin conexión al servidor. Tus cambios permanecen resguardados."
+                                    }
+                                }
+                            } else {
+                                isRetrying = false
+                                onSelectScreenCode("s14")
+                            }
+                        }
+                    },
                 contentAlignment = Alignment.Center,
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     RfIcon(kind = RfIconKind.REFRESH, tint = Color.White, size = 18.dp)
-                    BasicText("Reintentar", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White))
+                    BasicText(
+                        if (isRetrying) "Verificando conexión..." else "Reintentar conexión",
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White),
+                    )
                 }
             }
 
-            // Ver mis favoritos guardados button
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -4209,46 +5041,32 @@ internal fun RenderPersonalOfflineStateS91(
                 BasicText("Ver mis favoritos guardados", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = RfThemeState.currentPalette.ink))
             }
 
-            // Variante: error del servidor
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 12.dp)
-                    .shadow(8.dp, RoundedCornerShape(20.dp), spotColor = Color(0x20AA46A0))
-                    .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(20.dp))
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(RfThemeState.currentPalette.surface)
-                    .padding(12.dp, 14.dp),
+                    .height(44.dp)
+                    .clickable { onSelectScreenCode("BACK:s14") },
+                contentAlignment = Alignment.Center,
             ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Color(0xFFFCE3E8)),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        RfIcon(kind = RfIconKind.WARNING, tint = Color(0xFFB42345), size = 20.dp)
-                    }
-                    Column {
-                        BasicText("Variante: error del servidor", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = RfThemeState.currentPalette.ink))
-                        BasicText("“Algo salió mal de nuestro lado. Intenta de nuevo en un momento.”", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = RfThemeState.currentPalette.muted))
-                    }
-                }
+                BasicText("Volver al inicio", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = RfThemeState.currentPalette.muted))
             }
         }
     }
 }
 
-// ==============================================================================
-// s92 · ESTADO ÉXITO PERSONAL (CON TOAST)
-// ==============================================================================
 @Composable
 internal fun RenderPersonalSuccessStateS92(
     onSelectScreenCode: (String) -> Unit = {},
     viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
+    val draftQuantities = viewModel?.draftQuantities?.collectAsState()?.value ?: emptyMap()
+    val totalPieces = draftQuantities.values.sum()
+    val summarySubtitle = if (totalPieces > 0) {
+        "$totalPieces artículo(s) en tu lista actual"
+    } else {
+        "Artículo agregado a tu lista"
+    }
 
     Box(
         modifier = Modifier
@@ -4257,7 +5075,6 @@ internal fun RenderPersonalSuccessStateS92(
     ) {
         RenderPersonalCatalogS18(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
 
-        // Floating Toast overlay above bottom bar
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -4270,10 +5087,9 @@ internal fun RenderPersonalSuccessStateS92(
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                // Green checkmark icon
                 Box(
                     modifier = Modifier
                         .size(34.dp)
@@ -4284,21 +5100,39 @@ internal fun RenderPersonalSuccessStateS92(
                     RfIcon(kind = RfIconKind.CHECK, tint = Color(0xFF2E3A08), size = 18.dp)
                 }
 
-                // Text
-                Column(modifier = Modifier.weight(1f)) {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable { onSelectScreenCode("s25") },
+                ) {
                     BasicText("Agregado a Mi evento", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White))
-                    BasicText("Arco de globos · 17 en total", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color.White.copy(alpha = 0.75f)))
+                    BasicText(summarySubtitle, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.5.sp, color = Color.White.copy(alpha = 0.78f)))
                 }
 
-                // Deshacer button
                 Box(
                     modifier = Modifier
-                        .clickable { onSelectScreenCode("BACK:s18") }
-                        .padding(horizontal = 6.dp),
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(Color.White.copy(alpha = 0.14f))
+                        .clickable { onSelectScreenCode("s25") }
+                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                ) {
+                    BasicText(
+                        "Ver carrito",
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.5.sp, color = Color.White),
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .clickable {
+                            viewModel?.undoLastDraftAddition()
+                            onSelectScreenCode("BACK:s18")
+                        }
+                        .padding(horizontal = 4.dp, vertical = 6.dp),
                 ) {
                     BasicText(
                         "Deshacer",
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, color = Color(0xFFFFD45C)),
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.ExtraBold, fontSize = 13.5.sp, color = Color(0xFFFFD45C)),
                     )
                 }
             }
