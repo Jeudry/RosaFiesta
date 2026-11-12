@@ -318,98 +318,95 @@ internal fun RenderPersonalCatalogS18(
 
         Spacer(Modifier.height(12.dp))
 
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
-        ) {
-            val baseCategoryChips = listOf(
-                "Todas · $visibleArticlesCount",
-                "Mobiliario",
-                "Decoración",
-                "Centros florales",
-                "Arcos y globos",
-                "Mantelería",
-                "Estaciones dulces",
-                "Iluminación",
-                "Letreros",
-            )
-            val normalizedBaseNames = baseCategoryChips.map { label ->
-                if (label.startsWith("Todas")) "Todas" else label
-            }
-            val isAllCategoryActive = isUnfilteredCatalogCategory18(selectedCategory)
-            val isKnownChip = normalizedBaseNames.any { chipName -> chipName.equals(selectedCategory, ignoreCase = true) }
-            val shouldInjectSelectedChip = if (isAllCategoryActive) false else !isKnownChip
-            val categories = if (shouldInjectSelectedChip) {
-                listOf(baseCategoryChips.first(), selectedCategory) + baseCategoryChips.drop(1)
-            } else {
-                baseCategoryChips
-            }
-            categories.forEach { categoryLabel ->
-                val cleanCategory = if (categoryLabel.startsWith("Todas")) "Todas" else categoryLabel
-                val exactMatch = selectedCategory.equals(cleanCategory, ignoreCase = true)
-                val allPrefixMatch = if (isUnfilteredCatalogCategory18(selectedCategory)) cleanCategory == "Todas" else false
-                val isSelected = listOf(exactMatch, allPrefixMatch).any { matched -> matched }
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .height(38.dp)
-                        .clip(RoundedCornerShape(999.dp))
-                        .background(
-                            if (isSelected) {
-                                Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)))
-                            } else {
-                                SolidColor(RfThemeState.currentPalette.chipBg)
-                            },
-                        )
-                        .border(1.dp, if (isSelected) Color.Transparent else RfThemeState.currentPalette.line, RoundedCornerShape(999.dp))
-                        .clickable {
-                            viewModel?.soundPlayer?.playTap()
-                            selectedCategory = cleanCategory
-                            viewModel?.setSelectedCategory(cleanCategory)
-                        }
-                        .padding(horizontal = 14.dp),
-                ) {
-                    BasicText(
-                        text = categoryLabel,
-                        style = typo.body.copy(
-                            fontSize = 14.sp,
-                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                            color = if (isSelected) Color.White else RfThemeState.currentPalette.muted,
-                        ),
-                    )
-                }
-            }
-        }
-
-        Spacer(Modifier.height(14.dp))
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .rfCardShadow(RoundedCornerShape(18.dp), isAdmin = false)
-                .clip(RoundedCornerShape(18.dp))
-                .background(Brush.horizontalGradient(listOf(Color(0xFFFCE6F3), Color(0xFFECE4FD))))
-                .clickable { onSelectScreenCode("s26") }
-                .padding(horizontal = 12.dp, vertical = 10.dp),
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                RosaAvatar(size = RosaAvatarSize.MEDIUM)
-                Column(modifier = Modifier.weight(1f)) {
-                    BasicText("¿No sabes por dónde empezar?", style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E324A)))
-                    BasicText("Rosa arma tu lista en 2 minutos.", style = typo.secondary.copy(fontSize = 13.sp, color = Color(0xFF5F6377)))
-                }
-                RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF865DEC), size = 18.dp, modifier = Modifier.rotate(180f))
-            }
-        }
-
-        Spacer(Modifier.height(16.dp))
-
         Column(
             verticalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.verticalScroll(rememberScrollState()),
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState()),
         ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+            ) {
+                val baseCategoryChips = listOf(
+                    "Todas · $visibleArticlesCount",
+                    "Mobiliario",
+                    "Decoración",
+                    "Centros florales",
+                    "Arcos y globos",
+                    "Mantelería",
+                    "Estaciones dulces",
+                    "Iluminación",
+                    "Letreros",
+                )
+                val normalizedBaseNames = baseCategoryChips.map { label ->
+                    if (label.startsWith("Todas")) "Todas" else label
+                }
+                val isAllCategoryActive = isUnfilteredCatalogCategory18(selectedCategory)
+                val isKnownChip = normalizedBaseNames.any { chipName -> chipName.equals(selectedCategory, ignoreCase = true) }
+                val shouldInjectSelectedChip = if (isAllCategoryActive) false else !isKnownChip
+                val categories = if (shouldInjectSelectedChip) {
+                    listOf(baseCategoryChips.first(), selectedCategory) + baseCategoryChips.drop(1)
+                } else {
+                    baseCategoryChips
+                }
+                categories.forEach { categoryLabel ->
+                    val cleanCategory = if (categoryLabel.startsWith("Todas")) "Todas" else categoryLabel
+                    val exactMatch = selectedCategory.equals(cleanCategory, ignoreCase = true)
+                    val allPrefixMatch = if (isUnfilteredCatalogCategory18(selectedCategory)) cleanCategory == "Todas" else false
+                    val isSelected = listOf(exactMatch, allPrefixMatch).any { matched -> matched }
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .height(38.dp)
+                            .clip(RoundedCornerShape(999.dp))
+                            .background(
+                                if (isSelected) {
+                                    Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)))
+                                } else {
+                                    SolidColor(RfThemeState.currentPalette.chipBg)
+                                },
+                            )
+                            .border(1.dp, if (isSelected) Color.Transparent else RfThemeState.currentPalette.line, RoundedCornerShape(999.dp))
+                            .clickable {
+                                viewModel?.soundPlayer?.playTap()
+                                selectedCategory = cleanCategory
+                                viewModel?.setSelectedCategory(cleanCategory)
+                            }
+                            .padding(horizontal = 14.dp),
+                    ) {
+                        BasicText(
+                            text = categoryLabel,
+                            style = typo.body.copy(
+                                fontSize = 14.sp,
+                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                color = if (isSelected) Color.White else RfThemeState.currentPalette.muted,
+                            ),
+                        )
+                    }
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .rfCardShadow(RoundedCornerShape(18.dp), isAdmin = false)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(Brush.horizontalGradient(listOf(Color(0xFFFCE6F3), Color(0xFFECE4FD))))
+                    .clickable { onSelectScreenCode("s26") }
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    RosaAvatar(size = RosaAvatarSize.MEDIUM)
+                    Column(modifier = Modifier.weight(1f)) {
+                        BasicText("¿No sabes por dónde empezar?", style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E324A)))
+                        BasicText("Rosa arma tu lista en 2 minutos.", style = typo.secondary.copy(fontSize = 13.sp, color = Color(0xFF5F6377)))
+                    }
+                    RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF865DEC), size = 18.dp, modifier = Modifier.rotate(180f))
+                }
+            }
             if (filteredArticles.isEmpty()) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
