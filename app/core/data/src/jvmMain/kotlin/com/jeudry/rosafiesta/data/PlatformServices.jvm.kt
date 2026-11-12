@@ -614,7 +614,8 @@ public actual fun createPlatformSecureStorage(): SecureStorage {
         val tempDir = Files.createTempDirectory("rosafiesta-test-secure").toFile().apply { deleteOnExit() }
         return DesktopSecureStorage(directory = tempDir)
     }
-    return DesktopSecureStorage()
+    val secureDir = File(resolveDesktopAppDataDirectory(), "secure")
+    return DesktopSecureStorage(directory = secureDir)
 }
 
 public actual fun createPlatformVoiceInputMonitor(): VoiceInputMonitor {

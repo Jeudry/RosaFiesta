@@ -29,15 +29,22 @@ internal fun isRunningInAutomatedTest(): Boolean {
     }
 }
 
+internal fun resolveDesktopAppDataDirectory(): File {
+    val homeDir = System.getProperty("user.home").orEmpty().ifBlank { "." }
+    val rootDir = File(homeDir, ".rosafiesta")
+    val profile = System.getProperty("rosafiesta.profile").orEmpty().trim().lowercase()
+    val resolvedDir = if (profile.isEmpty()) rootDir else File(rootDir, profile)
+    if (!resolvedDir.exists()) {
+        resolvedDir.mkdirs()
+    }
+    return resolvedDir
+}
+
 public actual fun createDefaultSqlDriverOrNull(): SqlDriver? = runCatching {
     if (isRunningInAutomatedTest()) {
         return@runCatching DriverFactory(url = JdbcSqliteDriver.IN_MEMORY).createDriver()
     }
-    val homeDir = System.getProperty("user.home").orEmpty().ifBlank { "." }
-    val appDir = File(homeDir, ".rosafiesta")
-    if (!appDir.exists()) {
-        appDir.mkdirs()
-    }
+    val appDir = resolveDesktopAppDataDirectory()
     val dbFile = File(appDir, "rosafiesta.db")
     DriverFactory(url = "jdbc:sqlite:${dbFile.absolutePath}").createDriver()
 }.getOrNull()

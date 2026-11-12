@@ -393,14 +393,12 @@ public fun RenderScreenSpec(
                     viewModel = viewModel,
                     onPrimaryAction = onPrimaryAction,
                     onSelectScreenCode = onSelectScreenCode,
-                    onSwitchAppMode = onSwitchAppMode,
                 )
 
                 "A00" -> RenderAdminSplashA00(
                     viewModel = viewModel,
                     onPrimaryAction = onPrimaryAction,
                     onSelectScreenCode = onSelectScreenCode,
-                    onSwitchAppMode = onSwitchAppMode,
                 )
 
                 "s01" -> RenderGuestCatalogS01(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)

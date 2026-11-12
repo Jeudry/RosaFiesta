@@ -115,18 +115,13 @@ internal fun RenderPersonalSplashP00(
     viewModel: RosaFiestaViewModel? = null,
     onPrimaryAction: () -> Unit,
     onSelectScreenCode: (String) -> Unit = {},
-    onSwitchAppMode: () -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
     val navigateFromPersonalSplash: () -> Unit = {
         val hasAuthenticatedSession = viewModel?.hasValidAuthenticatedSession() == true
-        if (hasAuthenticatedSession) {
-            val isAdminOrStaffSession = viewModel.isCurrentSessionAdminOrStaff()
-            if (isAdminOrStaffSession) {
-                onSwitchAppMode()
-            } else {
-                onSelectScreenCode("s14")
-            }
+        val isClientSession = if (hasAuthenticatedSession) !viewModel.isCurrentSessionAdminOrStaff() else false
+        if (isClientSession) {
+            onSelectScreenCode("s14")
         } else {
             onPrimaryAction()
         }
@@ -302,7 +297,6 @@ internal fun RenderAdminSplashA00(
     viewModel: RosaFiestaViewModel? = null,
     onPrimaryAction: () -> Unit,
     onSelectScreenCode: (String) -> Unit = {},
-    onSwitchAppMode: () -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
     var progressTarget by remember { mutableStateOf(0.55f) }
