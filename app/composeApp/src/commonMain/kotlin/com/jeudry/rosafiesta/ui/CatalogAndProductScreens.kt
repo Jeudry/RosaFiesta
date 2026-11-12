@@ -163,40 +163,6 @@ internal fun RenderPersonalCatalogS18(
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .clickable { onSelectScreenCode("s81") },
-                ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .rfIconButtonShadow(CircleShape, isAdmin = false)
-                            .clip(CircleShape)
-                            .background(RfThemeState.currentPalette.surface)
-                            .border(1.dp, RfThemeState.currentPalette.line, CircleShape),
-                    ) {
-                        RfIcon(kind = RfIconKind.FILTER, tint = RfThemeState.currentPalette.ink, size = 20.dp)
-                    }
-                    if (activeFilterCount > 0) {
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .offset(x = 4.dp, y = (-4).dp)
-                                .size(20.dp)
-                                .clip(CircleShape)
-                                .background(Color(0xFFFFD45C)),
-                        ) {
-                            BasicText(
-                                text = activeFilterCount.toString(),
-                                style = typo.sectionCap.copy(fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF2E1A47)),
-                            )
-                        }
-                    }
-                }
-
-                Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
                         .size(44.dp)
@@ -260,7 +226,7 @@ internal fun RenderPersonalCatalogS18(
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Row(
@@ -283,6 +249,52 @@ internal fun RenderPersonalCatalogS18(
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
                         )
+                    }
+                }
+                if (searchQuery.isNotEmpty()) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFF5EAF9))
+                            .clickable {
+                                searchQuery = ""
+                                viewModel?.setSearchQuery("")
+                            },
+                    ) {
+                        RfIcon(kind = RfIconKind.CLOSE, tint = Color(0xFFB54BD6), size = 14.dp)
+                    }
+                }
+                Box(
+                    modifier = Modifier
+                        .size(38.dp)
+                        .clickable { onSelectScreenCode("s81") },
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color(0xFFF5EAF9)),
+                    ) {
+                        RfIcon(kind = RfIconKind.FILTER, tint = Color(0xFFB54BD6), size = 18.dp)
+                    }
+                    if (activeFilterCount > 0) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .offset(x = 3.dp, y = (-3).dp)
+                                .size(18.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFFFFD45C)),
+                        ) {
+                            BasicText(
+                                text = activeFilterCount.toString(),
+                                style = typo.sectionCap.copy(fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF2E1A47)),
+                            )
+                        }
                     }
                 }
                 Box(

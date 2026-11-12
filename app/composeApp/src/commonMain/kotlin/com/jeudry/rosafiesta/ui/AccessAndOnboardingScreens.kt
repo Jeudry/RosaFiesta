@@ -4733,18 +4733,6 @@ internal fun RenderGuestCatalogS01(
                         color = RfThemeState.currentPalette.ink,
                     ),
                 )
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .size(44.dp)
-                        .shadow(elevation = 8.dp, shape = CircleShape, spotColor = Color(0x66B450B4))
-                        .clip(CircleShape)
-                        .background(RfThemeState.currentPalette.surface)
-                        .border(1.dp, RfThemeState.currentPalette.line, CircleShape)
-                        .clickable { onSelectScreenCode("s81") },
-                ) {
-                    RfIcon(kind = RfIconKind.FILTER, tint = RfThemeState.currentPalette.ink, size = 22.dp)
-                }
             }
 
             Spacer(Modifier.height(16.dp))
@@ -4762,7 +4750,7 @@ internal fun RenderGuestCatalogS01(
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Row(
@@ -4789,6 +4777,31 @@ internal fun RenderGuestCatalogS01(
                                 modifier = Modifier.fillMaxWidth(),
                             )
                         }
+                    }
+                    if (searchQuery.isNotEmpty()) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .size(28.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFFFDE6F2))
+                                .clickable {
+                                    searchQuery = ""
+                                    viewModel?.setSearchQuery("")
+                                },
+                        ) {
+                            RfIcon(kind = RfIconKind.CLOSE, tint = Color(0xFFC2338F), size = 14.dp)
+                        }
+                    }
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color(0xFFFDE6F2))
+                            .clickable { onSelectScreenCode("s81") },
+                    ) {
+                        RfIcon(kind = RfIconKind.FILTER, tint = Color(0xFFC2338F), size = 18.dp)
                     }
                     Box(
                         contentAlignment = Alignment.Center,
