@@ -322,10 +322,9 @@ internal fun RenderPersonalHomeScreen(
     }
     val notificationsList = viewModel?.notifications?.collectAsState()?.value
     val hasUnreadNotifications = notificationsList?.any { item -> !item.isRead } ?: true
-    val companyReviewsState = viewModel?.companyReviews?.collectAsState()?.value
-    val averageRatingLabel = remember(companyReviewsState, viewModel) {
-        val formattedRating = viewModel?.companyAverageRatingFormatted()
-        if (formattedRating.isNullOrBlank()) "4.9" else formattedRating
+    val draftQuantitiesState = viewModel?.draftQuantities?.collectAsState()?.value.orEmpty()
+    val totalDraftCartCount = remember(draftQuantitiesState, viewModel) {
+        viewModel?.totalDraftCartUnits() ?: 160
     }
     val matchingHomeArticles = remember(homeQuery, allHomeArticles) {
         val trimmedQuery = homeQuery.trim()
@@ -460,26 +459,26 @@ internal fun RenderPersonalHomeScreen(
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier
                     .height(44.dp)
                     .clip(CircleShape)
                     .background(Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC))))
-                    .clickable { onSelectScreenCode("s17") }
-                    .padding(start = 10.dp, end = 8.dp),
+                    .clickable { onSelectScreenCode("s25") }
+                    .padding(start = 12.dp, end = 8.dp),
             ) {
-                RfIcon(kind = RfIconKind.STAR, tint = Color.White, size = 18.dp)
+                RfIcon(kind = RfIconKind.PARTY, tint = Color.White, size = 20.dp)
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
                         .height(24.dp)
-                        .widthIn(min = 34.dp)
+                        .widthIn(min = 30.dp)
                         .clip(CircleShape)
                         .background(Color(0xFFFFD45C))
-                        .padding(horizontal = 8.dp),
+                        .padding(horizontal = 7.dp),
                 ) {
                     BasicText(
-                        text = "★ $averageRatingLabel",
+                        text = "$totalDraftCartCount",
                         style = typo.caption.copy(
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
