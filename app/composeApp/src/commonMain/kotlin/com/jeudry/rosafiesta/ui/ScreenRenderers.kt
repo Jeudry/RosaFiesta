@@ -192,6 +192,7 @@ internal fun RenderPersonalMoreOptionsPanel(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .then(rememberModalSheetSlideModifier())
                 .padding(start = 14.dp, end = 14.dp, top = 12.dp, bottom = bottomClearance)
                 .heightIn(max = 580.dp)
                 .shadow(22.dp, RoundedCornerShape(26.dp), ambientColor = Color(0x451A1A2E), spotColor = Color(0x451A1A2E))
@@ -363,21 +364,7 @@ public fun RenderScreenSpec(
         showMockStatusBar = false,
         wrapInPhoneBorder = false,
         fillAvailable = !isFrameHarness,
-        bottomBar = {
-            if (showBottomBar) {
-                RenderAppBottomBar(
-                    spec = spec,
-                    onSelectScreenCode = { targetCode ->
-                        showPersonalMoreMenu = false
-                        onSelectScreenCode(targetCode)
-                    },
-                    onTogglePersonalMoreMenu = {
-                        showPersonalMoreMenu = !showPersonalMoreMenu
-                    },
-                    isMoreMenuOpen = showPersonalMoreMenu,
-                )
-            }
-        },
+        bottomBar = null,
         modifier = modifier.testTag("screen-${spec.code}"),
     ) {
         if (isRestrictedForActiveStaff) {
@@ -656,6 +643,21 @@ public fun RenderScreenSpec(
                 "s91" -> RenderPersonalOfflineStateS91(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
 
                 "s92" -> RenderPersonalSuccessStateS92(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+            }
+            if (showBottomBar) {
+                Box(modifier = Modifier.align(Alignment.BottomCenter)) {
+                    RenderAppBottomBar(
+                        spec = spec,
+                        onSelectScreenCode = { targetCode ->
+                            showPersonalMoreMenu = false
+                            onSelectScreenCode(targetCode)
+                        },
+                        onTogglePersonalMoreMenu = {
+                            showPersonalMoreMenu = !showPersonalMoreMenu
+                        },
+                        isMoreMenuOpen = showPersonalMoreMenu,
+                    )
+                }
             }
             if (showPersonalMoreMenu) {
                 RenderPersonalMoreOptionsPanel(

@@ -321,17 +321,6 @@ public fun RosaFiestaApp(
                     )
                 }
 
-                if (showPersonalMoreMenu) {
-                    RenderPersonalMoreOptionsPanel(
-                        currentScreenCode = spec.code,
-                        onDismiss = { showPersonalMoreMenu = false },
-                        onSelectOption = { targetCode ->
-                            showPersonalMoreMenu = false
-                            navigateToCode(targetCode)
-                        },
-                    )
-                }
-
                 androidx.compose.animation.AnimatedVisibility(
                     visible = hasBottomBar,
                     enter = fadeIn(animationSpec = tween(durationMillis = 160)),
@@ -348,6 +337,17 @@ public fun RosaFiestaApp(
                             showPersonalMoreMenu = !showPersonalMoreMenu
                         },
                         isMoreMenuOpen = showPersonalMoreMenu,
+                    )
+                }
+
+                if (showPersonalMoreMenu) {
+                    RenderPersonalMoreOptionsPanel(
+                        currentScreenCode = spec.code,
+                        onDismiss = { showPersonalMoreMenu = false },
+                        onSelectOption = { targetCode ->
+                            showPersonalMoreMenu = false
+                            navigateToCode(targetCode)
+                        },
                     )
                 }
             }

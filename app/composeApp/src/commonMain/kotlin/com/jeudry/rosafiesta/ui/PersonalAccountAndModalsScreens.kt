@@ -3771,7 +3771,7 @@ internal fun RenderEventReviewsModalS77(
 }
 
 @Composable
-private fun rememberModalSheetSlideModifier(): Modifier {
+internal fun rememberModalSheetSlideModifier(): Modifier {
     val slideProgress = remember { Animatable(0f) }
     val sheetInteractionSource = remember { MutableInteractionSource() }
     LaunchedEffect(Unit) {
