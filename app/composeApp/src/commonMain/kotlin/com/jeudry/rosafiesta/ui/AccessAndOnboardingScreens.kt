@@ -5137,14 +5137,32 @@ internal fun RenderGuestFavoritesS02(
             .verticalScroll(rememberScrollState())
             .padding(top = 16.dp, start = 20.dp, end = 20.dp, bottom = 116.dp),
     ) {
-        BasicText(
-            text = "Favoritos",
-            style = typo.heroTitle.copy(
-                fontSize = 26.sp,
-                fontWeight = FontWeight.ExtraBold,
-                color = RfThemeState.currentPalette.ink,
-            ),
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(44.dp)
+                    .rfIconButtonShadow(CircleShape, isAdmin = false)
+                    .clip(CircleShape)
+                    .background(RfThemeState.currentPalette.surface)
+                    .border(1.dp, RfThemeState.currentPalette.line, CircleShape)
+                    .clickable { onSelectScreenCode("BACK:s01") },
+            ) {
+                RfIcon(kind = RfIconKind.BACK, tint = RfThemeState.currentPalette.ink, size = 22.dp)
+            }
+            BasicText(
+                text = "Favoritos",
+                style = typo.heroTitle.copy(
+                    fontSize = 26.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = RfThemeState.currentPalette.ink,
+                ),
+            )
+        }
 
         Spacer(Modifier.height(20.dp))
 

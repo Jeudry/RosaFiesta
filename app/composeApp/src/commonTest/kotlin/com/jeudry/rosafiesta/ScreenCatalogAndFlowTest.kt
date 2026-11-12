@@ -618,10 +618,12 @@ class ScreenCatalogAndFlowTest {
         onNodeWithText("Ajustes").assertDoesNotExist()
         onNodeWithText("Ayuda / Planificación").assertDoesNotExist()
 
+        mainClock.autoAdvance = false
         viewModel.pickProfileAvatarFromDevice()
         waitUntil(timeoutMillis = 3_000L) {
             viewModel.profileAvatarBytes.value != null
         }
+        mainClock.advanceTimeBy(100L)
 
         assertEquals("CUSTOM:camila-avatar.png", viewModel.profileAvatarKey.value)
         onNodeWithText("Foto 'camila-avatar.png' seleccionada.").assertExists()
@@ -629,6 +631,7 @@ class ScreenCatalogAndFlowTest {
         onNodeWithText("camila-avatar.png").assertDoesNotExist()
 
         mainClock.advanceTimeBy(3_100L)
+        mainClock.autoAdvance = true
         waitForIdle()
         onNodeWithText("Foto 'camila-avatar.png' seleccionada.").assertDoesNotExist()
     }

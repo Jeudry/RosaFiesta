@@ -55,6 +55,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import com.jeudry.rosafiesta.core.engine.RosaFiestaEngine
 import com.jeudry.rosafiesta.designsystem.LocalRfPalette
 import com.jeudry.rosafiesta.designsystem.LocalRfTypography
 import com.jeudry.rosafiesta.designsystem.RfGradientPriceText
@@ -1661,56 +1662,330 @@ private fun CategoryGridCard(
 // s21 · PAQUETES
 // ==============================================================================
 
+private fun matchesPackageFilter21(
+    packageItem: EventPackage,
+    selectedFilter: String,
+    rawQuery: String,
+): Boolean {
+    val cleanQuery = rawQuery.trim().lowercase()
+    val matchesQuery = if (cleanQuery.isEmpty()) {
+        true
+    } else {
+        val inName = packageItem.name.lowercase().contains(cleanQuery)
+        val inSubtitle = packageItem.subtitle.lowercase().contains(cleanQuery)
+        listOf(inName, inSubtitle).any { matched -> matched }
+    }
+    val lowerName = packageItem.name.lowercase()
+    val matchesFilter = when (selectedFilter) {
+        "Bodas" -> lowerName.contains("boda")
+        "Infantil" -> listOf(lowerName.contains("infantil"), lowerName.contains("cumple")).any { matched -> matched }
+        "Quinceañeras" -> lowerName.contains("quince")
+        else -> true
+    }
+    return if (matchesQuery) matchesFilter else false
+}
+
 @Composable
 internal fun RenderPackagesScreenS21(
     onSelectScreenCode: (String) -> Unit,
     viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
+    val palette = RfThemeState.currentPalette
     val allPackages = viewModel?.packages?.collectAsState()?.value ?: CanonicalSampleData.packages
-    val visiblePackages = remember(allPackages) {
-        allPackages.filter { packageItem -> packageItem.visibleInCatalog }
+    val draftQuantitiesState = viewModel?.draftQuantities?.collectAsState()?.value ?: emptyMap()
+    val totalDraftCount = remember(draftQuantitiesState, viewModel) {
+        viewModel?.totalDraftCartUnits() ?: draftQuantitiesState.values.sum()
+    }
+    var selectedOccasionFilter by remember { mutableStateOf("Todos") }
+    var packageQuery by remember { mutableStateOf("") }
+    val visiblePackages = remember(allPackages, selectedOccasionFilter, packageQuery) {
+        allPackages.filter { packageItem ->
+            val isVisible = packageItem.visibleInCatalog
+            val matchesFilter = matchesPackageFilter21(packageItem, selectedOccasionFilter, packageQuery)
+            if (isVisible) matchesFilter else false
+        }
     }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(top = 16.dp, start = 20.dp, end = 20.dp, bottom = 116.dp),
+            .background(palette.bg),
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            BasicText("Paquetes", style = typo.heroTitle.copy(fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = RfThemeState.currentPalette.ink))
-            BasicText("Colecciones temáticas, listas para tu evento", style = typo.secondary.copy(fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            drawRect(
+                Brush.radialGradient(
+                    colors = listOf(palette.radialPrimary, palette.radialPrimary.copy(alpha = 0f)),
+                    center = Offset(0f, 0f),
+                    radius = size.width * 0.9f,
+                ),
+            )
+            drawRect(
+                Brush.radialGradient(
+                    colors = listOf(palette.radialSecondary, palette.radialSecondary.copy(alpha = 0f)),
+                    center = Offset(size.width, 0f),
+                    radius = size.width * 0.8f,
+                ),
+            )
         }
 
-        Spacer(Modifier.height(18.dp))
-
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            visiblePackages.forEachIndexed { packageIndex, packageItem ->
-                val photoBg = when (packageIndex % 4) {
-                    0 -> Color(0xFFFDE6F2)
-                    1 -> Color(0xFFEFE8FD)
-                    2 -> Color(0xFFEEF6D6)
-                    else -> Color(0xFFFFF2C9)
-                }
-                val savingsBadge = if (packageItem.savingsDop > 0) {
-                    "Ahorra RD$ ${packageItem.savingsDop}"
-                } else {
-                    "${packageItem.suggestedGuests} invitados"
-                }
-                PackageSummaryCard(
-                    title = packageItem.name,
-                    desc = packageItem.subtitle,
-                    price = "RD$ ${packageItem.priceDop}",
-                    discountBadge = savingsBadge,
-                    photoKey = packageItem.photo.toPhotoKey(),
-                    photoBg = photoBg,
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(top = 16.dp, start = 20.dp, end = 20.dp, bottom = 116.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(44.dp)
+                        .rfIconButtonShadow(CircleShape, isAdmin = false)
+                        .clip(CircleShape)
+                        .background(palette.surface)
+                        .border(1.dp, palette.line, CircleShape)
+                        .clickable { onSelectScreenCode("BACK:s14") },
                 ) {
-                    viewModel?.selectPackage(packageItem.id)
-                    onSelectScreenCode("s22")
+                    RfIcon(kind = RfIconKind.BACK, tint = palette.ink, size = 22.dp)
+                }
+
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    BasicText(
+                        "Paquetes",
+                        style = typo.heroTitle.copy(
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = palette.ink,
+                        ),
+                    )
+                    BasicText(
+                        "Colecciones temáticas, listas para tu evento",
+                        style = typo.secondary.copy(
+                            fontSize = 13.5.sp,
+                            color = palette.muted,
+                        ),
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clickable { onSelectScreenCode("s25") },
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .rfIconButtonShadow(CircleShape, isAdmin = false)
+                            .clip(CircleShape)
+                            .background(palette.surface)
+                            .border(1.dp, palette.line, CircleShape),
+                    ) {
+                        RfIcon(kind = RfIconKind.PARTY, tint = palette.ink, size = 20.dp)
+                    }
+                    if (totalDraftCount > 0) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .offset(x = 4.dp, y = (-4).dp)
+                                .height(20.dp)
+                                .widthIn(min = 20.dp)
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(Color(0xFFFFD45C))
+                                .padding(horizontal = 4.dp),
+                        ) {
+                            BasicText(
+                                text = totalDraftCount.toString(),
+                                style = typo.sectionCap.copy(
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = Color(0xFF2E1A47),
+                                ),
+                            )
+                        }
+                    }
                 }
             }
-            Spacer(Modifier.height(84.dp))
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+                    .rfInputShadow(RoundedCornerShape(16.dp), isAdmin = false)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(palette.surface)
+                    .border(1.dp, palette.line, RoundedCornerShape(16.dp))
+                    .padding(horizontal = 14.dp),
+            ) {
+                RfIcon(kind = RfIconKind.SEARCH, tint = palette.muted, size = 18.dp)
+                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                    if (packageQuery.isEmpty()) {
+                        BasicText(
+                            text = "Buscar paquete por ocasión o estilo...",
+                            style = typo.body.copy(fontSize = 14.sp, color = palette.muted),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    BasicTextField(
+                        value = packageQuery,
+                        onValueChange = { updatedText -> packageQuery = updatedText },
+                        singleLine = true,
+                        textStyle = typo.body.copy(fontSize = 14.5.sp, color = palette.ink),
+                        cursorBrush = SolidColor(Color(0xFFC2338F)),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+                if (packageQuery.isNotEmpty()) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(26.dp)
+                            .clip(CircleShape)
+                            .background(palette.chipBg)
+                            .clickable { packageQuery = "" },
+                    ) {
+                        RfIcon(kind = RfIconKind.CLOSE, tint = palette.muted, size = 13.dp)
+                    }
+                }
+            }
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+            ) {
+                listOf("Todos", "Bodas", "Infantil", "Quinceañeras").forEach { occasionLabel ->
+                    val isSelected = selectedOccasionFilter == occasionLabel
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .height(36.dp)
+                            .clip(RoundedCornerShape(999.dp))
+                            .background(
+                                if (isSelected) {
+                                    Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)))
+                                } else {
+                                    SolidColor(palette.surface)
+                                },
+                            )
+                            .border(
+                                width = 1.dp,
+                                color = if (isSelected) Color.Transparent else palette.line,
+                                shape = RoundedCornerShape(999.dp),
+                            )
+                            .clickable { selectedOccasionFilter = occasionLabel }
+                            .padding(horizontal = 14.dp),
+                    ) {
+                        BasicText(
+                            text = occasionLabel,
+                            style = typo.body.copy(
+                                fontSize = 13.5.sp,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                color = if (isSelected) Color.White else palette.muted,
+                            ),
+                        )
+                    }
+                }
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                visiblePackages.forEachIndexed { packageIndex, packageItem ->
+                    val photoBg = when (packageIndex % 4) {
+                        0 -> Color(0xFFFDE6F2)
+                        1 -> Color(0xFFEFE8FD)
+                        2 -> Color(0xFFEEF6D6)
+                        else -> Color(0xFFFFF2C9)
+                    }
+                    val savingsBadge = if (packageItem.savingsDop > 0) {
+                        "Ahorra ${RosaFiestaEngine.formatDop(packageItem.savingsDop)}"
+                    } else {
+                        "${packageItem.suggestedGuests} invitados"
+                    }
+                    PackageSummaryCard(
+                        title = packageItem.name,
+                        desc = packageItem.subtitle,
+                        price = RosaFiestaEngine.formatDop(packageItem.priceDop),
+                        discountBadge = savingsBadge,
+                        guestsBadge = "${packageItem.suggestedGuests} inv.",
+                        photoKey = packageItem.photo.toPhotoKey(),
+                        photoBg = photoBg,
+                    ) {
+                        viewModel?.selectPackage(packageItem.id)
+                        onSelectScreenCode("s22")
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = false)
+                        .clip(RoundedCornerShape(22.dp))
+                        .background(palette.chipBg)
+                        .border(1.dp, palette.line, RoundedCornerShape(22.dp))
+                        .padding(16.dp),
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        RosaAvatar(size = RosaAvatarSize.MEDIUM)
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(2.dp),
+                        ) {
+                            BasicText(
+                                text = "¿Buscas un paquete a tu medida?",
+                                style = typo.body.copy(
+                                    fontSize = 14.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = palette.ink,
+                                ),
+                            )
+                            BasicText(
+                                text = "Rosa IA diseña tu colección según tus invitados y presupuesto.",
+                                style = typo.secondary.copy(
+                                    fontSize = 12.5.sp,
+                                    lineHeight = 17.sp,
+                                    color = palette.muted,
+                                ),
+                            )
+                        }
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .height(38.dp)
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF865DEC))))
+                                .clickable { onSelectScreenCode("s26") }
+                                .padding(horizontal = 14.dp),
+                        ) {
+                            BasicText(
+                                text = "Rosa IA →",
+                                style = typo.body.copy(
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White,
+                                ),
+                            )
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(84.dp))
+            }
         }
     }
 }
@@ -1721,6 +1996,7 @@ private fun PackageSummaryCard(
     desc: String,
     price: String,
     discountBadge: String,
+    guestsBadge: String = "",
     photoKey: RfPhotoKey,
     photoBg: Color,
     onClick: () -> Unit,
@@ -1734,7 +2010,7 @@ private fun PackageSummaryCard(
             .background(RfThemeState.currentPalette.surface)
             .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(20.dp))
             .clickable(onClick = onClick)
-            .padding(10.dp),
+            .padding(12.dp),
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(
@@ -1746,20 +2022,54 @@ private fun PackageSummaryCard(
                 RfPhoto(photoKey = photoKey, contentDescription = title, cornerRadius = 16.dp, modifier = Modifier.fillMaxSize())
             }
 
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(999.dp))
-                        .background(Color(0xFFEEF6D6))
-                        .padding(horizontal = 8.dp, vertical = 2.dp),
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    BasicText(discountBadge, style = typo.sectionCap.copy(fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF4E6A10)))
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(999.dp))
+                            .background(Color(0xFFEEF6D6))
+                            .padding(horizontal = 8.dp, vertical = 2.dp),
+                    ) {
+                        BasicText(discountBadge, style = typo.sectionCap.copy(fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF4E6A10)))
+                    }
+                    if (guestsBadge.isNotBlank()) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(RfThemeState.currentPalette.chipBg)
+                                .padding(horizontal = 8.dp, vertical = 2.dp),
+                        ) {
+                            BasicText(guestsBadge, style = typo.sectionCap.copy(fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = RfThemeState.currentPalette.muted))
+                        }
+                    }
                 }
-                BasicText(title, style = typo.heroTitle.copy(fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = RfThemeState.currentPalette.ink))
+                BasicText(title, style = typo.heroTitle.copy(fontSize = 17.5.sp, fontWeight = FontWeight.ExtraBold, color = RfThemeState.currentPalette.ink))
                 BasicText(desc, maxLines = 2, style = typo.secondary.copy(fontSize = 13.sp, lineHeight = 18.2.sp, color = RfThemeState.currentPalette.muted))
-                Row(verticalAlignment = Alignment.Bottom, modifier = Modifier.padding(top = 2.dp)) {
-                    BasicText("desde ", style = typo.secondary.copy(fontSize = 13.sp, color = RfThemeState.currentPalette.muted))
-                    BasicText(price, style = typo.heroTitle.copy(fontSize = 17.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFFC2338F)))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
+                ) {
+                    Row(verticalAlignment = Alignment.Bottom) {
+                        BasicText("desde ", style = typo.secondary.copy(fontSize = 12.5.sp, color = RfThemeState.currentPalette.muted))
+                        BasicText(price, style = typo.heroTitle.copy(fontSize = 16.5.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFFC2338F)))
+                    }
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .height(28.dp)
+                            .clip(RoundedCornerShape(999.dp))
+                            .background(Color(0xFFFDE6F2))
+                            .padding(horizontal = 10.dp),
+                    ) {
+                        BasicText(
+                            text = "Ver →",
+                            style = typo.sectionCap.copy(fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFFC2338F)),
+                        )
+                    }
                 }
             }
         }
@@ -2337,6 +2647,18 @@ internal fun RenderShopScreenS23(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
             ) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(44.dp)
+                        .rfIconButtonShadow(CircleShape, isAdmin = false)
+                        .clip(CircleShape)
+                        .background(palette.surface)
+                        .border(1.dp, palette.line, CircleShape)
+                        .clickable { onSelectScreenCode("BACK:s14") },
+                ) {
+                    RfIcon(kind = RfIconKind.BACK, tint = palette.ink, size = 22.dp)
+                }
                 Column(modifier = Modifier.weight(1f)) {
                     BasicText("Tienda", style = typo.secondary.copy(fontSize = 13.sp, color = palette.muted))
                     BasicText(
@@ -3004,9 +3326,30 @@ internal fun RenderClientFavoritesScreenS24(
             .verticalScroll(rememberScrollState())
             .padding(top = 16.dp, start = 20.dp, end = 20.dp, bottom = 116.dp),
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            BasicText("Favoritos", style = typo.heroTitle.copy(fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, color = palette.ink))
-            BasicText("$totalFavoritesCount artículos guardados", style = typo.secondary.copy(fontSize = 15.sp, color = palette.muted))
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(44.dp)
+                    .rfIconButtonShadow(CircleShape, isAdmin = false)
+                    .clip(CircleShape)
+                    .background(palette.surface)
+                    .border(1.dp, palette.line, CircleShape)
+                    .clickable { onSelectScreenCode("BACK:s14") },
+            ) {
+                RfIcon(kind = RfIconKind.BACK, tint = palette.ink, size = 22.dp)
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                BasicText("Favoritos", style = typo.heroTitle.copy(fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, color = palette.ink))
+                BasicText("$totalFavoritesCount artículos guardados", style = typo.secondary.copy(fontSize = 15.sp, color = palette.muted))
+            }
         }
 
         Spacer(Modifier.height(18.dp))

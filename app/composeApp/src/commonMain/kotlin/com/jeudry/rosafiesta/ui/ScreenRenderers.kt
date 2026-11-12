@@ -60,7 +60,7 @@ import com.jeudry.rosafiesta.designsystem.RfThemeVariant
 
 public fun shouldShowBottomBar(code: String): Boolean = code.lowercase() in setOf(
     "a01", "a02", "a09", "a11", "a12", "a32", "a35", "a36", "a37",
-    "s01", "s02", "s14", "s15", "s18", "s23", "s24", "s37", "s80", "s89", "s90", "s91", "s92",
+    "s01", "s02", "s14", "s15", "s18", "s20", "s21", "s23", "s24", "s37", "s80", "s89", "s90", "s91", "s92",
 )
 
 @Composable
