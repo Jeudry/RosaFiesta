@@ -20,6 +20,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
@@ -304,6 +305,45 @@ public fun RfPhoto(
                     ),
             )
         }
+    }
+}
+
+/**
+ * Decodes and remembers an [ImageBitmap] from encoded photo bytes (`png`, `jpg`, `jpeg`, `webp`).
+ */
+@Composable
+public fun rememberDecodedImageBitmap(bytes: ByteArray?): ImageBitmap? = remember(bytes) {
+    val hasImageBytes = if (bytes != null) bytes.isNotEmpty() else false
+    if (hasImageBytes) {
+        decodeEncodedImageBitmapOrNull(bytes!!)
+    } else {
+        null
+    }
+}
+
+/**
+ * Renders a decoded [ImageBitmap] cropped inside rounded corners.
+ */
+@Composable
+public fun RfBitmapPhoto(
+    bitmap: ImageBitmap,
+    contentDescription: String,
+    modifier: Modifier = Modifier,
+    cornerRadius: Dp = 14.dp,
+    alignment: Alignment = Alignment.Center,
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(cornerRadius))
+            .background(Color.Transparent),
+    ) {
+        Image(
+            bitmap = bitmap,
+            contentDescription = contentDescription,
+            contentScale = ContentScale.Crop,
+            alignment = alignment,
+            modifier = Modifier.fillMaxSize(),
+        )
     }
 }
 

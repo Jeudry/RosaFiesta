@@ -393,6 +393,9 @@ public class RosaFiestaViewModel(
     private val _profileAvatarKey = MutableStateFlow<String?>(null)
     public val profileAvatarKey: StateFlow<String?> = _profileAvatarKey.asStateFlow()
 
+    private val _profileAvatarBytes = MutableStateFlow<ByteArray?>(null)
+    public val profileAvatarBytes: StateFlow<ByteArray?> = _profileAvatarBytes.asStateFlow()
+
     private val _isDarkTheme = MutableStateFlow(false)
     public val isDarkTheme: StateFlow<Boolean> = _isDarkTheme.asStateFlow()
 
@@ -644,6 +647,12 @@ public class RosaFiestaViewModel(
             val savedAvatar = secureStorage.get(SecureStorage.KEY_AVATAR_KEY)
             if (!savedAvatar.isNullOrBlank()) {
                 _profileAvatarKey.value = savedAvatar
+                if (savedAvatar.startsWith("CUSTOM:")) {
+                    val savedImageData = secureStorage.get(SecureStorage.KEY_AVATAR_IMAGE_DATA)
+                    if (!savedImageData.isNullOrBlank()) {
+                        _profileAvatarBytes.value = runCatching { Base64.decode(savedImageData) }.getOrNull()
+                    }
+                }
             }
             val savedLang = secureStorage.get(SecureStorage.KEY_LANGUAGE)
             if (!savedLang.isNullOrBlank()) {
@@ -1830,12 +1839,16 @@ public class RosaFiestaViewModel(
         _profileName.value = "Invitado"
         _profileEmail.value = ""
         _profileUsername.value = "invitado"
+        _profileAvatarKey.value = null
+        _profileAvatarBytes.value = null
         _formError.value = null
         _formFeedback.value = "Sesión cerrada correctamente."
         repository.logoutSession()
         securityScope.launch {
             secureStorage.remove(SecureStorage.KEY_ACCESS_TOKEN)
             secureStorage.remove(SecureStorage.KEY_USER_ROLE)
+            secureStorage.remove(SecureStorage.KEY_AVATAR_KEY)
+            secureStorage.remove(SecureStorage.KEY_AVATAR_IMAGE_DATA)
         }
     }
 
@@ -2234,9 +2247,18 @@ public class RosaFiestaViewModel(
             _profileUsername.value = cleanUsername
         }
         _profileAvatarKey.value = draftAvatarKey
-        if (!draftAvatarKey.isNullOrBlank()) {
-            securityScope.launch {
+        val isCustomAvatar = draftAvatarKey?.startsWith("CUSTOM:") == true
+        if (!isCustomAvatar) {
+            _profileAvatarBytes.value = null
+        }
+        securityScope.launch {
+            if (draftAvatarKey.isNullOrBlank()) {
+                secureStorage.remove(SecureStorage.KEY_AVATAR_KEY)
+            } else {
                 secureStorage.put(SecureStorage.KEY_AVATAR_KEY, draftAvatarKey)
+            }
+            if (!isCustomAvatar) {
+                secureStorage.remove(SecureStorage.KEY_AVATAR_IMAGE_DATA)
             }
         }
         soundPlayer.playPaymentSuccess()
@@ -2248,11 +2270,18 @@ public class RosaFiestaViewModel(
     public fun setProfileAvatarKey(avatarKey: String?) {
         soundPlayer.playTap()
         _profileAvatarKey.value = avatarKey
+        val isCustomAvatar = avatarKey?.startsWith("CUSTOM:") == true
+        if (!isCustomAvatar) {
+            _profileAvatarBytes.value = null
+        }
         securityScope.launch {
             if (avatarKey.isNullOrBlank()) {
                 secureStorage.remove(SecureStorage.KEY_AVATAR_KEY)
             } else {
                 secureStorage.put(SecureStorage.KEY_AVATAR_KEY, avatarKey)
+            }
+            if (!isCustomAvatar) {
+                secureStorage.remove(SecureStorage.KEY_AVATAR_IMAGE_DATA)
             }
         }
     }
@@ -2262,8 +2291,13 @@ public class RosaFiestaViewModel(
             val picked = platformActions.pickMediaFile(listOf("jpg", "jpeg", "png"))
             if (picked != null) {
                 val customKey = "CUSTOM:${picked.fileName}"
+                _profileAvatarBytes.value = picked.bytes
+                if (picked.bytes.size <= 4 * 1024 * 1024) {
+                    secureStorage.put(SecureStorage.KEY_AVATAR_IMAGE_DATA, Base64.encode(picked.bytes))
+                }
                 setProfileAvatarKey(customKey)
                 _pickedAttachmentFile.value = picked
+                _formError.value = null
                 _formFeedback.value = "Foto '${picked.fileName}' seleccionada."
                 onPicked(picked)
             }

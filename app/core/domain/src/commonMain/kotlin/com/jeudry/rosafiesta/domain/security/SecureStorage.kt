@@ -26,6 +26,7 @@ public interface SecureStorage {
         public const val KEY_USER_ROLE: String = "rf_user_role"
         public const val KEY_DARK_THEME: String = "rf_dark_theme"
         public const val KEY_AVATAR_KEY: String = "rf_avatar_key"
+        public const val KEY_AVATAR_IMAGE_DATA: String = "rf_avatar_image_data"
         public const val KEY_LANGUAGE: String = "rf_language"
         public const val KEY_REMINDERS: String = "rf_reminders"
         public const val KEY_PAYMENT_METHOD: String = "rf_payment_method"

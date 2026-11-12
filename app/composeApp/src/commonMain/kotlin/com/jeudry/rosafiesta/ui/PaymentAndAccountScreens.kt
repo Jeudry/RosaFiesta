@@ -2223,6 +2223,7 @@ internal fun RenderUserProfileScreenS54(
     val profileUsername = viewModel?.profileUsername?.collectAsState()?.value ?: profileEmail.substringBefore("@")
     val profileBirthDate = viewModel?.profileBirthDate?.collectAsState()?.value ?: ""
     val profileAvatarKey = viewModel?.profileAvatarKey?.collectAsState()?.value
+    val profileAvatarBytes = viewModel?.profileAvatarBytes?.collectAsState()?.value
     val formError = viewModel?.formError?.collectAsState()?.value
     val formFeedback = viewModel?.formFeedback?.collectAsState()?.value
 
@@ -2429,6 +2430,7 @@ internal fun RenderUserProfileScreenS54(
                 RfEditableProfileAvatar(
                     initials = initials,
                     avatarKey = if (isEditing) draftAvatarKey else profileAvatarKey,
+                    customImageBytes = profileAvatarBytes,
                     size = 84.dp,
                     isEditing = true,
                     onClickEditPhoto = { showPhotoPickerModal = true },
@@ -2622,22 +2624,6 @@ internal fun RenderUserProfileScreenS54(
                 }
                 ProfileDivider54()
                 ProfileRow54(
-                    label = "Ajustes",
-                    icon = RfIconKind.SETTINGS,
-                    onClick = { onSelectScreenCode("s86") },
-                ) {
-                    RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = palette.muted, size = 18.dp)
-                }
-                ProfileDivider54()
-                ProfileRow54(
-                    label = "Ayuda / Planificación",
-                    icon = RfIconKind.SPARKLE,
-                    onClick = { onSelectScreenCode("s76") },
-                ) {
-                    RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = palette.muted, size = 18.dp)
-                }
-                ProfileDivider54()
-                ProfileRow54(
                     label = "Eliminar cuenta",
                     icon = RfIconKind.TRASH,
                     labelColor = Color(0xFFB42345),
@@ -2760,6 +2746,7 @@ internal fun RenderUserProfileScreenS54(
                 initials = initials,
                 currentAvatarKey = if (isEditing) draftAvatarKey else profileAvatarKey,
                 viewModel = viewModel,
+                customImageBytes = profileAvatarBytes,
                 onPickDevicePhoto = {
                     viewModel?.pickProfileAvatarFromDevice { pickedFile ->
                         draftAvatarKey = "CUSTOM:${pickedFile.fileName}"

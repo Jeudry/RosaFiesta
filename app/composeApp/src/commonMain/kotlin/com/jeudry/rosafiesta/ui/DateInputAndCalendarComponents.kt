@@ -23,6 +23,7 @@ import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -46,11 +47,13 @@ import androidx.compose.ui.unit.sp
 import com.jeudry.rosafiesta.data.createPlatformActions
 import com.jeudry.rosafiesta.designsystem.LocalRfPalette
 import com.jeudry.rosafiesta.designsystem.LocalRfTypography
+import com.jeudry.rosafiesta.designsystem.RfBitmapPhoto
 import com.jeudry.rosafiesta.designsystem.RfColors
 import com.jeudry.rosafiesta.designsystem.RfIcon
 import com.jeudry.rosafiesta.designsystem.RfIconKind
 import com.jeudry.rosafiesta.designsystem.RfPhoto
 import com.jeudry.rosafiesta.designsystem.RfPhotoKey
+import com.jeudry.rosafiesta.designsystem.rememberDecodedImageBitmap
 import kotlinx.coroutines.launch
 
 internal fun computeDaysInGregorianMonth(year: Int, month: Int): Int = when (month) {
@@ -576,6 +579,7 @@ internal fun RfInteractiveCalendarModal(
 internal fun RfEditableProfileAvatar(
     initials: String,
     avatarKey: String?,
+    customImageBytes: ByteArray? = null,
     size: Dp = 84.dp,
     isEditing: Boolean = false,
     onClickEditPhoto: () -> Unit = {},
@@ -589,6 +593,9 @@ internal fun RfEditableProfileAvatar(
     } else {
         ""
     }
+    val decodedCustomBitmap = rememberDecodedImageBitmap(
+        bytes = if (isCustomDeviceAvatar) customImageBytes else null,
+    )
 
     val innerBgColor = when (avatarKey) {
         "MONO_VIOLET" -> Color(0xFFEFE8FD)
@@ -637,6 +644,13 @@ internal fun RfEditableProfileAvatar(
                     if (matchedPhotoKey != null) {
                         RfPhoto(
                             photoKey = matchedPhotoKey,
+                            contentDescription = "Foto de perfil",
+                            cornerRadius = size / 2,
+                            modifier = Modifier.fillMaxSize().clip(CircleShape),
+                        )
+                    } else if (decodedCustomBitmap != null) {
+                        RfBitmapPhoto(
+                            bitmap = decodedCustomBitmap,
                             contentDescription = "Foto de perfil",
                             cornerRadius = size / 2,
                             modifier = Modifier.fillMaxSize().clip(CircleShape),
@@ -757,12 +771,17 @@ internal fun RfProfilePhotoPickerModal(
     onSelectAvatarKey: (String?) -> Unit,
     onDismiss: () -> Unit,
     viewModel: RosaFiestaViewModel? = null,
+    customImageBytes: ByteArray? = null,
     onPickDevicePhoto: (() -> Unit)? = null,
 ) {
     val typo = LocalRfTypography.current
     val palette = LocalRfPalette.current
     val coroutineScope = rememberCoroutineScope()
+    val viewModelAvatarBytes = viewModel?.profileAvatarBytes?.collectAsState()?.value
     var previewKey by remember(currentAvatarKey) { mutableStateOf(currentAvatarKey) }
+    var previewBytes by remember(customImageBytes, viewModelAvatarBytes) {
+        mutableStateOf(customImageBytes ?: viewModelAvatarBytes)
+    }
     val isCustomPreviewSelected = previewKey?.startsWith("CUSTOM:") == true
     val customPreviewFileName = if (isCustomPreviewSelected) {
         previewKey.orEmpty().removePrefix("CUSTOM:").trim()
@@ -843,6 +862,7 @@ internal fun RfProfilePhotoPickerModal(
             RfEditableProfileAvatar(
                 initials = initials,
                 avatarKey = previewKey,
+                customImageBytes = previewBytes,
                 size = 88.dp,
                 isEditing = false,
             )
@@ -866,6 +886,7 @@ internal fun RfProfilePhotoPickerModal(
                             viewModel.pickProfileAvatarFromDevice { pickedFile ->
                                 val customKey = "CUSTOM:${pickedFile.fileName}"
                                 previewKey = customKey
+                                previewBytes = pickedFile.bytes
                                 onSelectAvatarKey(customKey)
                             }
                         } else {
@@ -875,6 +896,7 @@ internal fun RfProfilePhotoPickerModal(
                                 if (pickedFile != null) {
                                     val customKey = "CUSTOM:${pickedFile.fileName}"
                                     previewKey = customKey
+                                    previewBytes = pickedFile.bytes
                                     onSelectAvatarKey(customKey)
                                 }
                             }

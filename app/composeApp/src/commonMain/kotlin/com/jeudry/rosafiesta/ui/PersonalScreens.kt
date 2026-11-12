@@ -55,6 +55,7 @@ import androidx.compose.ui.unit.sp
 import com.jeudry.rosafiesta.core.engine.RosaFiestaEngine
 import com.jeudry.rosafiesta.designsystem.LocalRfPalette
 import com.jeudry.rosafiesta.designsystem.LocalRfTypography
+import com.jeudry.rosafiesta.designsystem.RfBitmapPhoto
 import com.jeudry.rosafiesta.designsystem.RfButton
 import com.jeudry.rosafiesta.designsystem.RfButtonStyle
 import com.jeudry.rosafiesta.designsystem.RfCard
@@ -79,6 +80,7 @@ import com.jeudry.rosafiesta.designsystem.RfThemeState
 import com.jeudry.rosafiesta.designsystem.RfThemeVariant
 import com.jeudry.rosafiesta.designsystem.RosaAvatar
 import com.jeudry.rosafiesta.designsystem.RosaAvatarSize
+import com.jeudry.rosafiesta.designsystem.rememberDecodedImageBitmap
 import com.jeudry.rosafiesta.designsystem.rfCardShadow
 import com.jeudry.rosafiesta.designsystem.rfHeroBannerShadow
 import com.jeudry.rosafiesta.designsystem.rfIconButtonShadow
@@ -274,6 +276,7 @@ internal fun RenderPersonalHomeScreen(
     val typo = LocalRfTypography.current
     val fullName = viewModel?.profileName?.collectAsState()?.value ?: "Invitado Rosa Fiesta"
     val avatarKey = viewModel?.profileAvatarKey?.collectAsState()?.value
+    val avatarBytes = viewModel?.profileAvatarBytes?.collectAsState()?.value
     val firstName = fullName.substringBefore(" ").ifBlank { "Invitado" }
     val avatarInitial = firstName.firstOrNull()?.uppercaseChar()?.toString() ?: "R"
     val textColor = if (isDark) Color(0xFFF2F0F8) else Color(0xFF1A1A2E)
@@ -379,9 +382,19 @@ internal fun RenderPersonalHomeScreen(
                         }
                     }
                     val isCustomAvatar = avatarKey?.startsWith("CUSTOM:") == true
+                    val customAvatarBitmap = rememberDecodedImageBitmap(
+                        bytes = if (isCustomAvatar) avatarBytes else null,
+                    )
                     if (matchedPhoto != null) {
                         RfPhoto(
                             photoKey = matchedPhoto,
+                            contentDescription = fullName,
+                            cornerRadius = 999.dp,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    } else if (customAvatarBitmap != null) {
+                        RfBitmapPhoto(
+                            bitmap = customAvatarBitmap,
                             contentDescription = fullName,
                             cornerRadius = 999.dp,
                             modifier = Modifier.fillMaxSize(),

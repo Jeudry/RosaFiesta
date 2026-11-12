@@ -3,6 +3,7 @@ package com.jeudry.rosafiesta
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.click
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -11,8 +12,14 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import com.jeudry.rosafiesta.core.engine.AppView
 import com.jeudry.rosafiesta.designsystem.AdminTab
 import com.jeudry.rosafiesta.designsystem.PersonalTab
+import com.jeudry.rosafiesta.domain.RosaFiestaRepository
+import com.jeudry.rosafiesta.domain.platform.NoOpPlatformActions
+import com.jeudry.rosafiesta.domain.platform.PickedMediaFile
+import com.jeudry.rosafiesta.domain.security.InMemorySecureStorage
 import com.jeudry.rosafiesta.ui.Navigator
+import com.jeudry.rosafiesta.ui.RosaFiestaViewModel
 import com.jeudry.rosafiesta.ui.ScreenCatalog
+import kotlin.io.encoding.Base64
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -567,5 +574,55 @@ class ScreenCatalogAndFlowTest {
         val s87Spec = ScreenCatalog.findByCode("s87")
         assertFalse(s87Spec.title.contains("ejemplo", ignoreCase = true))
         assertFalse(s87Spec.subtitle.contains("ejemplo", ignoreCase = true))
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun `pantalla s54 omite Ajustes y Ayuda y previsualiza foto personalizada decodificada`() = runComposeUiTest {
+        val samplePngBytes = Base64.decode(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=",
+        )
+        val platformActions = NoOpPlatformActions().apply {
+            queuedPickedFile = PickedMediaFile(
+                fileName = "camila-avatar.png",
+                mimeType = "image/png",
+                sizeBytes = samplePngBytes.size.toLong(),
+                bytes = samplePngBytes,
+            )
+        }
+        val koin = org.koin.dsl.koinApplication {
+            modules(com.jeudry.rosafiesta.di.appModule)
+        }.koin
+        val secureStorage = InMemorySecureStorage()
+        val viewModel = RosaFiestaViewModel(
+            repository = koin.get<RosaFiestaRepository>(),
+            platformActions = platformActions,
+            secureStorage = secureStorage,
+        )
+
+        setContent {
+            RosaFiestaApp(
+                initialAppView = AppView.PERSONAL,
+                initialScreenCode = "s54",
+                viewModel = viewModel,
+            )
+        }
+
+        onNodeWithTag("screen-s54").assertExists()
+        onNodeWithText("Pagos").assertExists()
+        onNodeWithText("Mis reservas").assertExists()
+        onNodeWithText("Eliminar cuenta").assertExists()
+        onNodeWithText("Ajustes").assertDoesNotExist()
+        onNodeWithText("Ayuda / Planificación").assertDoesNotExist()
+
+        viewModel.pickProfileAvatarFromDevice()
+        waitUntil(timeoutMillis = 3_000L) {
+            viewModel.profileAvatarBytes.value != null
+        }
+
+        assertEquals("CUSTOM:camila-avatar.png", viewModel.profileAvatarKey.value)
+        onNodeWithText("Foto 'camila-avatar.png' seleccionada.").assertExists()
+        onNodeWithContentDescription("Foto de perfil").assertExists()
+        onNodeWithText("camila-avatar.png").assertDoesNotExist()
     }
 }
