@@ -1,5 +1,8 @@
 package com.jeudry.rosafiesta.ui
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -7,6 +10,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,6 +33,7 @@ import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -48,6 +53,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
@@ -2922,24 +2928,28 @@ private fun CatalogProductSkeletonCardS90(
 }
 
 // ==============================================================================
-// s75 · MODAL INICIA SESIÓN (MODAL PARA INVITADOS)
-// ==============================================================================
 @Composable
 internal fun RenderGuestAuthModalS75(
     viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
+    val sheetSlideModifier = rememberModalSheetSlideModifier()
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(RfThemeState.currentPalette.bg),
     ) {
-        // Background guest catalog (s01)
-        RenderGuestCatalogS01(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+        RenderGuestCatalogS01(viewModel = viewModel, onSelectScreenCode = {})
+        RenderAppBottomBar(
+            spec = ScreenCatalog.findByCode("s01"),
+            onSelectScreenCode = {},
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth(),
+        )
 
-        // Scrim
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -2947,11 +2957,11 @@ internal fun RenderGuestAuthModalS75(
                 .clickable { onSelectScreenCode("BACK:s01") },
         )
 
-        // Bottom sheet dialog
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter)
+                .then(sheetSlideModifier)
                 .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
                 .background(RfThemeState.currentPalette.surface)
                 .padding(top = 12.dp, start = 24.dp, end = 24.dp, bottom = 34.dp),
@@ -2961,7 +2971,6 @@ internal fun RenderGuestAuthModalS75(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                // Grab handle
                 Box(
                     modifier = Modifier
                         .width(40.dp)
@@ -2971,7 +2980,6 @@ internal fun RenderGuestAuthModalS75(
                 )
                 Spacer(Modifier.height(2.dp))
 
-                // Candado illustration 110x110
                 Canvas(modifier = Modifier.size(110.dp)) {
                     val scale = size.width / 120f
                     // Pink circle
@@ -3141,6 +3149,7 @@ internal fun RenderPlanningModalS76(
     viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
+    val sheetSlideModifier = rememberModalSheetSlideModifier()
 
     Box(
         modifier = Modifier
@@ -3150,7 +3159,14 @@ internal fun RenderPlanningModalS76(
         RenderPersonalHomeScreen(
             spec = ScreenCatalog.findByCode("s14"),
             viewModel = viewModel,
-            onSelectScreenCode = onSelectScreenCode,
+            onSelectScreenCode = {},
+        )
+        RenderAppBottomBar(
+            spec = ScreenCatalog.findByCode("s14"),
+            onSelectScreenCode = {},
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth(),
         )
 
         Box(
@@ -3164,6 +3180,7 @@ internal fun RenderPlanningModalS76(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter)
+                .then(sheetSlideModifier)
                 .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
                 .background(RfThemeState.currentPalette.surface)
                 .padding(top = 12.dp, start = 20.dp, end = 20.dp, bottom = 34.dp),
@@ -3459,6 +3476,7 @@ internal fun RenderEventReviewsModalS77(
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
+    val sheetSlideModifier = rememberModalSheetSlideModifier()
     val activeEvent = viewModel?.activeClientEvent() ?: CanonicalSampleData.events.last()
     val reviewsState = viewModel?.companyReviews?.collectAsState()?.value ?: emptyList()
     val latestReview = reviewsState.firstOrNull()
@@ -3472,7 +3490,14 @@ internal fun RenderEventReviewsModalS77(
             .fillMaxSize()
             .background(RfThemeState.currentPalette.bg),
     ) {
-        RenderMyEventsScreenS37(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+        RenderMyEventsScreenS37(viewModel = viewModel, onSelectScreenCode = {})
+        RenderAppBottomBar(
+            spec = ScreenCatalog.findByCode("s37"),
+            onSelectScreenCode = {},
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth(),
+        )
 
         Box(
             modifier = Modifier
@@ -3486,6 +3511,7 @@ internal fun RenderEventReviewsModalS77(
                 .fillMaxWidth()
                 .heightIn(max = 580.dp)
                 .align(Alignment.BottomCenter)
+                .then(sheetSlideModifier)
                 .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
                 .background(RfThemeState.currentPalette.bg)
                 .padding(top = 12.dp, start = 20.dp, end = 20.dp, bottom = 34.dp),
@@ -3745,12 +3771,98 @@ internal fun RenderEventReviewsModalS77(
 }
 
 @Composable
+private fun rememberModalSheetSlideModifier(): Modifier {
+    val slideProgress = remember { Animatable(0f) }
+    val sheetInteractionSource = remember { MutableInteractionSource() }
+    LaunchedEffect(Unit) {
+        slideProgress.animateTo(
+            targetValue = 1f,
+            animationSpec = tween(durationMillis = 240, easing = FastOutSlowInEasing),
+        )
+    }
+    return Modifier
+        .graphicsLayer {
+            translationY = (1f - slideProgress.value) * 220f
+        }
+        .clickable(
+            interactionSource = sheetInteractionSource,
+            indication = null,
+            onClick = {},
+        )
+}
+
+@Composable
+private fun RenderUnderlyingScreenForFiltersModal81(
+    originScreenCode: String,
+    viewModel: RosaFiestaViewModel?,
+) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        when (originScreenCode) {
+            "s14", "s15" -> RenderPersonalHomeScreen(
+                spec = ScreenCatalog.findByCode(originScreenCode),
+                viewModel = viewModel,
+                onSelectScreenCode = {},
+            )
+
+            "s01" -> RenderGuestCatalogS01(
+                viewModel = viewModel,
+                onSelectScreenCode = {},
+            )
+
+            "s80" -> RenderPersonalSearchS80(
+                viewModel = viewModel,
+                onSelectScreenCode = {},
+            )
+
+            else -> RenderPersonalCatalogS18(
+                viewModel = viewModel,
+                onSelectScreenCode = {},
+            )
+        }
+        val originHasBottomBar = shouldShowBottomBar(originScreenCode)
+        if (originHasBottomBar) {
+            RenderAppBottomBar(
+                spec = ScreenCatalog.findByCode(originScreenCode),
+                onSelectScreenCode = {},
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth(),
+            )
+        }
+    }
+}
+
+private fun resolveFiltersDismissRoute81(originScreenCode: String): String = when (originScreenCode) {
+    "s14", "s15", "s18", "s80", "s01" -> "BACK:$originScreenCode"
+    else -> "BACK:s18"
+}
+
+private fun resolveFiltersApplyRoute81(originScreenCode: String): String = when (originScreenCode) {
+    "s01" -> "BACK:s01"
+    "s80" -> "BACK:s80"
+    "s18" -> "BACK:s18"
+    else -> "s18"
+}
+
+@Composable
 internal fun RenderCatalogFiltersModalS81(
     viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
+    underlyingScreenCode: String? = null,
 ) {
     val typo = LocalRfTypography.current
     val density = LocalDensity.current
+    val originScreenCode = remember {
+        val candidate = underlyingScreenCode?.trim().orEmpty()
+        if (candidate.isNotEmpty()) candidate else "s18"
+    }
+    val dismissRoute = remember(originScreenCode) {
+        resolveFiltersDismissRoute81(originScreenCode)
+    }
+    val applyRoute = remember(originScreenCode) {
+        resolveFiltersApplyRoute81(originScreenCode)
+    }
+    val sheetSlideModifier = rememberModalSheetSlideModifier()
     val vmCategory = viewModel?.selectedCategory?.collectAsState()?.value ?: "Todos"
     val vmAvailableOnly = viewModel?.onlyAvailableFilter?.collectAsState()?.value ?: false
     val vmSortLabel = viewModel?.searchSortOrder?.collectAsState()?.value ?: "Más populares"
@@ -3767,19 +3879,23 @@ internal fun RenderCatalogFiltersModalS81(
             .fillMaxSize()
             .background(RfThemeState.currentPalette.bg),
     ) {
-        RenderPersonalSearchS80(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+        RenderUnderlyingScreenForFiltersModal81(
+            originScreenCode = originScreenCode,
+            viewModel = viewModel,
+        )
 
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color(0x731E1432))
-                .clickable { onSelectScreenCode("BACK:s80") },
+                .clickable { onSelectScreenCode(dismissRoute) },
         )
 
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter)
+                .then(sheetSlideModifier)
                 .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
                 .background(RfThemeState.currentPalette.surface)
                 .padding(top = 12.dp, start = 20.dp, end = 20.dp, bottom = 34.dp),
@@ -3808,17 +3924,32 @@ internal fun RenderCatalogFiltersModalS81(
                         "Filtros",
                         style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = RfThemeState.currentPalette.ink),
                     )
-                    BasicText(
-                        "Limpiar",
-                        modifier = Modifier.clickable {
-                            selectedCategory = "Todos"
-                            availableOnly = false
-                            selectedSortOption = "Más populares"
-                            selectedMaxPrice = 5000
-                            viewModel?.resetCatalogFilters()
-                        },
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFFC2338F)),
-                    )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        BasicText(
+                            "Limpiar",
+                            modifier = Modifier.clickable {
+                                selectedCategory = "Todos"
+                                availableOnly = false
+                                selectedSortOption = "Más populares"
+                                selectedMaxPrice = 5000
+                                viewModel?.resetCatalogFilters()
+                            },
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFFC2338F)),
+                        )
+                        Box(
+                            modifier = Modifier
+                                .size(30.dp)
+                                .clip(CircleShape)
+                                .background(RfThemeState.currentPalette.chipBg)
+                                .clickable { onSelectScreenCode(dismissRoute) },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            RfIcon(kind = RfIconKind.CLOSE, tint = RfThemeState.currentPalette.muted, size = 14.dp)
+                        }
+                    }
                 }
 
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -4062,7 +4193,7 @@ internal fun RenderCatalogFiltersModalS81(
                         .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
                         .clip(RoundedCornerShape(16.dp))
                         .background(RosaButtonGradient)
-                        .clickable { onSelectScreenCode("s18") },
+                        .clickable { onSelectScreenCode(applyRoute) },
                     contentAlignment = Alignment.Center,
                 ) {
                     BasicText(

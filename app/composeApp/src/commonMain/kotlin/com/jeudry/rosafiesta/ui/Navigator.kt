@@ -50,12 +50,24 @@ public class Navigator(
 
     public var devOpen: Boolean by mutableStateOf(false)
 
+    public var lastModalOriginCode: String? by mutableStateOf(null)
+        private set
+
     private val backStack = mutableStateListOf<String>()
 
     public val canGoBack: Boolean
         get() = backStack.isNotEmpty()
 
+    public val previousCode: String?
+        get() = backStack.lastOrNull() ?: lastModalOriginCode
+
     public fun navigateTo(code: String) {
+        val leavingModalSheet = ScreenCatalog.isBottomSheet(currentCode)
+        val backTransitionKind = if (leavingModalSheet) {
+            NavigationTransitionKind.MODAL_SHEET
+        } else {
+            NavigationTransitionKind.BACKWARD
+        }
         if (code.startsWith("BACK")) {
             val explicitTarget = code.substringAfter("BACK:", missingDelimiterValue = "").trim()
             val hasExplicitTarget = explicitTarget.isNotEmpty()
@@ -63,7 +75,7 @@ public class Navigator(
                 val targetBackIndex = backStack.lastIndexOf(explicitTarget)
                 if (targetBackIndex >= 0) {
                     backStack.removeRange(targetBackIndex, backStack.size)
-                    lastTransition = NavigationTransitionKind.BACKWARD
+                    lastTransition = backTransitionKind
                     currentCode = explicitTarget
                     return
                 }
@@ -76,7 +88,7 @@ public class Navigator(
             if (fallbackTarget == currentCode) {
                 return
             }
-            lastTransition = NavigationTransitionKind.BACKWARD
+            lastTransition = backTransitionKind
             currentCode = fallbackTarget
             return
         }
@@ -84,7 +96,7 @@ public class Navigator(
         val existingBackIndex = backStack.indexOf(code)
         if (existingBackIndex >= 0) {
             backStack.removeRange(existingBackIndex, backStack.size)
-            lastTransition = NavigationTransitionKind.BACKWARD
+            lastTransition = backTransitionKind
             currentCode = code
             return
         }
@@ -94,17 +106,25 @@ public class Navigator(
             currentCode = code
             return
         }
-        val isModalSheet = ScreenCatalog.isBottomSheet(code)
+        val enteringModalSheet = ScreenCatalog.isBottomSheet(code)
+        if (enteringModalSheet) {
+            if (!leavingModalSheet) {
+                lastModalOriginCode = currentCode
+            }
+        }
+        val isModalTransition = if (enteringModalSheet) true else leavingModalSheet
         val isRootTab = code in ROOT_TAB_CODES
         lastTransition = when {
-            isModalSheet -> NavigationTransitionKind.MODAL_SHEET
+            isModalTransition -> NavigationTransitionKind.MODAL_SHEET
             isRootTab -> NavigationTransitionKind.TAB_SWITCH
             else -> NavigationTransitionKind.FORWARD
         }
         val isHomeTab = code in HOME_TAB_CODES
+        val isNonSplashOrigin = currentCode !in SPLASH_CODES
+        val shouldRecordInBackStack = if (isNonSplashOrigin) !leavingModalSheet else false
         if (isHomeTab) {
             backStack.clear()
-        } else if (currentCode !in SPLASH_CODES) {
+        } else if (shouldRecordInBackStack) {
             val shouldPushCurrent = backStack.lastOrNull() != currentCode
             if (shouldPushCurrent) {
                 backStack.add(currentCode)
@@ -115,7 +135,12 @@ public class Navigator(
 
     public fun popBack(): Boolean {
         if (backStack.isEmpty()) return false
-        lastTransition = NavigationTransitionKind.BACKWARD
+        val leavingModalSheet = ScreenCatalog.isBottomSheet(currentCode)
+        lastTransition = if (leavingModalSheet) {
+            NavigationTransitionKind.MODAL_SHEET
+        } else {
+            NavigationTransitionKind.BACKWARD
+        }
         currentCode = backStack.removeAt(backStack.lastIndex)
         return true
     }

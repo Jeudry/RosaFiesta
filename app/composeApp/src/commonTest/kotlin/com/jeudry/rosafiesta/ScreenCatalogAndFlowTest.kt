@@ -632,4 +632,43 @@ class ScreenCatalogAndFlowTest {
         waitForIdle()
         onNodeWithText("Foto 'camila-avatar.png' seleccionada.").assertDoesNotExist()
     }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun `modal de filtros s81 preserva pantalla de origen y transicion modal al abrir y cerrar`() = runComposeUiTest {
+        val navigator = com.jeudry.rosafiesta.ui.Navigator(AppView.PERSONAL, "s14")
+        navigator.navigateTo("s81")
+        assertEquals("s81", navigator.currentCode)
+        assertEquals("s14", navigator.previousCode)
+        assertEquals(com.jeudry.rosafiesta.ui.NavigationTransitionKind.MODAL_SHEET, navigator.lastTransition)
+
+        navigator.navigateTo("BACK:s14")
+        assertEquals("s14", navigator.currentCode)
+        assertEquals(com.jeudry.rosafiesta.ui.NavigationTransitionKind.MODAL_SHEET, navigator.lastTransition)
+
+        val koin = org.koin.dsl.koinApplication {
+            modules(com.jeudry.rosafiesta.di.appModule)
+        }.koin
+        val viewModel = RosaFiestaViewModel(
+            repository = koin.get<RosaFiestaRepository>(),
+            platformActions = NoOpPlatformActions(),
+            secureStorage = InMemorySecureStorage(),
+        )
+
+        setContent {
+            com.jeudry.rosafiesta.ui.RenderScreenSpec(
+                spec = ScreenCatalog.findByCode("s81"),
+                viewModel = viewModel,
+                underlyingScreenCode = "s14",
+                isFrameHarness = false,
+                includeBottomBar = false,
+            )
+        }
+
+        onNodeWithTag("screen-s81").assertExists()
+        onNodeWithText("Filtros").assertExists()
+        onNodeWithText("Hola de nuevo").assertExists()
+        onNodeWithText("¿Qué celebramos hoy? (sillas, arcos, mesas...)").assertExists()
+        onNodeWithText("Buscar sillas, mesas, arcos...").assertDoesNotExist()
+    }
 }

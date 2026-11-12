@@ -292,6 +292,7 @@ public fun RosaFiestaApp(
                         viewModel = viewModel,
                         isFrameHarness = false,
                         includeBottomBar = false,
+                        underlyingScreenCode = navigator.previousCode,
                         onSelectScreenCode = navigateToCode,
                         onSwitchAppMode = {
                             showPersonalMoreMenu = false
@@ -330,46 +331,39 @@ public fun RosaFiestaApp(
                         },
                     )
                 }
-            }
 
-            AnimatedVisibility(
-                visible = hasBottomBar,
-                enter = slideInVertically(
-                    animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing),
-                    initialOffsetY = { fullHeight -> fullHeight },
-                ) + fadeIn(animationSpec = tween(durationMillis = 180)),
-                exit = slideOutVertically(
-                    animationSpec = tween(durationMillis = 180, easing = FastOutSlowInEasing),
-                    targetOffsetY = { fullHeight -> fullHeight },
-                ) + fadeOut(animationSpec = tween(durationMillis = 140)),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                RenderAppBottomBar(
-                    spec = spec,
-                    onSelectScreenCode = navigateToCode,
-                    onTogglePersonalMoreMenu = {
-                        viewModel.soundPlayer.playTap()
-                        showPersonalMoreMenu = !showPersonalMoreMenu
-                    },
-                    isMoreMenuOpen = showPersonalMoreMenu,
-                )
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = hasBottomBar,
+                    enter = fadeIn(animationSpec = tween(durationMillis = 160)),
+                    exit = fadeOut(animationSpec = tween(durationMillis = 120)),
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth(),
+                ) {
+                    RenderAppBottomBar(
+                        spec = spec,
+                        onSelectScreenCode = navigateToCode,
+                        onTogglePersonalMoreMenu = {
+                            viewModel.soundPlayer.playTap()
+                            showPersonalMoreMenu = !showPersonalMoreMenu
+                        },
+                        isMoreMenuOpen = showPersonalMoreMenu,
+                    )
+                }
             }
         }
     }
 }
 
 private fun buildScreenTransition(kind: NavigationTransitionKind): ContentTransform = when (kind) {
-    NavigationTransitionKind.MODAL_SHEET -> (
-        slideInVertically(
-            animationSpec = tween(durationMillis = 260, easing = FastOutSlowInEasing),
-            initialOffsetY = { fullHeight -> fullHeight / 5 },
-        ) + fadeIn(animationSpec = tween(durationMillis = 220))
+    NavigationTransitionKind.MODAL_SHEET ->
+        fadeIn(
+            animationSpec = tween(durationMillis = 180, easing = FastOutSlowInEasing),
         ).togetherWith(
-        slideOutVertically(
-            animationSpec = tween(durationMillis = 200, easing = FastOutSlowInEasing),
-            targetOffsetY = { fullHeight -> fullHeight / 6 },
-        ) + fadeOut(animationSpec = tween(durationMillis = 160)),
-    )
+            fadeOut(
+                animationSpec = tween(durationMillis = 150, easing = FastOutSlowInEasing),
+            ),
+        )
 
     NavigationTransitionKind.FORWARD -> (
         slideInHorizontally(
@@ -408,5 +402,6 @@ private fun buildScreenTransition(kind: NavigationTransitionKind): ContentTransf
 
 private fun screenAnimationGroupKey(code: String): String = when (code) {
     "s03", "s04", "s05" -> "personal-onboarding"
+    "s84", "s85" -> "event-reschedule-cancel"
     else -> code
 }

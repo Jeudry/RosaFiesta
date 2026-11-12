@@ -75,9 +75,13 @@ import com.jeudry.rosafiesta.domain.CanonicalSampleData
 import com.jeudry.rosafiesta.domain.CatalogArticle
 import com.jeudry.rosafiesta.domain.EventPackage
 
-// ==============================================================================
-// s18 · CATÁLOGO (APP PERSONAL)
-// ==============================================================================
+private fun isUnfilteredCatalogCategory18(category: String): Boolean {
+    val clean = category.trim()
+    val isEmptyCategory = clean.isEmpty()
+    val isTodasPrefix = clean.startsWith("Todas", ignoreCase = true)
+    val isTodosPrefix = clean.startsWith("Todos", ignoreCase = true)
+    return listOf(isEmptyCategory, isTodasPrefix, isTodosPrefix).any { matched -> matched }
+}
 
 @Composable
 internal fun RenderPersonalCatalogS18(
@@ -92,7 +96,8 @@ internal fun RenderPersonalCatalogS18(
     }
     val vmCategory = viewModel?.selectedCategory?.collectAsState()?.value ?: "Todas"
     var selectedCategory by remember(vmCategory) {
-        mutableStateOf(vmCategory.ifBlank { "Todas" })
+        val normalizedInitial = if (isUnfilteredCatalogCategory18(vmCategory)) "Todas" else vmCategory
+        mutableStateOf(normalizedInitial)
     }
     val vmQuery = viewModel?.searchQuery?.collectAsState()?.value ?: ""
     var searchQuery by remember(vmQuery) { mutableStateOf(vmQuery) }
@@ -103,6 +108,9 @@ internal fun RenderPersonalCatalogS18(
     val isInlineVoiceListening = viewModel?.isVoiceListening?.collectAsState()?.value ?: false
     val voiceOrigin = viewModel?.voiceInputOrigin?.collectAsState()?.value ?: VoiceInputOrigin.NONE
     val isSearchMicActive = if (isInlineVoiceListening) voiceOrigin == VoiceInputOrigin.SEARCH else false
+    val isCategoryFiltered = !isUnfilteredCatalogCategory18(selectedCategory)
+    val isPriceFiltered = observedMaxPrice < 5000
+    val activeFilterCount = listOf(isCategoryFiltered, isPriceFiltered, observedOnlyAvailable).count { active -> active }
 
     val visibleArticlesCount = remember(articlesState) {
         articlesState.count { article -> article.visibleInCatalog }
@@ -125,7 +133,7 @@ internal fun RenderPersonalCatalogS18(
         } else {
             articlesState.filter { article ->
                 val isVisible = article.visibleInCatalog
-                val isAllSelected = selectedCategory.startsWith("Todas")
+                val isAllSelected = isUnfilteredCatalogCategory18(selectedCategory)
                 val matchesCategoryName = article.category.equals(selectedCategory, ignoreCase = true)
                 val matchesCategory = listOf(isAllSelected, matchesCategoryName).any { matched -> matched }
                 val queryBlank = searchQuery.isBlank()
@@ -154,16 +162,37 @@ internal fun RenderPersonalCatalogS18(
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Box(
-                    contentAlignment = Alignment.Center,
                     modifier = Modifier
                         .size(44.dp)
-                        .rfIconButtonShadow(CircleShape, isAdmin = false)
-                        .clip(CircleShape)
-                        .background(RfThemeState.currentPalette.surface)
-                        .border(1.dp, RfThemeState.currentPalette.line, CircleShape)
                         .clickable { onSelectScreenCode("s81") },
                 ) {
-                    RfIcon(kind = RfIconKind.FILTER, tint = RfThemeState.currentPalette.ink, size = 20.dp)
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .rfIconButtonShadow(CircleShape, isAdmin = false)
+                            .clip(CircleShape)
+                            .background(RfThemeState.currentPalette.surface)
+                            .border(1.dp, RfThemeState.currentPalette.line, CircleShape),
+                    ) {
+                        RfIcon(kind = RfIconKind.FILTER, tint = RfThemeState.currentPalette.ink, size = 20.dp)
+                    }
+                    if (activeFilterCount > 0) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .offset(x = 4.dp, y = (-4).dp)
+                                .size(20.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFFFFD45C)),
+                        ) {
+                            BasicText(
+                                text = activeFilterCount.toString(),
+                                style = typo.sectionCap.copy(fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF2E1A47)),
+                            )
+                        }
+                    }
                 }
 
                 Box(
@@ -308,7 +337,7 @@ internal fun RenderPersonalCatalogS18(
             val normalizedBaseNames = baseCategoryChips.map { label ->
                 if (label.startsWith("Todas")) "Todas" else label
             }
-            val isAllCategoryActive = selectedCategory.startsWith("Todas")
+            val isAllCategoryActive = isUnfilteredCatalogCategory18(selectedCategory)
             val isKnownChip = normalizedBaseNames.any { chipName -> chipName.equals(selectedCategory, ignoreCase = true) }
             val shouldInjectSelectedChip = if (isAllCategoryActive) false else !isKnownChip
             val categories = if (shouldInjectSelectedChip) {
@@ -319,7 +348,7 @@ internal fun RenderPersonalCatalogS18(
             categories.forEach { categoryLabel ->
                 val cleanCategory = if (categoryLabel.startsWith("Todas")) "Todas" else categoryLabel
                 val exactMatch = selectedCategory.equals(cleanCategory, ignoreCase = true)
-                val allPrefixMatch = if (selectedCategory.startsWith("Todas")) cleanCategory == "Todas" else false
+                val allPrefixMatch = if (isUnfilteredCatalogCategory18(selectedCategory)) cleanCategory == "Todas" else false
                 val isSelected = listOf(exactMatch, allPrefixMatch).any { matched -> matched }
                 Box(
                     contentAlignment = Alignment.Center,

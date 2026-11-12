@@ -323,6 +323,7 @@ public fun RenderScreenSpec(
     onSwitchAppMode: () -> Unit = { onSelectScreenCode("s14") },
     isFrameHarness: Boolean = true,
     includeBottomBar: Boolean = true,
+    underlyingScreenCode: String? = null,
     modifier: Modifier = Modifier,
 ) {
     if (spec.isDesktopWeb) {
@@ -630,7 +631,11 @@ public fun RenderScreenSpec(
 
                 "s80" -> RenderPersonalSearchS80(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
 
-                "s81" -> RenderCatalogFiltersModalS81(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                "s81" -> RenderCatalogFiltersModalS81(
+                    viewModel = viewModel,
+                    onSelectScreenCode = onSelectScreenCode,
+                    underlyingScreenCode = underlyingScreenCode,
+                )
 
                 "s82" -> RenderPersonalPaymentsS82(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
 
