@@ -25,6 +25,7 @@ import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -77,6 +78,7 @@ import com.jeudry.rosafiesta.domain.EventStatus
 import com.jeudry.rosafiesta.domain.QuoteRecord
 import com.jeudry.rosafiesta.domain.SupplierRecord
 import com.jeudry.rosafiesta.domain.validation.InputValidator
+import kotlinx.coroutines.delay
 
 private val RosaButtonGradient = Brush.horizontalGradient(
     listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC)),
@@ -2227,6 +2229,13 @@ internal fun RenderUserProfileScreenS54(
     val formError = viewModel?.formError?.collectAsState()?.value
     val formFeedback = viewModel?.formFeedback?.collectAsState()?.value
 
+    LaunchedEffect(formFeedback) {
+        if (!formFeedback.isNullOrBlank()) {
+            delay(3000L)
+            viewModel.clearFormFeedback()
+        }
+    }
+
     var isEditing by remember { mutableStateOf(false) }
     var draftName by remember(profileName) { mutableStateOf(profileName) }
     var draftEmail by remember(profileEmail) { mutableStateOf(profileEmail) }
@@ -2300,6 +2309,7 @@ internal fun RenderUserProfileScreenS54(
                         .border(1.dp, palette.line, CircleShape)
                         .clickable {
                             viewModel?.clearFormError()
+                            viewModel?.clearFormFeedback()
                             onSelectScreenCode("BACK:s14")
                         },
                     contentAlignment = Alignment.Center,
@@ -2405,6 +2415,7 @@ internal fun RenderUserProfileScreenS54(
                             .clip(RoundedCornerShape(14.dp))
                             .background(Color(0xFFEEF6D6))
                             .border(1.dp, Color(0xFF4E6A10).copy(alpha = 0.35f), RoundedCornerShape(14.dp))
+                            .clickable { viewModel?.clearFormFeedback() }
                             .padding(horizontal = 14.dp, vertical = 9.dp),
                     ) {
                         BasicText(
@@ -2537,7 +2548,7 @@ internal fun RenderUserProfileScreenS54(
                         )
                     } else {
                         BasicText(
-                            profileBirthDate.ifBlank { "Agregar" },
+                            formatSpanishDateWithWords(profileBirthDate),
                             style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFFC2338F)),
                         )
                     }

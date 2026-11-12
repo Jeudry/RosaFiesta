@@ -19,6 +19,7 @@ import com.jeudry.rosafiesta.domain.security.InMemorySecureStorage
 import com.jeudry.rosafiesta.ui.Navigator
 import com.jeudry.rosafiesta.ui.RosaFiestaViewModel
 import com.jeudry.rosafiesta.ui.ScreenCatalog
+import com.jeudry.rosafiesta.ui.formatSpanishDateWithWords
 import kotlin.io.encoding.Base64
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -609,6 +610,8 @@ class ScreenCatalogAndFlowTest {
         }
 
         onNodeWithTag("screen-s54").assertExists()
+        assertEquals("15 de agosto de 1998", formatSpanishDateWithWords("15/08/1998"))
+        assertEquals("15 de agosto de 1998", formatSpanishDateWithWords("1998-08-15"))
         onNodeWithText("Pagos").assertExists()
         onNodeWithText("Mis reservas").assertExists()
         onNodeWithText("Eliminar cuenta").assertExists()
@@ -624,5 +627,9 @@ class ScreenCatalogAndFlowTest {
         onNodeWithText("Foto 'camila-avatar.png' seleccionada.").assertExists()
         onNodeWithContentDescription("Foto de perfil").assertExists()
         onNodeWithText("camila-avatar.png").assertDoesNotExist()
+
+        mainClock.advanceTimeBy(3_100L)
+        waitForIdle()
+        onNodeWithText("Foto 'camila-avatar.png' seleccionada.").assertDoesNotExist()
     }
 }

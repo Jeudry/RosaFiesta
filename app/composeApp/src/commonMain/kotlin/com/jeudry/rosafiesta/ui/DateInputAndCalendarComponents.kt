@@ -1050,3 +1050,71 @@ internal fun RfProfilePhotoPickerModal(
         }
     }
 }
+
+/**
+ * Formats a date string (`DD/MM/YYYY` or `YYYY-MM-DD`) in natural Spanish prose (`15 de agosto de 1998`).
+ */
+internal fun formatSpanishDateWithWords(rawDate: String): String {
+    val cleanDate = rawDate.trim()
+    if (cleanDate.isEmpty()) return "Agregar"
+
+    val parsedParts = parseDayMonthYearParts(cleanDate) ?: return cleanDate
+    val day = parsedParts.first
+    val month = parsedParts.second
+    val year = parsedParts.third
+    val isValidDay = day in 1..31
+    val isValidMonth = month in 1..12
+    val isValidYear = year in 1900..2100
+    val isDayAndMonthValid = if (isValidDay) isValidMonth else false
+    val isAllValid = if (isDayAndMonthValid) isValidYear else false
+    if (!isAllValid) return cleanDate
+
+    val monthName = spanishMonthNameForProfile(month)
+    return "$day de $monthName de $year"
+}
+
+private fun parseDayMonthYearParts(cleanDate: String): Triple<Int, Int, Int>? {
+    val slashParts = cleanDate.split("/")
+    if (slashParts.size == 3) {
+        val day = slashParts[0].trim().toIntOrNull()
+        val month = slashParts[1].trim().toIntOrNull()
+        val year = slashParts[2].trim().toIntOrNull()
+        if (day != null) {
+            if (month != null) {
+                if (year != null) {
+                    return Triple(day, month, year)
+                }
+            }
+        }
+    }
+    val isoToken = cleanDate.substringBefore("T").trim()
+    val dashParts = isoToken.split("-")
+    if (dashParts.size == 3) {
+        val year = dashParts[0].trim().toIntOrNull()
+        val month = dashParts[1].trim().toIntOrNull()
+        val day = dashParts[2].trim().toIntOrNull()
+        if (day != null) {
+            if (month != null) {
+                if (year != null) {
+                    return Triple(day, month, year)
+                }
+            }
+        }
+    }
+    return null
+}
+
+private fun spanishMonthNameForProfile(monthNumber: Int): String = when (monthNumber) {
+    1 -> "enero"
+    2 -> "febrero"
+    3 -> "marzo"
+    4 -> "abril"
+    5 -> "mayo"
+    6 -> "junio"
+    7 -> "julio"
+    8 -> "agosto"
+    9 -> "septiembre"
+    10 -> "octubre"
+    11 -> "noviembre"
+    else -> "diciembre"
+}
