@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -37,6 +38,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -136,7 +138,7 @@ internal fun RenderPersonalMoreOptionsPanel(
     currentScreenCode: String,
     onDismiss: () -> Unit,
     onSelectOption: (String) -> Unit,
-    bottomClearance: Dp = 12.dp,
+    bottomClearance: Dp = 104.dp,
 ) {
     val palette = LocalRfPalette.current
     val typo = LocalRfTypography.current
@@ -145,31 +147,31 @@ internal fun RenderPersonalMoreOptionsPanel(
         listOf(
             PersonalMoreMenuItem(
                 title = "Mis favoritos",
-                subtitle = "Artículos y paquetes guardados para tu evento",
+                subtitle = "",
                 icon = RfIconKind.HEART,
                 targetCode = "s24",
             ),
             PersonalMoreMenuItem(
                 title = "Mis pagos y recibos",
-                subtitle = "Historial de abonos, facturas y comprobantes",
+                subtitle = "",
                 icon = RfIconKind.RECEIPT,
                 targetCode = "s82",
             ),
             PersonalMoreMenuItem(
                 title = "Mis reservas",
-                subtitle = "Contratos activos, entregas y estado de piezas",
+                subtitle = "",
                 icon = RfIconKind.ORDERS,
                 targetCode = "s53",
             ),
             PersonalMoreMenuItem(
                 title = "Ajustes",
-                subtitle = "Tema oscuro, idioma, recordatorios y privacidad",
+                subtitle = "",
                 icon = RfIconKind.SETTINGS,
                 targetCode = "s86",
             ),
             PersonalMoreMenuItem(
                 title = "Acerca de Rosa Fiesta",
-                subtitle = "Reseñas 5.0 ★, historia y garantías de servicio",
+                subtitle = "",
                 icon = RfIconKind.INFO,
                 targetCode = "s16",
             ),
@@ -179,127 +181,78 @@ internal fun RenderPersonalMoreOptionsPanel(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0x780E0B1A))
+            .background(Color(0x2E0E0B1A))
             .clickable { onDismiss() }
             .testTag("personal-more-scrim"),
-        contentAlignment = Alignment.BottomCenter,
+        contentAlignment = Alignment.BottomEnd,
     ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .then(rememberModalSheetSlideModifier())
-                .padding(start = 14.dp, end = 14.dp, top = 12.dp, bottom = bottomClearance)
-                .heightIn(max = 580.dp)
-                .shadow(22.dp, RoundedCornerShape(26.dp), ambientColor = Color(0x451A1A2E), spotColor = Color(0x451A1A2E))
-                .clip(RoundedCornerShape(26.dp))
+                .padding(end = 14.dp, bottom = bottomClearance)
+                .widthIn(min = 236.dp, max = 264.dp)
+                .shadow(18.dp, RoundedCornerShape(20.dp), ambientColor = Color(0x381A1A2E), spotColor = Color(0x381A1A2E))
+                .clip(RoundedCornerShape(20.dp))
                 .background(palette.surface)
-                .border(1.dp, palette.line, RoundedCornerShape(26.dp))
+                .border(1.dp, palette.line, RoundedCornerShape(20.dp))
                 .clickable(
                     interactionSource = sheetBodyInteractionSource,
                     indication = null,
                 ) {}
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 18.dp, vertical = 18.dp)
+                .padding(8.dp)
                 .testTag("personal-more-panel"),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.CenterHorizontally)
-                    .width(40.dp)
-                    .height(4.dp)
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(palette.line),
-            )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    BasicText(
-                        text = "Más opciones",
-                        style = TextStyle(
-                            fontFamily = typo.displayFamily,
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 19.sp,
-                            color = palette.ink,
-                        ),
-                    )
-                    BasicText(
-                        text = "Accesos rápidos a tu cuenta y preferencias",
-                        style = TextStyle(
-                            fontFamily = typo.bodyFamily,
-                            fontSize = 12.5.sp,
-                            color = palette.muted,
-                        ),
+            options.forEachIndexed { index, option ->
+                if (index == 3) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                            .height(1.dp)
+                            .background(palette.lineSoft),
                     )
                 }
-                Box(
-                    modifier = Modifier
-                        .size(34.dp)
-                        .clip(CircleShape)
-                        .background(palette.chipBg)
-                        .clickable { onDismiss() },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    RfIcon(kind = RfIconKind.CLOSE, tint = palette.muted, size = 16.dp)
-                }
-            }
-
-            Spacer(modifier = Modifier.height(2.dp))
-
-            options.forEach { option ->
                 val isCurrentOption = currentScreenCode == option.targetCode
-                val cardBg = if (isCurrentOption) palette.chipBg else palette.bg
-                val borderColor = if (isCurrentOption) palette.primaryAccent.copy(alpha = 0.45f) else palette.lineSoft
+                val rowBg = if (isCurrentOption) palette.chipBg else Color.Transparent
+                val iconBg = if (isCurrentOption) palette.primaryAccent.copy(alpha = 0.14f) else palette.chipBg
+                val iconTint = if (isCurrentOption) palette.primaryAccent else palette.ink
+                val textColor = if (isCurrentOption) palette.primaryAccent else palette.ink
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(cardBg)
-                        .border(1.dp, borderColor, RoundedCornerShape(16.dp))
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(rowBg)
                         .clickable { onSelectOption(option.targetCode) }
-                        .padding(horizontal = 14.dp, vertical = 12.dp)
+                        .padding(horizontal = 10.dp, vertical = 9.dp)
                         .testTag("more-option-${option.targetCode}"),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(40.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))),
+                            .size(32.dp)
+                            .clip(RoundedCornerShape(9.dp))
+                            .background(iconBg),
                         contentAlignment = Alignment.Center,
                     ) {
-                        RfIcon(kind = option.icon, tint = Color.White, size = 20.dp)
+                        RfIcon(kind = option.icon, tint = iconTint, size = 16.dp)
                     }
-                    Column(
+                    BasicText(
+                        text = option.title,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(2.dp),
-                    ) {
-                        BasicText(
-                            text = option.title,
-                            style = TextStyle(
-                                fontFamily = typo.bodyFamily,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.5.sp,
-                                color = palette.ink,
-                            ),
-                        )
-                        BasicText(
-                            text = option.subtitle,
-                            style = TextStyle(
-                                fontFamily = typo.bodyFamily,
-                                fontSize = 12.sp,
-                                color = palette.muted,
-                            ),
-                        )
-                    }
+                        style = TextStyle(
+                            fontFamily = typo.bodyFamily,
+                            fontWeight = if (isCurrentOption) FontWeight.Bold else FontWeight.SemiBold,
+                            fontSize = 13.5.sp,
+                            color = textColor,
+                        ),
+                    )
                     RfIcon(
                         kind = RfIconKind.CHEVRON_RIGHT,
                         tint = if (isCurrentOption) palette.primaryAccent else palette.muted,
-                        size = 16.dp,
+                        size = 14.dp,
                     )
                 }
             }

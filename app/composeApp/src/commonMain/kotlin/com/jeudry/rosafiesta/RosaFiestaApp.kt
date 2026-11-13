@@ -346,7 +346,21 @@ public fun RosaFiestaApp(
                     )
                 }
 
-                if (showPersonalMoreMenu) {
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = showPersonalMoreMenu,
+                    enter = fadeIn(animationSpec = tween(durationMillis = 150)) +
+                        androidx.compose.animation.scaleIn(
+                            initialScale = 0.92f,
+                            transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.9f, 1f),
+                            animationSpec = tween(durationMillis = 170, easing = FastOutSlowInEasing),
+                        ),
+                    exit = fadeOut(animationSpec = tween(durationMillis = 110)) +
+                        androidx.compose.animation.scaleOut(
+                            targetScale = 0.94f,
+                            transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.9f, 1f),
+                            animationSpec = tween(durationMillis = 110),
+                        ),
+                ) {
                     RenderPersonalMoreOptionsPanel(
                         currentScreenCode = spec.code,
                         onDismiss = { showPersonalMoreMenu = false },
