@@ -1,6 +1,8 @@
 package com.jeudry.rosafiesta.ui
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -28,6 +30,7 @@ import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -76,6 +79,67 @@ import com.jeudry.rosafiesta.domain.BalloonProduct
 import com.jeudry.rosafiesta.domain.CanonicalSampleData
 import com.jeudry.rosafiesta.domain.CatalogArticle
 import com.jeudry.rosafiesta.domain.EventPackage
+import kotlinx.coroutines.delay
+
+private fun resolveCatalogCategoryIcon18(categoryName: String): RfIconKind {
+    val clean = categoryName.trim().lowercase()
+    return when {
+        clean.startsWith("todas") -> RfIconKind.GRID
+        clean.contains("mobiliario") -> RfIconKind.CHAIR
+        clean.contains("decora") -> RfIconKind.SPARKLE
+        clean.contains("floral") -> RfIconKind.HEART
+        clean.contains("arco") -> RfIconKind.PARTY
+        clean.contains("globo") -> RfIconKind.PARTY
+        clean.contains("mantel") -> RfIconKind.BOX
+        clean.contains("dulce") -> RfIconKind.CAKE
+        clean.contains("ilumin") -> RfIconKind.LIGHTBULB
+        clean.contains("letrero") -> RfIconKind.NOTE
+        else -> RfIconKind.CATALOG
+    }
+}
+
+@Composable
+private fun CatalogCategoryChip18(
+    label: String,
+    cleanCategory: String,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+) {
+    val typo = LocalRfTypography.current
+    val contentTint = if (isSelected) Color.White else RfThemeState.currentPalette.muted
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        modifier = Modifier
+            .height(38.dp)
+            .clip(RoundedCornerShape(999.dp))
+            .background(
+                if (isSelected) {
+                    Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)))
+                } else {
+                    SolidColor(RfThemeState.currentPalette.chipBg)
+                },
+            )
+            .border(1.dp, if (isSelected) Color.Transparent else RfThemeState.currentPalette.line, RoundedCornerShape(999.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 13.dp),
+    ) {
+        RfIcon(
+            kind = resolveCatalogCategoryIcon18(cleanCategory),
+            tint = contentTint,
+            size = 15.dp,
+        )
+        BasicText(
+            text = label,
+            maxLines = 1,
+            style = typo.body.copy(
+                fontSize = 14.sp,
+                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                color = contentTint,
+            ),
+        )
+    }
+}
 
 private fun isUnfilteredCatalogCategory18(category: String): Boolean {
     val clean = category.trim()
@@ -341,14 +405,36 @@ internal fun RenderPersonalCatalogS18(
                 .weight(1f)
                 .verticalScroll(rememberScrollState()),
         ) {
+            val scrollableCategoriesScrollState = rememberScrollState()
+            LaunchedEffect(Unit) {
+                for (cycle in 0 until 240) {
+                    delay(2800L)
+                    val maxScroll = scrollableCategoriesScrollState.maxValue
+                    val hasScrollRange = maxScroll > 0
+                    val notBeingDragged = !scrollableCategoriesScrollState.isScrollInProgress
+                    val canAdvanceCarousel = if (hasScrollRange) notBeingDragged else false
+                    if (canAdvanceCarousel) {
+                        val stepPx = (maxScroll / 4).coerceAtLeast(150)
+                        val atEndOfStrip = scrollableCategoriesScrollState.value + 36 >= maxScroll
+                        val targetScroll = if (atEndOfStrip) {
+                            0
+                        } else {
+                            (scrollableCategoriesScrollState.value + stepPx).coerceAtMost(maxScroll)
+                        }
+                        scrollableCategoriesScrollState.animateScrollTo(
+                            value = targetScroll,
+                            animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing),
+                        )
+                    }
+                }
+            }
+
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 val baseCategoryChips = listOf(
-                    "Todas · $visibleArticlesCount",
                     "Mobiliario",
                     "Decoración",
                     "Centros florales",
@@ -358,49 +444,43 @@ internal fun RenderPersonalCatalogS18(
                     "Iluminación",
                     "Letreros",
                 )
-                val normalizedBaseNames = baseCategoryChips.map { label ->
-                    if (label.startsWith("Todas")) "Todas" else label
-                }
                 val isAllCategoryActive = isUnfilteredCatalogCategory18(selectedCategory)
-                val isKnownChip = normalizedBaseNames.any { chipName -> chipName.equals(selectedCategory, ignoreCase = true) }
+                val isKnownChip = baseCategoryChips.any { chipName -> chipName.equals(selectedCategory, ignoreCase = true) }
                 val shouldInjectSelectedChip = if (isAllCategoryActive) false else !isKnownChip
-                val categories = if (shouldInjectSelectedChip) {
-                    listOf(baseCategoryChips.first(), selectedCategory) + baseCategoryChips.drop(1)
+                val scrollingCategories = if (shouldInjectSelectedChip) {
+                    listOf(selectedCategory) + baseCategoryChips
                 } else {
                     baseCategoryChips
                 }
-                categories.forEach { categoryLabel ->
-                    val cleanCategory = if (categoryLabel.startsWith("Todas")) "Todas" else categoryLabel
-                    val exactMatch = selectedCategory.equals(cleanCategory, ignoreCase = true)
-                    val allPrefixMatch = if (isUnfilteredCatalogCategory18(selectedCategory)) cleanCategory == "Todas" else false
-                    val isSelected = listOf(exactMatch, allPrefixMatch).any { matched -> matched }
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .height(38.dp)
-                            .clip(RoundedCornerShape(999.dp))
-                            .background(
-                                if (isSelected) {
-                                    Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)))
-                                } else {
-                                    SolidColor(RfThemeState.currentPalette.chipBg)
-                                },
-                            )
-                            .border(1.dp, if (isSelected) Color.Transparent else RfThemeState.currentPalette.line, RoundedCornerShape(999.dp))
-                            .clickable {
+
+                CatalogCategoryChip18(
+                    label = "Todas · $visibleArticlesCount",
+                    cleanCategory = "Todas",
+                    isSelected = isAllCategoryActive,
+                    onClick = {
+                        viewModel?.soundPlayer?.playTap()
+                        selectedCategory = "Todas"
+                        viewModel?.setSelectedCategory("Todas")
+                    },
+                )
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .horizontalScroll(scrollableCategoriesScrollState),
+                ) {
+                    scrollingCategories.forEach { categoryLabel ->
+                        val isSelected = selectedCategory.equals(categoryLabel, ignoreCase = true)
+                        CatalogCategoryChip18(
+                            label = categoryLabel,
+                            cleanCategory = categoryLabel,
+                            isSelected = isSelected,
+                            onClick = {
                                 viewModel?.soundPlayer?.playTap()
-                                selectedCategory = cleanCategory
-                                viewModel?.setSelectedCategory(cleanCategory)
-                            }
-                            .padding(horizontal = 14.dp),
-                    ) {
-                        BasicText(
-                            text = categoryLabel,
-                            style = typo.body.copy(
-                                fontSize = 14.sp,
-                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                                color = if (isSelected) Color.White else RfThemeState.currentPalette.muted,
-                            ),
+                                selectedCategory = categoryLabel
+                                viewModel?.setSelectedCategory(categoryLabel)
+                            },
                         )
                     }
                 }

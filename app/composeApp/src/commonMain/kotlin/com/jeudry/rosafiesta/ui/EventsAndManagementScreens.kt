@@ -4501,17 +4501,20 @@ internal fun RenderGuestsScreenS47(
     var selectedStatusFilter by remember { mutableStateOf("Todos") }
     val eventsState = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
     val event = viewModel?.activeClientEvent() ?: eventsState.first()
-    val vmGuests = viewModel?.eventGuestsList?.collectAsState()?.value
+    val draftGuestsState = viewModel?.eventGuestsList?.collectAsState()?.value
+    val repoGuestsState = viewModel?.eventGuests?.collectAsState()?.value
+    val selectedEventState = viewModel?.selectedEventId?.collectAsState()?.value
+    val isWizardState = viewModel?.guestsWizardMode?.collectAsState()?.value
+    val vmGuests = if (viewModel != null) {
+        remember(draftGuestsState, repoGuestsState, selectedEventState, isWizardState) {
+            viewModel.guestsForActiveEvent()
+        }
+    } else {
+        null
+    }
 
     var fallbackGuests by remember {
-        mutableStateOf(
-            listOf(
-                GuestRowItem47("gst-1", "Familia Pérez Martínez", "Confirmado · Mesa 2 · 4 personas", "Confirmado"),
-                GuestRowItem47("gst-2", "Carlos & Andrea Sánchez", "Confirmado · Mesa 1 · 2 personas", "Confirmado"),
-                GuestRowItem47("gst-3", "Dra. Laura Gómez", "Pendiente · Mesa 3 · 1 persona", "Pendiente"),
-                GuestRowItem47("gst-4", "Lic. Roberto Fernández", "Confirmado · Mesa 4 · 2 personas", "Confirmado"),
-            ),
-        )
+        mutableStateOf(emptyList<GuestRowItem47>())
     }
 
     var showAddGuestModal by remember { mutableStateOf(false) }
@@ -4795,7 +4798,11 @@ internal fun RenderGuestsScreenS47(
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 BasicText(
-                                    text = "Sin invitados con filtro '$selectedStatusFilter'",
+                                    text = if (guestItems.isEmpty()) {
+                                        "Aún no hay invitados agregados. Usa «+ Agregar invitado» o continúa."
+                                    } else {
+                                        "Sin invitados con filtro '$selectedStatusFilter'"
+                                    },
                                     modifier = Modifier.weight(1f),
                                     style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = RfThemeState.currentPalette.muted),
                                 )

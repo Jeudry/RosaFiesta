@@ -19,8 +19,13 @@ import com.jeudry.rosafiesta.domain.security.InMemorySecureStorage
 import com.jeudry.rosafiesta.ui.Navigator
 import com.jeudry.rosafiesta.ui.RosaFiestaViewModel
 import com.jeudry.rosafiesta.ui.ScreenCatalog
+import com.jeudry.rosafiesta.ui.SketchCanvasElement
+import com.jeudry.rosafiesta.ui.SketchElementKind
+import com.jeudry.rosafiesta.ui.buildSmartChairElementForTap
 import com.jeudry.rosafiesta.ui.formatReadableSpanishDateText
 import com.jeudry.rosafiesta.ui.formatSpanishDateWithWords
+import com.jeudry.rosafiesta.ui.removeSketchElementById
+import com.jeudry.rosafiesta.ui.translateSketchElementWithAttachedChairs
 import kotlin.io.encoding.Base64
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -761,5 +766,145 @@ class ScreenCatalogAndFlowTest {
         assertEquals("Vie, 21 de agosto 1998", formatReadableSpanishDateText("21/08/1998"))
         assertEquals("Vie 23 de octubre", formatReadableSpanishDateText("Vie 23 oct"))
         assertEquals("21 de agosto de 1998", formatSpanishDateWithWords("21/08/1998"))
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun `presupuesto vacio horarios en siguiente fase invitados y notificaciones sin datos falsos`() = runComposeUiTest {
+        val koin = org.koin.dsl.koinApplication {
+            modules(com.jeudry.rosafiesta.di.appModule)
+        }.koin
+        val viewModel = koin.get<RosaFiestaViewModel>()
+
+        assertEquals(0, viewModel.rosaBudgetDop.value)
+        viewModel.updateRosaParameters(guests = 90)
+        assertEquals(0, viewModel.rosaBudgetDop.value)
+
+        assertTrue(viewModel.guestsForActiveEvent().isEmpty())
+        viewModel.setGuestsWizardMode(true)
+        assertTrue(viewModel.guestsForActiveEvent().isEmpty())
+        viewModel.setGuestsWizardMode(false)
+
+        assertTrue(viewModel.filterNotificationsForPersonalClient().isEmpty())
+
+        setContent {
+            com.jeudry.rosafiesta.ui.RenderScreenSpec(
+                spec = ScreenCatalog.findByCode("s31"),
+                isFrameHarness = false,
+                includeBottomBar = false,
+                viewModel = viewModel,
+            )
+        }
+        onNodeWithText("Presupuesto estimado (ej: 15000 RD$)").assertExists()
+        onNodeWithText("HORARIOS DEL EVENTO").assertDoesNotExist()
+    }
+
+    @Test
+    fun `boceto coloca sillas automaticas alrededor de mesas y selector mueve o borra elemento`() {
+        val roundTable = SketchCanvasElement(
+            id = "tbl-1",
+            kind = SketchElementKind.ROUND_TABLE,
+            normX = 0.50f,
+            normY = 0.50f,
+            colorHex = 0xFFEA4EA9L,
+            label = "Mesa 1",
+        )
+        var elements = listOf(roundTable)
+
+        val firstChair = buildSmartChairElementForTap(
+            elements = elements,
+            tapNormX = 0.51f,
+            tapNormY = 0.49f,
+            colorHex = 0xFFEA4EA9L,
+            chairId = "ch-1",
+        )
+        elements = elements + firstChair
+        val secondChair = buildSmartChairElementForTap(
+            elements = elements,
+            tapNormX = 0.50f,
+            tapNormY = 0.52f,
+            colorHex = 0xFFEA4EA9L,
+            chairId = "ch-2",
+        )
+        elements = elements + secondChair
+
+        assertEquals(SketchElementKind.SINGLE_CHAIR, firstChair.kind)
+        assertEquals("seat:tbl-1:0", firstChair.label)
+        assertEquals("seat:tbl-1:1", secondChair.label)
+        val shiftedHorizontally = firstChair.normX != secondChair.normX
+        val shiftedVertically = firstChair.normY != secondChair.normY
+        val placedInDistinctSlots = if (shiftedHorizontally) true else shiftedVertically
+        assertTrue(placedInDistinctSlots)
+
+        val moved = translateSketchElementWithAttachedChairs(
+            elements = elements,
+            movedIndex = 0,
+            deltaX = 0.10f,
+            deltaY = -0.10f,
+        )
+        assertEquals(0.60f, moved[0].normX, 0.005f)
+        assertEquals(firstChair.normX + 0.10f, moved[1].normX, 0.005f)
+        assertEquals(secondChair.normY - 0.10f, moved[2].normY, 0.005f)
+
+        val afterDelete = removeSketchElementById(moved, "ch-1")
+        assertEquals(2, afterDelete.size)
+        assertFalse(afterDelete.any { item -> item.id == "ch-1" })
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun `resumen rosa s32 incluye horarios del evento fuera de s31`() = runComposeUiTest {
+        setContent {
+            com.jeudry.rosafiesta.ui.RenderScreenSpec(
+                spec = ScreenCatalog.findByCode("s32"),
+                isFrameHarness = false,
+                includeBottomBar = false,
+            )
+        }
+        onNodeWithText("HORARIOS DEL EVENTO").assertExists()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun `pantalla invitados s47 inicia limpia sin invitados hardcodeados`() = runComposeUiTest {
+        setContent {
+            com.jeudry.rosafiesta.ui.RenderScreenSpec(
+                spec = ScreenCatalog.findByCode("s47"),
+                isFrameHarness = false,
+                includeBottomBar = false,
+            )
+        }
+        onNodeWithText("Familia Pérez Martínez").assertDoesNotExist()
+        onNodeWithText("Aún no hay invitados agregados. Usa «+ Agregar invitado» o continúa.").assertExists()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun `notificaciones cliente s79 inicia limpia sin avisos administrativos hardcodeados`() = runComposeUiTest {
+        setContent {
+            com.jeudry.rosafiesta.ui.RenderScreenSpec(
+                spec = ScreenCatalog.findByCode("s79"),
+                isFrameHarness = false,
+                includeBottomBar = false,
+            )
+        }
+        onNodeWithText("Anticipo pendiente de verificación").assertDoesNotExist()
+        onNodeWithText("Sin notificaciones por ahora").assertExists()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun `catalogo s18 mantiene Todas fijado e incluye categorias con iconos`() = runComposeUiTest {
+        mainClock.autoAdvance = false
+        setContent {
+            com.jeudry.rosafiesta.ui.RenderScreenSpec(
+                spec = ScreenCatalog.findByCode("s18"),
+                isFrameHarness = false,
+                includeBottomBar = false,
+            )
+        }
+        mainClock.advanceTimeByFrame()
+        onNodeWithText("Todas ·", substring = true).assertExists()
+        onNodeWithText("Mobiliario").assertExists()
     }
 }

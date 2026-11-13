@@ -3883,7 +3883,6 @@ internal fun RenderRosaDetailsS31(
     val vmEventGuestsInput = viewModel?.eventGuestsInput?.collectAsState()?.value.orEmpty()
     val vmBudgetDop = viewModel?.rosaBudgetDop?.collectAsState()?.value ?: 0
     val vmEventNotesInput = viewModel?.eventNotesInput?.collectAsState()?.value.orEmpty()
-    val vmScheduleItems = viewModel?.wizardScheduleItems?.collectAsState()?.value.orEmpty()
 
     val initialEventType = vmEventTypeInput.ifBlank { vmRosaEventType }
 
@@ -3896,10 +3895,8 @@ internal fun RenderRosaDetailsS31(
     var budgetValue by remember(vmBudgetDop) { mutableStateOf(if (vmBudgetDop > 0) vmBudgetDop.toString() else "") }
     var venueValue by remember(vmEventVenueInput) { mutableStateOf(vmEventVenueInput) }
     var ideaValue by remember(vmEventNotesInput) { mutableStateOf(vmEventNotesInput) }
-    var fallbackScheduleItems by remember { mutableStateOf(emptyList<EventTimelineItemUiModel>()) }
     var promptText by remember { mutableStateOf("") }
 
-    val activeScheduleItems = if (viewModel != null) vmScheduleItems else fallbackScheduleItems
     val eventTypeIcon = resolveRosaEventMetadata(eventTypeValue).iconKind
 
     val hasPromptText = promptText.isNotBlank()
@@ -4277,33 +4274,6 @@ internal fun RenderRosaDetailsS31(
                         }
                     }
                 }
-
-                WizardScheduleEditorSection(
-                    scheduleItems = activeScheduleItems,
-                    onAddMoment = { startTime, endTime, momentTitle ->
-                        if (viewModel != null) {
-                            viewModel.addWizardScheduleItem(startTime, endTime, momentTitle)
-                        } else {
-                            val idx = fallbackScheduleItems.size + 1
-                            fallbackScheduleItems = fallbackScheduleItems + EventTimelineItemUiModel(
-                                id = "local-tl-$idx",
-                                startTime = startTime.ifBlank { "18:00" },
-                                endTime = endTime.ifBlank { "19:30" },
-                                title = momentTitle,
-                                subtitle = "Definido por ti",
-                                dotColorHex = 0xFF865DEC,
-                                ringColorHex = 0xFFEFE8FD,
-                            )
-                        }
-                    },
-                    onRemoveMoment = { itemId ->
-                        if (viewModel != null) {
-                            viewModel.removeWizardScheduleItem(itemId)
-                        } else {
-                            fallbackScheduleItems = fallbackScheduleItems.filterNot { item -> item.id == itemId }
-                        }
-                    },
-                )
             }
 
             Column(
@@ -4577,6 +4547,9 @@ internal fun RenderRosaSummaryS32(
     val resolvedGuestsCount = rawGuestsInput.toIntOrNull() ?: 0
     val budgetDop = viewModel?.rosaBudgetDop?.collectAsState()?.value ?: 0
     val scheduleItems = viewModel?.wizardScheduleItems?.collectAsState()?.value.orEmpty()
+    var fallbackSummaryScheduleItems by remember { mutableStateOf(emptyList<EventTimelineItemUiModel>()) }
+    var showScheduleEditorInSummary by remember { mutableStateOf(true) }
+    val activeSummaryScheduleItems = if (viewModel != null) scheduleItems else fallbackSummaryScheduleItems
     val guestListCount = viewModel?.eventGuestsList?.collectAsState()?.value?.size ?: 0
     val observedDraftQuantities = viewModel?.draftQuantities?.collectAsState()?.value
     val formErrorMessage = viewModel?.formError?.collectAsState()?.value
@@ -4591,12 +4564,12 @@ internal fun RenderRosaSummaryS32(
     val resolvedTitle = clientEventTitle.ifBlank { eventType }
     val resolvedGuestsText = if (resolvedGuestsCount > 0) "$resolvedGuestsCount personas" else ""
     val resolvedBudgetText = if (budgetDop > 0) formatDopCurrency(budgetDop) else ""
-    val resolvedScheduleText = if (scheduleItems.isNotEmpty()) {
-        val firstBlock = scheduleItems.first()
-        if (scheduleItems.size == 1) {
+    val resolvedScheduleText = if (activeSummaryScheduleItems.isNotEmpty()) {
+        val firstBlock = activeSummaryScheduleItems.first()
+        if (activeSummaryScheduleItems.size == 1) {
             "${firstBlock.startTime} ${firstBlock.title}"
         } else {
-            "${scheduleItems.size} momentos (${firstBlock.startTime}...)"
+            "${activeSummaryScheduleItems.size} momentos (${firstBlock.startTime}...)"
         }
     } else {
         "Por definir"
@@ -4720,7 +4693,7 @@ internal fun RenderRosaSummaryS32(
                             iconTint = Color(0xFFC2338F),
                             label = "Horarios",
                             valueText = resolvedScheduleText,
-                            onClick = { onSelectScreenCode("s31") },
+                            onClick = { showScheduleEditorInSummary = !showScheduleEditorInSummary },
                         )
                         Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(RfThemeState.currentPalette.lineSoft))
                         RosaSummaryDetailRow(
@@ -4745,6 +4718,35 @@ internal fun RenderRosaSummaryS32(
                             onClick = { onSelectScreenCode("s25") },
                         )
                     }
+                }
+
+                if (showScheduleEditorInSummary) {
+                    WizardScheduleEditorSection(
+                        scheduleItems = activeSummaryScheduleItems,
+                        onAddMoment = { startTime, endTime, momentTitle ->
+                            if (viewModel != null) {
+                                viewModel.addWizardScheduleItem(startTime, endTime, momentTitle)
+                            } else {
+                                val nextIndex = fallbackSummaryScheduleItems.size + 1
+                                fallbackSummaryScheduleItems = fallbackSummaryScheduleItems + EventTimelineItemUiModel(
+                                    id = "local-tl-$nextIndex",
+                                    startTime = startTime.ifBlank { "18:00" },
+                                    endTime = endTime.ifBlank { "19:30" },
+                                    title = momentTitle,
+                                    subtitle = "Definido por ti",
+                                    dotColorHex = 0xFF865DEC,
+                                    ringColorHex = 0xFFEFE8FD,
+                                )
+                            }
+                        },
+                        onRemoveMoment = { itemId ->
+                            if (viewModel != null) {
+                                viewModel.removeWizardScheduleItem(itemId)
+                            } else {
+                                fallbackSummaryScheduleItems = fallbackSummaryScheduleItems.filterNot { item -> item.id == itemId }
+                            }
+                        },
+                    )
                 }
 
                 Row(
@@ -5985,10 +5987,11 @@ internal fun InlineVoiceSearchBanner(
     }
 }
 
-private enum class SketchElementKind {
+internal enum class SketchElementKind {
     NONE,
     ROUND_TABLE,
     RECT_TABLE,
+    SINGLE_CHAIR,
     CHAIR_GROUP,
     ARCH_STAGE,
     TEXT_LABEL,
@@ -5996,17 +5999,17 @@ private enum class SketchElementKind {
 }
 
 private enum class SketchToolKind(val title: String, val hint: String) {
+    SELECT("Selector", "Toca para seleccionar, arrastra para mover o borra"),
     PENCIL("Lápiz", "Dibuja libremente sobre el lienzo"),
-    MOVE("Mover", "Arrastra trazos o figuras"),
     STAGE("Tarima", "Toca el lienzo para poner tarima"),
     ROUND_TABLE("Mesa ○", "Toca el lienzo para poner mesa redonda"),
     RECT_TABLE("Mesa ▭", "Toca el lienzo para poner mesa imperial"),
-    CHAIRS("Sillas", "Toca el lienzo para poner fila de sillas"),
+    CHAIRS("Sillas", "Toca una mesa para rodearla de sillas o el piso"),
     TEXT("Texto", "Toca el lienzo para agregar etiqueta"),
     ERASE("Borrar", "Toca o desliza para borrar"),
 }
 
-private data class SketchCanvasElement(
+internal data class SketchCanvasElement(
     val id: String,
     val kind: SketchElementKind,
     val normX: Float,
@@ -6015,6 +6018,186 @@ private data class SketchCanvasElement(
     val label: String = "",
     val points: List<Pair<Float, Float>> = emptyList(),
 )
+
+private fun isTableElementKind(kind: SketchElementKind): Boolean {
+    if (kind == SketchElementKind.ROUND_TABLE) return true
+    return kind == SketchElementKind.RECT_TABLE
+}
+
+private fun isPointNearTable(
+    table: SketchCanvasElement,
+    tapNormX: Float,
+    tapNormY: Float,
+): Boolean {
+    if (table.kind == SketchElementKind.ROUND_TABLE) {
+        val distance = hypot((table.normX - tapNormX).toDouble(), (table.normY - tapNormY).toDouble()).toFloat()
+        return distance <= 0.145f
+    }
+    if (table.kind == SketchElementKind.RECT_TABLE) {
+        val withinX = kotlin.math.abs(tapNormX - table.normX) <= 0.165f
+        val withinY = kotlin.math.abs(tapNormY - table.normY) <= 0.115f
+        return if (withinX) withinY else false
+    }
+    return false
+}
+
+private fun findNearestTableForChairPlacement(
+    elements: List<SketchCanvasElement>,
+    tapNormX: Float,
+    tapNormY: Float,
+): SketchCanvasElement? {
+    var bestTable: SketchCanvasElement? = null
+    var bestDistance = Float.MAX_VALUE
+    elements.forEach { element ->
+        val candidateTable = isTableElementKind(element.kind)
+        if (candidateTable) {
+            val withinHitArea = isPointNearTable(element, tapNormX, tapNormY)
+            if (withinHitArea) {
+                val dist = hypot((element.normX - tapNormX).toDouble(), (element.normY - tapNormY).toDouble()).toFloat()
+                if (dist < bestDistance) {
+                    bestDistance = dist
+                    bestTable = element
+                }
+            }
+        }
+    }
+    return bestTable
+}
+
+private fun computeTableSeatSlots(table: SketchCanvasElement): List<Pair<Float, Float>> {
+    if (table.kind == SketchElementKind.ROUND_TABLE) {
+        val radiusX = 0.102f
+        val radiusY = 0.088f
+        return (0 until 8).map { slotIndex ->
+            val angleRad = (-90.0 + slotIndex * 45.0) * PI / 180.0
+            val seatX = (table.normX + radiusX * cos(angleRad).toFloat()).coerceIn(0.03f, 0.97f)
+            val seatY = (table.normY + radiusY * sin(angleRad).toFloat()).coerceIn(0.03f, 0.97f)
+            Pair(seatX, seatY)
+        }
+    }
+    if (table.kind == SketchElementKind.RECT_TABLE) {
+        val xOffsets = listOf(-0.078f, -0.026f, 0.026f, 0.078f)
+        val topSeats = xOffsets.map { dx -> Pair((table.normX + dx).coerceIn(0.03f, 0.97f), (table.normY - 0.068f).coerceIn(0.03f, 0.97f)) }
+        val bottomSeats = xOffsets.map { dx -> Pair((table.normX + dx).coerceIn(0.03f, 0.97f), (table.normY + 0.068f).coerceIn(0.03f, 0.97f)) }
+        val leftHead = Pair((table.normX - 0.132f).coerceIn(0.03f, 0.97f), table.normY.coerceIn(0.03f, 0.97f))
+        val rightHead = Pair((table.normX + 0.132f).coerceIn(0.03f, 0.97f), table.normY.coerceIn(0.03f, 0.97f))
+        return topSeats + bottomSeats + listOf(leftHead, rightHead)
+    }
+    return emptyList()
+}
+
+private fun isChairSlotOccupied(
+    slotCoord: Pair<Float, Float>,
+    existingElements: List<SketchCanvasElement>,
+): Boolean = existingElements.any { item ->
+    val isChairKind = item.kind == SketchElementKind.SINGLE_CHAIR
+    if (!isChairKind) {
+        false
+    } else {
+        val distance = hypot((item.normX - slotCoord.first).toDouble(), (item.normY - slotCoord.second).toDouble()).toFloat()
+        distance < 0.032f
+    }
+}
+
+/**
+ * Places a single chair either around the perimeter of the tapped table or freely on the canvas floor.
+ */
+internal fun buildSmartChairElementForTap(
+    elements: List<SketchCanvasElement>,
+    tapNormX: Float,
+    tapNormY: Float,
+    colorHex: Long,
+    chairId: String,
+): SketchCanvasElement {
+    val targetTable = findNearestTableForChairPlacement(elements, tapNormX, tapNormY)
+    if (targetTable != null) {
+        val seatSlots = computeTableSeatSlots(targetTable)
+        val seatPrefix = "seat:${targetTable.id}:"
+        val nextFreeSlot = seatSlots.withIndex().firstOrNull { indexedSlot ->
+            val taggedMatch = elements.any { item -> item.label == "$seatPrefix${indexedSlot.index}" }
+            if (taggedMatch) {
+                false
+            } else {
+                !isChairSlotOccupied(indexedSlot.value, elements)
+            }
+        }
+        if (nextFreeSlot != null) {
+            return SketchCanvasElement(
+                id = chairId,
+                kind = SketchElementKind.SINGLE_CHAIR,
+                normX = nextFreeSlot.value.first,
+                normY = nextFreeSlot.value.second,
+                colorHex = colorHex,
+                label = "$seatPrefix${nextFreeSlot.index}",
+            )
+        }
+    }
+    return SketchCanvasElement(
+        id = chairId,
+        kind = SketchElementKind.SINGLE_CHAIR,
+        normX = tapNormX.coerceIn(0.04f, 0.96f),
+        normY = tapNormY.coerceIn(0.04f, 0.96f),
+        colorHex = colorHex,
+        label = "Silla",
+    )
+}
+
+internal fun translateSketchElementWithAttachedChairs(
+    elements: List<SketchCanvasElement>,
+    movedIndex: Int,
+    deltaX: Float,
+    deltaY: Float,
+): List<SketchCanvasElement> {
+    val target = elements.getOrNull(movedIndex) ?: return elements
+    val shiftedTarget = translateSketchElement(target, deltaX, deltaY)
+    val actualDeltaX = shiftedTarget.normX - target.normX
+    val actualDeltaY = shiftedTarget.normY - target.normY
+    val movingTable = isTableElementKind(target.kind)
+    val attachedSeatPrefix = "seat:${target.id}:"
+    return elements.mapIndexed { idx, item ->
+        when {
+            idx == movedIndex -> {
+                val movedLabel = if (target.kind == SketchElementKind.SINGLE_CHAIR) {
+                    if (item.label.startsWith("seat:")) "Silla" else item.label
+                } else {
+                    item.label
+                }
+                shiftedTarget.copy(label = movedLabel)
+            }
+
+            movingTable -> {
+                val isAttachedChair = if (item.kind == SketchElementKind.SINGLE_CHAIR) {
+                    item.label.startsWith(attachedSeatPrefix)
+                } else {
+                    false
+                }
+                if (isAttachedChair) {
+                    translateSketchElement(item, actualDeltaX, actualDeltaY)
+                } else {
+                    item
+                }
+            }
+
+            else -> item
+        }
+    }
+}
+
+internal fun removeSketchElementById(
+    elements: List<SketchCanvasElement>,
+    elementId: String,
+): List<SketchCanvasElement> = elements.filterNot { item -> item.id == elementId }
+
+private fun resolveSketchElementDisplayName(element: SketchCanvasElement): String = when (element.kind) {
+    SketchElementKind.NONE -> "Elemento"
+    SketchElementKind.ROUND_TABLE -> "Mesa redonda"
+    SketchElementKind.RECT_TABLE -> "Mesa imperial"
+    SketchElementKind.SINGLE_CHAIR -> "Silla"
+    SketchElementKind.CHAIR_GROUP -> "Fila de sillas"
+    SketchElementKind.ARCH_STAGE -> element.label.ifBlank { "Tarima" }
+    SketchElementKind.TEXT_LABEL -> element.label.ifBlank { "Etiqueta" }
+    SketchElementKind.FREEHAND_STROKE -> "Trazo libre"
+}
 
 private fun buildAiBalancedSketchLayout(guestCount: Int): List<SketchCanvasElement> {
     val safeGuests = guestCount.coerceAtLeast(16)
@@ -6047,10 +6230,28 @@ private fun buildAiBalancedSketchLayout(guestCount: Int): List<SketchCanvasEleme
     )
     val leftColumnCount = (targetTables + 1) / 2
     val rightColumnCount = targetTables - leftColumnCount
+    var aiChairSerial = 1
+    fun appendTableWithSurroundingChairs(table: SketchCanvasElement) {
+        generated.add(table)
+        val slots = computeTableSeatSlots(table).take(6)
+        slots.forEachIndexed { seatIdx, coord ->
+            generated.add(
+                SketchCanvasElement(
+                    id = "ai-chair-$aiChairSerial",
+                    kind = SketchElementKind.SINGLE_CHAIR,
+                    normX = coord.first,
+                    normY = coord.second,
+                    colorHex = 0xFF1FBDC0,
+                    label = "seat:${table.id}:$seatIdx",
+                ),
+            )
+            aiChairSerial += 1
+        }
+    }
     for (leftIdx in 0 until leftColumnCount) {
         val denominator = (leftColumnCount + 1).coerceAtLeast(2)
         val posY = (0.28f + (leftIdx + 1) * (0.58f / denominator)).coerceIn(0.25f, 0.85f)
-        generated.add(
+        appendTableWithSurroundingChairs(
             SketchCanvasElement(
                 id = "ai-tbl-L$leftIdx",
                 kind = SketchElementKind.ROUND_TABLE,
@@ -6064,7 +6265,7 @@ private fun buildAiBalancedSketchLayout(guestCount: Int): List<SketchCanvasEleme
     for (rightIdx in 0 until rightColumnCount) {
         val denominator = (rightColumnCount + 1).coerceAtLeast(2)
         val posY = (0.28f + (rightIdx + 1) * (0.58f / denominator)).coerceIn(0.25f, 0.85f)
-        generated.add(
+        appendTableWithSurroundingChairs(
             SketchCanvasElement(
                 id = "ai-tbl-R$rightIdx",
                 kind = SketchElementKind.ROUND_TABLE,
@@ -6075,16 +6276,6 @@ private fun buildAiBalancedSketchLayout(guestCount: Int): List<SketchCanvasEleme
             ),
         )
     }
-    generated.add(
-        SketchCanvasElement(
-            id = "ai-chairs-vip",
-            kind = SketchElementKind.CHAIR_GROUP,
-            normX = 0.50f,
-            normY = 0.28f,
-            colorHex = 0xFF1FBDC0,
-            label = "Sillas ceremonia",
-        ),
-    )
     return generated
 }
 
@@ -6231,10 +6422,11 @@ private fun syncSketchElementsIdempotently(
 ) {
     val roundTableCount = elements.count { element -> element.kind == SketchElementKind.ROUND_TABLE }
     val rectTableCount = elements.count { element -> element.kind == SketchElementKind.RECT_TABLE }
+    val singleChairCount = elements.count { element -> element.kind == SketchElementKind.SINGLE_CHAIR }
     val chairGroupCount = elements.count { element -> element.kind == SketchElementKind.CHAIR_GROUP }
     val archStageCount = elements.count { element -> element.kind == SketchElementKind.ARCH_STAGE }
     val totalTables = roundTableCount + rectTableCount
-    val computedChairs = (roundTableCount * 8) + (rectTableCount * 10) + (chairGroupCount * 6)
+    val computedChairs = singleChairCount + (chairGroupCount * 6)
     val serialized = serializeSketchElements(elements)
 
     viewModel?.setSketchTableCount(totalTables.coerceIn(0, 12))
@@ -6250,6 +6442,7 @@ private fun syncSketchElementsIdempotently(
 private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawSingleSketchElement(
     element: SketchCanvasElement,
     isThreeDimensionalPreview: Boolean,
+    isSelected: Boolean = false,
 ) {
     val canvasW = size.width
     val canvasH = size.height
@@ -6257,6 +6450,24 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawSingleSketchEle
     val centerY = element.normY * canvasH
     val itemColor = Color(element.colorHex)
     val elevationOffset = if (isThreeDimensionalPreview) 5.dp.toPx() else 0f
+    val selectionColor = Color(0xFF7A4FD8)
+
+    if (isSelected) {
+        drawCircle(
+            color = selectionColor.copy(alpha = 0.16f),
+            radius = 22.dp.toPx(),
+            center = Offset(centerX, centerY),
+        )
+        drawCircle(
+            color = selectionColor,
+            radius = 22.dp.toPx(),
+            center = Offset(centerX, centerY),
+            style = Stroke(
+                width = 2.dp.toPx(),
+                pathEffect = PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 4.dp.toPx())),
+            ),
+        )
+    }
 
     when (element.kind) {
         SketchElementKind.NONE -> Unit
@@ -6332,22 +6543,16 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawSingleSketchEle
                 )
             }
             drawCircle(
+                color = itemColor.copy(alpha = 0.09f),
+                radius = radius,
+                center = Offset(centerX, centerY),
+            )
+            drawCircle(
                 color = itemColor,
                 radius = radius,
                 center = Offset(centerX, centerY),
                 style = Stroke(width = 2.6.dp.toPx()),
             )
-            val chairDistance = radius + 5.dp.toPx()
-            for (seatIdx in 0 until 6) {
-                val angleRad = (seatIdx * 60.0) * PI / 180.0
-                val seatX = centerX + (chairDistance * cos(angleRad)).toFloat()
-                val seatY = centerY + (chairDistance * sin(angleRad)).toFloat()
-                drawCircle(
-                    color = itemColor.copy(alpha = 0.55f),
-                    radius = 2.6.dp.toPx(),
-                    center = Offset(seatX, seatY),
-                )
-            }
         }
 
         SketchElementKind.RECT_TABLE -> {
@@ -6369,17 +6574,36 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawSingleSketchEle
                 )
             }
             drawRoundRect(
+                color = itemColor.copy(alpha = 0.09f),
+                topLeft = topLeft,
+                size = Size(rectW, rectH),
+                cornerRadius = CornerRadius(5.dp.toPx()),
+            )
+            drawRoundRect(
                 color = itemColor,
                 topLeft = topLeft,
                 size = Size(rectW, rectH),
                 cornerRadius = CornerRadius(5.dp.toPx()),
                 style = Stroke(width = 2.6.dp.toPx()),
             )
-            for (seatCol in 0 until 4) {
-                val seatX = topLeft.x + (rectW * (seatCol + 0.5f) / 4f)
-                drawCircle(itemColor.copy(alpha = 0.55f), radius = 2.4.dp.toPx(), center = Offset(seatX, topLeft.y - 4.dp.toPx()))
-                drawCircle(itemColor.copy(alpha = 0.55f), radius = 2.4.dp.toPx(), center = Offset(seatX, topLeft.y + rectH + 4.dp.toPx()))
-            }
+        }
+
+        SketchElementKind.SINGLE_CHAIR -> {
+            val chairSize = 10.dp.toPx()
+            val halfChair = chairSize / 2f
+            drawRoundRect(
+                color = itemColor.copy(alpha = 0.22f),
+                topLeft = Offset(centerX - halfChair, centerY - halfChair),
+                size = Size(chairSize, chairSize),
+                cornerRadius = CornerRadius(3.dp.toPx()),
+            )
+            drawRoundRect(
+                color = itemColor,
+                topLeft = Offset(centerX - halfChair, centerY - halfChair),
+                size = Size(chairSize, chairSize),
+                cornerRadius = CornerRadius(3.dp.toPx()),
+                style = Stroke(width = 2.dp.toPx()),
+            )
         }
 
         SketchElementKind.CHAIR_GROUP -> {
@@ -6423,6 +6647,8 @@ private fun SketchCanvasPreviewSurface(
     interactiveEnabled: Boolean = false,
     activeTool: SketchToolKind = SketchToolKind.PENCIL,
     activeColorHex: Long = 0xFFEA4EA9L,
+    selectedElementId: String? = null,
+    onSelectElement: ((String?) -> Unit)? = null,
     onTapAtNormalized: ((Float, Float) -> Unit)? = null,
     onCommitFreehandStroke: ((List<Pair<Float, Float>>) -> Unit)? = null,
     onCommitElementMove: ((Int, Float, Float) -> Unit)? = null,
@@ -6431,6 +6657,7 @@ private fun SketchCanvasPreviewSurface(
     val typo = LocalRfTypography.current
     val latestElements by rememberUpdatedState(elements)
     val latestTool by rememberUpdatedState(activeTool)
+    val latestOnSelectElement by rememberUpdatedState(onSelectElement)
     val latestOnTap by rememberUpdatedState(onTapAtNormalized)
     val latestOnCommitStroke by rememberUpdatedState(onCommitFreehandStroke)
     val latestOnCommitMove by rememberUpdatedState(onCommitElementMove)
@@ -6441,13 +6668,12 @@ private fun SketchCanvasPreviewSurface(
 
     val displayedElements = remember(elements, draggingElementIndex, dragDeltaNorm) {
         if (draggingElementIndex in elements.indices) {
-            elements.mapIndexed { idx, item ->
-                if (idx == draggingElementIndex) {
-                    translateSketchElement(item, dragDeltaNorm.first, dragDeltaNorm.second)
-                } else {
-                    item
-                }
-            }
+            translateSketchElementWithAttachedChairs(
+                elements = elements,
+                movedIndex = draggingElementIndex,
+                deltaX = dragDeltaNorm.first,
+                deltaY = dragDeltaNorm.second,
+            )
         } else {
             elements
         }
@@ -6468,7 +6694,11 @@ private fun SketchCanvasPreviewSurface(
                             latestOnErase?.invoke(normX, normY)
                         }
 
-                        SketchToolKind.MOVE -> Unit
+                        SketchToolKind.SELECT -> {
+                            val hitIdx = findNearestSketchElementIndex(latestElements, normX, normY)
+                            val hitId = latestElements.getOrNull(hitIdx)?.id
+                            latestOnSelectElement?.invoke(hitId)
+                        }
 
                         else -> {
                             latestOnTap?.invoke(normX, normY)
@@ -6486,12 +6716,16 @@ private fun SketchCanvasPreviewSurface(
                                 activeStrokePoints = listOf(Pair(normX, normY))
                             }
 
-                            SketchToolKind.MOVE -> {
-                                draggingElementIndex = findNearestSketchElementIndex(
+                            SketchToolKind.SELECT -> {
+                                val hitIndex = findNearestSketchElementIndex(
                                     elements = latestElements,
                                     targetNormX = normX,
                                     targetNormY = normY,
                                 )
+                                draggingElementIndex = hitIndex
+                                latestElements.getOrNull(hitIndex)?.id?.let { hitId ->
+                                    latestOnSelectElement?.invoke(hitId)
+                                }
                                 dragDeltaNorm = Pair(0f, 0f)
                             }
 
@@ -6541,7 +6775,7 @@ private fun SketchCanvasPreviewSurface(
                             }
                         }
 
-                        SketchToolKind.MOVE -> {
+                        SketchToolKind.SELECT -> {
                             if (draggingElementIndex >= 0) {
                                 val deltaX = dragAmount.x / canvasW
                                 val deltaY = dragAmount.y / canvasH
@@ -6591,9 +6825,11 @@ private fun SketchCanvasPreviewSurface(
             }
 
             displayedElements.forEach { element ->
+                val isElementSelected = element.id == selectedElementId
                 drawSingleSketchElement(
                     element = element,
                     isThreeDimensionalPreview = isThreeDimensionalPreview,
+                    isSelected = isElementSelected,
                 )
             }
 
@@ -6717,6 +6953,12 @@ internal fun RenderRosaSketchS36(
     var pendingLabelCoordinates by remember { mutableStateOf(Pair(0.50f, 0.50f)) }
     var customLabelInput by remember { mutableStateOf("Tarima DJ") }
     var nextElementSerial by remember { mutableStateOf(100) }
+    var selectedElementId by remember { mutableStateOf<String?>(null) }
+
+    val selectedElement = remember(canvasElements, selectedElementId) {
+        val activeId = selectedElementId ?: return@remember null
+        canvasElements.firstOrNull { item -> item.id == activeId }
+    }
 
     val activeSwatchHex = swatchColors[selectedSwatchIndex].second
     val totalTablesCount = canvasElements.count { item ->
@@ -6836,6 +7078,7 @@ internal fun RenderRosaSketchS36(
                         .clip(CircleShape)
                         .background(RfThemeState.currentPalette.surface)
                         .clickable {
+                            selectedElementId = null
                             if (canvasElements.isNotEmpty()) {
                                 commitElementsMutation(emptyList())
                             }
@@ -6892,6 +7135,10 @@ internal fun RenderRosaSketchS36(
                     interactiveEnabled = true,
                     activeTool = selectedTool,
                     activeColorHex = activeSwatchHex,
+                    selectedElementId = selectedElementId,
+                    onSelectElement = { chosenId ->
+                        selectedElementId = chosenId
+                    },
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth()
@@ -6906,7 +7153,19 @@ internal fun RenderRosaSketchS36(
 
                             SketchToolKind.RECT_TABLE -> appendShapeAt(SketchElementKind.RECT_TABLE, normX, normY, "Mesa")
 
-                            SketchToolKind.CHAIRS -> appendShapeAt(SketchElementKind.CHAIR_GROUP, normX, normY, "Sillas")
+                            SketchToolKind.CHAIRS -> {
+                                val chairSerial = nextElementSerial
+                                nextElementSerial += 1
+                                val placedChair = buildSmartChairElementForTap(
+                                    elements = canvasElements,
+                                    tapNormX = normX,
+                                    tapNormY = normY,
+                                    colorHex = activeSwatchHex,
+                                    chairId = "chair-$chairSerial",
+                                )
+                                selectedElementId = placedChair.id
+                                commitElementsMutation(canvasElements + placedChair)
+                            }
 
                             SketchToolKind.TEXT -> {
                                 pendingLabelCoordinates = Pair(normX, normY)
@@ -6935,24 +7194,88 @@ internal fun RenderRosaSketchS36(
                     },
                     onCommitElementMove = { movedIndex, deltaX, deltaY ->
                         if (movedIndex in canvasElements.indices) {
-                            val updatedList = canvasElements.mapIndexed { idx, existing ->
-                                if (idx == movedIndex) {
-                                    translateSketchElement(existing, deltaX, deltaY)
-                                } else {
-                                    existing
-                                }
-                            }
+                            val updatedList = translateSketchElementWithAttachedChairs(
+                                elements = canvasElements,
+                                movedIndex = movedIndex,
+                                deltaX = deltaX,
+                                deltaY = deltaY,
+                            )
                             commitElementsMutation(updatedList)
                         }
                     },
                     onEraseAtNormalized = { normX, normY ->
                         val hitIndex = findNearestSketchElementIndex(canvasElements, normX, normY)
                         if (hitIndex in canvasElements.indices) {
-                            val remaining = canvasElements.filterIndexed { idx, _ -> idx != hitIndex }
+                            val removedId = canvasElements[hitIndex].id
+                            if (selectedElementId == removedId) {
+                                selectedElementId = null
+                            }
+                            val remaining = removeSketchElementById(canvasElements, removedId)
                             commitElementsMutation(remaining)
                         }
                     },
                 )
+
+                if (selectedElement != null) {
+                    val activeSelectedItem = selectedElement
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(Color(0xFFF3ECFE))
+                            .border(1.dp, Color(0xFFD9C7FA), RoundedCornerShape(14.dp))
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        RfIcon(kind = RfIconKind.MOVE, tint = Color(0xFF7A4FD8), size = 16.dp)
+                        BasicText(
+                            text = "${resolveSketchElementDisplayName(activeSelectedItem)} · Arrastra para mover",
+                            modifier = Modifier.weight(1f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            style = TextStyle(
+                                fontFamily = typo.bodyFamily,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 12.sp,
+                                color = RfThemeState.currentPalette.ink,
+                            ),
+                        )
+                        Row(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(Color(0xFFFCE8EE))
+                                .clickable {
+                                    commitElementsMutation(removeSketchElementById(canvasElements, activeSelectedItem.id))
+                                    selectedElementId = null
+                                }
+                                .padding(horizontal = 10.dp, vertical = 5.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            RfIcon(kind = RfIconKind.DELETE, tint = Color(0xFFB42345), size = 13.dp)
+                            BasicText(
+                                text = "Borrar",
+                                style = TextStyle(
+                                    fontFamily = typo.bodyFamily,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 11.sp,
+                                    color = Color(0xFFB42345),
+                                ),
+                            )
+                        }
+                        Box(
+                            modifier = Modifier
+                                .size(24.dp)
+                                .clip(CircleShape)
+                                .background(Color.White)
+                                .clickable { selectedElementId = null },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            RfIcon(kind = RfIconKind.CLOSE, tint = RfThemeState.currentPalette.muted, size = 13.dp)
+                        }
+                    }
+                }
 
                 Row(
                     modifier = Modifier
@@ -7267,8 +7590,8 @@ private fun SketchToolboxPanel(
     val typo = LocalRfTypography.current
     val firstRowTools = remember {
         listOf(
+            SketchToolKind.SELECT,
             SketchToolKind.PENCIL,
-            SketchToolKind.MOVE,
             SketchToolKind.STAGE,
             SketchToolKind.ROUND_TABLE,
         )
@@ -7350,9 +7673,9 @@ private fun SketchToolIconGraphic(
 ) {
     val typo = LocalRfTypography.current
     when (tool) {
-        SketchToolKind.PENCIL -> RfIcon(kind = RfIconKind.EDIT, tint = tint, size = 15.dp)
+        SketchToolKind.SELECT -> RfIcon(kind = RfIconKind.MOVE, tint = tint, size = 15.dp)
 
-        SketchToolKind.MOVE -> RfIcon(kind = RfIconKind.MOVE, tint = tint, size = 15.dp)
+        SketchToolKind.PENCIL -> RfIcon(kind = RfIconKind.EDIT, tint = tint, size = 15.dp)
 
         SketchToolKind.STAGE -> RfIcon(kind = RfIconKind.SPARKLE, tint = tint, size = 15.dp)
 
@@ -7542,7 +7865,8 @@ internal fun RenderRosaSketchConfirmS78(
                         modifier = Modifier.horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        val totalEstimatedChairs = (roundTablesCount * 8) + (rectTablesCount * 10) + (chairGroupsCount * 6)
+                        val singleChairsCount = previewElements.count { item -> item.kind == SketchElementKind.SINGLE_CHAIR }
+                        val totalEstimatedChairs = singleChairsCount + (chairGroupsCount * 6)
                         SketchChip78(dotColor = Color(0xFF1FBDC0), label = "$totalEstimatedChairs sillas calculadas")
                         val zoneLabelText = if (labelsSummary.isNotEmpty()) labelsSummary.joinToString(" · ") else "Pista de baile"
                         SketchChip78(dotColor = Color(0xFF8DB52C), label = zoneLabelText)

@@ -119,13 +119,13 @@ internal class RosaFiestaSubmoduleCoordinator(
     private val _threadMessages = MutableStateFlow(CanonicalSampleData.chatMessageRecords)
     val threadMessages: StateFlow<List<ChatMessageRecord>> = _threadMessages.asStateFlow()
 
-    private val _eventGuests = MutableStateFlow(CanonicalSampleData.eventGuests)
+    private val _eventGuests = MutableStateFlow<List<EventGuest>>(emptyList())
     val eventGuests: StateFlow<List<EventGuest>> = _eventGuests.asStateFlow()
 
     private val _eventSchedule = MutableStateFlow(CanonicalSampleData.eventScheduleBlocks)
     val eventSchedule: StateFlow<List<EventScheduleBlock>> = _eventSchedule.asStateFlow()
 
-    private val _notifications = MutableStateFlow(CanonicalSampleData.notifications)
+    private val _notifications = MutableStateFlow<List<NotificationRecord>>(emptyList())
     val notifications: StateFlow<List<NotificationRecord>> = _notifications.asStateFlow()
 
     private val _insurancePolicies = MutableStateFlow(CanonicalSampleData.insurancePolicies)
@@ -304,7 +304,7 @@ internal class RosaFiestaSubmoduleCoordinator(
             runCatching {
                 val response = client.listNotifications()
                 val remoteNotifications = response.notifications
-                if (!remoteNotifications.isNullOrEmpty()) {
+                if (remoteNotifications != null) {
                     _notifications.value = remoteNotifications.map { dto ->
                         RosaFiestaBackendMappers.toNotificationRecord(dto)
                     }
@@ -508,27 +508,35 @@ internal class RosaFiestaSubmoduleCoordinator(
 
     private suspend fun syncEventGuestsAndSchedule(client: RosaFiestaApiClient) {
         val currentEvents = eventsFlow.value
-        if (currentEvents.isEmpty()) return
+        if (currentEvents.isEmpty()) {
+            _eventGuests.value = emptyList()
+            _eventSchedule.value = emptyList()
+            return
+        }
         val syncedGuests = mutableListOf<EventGuest>()
         val syncedSchedule = mutableListOf<EventScheduleBlock>()
+        var anyGuestsCallSucceeded = false
+        var anyScheduleCallSucceeded = false
         currentEvents.forEach { eventItem ->
             runCatching {
                 val guestsResp = client.listEventGuests(eventItem.id)
+                anyGuestsCallSucceeded = true
                 guestsResp.guests?.forEach { dto ->
                     syncedGuests.add(RosaFiestaBackendMappers.toEventGuest(dto))
                 }
             }
             runCatching {
                 val scheduleResp = client.listEventSchedule(eventItem.id)
+                anyScheduleCallSucceeded = true
                 scheduleResp.blocks?.forEach { dto ->
                     syncedSchedule.add(RosaFiestaBackendMappers.toEventScheduleBlock(dto))
                 }
             }
         }
-        if (syncedGuests.isNotEmpty()) {
+        if (anyGuestsCallSucceeded) {
             _eventGuests.value = syncedGuests
         }
-        if (syncedSchedule.isNotEmpty()) {
+        if (anyScheduleCallSucceeded) {
             _eventSchedule.value = syncedSchedule
         }
     }
@@ -947,6 +955,8 @@ internal class RosaFiestaSubmoduleCoordinator(
 
     fun logoutSession(localClear: () -> Unit) {
         localClear()
+        _notifications.value = emptyList()
+        _eventGuests.value = emptyList()
         apiClient?.setAccessToken(null)
         scope.launch {
             runCatching {
@@ -2246,6 +2256,8 @@ internal class RosaFiestaSubmoduleCoordinator(
         currentSessionJwtFlow.value = token
         currentUserEmailFlow.value = account.email
         activeRoleFlow.value = account.role
+        _notifications.value = emptyList()
+        _eventGuests.value = emptyList()
         propagateSessionTokenToApi(token)
     }
 }

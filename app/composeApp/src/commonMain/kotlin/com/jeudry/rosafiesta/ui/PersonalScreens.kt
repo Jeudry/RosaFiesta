@@ -321,7 +321,8 @@ internal fun RenderPersonalHomeScreen(
         allHomeArticles.filter { article -> article.visibleInCatalog }.take(4)
     }
     val notificationsList = viewModel?.notifications?.collectAsState()?.value
-    val hasUnreadNotifications = notificationsList?.any { item -> !item.isRead } ?: true
+    val visibleClientNotifications = viewModel?.filterNotificationsForPersonalClient(notificationsList.orEmpty()).orEmpty()
+    val hasUnreadNotifications = visibleClientNotifications.any { item -> !item.isRead }
     val draftQuantitiesState = viewModel?.draftQuantities?.collectAsState()?.value.orEmpty()
     val totalDraftCartCount = remember(draftQuantitiesState, viewModel) {
         viewModel?.totalDraftCartUnits() ?: 0

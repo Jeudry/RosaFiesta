@@ -104,7 +104,12 @@ internal fun RenderPersonalNotificationsS79(
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
-    val notificationsList = viewModel?.notifications?.collectAsState()?.value ?: CanonicalSampleData.notifications
+    val rawNotificationsList = viewModel?.notifications?.collectAsState()?.value
+    val notificationsList = if (viewModel != null) {
+        viewModel.filterNotificationsForPersonalClient(rawNotificationsList.orEmpty())
+    } else {
+        emptyList()
+    }
     var locallyReadIds by remember { mutableStateOf(emptySet<String>()) }
     var selectedFilterLabel by remember { mutableStateOf("Todas") }
 
@@ -223,12 +228,17 @@ internal fun RenderPersonalNotificationsS79(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
+                        val isTotallyEmpty = notificationsList.isEmpty()
                         BasicText(
-                            text = "Sin notificaciones en “$selectedFilterLabel”",
+                            text = if (isTotallyEmpty) "Sin notificaciones por ahora" else "Sin notificaciones en “$selectedFilterLabel”",
                             style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = RfThemeState.currentPalette.ink),
                         )
                         BasicText(
-                            text = "Cambia el filtro para revisar el resto de tu actividad.",
+                            text = if (isTotallyEmpty) {
+                                "Te avisaremos aquí cuando tu cotización o evento tenga novedades."
+                            } else {
+                                "Cambia el filtro para revisar el resto de tu actividad."
+                            },
                             style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = RfThemeState.currentPalette.muted),
                         )
                     }

@@ -288,7 +288,7 @@ public class RosaFiestaViewModel(
     public val rosaGuestsCount: StateFlow<Int> = _rosaGuestsCount.asStateFlow()
     public val rosaGuests: StateFlow<Int> = _rosaGuestsCount.asStateFlow()
 
-    private val _rosaBudgetDop = MutableStateFlow(4500)
+    private val _rosaBudgetDop = MutableStateFlow(0)
     public val rosaBudgetDop: StateFlow<Int> = _rosaBudgetDop.asStateFlow()
 
     private val _rosaPalette = MutableStateFlow("Rosa & Dorado")
@@ -487,14 +487,7 @@ public class RosaFiestaViewModel(
     )
     public val eventTasksList: StateFlow<List<EventTaskUiModel>> = _eventTasksList.asStateFlow()
 
-    private val _eventGuestsList = MutableStateFlow(
-        listOf(
-            EventGuestUiModel("gst-1", "Familia Pérez Martínez", "Confirmados · Mesa 2 · 4 personas", "Confirmado"),
-            EventGuestUiModel("gst-2", "Carlos & Andrea Sánchez", "Confirmados · Mesa 1 · 2 personas", "Confirmado"),
-            EventGuestUiModel("gst-3", "Dra. Laura Gómez", "Pendiente respuesta · 1 persona", "Pendiente"),
-            EventGuestUiModel("gst-4", "Lic. Roberto Fernández", "Confirmado · Mesa 4 · 2 personas", "Confirmado"),
-        ),
-    )
+    private val _eventGuestsList = MutableStateFlow<List<EventGuestUiModel>>(emptyList())
     public val eventGuestsList: StateFlow<List<EventGuestUiModel>> = _eventGuestsList.asStateFlow()
 
     private val _companyReviews = MutableStateFlow(
@@ -1319,7 +1312,7 @@ public class RosaFiestaViewModel(
         soundPlayer.playRosaReply()
         _rosaEventType.value = eventType.trim().ifEmpty { "Boda Real Rosa & Dorado" }
         _rosaGuestsCount.value = guests.coerceIn(10, 500)
-        _rosaBudgetDop.value = budgetDop.coerceAtLeast(500)
+        _rosaBudgetDop.value = budgetDop.coerceAtLeast(0)
         _rosaPalette.value = palette.trim().ifEmpty { "Rosa & Dorado" }
     }
 
@@ -1994,6 +1987,10 @@ public class RosaFiestaViewModel(
         _profileUsername.value = "invitado"
         _profileAvatarKey.value = null
         _profileAvatarBytes.value = null
+        _eventGuestsList.value = emptyList()
+        _wizardScheduleItems.value = emptyList()
+        _clientEventTitleInput.value = ""
+        _rosaBudgetDop.value = 0
         _formError.value = null
         _formFeedback.value = "Sesión cerrada correctamente."
         repository.logoutSession()
@@ -2199,6 +2196,32 @@ public class RosaFiestaViewModel(
                     }
                 } else {
                     _eventTimelineItems.value = emptyList()
+                }
+                val draftGuests = _eventGuestsList.value
+                draftGuests.forEach { draftGuest ->
+                    val rsvpCode = when (draftGuest.status) {
+                        "Confirmado" -> "CONFIRMED"
+                        "Rechazado" -> "DECLINED"
+                        else -> "PENDING"
+                    }
+                    val tableSegment = draftGuest.details
+                        .split("·")
+                        .getOrNull(1)
+                        ?.trim()
+                        .orEmpty()
+                        .ifEmpty { "Por asignar" }
+                    val notesSegment = draftGuest.details
+                        .split("·")
+                        .getOrNull(2)
+                        ?.trim()
+                        .orEmpty()
+                    repository.addEventGuest(
+                        eventId = createdId,
+                        fullName = draftGuest.name,
+                        rsvpStatus = rsvpCode,
+                        tableLabel = tableSegment,
+                        notes = notesSegment,
+                    )
                 }
             }
             _formError.value = null
@@ -2690,21 +2713,83 @@ public class RosaFiestaViewModel(
         _eventTasksList.update { currentList -> listOf(newTask) + currentList }
     }
 
+    public fun guestsForActiveEvent(): List<EventGuestUiModel> {
+        if (_guestsWizardMode.value) {
+            return _eventGuestsList.value
+        }
+        val activeEvent = activeClientEventOrNull() ?: return emptyList()
+        val repoGuests = repository.eventGuests.value
+            .filter { guest -> guest.eventId == activeEvent.id }
+            .map { guest ->
+                val statusLabel = when (guest.rsvpStatus.trim().uppercase()) {
+                    "CONFIRMED" -> "Confirmado"
+                    "DECLINED" -> "Rechazado"
+                    else -> "Pendiente"
+                }
+                val detailSegments = listOf(
+                    statusLabel,
+                    guest.tableLabel.trim(),
+                    guest.notes.trim(),
+                ).filter { segment -> segment.isNotEmpty() }
+                EventGuestUiModel(
+                    id = guest.id,
+                    name = guest.fullName,
+                    details = detailSegments.joinToString(" · "),
+                    status = statusLabel,
+                )
+            }
+        return repoGuests
+    }
+
+    public fun filterNotificationsForPersonalClient(
+        source: List<NotificationRecord> = notifications.value,
+    ): List<NotificationRecord> {
+        if (_isExplicitGuestSession.value) {
+            return emptyList()
+        }
+        return source.filter { item ->
+            val roleLower = item.recipientRole.trim().lowercase()
+            val isAdminSeed = item.id.startsWith("ntf-")
+            val isClientRole = when (roleLower) {
+                "client", "user", "all", "" -> true
+                else -> false
+            }
+            if (isAdminSeed) false else isClientRole
+        }
+    }
+
     public fun toggleEventGuestStatus(guestId: String) {
         soundPlayer.playTap()
-        _eventGuestsList.update { currentList ->
-            currentList.map { guestItem ->
-                if (guestItem.id == guestId) {
-                    val nextStatus = when (guestItem.status) {
-                        "Confirmado" -> "Pendiente"
-                        "Pendiente" -> "Rechazado"
-                        else -> "Confirmado"
+        if (_guestsWizardMode.value) {
+            _eventGuestsList.update { currentList ->
+                currentList.map { guestItem ->
+                    if (guestItem.id == guestId) {
+                        val nextStatus = when (guestItem.status) {
+                            "Confirmado" -> "Pendiente"
+                            "Pendiente" -> "Rechazado"
+                            else -> "Confirmado"
+                        }
+                        guestItem.copy(status = nextStatus)
+                    } else {
+                        guestItem
                     }
-                    guestItem.copy(status = nextStatus)
-                } else {
-                    guestItem
                 }
             }
+            return
+        }
+        val activeEventId = activeClientEventOrNull()?.id ?: _selectedEventId.value
+        val existingRepoGuest = repository.eventGuests.value.firstOrNull { guest -> guest.id == guestId }
+        if (existingRepoGuest != null) {
+            val nextRsvpCode = when (existingRepoGuest.rsvpStatus.trim().uppercase()) {
+                "CONFIRMED" -> "PENDING"
+                "PENDING" -> "DECLINED"
+                else -> "CONFIRMED"
+            }
+            repository.updateEventGuest(
+                eventId = activeEventId,
+                guestId = guestId,
+                rsvpStatus = nextRsvpCode,
+            )
         }
     }
 
@@ -2715,29 +2800,41 @@ public class RosaFiestaViewModel(
         status: String = "Confirmado",
     ) {
         soundPlayer.playTap()
-        val nextNum = _eventGuestsList.value.size + 1
+        val existingCount = if (_guestsWizardMode.value) {
+            _eventGuestsList.value.size
+        } else {
+            guestsForActiveEvent().size
+        }
+        val nextNum = existingCount + 1
         val resolvedName = guestName.trim().ifBlank { "Invitado #$nextNum" }
-        val resolvedTable = tableNumberLabel.trim().ifBlank { "Mesa ${nextNum + 2}" }
+        val resolvedTable = tableNumberLabel.trim().ifBlank { "Mesa $nextNum" }
         val peopleLabel = if (partySize == 1) "1 persona" else "${partySize.coerceAtLeast(1)} personas"
         val cleanStatus = status.trim().ifBlank { "Confirmado" }
-        val newGuest = EventGuestUiModel(
-            id = "gst-$nextNum",
-            name = resolvedName,
-            details = "$cleanStatus · $resolvedTable · $peopleLabel",
-            status = cleanStatus,
-        )
-        _eventGuestsList.update { currentList -> currentList + newGuest }
-        repository.addEventGuest(
-            eventId = _selectedEventId.value,
-            fullName = resolvedName,
-            rsvpStatus = when (cleanStatus) {
-                "Confirmado" -> "CONFIRMED"
-                "Rechazado" -> "DECLINED"
-                else -> "PENDING"
-            },
-            tableLabel = resolvedTable,
-            notes = peopleLabel,
-        )
+        val rsvpCode = when (cleanStatus) {
+            "Confirmado" -> "CONFIRMED"
+            "Rechazado" -> "DECLINED"
+            else -> "PENDING"
+        }
+        if (_guestsWizardMode.value) {
+            val newGuest = EventGuestUiModel(
+                id = "draft-gst-$nextNum",
+                name = resolvedName,
+                details = "$cleanStatus · $resolvedTable · $peopleLabel",
+                status = cleanStatus,
+            )
+            _eventGuestsList.update { currentList -> currentList + newGuest }
+        } else {
+            val targetEventId = activeClientEventOrNull()?.id ?: _selectedEventId.value
+            if (targetEventId.isNotBlank()) {
+                repository.addEventGuest(
+                    eventId = targetEventId,
+                    fullName = resolvedName,
+                    rsvpStatus = rsvpCode,
+                    tableLabel = resolvedTable,
+                    notes = peopleLabel,
+                )
+            }
+        }
     }
 
     public fun authenticateSocialAccount(provider: String, idToken: String = ""): Boolean {
