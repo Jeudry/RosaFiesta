@@ -1288,9 +1288,6 @@ public class RosaFiestaViewModel(
         _rosaGuestsCount.value = guests.coerceIn(10, 500)
         _rosaBudgetDop.value = budgetDop.coerceAtLeast(500)
         _rosaPalette.value = palette.trim().ifEmpty { "Rosa & Dorado" }
-        val proposal = RosaFiestaEngine.buildRosaProposal(_rosaEventType.value, _rosaGuestsCount.value)
-        _rosaProposalMessage.value =
-            "Propuesta Rosa IA para ${_rosaGuestsCount.value} invitados (${_rosaPalette.value}): ${RosaFiestaEngine.formatDop(proposal.totalDop)}"
     }
 
     public fun sendConversationalRosaPrompt(
