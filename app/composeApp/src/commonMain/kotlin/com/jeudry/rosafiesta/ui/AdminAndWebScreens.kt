@@ -441,6 +441,7 @@ public fun RenderAdminWebDesktopA39(
 
                             A39DesktopSection.AJUSTES -> {
                                 AdminDesktopSettingsSection(
+                                    viewModel = viewModel,
                                     initialSettings = settings,
                                     onSaveSettings = { updatedSettings ->
                                         val savedOk = viewModel?.saveBusinessConfig(updatedSettings) ?: true
@@ -2586,6 +2587,7 @@ private fun AdminDesktopReportsSection(
 
 @Composable
 private fun AdminDesktopSettingsSection(
+    viewModel: RosaFiestaViewModel?,
     initialSettings: BusinessSettings,
     onSaveSettings: (BusinessSettings) -> Unit,
     onOpenMobileSettings: () -> Unit,
@@ -2638,6 +2640,14 @@ private fun AdminDesktopSettingsSection(
                         ),
                     )
                 },
+            )
+
+            Spacer(Modifier.height(6.dp))
+            BasicText(text = "Audio y efectos de sonido", style = typo.bodyStrong.copy(fontSize = 14.sp))
+            AppAudioSettingsCard(
+                viewModel = viewModel,
+                isEnglish = false,
+                isAdminSurface = true,
             )
         }
     }

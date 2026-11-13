@@ -28,8 +28,10 @@ import com.jeudry.rosafiesta.domain.platform.PickedMediaFile
 import com.jeudry.rosafiesta.domain.platform.PlatformActions
 import com.jeudry.rosafiesta.domain.security.InMemorySecureStorage
 import com.jeudry.rosafiesta.domain.security.SecureStorage
+import com.jeudry.rosafiesta.domain.sound.AppAudioConfig
 import com.jeudry.rosafiesta.domain.sound.PcmSoundSynthesizer
 import com.jeudry.rosafiesta.domain.sound.SoundEffect
+import com.jeudry.rosafiesta.domain.sound.SoundEffectCategory
 import com.jeudry.rosafiesta.domain.sound.SoundPlayer
 import com.jeudry.rosafiesta.domain.sound.VoiceInputMonitor
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -87,7 +89,8 @@ public fun readAndroidPickedUri(context: Context, uri: Uri): PickedMediaFile? = 
 
 internal class AndroidSoundPlayer : SoundPlayer {
     override var isEnabled: Boolean = true
-    override var soundVolume: Float = 0.75f
+    override var soundVolume: Float = AppAudioConfig.DEFAULT_VOLUME
+    override var enabledCategories: Set<SoundEffectCategory> = AppAudioConfig.DEFAULT_CATEGORIES
 
     private val mainHandler = Handler(Looper.getMainLooper())
     private val executor = Executors.newSingleThreadScheduledExecutor { runnable ->
@@ -95,9 +98,7 @@ internal class AndroidSoundPlayer : SoundPlayer {
     }
 
     override fun play(effect: SoundEffect) {
-        if (!isEnabled) return
-        if (effect == SoundEffect.NONE) return
-        if (soundVolume <= 0.01f) return
+        if (!canPlayEffect(effect)) return
         val wavBytes = PcmSoundSynthesizer.synthesizeWav(effect, soundVolume)
         if (wavBytes.size <= 44) return
         val pcmBytes = wavBytes.copyOfRange(44, wavBytes.size)

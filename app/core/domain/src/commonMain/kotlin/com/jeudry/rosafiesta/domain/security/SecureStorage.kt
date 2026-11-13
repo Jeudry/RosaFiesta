@@ -37,6 +37,11 @@ public interface SecureStorage {
         public const val KEY_EVENT_GUESTS: String = "rf_event_guests"
         public const val KEY_SKETCH_TABLES: String = "rf_sketch_tables"
         public const val KEY_SUPPLIERS: String = "rf_suppliers"
+        public const val KEY_AUDIO_ENABLED: String = "rf_audio_enabled"
+        public const val KEY_AUDIO_VOLUME: String = "rf_audio_volume"
+        public const val KEY_AUDIO_INTERACTION: String = "rf_audio_interaction"
+        public const val KEY_AUDIO_ROSA: String = "rf_audio_rosa"
+        public const val KEY_AUDIO_ALERTS: String = "rf_audio_alerts"
     }
 }
 

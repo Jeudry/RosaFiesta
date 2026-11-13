@@ -6,6 +6,16 @@ import kotlin.math.exp
 import kotlin.math.sin
 
 /**
+ * Functional group for UI sound effects so users can selectively mute categories.
+ */
+public enum class SoundEffectCategory {
+    NONE,
+    INTERACTION,
+    ROSA_ASSISTANT,
+    PAYMENTS_ALERTS,
+}
+
+/**
  * Royalty-free (CC0 1.0 Public Domain) UI sound effects for RosaFiesta Personal and Admin apps.
  */
 public enum class SoundEffect(
@@ -17,34 +27,86 @@ public enum class SoundEffect(
     public val secondaryHz: Double,
     /** Duration in milliseconds. */
     public val durationMs: Int,
+    /** Functional category controlled by the user's audio configuration. */
+    public val category: SoundEffectCategory,
 ) {
     /** Default zero-value no-op sound effect. */
-    NONE(fileName = "", primaryHz = 0.0, secondaryHz = 0.0, durationMs = 0),
+    NONE(fileName = "", primaryHz = 0.0, secondaryHz = 0.0, durationMs = 0, category = SoundEffectCategory.NONE),
 
     /** Soft tactile pop for buttons, chips, and navigation tabs. */
-    TAP_SOFT(fileName = "sfx_tap_soft.m4a", primaryHz = 340.0, secondaryHz = 145.0, durationMs = 26),
+    TAP_SOFT(fileName = "sfx_tap_soft.m4a", primaryHz = 340.0, secondaryHz = 145.0, durationMs = 26, category = SoundEffectCategory.INTERACTION),
 
     /** Crisp bubble pluck when adding or incrementing an article in catalog or quote builder. */
-    CART_ADD(fileName = "sfx_cart_add.m4a", primaryHz = 460.0, secondaryHz = 780.0, durationMs = 68),
+    CART_ADD(fileName = "sfx_cart_add.m4a", primaryHz = 460.0, secondaryHz = 780.0, durationMs = 68, category = SoundEffectCategory.INTERACTION),
 
     /** Warm whoosh-pop when sending a message or prompt to Rosa IA. */
-    ROSA_SEND(fileName = "sfx_rosa_send.m4a", primaryHz = 320.0, secondaryHz = 580.0, durationMs = 80),
+    ROSA_SEND(fileName = "sfx_rosa_send.m4a", primaryHz = 320.0, secondaryHz = 580.0, durationMs = 80, category = SoundEffectCategory.ROSA_ASSISTANT),
 
     /** Organic felt-chime bloom when Rosa IA replies or updates an event plan. */
-    ROSA_REPLY(fileName = "sfx_rosa_reply.m4a", primaryHz = 493.88, secondaryHz = 659.25, durationMs = 210),
+    ROSA_REPLY(fileName = "sfx_rosa_reply.m4a", primaryHz = 493.88, secondaryHz = 659.25, durationMs = 210, category = SoundEffectCategory.ROSA_ASSISTANT),
 
     /** Tactile wooden tick when marking a checklist step in `s68`, `A11`, or `A13`. */
-    CHECKLIST_TICK(fileName = "sfx_checklist_tick.m4a", primaryHz = 720.0, secondaryHz = 320.0, durationMs = 34),
+    CHECKLIST_TICK(fileName = "sfx_checklist_tick.m4a", primaryHz = 720.0, secondaryHz = 320.0, durationMs = 34, category = SoundEffectCategory.INTERACTION),
 
     /** Warm marimba-harp arpeggio when confirming a payment, quote approval, or digital signature. */
-    PAYMENT_SUCCESS(fileName = "sfx_payment_success.m4a", primaryHz = 523.25, secondaryHz = 1046.50, durationMs = 260),
+    PAYMENT_SUCCESS(fileName = "sfx_payment_success.m4a", primaryHz = 523.25, secondaryHz = 1046.50, durationMs = 260, category = SoundEffectCategory.PAYMENTS_ALERTS),
 
     /** Soft muted double-knock when a validation error or stock alert is triggered. */
-    ALERT_ERROR(fileName = "sfx_alert_error.m4a", primaryHz = 280.0, secondaryHz = 170.0, durationMs = 145),
+    ALERT_ERROR(fileName = "sfx_alert_error.m4a", primaryHz = 280.0, secondaryHz = 170.0, durationMs = 145, category = SoundEffectCategory.PAYMENTS_ALERTS),
 }
 
 /**
- * Multiplatform sound effects player with user-controllable mute and volume (`s84`).
+ * Persistent user configuration governing UI sound effects, volume, and category toggles.
+ */
+public data class AppAudioConfig(
+    public val soundEffectsEnabled: Boolean = true,
+    public val masterVolume: Float = DEFAULT_VOLUME,
+    public val interactionSoundsEnabled: Boolean = true,
+    public val rosaAssistantSoundsEnabled: Boolean = true,
+    public val paymentAlertSoundsEnabled: Boolean = true,
+) {
+    /** Normalized volume clamped to `0.0f..1.0f`. */
+    public val normalizedVolume: Float
+        get() = masterVolume.coerceIn(0f, 1f)
+
+    /** Integer volume percentage (`0..100`) for settings display. */
+    public fun volumePercent(): Int = (normalizedVolume * 100f + 0.5f).toInt().coerceIn(0, 100)
+
+    /** Returns an updated copy with volume set from an integer percentage (`0..100`). */
+    public fun withVolumePercent(percent: Int): AppAudioConfig {
+        val clampedPercent = percent.coerceIn(0, 100)
+        return copy(masterVolume = clampedPercent / 100f)
+    }
+
+    /** Returns the set of [SoundEffectCategory] values currently allowed by this configuration. */
+    public fun activeCategories(): Set<SoundEffectCategory> = buildSet {
+        if (interactionSoundsEnabled) {
+            add(SoundEffectCategory.INTERACTION)
+        }
+        if (rosaAssistantSoundsEnabled) {
+            add(SoundEffectCategory.ROSA_ASSISTANT)
+        }
+        if (paymentAlertSoundsEnabled) {
+            add(SoundEffectCategory.PAYMENTS_ALERTS)
+        }
+    }
+
+    /** Returns `true` when any field differs from [AppAudioConfig] defaults. */
+    public fun isModifiedFromDefault(): Boolean = this != DEFAULT
+
+    public companion object {
+        public const val DEFAULT_VOLUME: Float = 0.75f
+        public val DEFAULT: AppAudioConfig = AppAudioConfig()
+        public val DEFAULT_CATEGORIES: Set<SoundEffectCategory> = setOf(
+            SoundEffectCategory.INTERACTION,
+            SoundEffectCategory.ROSA_ASSISTANT,
+            SoundEffectCategory.PAYMENTS_ALERTS,
+        )
+    }
+}
+
+/**
+ * Multiplatform sound effects player with user-controllable mute, volume, and category filtering.
  */
 public interface SoundPlayer {
     /** Master switch for UI sound effects. */
@@ -53,7 +115,20 @@ public interface SoundPlayer {
     /** Master volume between `0.0f` and `1.0f`. */
     public var soundVolume: Float
 
-    /** Plays the specified [effect] if [isEnabled] is true. */
+    /** Sound effect categories currently enabled by user preferences. */
+    public var enabledCategories: Set<SoundEffectCategory>
+
+    /** Returns `true` when [effect] is eligible for playback given master switch, volume, and categories. */
+    public fun canPlayEffect(effect: SoundEffect): Boolean {
+        if (!isEnabled) return false
+        val isPlayableEffect = effect != SoundEffect.NONE
+        if (!isPlayableEffect) return false
+        val hasAudibleVolume = soundVolume > 0.01f
+        if (!hasAudibleVolume) return false
+        return effect.category in enabledCategories
+    }
+
+    /** Plays the specified [effect] if [canPlayEffect] is `true`. */
     public fun play(effect: SoundEffect)
 
     /** Soft tap shortcut. */
@@ -83,12 +158,13 @@ public interface SoundPlayer {
  */
 public class NoOpSoundPlayer : SoundPlayer {
     override var isEnabled: Boolean = true
-    override var soundVolume: Float = 0.75f
+    override var soundVolume: Float = AppAudioConfig.DEFAULT_VOLUME
+    override var enabledCategories: Set<SoundEffectCategory> = AppAudioConfig.DEFAULT_CATEGORIES
     public var lastPlayedEffect: SoundEffect = SoundEffect.NONE
         private set
 
     override fun play(effect: SoundEffect) {
-        if (isEnabled && effect != SoundEffect.NONE) {
+        if (canPlayEffect(effect)) {
             lastPlayedEffect = effect
         }
     }

@@ -4,9 +4,11 @@ import com.jeudry.rosafiesta.domain.platform.ExternalUrlBuilder
 import com.jeudry.rosafiesta.domain.platform.PickedMediaFile
 import com.jeudry.rosafiesta.domain.platform.PlatformActions
 import com.jeudry.rosafiesta.domain.security.SecureStorage
+import com.jeudry.rosafiesta.domain.sound.AppAudioConfig
 import com.jeudry.rosafiesta.domain.sound.NoOpVoiceInputMonitor
 import com.jeudry.rosafiesta.domain.sound.PcmSoundSynthesizer
 import com.jeudry.rosafiesta.domain.sound.SoundEffect
+import com.jeudry.rosafiesta.domain.sound.SoundEffectCategory
 import com.jeudry.rosafiesta.domain.sound.SoundPlayer
 import com.jeudry.rosafiesta.domain.sound.VoiceInputMonitor
 import com.jeudry.rosafiesta.domain.sound.WavPcmEncoder
@@ -46,7 +48,8 @@ import javax.sound.sampled.TargetDataLine
 
 internal class DesktopSoundPlayer : SoundPlayer {
     override var isEnabled: Boolean = true
-    override var soundVolume: Float = 0.75f
+    override var soundVolume: Float = AppAudioConfig.DEFAULT_VOLUME
+    override var enabledCategories: Set<SoundEffectCategory> = AppAudioConfig.DEFAULT_CATEGORIES
     public var lastPlayedEffect: SoundEffect = SoundEffect.NONE
         private set
 
@@ -57,9 +60,7 @@ internal class DesktopSoundPlayer : SoundPlayer {
     }
 
     override fun play(effect: SoundEffect) {
-        if (!isEnabled) return
-        if (effect == SoundEffect.NONE) return
-        if (soundVolume <= 0.01f) return
+        if (!canPlayEffect(effect)) return
         lastPlayedEffect = effect
         val quantizedVolume = (soundVolume.coerceIn(0f, 1f) * 100f).toInt()
         val cacheKey = (effect.ordinal.toLong() shl 8) or quantizedVolume.toLong()

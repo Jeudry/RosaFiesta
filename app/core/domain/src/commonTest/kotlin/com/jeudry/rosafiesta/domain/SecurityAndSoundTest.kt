@@ -5,9 +5,11 @@ import com.jeudry.rosafiesta.domain.security.InMemorySecureStorage
 import com.jeudry.rosafiesta.domain.security.JwtAuthManager
 import com.jeudry.rosafiesta.domain.security.SecureStorage
 import com.jeudry.rosafiesta.domain.security.SensitiveDataRedactor
+import com.jeudry.rosafiesta.domain.sound.AppAudioConfig
 import com.jeudry.rosafiesta.domain.sound.NoOpSoundPlayer
 import com.jeudry.rosafiesta.domain.sound.PcmSoundSynthesizer
 import com.jeudry.rosafiesta.domain.sound.SoundEffect
+import com.jeudry.rosafiesta.domain.sound.SoundEffectCategory
 import com.jeudry.rosafiesta.domain.sound.WavPcmEncoder
 import com.jeudry.rosafiesta.domain.validation.InputValidator
 import kotlinx.coroutines.test.runTest
@@ -89,6 +91,22 @@ class SecurityAndSoundTest {
         assertTrue(WavPcmEncoder.computeNormalizedRms(rosaReplyPcm) > 0.01f)
         player.playRosaReply()
         assertEquals(SoundEffect.ROSA_REPLY, player.lastPlayedEffect)
+
+        val customAudio = AppAudioConfig.DEFAULT
+            .withVolumePercent(40)
+            .copy(rosaAssistantSoundsEnabled = false)
+        assertEquals(40, customAudio.volumePercent())
+        assertTrue(customAudio.isModifiedFromDefault())
+        player.soundVolume = customAudio.normalizedVolume
+        player.enabledCategories = customAudio.activeCategories()
+        player.playRosaSend()
+        assertEquals(SoundEffect.ROSA_REPLY, player.lastPlayedEffect)
+        player.playTap()
+        assertEquals(SoundEffect.TAP_SOFT, player.lastPlayedEffect)
+
+        player.soundVolume = 0f
+        player.playPaymentSuccess()
+        assertEquals(SoundEffect.TAP_SOFT, player.lastPlayedEffect)
     }
 
     @Test

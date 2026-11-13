@@ -4621,6 +4621,17 @@ internal fun RenderAdminSettingsA31(
                 }
             }
 
+            BasicText(
+                text = "AUDIO Y EFECTOS DE SONIDO",
+                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.08.em, color = Color(0xFF5F6377)),
+            )
+
+            AppAudioSettingsCard(
+                viewModel = viewModel,
+                isEnglish = false,
+                isAdminSurface = true,
+            )
+
             Spacer(modifier = Modifier.height(100.dp))
         }
 

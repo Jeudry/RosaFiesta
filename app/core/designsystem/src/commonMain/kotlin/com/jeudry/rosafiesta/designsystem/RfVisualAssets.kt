@@ -485,6 +485,8 @@ public enum class RfIconKind {
     CHAIR,
     REDO,
     DOWNLOAD,
+    VOLUME_ON,
+    VOLUME_OFF,
 }
 
 internal val iconPaths: Map<RfIconKind, String> = mapOf(
@@ -565,6 +567,8 @@ internal val iconPaths: Map<RfIconKind, String> = mapOf(
     RfIconKind.CHAIR to "M7 3h10v8H7zM6 11h12v3H6zM7 14v7M17 14v7M7 18h10",
     RfIconKind.REDO to "M15 14l5-5-5-5M20 9H10a6 6 0 0 0 0 12h3",
     RfIconKind.DOWNLOAD to "M12 4v11M7 10.5l5 5 5-5M5 20h14",
+    RfIconKind.VOLUME_ON to "M11 5L6 9H3v6h3l5 4z M15.5 8.5a5 5 0 0 1 0 7 M18.5 5.5a9 9 0 0 1 0 13",
+    RfIconKind.VOLUME_OFF to "M11 5L6 9H3v6h3l5 4z M21 9l-6 6 M15 9l6 6",
 )
 
 /**

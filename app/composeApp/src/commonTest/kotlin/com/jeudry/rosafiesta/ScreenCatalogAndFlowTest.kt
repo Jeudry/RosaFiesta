@@ -16,6 +16,10 @@ import com.jeudry.rosafiesta.domain.RosaFiestaRepository
 import com.jeudry.rosafiesta.domain.platform.NoOpPlatformActions
 import com.jeudry.rosafiesta.domain.platform.PickedMediaFile
 import com.jeudry.rosafiesta.domain.security.InMemorySecureStorage
+import com.jeudry.rosafiesta.domain.sound.AppAudioConfig
+import com.jeudry.rosafiesta.domain.sound.NoOpSoundPlayer
+import com.jeudry.rosafiesta.domain.sound.SoundEffect
+import com.jeudry.rosafiesta.domain.sound.SoundEffectCategory
 import com.jeudry.rosafiesta.ui.Navigator
 import com.jeudry.rosafiesta.ui.RosaFiestaViewModel
 import com.jeudry.rosafiesta.ui.ScreenCatalog
@@ -906,5 +910,99 @@ class ScreenCatalogAndFlowTest {
         mainClock.advanceTimeByFrame()
         onNodeWithText("Todas ·", substring = true).assertExists()
         onNodeWithText("Mobiliario").assertExists()
+    }
+
+    @Test
+    fun `viewmodel sincroniza y persiste configuracion de audio volumen y categorias`() = kotlinx.coroutines.test.runTest {
+        val storage = InMemorySecureStorage()
+        val firstPlayer = NoOpSoundPlayer()
+        val firstViewModel = RosaFiestaViewModel(
+            repository = com.jeudry.rosafiesta.data.DefaultRosaFiestaRepository(),
+            soundPlayer = firstPlayer,
+            secureStorage = storage,
+        )
+
+        firstViewModel.stepSoundVolume(15)
+        assertEquals(90, firstViewModel.audioConfig.value.volumePercent())
+        assertEquals(0.90f, firstPlayer.soundVolume)
+
+        firstViewModel.setAudioCategoryEnabled(SoundEffectCategory.ROSA_ASSISTANT, false)
+        assertFalse(SoundEffectCategory.ROSA_ASSISTANT in firstPlayer.enabledCategories)
+        firstViewModel.previewAudioEffect(SoundEffect.ROSA_REPLY)
+        assertEquals(SoundEffect.TAP_SOFT, firstPlayer.lastPlayedEffect)
+
+        firstViewModel.setSoundEffectsEnabled(false)
+        assertFalse(firstPlayer.isEnabled)
+        firstViewModel.previewAudioEffect(SoundEffect.PAYMENT_SUCCESS)
+        assertEquals(
+            "Activa los efectos de sonido para escuchar la prueba.",
+            firstViewModel.formFeedback.value,
+        )
+
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+            for (attempt in 0 until 50) {
+                val persistedEnabled = storage.get(com.jeudry.rosafiesta.domain.security.SecureStorage.KEY_AUDIO_ENABLED)
+                if (persistedEnabled == "false") break
+                kotlinx.coroutines.delay(20)
+            }
+        }
+
+        val restoredPlayer = NoOpSoundPlayer()
+        val secondViewModel = RosaFiestaViewModel(
+            repository = com.jeudry.rosafiesta.data.DefaultRosaFiestaRepository(),
+            soundPlayer = restoredPlayer,
+            secureStorage = storage,
+        )
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+            for (attempt in 0 until 50) {
+                if (!secondViewModel.audioConfig.value.soundEffectsEnabled) break
+                kotlinx.coroutines.delay(20)
+            }
+        }
+        assertFalse(secondViewModel.audioConfig.value.soundEffectsEnabled)
+        assertEquals(90, secondViewModel.audioConfig.value.volumePercent())
+        assertFalse(secondViewModel.audioConfig.value.rosaAssistantSoundsEnabled)
+        assertFalse(restoredPlayer.isEnabled)
+
+        secondViewModel.resetAudioDefaults()
+        assertEquals(AppAudioConfig.DEFAULT, secondViewModel.audioConfig.value)
+        assertTrue(restoredPlayer.isEnabled)
+        assertEquals(SoundEffect.ROSA_REPLY, restoredPlayer.lastPlayedEffect)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun `ajustes s86 expone configuracion completa de audio volumen y categorias`() = runComposeUiTest {
+        setContent {
+            com.jeudry.rosafiesta.ui.RenderScreenSpec(
+                spec = ScreenCatalog.findByCode("s86"),
+                isFrameHarness = false,
+                includeBottomBar = false,
+            )
+        }
+        onNodeWithText("AUDIO Y EFECTOS DE SONIDO").assertExists()
+        onNodeWithText("Efectos de sonido").assertExists()
+        onNodeWithText("Volumen de efectos").assertExists()
+        onNodeWithText("75 %").assertExists()
+        onNodeWithText("Botones, catálogo y boceto").assertExists()
+        onNodeWithText("Asistente Rosa IA").assertExists()
+        onNodeWithText("Pagos y alertas").assertExists()
+
+        onNodeWithTag("audio-volume-plus").performClick()
+        onNodeWithText("85 %").assertExists()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun `ajustes admin A31 incluye tarjeta de audio y efectos de sonido`() = runComposeUiTest {
+        setContent {
+            com.jeudry.rosafiesta.ui.RenderScreenSpec(
+                spec = ScreenCatalog.findByCode("A31"),
+                isFrameHarness = false,
+                includeBottomBar = false,
+            )
+        }
+        onNodeWithText("AUDIO Y EFECTOS DE SONIDO").assertExists()
+        onNodeWithText("Probar").assertExists()
     }
 }

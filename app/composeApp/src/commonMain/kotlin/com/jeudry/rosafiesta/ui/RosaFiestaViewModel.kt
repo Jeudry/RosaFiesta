@@ -55,8 +55,11 @@ import com.jeudry.rosafiesta.domain.security.InMemorySecureStorage
 import com.jeudry.rosafiesta.domain.security.RegisteredUserAccount
 import com.jeudry.rosafiesta.domain.security.SecureStorage
 import com.jeudry.rosafiesta.domain.security.SensitiveDataRedactor
+import com.jeudry.rosafiesta.domain.sound.AppAudioConfig
 import com.jeudry.rosafiesta.domain.sound.NoOpSoundPlayer
 import com.jeudry.rosafiesta.domain.sound.NoOpVoiceInputMonitor
+import com.jeudry.rosafiesta.domain.sound.SoundEffect
+import com.jeudry.rosafiesta.domain.sound.SoundEffectCategory
 import com.jeudry.rosafiesta.domain.sound.SoundPlayer
 import com.jeudry.rosafiesta.domain.sound.VoiceInputMonitor
 import com.jeudry.rosafiesta.domain.validation.InputValidator
@@ -607,6 +610,9 @@ public class RosaFiestaViewModel(
     private val _autoSyncWifiOnly = MutableStateFlow(false)
     public val autoSyncWifiOnly: StateFlow<Boolean> = _autoSyncWifiOnly.asStateFlow()
 
+    private val _audioConfig = MutableStateFlow(AppAudioConfig.DEFAULT)
+    public val audioConfig: StateFlow<AppAudioConfig> = _audioConfig.asStateFlow()
+
     private val _soundEffectsEnabled = MutableStateFlow(true)
     public val soundEffectsEnabled: StateFlow<Boolean> = _soundEffectsEnabled.asStateFlow()
 
@@ -695,6 +701,20 @@ public class RosaFiestaViewModel(
             if (savedAutoSyncWifi != null) {
                 _autoSyncWifiOnly.value = savedAutoSyncWifi == "true"
             }
+            val savedAudioEnabled = secureStorage.get(SecureStorage.KEY_AUDIO_ENABLED)
+            val savedAudioVolume = secureStorage.get(SecureStorage.KEY_AUDIO_VOLUME)?.toFloatOrNull()
+            val savedInteractionAudio = secureStorage.get(SecureStorage.KEY_AUDIO_INTERACTION)
+            val savedRosaAudio = secureStorage.get(SecureStorage.KEY_AUDIO_ROSA)
+            val savedAlertsAudio = secureStorage.get(SecureStorage.KEY_AUDIO_ALERTS)
+            val currentAudio = _audioConfig.value
+            val restoredAudio = currentAudio.copy(
+                soundEffectsEnabled = if (savedAudioEnabled != null) savedAudioEnabled == "true" else currentAudio.soundEffectsEnabled,
+                masterVolume = savedAudioVolume?.coerceIn(0f, 1f) ?: currentAudio.masterVolume,
+                interactionSoundsEnabled = if (savedInteractionAudio != null) savedInteractionAudio == "true" else currentAudio.interactionSoundsEnabled,
+                rosaAssistantSoundsEnabled = if (savedRosaAudio != null) savedRosaAudio == "true" else currentAudio.rosaAssistantSoundsEnabled,
+                paymentAlertSoundsEnabled = if (savedAlertsAudio != null) savedAlertsAudio == "true" else currentAudio.paymentAlertSoundsEnabled,
+            )
+            applyAudioConfig(restoredAudio, persist = false)
             val savedAddress = secureStorage.get("rf_pref_zone")
             if (!savedAddress.isNullOrBlank()) {
                 _profileZone.value = savedAddress
@@ -1723,11 +1743,123 @@ public class RosaFiestaViewModel(
     }
 
     public fun toggleSoundEffects() {
-        val next = !_soundEffectsEnabled.value
-        _soundEffectsEnabled.value = next
-        soundPlayer.isEnabled = next
-        if (next) {
+        val nextEnabled = !_audioConfig.value.soundEffectsEnabled
+        setSoundEffectsEnabled(nextEnabled)
+    }
+
+    /**
+     * Enables or mutes all application UI sound effects and persists the choice.
+     */
+    public fun setSoundEffectsEnabled(enabled: Boolean) {
+        val updated = _audioConfig.value.copy(soundEffectsEnabled = enabled)
+        applyAudioConfig(updated, persist = true)
+        if (enabled) {
             soundPlayer.playTap()
+        }
+    }
+
+    /**
+     * Updates the master sound effects volume (`0.0f..1.0f`) and persists it.
+     */
+    public fun setSoundVolume(volume: Float) {
+        val clampedVolume = volume.coerceIn(0f, 1f)
+        val updated = _audioConfig.value.copy(masterVolume = clampedVolume)
+        applyAudioConfig(updated, persist = true)
+    }
+
+    /**
+     * Adjusts the master sound effects volume by [deltaPercent] steps and plays a subtle preview.
+     */
+    public fun stepSoundVolume(deltaPercent: Int) {
+        val currentPercent = _audioConfig.value.volumePercent()
+        val updated = _audioConfig.value.withVolumePercent(currentPercent + deltaPercent)
+        applyAudioConfig(updated, persist = true)
+        if (updated.soundEffectsEnabled) {
+            soundPlayer.playTap()
+        }
+    }
+
+    /**
+     * Enables or disables a specific [SoundEffectCategory] and persists audio preferences.
+     */
+    public fun setAudioCategoryEnabled(category: SoundEffectCategory, enabled: Boolean) {
+        val current = _audioConfig.value
+        val updated = when (category) {
+            SoundEffectCategory.INTERACTION -> current.copy(interactionSoundsEnabled = enabled)
+            SoundEffectCategory.ROSA_ASSISTANT -> current.copy(rosaAssistantSoundsEnabled = enabled)
+            SoundEffectCategory.PAYMENTS_ALERTS -> current.copy(paymentAlertSoundsEnabled = enabled)
+            SoundEffectCategory.NONE -> current
+        }
+        applyAudioConfig(updated, persist = true)
+        if (enabled) {
+            playSampleForCategory(category)
+        }
+    }
+
+    /**
+     * Plays a live preview sound or informs the user if audio is currently muted/at zero volume.
+     */
+    public fun previewAudioEffect(effect: SoundEffect = SoundEffect.ROSA_REPLY) {
+        val config = _audioConfig.value
+        if (!config.soundEffectsEnabled) {
+            _formFeedback.value = "Activa los efectos de sonido para escuchar la prueba."
+            return
+        }
+        if (config.normalizedVolume <= 0.01f) {
+            _formFeedback.value = "Sube el volumen sobre 0 % para escuchar la prueba."
+            return
+        }
+        if (config.activeCategories().isEmpty()) {
+            _formFeedback.value = "Activa al menos una categoría de sonido para probar."
+            return
+        }
+        val targetEffect = resolvePreviewEffect(effect, config)
+        soundPlayer.play(targetEffect)
+    }
+
+    /**
+     * Restores audio settings to their default enabled state and volume (`75 %`).
+     */
+    public fun resetAudioDefaults() {
+        applyAudioConfig(AppAudioConfig.DEFAULT, persist = true)
+        soundPlayer.playRosaReply()
+    }
+
+    private fun resolvePreviewEffect(requested: SoundEffect, config: AppAudioConfig): SoundEffect {
+        if (requested.category in config.activeCategories()) {
+            return requested
+        }
+        val firstCategory = config.activeCategories().firstOrNull() ?: return requested
+        return when (firstCategory) {
+            SoundEffectCategory.INTERACTION -> SoundEffect.TAP_SOFT
+            SoundEffectCategory.ROSA_ASSISTANT -> SoundEffect.ROSA_REPLY
+            SoundEffectCategory.PAYMENTS_ALERTS -> SoundEffect.PAYMENT_SUCCESS
+            SoundEffectCategory.NONE -> requested
+        }
+    }
+
+    private fun playSampleForCategory(category: SoundEffectCategory) {
+        when (category) {
+            SoundEffectCategory.INTERACTION -> soundPlayer.playTap()
+            SoundEffectCategory.ROSA_ASSISTANT -> soundPlayer.playRosaReply()
+            SoundEffectCategory.PAYMENTS_ALERTS -> soundPlayer.playPaymentSuccess()
+            SoundEffectCategory.NONE -> Unit
+        }
+    }
+
+    private fun applyAudioConfig(next: AppAudioConfig, persist: Boolean) {
+        _audioConfig.value = next
+        _soundEffectsEnabled.value = next.soundEffectsEnabled
+        soundPlayer.isEnabled = next.soundEffectsEnabled
+        soundPlayer.soundVolume = next.normalizedVolume
+        soundPlayer.enabledCategories = next.activeCategories()
+        if (!persist) return
+        securityScope.launch {
+            secureStorage.put(SecureStorage.KEY_AUDIO_ENABLED, next.soundEffectsEnabled.toString())
+            secureStorage.put(SecureStorage.KEY_AUDIO_VOLUME, next.normalizedVolume.toString())
+            secureStorage.put(SecureStorage.KEY_AUDIO_INTERACTION, next.interactionSoundsEnabled.toString())
+            secureStorage.put(SecureStorage.KEY_AUDIO_ROSA, next.rosaAssistantSoundsEnabled.toString())
+            secureStorage.put(SecureStorage.KEY_AUDIO_ALERTS, next.paymentAlertSoundsEnabled.toString())
         }
     }
 

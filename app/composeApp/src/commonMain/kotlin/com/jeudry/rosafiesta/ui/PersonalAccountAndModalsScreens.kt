@@ -65,6 +65,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jeudry.rosafiesta.core.engine.RosaFiestaEngine
@@ -93,6 +94,9 @@ import com.jeudry.rosafiesta.domain.CanonicalSampleData
 import com.jeudry.rosafiesta.domain.CatalogArticle
 import com.jeudry.rosafiesta.domain.DomainClockFormatter
 import com.jeudry.rosafiesta.domain.NotificationRecord
+import com.jeudry.rosafiesta.domain.sound.AppAudioConfig
+import com.jeudry.rosafiesta.domain.sound.SoundEffect
+import com.jeudry.rosafiesta.domain.sound.SoundEffectCategory
 
 private val RosaButtonGradient = Brush.horizontalGradient(
     listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC)),
@@ -1587,6 +1591,7 @@ internal fun RenderAccountSettingsS86(
     val isEnglish = localLanguage.startsWith("Eng", ignoreCase = true)
     val screenTitle = if (isEnglish) "Settings" else "Ajustes"
     val preferencesHeader = if (isEnglish) "PREFERENCES" else "PREFERENCIAS"
+    val audioHeader = if (isEnglish) "AUDIO & SOUND EFFECTS" else "AUDIO Y EFECTOS DE SONIDO"
     val accountHeader = if (isEnglish) "SECURITY & ACCOUNT" else "CUENTA Y SEGURIDAD"
     val notificationsHeader = if (isEnglish) "NOTIFICATIONS" else "AVISOS"
     val legalHeader = if (isEnglish) "PRIVACY & LEGAL" else "PRIVACIDAD Y LEGAL"
@@ -1727,6 +1732,16 @@ internal fun RenderAccountSettingsS86(
                     )
                 }
             }
+
+            Spacer(modifier = Modifier.height(14.dp))
+            SettingsCaption86(audioHeader)
+            Spacer(modifier = Modifier.height(8.dp))
+            AppAudioSettingsCard(
+                viewModel = viewModel,
+                isEnglish = isEnglish,
+                isAdminSurface = false,
+                horizontalMargin = 20.dp,
+            )
 
             Spacer(modifier = Modifier.height(14.dp))
             SettingsCaption86(accountHeader)
@@ -2124,6 +2139,354 @@ private fun SettingsSwitch86(
         contentAlignment = if (checked) Alignment.CenterEnd else Alignment.CenterStart,
     ) {
         Box(modifier = Modifier.padding(horizontal = 3.dp).size(22.dp).clip(CircleShape).background(RfThemeState.currentPalette.surface).shadow(1.dp, CircleShape))
+    }
+}
+
+@Composable
+internal fun AppAudioSettingsCard(
+    viewModel: RosaFiestaViewModel?,
+    isEnglish: Boolean = false,
+    isAdminSurface: Boolean = false,
+    horizontalMargin: Dp = 0.dp,
+) {
+    val typo = LocalRfTypography.current
+    val personalPalette = RfThemeState.currentPalette
+    val vmAudioConfig = viewModel?.audioConfig?.collectAsState()?.value ?: AppAudioConfig.DEFAULT
+    var localConfig by remember(vmAudioConfig) { mutableStateOf(vmAudioConfig) }
+
+    val surfaceColor = if (isAdminSurface) Color.White else personalPalette.surface
+    val borderColor = if (isAdminSurface) Color(0xFFECECF5) else personalPalette.line
+    val dividerColor = if (isAdminSurface) Color(0xFFF0F0F6) else personalPalette.lineSoft
+    val inkColor = if (isAdminSurface) Color(0xFF151729) else personalPalette.ink
+    val mutedColor = if (isAdminSurface) Color(0xFF5F6377) else personalPalette.muted
+    val chipBgColor = if (isAdminSurface) Color(0xFFF2F2F8) else personalPalette.chipBg
+    val accentGradient = if (isAdminSurface) {
+        Brush.horizontalGradient(listOf(Color(0xFF5B6CF0), Color(0xFF865DEC)))
+    } else {
+        Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))
+    }
+    val accentTint = if (isAdminSurface) Color(0xFF4B47D6) else Color(0xFFC2338F)
+    val volumePercent = localConfig.volumePercent()
+    val statusSummary = if (!localConfig.soundEffectsEnabled) {
+        if (isEnglish) "Muted" else "Silenciados"
+    } else if (isEnglish) {
+        "Active · $volumePercent%"
+    } else {
+        "Activos · $volumePercent %"
+    }
+    val speakerIcon = if (localConfig.soundEffectsEnabled) RfIconKind.VOLUME_ON else RfIconKind.VOLUME_OFF
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = horizontalMargin)
+            .clip(RoundedCornerShape(20.dp))
+            .background(surfaceColor)
+            .border(1.dp, borderColor, RoundedCornerShape(20.dp)),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 56.dp)
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            RfIcon(kind = speakerIcon, tint = accentTint, size = 20.dp)
+            Column(modifier = Modifier.weight(1f)) {
+                BasicText(
+                    text = if (isEnglish) "Sound effects" else "Efectos de sonido",
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = inkColor),
+                )
+                BasicText(
+                    text = statusSummary,
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.5.sp, color = mutedColor),
+                )
+            }
+            SettingsSwitch86(
+                checked = localConfig.soundEffectsEnabled,
+                onToggle = {
+                    val nextEnabled = !localConfig.soundEffectsEnabled
+                    localConfig = localConfig.copy(soundEffectsEnabled = nextEnabled)
+                    viewModel?.setSoundEffectsEnabled(nextEnabled)
+                },
+            )
+        }
+
+        Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(dividerColor))
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp)
+                .graphicsLayer { alpha = if (localConfig.soundEffectsEnabled) 1f else 0.55f },
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                BasicText(
+                    text = if (isEnglish) "Effects volume" else "Volumen de efectos",
+                    modifier = Modifier.weight(1f),
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = inkColor),
+                )
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(chipBgColor)
+                        .padding(horizontal = 10.dp, vertical = 4.dp),
+                ) {
+                    BasicText(
+                        text = "$volumePercent %",
+                        modifier = Modifier.testTag("audio-volume-value"),
+                        style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.Bold, fontSize = 12.5.sp, color = inkColor),
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(accentGradient)
+                        .clickable {
+                            viewModel?.previewAudioEffect(SoundEffect.ROSA_REPLY)
+                        }
+                        .padding(horizontal = 11.dp, vertical = 5.dp)
+                        .testTag("audio-preview-button"),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(5.dp),
+                    ) {
+                        RfIcon(kind = RfIconKind.PLAY, tint = Color.White, size = 12.dp, filled = true)
+                        BasicText(
+                            text = if (isEnglish) "Test" else "Probar",
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.White),
+                        )
+                    }
+                }
+            }
+
+            AudioVolumeSliderRow(
+                volumeFraction = localConfig.normalizedVolume,
+                trackBackground = chipBgColor,
+                fillBrush = accentGradient,
+                thumbFill = surfaceColor,
+                thumbBorder = accentTint,
+                iconTint = accentTint,
+                onVolumeFractionChange = { nextFraction ->
+                    localConfig = localConfig.copy(masterVolume = nextFraction)
+                    viewModel?.setSoundVolume(nextFraction)
+                },
+                onStepVolume = { deltaPercent ->
+                    localConfig = localConfig.withVolumePercent(localConfig.volumePercent() + deltaPercent)
+                    viewModel?.stepSoundVolume(deltaPercent)
+                },
+            )
+        }
+
+        Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(dividerColor))
+
+        AudioCategoryToggleRow(
+            title = if (isEnglish) "Buttons, catalog & sketch" else "Botones, catálogo y boceto",
+            subtitle = if (isEnglish) "Taps, items and checklist" else "Toques, artículos y checklist",
+            checked = localConfig.interactionSoundsEnabled,
+            inkColor = inkColor,
+            mutedColor = mutedColor,
+            testTagName = "audio-category-interaction",
+            onToggle = {
+                val nextChecked = !localConfig.interactionSoundsEnabled
+                localConfig = localConfig.copy(interactionSoundsEnabled = nextChecked)
+                viewModel?.setAudioCategoryEnabled(SoundEffectCategory.INTERACTION, nextChecked)
+            },
+        )
+        Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(dividerColor))
+        AudioCategoryToggleRow(
+            title = if (isEnglish) "Rosa AI assistant" else "Asistente Rosa IA",
+            subtitle = if (isEnglish) "Prompts and smart replies" else "Mensajes enviados y respuestas",
+            checked = localConfig.rosaAssistantSoundsEnabled,
+            inkColor = inkColor,
+            mutedColor = mutedColor,
+            testTagName = "audio-category-rosa",
+            onToggle = {
+                val nextChecked = !localConfig.rosaAssistantSoundsEnabled
+                localConfig = localConfig.copy(rosaAssistantSoundsEnabled = nextChecked)
+                viewModel?.setAudioCategoryEnabled(SoundEffectCategory.ROSA_ASSISTANT, nextChecked)
+            },
+        )
+        Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(dividerColor))
+        AudioCategoryToggleRow(
+            title = if (isEnglish) "Payments & alerts" else "Pagos y alertas",
+            subtitle = if (isEnglish) "Confirmations and error notices" else "Confirmaciones y avisos de error",
+            checked = localConfig.paymentAlertSoundsEnabled,
+            inkColor = inkColor,
+            mutedColor = mutedColor,
+            testTagName = "audio-category-alerts",
+            onToggle = {
+                val nextChecked = !localConfig.paymentAlertSoundsEnabled
+                localConfig = localConfig.copy(paymentAlertSoundsEnabled = nextChecked)
+                viewModel?.setAudioCategoryEnabled(SoundEffectCategory.PAYMENTS_ALERTS, nextChecked)
+            },
+        )
+
+        if (localConfig.isModifiedFromDefault()) {
+            Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(dividerColor))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        localConfig = AppAudioConfig.DEFAULT
+                        viewModel?.resetAudioDefaults()
+                    }
+                    .padding(horizontal = 16.dp, vertical = 11.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                BasicText(
+                    text = if (isEnglish) "Reset audio defaults (75%)" else "Restaurar audio predeterminado (75 %)",
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = accentTint),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AudioVolumeSliderRow(
+    volumeFraction: Float,
+    trackBackground: Color,
+    fillBrush: Brush,
+    thumbFill: Color,
+    thumbBorder: Color,
+    iconTint: Color,
+    onVolumeFractionChange: (Float) -> Unit,
+    onStepVolume: (Int) -> Unit,
+) {
+    var trackWidthPx by remember { mutableStateOf(1f) }
+    val clampedFraction = volumeFraction.coerceIn(0f, 1f)
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(30.dp)
+                .clip(CircleShape)
+                .background(trackBackground)
+                .clickable { onStepVolume(-10) }
+                .testTag("audio-volume-minus"),
+            contentAlignment = Alignment.Center,
+        ) {
+            RfIcon(kind = RfIconKind.MINUS, tint = iconTint, size = 14.dp)
+        }
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .height(26.dp)
+                .onSizeChanged { measuredSize ->
+                    val widthFloat = measuredSize.width.toFloat()
+                    if (widthFloat > 0f) {
+                        trackWidthPx = widthFloat
+                    }
+                }
+                .pointerInput(trackWidthPx) {
+                    detectTapGestures { tapOffset ->
+                        val nextFraction = (tapOffset.x / trackWidthPx).coerceIn(0f, 1f)
+                        onVolumeFractionChange(nextFraction)
+                    }
+                }
+                .pointerInput(trackWidthPx) {
+                    detectHorizontalDragGestures { change, _ ->
+                        change.consume()
+                        val nextFraction = (change.position.x / trackWidthPx).coerceIn(0f, 1f)
+                        onVolumeFractionChange(nextFraction)
+                    }
+                },
+            contentAlignment = Alignment.CenterStart,
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(trackBackground),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(fraction = clampedFraction)
+                        .height(8.dp)
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(fillBrush),
+                )
+            }
+            val thumbCenterFraction = clampedFraction.coerceIn(0.03f, 0.97f)
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                if (thumbCenterFraction > 0.03f) {
+                    Spacer(modifier = Modifier.weight(thumbCenterFraction))
+                }
+                Box(
+                    modifier = Modifier
+                        .size(18.dp)
+                        .shadow(2.dp, CircleShape)
+                        .clip(CircleShape)
+                        .background(thumbFill)
+                        .border(2.dp, thumbBorder, CircleShape),
+                )
+                val trailingWeight = (1f - thumbCenterFraction).coerceAtLeast(0.001f)
+                Spacer(modifier = Modifier.weight(trailingWeight))
+            }
+        }
+        Box(
+            modifier = Modifier
+                .size(30.dp)
+                .clip(CircleShape)
+                .background(trackBackground)
+                .clickable { onStepVolume(10) }
+                .testTag("audio-volume-plus"),
+            contentAlignment = Alignment.Center,
+        ) {
+            RfIcon(kind = RfIconKind.PLUS, tint = iconTint, size = 14.dp)
+        }
+    }
+}
+
+@Composable
+private fun AudioCategoryToggleRow(
+    title: String,
+    subtitle: String,
+    checked: Boolean,
+    inkColor: Color,
+    mutedColor: Color,
+    testTagName: String,
+    onToggle: () -> Unit,
+) {
+    val typo = LocalRfTypography.current
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 52.dp)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .testTag(testTagName),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            BasicText(
+                text = title,
+                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Medium, fontSize = 14.sp, color = inkColor),
+            )
+            BasicText(
+                text = subtitle,
+                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = mutedColor),
+            )
+        }
+        SettingsSwitch86(
+            checked = checked,
+            onToggle = onToggle,
+        )
     }
 }
 
