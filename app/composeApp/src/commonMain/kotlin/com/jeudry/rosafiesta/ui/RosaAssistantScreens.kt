@@ -83,6 +83,7 @@ import com.jeudry.rosafiesta.domain.CanonicalSampleData
 import com.jeudry.rosafiesta.domain.CatalogArticle
 import com.jeudry.rosafiesta.domain.EventLineItem
 import com.jeudry.rosafiesta.domain.PhotoAsset
+import com.jeudry.rosafiesta.domain.platform.ExternalUrlBuilder
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
@@ -231,45 +232,70 @@ private fun openRosaVoiceScreen(
 }
 
 private fun resolveRosaHeaderSpeech(
-    step: Int,
+    screenCode: String,
     eventType: String,
     venueLabel: String,
     proposalMessage: String,
+    draftCount: Int,
 ): Pair<String, String> {
     val cleanType = eventType.trim()
     val cleanVenue = venueLabel.trim()
     val cleanProposal = proposalMessage.trim()
-    if (cleanProposal.isNotEmpty()) {
-        return "¡Hola! Soy Rosa, tu asistente" to cleanProposal
-    }
-    return when (step) {
-        1 -> {
+    val eventMeta = resolveRosaEventMetadata(cleanType.ifEmpty { "Boda" })
+    val eventLower = eventMeta.displayTitle.lowercase()
+    return when (screenCode) {
+        "s26" -> {
             val subtitle = if (cleanType.isNotEmpty()) {
-                resolveRosaEventMetadata(cleanType).subtitleBadge
+                "Elegiste ${eventMeta.displayTitle} · Cámbialo o escríbeme"
             } else {
-                "Cuéntame qué evento quieres celebrar"
+                "Elige una opción o escríbeme abajo"
             }
-            "¡Hola! Soy Rosa, tu asistente" to subtitle
+            "¿Qué evento quieres celebrar?" to subtitle
         }
 
-        2 -> "Rosa IA · Aforo y espacio" to "Ajustemos invitados y lugar ideal"
-
-        3 -> {
-            val contextTarget = cleanVenue.ifEmpty { cleanType.ifEmpty { "tu evento" } }
-            "Rosa IA · Sugerencias" to "Armé estas ideas para $contextTarget"
+        "s27" -> {
+            val subtitle = cleanProposal.ifEmpty {
+                "${eventMeta.displayTitle} · Cuéntame más por texto o voz"
+            }
+            "${eventMeta.spanishGreeting} Me encanta." to subtitle
         }
 
-        4 -> "Rosa IA · Categorías" to "Activa o quita piezas a tu gusto"
+        "s28" -> "¿Te ayudo a elegir tus artículos?" to "Para tu $eventLower · Puedes cambiar todo luego"
 
-        5 -> "Rosa IA · Logística" to "Confirma fecha, horario y dirección"
+        "s29" -> {
+            val fallbackHint = if (draftCount > 0) {
+                "$draftCount artículos en tu borrador · Pídeme más abajo"
+            } else {
+                "Elige piezas o pídeme algo distinto abajo"
+            }
+            val subtitle = cleanProposal.ifEmpty { fallbackHint }
+            "Para tu $eventLower te recomiendo:" to subtitle
+        }
 
-        else -> "Rosa IA · Cotización lista" to "Revisa todo antes de enviarlo"
+        "s30" -> {
+            val subtitle = cleanProposal.ifEmpty { "Activa o quita piezas a tu gusto" }
+            "¿Te falta algo? Mira por categoría" to subtitle
+        }
+
+        "s31" -> {
+            val subtitle = if (cleanVenue.isNotEmpty()) {
+                "$cleanVenue · Confirma fecha y horario"
+            } else {
+                "Confirma fecha, horario y dirección"
+            }
+            "Ahora, los detalles de tu evento" to subtitle
+        }
+
+        else -> {
+            val subtitle = cleanProposal.ifEmpty { "Confirma tus datos antes de enviarlo" }
+            "Listo. Revisa que todo esté bien" to subtitle
+        }
     }
 }
 
 @Composable
 private fun RosaWizardHeader(
-    step: Int,
+    screenCode: String,
     cartCount: Int? = null,
     viewModel: RosaFiestaViewModel? = null,
     onBack: () -> Unit = {},
@@ -291,10 +317,11 @@ private fun RosaWizardHeader(
     val vmProposalMessage = viewModel?.rosaProposalMessage?.collectAsState()?.value.orEmpty()
     val activeEventType = vmEventTypeInput.ifBlank { vmRosaEventType }
     val (assistantTitle, assistantSubtitle) = resolveRosaHeaderSpeech(
-        step = step,
+        screenCode = screenCode,
         eventType = activeEventType,
         venueLabel = vmVenueInput,
         proposalMessage = vmProposalMessage,
+        draftCount = resolvedCartCount,
     )
     val subtitleColor = if (palette.isDark) Color(0xFFC5B4F8) else Color(0xFF7A4FD8)
 
@@ -302,7 +329,7 @@ private fun RosaWizardHeader(
         modifier = Modifier
             .fillMaxWidth()
             .zIndex(2f)
-            .padding(top = 10.dp, bottom = 6.dp, start = 16.dp, end = 16.dp),
+            .padding(top = 12.dp, bottom = 10.dp, start = 16.dp, end = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -328,16 +355,19 @@ private fun RosaWizardHeader(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             RosaAvatar(size = RosaAvatarSize.MEDIUM, forceAdminPalette = false, customSize = 42.dp)
-            Column(modifier = Modifier.weight(1f)) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
                 BasicText(
                     text = assistantTitle,
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                     style = TextStyle(
-                        fontFamily = typo.bodyFamily,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
-                        lineHeight = 17.sp,
+                        fontFamily = typo.displayFamily,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 15.sp,
+                        lineHeight = 18.sp,
                         color = palette.ink,
                     ),
                 )
@@ -823,7 +853,7 @@ internal fun RenderRosaEventTypeS26(
         }
 
         RosaWizardHeader(
-            step = 1,
+            screenCode = "s26",
             viewModel = viewModel,
             onBack = { onSelectScreenCode("BACK:s14") },
             onCart = { onSelectScreenCode("s25") },
@@ -832,36 +862,11 @@ internal fun RenderRosaEventTypeS26(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 66.dp, bottom = 88.dp)
+                .padding(top = 78.dp, bottom = 88.dp)
                 .verticalScroll(rememberScrollState())
                 .padding(top = 8.dp, start = 20.dp, end = 20.dp, bottom = 12.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                BasicText(
-                    text = "¿Qué evento quieres",
-                    style = TextStyle(
-                        fontFamily = typo.displayFamily,
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 26.sp,
-                        lineHeight = 28.sp,
-                        letterSpacing = (-0.52).sp,
-                        color = RfThemeState.currentPalette.ink,
-                    ),
-                )
-                BasicText(
-                    text = "celebrar?",
-                    style = TextStyle(
-                        fontFamily = typo.displayFamily,
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 26.sp,
-                        lineHeight = 28.sp,
-                        letterSpacing = (-0.52).sp,
-                        color = RfThemeState.currentPalette.ink,
-                    ),
-                )
-            }
-
             data class EventTypeItem(
                 val name: String,
                 val bg: Color,
@@ -1296,7 +1301,7 @@ internal fun RenderRosaTutorialS27(
             .background(RosaBackgroundGradient),
     ) {
         RosaWizardHeader(
-            step = 1,
+            screenCode = "s27",
             viewModel = viewModel,
             onBack = { onSelectScreenCode("BACK:s26") },
             onCart = { onSelectScreenCode("s25") },
@@ -1305,7 +1310,7 @@ internal fun RenderRosaTutorialS27(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 66.dp, bottom = 88.dp)
+                .padding(top = 78.dp, bottom = 88.dp)
                 .verticalScroll(rememberScrollState()),
         ) {
             Spacer(modifier = Modifier.height(10.dp))
@@ -1358,17 +1363,6 @@ internal fun RenderRosaTutorialS27(
                         }
                     }
                 }
-
-                BasicText(
-                    text = "${eventMetadata.spanishGreeting} Me encanta.",
-                    style = TextStyle(
-                        fontFamily = typo.displayFamily,
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 23.sp,
-                        lineHeight = 26.sp,
-                        color = RfThemeState.currentPalette.ink,
-                    ),
-                )
 
                 Box(
                     modifier = Modifier
@@ -1599,7 +1593,7 @@ internal fun RenderRosaHelpS28(
             ),
     ) {
         RosaWizardHeader(
-            step = 2,
+            screenCode = "s28",
             viewModel = viewModel,
             onBack = { onSelectScreenCode("BACK:s27") },
             onCart = { onSelectScreenCode("s25") },
@@ -1609,7 +1603,7 @@ internal fun RenderRosaHelpS28(
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .fillMaxSize()
-                .padding(top = 66.dp, bottom = 224.dp)
+                .padding(top = 78.dp, bottom = 224.dp)
                 .verticalScroll(rememberScrollState())
                 .padding(top = 8.dp, start = 20.dp, end = 20.dp, bottom = 20.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
@@ -1646,38 +1640,6 @@ internal fun RenderRosaHelpS28(
                         )
                     }
                 }
-            }
-
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                BasicText(
-                    text = eventMetadata.spanishGreeting,
-                    style = TextStyle(
-                        fontFamily = typo.bodyFamily,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp,
-                        color = Color(0xFF9B45C8),
-                    ),
-                )
-
-                BasicText(
-                    text = "¿Te ayudo a elegir los artículos de alquiler?",
-                    style = TextStyle(
-                        fontFamily = typo.displayFamily,
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 23.sp,
-                        color = RfThemeState.currentPalette.ink,
-                        lineHeight = 27.sp,
-                    ),
-                )
-                BasicText(
-                    text = "Te recomiendo según tu ${eventMetadata.displayTitle.lowercase()}. Puedes cambiar todo después.",
-                    style = TextStyle(
-                        fontFamily = typo.bodyFamily,
-                        fontSize = 16.sp,
-                        color = RfThemeState.currentPalette.muted,
-                        lineHeight = 24.sp,
-                    ),
-                )
             }
         }
 
@@ -1861,14 +1823,10 @@ internal fun RenderRosaSuggestionsS29(
     val typo = LocalRfTypography.current
     val catalogArticles = viewModel?.articles?.collectAsState()?.value ?: CanonicalSampleData.articles
     val draftQuantities = viewModel?.draftQuantities?.collectAsState()?.value.orEmpty()
-    val eventTypeInputValue = viewModel?.eventTypeInput?.collectAsState()?.value.orEmpty()
-    val rosaEventTypeValue = viewModel?.rosaEventType?.collectAsState()?.value.orEmpty()
-    val selectedEventType = eventTypeInputValue.ifBlank { rosaEventTypeValue.ifBlank { "Boda" } }
-    val eventMetadata = resolveRosaEventMetadata(selectedEventType)
 
     var suggestionBatch by remember { mutableStateOf(0) }
     var hasRequestedConversationalPrompt by remember { mutableStateOf(false) }
-    var fallbackAddedIds by remember { mutableStateOf(setOf("art-centro-floral")) }
+    var fallbackAddedIds by remember { mutableStateOf(emptySet<String>()) }
     var promptText by remember { mutableStateOf("") }
 
     val allCatalogSuggestions = remember(catalogArticles) {
@@ -1916,7 +1874,7 @@ internal fun RenderRosaSuggestionsS29(
             .background(RosaBackgroundGradient),
     ) {
         RosaWizardHeader(
-            step = 3,
+            screenCode = "s29",
             viewModel = viewModel,
             onBack = { onSelectScreenCode("BACK:s28") },
             onCart = { onSelectScreenCode("s25") },
@@ -1926,26 +1884,9 @@ internal fun RenderRosaSuggestionsS29(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(top = 66.dp, bottom = 148.dp),
+                .padding(top = 78.dp, bottom = 148.dp),
         ) {
-            Spacer(modifier = Modifier.height(10.dp))
-
-            BasicText(
-                text = "Para tu ${eventMetadata.displayTitle.lowercase()} te recomiendo estos artículos",
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp),
-                style = TextStyle(
-                    fontFamily = typo.displayFamily,
-                    fontWeight = FontWeight.ExtraBold,
-                    fontSize = 22.sp,
-                    letterSpacing = (-0.44).sp,
-                    lineHeight = 26.sp,
-                    color = RfThemeState.currentPalette.ink,
-                ),
-            )
-
-            Spacer(modifier = Modifier.height(18.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
             Row(
                 modifier = Modifier
@@ -2165,67 +2106,53 @@ internal fun RenderRosaSuggestionsS29(
 
 private data class RosaCategoryReviewSpec(
     val title: String,
-    val defaultSubtitle: String?,
     val iconKind: RfIconKind,
     val iconBg: Color,
     val iconTint: Color,
-    val articleId: String?,
+    val articles: List<CatalogArticle>,
 )
 
-private fun resolveCategoryCatalogArticleId(
-    categoryTitle: String,
-    catalogArticles: List<CatalogArticle>,
-): String? {
-    val lowerTitle = categoryTitle.lowercase()
+private fun resolveCategoryVisualStyle(categoryTitle: String): Triple<RfIconKind, Color, Color> {
+    val lower = categoryTitle.lowercase()
+    val isSeatingCategory = lower.contains("mobiliario") || lower.contains("silla")
+    val isTableCategory = lower.contains("mesa") && !lower.contains("dulce")
+    val isFloralCategory = lower.contains("floral") || lower.contains("centro")
+    val isBalloonOrArchCategory = lower.contains("arco") || lower.contains("globo")
     return when {
-        lowerTitle.contains("silla") -> {
-            val matched = catalogArticles.firstOrNull { item -> item.id == "art-silla-tiffany" }
-            matched?.id ?: catalogArticles.firstOrNull { item -> item.name.contains("silla", ignoreCase = true) }?.id
-        }
+        isSeatingCategory -> Triple(RfIconKind.STORE, Color(0xFFFFF2C9), Color(0xFF7A5700))
+        isTableCategory -> Triple(RfIconKind.BOX, Color(0xFFEEF6D6), Color(0xFF4E6A10))
+        isFloralCategory -> Triple(RfIconKind.SPARK, Color(0xFFFDE6F2), Color(0xFFC2338F))
+        isBalloonOrArchCategory -> Triple(RfIconKind.PARTY, Color(0xFFFDE6F2), Color(0xFFC2338F))
+        lower.contains("dulce") -> Triple(RfIconKind.CAKE, Color(0xFFFFF2C9), Color(0xFF7A5700))
+        lower.contains("ilumin") -> Triple(RfIconKind.LIGHTBULB, Color(0xFFDDF4F3), Color(0xFF1F8A84))
+        lower.contains("mantel") -> Triple(RfIconKind.GRID, Color(0xFFEFE8FD), Color(0xFF7A4FD8))
+        else -> Triple(RfIconKind.BOX, Color(0xFFEFE8FD), Color(0xFF7A4FD8))
+    }
+}
 
-        lowerTitle == "mesas" -> {
-            val matched = catalogArticles.firstOrNull { item -> item.id == "art-mesa-redonda" }
-            matched?.id ?: catalogArticles.firstOrNull { item -> item.name.contains("mesa redonda", ignoreCase = true) }?.id
+private fun buildRealCategoryReviewSpecs(
+    catalogArticles: List<CatalogArticle>,
+): List<RosaCategoryReviewSpec> {
+    val grouped = linkedMapOf<String, MutableList<CatalogArticle>>()
+    for (article in catalogArticles) {
+        val isVisible = article.visibleInCatalog
+        val categoryName = article.category.trim()
+        val hasCategory = categoryName.isNotEmpty()
+        val shouldInclude = if (isVisible) hasCategory else false
+        if (shouldInclude) {
+            val bucket = grouped.getOrPut(categoryName) { mutableListOf() }
+            bucket.add(article)
         }
-
-        lowerTitle.contains("apoyo") -> {
-            catalogArticles.firstOrNull { item -> item.id == "art-mesa-plegable" }?.id
-        }
-
-        lowerTitle.contains("centro") -> {
-            val matched = catalogArticles.firstOrNull { item -> item.id == "art-centro-floral" }
-            matched?.id ?: catalogArticles.firstOrNull { item -> item.name.contains("centro", ignoreCase = true) }?.id
-        }
-
-        lowerTitle.contains("dulce") -> {
-            val matched = catalogArticles.firstOrNull { item -> item.id == "art-mesa-helados" }
-            matched?.id ?: catalogArticles.firstOrNull { item -> item.name.contains("helado", ignoreCase = true) }?.id
-        }
-
-        lowerTitle.contains("arco") -> {
-            val matched = catalogArticles.firstOrNull { item -> item.id == "art-arco-rosa" }
-            matched?.id ?: catalogArticles.firstOrNull { item -> item.name.contains("arco", ignoreCase = true) }?.id
-        }
-
-        lowerTitle.contains("ilumin") -> {
-            catalogArticles.firstOrNull { item ->
-                val matchesCategory = item.category.contains("ilumin", ignoreCase = true)
-                val matchesName = listOf("ilumin", "luces", "guirnalda").any { keyword ->
-                    item.name.contains(keyword, ignoreCase = true)
-                }
-                if (matchesCategory) true else matchesName
-            }?.id
-        }
-
-        lowerTitle.contains("mantel") -> {
-            catalogArticles.firstOrNull { item ->
-                val matchesCategory = item.category.contains("mantel", ignoreCase = true)
-                val matchesName = item.name.contains("mantel", ignoreCase = true)
-                if (matchesCategory) true else matchesName
-            }?.id
-        }
-
-        else -> null
+    }
+    return grouped.entries.map { entry ->
+        val (iconKind, iconBg, iconTint) = resolveCategoryVisualStyle(entry.key)
+        RosaCategoryReviewSpec(
+            title = entry.key,
+            iconKind = iconKind,
+            iconBg = iconBg,
+            iconTint = iconTint,
+            articles = entry.value.toList(),
+        )
     }
 }
 
@@ -2236,89 +2163,41 @@ internal fun RenderRosaCategoriesS30(
 ) {
     val typo = LocalRfTypography.current
     val catalogArticles = viewModel?.articles?.collectAsState()?.value ?: CanonicalSampleData.articles
-    val draftQuantities = viewModel?.draftQuantities?.collectAsState()?.value.orEmpty()
+    val vmDraftQuantities = viewModel?.draftQuantities?.collectAsState()?.value.orEmpty()
     val vmOmittedCategories = viewModel?.rosaOmittedCategories?.collectAsState()?.value
 
-    var manualChosenCategories by remember { mutableStateOf(setOf("Sillas", "Mesas")) }
+    var fallbackQuantities by remember { mutableStateOf(emptyMap<String, Int>()) }
     var localOmittedCategories by remember { mutableStateOf(emptySet<String>()) }
-    var showExtraIdeas by remember { mutableStateOf(false) }
+    var activePickerCategoryTitle by remember { mutableStateOf<String?>(null) }
     var promptText by remember { mutableStateOf("") }
 
+    val activeQuantities = if (viewModel != null) vmDraftQuantities else fallbackQuantities
     val activeOmittedCategories = vmOmittedCategories ?: localOmittedCategories
 
-    val baseCategories = remember(catalogArticles) {
-        listOf(
-            RosaCategoryReviewSpec(
-                title = "Sillas",
-                defaultSubtitle = null,
-                iconKind = RfIconKind.STORE,
-                iconBg = Color(0xFFFFF2C9),
-                iconTint = Color(0xFF7A5700),
-                articleId = resolveCategoryCatalogArticleId("Sillas", catalogArticles),
-            ),
-            RosaCategoryReviewSpec(
-                title = "Mesas",
-                defaultSubtitle = null,
-                iconKind = RfIconKind.BOX,
-                iconBg = Color(0xFFEEF6D6),
-                iconTint = Color(0xFF4E6A10),
-                articleId = resolveCategoryCatalogArticleId("Mesas", catalogArticles),
-            ),
-            RosaCategoryReviewSpec(
-                title = "Iluminación",
-                defaultSubtitle = null,
-                iconKind = RfIconKind.LIGHTBULB,
-                iconBg = Color(0xFFDDF4F3),
-                iconTint = Color(0xFF1F8A84),
-                articleId = resolveCategoryCatalogArticleId("Iluminación", catalogArticles),
-            ),
-            RosaCategoryReviewSpec(
-                title = "Mantelería",
-                defaultSubtitle = null,
-                iconKind = RfIconKind.GRID,
-                iconBg = Color(0xFFEFE8FD),
-                iconTint = Color(0xFF7A4FD8),
-                articleId = resolveCategoryCatalogArticleId("Mantelería", catalogArticles),
-            ),
-            RosaCategoryReviewSpec(
-                title = "Centros de mesa",
-                defaultSubtitle = null,
-                iconKind = RfIconKind.SPARK,
-                iconBg = Color(0xFFFDE6F2),
-                iconTint = Color(0xFFC2338F),
-                articleId = resolveCategoryCatalogArticleId("Centros de mesa", catalogArticles),
-            ),
-        )
+    val displayedCategories = remember(catalogArticles) {
+        buildRealCategoryReviewSpecs(catalogArticles)
     }
-    val extraCategories = remember(catalogArticles) {
-        listOf(
-            RosaCategoryReviewSpec(
-                title = "Estación de dulces",
-                defaultSubtitle = null,
-                iconKind = RfIconKind.CAKE,
-                iconBg = Color(0xFFFFF2C9),
-                iconTint = Color(0xFF7A5700),
-                articleId = resolveCategoryCatalogArticleId("Estación de dulces", catalogArticles),
-            ),
-            RosaCategoryReviewSpec(
-                title = "Arcos y globos",
-                defaultSubtitle = null,
-                iconKind = RfIconKind.PARTY,
-                iconBg = Color(0xFFFDE6F2),
-                iconTint = Color(0xFFC2338F),
-                articleId = resolveCategoryCatalogArticleId("Arcos y globos", catalogArticles),
-            ),
-            RosaCategoryReviewSpec(
-                title = "Mesas de apoyo",
-                defaultSubtitle = null,
-                iconKind = RfIconKind.TABLE,
-                iconBg = Color(0xFFEEF6D6),
-                iconTint = Color(0xFF4E6A10),
-                articleId = resolveCategoryCatalogArticleId("Mesas de apoyo", catalogArticles),
-            ),
-        )
+    val activePickerCategory = remember(displayedCategories, activePickerCategoryTitle) {
+        val targetTitle = activePickerCategoryTitle
+        if (targetTitle == null) {
+            null
+        } else {
+            displayedCategories.firstOrNull { categorySpec -> categorySpec.title == targetTitle }
+        }
     }
-    val displayedCategories = if (showExtraIdeas) baseCategories + extraCategories else baseCategories
+
+    val updateCategoryArticleQuantity: (String, Int) -> Unit = { articleId, nextQuantity ->
+        val clamped = nextQuantity.coerceAtLeast(0)
+        if (viewModel != null) {
+            viewModel.setDraftQuantity(articleId, clamped)
+        } else {
+            fallbackQuantities = if (clamped == 0) {
+                fallbackQuantities - articleId
+            } else {
+                fallbackQuantities + (articleId to clamped)
+            }
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -2335,7 +2214,7 @@ internal fun RenderRosaCategoriesS30(
             ),
     ) {
         RosaWizardHeader(
-            step = 4,
+            screenCode = "s30",
             viewModel = viewModel,
             onBack = { onSelectScreenCode("BACK:s29") },
             onCart = { onSelectScreenCode("s25") },
@@ -2345,22 +2224,11 @@ internal fun RenderRosaCategoriesS30(
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .fillMaxSize()
-                .padding(top = 66.dp, bottom = 148.dp)
+                .padding(top = 78.dp, bottom = 148.dp)
                 .verticalScroll(rememberScrollState())
                 .padding(top = 8.dp, start = 20.dp, end = 20.dp, bottom = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            BasicText(
-                text = "¿Te falta algo? Revisemos por categoría",
-                style = TextStyle(
-                    fontFamily = typo.displayFamily,
-                    fontWeight = FontWeight.ExtraBold,
-                    fontSize = 22.sp,
-                    color = RfThemeState.currentPalette.ink,
-                    lineHeight = 26.sp,
-                ),
-            )
-
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -2372,31 +2240,16 @@ internal fun RenderRosaCategoriesS30(
                     if (index > 0) {
                         Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(RfThemeState.currentPalette.lineSoft))
                     }
-                    val matchedArticleId = category.articleId
-                    val matchedQuantity = if (matchedArticleId != null) {
-                        draftQuantities[matchedArticleId] ?: 0
-                    } else {
-                        0
-                    }
+                    val chosenUnitsInCategory = category.articles.sumOf { item -> activeQuantities[item.id] ?: 0 }
+                    val chosenItemKinds = category.articles.count { item -> (activeQuantities[item.id] ?: 0) > 0 }
                     val isOmitted = category.title in activeOmittedCategories
-                    val hasDraftUnits = matchedQuantity > 0
-                    val isManuallySelected = category.title in manualChosenCategories
-                    val hasLiveArticleBinding = if (viewModel != null) matchedArticleId != null else false
-                    val isIncludedBeforeOmit = if (hasLiveArticleBinding) hasDraftUnits else isManuallySelected
-                    val isChosen = if (isOmitted) false else isIncludedBeforeOmit
+                    val hasSelectedUnits = chosenUnitsInCategory > 0
+                    val isChosen = if (isOmitted) false else hasSelectedUnits
 
                     val resolvedSubtitle = when {
                         isOmitted -> "Omitida"
-
-                        isChosen -> {
-                            if (matchedQuantity > 0) {
-                                "$matchedQuantity en tu evento"
-                            } else {
-                                category.defaultSubtitle ?: "Incluida"
-                            }
-                        }
-
-                        else -> null
+                        isChosen -> "$chosenItemKinds artículo(s) · $chosenUnitsInCategory uds"
+                        else -> "${category.articles.size} disponible(s)"
                     }
                     CategoryReviewRow(
                         title = category.title,
@@ -2414,9 +2267,8 @@ internal fun RenderRosaCategoriesS30(
                                 localOmittedCategories + category.title
                             }
                             if (!isOmitted) {
-                                manualChosenCategories = manualChosenCategories - category.title
-                                if (matchedArticleId != null) {
-                                    viewModel?.setDraftQuantity(matchedArticleId, 0)
+                                for (item in category.articles) {
+                                    updateCategoryArticleQuantity(item.id, 0)
                                 }
                             }
                         },
@@ -2425,17 +2277,10 @@ internal fun RenderRosaCategoriesS30(
                                 viewModel?.toggleRosaOmittedCategory(category.title)
                                 localOmittedCategories = localOmittedCategories - category.title
                             }
-                            manualChosenCategories = manualChosenCategories + category.title
-                            if (matchedArticleId != null) {
-                                val nextQuantity = if (matchedQuantity > 0) matchedQuantity else 1
-                                viewModel?.setDraftQuantity(matchedArticleId, nextQuantity)
-                            }
+                            activePickerCategoryTitle = category.title
                         },
                         onToggleChosen = {
-                            manualChosenCategories = manualChosenCategories - category.title
-                            if (matchedArticleId != null) {
-                                viewModel?.setDraftQuantity(matchedArticleId, 0)
-                            }
+                            activePickerCategoryTitle = category.title
                         },
                     )
                 }
@@ -2457,16 +2302,12 @@ internal fun RenderRosaCategoriesS30(
                     .clip(RoundedCornerShape(16.dp))
                     .background(RfThemeState.currentPalette.surface)
                     .clickable {
-                        val openingIdeas = !showExtraIdeas
-                        showExtraIdeas = openingIdeas
-                        if (openingIdeas) {
-                            viewModel?.sendConversationalRosaPrompt("Sugiere alternativas respetando mis categorías")
-                        }
+                        onSelectScreenCode("s19")
                     },
                 contentAlignment = Alignment.Center,
             ) {
                 BasicText(
-                    text = if (showExtraIdeas) "Ver menos" else "Más ideas",
+                    text = "Ver catálogo",
                     style = TextStyle(
                         fontFamily = typo.bodyFamily,
                         fontSize = 16.sp,
@@ -2504,7 +2345,6 @@ internal fun RenderRosaCategoriesS30(
                 val cleanPrompt = promptText.trim()
                 applyNaturalLanguageEventPrompt(cleanPrompt, viewModel)
                 viewModel?.sendConversationalRosaPrompt(cleanPrompt)
-                showExtraIdeas = true
                 promptText = ""
             } else {
                 openRosaVoiceScreen(
@@ -2565,6 +2405,180 @@ internal fun RenderRosaCategoriesS30(
                     kind = if (hasPromptText) RfIconKind.SEND else RfIconKind.MIC,
                     tint = Color.White,
                     size = 22.dp,
+                )
+            }
+        }
+
+        if (activePickerCategory != null) {
+            CategoryArticlePickerModal(
+                category = activePickerCategory,
+                activeQuantities = activeQuantities,
+                onUpdateQuantity = updateCategoryArticleQuantity,
+                onDismiss = { activePickerCategoryTitle = null },
+            )
+        }
+    }
+}
+
+@Composable
+private fun CategoryArticlePickerModal(
+    category: RosaCategoryReviewSpec,
+    activeQuantities: Map<String, Int>,
+    onUpdateQuantity: (String, Int) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val typo = LocalRfTypography.current
+    val palette = RfThemeState.currentPalette
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .fillMaxSize()
+            .zIndex(5f)
+            .background(Color(0xFF151729).copy(alpha = 0.55f))
+            .clickable(onClick = onDismiss)
+            .padding(horizontal = 20.dp),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .rfCardShadow(RoundedCornerShape(24.dp), isAdmin = false)
+                .clip(RoundedCornerShape(24.dp))
+                .background(palette.surface)
+                .clickable(enabled = true, onClick = {})
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    BasicText(
+                        text = category.title,
+                        style = TextStyle(
+                            fontFamily = typo.displayFamily,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 19.sp,
+                            color = palette.ink,
+                        ),
+                    )
+                    BasicText(
+                        text = "Elige los artículos y cantidades para tu evento",
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = palette.muted),
+                    )
+                }
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(34.dp)
+                        .clip(CircleShape)
+                        .background(palette.chipBg)
+                        .clickable(onClick = onDismiss),
+                ) {
+                    RfIcon(kind = RfIconKind.CLOSE, tint = palette.ink, size = 16.dp)
+                }
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                category.articles.forEach { article ->
+                    val currentQuantity = activeQuantities[article.id] ?: 0
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(if (palette.isDark) Color(0xFF26243D) else Color(0xFFFBF8FD))
+                            .padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        RfPhoto(
+                            photoKey = photoAssetToRfPhotoKey(article.photo),
+                            contentDescription = article.name,
+                            cornerRadius = 10.dp,
+                            modifier = Modifier.size(48.dp),
+                        )
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            BasicText(
+                                text = article.name,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = palette.ink),
+                            )
+                            BasicText(
+                                text = "RD$ ${article.pricePerDayDop}/día · Disp: ${article.availableOct23}",
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = palette.muted),
+                            )
+                        }
+                        if (currentQuantity <= 0) {
+                            Box(
+                                modifier = Modifier
+                                    .height(34.dp)
+                                    .clip(CircleShape)
+                                    .background(RosaButtonGradient)
+                                    .clickable { onUpdateQuantity(article.id, 1) }
+                                    .padding(horizontal = 12.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                BasicText(
+                                    text = "Agregar",
+                                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.White),
+                                )
+                            }
+                        } else {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            ) {
+                                Box(
+                                    contentAlignment = Alignment.Center,
+                                    modifier = Modifier
+                                        .size(30.dp)
+                                        .clip(CircleShape)
+                                        .background(palette.surface)
+                                        .border(1.dp, palette.line, CircleShape)
+                                        .clickable { onUpdateQuantity(article.id, currentQuantity - 1) },
+                                ) {
+                                    BasicText(
+                                        text = "−",
+                                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = palette.ink),
+                                    )
+                                }
+                                BasicText(
+                                    text = currentQuantity.toString(),
+                                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, color = palette.ink),
+                                )
+                                Box(
+                                    contentAlignment = Alignment.Center,
+                                    modifier = Modifier
+                                        .size(30.dp)
+                                        .clip(CircleShape)
+                                        .background(RosaButtonGradient)
+                                        .clickable { onUpdateQuantity(article.id, currentQuantity + 1) },
+                                ) {
+                                    BasicText(
+                                        text = "+",
+                                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.White),
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(RosaButtonGradient)
+                    .clickable(onClick = onDismiss),
+            ) {
+                BasicText(
+                    text = "Listo",
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.White),
                 )
             }
         }
@@ -2691,20 +2705,16 @@ internal fun RenderRosaDetailsS31(
     val vmEventDateInput = viewModel?.eventDateInput?.collectAsState()?.value.orEmpty()
     val vmEventVenueInput = viewModel?.eventVenueInput?.collectAsState()?.value.orEmpty()
     val vmEventGuestsInput = viewModel?.eventGuestsInput?.collectAsState()?.value.orEmpty()
-    val vmRosaGuestsCount = viewModel?.rosaGuestsCount?.collectAsState()?.value ?: 0
-    val vmRosaIdea = viewModel?.rosaProposalMessage?.collectAsState()?.value.orEmpty()
+    val vmEventNotesInput = viewModel?.eventNotesInput?.collectAsState()?.value.orEmpty()
 
     val initialEventType = vmEventTypeInput.ifBlank { vmRosaEventType }
-    val initialGuests = vmEventGuestsInput.ifBlank {
-        if (vmRosaGuestsCount > 0) vmRosaGuestsCount.toString() else ""
-    }
 
     var eventTypeValue by remember(initialEventType) { mutableStateOf(initialEventType) }
     var dateValue by remember(vmEventDateInput) { mutableStateOf(vmEventDateInput) }
     var showEventCalendar by remember { mutableStateOf(false) }
-    var guestsValue by remember(initialGuests) { mutableStateOf(initialGuests) }
+    var guestsValue by remember(vmEventGuestsInput) { mutableStateOf(vmEventGuestsInput) }
     var venueValue by remember(vmEventVenueInput) { mutableStateOf(vmEventVenueInput) }
-    var ideaValue by remember(vmRosaIdea) { mutableStateOf(vmRosaIdea) }
+    var ideaValue by remember(vmEventNotesInput) { mutableStateOf(vmEventNotesInput) }
     var promptText by remember { mutableStateOf("") }
 
     val eventTypeIcon = resolveRosaEventMetadata(eventTypeValue).iconKind
@@ -2715,7 +2725,7 @@ internal fun RenderRosaDetailsS31(
             .background(RosaBackgroundGradient),
     ) {
         RosaWizardHeader(
-            step = 5,
+            screenCode = "s31",
             viewModel = viewModel,
             onBack = { onSelectScreenCode("BACK:s30") },
             onCart = { onSelectScreenCode("s25") },
@@ -2724,23 +2734,11 @@ internal fun RenderRosaDetailsS31(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 66.dp, bottom = 148.dp)
+                .padding(top = 78.dp, bottom = 148.dp)
                 .verticalScroll(rememberScrollState())
                 .padding(top = 8.dp, start = 20.dp, end = 20.dp, bottom = 20.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
-            BasicText(
-                text = "Ahora, los detalles de tu evento",
-                style = TextStyle(
-                    fontFamily = typo.displayFamily,
-                    fontWeight = FontWeight.ExtraBold,
-                    fontSize = 22.sp,
-                    lineHeight = 26.sp,
-                    letterSpacing = (-0.44).sp,
-                    color = RfThemeState.currentPalette.ink,
-                ),
-            )
-
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -2816,7 +2814,7 @@ internal fun RenderRosaDetailsS31(
                     Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
                         if (guestsValue.isEmpty()) {
                             BasicText(
-                                text = "¿Cuántas personas?",
+                                text = "Cantidad de invitados (ej: 120)",
                                 style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = RfThemeState.currentPalette.muted),
                             )
                         }
@@ -2836,6 +2834,17 @@ internal fun RenderRosaDetailsS31(
                             modifier = Modifier.fillMaxWidth(),
                         )
                     }
+                    if (guestsValue.isNotEmpty()) {
+                        BasicText(
+                            text = "invitados",
+                            style = TextStyle(
+                                fontFamily = typo.bodyFamily,
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 12.sp,
+                                color = RfThemeState.currentPalette.muted,
+                            ),
+                        )
+                    }
                 }
                 Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(RfThemeState.currentPalette.lineSoft))
                 Row(
@@ -2850,7 +2859,7 @@ internal fun RenderRosaDetailsS31(
                     Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
                         if (venueValue.isEmpty()) {
                             BasicText(
-                                text = "¿Dónde será?",
+                                text = "Ubicación o lugar (ej: Jardín Botánico)",
                                 style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = RfThemeState.currentPalette.muted),
                             )
                         }
@@ -2863,6 +2872,32 @@ internal fun RenderRosaDetailsS31(
                             singleLine = true,
                             textStyle = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = RfThemeState.currentPalette.ink),
                             modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                    Row(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color(0xFFF3EBFF))
+                            .clickable {
+                                val targetQuery = venueValue.trim().ifBlank { "República Dominicana" }
+                                val mapsUrl = ExternalUrlBuilder.buildGoogleMapsSearchUrl(targetQuery)
+                                if (mapsUrl != null) {
+                                    viewModel?.openExternalUrl(mapsUrl)
+                                }
+                            }
+                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        RfIcon(kind = RfIconKind.LOCATION, tint = Color(0xFF7A4FD8), size = 14.dp)
+                        BasicText(
+                            text = "Maps",
+                            style = TextStyle(
+                                fontFamily = typo.bodyFamily,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                color = Color(0xFF7A4FD8),
+                            ),
                         )
                     }
                 }
@@ -2879,7 +2914,7 @@ internal fun RenderRosaDetailsS31(
                     Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.TopStart) {
                         if (ideaValue.isEmpty()) {
                             BasicText(
-                                text = "Cuéntame tu idea (opcional)",
+                                text = "Cuéntame tu idea o notas (opcional)",
                                 style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = RfThemeState.currentPalette.muted),
                             )
                         }
@@ -2887,47 +2922,13 @@ internal fun RenderRosaDetailsS31(
                             value = ideaValue,
                             onValueChange = { updatedIdea ->
                                 ideaValue = updatedIdea
-                                viewModel?.setRosaProposalMessage(updatedIdea)
+                                viewModel?.setEventNotesInput(updatedIdea)
                             },
                             textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = RfThemeState.currentPalette.ink),
                             modifier = Modifier.fillMaxWidth(),
                         )
                     }
                 }
-            }
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(Color(0xFFEFE8FD))
-                    .clickable { onSelectScreenCode("s36") }
-                    .padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
-            ) {
-                Canvas(
-                    modifier = Modifier
-                        .size(56.dp)
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(RfThemeState.currentPalette.surface),
-                ) {
-                    val gridColor = Color(0xFFEFE8FA)
-                    val gridStep = size.width / 4f
-                    for (gridLineIndex in 1..3) {
-                        drawLine(gridColor, start = Offset(gridLineIndex * gridStep, 0f), end = Offset(gridLineIndex * gridStep, size.height), strokeWidth = 1.dp.toPx())
-                        drawLine(gridColor, start = Offset(0f, gridLineIndex * gridStep), end = Offset(size.width, gridLineIndex * gridStep), strokeWidth = 1.dp.toPx())
-                    }
-                    val strokePx = 2.dp.toPx()
-                    drawCircle(color = Color(0xFFEA4EA9), radius = 6.dp.toPx(), center = Offset(size.width * 0.3f, size.height * 0.32f), style = Stroke(strokePx))
-                    drawCircle(color = Color(0xFFEA4EA9), radius = 6.dp.toPx(), center = Offset(size.width * 0.68f, size.height * 0.32f), style = Stroke(strokePx))
-                    drawRoundRect(color = Color(0xFF865DEC), topLeft = Offset(size.width * 0.21f, size.height * 0.61f), size = Size(size.width * 0.57f, size.height * 0.18f), cornerRadius = CornerRadius(2.dp.toPx()), style = Stroke(strokePx))
-                }
-                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    BasicText("Boceto de distribución", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = RfThemeState.currentPalette.ink))
-                    BasicText("Dibuja tu espacio y la IA te propone ejemplos", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, lineHeight = 18.sp, color = RfThemeState.currentPalette.muted))
-                }
-                RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = Color(0xFF7A4FD8), size = 20.dp)
             }
         }
 
@@ -2957,10 +2958,10 @@ internal fun RenderRosaDetailsS31(
                     .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
                     .clip(RoundedCornerShape(16.dp))
                     .background(RosaButtonGradient)
-                    .clickable { onSelectScreenCode("s32") },
+                    .clickable { onSelectScreenCode("s36") },
                 contentAlignment = Alignment.Center,
             ) {
-                BasicText("Ver resumen", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White))
+                BasicText("Siguiente", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White))
             }
         }
 
@@ -2985,6 +2986,7 @@ internal fun RenderRosaDetailsS31(
                     venueValue = parsed.venueLabel
                 }
                 ideaValue = cleanPrompt
+                viewModel?.setEventNotesInput(cleanPrompt)
                 promptText = ""
             } else {
                 openRosaVoiceScreen(
@@ -3049,6 +3051,7 @@ internal fun RenderRosaDetailsS31(
                 maxYear = 2030,
                 defaultYear = 2026,
                 isAdmin = false,
+                allowRangeSelection = true,
                 onDismiss = { showEventCalendar = false },
                 onSelectDate = { formattedDate ->
                     dateValue = formattedDate
@@ -3073,8 +3076,7 @@ internal fun RenderRosaSummaryS32(
     val eventDate = viewModel?.eventDateInput?.collectAsState()?.value.orEmpty().trim()
     val eventVenue = viewModel?.eventVenueInput?.collectAsState()?.value.orEmpty().trim()
     val rawGuestsInput = viewModel?.eventGuestsInput?.collectAsState()?.value.orEmpty().trim()
-    val rosaGuestsCount = viewModel?.rosaGuestsCount?.collectAsState()?.value ?: 0
-    val resolvedGuestsCount = rawGuestsInput.toIntOrNull() ?: rosaGuestsCount
+    val resolvedGuestsCount = rawGuestsInput.toIntOrNull() ?: 0
     val observedDraftQuantities = viewModel?.draftQuantities?.collectAsState()?.value
     val formErrorMessage = viewModel?.formError?.collectAsState()?.value
 
@@ -3094,31 +3096,20 @@ internal fun RenderRosaSummaryS32(
             .background(RosaBackgroundGradient),
     ) {
         RosaWizardHeader(
-            step = 6,
+            screenCode = "s32",
             viewModel = viewModel,
-            onBack = { onSelectScreenCode("BACK:s31") },
+            onBack = { onSelectScreenCode("BACK:s36") },
             onCart = { onSelectScreenCode("s25") },
         )
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 66.dp, bottom = 148.dp)
+                .padding(top = 78.dp, bottom = 148.dp)
                 .verticalScroll(rememberScrollState())
                 .padding(top = 8.dp, start = 20.dp, end = 20.dp, bottom = 20.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
-            BasicText(
-                text = "Listo. Revisa que todo esté bien",
-                style = TextStyle(
-                    fontFamily = typo.displayFamily,
-                    fontWeight = FontWeight.ExtraBold,
-                    fontSize = 22.sp,
-                    lineHeight = 26.sp,
-                    color = RfThemeState.currentPalette.ink,
-                ),
-            )
-
             if (formErrorMessage != null) {
                 Box(
                     modifier = Modifier
@@ -5012,7 +5003,7 @@ internal fun RenderRosaSketchS36(
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(RfThemeState.currentPalette.surface)
-                        .clickable { onSelectScreenCode("BACK:s32") },
+                        .clickable { onSelectScreenCode("BACK:s31") },
                     contentAlignment = Alignment.Center,
                 ) {
                     RfIcon(kind = RfIconKind.CLOSE, tint = RfThemeState.currentPalette.ink, size = 22.dp)
@@ -5309,24 +5300,46 @@ internal fun RenderRosaSketchS36(
                 modifier = Modifier
                     .fillMaxWidth()
                     .align(Alignment.BottomCenter)
-                    .padding(horizontal = 16.dp, vertical = 18.dp)
-                    .height(56.dp)
-                    .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(RosaButtonGradient)
-                    .clickable {
-                        syncSketchElementsIdempotently(canvasElements, viewModel)
-                        onSelectScreenCode("s78")
-                    },
-                horizontalArrangement = Arrangement.Center,
+                    .padding(horizontal = 16.dp, vertical = 18.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                BasicText(
-                    text = "Revisar boceto",
-                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = Color.White),
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                RfIcon(kind = RfIconKind.ARROW_RIGHT, tint = Color.White, size = 20.dp)
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(56.dp)
+                        .rfCardShadow(RoundedCornerShape(16.dp), isAdmin = false)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(RfThemeState.currentPalette.surface)
+                        .clickable { onSelectScreenCode("s32") },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    BasicText(
+                        text = "Omitir",
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = RfThemeState.currentPalette.ink),
+                    )
+                }
+                Row(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(56.dp)
+                        .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(RosaButtonGradient)
+                        .clickable {
+                            syncSketchElementsIdempotently(canvasElements, viewModel)
+                            onSelectScreenCode("s32")
+                        },
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    BasicText(
+                        text = "Continuar",
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = Color.White),
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    RfIcon(kind = RfIconKind.ARROW_RIGHT, tint = Color.White, size = 20.dp)
+                }
             }
 
             if (showLabelEditorModal) {

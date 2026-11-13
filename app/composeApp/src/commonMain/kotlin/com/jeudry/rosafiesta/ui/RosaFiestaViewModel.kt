@@ -322,17 +322,20 @@ public class RosaFiestaViewModel(
     private val _registerPhone = MutableStateFlow("")
     public val registerPhone: StateFlow<String> = _registerPhone.asStateFlow()
 
-    private val _eventTypeInput = MutableStateFlow("Boda Real")
+    private val _eventTypeInput = MutableStateFlow("")
     public val eventTypeInput: StateFlow<String> = _eventTypeInput.asStateFlow()
 
-    private val _eventDateInput = MutableStateFlow("Vie 23 oct")
+    private val _eventDateInput = MutableStateFlow("")
     public val eventDateInput: StateFlow<String> = _eventDateInput.asStateFlow()
 
-    private val _eventVenueInput = MutableStateFlow("Jardín Los Rosales")
+    private val _eventVenueInput = MutableStateFlow("")
     public val eventVenueInput: StateFlow<String> = _eventVenueInput.asStateFlow()
 
-    private val _eventGuestsInput = MutableStateFlow("120")
+    private val _eventGuestsInput = MutableStateFlow("")
     public val eventGuestsInput: StateFlow<String> = _eventGuestsInput.asStateFlow()
+
+    private val _eventNotesInput = MutableStateFlow("")
+    public val eventNotesInput: StateFlow<String> = _eventNotesInput.asStateFlow()
 
     private val _newEventTitle = MutableStateFlow("Quinceañera Cristal")
     public val newEventTitle: StateFlow<String> = _newEventTitle.asStateFlow()
@@ -1430,6 +1433,10 @@ public class RosaFiestaViewModel(
 
     public fun setEventGuestsInput(value: String) {
         _eventGuestsInput.value = value
+    }
+
+    public fun setEventNotesInput(value: String) {
+        _eventNotesInput.value = value
     }
 
     public fun setNewEventTitle(value: String) {

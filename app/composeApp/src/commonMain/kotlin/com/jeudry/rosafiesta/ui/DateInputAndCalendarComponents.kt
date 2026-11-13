@@ -197,11 +197,19 @@ internal fun RfMaskedDateField(
         BasicTextField(
             value = textFieldValue,
             onValueChange = { updatedFieldValue ->
-                val formattedText = formatDateDigitsWithSlashes(
-                    previousFormatted = value,
-                    newRawText = updatedFieldValue.text,
-                )
-                onValueChange(formattedText)
+                val rawText = updatedFieldValue.text
+                val keepsRangeSeparator = rawText.contains(" - ")
+                if (keepsRangeSeparator) {
+                    onValueChange(rawText)
+                } else if (value.contains(" - ")) {
+                    onValueChange("")
+                } else {
+                    val formattedText = formatDateDigitsWithSlashes(
+                        previousFormatted = value,
+                        newRawText = rawText,
+                    )
+                    onValueChange(formattedText)
+                }
             },
             singleLine = true,
             textStyle = TextStyle(
@@ -253,8 +261,46 @@ internal fun RfMaskedDateField(
     }
 }
 
+private data class CalendarDateParts(
+    val day: Int,
+    val month: Int,
+    val year: Int,
+) : Comparable<CalendarDateParts> {
+    override fun compareTo(other: CalendarDateParts): Int {
+        if (year != other.year) return year.compareTo(other.year)
+        if (month != other.month) return month.compareTo(other.month)
+        return day.compareTo(other.day)
+    }
+
+    fun formatSlash(): String {
+        val dayText = day.toString().padStart(2, '0')
+        val monthText = month.toString().padStart(2, '0')
+        return "$dayText/$monthText/$year"
+    }
+}
+
+private fun parseCalendarDateOrDefault(
+    dateText: String,
+    minYear: Int,
+    maxYear: Int,
+    defaultYear: Int,
+    defaultMonth: Int = 10,
+    defaultDay: Int = 22,
+): CalendarDateParts {
+    val parts = dateText.trim().split("/")
+    val parsedDay = parts.getOrNull(0)?.filter { charItem -> charItem.isDigit() }?.toIntOrNull()?.coerceIn(1, 31) ?: defaultDay
+    val parsedMonth = parts.getOrNull(1)?.filter { charItem -> charItem.isDigit() }?.toIntOrNull()?.coerceIn(1, 12) ?: defaultMonth
+    val parsedYear = parts.getOrNull(2)?.filter { charItem -> charItem.isDigit() }?.toIntOrNull()?.coerceIn(minYear, maxYear) ?: defaultYear
+    val maxDayInMonth = computeDaysInGregorianMonth(parsedYear, parsedMonth)
+    return CalendarDateParts(
+        day = parsedDay.coerceAtMost(maxDayInMonth),
+        month = parsedMonth,
+        year = parsedYear,
+    )
+}
+
 /**
- * Interactive calendar modal for selecting any date (birth date or event date) across the app.
+ * Interactive calendar modal for selecting any single date or optional date range across the app.
  */
 @Composable
 internal fun RfInteractiveCalendarModal(
@@ -265,20 +311,30 @@ internal fun RfInteractiveCalendarModal(
     maxYear: Int = 2030,
     defaultYear: Int = 1996,
     quickYears: List<Int> = listOf(1985, 1990, 1995, 1996, 2000, 2004, 2008),
+    allowRangeSelection: Boolean = false,
     isAdmin: Boolean = false,
     onSelectDate: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val typo = LocalRfTypography.current
     val palette = LocalRfPalette.current
-    val initialParts = currentDateText.split("/")
-    val parsedDay = initialParts.getOrNull(0)?.filter { charItem -> charItem.isDigit() }?.toIntOrNull()?.coerceIn(1, 31) ?: 22
-    val parsedMonth = initialParts.getOrNull(1)?.filter { charItem -> charItem.isDigit() }?.toIntOrNull()?.coerceIn(1, 12) ?: 10
-    val parsedYear = initialParts.getOrNull(2)?.filter { charItem -> charItem.isDigit() }?.toIntOrNull()?.coerceIn(minYear, maxYear) ?: defaultYear
+    val dateSegments = currentDateText.split(" - ")
+    val startSegment = dateSegments.getOrNull(0).orEmpty()
+    val endSegment = dateSegments.getOrNull(1).orEmpty()
+    val initialStart = parseCalendarDateOrDefault(startSegment, minYear, maxYear, defaultYear)
+    val initialEnd = if (endSegment.isNotBlank()) {
+        parseCalendarDateOrDefault(endSegment, minYear, maxYear, initialStart.year, initialStart.month, initialStart.day)
+    } else {
+        initialStart
+    }
+    val hasInitialRange = if (allowRangeSelection) currentDateText.contains(" - ") else false
 
-    var selectedDay by remember(currentDateText) { mutableStateOf(parsedDay) }
-    var selectedMonth by remember(currentDateText) { mutableStateOf(parsedMonth) }
-    var selectedYear by remember(currentDateText) { mutableStateOf(parsedYear) }
+    var isRangeMode by remember(currentDateText, allowRangeSelection) { mutableStateOf(hasInitialRange) }
+    var editingEndDate by remember(currentDateText, allowRangeSelection) { mutableStateOf(false) }
+    var startDate by remember(currentDateText) { mutableStateOf(initialStart) }
+    var endDate by remember(currentDateText) { mutableStateOf(initialEnd) }
+    var visibleMonth by remember(currentDateText) { mutableStateOf(initialStart.month) }
+    var visibleYear by remember(currentDateText) { mutableStateOf(initialStart.year) }
 
     val monthNames = remember {
         listOf(
@@ -297,10 +353,8 @@ internal fun RfInteractiveCalendarModal(
         )
     }
 
-    val daysInSelectedMonth = computeDaysInGregorianMonth(selectedYear, selectedMonth)
-    val leadingWeekdayOffset = computeGregorianMondayFirstOffset(selectedYear, selectedMonth)
-
-    val clampedSelectedDay = selectedDay.coerceAtMost(daysInSelectedMonth)
+    val daysInSelectedMonth = computeDaysInGregorianMonth(visibleYear, visibleMonth)
+    val leadingWeekdayOffset = computeGregorianMondayFirstOffset(visibleYear, visibleMonth)
     val primaryBrush = if (isAdmin) {
         Brush.horizontalGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0), Color(0xFF2FB8C8)))
     } else {
@@ -327,14 +381,14 @@ internal fun RfInteractiveCalendarModal(
                 .border(1.dp, palette.line, RoundedCornerShape(24.dp))
                 .clickable(enabled = false) {}
                 .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     BasicText(
                         text = title,
                         style = typo.heroTitle.copy(fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = palette.ink),
@@ -353,6 +407,128 @@ internal fun RfInteractiveCalendarModal(
                         .clickable { onDismiss() },
                 ) {
                     RfIcon(kind = RfIconKind.CLOSE, tint = palette.ink, size = 18.dp)
+                }
+            }
+
+            if (allowRangeSelection) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(selectorBoxBg)
+                        .padding(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    val isSingleActive = !isRangeMode
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(34.dp)
+                            .clip(RoundedCornerShape(9.dp))
+                            .background(if (isSingleActive) palette.surface else Color.Transparent)
+                            .clickable {
+                                isRangeMode = false
+                                editingEndDate = false
+                            },
+                    ) {
+                        BasicText(
+                            text = "Fecha única",
+                            style = typo.body.copy(
+                                fontSize = 12.5.sp,
+                                fontWeight = if (isSingleActive) FontWeight.Bold else FontWeight.Medium,
+                                color = if (isSingleActive) palette.ink else palette.muted,
+                            ),
+                        )
+                    }
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(34.dp)
+                            .clip(RoundedCornerShape(9.dp))
+                            .background(if (isRangeMode) palette.surface else Color.Transparent)
+                            .clickable {
+                                isRangeMode = true
+                                editingEndDate = true
+                                visibleMonth = endDate.month
+                                visibleYear = endDate.year
+                            },
+                    ) {
+                        BasicText(
+                            text = "Rango de fechas",
+                            style = typo.body.copy(
+                                fontSize = 12.5.sp,
+                                fontWeight = if (isRangeMode) FontWeight.Bold else FontWeight.Medium,
+                                color = if (isRangeMode) activeChipColor else palette.muted,
+                            ),
+                        )
+                    }
+                }
+
+                if (isRangeMode) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        val isStartFocused = !editingEndDate
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(if (isStartFocused) activeChipColor.copy(alpha = 0.12f) else selectorBoxBg)
+                                .border(
+                                    1.dp,
+                                    if (isStartFocused) activeChipColor else palette.line,
+                                    RoundedCornerShape(12.dp),
+                                )
+                                .clickable {
+                                    editingEndDate = false
+                                    visibleMonth = startDate.month
+                                    visibleYear = startDate.year
+                                }
+                                .padding(horizontal = 10.dp, vertical = 8.dp),
+                        ) {
+                            Column {
+                                BasicText(
+                                    text = "Inicio",
+                                    style = typo.body.copy(fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = palette.muted),
+                                )
+                                BasicText(
+                                    text = startDate.formatSlash(),
+                                    style = typo.body.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = palette.ink),
+                                )
+                            }
+                        }
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(if (editingEndDate) activeChipColor.copy(alpha = 0.12f) else selectorBoxBg)
+                                .border(
+                                    1.dp,
+                                    if (editingEndDate) activeChipColor else palette.line,
+                                    RoundedCornerShape(12.dp),
+                                )
+                                .clickable {
+                                    editingEndDate = true
+                                    visibleMonth = endDate.month
+                                    visibleYear = endDate.year
+                                }
+                                .padding(horizontal = 10.dp, vertical = 8.dp),
+                        ) {
+                            Column {
+                                BasicText(
+                                    text = "Fin",
+                                    style = typo.body.copy(fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = palette.muted),
+                                )
+                                BasicText(
+                                    text = endDate.formatSlash(),
+                                    style = typo.body.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = palette.ink),
+                                )
+                            }
+                        }
+                    }
                 }
             }
 
@@ -378,15 +554,14 @@ internal fun RfInteractiveCalendarModal(
                             .clip(CircleShape)
                             .background(palette.surface)
                             .clickable {
-                                val nextMonth = if (selectedMonth == 1) 12 else selectedMonth - 1
-                                selectedMonth = nextMonth
-                                selectedDay = selectedDay.coerceAtMost(computeDaysInGregorianMonth(selectedYear, nextMonth))
+                                val nextMonth = if (visibleMonth == 1) 12 else visibleMonth - 1
+                                visibleMonth = nextMonth
                             },
                     ) {
                         RfIcon(kind = RfIconKind.BACK, tint = palette.ink, size = 14.dp)
                     }
                     BasicText(
-                        text = monthNames[selectedMonth - 1],
+                        text = monthNames[visibleMonth - 1],
                         maxLines = 1,
                         style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = palette.ink),
                     )
@@ -397,9 +572,8 @@ internal fun RfInteractiveCalendarModal(
                             .clip(CircleShape)
                             .background(palette.surface)
                             .clickable {
-                                val nextMonth = if (selectedMonth == 12) 1 else selectedMonth + 1
-                                selectedMonth = nextMonth
-                                selectedDay = selectedDay.coerceAtMost(computeDaysInGregorianMonth(selectedYear, nextMonth))
+                                val nextMonth = if (visibleMonth == 12) 1 else visibleMonth + 1
+                                visibleMonth = nextMonth
                             },
                     ) {
                         RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = palette.ink, size = 14.dp)
@@ -423,15 +597,13 @@ internal fun RfInteractiveCalendarModal(
                             .clip(CircleShape)
                             .background(palette.surface)
                             .clickable {
-                                val nextYear = (selectedYear - 1).coerceAtLeast(minYear)
-                                selectedYear = nextYear
-                                selectedDay = selectedDay.coerceAtMost(computeDaysInGregorianMonth(nextYear, selectedMonth))
+                                visibleYear = (visibleYear - 1).coerceAtLeast(minYear)
                             },
                     ) {
                         RfIcon(kind = RfIconKind.BACK, tint = palette.ink, size = 14.dp)
                     }
                     BasicText(
-                        text = selectedYear.toString(),
+                        text = visibleYear.toString(),
                         style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = activeChipColor),
                     )
                     Box(
@@ -441,9 +613,7 @@ internal fun RfInteractiveCalendarModal(
                             .clip(CircleShape)
                             .background(palette.surface)
                             .clickable {
-                                val nextYear = (selectedYear + 1).coerceAtMost(maxYear)
-                                selectedYear = nextYear
-                                selectedDay = selectedDay.coerceAtMost(computeDaysInGregorianMonth(nextYear, selectedMonth))
+                                visibleYear = (visibleYear + 1).coerceAtMost(maxYear)
                             },
                     ) {
                         RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = palette.ink, size = 14.dp)
@@ -458,7 +628,7 @@ internal fun RfInteractiveCalendarModal(
                     .horizontalScroll(rememberScrollState()),
             ) {
                 quickYears.forEach { yearOption ->
-                    val isSelectedYear = yearOption == selectedYear
+                    val isSelectedYear = yearOption == visibleYear
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
@@ -466,8 +636,7 @@ internal fun RfInteractiveCalendarModal(
                             .clip(RoundedCornerShape(999.dp))
                             .background(if (isSelectedYear) activeChipColor else selectorBoxBg)
                             .clickable {
-                                selectedYear = yearOption
-                                selectedDay = selectedDay.coerceAtMost(computeDaysInGregorianMonth(yearOption, selectedMonth))
+                                visibleYear = yearOption
                             }
                             .padding(horizontal = 10.dp),
                     ) {
@@ -513,11 +682,21 @@ internal fun RfInteractiveCalendarModal(
                         for (slotIndex in 0 until 7) {
                             val dayValue = weekDays.getOrNull(slotIndex)
                             if (dayValue != null) {
-                                val isDaySelected = dayValue == clampedSelectedDay
-                                val dayBgBrush = if (isDaySelected) {
-                                    primaryBrush
+                                val cellDate = CalendarDateParts(dayValue, visibleMonth, visibleYear)
+                                val isStartMatch = cellDate == startDate
+                                val isEndMatch = if (isRangeMode) cellDate == endDate else false
+                                val isEndpointSelected = if (isStartMatch) true else isEndMatch
+                                val isBetweenEndpoints = if (isRangeMode) {
+                                    val isAfterStart = cellDate > startDate
+                                    val isBeforeEnd = cellDate < endDate
+                                    if (isAfterStart) isBeforeEnd else false
                                 } else {
-                                    SolidColor(dayCellBg)
+                                    false
+                                }
+                                val dayBgBrush = when {
+                                    isEndpointSelected -> primaryBrush
+                                    isBetweenEndpoints -> SolidColor(activeChipColor.copy(alpha = 0.16f))
+                                    else -> SolidColor(dayCellBg)
                                 }
                                 Box(
                                     contentAlignment = Alignment.Center,
@@ -526,15 +705,28 @@ internal fun RfInteractiveCalendarModal(
                                         .clip(CircleShape)
                                         .background(dayBgBrush)
                                         .clickable {
-                                            selectedDay = dayValue
+                                            if (!isRangeMode) {
+                                                startDate = cellDate
+                                                endDate = cellDate
+                                            } else if (!editingEndDate) {
+                                                startDate = cellDate
+                                                if (endDate < cellDate) {
+                                                    endDate = cellDate
+                                                }
+                                                editingEndDate = true
+                                            } else if (cellDate < startDate) {
+                                                startDate = cellDate
+                                            } else {
+                                                endDate = cellDate
+                                            }
                                         },
                                 ) {
                                     BasicText(
                                         text = dayValue.toString(),
                                         style = typo.body.copy(
                                             fontSize = 13.5.sp,
-                                            fontWeight = if (isDaySelected) FontWeight.Bold else FontWeight.Medium,
-                                            color = if (isDaySelected) Color.White else palette.ink,
+                                            fontWeight = if (isEndpointSelected) FontWeight.Bold else FontWeight.Medium,
+                                            color = if (isEndpointSelected) Color.White else palette.ink,
                                         ),
                                     )
                                 }
@@ -546,9 +738,9 @@ internal fun RfInteractiveCalendarModal(
                 }
             }
 
-            val formattedDay = clampedSelectedDay.toString().padStart(2, '0')
-            val formattedMonth = selectedMonth.toString().padStart(2, '0')
-            val formattedPreview = "$formattedDay/$formattedMonth/$selectedYear"
+            val startPreview = startDate.formatSlash()
+            val endPreview = endDate.formatSlash()
+            val formattedPreview = if (isRangeMode) "$startPreview - $endPreview" else startPreview
 
             Box(
                 contentAlignment = Alignment.Center,
@@ -564,7 +756,7 @@ internal fun RfInteractiveCalendarModal(
             ) {
                 BasicText(
                     text = "Confirmar $formattedPreview",
-                    style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.White),
+                    style = typo.body.copy(fontSize = 14.5.sp, fontWeight = FontWeight.Bold, color = Color.White),
                 )
             }
         }
