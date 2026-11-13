@@ -4737,7 +4737,7 @@ private fun AdminOnboardingEntryStage(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 22.dp, vertical = 8.dp),
+            .padding(horizontal = 24.dp, vertical = 10.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
@@ -4745,24 +4745,24 @@ private fun AdminOnboardingEntryStage(
 
         Box(
             contentAlignment = Alignment.Center,
-            modifier = Modifier.size(116.dp),
+            modifier = Modifier.size(138.dp),
         ) {
-            Box(modifier = Modifier.size(154.dp).background(Color(0x145B6CF0), CircleShape))
-            Box(modifier = Modifier.size(132.dp).background(Color(0x1A2FB8C8), CircleShape))
-            RfLogo(customSize = 98.dp, insetPadding = false)
+            Box(modifier = Modifier.size(136.dp).background(Color(0x145B6CF0), CircleShape))
+            Box(modifier = Modifier.size(116.dp).background(Color(0x1A2FB8C8), CircleShape))
+            RfLogo(customSize = 88.dp, insetPadding = false)
         }
 
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 BasicText(
                     text = "Rosa Fiesta",
-                    style = TextStyle(fontFamily = typo.displayFamily, fontSize = 31.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729)),
+                    style = TextStyle(fontFamily = typo.displayFamily, fontSize = 30.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729)),
                 )
                 BasicText(
                     text = "Admin",
                     style = TextStyle(
                         fontFamily = typo.displayFamily,
-                        fontSize = 31.sp,
+                        fontSize = 30.sp,
                         fontWeight = FontWeight.ExtraBold,
                         brush = AdminHeroGradient,
                     ),
@@ -4777,66 +4777,64 @@ private fun AdminOnboardingEntryStage(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 6.dp),
+                .padding(horizontal = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             RfPhoto(
                 photoKey = RfPhotoKey.BODA,
                 contentDescription = "Eventos",
                 cornerRadius = 16.dp,
-                modifier = Modifier.weight(1f).height(66.dp),
+                modifier = Modifier.weight(1f).height(68.dp),
             )
             RfPhoto(
                 photoKey = RfPhotoKey.SILLA_TIFFANY,
                 contentDescription = "Mobiliario",
                 cornerRadius = 16.dp,
-                modifier = Modifier.weight(1f).height(66.dp),
+                modifier = Modifier.weight(1f).height(68.dp),
             )
             RfPhoto(
                 photoKey = RfPhotoKey.ARCO_ROSA,
                 contentDescription = "Decoración",
                 cornerRadius = 16.dp,
-                modifier = Modifier.weight(1f).height(66.dp),
+                modifier = Modifier.weight(1f).height(68.dp),
             )
         }
+
+        Spacer(modifier = Modifier.height(2.dp))
 
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .rfHeroBannerShadow(RoundedCornerShape(24.dp), isAdmin = true)
-                .clip(RoundedCornerShape(24.dp))
+                .height(54.dp)
+                .rfHeroBannerShadow(RoundedCornerShape(18.dp), isAdmin = true)
+                .clip(RoundedCornerShape(18.dp))
                 .background(AdminHeroGradient)
                 .clickable(onClick = onPrimaryAdminClick)
-                .padding(18.dp),
+                .padding(horizontal = 16.dp),
+            contentAlignment = Alignment.Center,
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Box(
                     modifier = Modifier
-                        .size(48.dp)
-                        .clip(AdminInputShape14)
+                        .size(32.dp)
+                        .clip(RoundedCornerShape(10.dp))
                         .background(Color(0x33FFFFFF)),
                     contentAlignment = Alignment.Center,
                 ) {
-                    RfIcon(kind = RfIconKind.BAR_CHART, tint = Color.White, size = 24.dp)
+                    RfIcon(kind = RfIconKind.BAR_CHART, tint = Color.White, size = 18.dp)
                 }
 
-                Column(modifier = Modifier.weight(1f)) {
-                    BasicText(
-                        text = "Entrar al panel Admin",
-                        style = TextStyle(fontFamily = typo.displayFamily, fontSize = 19.sp, fontWeight = FontWeight.Bold, color = Color.White),
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    BasicText(
-                        text = "Eventos, inventario, pagos y clientes",
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.5.sp, color = Color(0xFFE9EEFF)),
-                    )
-                }
+                BasicText(
+                    text = "Entrar al panel Admin",
+                    style = TextStyle(fontFamily = typo.displayFamily, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White),
+                    modifier = Modifier.weight(1f),
+                )
 
-                RfIcon(kind = RfIconKind.ARROW_RIGHT, tint = Color.White, size = 20.dp)
+                RfIcon(kind = RfIconKind.ARROW_RIGHT, tint = Color.White, size = 18.dp)
             }
         }
 
@@ -4952,40 +4950,37 @@ private fun AdminOnboardingEntryStage(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .shadow(elevation = 10.dp, shape = RoundedCornerShape(24.dp), spotColor = Color(0x40C850AA))
-                .clip(RoundedCornerShape(24.dp))
+                .height(54.dp)
+                .shadow(elevation = 8.dp, shape = RoundedCornerShape(18.dp), spotColor = Color(0x28C850AA))
+                .clip(RoundedCornerShape(18.dp))
                 .background(Color.White)
-                .border(1.dp, Color(0xFFECE7F1), RoundedCornerShape(24.dp))
+                .border(1.dp, Color(0xFFECE7F1), RoundedCornerShape(18.dp))
                 .clickable(onClick = onClientModeClick)
-                .padding(18.dp),
+                .padding(horizontal = 16.dp),
+            contentAlignment = Alignment.Center,
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Box(
                     modifier = Modifier
-                        .size(48.dp)
-                        .clip(AdminInputShape14)
+                        .size(32.dp)
+                        .clip(RoundedCornerShape(10.dp))
                         .background(Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))),
                     contentAlignment = Alignment.Center,
                 ) {
-                    RfIcon(kind = RfIconKind.PARTY, tint = Color.White, size = 24.dp)
+                    RfIcon(kind = RfIconKind.PARTY, tint = Color.White, size = 17.dp)
                 }
 
-                Column(modifier = Modifier.weight(1f)) {
-                    BasicText(
-                        text = "Entrar como cliente",
-                        style = TextStyle(fontFamily = typo.displayFamily, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E324A)),
-                    )
-                    BasicText(
-                        text = "Mira el catálogo y cotizador como tus clientes",
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.5.sp, color = Color(0xFF5F6377)),
-                    )
-                }
+                BasicText(
+                    text = "Entrar como cliente",
+                    style = TextStyle(fontFamily = typo.displayFamily, fontSize = 15.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E324A)),
+                    modifier = Modifier.weight(1f),
+                )
 
-                RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = Color(0xFF5F6377), size = 20.dp)
+                RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = Color(0xFF5F6377), size = 18.dp)
             }
         }
 
