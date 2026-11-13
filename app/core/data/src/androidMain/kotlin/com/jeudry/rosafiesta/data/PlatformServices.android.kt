@@ -119,7 +119,7 @@ internal class AndroidSoundPlayer : SoundPlayer {
                 .build()
             val audioFormat = AudioFormat.Builder()
                 .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
-                .setSampleRate(22_050)
+                .setSampleRate(PcmSoundSynthesizer.SAMPLE_RATE)
                 .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
                 .build()
             val track = AudioTrack.Builder()

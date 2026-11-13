@@ -30,6 +30,7 @@ import java.nio.file.Files
 import java.nio.file.attribute.PosixFilePermissions
 import java.security.SecureRandom
 import java.util.Base64
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.crypto.Cipher
@@ -49,6 +50,8 @@ internal class DesktopSoundPlayer : SoundPlayer {
     public var lastPlayedEffect: SoundEffect = SoundEffect.NONE
         private set
 
+    private val wavCache = ConcurrentHashMap<Long, ByteArray>()
+
     private val audioExecutor = Executors.newSingleThreadExecutor { runnable ->
         Thread(runnable, "rf-desktop-sfx").apply { isDaemon = true }
     }
@@ -58,7 +61,11 @@ internal class DesktopSoundPlayer : SoundPlayer {
         if (effect == SoundEffect.NONE) return
         if (soundVolume <= 0.01f) return
         lastPlayedEffect = effect
-        val wavBytes = PcmSoundSynthesizer.synthesizeWav(effect, soundVolume)
+        val quantizedVolume = (soundVolume.coerceIn(0f, 1f) * 100f).toInt()
+        val cacheKey = (effect.ordinal.toLong() shl 8) or quantizedVolume.toLong()
+        val wavBytes = wavCache.getOrPut(cacheKey) {
+            PcmSoundSynthesizer.synthesizeWav(effect, quantizedVolume / 100f)
+        }
         if (wavBytes.isEmpty()) return
         audioExecutor.execute {
             playWavBytes(wavBytes)

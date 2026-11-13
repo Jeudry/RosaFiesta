@@ -42,20 +42,19 @@ private external fun jsLocalStorageRemoveItem(key: String)
                 ctx.resume();
             }
             const now = ctx.currentTime;
-            const durationSec = Math.max(0.04, durationMs / 1000.0);
-            const halfSec = durationSec * 0.5;
+            const durationSec = Math.max(0.024, durationMs / 1000.0);
             const gain = ctx.createGain();
-            const safeVol = Math.max(0.001, Math.min(1.0, volume * 0.25));
+            const safeVol = Math.max(0.001, Math.min(1.0, volume * 0.22));
             gain.gain.setValueAtTime(0.0001, now);
-            gain.gain.linearRampToValueAtTime(safeVol, now + 0.008);
+            gain.gain.linearRampToValueAtTime(safeVol, now + 0.0025);
             gain.gain.exponentialRampToValueAtTime(0.0001, now + durationSec);
             gain.connect(ctx.destination);
 
             const osc = ctx.createOscillator();
             osc.type = 'sine';
-            osc.frequency.setValueAtTime(primaryHz, now);
+            osc.frequency.setValueAtTime(Math.max(40, primaryHz), now);
             if (secondaryHz > 20) {
-                osc.frequency.setValueAtTime(secondaryHz, now + halfSec);
+                osc.frequency.exponentialRampToValueAtTime(secondaryHz, now + durationSec * 0.65);
             }
             osc.connect(gain);
             osc.onended = () => {
