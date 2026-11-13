@@ -14,8 +14,14 @@ public enum class NavigationTransitionKind {
     /** Valor cero inicial sin transición. */
     NONE,
 
-    /** Cambio de pestaña raíz en la barra inferior (crossfade + escala sutil). */
+    /** Cambio de pestaña raíz en la barra inferior (crossfade). */
     TAB_SWITCH,
+
+    /** Cambio de pestaña hacia la derecha en la barra o sub-tabs (slide desde la derecha). */
+    TAB_NEXT,
+
+    /** Cambio de pestaña hacia la izquierda en la barra o sub-tabs (slide desde la izquierda). */
+    TAB_PREV,
 
     /** Avance jerárquico hacia adelante (slide horizontal desde la derecha). */
     FORWARD,
@@ -99,16 +105,16 @@ public class Navigator(
             backStack.removeRange(existingBackIndex, backStack.size)
             val useTabSwitch = isRootTab && !leavingModalSheet
             lastTransition = if (useTabSwitch) {
-                NavigationTransitionKind.TAB_SWITCH
+                resolveTabTransition(currentCode, code)
             } else {
                 backTransitionKind
             }
             currentCode = code
             return
         }
-        val isSiblingTabSwitch = isSameSiblingTabGroup(currentCode, code)
-        if (isSiblingTabSwitch) {
-            lastTransition = NavigationTransitionKind.TAB_SWITCH
+        val siblingGroup = findSiblingTabGroup(currentCode, code)
+        if (siblingGroup != null) {
+            lastTransition = resolveListOrderTransition(siblingGroup, currentCode, code)
             currentCode = code
             return
         }
@@ -121,7 +127,7 @@ public class Navigator(
         val isModalTransition = if (enteringModalSheet) true else leavingModalSheet
         lastTransition = when {
             isModalTransition -> NavigationTransitionKind.MODAL_SHEET
-            isRootTab -> NavigationTransitionKind.TAB_SWITCH
+            isRootTab -> resolveTabTransition(currentCode, code)
             else -> NavigationTransitionKind.FORWARD
         }
         val isHomeTab = code in HOME_TAB_CODES
@@ -171,7 +177,39 @@ public class Navigator(
         navigateTo(next)
     }
 
-    private fun isSameSiblingTabGroup(firstCode: String, secondCode: String): Boolean = SIBLING_TAB_GROUPS.any { group ->
+    private fun resolveTabTransition(fromCode: String, toCode: String): NavigationTransitionKind {
+        val fromIndex = if (activeView == AppView.ADMIN) {
+            ScreenCatalog.activeAdminTab(fromCode).ordinal
+        } else {
+            ScreenCatalog.activePersonalTab(fromCode).ordinal
+        }
+        val toIndex = if (activeView == AppView.ADMIN) {
+            ScreenCatalog.activeAdminTab(toCode).ordinal
+        } else {
+            ScreenCatalog.activePersonalTab(toCode).ordinal
+        }
+        return when {
+            toIndex > fromIndex -> NavigationTransitionKind.TAB_NEXT
+            toIndex < fromIndex -> NavigationTransitionKind.TAB_PREV
+            else -> NavigationTransitionKind.BACKWARD
+        }
+    }
+
+    private fun resolveListOrderTransition(
+        group: List<String>,
+        fromCode: String,
+        toCode: String,
+    ): NavigationTransitionKind {
+        val fromIndex = group.indexOf(fromCode)
+        val toIndex = group.indexOf(toCode)
+        return when {
+            toIndex > fromIndex -> NavigationTransitionKind.TAB_NEXT
+            toIndex < fromIndex -> NavigationTransitionKind.TAB_PREV
+            else -> NavigationTransitionKind.TAB_SWITCH
+        }
+    }
+
+    private fun findSiblingTabGroup(firstCode: String, secondCode: String): List<String>? = SIBLING_TAB_GROUPS.firstOrNull { group ->
         val hasFirst = firstCode in group
         val hasSecond = secondCode in group
         if (hasFirst) hasSecond else false
@@ -182,11 +220,11 @@ public class Navigator(
         val HOME_TAB_CODES = setOf("s01", "s14", "s15", "A01")
         val ROOT_TAB_CODES = setOf("s01", "s14", "s15", "s18", "s26", "s37", "A01", "A08", "A09", "A11", "A12")
         val SIBLING_TAB_GROUPS = listOf(
-            setOf("s84", "s85"),
-            setOf("s58", "s59", "s60", "s61", "s62"),
-            setOf("s64", "s65", "s66"),
-            setOf("s67", "s68", "s69", "s70"),
-            setOf("s72", "s73", "s74"),
+            listOf("s84", "s85"),
+            listOf("s58", "s59", "s60", "s61", "s62"),
+            listOf("s64", "s65", "s66"),
+            listOf("s67", "s68", "s69", "s70"),
+            listOf("s72", "s73", "s74"),
         )
     }
 }

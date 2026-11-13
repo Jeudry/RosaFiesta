@@ -686,11 +686,15 @@ class ScreenCatalogAndFlowTest {
         assertEquals(com.jeudry.rosafiesta.ui.NavigationTransitionKind.BACKWARD, navigator.lastTransition)
 
         navigator.navigateTo("s18")
-        assertEquals(com.jeudry.rosafiesta.ui.NavigationTransitionKind.TAB_SWITCH, navigator.lastTransition)
+        assertEquals(com.jeudry.rosafiesta.ui.NavigationTransitionKind.TAB_NEXT, navigator.lastTransition)
+        navigator.navigateTo("s37")
+        assertEquals(com.jeudry.rosafiesta.ui.NavigationTransitionKind.TAB_NEXT, navigator.lastTransition)
+        navigator.navigateTo("s18")
+        assertEquals(com.jeudry.rosafiesta.ui.NavigationTransitionKind.TAB_PREV, navigator.lastTransition)
         navigator.navigateTo("s19")
         assertEquals(com.jeudry.rosafiesta.ui.NavigationTransitionKind.FORWARD, navigator.lastTransition)
-        navigator.navigateTo("s18")
-        assertEquals(com.jeudry.rosafiesta.ui.NavigationTransitionKind.TAB_SWITCH, navigator.lastTransition)
+        navigator.navigateTo("s14")
+        assertEquals(com.jeudry.rosafiesta.ui.NavigationTransitionKind.TAB_PREV, navigator.lastTransition)
 
         setContent {
             com.jeudry.rosafiesta.ui.RenderScreenSpec(

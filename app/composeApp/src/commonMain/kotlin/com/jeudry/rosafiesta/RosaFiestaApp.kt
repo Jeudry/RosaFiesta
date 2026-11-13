@@ -367,33 +367,53 @@ private fun buildScreenTransition(kind: NavigationTransitionKind): ContentTransf
             targetContentZIndex = 1f
         }
 
-    NavigationTransitionKind.FORWARD -> (
+    NavigationTransitionKind.TAB_NEXT ->
         slideInHorizontally(
-            animationSpec = tween(durationMillis = 240, easing = FastOutSlowInEasing),
-            initialOffsetX = { fullWidth -> fullWidth / 3 },
-        ) + fadeIn(animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing))
+            animationSpec = tween(durationMillis = 260, easing = FastOutSlowInEasing),
+            initialOffsetX = { fullWidth -> fullWidth },
         ).togetherWith(
-        slideOutHorizontally(
-            animationSpec = tween(durationMillis = 240, easing = FastOutSlowInEasing),
-            targetOffsetX = { fullWidth -> -fullWidth / 5 },
-        ) + fadeOut(animationSpec = tween(durationMillis = 180, easing = FastOutSlowInEasing)),
-    ).apply {
-        targetContentZIndex = 1f
-    }
+            slideOutHorizontally(
+                animationSpec = tween(durationMillis = 260, easing = FastOutSlowInEasing),
+                targetOffsetX = { fullWidth -> -fullWidth },
+            ),
+        )
 
-    NavigationTransitionKind.BACKWARD -> (
+    NavigationTransitionKind.TAB_PREV ->
         slideInHorizontally(
-            animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing),
-            initialOffsetX = { fullWidth -> -fullWidth / 5 },
-        ) + fadeIn(animationSpec = tween(durationMillis = 200, easing = FastOutSlowInEasing))
+            animationSpec = tween(durationMillis = 260, easing = FastOutSlowInEasing),
+            initialOffsetX = { fullWidth -> -fullWidth },
         ).togetherWith(
-        slideOutHorizontally(
-            animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing),
-            targetOffsetX = { fullWidth -> fullWidth / 3 },
-        ) + fadeOut(animationSpec = tween(durationMillis = 180, easing = FastOutSlowInEasing)),
-    ).apply {
-        targetContentZIndex = 0f
-    }
+            slideOutHorizontally(
+                animationSpec = tween(durationMillis = 260, easing = FastOutSlowInEasing),
+                targetOffsetX = { fullWidth -> fullWidth },
+            ),
+        )
+
+    NavigationTransitionKind.FORWARD ->
+        slideInHorizontally(
+            animationSpec = tween(durationMillis = 250, easing = FastOutSlowInEasing),
+            initialOffsetX = { fullWidth -> fullWidth },
+        ).togetherWith(
+            slideOutHorizontally(
+                animationSpec = tween(durationMillis = 250, easing = FastOutSlowInEasing),
+                targetOffsetX = { fullWidth -> -fullWidth / 4 },
+            ),
+        ).apply {
+            targetContentZIndex = 1f
+        }
+
+    NavigationTransitionKind.BACKWARD ->
+        slideInHorizontally(
+            animationSpec = tween(durationMillis = 240, easing = FastOutSlowInEasing),
+            initialOffsetX = { fullWidth -> -fullWidth / 4 },
+        ).togetherWith(
+            slideOutHorizontally(
+                animationSpec = tween(durationMillis = 240, easing = FastOutSlowInEasing),
+                targetOffsetX = { fullWidth -> fullWidth },
+            ),
+        ).apply {
+            targetContentZIndex = 0f
+        }
 
     NavigationTransitionKind.TAB_SWITCH, NavigationTransitionKind.NONE ->
         fadeIn(
