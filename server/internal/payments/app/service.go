@@ -63,6 +63,7 @@ type Service struct {
 	refunds      map[string]domain.Refund
 	refundOrder  []string
 	nextSeq      int
+	zeroBaseline bool
 }
 
 func NewService() *Service {
@@ -117,6 +118,18 @@ func (s *Service) Reset(_ context.Context) {
 	s.refunds = refunds
 	s.refundOrder = refundOrder
 	s.nextSeq = 200 + len(canonicalPay)
+	s.zeroBaseline = false
+	s.mu.Unlock()
+}
+
+func (s *Service) ResetEmpty(_ context.Context) {
+	s.mu.Lock()
+	s.payments = make(map[string]domain.Payment)
+	s.order = nil
+	s.refunds = make(map[string]domain.Refund)
+	s.refundOrder = nil
+	s.nextSeq = 200
+	s.zeroBaseline = true
 	s.mu.Unlock()
 }
 
@@ -170,8 +183,12 @@ func (s *Service) GetSummary(ctx context.Context) domain.FinanceSummary {
 	approvedRefunds := s.aggregateApprovedRefundsLocked()
 	eventsReader := s.eventsReader
 	quotesReader := s.quotesReader
+	useZeroBaseline := s.zeroBaseline
 	s.mu.Unlock()
 
+	if useZeroBaseline {
+		return buildZeroBaselineSummary(ctx, paidSum, approvedRefunds, pendingCount, eventsReader, quotesReader)
+	}
 	octRevenue := clampNonNegative((paidSum + canonicalRetailBaselineRD) - approvedRefunds)
 	extraPaid := paidSum - canonicalPaymentsSumBaselineRD
 	activeEvents, receivable := computeReceivableMetrics(ctx, eventsReader, extraPaid)
@@ -181,6 +198,39 @@ func (s *Service) GetSummary(ctx context.Context) domain.FinanceSummary {
 	}
 	return domain.FinanceSummary{
 		MonthLabel:          "Octubre 2026",
+		OctRevenueRD:        octRevenue,
+		AccountsReceivable:  receivable,
+		ActiveEventsCount:   activeEvents,
+		NewQuoteRequests:    newQuotes,
+		PendingVerification: pendingCount,
+	}
+}
+
+func buildZeroBaselineSummary(
+	ctx context.Context,
+	paidSum int,
+	approvedRefunds int,
+	pendingCount int,
+	eventsReader EventMetricsReader,
+	quotesReader QuoteMetricsReader,
+) domain.FinanceSummary {
+	octRevenue := clampNonNegative(paidSum - approvedRefunds)
+	activeEvents := 0
+	receivable := 0
+	if eventsReader != nil {
+		for _, evt := range eventsReader.AllEventsSnapshot(ctx) {
+			if evt.IsActive() {
+				activeEvents++
+				receivable += evt.BalanceRD()
+			}
+		}
+	}
+	newQuotes := 0
+	if quotesReader != nil {
+		newQuotes = quotesReader.PendingQuotesCount(ctx)
+	}
+	return domain.FinanceSummary{
+		MonthLabel:          "Mes actual",
 		OctRevenueRD:        octRevenue,
 		AccountsReceivable:  receivable,
 		ActiveEventsCount:   activeEvents,

@@ -105,6 +105,14 @@ func (s *Service) Reset(_ context.Context) {
 	s.mu.Unlock()
 }
 
+func (s *Service) ResetEmpty(_ context.Context) {
+	s.mu.Lock()
+	s.quotes = make(map[string]domain.Quote)
+	s.order = nil
+	s.nextSeq = 1200
+	s.mu.Unlock()
+}
+
 func (s *Service) WithStore(store Store) *Service {
 	s.mu.Lock()
 	s.store = store

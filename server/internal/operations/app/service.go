@@ -119,6 +119,28 @@ func (s *Service) Reset(_ context.Context) {
 	s.mu.Unlock()
 }
 
+func (s *Service) ResetEmpty(_ context.Context) {
+	s.mu.Lock()
+	s.logistics = make(map[string]domain.EventLogistics)
+	s.routeStops = nil
+	s.offlineQueue = nil
+	s.reviews = nil
+	s.suppliers = nil
+	s.leads = nil
+	s.settings = domain.BusinessSettings{
+		ID:          "default",
+		CompanyName: "Rosa Fiesta",
+	}
+	s.deliveryZones = nil
+	s.notifications = nil
+	s.policies = nil
+	s.auditLogs = nil
+	s.botFAQs = nil
+	s.botKeywords = nil
+	s.botThreads = nil
+	s.mu.Unlock()
+}
+
 func cloneEventLogistics(src domain.EventLogistics) domain.EventLogistics {
 	crew := make([]string, len(src.AssignedCrew))
 	copy(crew, src.AssignedCrew)

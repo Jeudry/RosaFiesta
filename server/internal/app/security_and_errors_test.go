@@ -250,3 +250,120 @@ func TestRateLimiterBlocksExcessTrafficWithStructured429(t *testing.T) {
 		t.Fatalf("unexpected 429 APIError policy: %+v", rateErr)
 	}
 }
+
+func TestAdminOnlySeedStartsEmptyExceptAdminAndStaff(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	handler, _ := httpapi.New(slog.New(slog.DiscardHandler), app.Modules(app.Dependencies{AdminOnlySeed: true})...)
+
+	mariaLoginReq := httptest.NewRequestWithContext(
+		ctx,
+		http.MethodPost,
+		"/v1/auth/login",
+		strings.NewReader(`{"email":"maria@rosafiesta.do","password":"secret123"}`),
+	)
+	mariaLoginReq.Header.Set("Content-Type", "application/json")
+	mariaLoginRec := httptest.NewRecorder()
+	handler.ServeHTTP(mariaLoginRec, mariaLoginReq)
+	if mariaLoginRec.Code != http.StatusOK {
+		t.Fatalf("expected 200 for maria@rosafiesta.do, got %d: %s", mariaLoginRec.Code, mariaLoginRec.Body.String())
+	}
+
+	camilaLoginReq := httptest.NewRequestWithContext(
+		ctx,
+		http.MethodPost,
+		"/v1/auth/login",
+		strings.NewReader(`{"email":"camila@rosafiesta.do","password":"secret123"}`),
+	)
+	camilaLoginReq.Header.Set("Content-Type", "application/json")
+	camilaLoginRec := httptest.NewRecorder()
+	handler.ServeHTTP(camilaLoginRec, camilaLoginReq)
+	if camilaLoginRec.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 for unseeded camila in AdminOnlySeed, got %d", camilaLoginRec.Code)
+	}
+
+	assertEmptyAdminSlice := func(path, field string) {
+		t.Helper()
+		req := httptest.NewRequestWithContext(ctx, http.MethodGet, path, nil)
+		req.Header.Set("Authorization", "Bearer rf-token-maria")
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("GET %s failed with %d: %s", path, rec.Code, rec.Body.String())
+		}
+		var payload map[string]any
+		if err := json.Unmarshal(rec.Body.Bytes(), &payload); err != nil {
+			t.Fatalf("decode %s: %v", path, err)
+		}
+		rawVal, ok := payload[field]
+		if !ok {
+			return
+		}
+		if rawVal == nil {
+			return
+		}
+		if items, isSlice := rawVal.([]any); isSlice {
+			if len(items) != 0 {
+				t.Fatalf("expected empty %s.%s, got %d items", path, field, len(items))
+			}
+		}
+	}
+
+	assertEmptyAdminSlice("/v1/catalog/articles", "articles")
+	assertEmptyAdminSlice("/v1/catalog/categories", "categories")
+	assertEmptyAdminSlice("/v1/catalog/packages", "packages")
+	assertEmptyAdminSlice("/v1/events", "events")
+	assertEmptyAdminSlice("/v1/quotes", "quotes")
+	assertEmptyAdminSlice("/v1/payments", "payments")
+	assertEmptyAdminSlice("/v1/admin/clients", "clients")
+	assertEmptyAdminSlice("/v1/notifications", "notifications")
+
+	staffReq := httptest.NewRequestWithContext(ctx, http.MethodGet, "/v1/admin/staff", nil)
+	staffReq.Header.Set("Authorization", "Bearer rf-token-maria")
+	staffRec := httptest.NewRecorder()
+	handler.ServeHTTP(staffRec, staffReq)
+	var staffOut struct {
+		Staff []struct {
+			Email string `json:"email"`
+		} `json:"staff"`
+	}
+	if err := json.Unmarshal(staffRec.Body.Bytes(), &staffOut); err != nil {
+		t.Fatalf("decode /v1/admin/staff: %v", err)
+	}
+	if len(staffOut.Staff) != 2 {
+		t.Fatalf("expected exactly 2 admin/staff entries (Maria and Yuli), got %d", len(staffOut.Staff))
+	}
+
+	summaryReq := httptest.NewRequestWithContext(ctx, http.MethodGet, "/v1/payments/summary", nil)
+	summaryReq.Header.Set("Authorization", "Bearer rf-token-maria")
+	summaryRec := httptest.NewRecorder()
+	handler.ServeHTTP(summaryRec, summaryReq)
+	var summaryOut struct {
+		Summary struct {
+			OctRevenueRD        int `json:"octRevenueRD"`
+			AccountsReceivable  int `json:"accountsReceivable"`
+			ActiveEventsCount   int `json:"activeEventsCount"`
+			NewQuoteRequests    int `json:"newQuoteRequests"`
+			PendingVerification int `json:"pendingVerification"`
+		} `json:"summary"`
+	}
+	if err := json.Unmarshal(summaryRec.Body.Bytes(), &summaryOut); err != nil {
+		t.Fatalf("decode summary: %v", err)
+	}
+	hasNonZeroMetric := summaryOut.Summary.OctRevenueRD != 0
+	if summaryOut.Summary.AccountsReceivable != 0 {
+		hasNonZeroMetric = true
+	}
+	if summaryOut.Summary.ActiveEventsCount != 0 {
+		hasNonZeroMetric = true
+	}
+	if summaryOut.Summary.NewQuoteRequests != 0 {
+		hasNonZeroMetric = true
+	}
+	if summaryOut.Summary.PendingVerification != 0 {
+		hasNonZeroMetric = true
+	}
+	if hasNonZeroMetric {
+		t.Fatalf("expected zero metrics in AdminOnlySeed summary, got %+v", summaryOut.Summary)
+	}
+}

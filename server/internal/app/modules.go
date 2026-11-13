@@ -36,10 +36,34 @@ import (
 )
 
 type Dependencies struct {
-	Pool        *pgxpool.Pool
-	Clock       clock.Clock
-	Config      config.Config
-	OTPNotifier identityapp.OTPNotifier
+	Pool          *pgxpool.Pool
+	Clock         clock.Clock
+	Config        config.Config
+	OTPNotifier   identityapp.OTPNotifier
+	AdminOnlySeed bool
+}
+
+func SeedAdminAccountsOnly(ctx context.Context, pool *pgxpool.Pool, clk clock.Clock) error {
+	if pool == nil {
+		return nil
+	}
+	if clk == nil {
+		clk = clock.System{}
+	}
+	now := clk.Now()
+	expires := now.Add(30 * 24 * time.Hour)
+	idRepo := identitypg.NewRepository(pool).WithClock(clk)
+	for _, entry := range adminOnlySeedUsers(now) {
+		if err := idRepo.UpsertUser(ctx, entry.user, entry.sessionKey, expires); err != nil {
+			return err
+		}
+	}
+	for _, staff := range identityapp.DefaultAdminStaff(now) {
+		if err := idRepo.UpsertStaffMember(ctx, staff); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func SeedDatabase(ctx context.Context, pool *pgxpool.Pool, clk clock.Clock) error {
@@ -111,6 +135,41 @@ type seedUser struct {
 	sessionKey string
 }
 
+func adminOnlySeedUsers(now time.Time) []seedUser {
+	return []seedUser{
+		{
+			sessionKey: "rf-token-maria",
+			user: identitydomain.User{
+				ID:          uuid.MustParse("22222222-2222-2222-2222-222222222222"),
+				Username:    "maria",
+				FullName:    "María (Dueña)",
+				Email:       "maria@rosafiesta.do",
+				Phone:       "809-555-0100",
+				BirthDate:   "12/04/1990",
+				Role:        identitydomain.RoleAdmin,
+				Permissions: []string{"eventos", "decoracion", "tareas", "inventario", "pagos", "reembolsos", "reportes", "ajustes"},
+				ActiveView:  identitydomain.ViewAdmin,
+				CreatedAt:   now,
+			},
+		},
+		{
+			sessionKey: "rf-token-yuli",
+			user: identitydomain.User{
+				ID:          uuid.MustParse("33333333-3333-3333-3333-333333333333"),
+				Username:    "yuli",
+				FullName:    "Yuli",
+				Email:       "yuli@rosafiesta.do",
+				Phone:       "809-555-0102",
+				BirthDate:   "22/09/1996",
+				Role:        identitydomain.RoleStaff,
+				Permissions: []string{"decoracion", "tareas"},
+				ActiveView:  identitydomain.ViewAdmin,
+				CreatedAt:   now,
+			},
+		},
+	}
+}
+
 func canonicalSeedUsers(now time.Time) []seedUser {
 	return []seedUser{
 		{
@@ -171,7 +230,7 @@ type assembledServices struct {
 
 func Modules(deps Dependencies) []httpapi.Module {
 	base, svcs, clk := coreModules(deps)
-	onReset := buildResetHandler(deps.Pool, clk, svcs)
+	onReset := buildResetHandler(deps.Pool, clk, svcs, deps.AdminOnlySeed)
 	return append(base, devModules(onReset)...)
 }
 
@@ -185,7 +244,7 @@ func coreModules(deps Dependencies) ([]httpapi.Module, assembledServices, clock.
 		shouldAutoSeed = deps.Config.Env != config.EnvProduction
 	}
 	if shouldAutoSeed {
-		_ = SeedDatabase(context.Background(), deps.Pool, clk)
+		seedSelectedMode(context.Background(), deps.Pool, clk, deps.AdminOnlySeed)
 	}
 	svcs := wireServices(deps, clk)
 	var readiness health.ReadinessChecker
@@ -204,6 +263,14 @@ func coreModules(deps Dependencies) ([]httpapi.Module, assembledServices, clock.
 	return base, svcs, clk
 }
 
+func seedSelectedMode(ctx context.Context, pool *pgxpool.Pool, clk clock.Clock, adminOnly bool) {
+	if adminOnly {
+		_ = SeedAdminAccountsOnly(ctx, pool, clk)
+		return
+	}
+	_ = SeedDatabase(ctx, pool, clk)
+}
+
 func wireServices(deps Dependencies, clk clock.Clock) assembledServices {
 	eventsStore := eventspg.NewRepository(deps.Pool)
 	identityStore := identitypg.NewRepository(deps.Pool).WithClock(clk)
@@ -212,26 +279,41 @@ func wireServices(deps Dependencies, clk clock.Clock) assembledServices {
 	paymentsStore := paymentspg.NewRepository(deps.Pool)
 	operationsStore := operationspg.NewRepository(deps.Pool)
 
-	eventsSvc := eventsapp.NewService().WithClock(clk).WithStore(eventsStore)
+	eventsSvc := eventsapp.NewService().WithClock(clk)
 	idOpts := buildIdentityOptions(deps)
-	identitySvc := identityapp.NewServiceWithOptions(clk, eventsSvc, idOpts).WithStore(identityStore)
-	catalogSvc := catalogapp.NewService().WithReservationReader(eventsSvc).WithStore(catalogStore)
+	identitySvc := identityapp.NewServiceWithOptions(clk, eventsSvc, idOpts)
+	catalogSvc := catalogapp.NewService().WithReservationReader(eventsSvc)
 	quotesSvc := quotesapp.NewService().
 		WithClock(clk).
 		WithCatalog(catalogSvc).
-		WithAIOptions(deps.Config.STTAPIURL, deps.Config.AIProviderAPIKey).
-		WithStore(quotesStore)
+		WithAIOptions(deps.Config.STTAPIURL, deps.Config.AIProviderAPIKey)
 	paymentsSvc := paymentsapp.NewService().
 		WithClock(clk).
-		WithMetricsReaders(eventsSvc, quotesSvc).
-		WithStore(paymentsStore)
+		WithMetricsReaders(eventsSvc, quotesSvc)
 	eventsSvc.WithRefundRecorder(paymentsSvc)
 	operationsSvc := operationsapp.NewService().
 		WithClock(clk).
 		WithRevenueProvider(func(ctx context.Context) int {
 			return paymentsSvc.GetSummary(ctx).OctRevenueRD
-		}).
-		WithStore(operationsStore)
+		})
+
+	if deps.AdminOnlySeed {
+		resetServicesAdminOnly(context.Background(), assembledServices{
+			events:     eventsSvc,
+			identity:   identitySvc,
+			catalog:    catalogSvc,
+			quotes:     quotesSvc,
+			payments:   paymentsSvc,
+			operations: operationsSvc,
+		})
+	}
+
+	eventsSvc.WithStore(eventsStore)
+	identitySvc.WithStore(identityStore)
+	catalogSvc.WithStore(catalogStore)
+	quotesSvc.WithStore(quotesStore)
+	paymentsSvc.WithStore(paymentsStore)
+	operationsSvc.WithStore(operationsStore)
 
 	return assembledServices{
 		events:     eventsSvc,
@@ -241,6 +323,15 @@ func wireServices(deps Dependencies, clk clock.Clock) assembledServices {
 		payments:   paymentsSvc,
 		operations: operationsSvc,
 	}
+}
+
+func resetServicesAdminOnly(ctx context.Context, svcs assembledServices) {
+	svcs.events.ResetEmpty(ctx)
+	svcs.identity.ResetAdminOnly(ctx)
+	svcs.catalog.ResetEmpty(ctx)
+	svcs.quotes.ResetEmpty(ctx)
+	svcs.payments.ResetEmpty(ctx)
+	svcs.operations.ResetEmpty(ctx)
 }
 
 func buildIdentityOptions(deps Dependencies) identityapp.Options {
@@ -258,10 +349,19 @@ func buildIdentityOptions(deps Dependencies) identityapp.Options {
 	}
 }
 
-func buildResetHandler(pool *pgxpool.Pool, clk clock.Clock, svcs assembledServices) func(ctx context.Context) {
+func buildResetHandler(
+	pool *pgxpool.Pool,
+	clk clock.Clock,
+	svcs assembledServices,
+	adminOnly bool,
+) func(ctx context.Context) {
 	return func(ctx context.Context) {
 		if pool != nil {
-			_ = SeedDatabase(ctx, pool, clk)
+			seedSelectedMode(ctx, pool, clk, adminOnly)
+		}
+		if adminOnly {
+			resetServicesAdminOnly(ctx, svcs)
+			return
 		}
 		svcs.events.Reset(ctx)
 		svcs.identity.Reset(ctx)

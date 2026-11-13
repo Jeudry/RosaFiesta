@@ -33,6 +33,7 @@ import com.jeudry.rosafiesta.domain.LeadRecord
 import com.jeudry.rosafiesta.domain.NotificationRecord
 import com.jeudry.rosafiesta.domain.OfflineQueueItem
 import com.jeudry.rosafiesta.domain.PaymentRecord
+import com.jeudry.rosafiesta.domain.PhotoAsset
 import com.jeudry.rosafiesta.domain.QuoteRecord
 import com.jeudry.rosafiesta.domain.RefundRequest
 import com.jeudry.rosafiesta.domain.ReviewRecord
@@ -2773,8 +2774,32 @@ public class RosaFiestaViewModel(
         }
         val currentSelectedId = _selectedEventId.value
         return events.value.firstOrNull { eventItem -> eventItem.id == currentSelectedId }
-            ?: events.value.first()
+            ?: events.value.firstOrNull()
+            ?: emptyNeutralClientEvent()
     }
+
+    private fun emptyNeutralClientEvent(): ClientEvent = ClientEvent(
+        id = "",
+        code = "RF-000",
+        title = "Sin eventos",
+        clientName = "",
+        eventType = "",
+        dateLabel = "",
+        daysUntilEvent = 0,
+        venue = "",
+        zone = "",
+        guests = 0,
+        articleCount = 0,
+        totalDop = 0,
+        paidDepositDop = 0,
+        depositMethodLabel = "",
+        depositDateLabel = "",
+        balanceDueDateLabel = "",
+        status = EventStatus.PENDING_QUOTE,
+        leadStaffName = "",
+        photo = PhotoAsset.BODA,
+        items = emptyList(),
+    )
 
     public fun clientPaymentsForCurrentUser(): List<PaymentRecord> {
         val userEventIds = clientEventsForCurrentUser().map { eventItem -> eventItem.id }.toSet()

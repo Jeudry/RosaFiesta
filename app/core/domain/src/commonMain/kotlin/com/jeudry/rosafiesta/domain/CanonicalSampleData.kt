@@ -8,6 +8,53 @@ import com.jeudry.rosafiesta.core.engine.UserRole
  * Todas las pantallas usan exactamente estos nombres, fechas, cantidades y montos en RD$.
  */
 public object CanonicalSampleData {
+    public val zeroBusinessMetrics: BusinessMetrics = BusinessMetrics(
+        monthLabel = "Mes actual",
+        octoberRevenueDop = 0,
+        accountsReceivableDop = 0,
+        activeEventsCount = 0,
+        newRequestsCount = 0,
+        occupancyRatePercent = 0,
+    )
+
+    public val emptyAdminStaffMembers: List<StaffProfile> = listOf(
+        StaffProfile(
+            id = "staff-maria",
+            name = "María",
+            roleLabel = "Dueña · Administradora general",
+            role = UserRole.ADMIN_OWNER,
+            activeEventsCount = 0,
+            permissions = RosaFiestaEngine.permissionsForRole(UserRole.ADMIN_OWNER),
+            email = "maria@rosafiesta.do",
+            phone = "809-555-0101",
+        ),
+        StaffProfile(
+            id = "staff-yuli",
+            name = "Yuli",
+            roleLabel = "Decoración y tareas (sin acceso a pagos)",
+            role = UserRole.STAFF_DECORATION,
+            activeEventsCount = 0,
+            permissions = RosaFiestaEngine.permissionsForRole(UserRole.STAFF_DECORATION),
+            email = "yuli@rosafiesta.do",
+            phone = "809-555-0102",
+        ),
+    )
+
+    public val emptyBusinessSettings: BusinessSettings = BusinessSettings(
+        businessName = "Rosa Fiesta",
+        rnc = "",
+        address = "",
+        phone = "",
+        whatsapp = "",
+        email = "",
+        businessHours = "",
+        instagramUrl = "",
+        facebookUrl = "",
+        depositPercent = 0,
+        itbisPercent = 0,
+        zones = emptyList(),
+    )
+
     public val businessMetrics: BusinessMetrics = BusinessMetrics(
         monthLabel = "Octubre 2026",
         octoberRevenueDop = 12450,

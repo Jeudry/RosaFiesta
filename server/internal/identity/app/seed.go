@@ -8,6 +8,91 @@ import (
 	"github.com/Jeudry/rosafiesta/server/internal/identity/domain"
 )
 
+func buildAdminSeedUsers(now time.Time) map[uuid.UUID]domain.User {
+	defaultHash := canonicalSeedPasswordHash()
+	mariaID := uuid.MustParse("22222222-2222-2222-2222-222222222222")
+	yuliID := uuid.MustParse("33333333-3333-3333-3333-333333333333")
+	return map[uuid.UUID]domain.User{
+		mariaID: {
+			ID:           mariaID,
+			Username:     "maria",
+			FullName:     "María (Dueña)",
+			Email:        "maria@rosafiesta.do",
+			Phone:        "809-555-0100",
+			BirthDate:    "12/04/1990",
+			Role:         domain.RoleAdmin,
+			Permissions:  []string{"eventos", "decoracion", "tareas", "inventario", "pagos", "reembolsos", "reportes", "ajustes"},
+			ActiveView:   domain.ViewAdmin,
+			CreatedAt:    now,
+			PasswordHash: defaultHash,
+		},
+		yuliID: {
+			ID:           yuliID,
+			Username:     "yuli",
+			FullName:     "Yuli",
+			Email:        "yuli@rosafiesta.do",
+			Phone:        "809-555-0102",
+			BirthDate:    "22/09/1996",
+			Role:         domain.RoleStaff,
+			Permissions:  []string{"decoracion", "tareas"},
+			ActiveView:   domain.ViewAdmin,
+			CreatedAt:    now,
+			PasswordHash: defaultHash,
+		},
+	}
+}
+
+func buildAdminDevStaticSessions(now time.Time) map[string]sessionEntry {
+	expiresAt := now.Add(defaultSessionTTL)
+	mariaHash := domain.HashToken("rf-token-maria")
+	yuliHash := domain.HashToken("rf-token-yuli")
+	return map[string]sessionEntry{
+		mariaHash: {
+			UserID:    uuid.MustParse("22222222-2222-2222-2222-222222222222"),
+			ExpiresAt: expiresAt,
+		},
+		yuliHash: {
+			UserID:    uuid.MustParse("33333333-3333-3333-3333-333333333333"),
+			ExpiresAt: expiresAt,
+		},
+	}
+}
+
+func DefaultAdminStaff(now time.Time) []domain.StaffRecord {
+	return defaultAdminStaff(now)
+}
+
+func defaultAdminStaff(now time.Time) []domain.StaffRecord {
+	mariaID := uuid.MustParse("22222222-2222-2222-2222-222222222222")
+	yuliID := uuid.MustParse("33333333-3333-3333-3333-333333333333")
+	return []domain.StaffRecord{
+		{
+			ID:          "staff-maria",
+			UserID:      mariaID,
+			FullName:    "María",
+			Email:       "maria@rosafiesta.do",
+			Phone:       "809-555-0100",
+			RoleLabel:   "Dueña · Administradora general",
+			Role:        "admin",
+			Permissions: []string{"eventos", "decoracion", "tareas", "inventario", "pagos", "reembolsos", "reportes", "ajustes"},
+			Active:      true,
+			CreatedAt:   now,
+		},
+		{
+			ID:          "staff-yuli",
+			UserID:      yuliID,
+			FullName:    "Yuli",
+			Email:       "yuli@rosafiesta.do",
+			Phone:       "809-555-0102",
+			RoleLabel:   "Decoración y tareas (sin pagos)",
+			Role:        "staff",
+			Permissions: []string{"decoracion", "tareas"},
+			Active:      true,
+			CreatedAt:   now,
+		},
+	}
+}
+
 func buildCanonicalUsers(now time.Time) map[uuid.UUID]domain.User {
 	defaultHash := canonicalSeedPasswordHash()
 	camilaID := uuid.MustParse("11111111-1111-1111-1111-111111111111")

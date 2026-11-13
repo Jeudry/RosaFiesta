@@ -73,62 +73,77 @@ public class SqlRosaFiestaRepository(
     driver: SqlDriver,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.Default,
     private val apiClient: RosaFiestaApiClient? = null,
+    private val seedDemoData: Boolean = true,
 ) : RosaFiestaRepository {
     private val database: RosaFiestaDatabase = RosaFiestaDatabase(driver)
     private val queries = database.rosaFiestaDatabaseQueries
     private val scope = CoroutineScope(SupervisorJob() + ioDispatcher)
     private val sqlMutex = Mutex()
+    private val initialSeedAccounts: List<RegisteredUserAccount> = if (seedDemoData) {
+        JwtAuthManager.defaultSeedAccounts
+    } else {
+        JwtAuthManager.defaultAdminSeedAccounts
+    }
+    private val initialLoggedUser: RegisteredUserAccount? = if (seedDemoData) {
+        initialSeedAccounts.firstOrNull()
+    } else {
+        null
+    }
 
-    private val checklistEventIdsByStepId: MutableMap<String, String> = CanonicalSampleData.bodaChecklist
-        .associate { step -> step.id to step.eventId }
-        .toMutableMap()
+    private val checklistEventIdsByStepId: MutableMap<String, String> = if (seedDemoData) {
+        CanonicalSampleData.bodaChecklist
+            .associate { step -> step.id to step.eventId }
+            .toMutableMap()
+    } else {
+        mutableMapOf()
+    }
 
-    private val _articles = MutableStateFlow(CanonicalSampleData.articles)
+    private val _articles = MutableStateFlow(if (seedDemoData) CanonicalSampleData.articles else emptyList())
     override val articles: StateFlow<List<CatalogArticle>> = _articles.asStateFlow()
 
-    private val _events = MutableStateFlow(CanonicalSampleData.events)
+    private val _events = MutableStateFlow(if (seedDemoData) CanonicalSampleData.events else emptyList())
     override val events: StateFlow<List<ClientEvent>> = _events.asStateFlow()
 
-    private val _payments = MutableStateFlow(CanonicalSampleData.payments)
+    private val _payments = MutableStateFlow(if (seedDemoData) CanonicalSampleData.payments else emptyList())
     override val payments: StateFlow<List<PaymentRecord>> = _payments.asStateFlow()
 
-    private val _checklist = MutableStateFlow(CanonicalSampleData.bodaChecklist)
+    private val _checklist = MutableStateFlow(if (seedDemoData) CanonicalSampleData.bodaChecklist else emptyList())
     override val checklist: StateFlow<List<ChecklistStep>> = _checklist.asStateFlow()
 
-    private val _offlineQueue = MutableStateFlow(CanonicalSampleData.offlineQueue)
+    private val _offlineQueue = MutableStateFlow(if (seedDemoData) CanonicalSampleData.offlineQueue else emptyList())
     override val offlineQueue: StateFlow<List<OfflineQueueItem>> = _offlineQueue.asStateFlow()
 
-    private val _metrics = MutableStateFlow(CanonicalSampleData.businessMetrics)
+    private val _metrics = MutableStateFlow(
+        if (seedDemoData) CanonicalSampleData.businessMetrics else CanonicalSampleData.zeroBusinessMetrics,
+    )
     override val metrics: StateFlow<BusinessMetrics> = _metrics.asStateFlow()
 
-    private val _activeRole = MutableStateFlow("client")
+    private val _activeRole = MutableStateFlow(if (seedDemoData) "client" else "guest")
     override val activeRole: StateFlow<String> = _activeRole.asStateFlow()
 
-    private val _currentUserEmail = MutableStateFlow("camila@rosafiesta.do")
+    private val _currentUserEmail = MutableStateFlow(if (seedDemoData) "camila@rosafiesta.do" else "")
     override val currentUserEmail: StateFlow<String> = _currentUserEmail.asStateFlow()
 
-    private val userAccountsState = MutableStateFlow(JwtAuthManager.defaultSeedAccounts)
+    private val userAccountsState = MutableStateFlow(initialSeedAccounts)
     override val registeredAccounts: StateFlow<List<RegisteredUserAccount>> = userAccountsState.asStateFlow()
 
-    private val _currentAuthenticatedUser = MutableStateFlow<RegisteredUserAccount?>(
-        JwtAuthManager.defaultSeedAccounts.firstOrNull(),
-    )
+    private val _currentAuthenticatedUser = MutableStateFlow<RegisteredUserAccount?>(initialLoggedUser)
     override val currentAuthenticatedUser: StateFlow<RegisteredUserAccount?> = _currentAuthenticatedUser.asStateFlow()
 
     private val _currentSessionJwt = MutableStateFlow<String?>(
-        JwtAuthManager.defaultSeedAccounts.firstOrNull()?.let { seedUser ->
-            JwtAuthManager.issueAccessToken(seedUser)
-        },
+        initialLoggedUser?.let { seedUser -> JwtAuthManager.issueAccessToken(seedUser) },
     )
     override val currentSessionJwt: StateFlow<String?> = _currentSessionJwt.asStateFlow()
 
-    private val _favorites = MutableStateFlow(CanonicalSampleData.initialFavorites)
+    private val _favorites = MutableStateFlow(if (seedDemoData) CanonicalSampleData.initialFavorites else emptySet())
     override val favorites: StateFlow<Set<String>> = _favorites.asStateFlow()
 
-    private val _staffMembers = MutableStateFlow(CanonicalSampleData.staffMembers)
+    private val _staffMembers = MutableStateFlow(
+        if (seedDemoData) CanonicalSampleData.staffMembers else CanonicalSampleData.emptyAdminStaffMembers,
+    )
     override val staffMembers: StateFlow<List<StaffMember>> = _staffMembers.asStateFlow()
 
-    private val _chatMessages = MutableStateFlow(CanonicalSampleData.initialChatMessages)
+    private val _chatMessages = MutableStateFlow(if (seedDemoData) CanonicalSampleData.initialChatMessages else emptyList())
     override val chatMessages: StateFlow<List<String>> = _chatMessages.asStateFlow()
 
     private val submodules = RosaFiestaSubmoduleCoordinator(
@@ -149,6 +164,7 @@ public class SqlRosaFiestaRepository(
         userAccountsFlow = userAccountsState,
         onPersistAccountAndSession = ::persistAccountAndSessionInSql,
         onPersistCoreSync = ::persistInMemoryCoreFlowsToSql,
+        seedDemoData = seedDemoData,
     )
 
     override val packages: StateFlow<List<EventPackage>>
@@ -317,6 +333,11 @@ public class SqlRosaFiestaRepository(
     }
 
     private fun seedInitialDataSynchronouslyIfEmpty() {
+        if (!seedDemoData) {
+            seedAdminAccountsOnlyIfEmpty()
+            reloadFromSql()
+            return
+        }
         val existingArticles = queries.selectAllArticles().executeAsList()
         if (existingArticles.isEmpty()) {
             database.transaction {
@@ -446,6 +467,48 @@ public class SqlRosaFiestaRepository(
             }
         }
         reloadFromSql()
+    }
+
+    private fun seedAdminAccountsOnlyIfEmpty() {
+        val existingStaff = queries.selectAllStaffPermissions().executeAsList()
+        val existingUsers = queries.selectAllUserAccounts().executeAsList()
+        val needsStaff = existingStaff.isEmpty()
+        val needsUsers = existingUsers.isEmpty()
+        val bothSeededAlready = if (!needsStaff) !needsUsers else false
+        if (bothSeededAlready) {
+            return
+        }
+        database.transaction {
+            if (needsStaff) {
+                CanonicalSampleData.emptyAdminStaffMembers.forEachIndexed { index, member ->
+                    queries.upsertStaffPermission(
+                        id = member.id,
+                        name = member.name,
+                        roleLabel = member.roleLabel,
+                        role = member.role.name,
+                        activeEventsCount = 0L,
+                        permissionsCsv = member.permissions.joinToString(",") { perm -> perm.name },
+                        canViewPayments = if (member.canViewPayments) 1L else 0L,
+                        sortOrder = index.toLong(),
+                    )
+                }
+            }
+            if (needsUsers) {
+                JwtAuthManager.defaultAdminSeedAccounts.forEach { account ->
+                    queries.upsertUserAccount(
+                        id = account.id,
+                        username = account.username,
+                        email = account.email,
+                        fullName = account.fullName,
+                        passwordHash = account.passwordHash,
+                        salt = account.salt,
+                        birthDate = account.birthDate,
+                        phone = account.phone,
+                        role = account.role,
+                    )
+                }
+            }
+        }
     }
 
     private fun reloadFromSql() {
@@ -634,7 +697,8 @@ public class SqlRosaFiestaRepository(
                 sketchJson = currentInMemory?.sketchJson.orEmpty(),
             )
         }
-        if (loadedEvents.isNotEmpty()) {
+        val shouldApplyEvents = if (loadedEvents.isNotEmpty()) true else !seedDemoData
+        if (shouldApplyEvents) {
             _events.value = loadedEvents
             recalculateMetricsFromState()
         }
@@ -656,18 +720,24 @@ public class SqlRosaFiestaRepository(
                 verified = row.verified != 0L,
             )
         }
-        if (loadedPayments.isNotEmpty()) {
+        val shouldApplyPayments = if (loadedPayments.isNotEmpty()) true else !seedDemoData
+        if (shouldApplyPayments) {
             _payments.value = loadedPayments
             recalculateMetricsFromState()
         }
     }
 
     private fun recalculateMetricsFromState() {
+        val metricsBaseline = if (seedDemoData) {
+            CanonicalSampleData.businessMetrics
+        } else {
+            CanonicalSampleData.zeroBusinessMetrics
+        }
         _metrics.value = RosaFiestaBackendMappers.computeHonestMetrics(
             events = _events.value,
             payments = _payments.value,
             quotes = submodules.quotes.value,
-            baseMetrics = CanonicalSampleData.businessMetrics,
+            baseMetrics = metricsBaseline,
         )
     }
 
@@ -701,14 +771,16 @@ public class SqlRosaFiestaRepository(
                 active = prev?.active ?: true,
             )
         }
-        if (loadedStaff.isNotEmpty()) {
+        val shouldApplyStaff = if (loadedStaff.isNotEmpty()) true else !seedDemoData
+        if (shouldApplyStaff) {
             _staffMembers.value = loadedStaff
         }
     }
 
     private fun reloadChatFromSql() {
         val loadedChat = queries.selectAllChatMessages().executeAsList()
-        if (loadedChat.isNotEmpty()) {
+        val shouldApplyChat = if (loadedChat.isNotEmpty()) true else !seedDemoData
+        if (shouldApplyChat) {
             _chatMessages.value = loadedChat
         }
     }
@@ -2056,7 +2128,9 @@ public class SqlRosaFiestaRepository(
 
     override fun changeEventDate(eventId: String, newDateLabel: String): DateChangeResult {
         val cleanDate = newDateLabel.trim()
-        val currentEvent = _events.value.firstOrNull { event -> event.id == eventId.trim() } ?: _events.value.first()
+        val currentEvent = _events.value.firstOrNull { event -> event.id == eventId.trim() }
+            ?: _events.value.firstOrNull()
+            ?: return RosaFiestaEngine.evaluateDateChange(0, 2)
         val eval = RosaFiestaEngine.evaluateDateChange(currentEvent.daysUntilEvent, currentEvent.priorChangesCount)
         if (!eval.allowed) return eval
         if (cleanDate.isEmpty()) return eval
@@ -2082,7 +2156,9 @@ public class SqlRosaFiestaRepository(
     }
 
     override fun cancelEvent(eventId: String): CancellationRefund {
-        val currentEvent = _events.value.firstOrNull { event -> event.id == eventId.trim() } ?: _events.value.first()
+        val currentEvent = _events.value.firstOrNull { event -> event.id == eventId.trim() }
+            ?: _events.value.firstOrNull()
+            ?: return RosaFiestaEngine.calculateCancellationRefund(0, 0)
         val refund = RosaFiestaEngine.calculateCancellationRefund(currentEvent.paidDepositDop, currentEvent.daysUntilEvent)
         _events.update { list ->
             list.map { evt ->
@@ -2111,7 +2187,9 @@ public class SqlRosaFiestaRepository(
         if (amountDop <= 0) return null
         if (cleanMethod.isEmpty()) return null
 
-        val targetEvent = _events.value.firstOrNull { event -> event.id == eventId.trim() } ?: _events.value.first()
+        val targetEvent = _events.value.firstOrNull { event -> event.id == eventId.trim() }
+            ?: _events.value.firstOrNull()
+            ?: return null
         val nextNumber = 185 + _payments.value.size
         val receipt = "REC-2026-${nextNumber.toString().padStart(4, '0')}"
         val shortDateLabel = DomainClockFormatter.currentShortDateLabel()

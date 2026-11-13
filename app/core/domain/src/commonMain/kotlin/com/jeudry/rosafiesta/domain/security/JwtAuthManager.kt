@@ -126,17 +126,12 @@ public object JwtAuthManager {
     /**
      * Canonical offline demo accounts with pre-hashed local credentials.
      */
-    public val defaultSeedAccounts: List<RegisteredUserAccount> by lazy {
+
+    /**
+     * Admin and staff accounts seeded when starting the application cleanly from scratch.
+     */
+    public val defaultAdminSeedAccounts: List<RegisteredUserAccount> by lazy {
         listOf(
-            createSeedAccount(
-                id = "usr-camila",
-                username = "camila",
-                email = "camila@rosafiesta.do",
-                fullName = "Camila Rodríguez",
-                birthDate = "15/08/1998",
-                phone = "809-555-0142",
-                role = "client",
-            ),
             createSeedAccount(
                 id = "usr-maria",
                 username = "maria",
@@ -155,6 +150,24 @@ public object JwtAuthManager {
                 phone = "809-555-0102",
                 role = "staff_yuli",
             ),
+        )
+    }
+
+    /**
+     * Default seeded accounts for tests and canonical demo mode.
+     */
+    public val defaultSeedAccounts: List<RegisteredUserAccount> by lazy {
+        listOf(
+            createSeedAccount(
+                id = "usr-camila",
+                username = "camila",
+                email = "camila@rosafiesta.do",
+                fullName = "Camila Rodríguez",
+                birthDate = "15/08/1998",
+                phone = "809-555-0142",
+                role = "client",
+            ),
+        ) + defaultAdminSeedAccounts + listOf(
             createSeedAccount(
                 id = "usr-pedro",
                 username = "pedro",

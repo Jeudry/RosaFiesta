@@ -383,4 +383,45 @@ class SqlRosaFiestaRepositoryTest {
         assertFalse(badLogin.success)
         assertEquals("AUTH_INVALID_CREDENTIALS", badLogin.errorCode)
     }
+
+    @Test
+    fun adminOnlySeedStartsEmptyExceptAdminAndStaffAndCanCreateFirstArticle() = runTest {
+        val testDispatcher = StandardTestDispatcher(testScheduler)
+        val driver = DriverFactory().createDriver()
+        val repo = SqlRosaFiestaRepository(
+            driver = driver,
+            ioDispatcher = testDispatcher,
+            seedDemoData = false,
+        )
+
+        assertTrue(repo.articles.value.isEmpty())
+        assertTrue(repo.events.value.isEmpty())
+        assertTrue(repo.payments.value.isEmpty())
+        assertTrue(repo.quotes.value.isEmpty())
+        assertTrue(repo.clients.value.isEmpty())
+        assertTrue(repo.notifications.value.isEmpty())
+        assertTrue(repo.checklist.value.isEmpty())
+        assertEquals(0, repo.metrics.value.octoberRevenueDop)
+        assertEquals(0, repo.metrics.value.activeEventsCount)
+        assertEquals(2, repo.registeredAccounts.value.size)
+        assertEquals(2, repo.staffMembers.value.size)
+        assertEquals("guest", repo.activeRole.value)
+
+        val camilaLogin = repo.authenticateUserOnline("camila@rosafiesta.do", "rosa2026")
+        assertFalse(camilaLogin.success)
+
+        val mariaLogin = repo.authenticateUserOnline("maria@rosafiesta.do", "rosa2026")
+        assertTrue(mariaLogin.success)
+        assertEquals("admin", repo.activeRole.value)
+
+        repo.createArticle(
+            code = "RF-001",
+            name = "Mesa imperial roble",
+            category = "Mobiliario",
+            pricePerDayDop = 45,
+            totalStock = 8,
+        )
+        assertEquals(1, repo.articles.value.size)
+        assertEquals("Mesa imperial roble", repo.articles.value.first().name)
+    }
 }

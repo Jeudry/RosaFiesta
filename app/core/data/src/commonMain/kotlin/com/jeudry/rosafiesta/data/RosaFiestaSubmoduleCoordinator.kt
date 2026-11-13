@@ -76,71 +76,74 @@ internal class RosaFiestaSubmoduleCoordinator(
     private val userAccountsFlow: MutableStateFlow<List<RegisteredUserAccount>>,
     private val onPersistAccountAndSession: suspend (RegisteredUserAccount, String) -> Unit = { _, _ -> },
     private val onPersistCoreSync: suspend () -> Unit = {},
+    private val seedDemoData: Boolean = true,
 ) {
-    private val _packages = MutableStateFlow(CanonicalSampleData.packages)
+    private val _packages = MutableStateFlow(if (seedDemoData) CanonicalSampleData.packages else emptyList())
     val packages: StateFlow<List<EventPackage>> = _packages.asStateFlow()
 
-    private val _templates = MutableStateFlow(CanonicalSampleData.templates)
+    private val _templates = MutableStateFlow(if (seedDemoData) CanonicalSampleData.templates else emptyList())
     val templates: StateFlow<List<EventTypeTemplate>> = _templates.asStateFlow()
 
-    private val _balloonProducts = MutableStateFlow(CanonicalSampleData.balloonProducts)
+    private val _balloonProducts = MutableStateFlow(if (seedDemoData) CanonicalSampleData.balloonProducts else emptyList())
     val balloonProducts: StateFlow<List<BalloonProduct>> = _balloonProducts.asStateFlow()
 
-    private val _clients = MutableStateFlow(CanonicalSampleData.clients)
+    private val _clients = MutableStateFlow(if (seedDemoData) CanonicalSampleData.clients else emptyList())
     val clients: StateFlow<List<ClientProfile>> = _clients.asStateFlow()
 
-    private val _deliveryStops = MutableStateFlow(CanonicalSampleData.deliveryStops)
+    private val _deliveryStops = MutableStateFlow(if (seedDemoData) CanonicalSampleData.deliveryStops else emptyList())
     val deliveryStops: StateFlow<List<DeliveryStop>> = _deliveryStops.asStateFlow()
 
-    private val _damageIncidents = MutableStateFlow(CanonicalSampleData.damageIncidents)
+    private val _damageIncidents = MutableStateFlow(if (seedDemoData) CanonicalSampleData.damageIncidents else emptyList())
     val damageIncidents: StateFlow<List<DamageIncident>> = _damageIncidents.asStateFlow()
 
-    private val _quotes = MutableStateFlow(CanonicalSampleData.quotes)
+    private val _quotes = MutableStateFlow(if (seedDemoData) CanonicalSampleData.quotes else emptyList())
     val quotes: StateFlow<List<QuoteRecord>> = _quotes.asStateFlow()
 
-    private val _refundRequests = MutableStateFlow(CanonicalSampleData.refundRequests)
+    private val _refundRequests = MutableStateFlow(if (seedDemoData) CanonicalSampleData.refundRequests else emptyList())
     val refundRequests: StateFlow<List<RefundRequest>> = _refundRequests.asStateFlow()
 
-    private val _reviews = MutableStateFlow(CanonicalSampleData.reviews)
+    private val _reviews = MutableStateFlow(if (seedDemoData) CanonicalSampleData.reviews else emptyList())
     val reviews: StateFlow<List<ReviewRecord>> = _reviews.asStateFlow()
 
-    private val _businessSettings = MutableStateFlow(CanonicalSampleData.businessSettings)
+    private val _businessSettings = MutableStateFlow(
+        if (seedDemoData) CanonicalSampleData.businessSettings else CanonicalSampleData.emptyBusinessSettings,
+    )
     val businessSettings: StateFlow<BusinessSettings> = _businessSettings.asStateFlow()
 
-    private val _suppliers = MutableStateFlow(CanonicalSampleData.suppliers)
+    private val _suppliers = MutableStateFlow(if (seedDemoData) CanonicalSampleData.suppliers else emptyList())
     val suppliers: StateFlow<List<SupplierRecord>> = _suppliers.asStateFlow()
 
-    private val _leads = MutableStateFlow(CanonicalSampleData.leads)
+    private val _leads = MutableStateFlow(if (seedDemoData) CanonicalSampleData.leads else emptyList())
     val leads: StateFlow<List<LeadRecord>> = _leads.asStateFlow()
 
-    private val _chatThreads = MutableStateFlow(CanonicalSampleData.chatThreads)
+    private val _chatThreads = MutableStateFlow(if (seedDemoData) CanonicalSampleData.chatThreads else emptyList())
     val chatThreads: StateFlow<List<ChatThread>> = _chatThreads.asStateFlow()
 
-    private val _threadMessages = MutableStateFlow(CanonicalSampleData.chatMessageRecords)
+    private val _threadMessages = MutableStateFlow(if (seedDemoData) CanonicalSampleData.chatMessageRecords else emptyList())
     val threadMessages: StateFlow<List<ChatMessageRecord>> = _threadMessages.asStateFlow()
 
     private val _eventGuests = MutableStateFlow<List<EventGuest>>(emptyList())
     val eventGuests: StateFlow<List<EventGuest>> = _eventGuests.asStateFlow()
 
-    private val _eventSchedule = MutableStateFlow(CanonicalSampleData.eventScheduleBlocks)
+    private val _eventSchedule = MutableStateFlow(if (seedDemoData) CanonicalSampleData.eventScheduleBlocks else emptyList())
     val eventSchedule: StateFlow<List<EventScheduleBlock>> = _eventSchedule.asStateFlow()
 
     private val _notifications = MutableStateFlow<List<NotificationRecord>>(emptyList())
     val notifications: StateFlow<List<NotificationRecord>> = _notifications.asStateFlow()
 
-    private val _insurancePolicies = MutableStateFlow(CanonicalSampleData.insurancePolicies)
+    private val _insurancePolicies = MutableStateFlow(if (seedDemoData) CanonicalSampleData.insurancePolicies else emptyList())
     val insurancePolicies: StateFlow<List<InsurancePolicyRecord>> = _insurancePolicies.asStateFlow()
 
-    private val _auditLogs = MutableStateFlow(CanonicalSampleData.auditLogs)
+    private val _auditLogs = MutableStateFlow(if (seedDemoData) CanonicalSampleData.auditLogs else emptyList())
     val auditLogs: StateFlow<List<AuditLogRecord>> = _auditLogs.asStateFlow()
 
-    private val _botFaqs = MutableStateFlow(CanonicalSampleData.botFaqs)
+    private val _botFaqs = MutableStateFlow(if (seedDemoData) CanonicalSampleData.botFaqs else emptyList())
     val botFaqs: StateFlow<List<BotFaqRecord>> = _botFaqs.asStateFlow()
 
-    private val _botKeywords = MutableStateFlow(CanonicalSampleData.botKeywords)
+    private val _botKeywords = MutableStateFlow(if (seedDemoData) CanonicalSampleData.botKeywords else emptyList())
     val botKeywords: StateFlow<List<BotKeywordRecord>> = _botKeywords.asStateFlow()
 
-    private val _botThreads = MutableStateFlow(CanonicalSampleData.botThreads)
+    private val _botThreads = MutableStateFlow(if (seedDemoData) CanonicalSampleData.botThreads else emptyList())
     val botThreads: StateFlow<List<BotThreadRecord>> = _botThreads.asStateFlow()
 
     private val localOtpCodesByEmail = mutableMapOf<String, String>()
@@ -171,15 +174,13 @@ internal class RosaFiestaSubmoduleCoordinator(
         runCatching {
             val response = client.listArticles()
             val remoteArticles = response.articles
-            if (!remoteArticles.isNullOrEmpty()) {
+            if (remoteArticles != null) {
                 val fallbackById = articlesFlow.value.associateBy { article -> article.id }
                 val rentalDtos = remoteArticles.filter { dto -> dto.isDirectSale != true }
-                if (rentalDtos.isNotEmpty()) {
-                    articlesFlow.value = rentalDtos.mapIndexed { index, dto ->
-                        RosaFiestaBackendMappers.toCatalogArticle(dto, index, fallbackById)
-                    }
-                    coreUpdated = true
+                articlesFlow.value = rentalDtos.mapIndexed { index, dto ->
+                    RosaFiestaBackendMappers.toCatalogArticle(dto, index, fallbackById)
                 }
+                coreUpdated = true
                 anySucceeded = true
             }
         }
@@ -187,7 +188,7 @@ internal class RosaFiestaSubmoduleCoordinator(
         runCatching {
             val response = client.listBalloonProducts()
             val remoteBalloons = response.articles
-            if (!remoteBalloons.isNullOrEmpty()) {
+            if (remoteBalloons != null) {
                 val fallbackById = _balloonProducts.value.associateBy { product -> product.id }
                 _balloonProducts.value = remoteBalloons.mapIndexed { index, dto ->
                     RosaFiestaBackendMappers.toBalloonProduct(dto, index, fallbackById)
@@ -199,7 +200,7 @@ internal class RosaFiestaSubmoduleCoordinator(
         runCatching {
             val response = client.listPackages()
             val remotePackages = response.packages
-            if (!remotePackages.isNullOrEmpty()) {
+            if (remotePackages != null) {
                 val fallbackById = _packages.value.associateBy { bundle -> bundle.id }
                 _packages.value = remotePackages.map { dto ->
                     RosaFiestaBackendMappers.toEventPackage(dto, fallbackById)
@@ -211,7 +212,7 @@ internal class RosaFiestaSubmoduleCoordinator(
         runCatching {
             val response = client.listEventTemplates()
             val remoteTemplates = response.templates
-            if (!remoteTemplates.isNullOrEmpty()) {
+            if (remoteTemplates != null) {
                 _templates.value = remoteTemplates.map { dto ->
                     RosaFiestaBackendMappers.toEventTemplate(dto)
                 }
@@ -231,7 +232,7 @@ internal class RosaFiestaSubmoduleCoordinator(
         runCatching {
             val response = client.listCategories()
             val remoteCategories = response.categories
-            if (!remoteCategories.isNullOrEmpty()) {
+            if (remoteCategories != null) {
                 anySucceeded = true
             }
         }
@@ -239,7 +240,7 @@ internal class RosaFiestaSubmoduleCoordinator(
         runCatching {
             val response = client.listReviews()
             val remoteReviews = response.reviews
-            if (!remoteReviews.isNullOrEmpty()) {
+            if (remoteReviews != null) {
                 val eventsById = eventsFlow.value.associateBy { event -> event.id }
                 val fallbackById = _reviews.value.associateBy { review -> review.id }
                 _reviews.value = remoteReviews.map { dto ->
@@ -253,7 +254,7 @@ internal class RosaFiestaSubmoduleCoordinator(
             runCatching {
                 val response = client.listEvents()
                 val remoteEvents = response.events
-                if (!remoteEvents.isNullOrEmpty()) {
+                if (remoteEvents != null) {
                     val fallbackById = eventsFlow.value.associateBy { event -> event.id }
                     eventsFlow.value = remoteEvents.map { dto ->
                         RosaFiestaBackendMappers.toClientEvent(dto, fallbackById)
@@ -268,7 +269,7 @@ internal class RosaFiestaSubmoduleCoordinator(
             runCatching {
                 val response = client.listQuotes()
                 val remoteQuotes = response.quotes
-                if (!remoteQuotes.isNullOrEmpty()) {
+                if (remoteQuotes != null) {
                     _quotes.value = remoteQuotes.map { dto ->
                         RosaFiestaBackendMappers.toQuoteRecord(dto)
                     }
@@ -279,7 +280,7 @@ internal class RosaFiestaSubmoduleCoordinator(
             runCatching {
                 val response = client.listPayments()
                 val remotePayments = response.payments
-                if (!remotePayments.isNullOrEmpty()) {
+                if (remotePayments != null) {
                     paymentsFlow.value = remotePayments.map { dto ->
                         RosaFiestaBackendMappers.toPaymentRecord(dto)
                     }
@@ -291,7 +292,7 @@ internal class RosaFiestaSubmoduleCoordinator(
             runCatching {
                 val response = client.listChatThreads()
                 val remoteThreads = response.threads
-                if (!remoteThreads.isNullOrEmpty()) {
+                if (remoteThreads != null) {
                     _chatThreads.value = remoteThreads.map { dto ->
                         RosaFiestaBackendMappers.toChatThread(dto)
                     }
@@ -342,7 +343,7 @@ internal class RosaFiestaSubmoduleCoordinator(
                 runCatching {
                     val refundsOutput = client.listRefunds()
                     val remoteRefunds = refundsOutput.refunds
-                    if (!remoteRefunds.isNullOrEmpty()) {
+                    if (remoteRefunds != null) {
                         val fallbackById = _refundRequests.value.associateBy { request -> request.id }
                         _refundRequests.value = remoteRefunds.map { dto ->
                             RosaFiestaBackendMappers.toRefundRequest(dto, fallbackById)
@@ -356,7 +357,7 @@ internal class RosaFiestaSubmoduleCoordinator(
                 runCatching {
                     val clientsOutput = client.listClients()
                     val remoteClients = clientsOutput.clients
-                    if (!remoteClients.isNullOrEmpty()) {
+                    if (remoteClients != null) {
                         val fallbackById = _clients.value.associateBy { profile -> profile.id }
                         _clients.value = remoteClients.map { dto ->
                             RosaFiestaBackendMappers.toClientProfile(dto, fallbackById)
@@ -367,7 +368,7 @@ internal class RosaFiestaSubmoduleCoordinator(
                 runCatching {
                     val staffOutput = client.listStaff()
                     val remoteStaff = staffOutput.staff
-                    if (!remoteStaff.isNullOrEmpty()) {
+                    if (remoteStaff != null) {
                         staffFlow.value = remoteStaff.map { dto ->
                             RosaFiestaBackendMappers.toStaffProfile(dto, eventsFlow.value)
                         }
@@ -378,7 +379,7 @@ internal class RosaFiestaSubmoduleCoordinator(
                 runCatching {
                     val routesOutput = client.listTodayRoutes()
                     val remoteStops = routesOutput.stops
-                    if (!remoteStops.isNullOrEmpty()) {
+                    if (remoteStops != null) {
                         _deliveryStops.value = remoteStops.map { dto ->
                             RosaFiestaBackendMappers.toDeliveryStop(dto)
                         }
@@ -388,7 +389,7 @@ internal class RosaFiestaSubmoduleCoordinator(
                 runCatching {
                     val queueOutput = client.listOfflineQueue()
                     val remoteQueue = queueOutput.queue
-                    if (!remoteQueue.isNullOrEmpty()) {
+                    if (remoteQueue != null) {
                         offlineQueueFlow.value = remoteQueue.map { dto ->
                             RosaFiestaBackendMappers.toOfflineQueueItem(dto)
                         }
@@ -399,7 +400,7 @@ internal class RosaFiestaSubmoduleCoordinator(
                 runCatching {
                     val damagesOutput = client.listDamages()
                     val remoteDamages = damagesOutput.damages
-                    if (!remoteDamages.isNullOrEmpty()) {
+                    if (remoteDamages != null) {
                         val eventsById = eventsFlow.value.associateBy { event -> event.id }
                         _damageIncidents.value = remoteDamages.map { dto ->
                             RosaFiestaBackendMappers.toDamageIncident(dto, eventsById)
@@ -421,7 +422,7 @@ internal class RosaFiestaSubmoduleCoordinator(
                 runCatching {
                     val suppliersOutput = client.listSuppliers()
                     val remoteSuppliers = suppliersOutput.suppliers
-                    if (!remoteSuppliers.isNullOrEmpty()) {
+                    if (remoteSuppliers != null) {
                         _suppliers.value = remoteSuppliers.map { dto ->
                             RosaFiestaBackendMappers.toSupplierRecord(dto)
                         }
@@ -430,7 +431,7 @@ internal class RosaFiestaSubmoduleCoordinator(
                 runCatching {
                     val leadsOutput = client.listLeads()
                     val remoteLeads = leadsOutput.leads
-                    if (!remoteLeads.isNullOrEmpty()) {
+                    if (remoteLeads != null) {
                         _leads.value = remoteLeads.map { dto ->
                             RosaFiestaBackendMappers.toLeadRecord(dto)
                         }
@@ -439,7 +440,7 @@ internal class RosaFiestaSubmoduleCoordinator(
                 runCatching {
                     val insuranceOutput = client.listInsurancePolicies()
                     val remotePolicies = insuranceOutput.policies
-                    if (!remotePolicies.isNullOrEmpty()) {
+                    if (remotePolicies != null) {
                         _insurancePolicies.value = remotePolicies.map { dto ->
                             RosaFiestaBackendMappers.toInsurancePolicyRecord(dto)
                         }
@@ -448,7 +449,7 @@ internal class RosaFiestaSubmoduleCoordinator(
                 runCatching {
                     val logsOutput = client.listAuditLogs()
                     val remoteLogs = logsOutput.logs
-                    if (!remoteLogs.isNullOrEmpty()) {
+                    if (remoteLogs != null) {
                         _auditLogs.value = remoteLogs.map { dto ->
                             RosaFiestaBackendMappers.toAuditLogRecord(dto)
                         }
@@ -457,7 +458,7 @@ internal class RosaFiestaSubmoduleCoordinator(
                 runCatching {
                     val faqsOutput = client.listBotFaqs()
                     val remoteFaqs = faqsOutput.faqs
-                    if (!remoteFaqs.isNullOrEmpty()) {
+                    if (remoteFaqs != null) {
                         _botFaqs.value = remoteFaqs.map { dto ->
                             RosaFiestaBackendMappers.toBotFaqRecord(dto)
                         }
@@ -466,7 +467,7 @@ internal class RosaFiestaSubmoduleCoordinator(
                 runCatching {
                     val keywordsOutput = client.listBotKeywords()
                     val remoteKeywords = keywordsOutput.keywords
-                    if (!remoteKeywords.isNullOrEmpty()) {
+                    if (remoteKeywords != null) {
                         _botKeywords.value = remoteKeywords.map { dto ->
                             RosaFiestaBackendMappers.toBotKeywordRecord(dto)
                         }
@@ -475,7 +476,7 @@ internal class RosaFiestaSubmoduleCoordinator(
                 runCatching {
                     val botThreadsOutput = client.listBotThreads()
                     val remoteBotThreads = botThreadsOutput.threads
-                    if (!remoteBotThreads.isNullOrEmpty()) {
+                    if (remoteBotThreads != null) {
                         _botThreads.value = remoteBotThreads.map { dto ->
                             RosaFiestaBackendMappers.toBotThreadRecord(dto)
                         }

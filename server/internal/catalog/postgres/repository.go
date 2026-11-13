@@ -218,6 +218,9 @@ func (r *Repository) UpsertArticle(ctx context.Context, article domain.Article) 
 	if !r.Enabled() {
 		return nil
 	}
+	if err := r.ensureCategoryExists(ctx, article.CategoryID); err != nil {
+		return err
+	}
 	variants := article.ColorVariants
 	if variants == nil {
 		variants = []string{}
@@ -237,6 +240,23 @@ func (r *Repository) UpsertArticle(ctx context.Context, article domain.Article) 
 		Material:          article.Material,
 		ColorVariants:     variants,
 		IsDirectSale:      article.IsDirectSale,
+	})
+}
+
+func (r *Repository) ensureCategoryExists(ctx context.Context, categoryID string) error {
+	existing, err := r.queries.ListCategories(ctx)
+	if err == nil {
+		for _, row := range existing {
+			if row.ID == categoryID {
+				return nil
+			}
+		}
+	}
+	return r.queries.UpsertCategory(ctx, sqlcgen.UpsertCategoryParams{
+		ID:        categoryID,
+		Name:      categoryID,
+		IlloKey:   "cat-default",
+		ItemCount: 0,
 	})
 }
 

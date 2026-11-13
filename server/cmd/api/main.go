@@ -75,9 +75,10 @@ func run() error {
 	}
 
 	deps := app.Dependencies{
-		Pool:   pool,
-		Clock:  clock.System{},
-		Config: cfg,
+		Pool:          pool,
+		Clock:         clock.System{},
+		Config:        cfg,
+		AdminOnlySeed: cfg.SeedMode != config.SeedModeFull,
 	}
 	routerOpts := httpapi.RouterOptions{AllowedOrigins: cfg.CORSAllowedOrigins}
 	modules := app.Modules(deps)

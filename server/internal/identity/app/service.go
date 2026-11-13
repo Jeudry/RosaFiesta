@@ -154,6 +154,23 @@ func (s *Service) Reset(_ context.Context) {
 	s.mu.Unlock()
 }
 
+func (s *Service) ResetAdminOnly(_ context.Context) {
+	now := s.clock.Now()
+	users := buildAdminSeedUsers(now)
+	sessions := make(map[string]sessionEntry)
+	if s.opts.Env != config.EnvProduction {
+		sessions = buildAdminDevStaticSessions(now)
+	}
+	s.mu.Lock()
+	s.users = users
+	s.sessionHashes = sessions
+	s.revokedHashes = make(map[string]struct{})
+	s.otps = make(map[string]domain.OTPRecord)
+	s.clients = nil
+	s.staff = defaultAdminStaff(now)
+	s.mu.Unlock()
+}
+
 func (s *Service) WithStore(store Store) *Service {
 	s.mu.Lock()
 	s.store = store

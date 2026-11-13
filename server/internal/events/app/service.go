@@ -136,6 +136,17 @@ func (s *Service) Reset(_ context.Context) {
 	s.mu.Unlock()
 }
 
+func (s *Service) ResetEmpty(_ context.Context) {
+	s.mu.Lock()
+	s.templates = nil
+	s.events = make(map[string]domain.Event)
+	s.order = nil
+	s.guests = make(map[string][]domain.EventGuest)
+	s.schedules = make(map[string][]domain.ScheduleBlock)
+	s.messages = nil
+	s.mu.Unlock()
+}
+
 func (s *Service) WithStore(store Store) *Service {
 	s.mu.Lock()
 	s.store = store

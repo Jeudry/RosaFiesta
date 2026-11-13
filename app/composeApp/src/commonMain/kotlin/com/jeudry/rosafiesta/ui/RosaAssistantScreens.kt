@@ -7754,7 +7754,7 @@ internal fun RenderRosaSketchConfirmS78(
 
     val activeEventTitle = remember(observedEvents, observedSelectedEventId, fallbackEventTitle) {
         viewModel?.activeClientEventOrNull()?.title
-            ?: fallbackEventTitle.ifBlank { CanonicalSampleData.events.first().title }
+            ?: fallbackEventTitle.ifBlank { "Tu evento" }
     }
 
     val roundTablesCount = previewElements.count { item -> item.kind == SketchElementKind.ROUND_TABLE }

@@ -1882,7 +1882,8 @@ internal fun RenderEventDetailScreenS40(
             ?: eventsState.firstOrNull { eventItem -> eventItem.id == selectedEventId }
             ?: eventsState.firstOrNull()
     }
-    val eventTitle = activeEvent?.title ?: "Boda Real Rosa & Dorado"
+    val fallbackEmptyEventTitle = if (viewModel == null) "Boda Real Rosa & Dorado" else "Sin eventos"
+    val eventTitle = activeEvent?.title ?: fallbackEmptyEventTitle
     val activeVenue = activeEvent?.venue ?: "Jardín Botánico"
     val eventSubtitle = if (activeEvent != null) {
         "${formatReadableSpanishDateText(activeEvent.dateLabel)} · ${activeEvent.venue}"
@@ -2897,7 +2898,8 @@ internal fun RenderExecutionModeScreenS43(
     val activeEvent = viewModel?.activeClientEventOrNull()
         ?: eventsState.firstOrNull { eventItem -> eventItem.id == selectedEventId }
         ?: eventsState.firstOrNull()
-    val eventTitle = activeEvent?.title ?: "Boda Real Rosa & Dorado"
+    val fallbackEmptyEventTitle = if (viewModel == null) "Boda Real Rosa & Dorado" else "Sin eventos"
+    val eventTitle = activeEvent?.title ?: fallbackEmptyEventTitle
     var fallbackCompletedIds by remember {
         mutableStateOf(
             CanonicalSampleData.bodaChecklist

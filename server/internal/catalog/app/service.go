@@ -100,6 +100,14 @@ func (s *Service) Reset(_ context.Context) {
 	s.mu.Unlock()
 }
 
+func (s *Service) ResetEmpty(_ context.Context) {
+	s.mu.Lock()
+	s.articles = nil
+	s.categories = nil
+	s.packages = nil
+	s.mu.Unlock()
+}
+
 func (s *Service) WithStore(store Store) *Service {
 	s.mu.Lock()
 	s.store = store

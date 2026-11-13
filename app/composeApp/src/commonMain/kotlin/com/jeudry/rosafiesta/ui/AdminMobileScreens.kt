@@ -174,15 +174,17 @@ private fun buildStarterLinesForLead(
     lead: LeadRecord,
     catalog: List<CatalogArticle>,
 ): List<EventLineItem> {
+    if (catalog.isEmpty()) {
+        return emptyList()
+    }
     val chairArticle = catalog.firstOrNull { articleItem -> articleItem.id == "art-silla-tiffany" }
-        ?: CanonicalSampleData.articles.first()
+        ?: catalog.first()
     val tableArticle = catalog.firstOrNull { articleItem -> articleItem.id == "art-mesa-redonda" }
-        ?: CanonicalSampleData.articles[2]
-    val archArticle = catalog.firstOrNull { articleItem -> articleItem.id == "art-arco-rosa" }
-        ?: CanonicalSampleData.articles[4]
+        ?: catalog.getOrNull(1)
+        ?: chairArticle
     val guestChairs = lead.guests.coerceAtLeast(20)
     val tableCount = ((guestChairs + 7) / 8).coerceAtLeast(2)
-    return listOf(
+    val baseLines = mutableListOf(
         EventLineItem(
             articleCode = chairArticle.code,
             name = chairArticle.name,
@@ -190,21 +192,31 @@ private fun buildStarterLinesForLead(
             unitPriceDop = chairArticle.pricePerDayDop,
             photo = chairArticle.photo,
         ),
-        EventLineItem(
-            articleCode = tableArticle.code,
-            name = tableArticle.name,
-            quantity = tableCount,
-            unitPriceDop = tableArticle.pricePerDayDop,
-            photo = tableArticle.photo,
-        ),
-        EventLineItem(
-            articleCode = archArticle.code,
-            name = archArticle.name,
-            quantity = 1,
-            unitPriceDop = archArticle.pricePerDayDop,
-            photo = archArticle.photo,
-        ),
     )
+    if (tableArticle.id != chairArticle.id) {
+        baseLines.add(
+            EventLineItem(
+                articleCode = tableArticle.code,
+                name = tableArticle.name,
+                quantity = tableCount,
+                unitPriceDop = tableArticle.pricePerDayDop,
+                photo = tableArticle.photo,
+            ),
+        )
+    }
+    val archArticle = catalog.firstOrNull { articleItem -> articleItem.id == "art-arco-rosa" }
+    if (archArticle != null) {
+        baseLines.add(
+            EventLineItem(
+                articleCode = archArticle.code,
+                name = archArticle.name,
+                quantity = 1,
+                unitPriceDop = archArticle.pricePerDayDop,
+                photo = archArticle.photo,
+            ),
+        )
+    }
+    return baseLines
 }
 
 private fun primeQuoteDraftFromQuote(
@@ -1414,7 +1426,7 @@ internal fun RenderAdminQuoteBuilderA03(
     val fallbackVenue = businessSettings.zones.firstOrNull()?.name ?: "Jardín Los Rosales"
     val explicitQuote = quotesList.firstOrNull { quoteItem -> quoteItem.id == selectedQuoteId }
     val explicitLead = leadsList.firstOrNull { leadItem -> leadItem.id == selectedLeadId }
-    val resolvedQuote = viewModel?.selectedQuote() ?: CanonicalSampleData.quotes[1]
+    val resolvedQuote = viewModel?.selectedQuote() ?: if (viewModel == null) CanonicalSampleData.quotes[1] else quotesList.firstOrNull()
     val resolvedLead = viewModel?.selectedLead()
 
     LaunchedEffect(selectedQuoteId, selectedLeadId) {
@@ -1435,7 +1447,7 @@ internal fun RenderAdminQuoteBuilderA03(
                     primeQuoteDraftFromQuote(selectedQuoteOrNull, fallbackVenue)
                 } else if (resolvedLead != null) {
                     primeQuoteDraftFromLead(resolvedLead, fallbackVenue, articlesList)
-                } else {
+                } else if (resolvedQuote != null) {
                     primeQuoteDraftFromQuote(resolvedQuote, fallbackVenue)
                 }
             }
@@ -1451,9 +1463,9 @@ internal fun RenderAdminQuoteBuilderA03(
     val parsedDiscountDop = draftState.discountText.filter { digitChar -> digitChar.isDigit() }.toIntOrNull() ?: 0
     val totalQuoteDop = (articlesSubtotal + parsedTransportDop - parsedDiscountDop).coerceAtLeast(0)
     val activeArticleLinesCount = activeLines.size
-    val displayClientName = draftState.clientName.ifBlank { resolvedQuote.clientName }
-    val displayEventTitle = draftState.eventTitle.ifBlank { resolvedQuote.eventTitle }
-    val displayDateLabel = draftState.dateLabel.ifBlank { resolvedQuote.dateLabel }
+    val displayClientName = draftState.clientName.ifBlank { resolvedQuote?.clientName.orEmpty() }
+    val displayEventTitle = draftState.eventTitle.ifBlank { resolvedQuote?.eventTitle.orEmpty() }
+    val displayDateLabel = draftState.dateLabel.ifBlank { resolvedQuote?.dateLabel.orEmpty() }
     val displayVenue = draftState.venue.ifBlank { fallbackVenue }
     val clientInitial = displayClientName.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "C"
 
@@ -3966,26 +3978,28 @@ internal fun RenderAdminEventDetailA13(
     val eventTasks = viewModel?.eventTasksList?.collectAsState()?.value ?: emptyList()
     val formFeedback = viewModel?.formFeedback?.collectAsState()?.value
 
-    val clientName = selectedEvent.clientName.ifBlank { "Camila Rodríguez" }
+    val fallbackEmptyClientLabel = if (viewModel == null) "Camila Rodríguez" else "Sin cliente"
+    val clientName = selectedEvent.clientName.ifBlank { fallbackEmptyClientLabel }
     val clientInitial = clientName.firstOrNull()?.uppercaseChar()?.toString() ?: "C"
     val paidDop = selectedEvent.paidDepositDop
     val remainingDop = (selectedEvent.totalDop - paidDop).coerceAtLeast(0)
     val safeTotalForProgress = selectedEvent.totalDop.coerceAtLeast(1)
     val paidFraction = (paidDop.toFloat() / safeTotalForProgress.toFloat()).coerceIn(0.05f, 1f)
 
-    val rentedItems = selectedEvent.items.ifEmpty { CanonicalSampleData.events.first().items }
+    val rentedItems = if (viewModel == null) {
+        selectedEvent.items.ifEmpty { CanonicalSampleData.events.first().items }
+    } else {
+        selectedEvent.items
+    }
     val itemTypesCount = rentedItems.size
     val totalRentedUnits = rentedItems.sumOf { lineItem -> lineItem.quantity }
 
     val matchingChecklist = checklistList.filter { stepItem -> stepItem.eventId == selectedEvent.id }
     val activeChecklist = matchingChecklist.ifEmpty { checklistList }
     val doneStepsCount = activeChecklist.count { stepItem -> stepItem.completed } + eventTasks.count { taskItem -> taskItem.completed }
-    val totalStepsCount = (activeChecklist.size + eventTasks.size).coerceAtLeast(6)
-    val tasksProgressSubtitle = if (activeChecklist.isEmpty() == false) {
-        "$doneStepsCount de $totalStepsCount hechas"
-    } else {
-        "3 de 6 hechas"
-    }
+    val rawTotalSteps = activeChecklist.size + eventTasks.size
+    val totalStepsCount = if (viewModel == null) rawTotalSteps.coerceAtLeast(6) else rawTotalSteps
+    val tasksProgressSubtitle = "$doneStepsCount de $totalStepsCount hechas"
 
     var showMoreOptionsModal by remember { mutableStateOf(false) }
     var showRentedItemsModal by remember { mutableStateOf(false) }
@@ -4702,29 +4716,46 @@ internal fun RenderAdminExecutionA16(
         )
     }
 
-    val loadRows = domainStageRows.filter { rowItem -> rowItem.stageIndex == 0 }.ifEmpty {
-        listOf(
-            ExecutionStageRow("load-0", null, 0, fallbackDoneByKey["load-0"] ?: true, "Verificar orden de carga en almacén", "Conteo de sillas, mesas y mantelería", "A", Pair(Color(0xFFFFF2C9), Color(0xFF7A5700))),
-            ExecutionStageRow("load-1", null, 0, fallbackDoneByKey["load-1"] ?: true, "Proteger estructuras y bases florales", "Embalaje acolchado en camión", "P", Pair(Color(0xFFDDF4F3), Color(0xFF1F8A84))),
-            ExecutionStageRow("load-2", null, 0, fallbackDoneByKey["load-2"] ?: true, "Salida de ruta hacia el salón", matchingStop?.vehicleAndCrew ?: "Camión principal · cuadrilla lista", "A", Pair(Color(0xFFFFF2C9), Color(0xFF7A5700))),
-        )
+    val hasRealEventSelected = selectedEvent.id.isNotBlank()
+    val usePreviewExecutionFallback = if (viewModel == null) true else hasRealEventSelected
+    val loadRows = domainStageRows.filter { rowItem -> rowItem.stageIndex == 0 }.let { filtered ->
+        val showFallback = bothConditions(filtered.isEmpty(), usePreviewExecutionFallback)
+        if (showFallback) {
+            listOf(
+                ExecutionStageRow("load-0", null, 0, fallbackDoneByKey["load-0"] ?: true, "Verificar orden de carga en almacén", "Conteo de sillas, mesas y mantelería", "A", Pair(Color(0xFFFFF2C9), Color(0xFF7A5700))),
+                ExecutionStageRow("load-1", null, 0, fallbackDoneByKey["load-1"] ?: true, "Proteger estructuras y bases florales", "Embalaje acolchado en camión", "P", Pair(Color(0xFFDDF4F3), Color(0xFF1F8A84))),
+                ExecutionStageRow("load-2", null, 0, fallbackDoneByKey["load-2"] ?: true, "Salida de ruta hacia el salón", matchingStop?.vehicleAndCrew ?: "Camión principal · cuadrilla lista", "A", Pair(Color(0xFFFFF2C9), Color(0xFF7A5700))),
+            )
+        } else {
+            filtered
+        }
     }
 
-    val montageRows = domainStageRows.filter { rowItem -> rowItem.stageIndex == 1 }.ifEmpty {
-        listOf(
-            ExecutionStageRow("montage-0", null, 1, fallbackDoneByKey["montage-0"] ?: true, "Colocar mesas según plano aprobado", "${selectedEvent.guests} invitados · distribución validada", "P", Pair(Color(0xFFDDF4F3), Color(0xFF1F8A84))),
-            ExecutionStageRow("montage-1", null, 1, fallbackDoneByKey["montage-1"] ?: true, "Vestir mesas y sillas Tiffany", "Mantelería blanca y lazos alineados", "Y", Pair(Color(0xFFFDE6F2), Color(0xFFC2338F))),
-            ExecutionStageRow("montage-2", null, 1, fallbackDoneByKey["montage-2"] ?: false, "Montar arco principal y fondo", "Entrada principal · nivelación segura", "Y", Pair(Color(0xFFFDE6F2), Color(0xFFC2338F))),
-            ExecutionStageRow("montage-3", null, 1, fallbackDoneByKey["montage-3"] ?: false, "Ubicar centros de mesa florales", "Revisión final de iluminación y detalles", "M", Pair(Color(0xFFECEBFF), Color(0xFF4B47D6))),
-        )
+    val montageRows = domainStageRows.filter { rowItem -> rowItem.stageIndex == 1 }.let { filtered ->
+        val showFallback = bothConditions(filtered.isEmpty(), usePreviewExecutionFallback)
+        if (showFallback) {
+            listOf(
+                ExecutionStageRow("montage-0", null, 1, fallbackDoneByKey["montage-0"] ?: true, "Colocar mesas según plano aprobado", "${selectedEvent.guests} invitados · distribución validada", "P", Pair(Color(0xFFDDF4F3), Color(0xFF1F8A84))),
+                ExecutionStageRow("montage-1", null, 1, fallbackDoneByKey["montage-1"] ?: true, "Vestir mesas y sillas Tiffany", "Mantelería blanca y lazos alineados", "Y", Pair(Color(0xFFFDE6F2), Color(0xFFC2338F))),
+                ExecutionStageRow("montage-2", null, 1, fallbackDoneByKey["montage-2"] ?: false, "Montar arco principal y fondo", "Entrada principal · nivelación segura", "Y", Pair(Color(0xFFFDE6F2), Color(0xFFC2338F))),
+                ExecutionStageRow("montage-3", null, 1, fallbackDoneByKey["montage-3"] ?: false, "Ubicar centros de mesa florales", "Revisión final de iluminación y detalles", "M", Pair(Color(0xFFECEBFF), Color(0xFF4B47D6))),
+            )
+        } else {
+            filtered
+        }
     }
 
-    val teardownRows = domainStageRows.filter { rowItem -> rowItem.stageIndex == 2 }.ifEmpty {
-        listOf(
-            ExecutionStageRow("teardown-0", null, 2, fallbackDoneByKey["teardown-0"] ?: false, "Recoger bases florales y cristalería", "Separar piezas frágiles en cajas", "Y", Pair(Color(0xFFFDE6F2), Color(0xFFC2338F))),
-            ExecutionStageRow("teardown-1", null, 2, fallbackDoneByKey["teardown-1"] ?: false, "Plegar y contar sillas y mesas", "Verificar estado antes de subir", "P", Pair(Color(0xFFDDF4F3), Color(0xFF1F8A84))),
-            ExecutionStageRow("teardown-2", null, 2, fallbackDoneByKey["teardown-2"] ?: false, "Retorno a almacén y cierre de ruta", "Entrega de llaves y acta firmada", "A", Pair(Color(0xFFFFF2C9), Color(0xFF7A5700))),
-        )
+    val teardownRows = domainStageRows.filter { rowItem -> rowItem.stageIndex == 2 }.let { filtered ->
+        val showFallback = bothConditions(filtered.isEmpty(), usePreviewExecutionFallback)
+        if (showFallback) {
+            listOf(
+                ExecutionStageRow("teardown-0", null, 2, fallbackDoneByKey["teardown-0"] ?: false, "Recoger bases florales y cristalería", "Separar piezas frágiles en cajas", "Y", Pair(Color(0xFFFDE6F2), Color(0xFFC2338F))),
+                ExecutionStageRow("teardown-1", null, 2, fallbackDoneByKey["teardown-1"] ?: false, "Plegar y contar sillas y mesas", "Verificar estado antes de subir", "P", Pair(Color(0xFFDDF4F3), Color(0xFF1F8A84))),
+                ExecutionStageRow("teardown-2", null, 2, fallbackDoneByKey["teardown-2"] ?: false, "Retorno a almacén y cierre de ruta", "Entrega de llaves y acta firmada", "A", Pair(Color(0xFFFFF2C9), Color(0xFF7A5700))),
+            )
+        } else {
+            filtered
+        }
     }
 
     val allStageRows = loadRows + montageRows + teardownRows
@@ -5225,7 +5256,8 @@ internal fun RenderAdminTasksA17(
         )
     }
 
-    val baseEntries = if (domainChecklistEntries.isNotEmpty()) domainChecklistEntries else localFallbackTasks
+    val useDomainChecklist = eitherCondition(domainChecklistEntries.isNotEmpty(), viewModel != null)
+    val baseEntries = if (useDomainChecklist) domainChecklistEntries else localFallbackTasks
     val combinedEntries = customTaskEntries + baseEntries
     val filteredEntries = combinedEntries.filter { entryItem ->
         val showAll = selectedMemberChip == "Todas"
@@ -5697,7 +5729,7 @@ internal fun RenderAdminSketchA18(
 
     val activeTableCount = (vmTableCount ?: fallbackTableCount).coerceIn(1, 16)
     val calculatedSeats = activeTableCount * 10
-    val clientFirstName = selectedEvent.clientName.trim().substringBefore(" ").ifBlank { "Camila" }
+    val clientFirstName = selectedEvent.clientName.trim().substringBefore(" ").ifBlank { "Cliente" }
     val isOriginalSelected = selectedViewMode == "Boceto original"
     val isPlanoSelected = selectedViewMode == "Plano"
     val primaryActionBrush = Brush.linearGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0)))
@@ -6216,7 +6248,11 @@ internal fun RenderAdminCloseoutA19(
         ?: eventsList.firstOrNull()
         ?: CanonicalSampleData.events.first()
 
-    val inspectionItems = selectedEvent.items.ifEmpty { CanonicalSampleData.events.first().items }
+    val inspectionItems = if (viewModel == null) {
+        selectedEvent.items.ifEmpty { CanonicalSampleData.events.first().items }
+    } else {
+        selectedEvent.items
+    }
 
     var damagedUnitsByCode by remember(selectedEvent.id) {
         mutableStateOf(mapOf<String, Int>())
@@ -7166,7 +7202,33 @@ internal fun RenderAdminArticleDetailA23(
     val allArticles = viewModel?.articles?.collectAsState()?.value ?: CanonicalSampleData.articles
     val selectedArticle = allArticles.firstOrNull { articleItem -> articleItem.id == articleId }
         ?: allArticles.firstOrNull()
-        ?: CanonicalSampleData.articles.first()
+        ?: if (viewModel == null) CanonicalSampleData.articles.first() else null
+    if (selectedArticle == null) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFFF6F6FB))
+                .padding(20.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .rfIconButtonShadow(CircleShape, isAdmin = true)
+                    .clip(CircleShape)
+                    .background(Color.White)
+                    .clickable { onSelectScreenCode("BACK:A09") },
+                contentAlignment = Alignment.Center,
+            ) {
+                RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF151729), size = 22.dp)
+            }
+            BasicText(
+                text = "Sin artículos en inventario",
+                style = TextStyle(fontFamily = typo.displayFamily, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF5F6377)),
+                modifier = Modifier.align(Alignment.Center),
+            )
+        }
+        return
+    }
 
     var selectedMonthIso by remember(selectedArticle.id) {
         mutableStateOf(DomainClockFormatter.currentYearMonthIso())
@@ -8649,11 +8711,27 @@ internal fun RenderAdminClientProfileA27(
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
-    val selectedClientId = viewModel?.selectedClientId?.collectAsState()?.value ?: CanonicalSampleData.clients.first().id
+    val selectedClientId = viewModel?.selectedClientId?.collectAsState()?.value
+        ?: if (viewModel == null) CanonicalSampleData.clients.first().id else ""
     val clientsList = viewModel?.clients?.collectAsState()?.value ?: CanonicalSampleData.clients
+    val fallbackClientProfile = if (viewModel == null) {
+        CanonicalSampleData.clients.first()
+    } else {
+        ClientProfile(
+            id = "",
+            fullName = "Sin clientes",
+            email = "",
+            phone = "",
+            zone = "",
+            eventsCount = 0,
+            totalContractedDop = 0,
+            pendingBalanceDop = 0,
+            vipTag = "",
+        )
+    }
     val activeClient = clientsList.firstOrNull { profile -> profile.id == selectedClientId }
         ?: viewModel?.selectedClient()
-        ?: CanonicalSampleData.clients.first()
+        ?: fallbackClientProfile
 
     val eventsState = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
     val paymentsState = viewModel?.payments?.collectAsState()?.value ?: CanonicalSampleData.payments

@@ -151,9 +151,23 @@ class ScreenCatalogAndFlowTest {
     }
 
     @Test
-    fun `modulo Koin resuelve RosaFiestaViewModel y muta estado reactivo`() {
+    fun `modulo Koin por defecto inicia vacio con solo cuentas admin`() {
         val koin = org.koin.dsl.koinApplication {
             modules(com.jeudry.rosafiesta.di.appModule)
+        }.koin
+        val viewModel = koin.get<com.jeudry.rosafiesta.ui.RosaFiestaViewModel>()
+
+        assertTrue(viewModel.articles.value.isEmpty())
+        assertTrue(viewModel.events.value.isEmpty())
+        assertTrue(viewModel.payments.value.isEmpty())
+        assertTrue(viewModel.checklist.value.isEmpty())
+        assertEquals(0, viewModel.metrics.value.octoberRevenueDop)
+    }
+
+    @Test
+    fun `modulo Koin resuelve RosaFiestaViewModel y muta estado reactivo`() {
+        val koin = org.koin.dsl.koinApplication {
+            modules(com.jeudry.rosafiesta.di.buildAppModule(seedDemoData = true))
         }.koin
         val viewModel = koin.get<com.jeudry.rosafiesta.ui.RosaFiestaViewModel>()
         val apiClient = koin.get<com.jeudry.rosafiesta.data.RosaFiestaApiClient>()
@@ -177,7 +191,7 @@ class ScreenCatalogAndFlowTest {
     @Test
     fun `pantalla s46 conectada a RosaFiestaViewModel alterna paso del checklist al hacer clic`() = runComposeUiTest {
         val koin = org.koin.dsl.koinApplication {
-            modules(com.jeudry.rosafiesta.di.appModule)
+            modules(com.jeudry.rosafiesta.di.buildAppModule(seedDemoData = true))
         }.koin
         val viewModel = koin.get<com.jeudry.rosafiesta.ui.RosaFiestaViewModel>()
         assertFalse(viewModel.checklist.value.first { it.id == "chk-5" }.completed)

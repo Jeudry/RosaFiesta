@@ -22,30 +22,42 @@ import org.koin.dsl.module
  * `RosaFiestaRepository`, `SoundPlayer`, `SecureStorage`, `VoiceInputMonitor`, and `RosaFiestaViewModel`.
  */
 public val appModule: Module
-    get() = module {
-        single<PlatformActions> { createPlatformActions() }
-        single {
-            val actions: PlatformActions = get()
-            RosaFiestaApiClient(baseUrl = actions.defaultApiBaseUrl())
-        }
-        single<SoundPlayer> { createPlatformSoundPlayer() }
-        single<SecureStorage> { createPlatformSecureStorage() }
-        single<VoiceInputMonitor> { createPlatformVoiceInputMonitor() }
-        single<RosaFiestaRepository> {
-            val driver = createDefaultSqlDriverOrNull()
-            if (driver != null) {
-                SqlRosaFiestaRepository(driver = driver, apiClient = get())
-            } else {
-                DefaultRosaFiestaRepository(apiClient = get())
-            }
-        }
-        factory {
-            RosaFiestaViewModel(
-                repository = get(),
-                soundPlayer = get(),
-                secureStorage = get(),
-                voiceInputMonitor = get(),
-                platformActions = get(),
+    get() = buildAppModule(seedDemoData = false)
+
+/**
+ * Builds the Koin dependency graph, optionally enabling canonical sample seed data for tests.
+ */
+public fun buildAppModule(seedDemoData: Boolean = false): Module = module {
+    single<PlatformActions> { createPlatformActions() }
+    single {
+        val actions: PlatformActions = get()
+        RosaFiestaApiClient(baseUrl = actions.defaultApiBaseUrl())
+    }
+    single<SoundPlayer> { createPlatformSoundPlayer() }
+    single<SecureStorage> { createPlatformSecureStorage() }
+    single<VoiceInputMonitor> { createPlatformVoiceInputMonitor() }
+    single<RosaFiestaRepository> {
+        val driver = createDefaultSqlDriverOrNull()
+        if (driver != null) {
+            SqlRosaFiestaRepository(
+                driver = driver,
+                apiClient = get(),
+                seedDemoData = seedDemoData,
+            )
+        } else {
+            DefaultRosaFiestaRepository(
+                apiClient = get(),
+                seedDemoData = seedDemoData,
             )
         }
     }
+    factory {
+        RosaFiestaViewModel(
+            repository = get(),
+            soundPlayer = get(),
+            secureStorage = get(),
+            voiceInputMonitor = get(),
+            platformActions = get(),
+        )
+    }
+}

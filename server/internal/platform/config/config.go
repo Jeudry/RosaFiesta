@@ -17,6 +17,11 @@ const (
 )
 
 const (
+	SeedModeAdminOnly = "admin_only"
+	SeedModeFull      = "full"
+)
+
+const (
 	defaultPort        = 8788
 	defaultSMTPPort    = 587
 	minJWTSecretLength = 32
@@ -25,6 +30,7 @@ const (
 type Config struct {
 	Env                Environment
 	Port               int
+	SeedMode           string
 	DatabaseURL        string
 	JWTSecret          string
 	CORSAllowedOrigins []string
@@ -71,6 +77,7 @@ func Load(getenv func(string) string) (Config, error) {
 	return Config{
 		Env:                env,
 		Port:               port,
+		SeedMode:           resolveSeedMode(getenv("ROSAFIESTA_SEED_MODE")),
 		DatabaseURL:        dbURL,
 		JWTSecret:          jwtSecret,
 		CORSAllowedOrigins: corsOrigins,
@@ -187,6 +194,14 @@ func resolveCORSOrigins(raw string, env Environment) ([]string, error) {
 		return []string{"*"}, nil
 	}
 	return origins, nil
+}
+
+func resolveSeedMode(raw string) string {
+	normalized := strings.ToLower(strings.TrimSpace(raw))
+	if normalized == SeedModeFull {
+		return SeedModeFull
+	}
+	return SeedModeAdminOnly
 }
 
 func fallbackString(raw, fallback string) string {
