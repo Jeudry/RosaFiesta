@@ -30,14 +30,14 @@ public enum class SoundEffect(
     /** Warm whoosh-pop when sending a message or prompt to Rosa IA. */
     ROSA_SEND(fileName = "sfx_rosa_send.m4a", primaryHz = 320.0, secondaryHz = 580.0, durationMs = 80),
 
-    /** Sparkle bell chime when Rosa IA replies with a moodboard or package proposal. */
-    ROSA_REPLY(fileName = "sfx_rosa_reply.m4a", primaryHz = 659.25, secondaryHz = 987.77, durationMs = 175),
+    /** Organic felt-chime bloom when Rosa IA replies or updates an event plan. */
+    ROSA_REPLY(fileName = "sfx_rosa_reply.m4a", primaryHz = 493.88, secondaryHz = 659.25, durationMs = 210),
 
     /** Tactile wooden tick when marking a checklist step in `s68`, `A11`, or `A13`. */
     CHECKLIST_TICK(fileName = "sfx_checklist_tick.m4a", primaryHz = 720.0, secondaryHz = 320.0, durationMs = 34),
 
-    /** Harmonic harp chord when confirming a payment, quote approval, or digital signature. */
-    PAYMENT_SUCCESS(fileName = "sfx_payment_success.m4a", primaryHz = 523.25, secondaryHz = 1046.50, durationMs = 240),
+    /** Warm marimba-harp arpeggio when confirming a payment, quote approval, or digital signature. */
+    PAYMENT_SUCCESS(fileName = "sfx_payment_success.m4a", primaryHz = 523.25, secondaryHz = 1046.50, durationMs = 260),
 
     /** Soft muted double-knock when a validation error or stock alert is triggered. */
     ALERT_ERROR(fileName = "sfx_alert_error.m4a", primaryHz = 280.0, secondaryHz = 170.0, durationMs = 145),
@@ -180,22 +180,24 @@ public object PcmSoundSynthesizer {
             gain = 0.80,
         )
 
-        SoundEffect.ROSA_REPLY -> synthesizeLayeredNotes(
+        SoundEffect.ROSA_REPLY -> synthesizeOrganicMalletNotes(
             numSamples = numSamples,
-            notesHz = doubleArrayOf(659.25, 987.77),
-            offsetsMs = doubleArrayOf(0.0, 52.0),
-            decayRate = 23.0,
-            harmonicMix = 0.18,
+            notesHz = doubleArrayOf(493.88, 659.25),
+            offsetsMs = doubleArrayOf(0.0, 56.0),
+            decayRate = 17.5,
+            malletHarmonicMix = 0.14,
+            attackMs = 6.5,
             gain = 0.72,
         )
 
-        SoundEffect.PAYMENT_SUCCESS -> synthesizeLayeredNotes(
+        SoundEffect.PAYMENT_SUCCESS -> synthesizeOrganicMalletNotes(
             numSamples = numSamples,
             notesHz = doubleArrayOf(523.25, 659.25, 783.99, 1046.50),
-            offsetsMs = doubleArrayOf(0.0, 42.0, 84.0, 126.0),
-            decayRate = 20.0,
-            harmonicMix = 0.15,
-            gain = 0.62,
+            offsetsMs = doubleArrayOf(0.0, 46.0, 92.0, 138.0),
+            decayRate = 16.5,
+            malletHarmonicMix = 0.12,
+            attackMs = 6.0,
+            gain = 0.60,
         )
 
         SoundEffect.ALERT_ERROR -> synthesizeDoubleKnock(numSamples)
@@ -248,25 +250,28 @@ public object PcmSoundSynthesizer {
         return output
     }
 
-    private fun synthesizeLayeredNotes(
+    private fun synthesizeOrganicMalletNotes(
         numSamples: Int,
         notesHz: DoubleArray,
         offsetsMs: DoubleArray,
         decayRate: Double,
-        harmonicMix: Double,
+        malletHarmonicMix: Double,
+        attackMs: Double,
         gain: Double,
     ): DoubleArray {
         val output = DoubleArray(numSamples)
         for (noteIndex in notesHz.indices) {
-            val freq = notesHz[noteIndex]
+            val baseFreq = notesHz[noteIndex]
             val startSample = ((offsetsMs[noteIndex] / 1000.0) * SAMPLE_RATE).toInt()
+            var phase = 0.0
             for (i in startSample until numSamples) {
                 val localT = (i - startSample).toDouble() / SAMPLE_RATE
-                val phase = 2.0 * PI * freq * localT
-                val attack = computeCosineAttack(tSeconds = localT, attackSeconds = 0.004)
-                val overtone = harmonicMix * sin(2.0 * phase) * exp(-decayRate * 1.8 * localT)
-                val tone = (sin(phase) + overtone) * attack * exp(-decayRate * localT)
-                output[i] += tone * gain
+                val instantFreq = baseFreq * (1.0 + 0.035 * exp(-180.0 * localT))
+                phase += 2.0 * PI * instantFreq / SAMPLE_RATE
+                val attack = computeCosineAttack(tSeconds = localT, attackSeconds = attackMs / 1000.0)
+                val body = sin(phase) * exp(-decayRate * localT)
+                val malletKnock = malletHarmonicMix * sin(2.75 * phase) * exp(-210.0 * localT)
+                output[i] += (body + malletKnock) * attack * gain
             }
         }
         return output

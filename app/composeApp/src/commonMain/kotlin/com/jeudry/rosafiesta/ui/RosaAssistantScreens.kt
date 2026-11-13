@@ -230,17 +230,53 @@ private fun openRosaVoiceScreen(
     onSelectScreenCode("s35")
 }
 
+private fun resolveRosaHeaderSpeech(
+    step: Int,
+    eventType: String,
+    venueLabel: String,
+    proposalMessage: String,
+): Pair<String, String> {
+    val cleanType = eventType.trim()
+    val cleanVenue = venueLabel.trim()
+    val cleanProposal = proposalMessage.trim()
+    if (cleanProposal.isNotEmpty()) {
+        return "¡Hola! Soy Rosa, tu asistente" to cleanProposal
+    }
+    return when (step) {
+        1 -> {
+            val subtitle = if (cleanType.isNotEmpty()) {
+                resolveRosaEventMetadata(cleanType).subtitleBadge
+            } else {
+                "Cuéntame qué evento quieres celebrar"
+            }
+            "¡Hola! Soy Rosa, tu asistente" to subtitle
+        }
+
+        2 -> "Rosa IA · Aforo y espacio" to "Ajustemos invitados y lugar ideal"
+
+        3 -> {
+            val contextTarget = cleanVenue.ifEmpty { cleanType.ifEmpty { "tu evento" } }
+            "Rosa IA · Sugerencias" to "Armé estas ideas para $contextTarget"
+        }
+
+        4 -> "Rosa IA · Categorías" to "Activa o quita piezas a tu gusto"
+
+        5 -> "Rosa IA · Logística" to "Confirma fecha, horario y dirección"
+
+        else -> "Rosa IA · Cotización lista" to "Revisa todo antes de enviarlo"
+    }
+}
+
 @Composable
 private fun RosaWizardHeader(
     step: Int,
-    totalSteps: Int = 6,
     cartCount: Int? = null,
     viewModel: RosaFiestaViewModel? = null,
     onBack: () -> Unit = {},
     onCart: () -> Unit = {},
-    onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
+    val palette = RfThemeState.currentPalette
     val observedDraftQuantities = viewModel?.draftQuantities?.collectAsState()?.value
     val liveDraftUnits = observedDraftQuantities
         ?.values
@@ -249,97 +285,99 @@ private fun RosaWizardHeader(
         ?: viewModel?.totalDraftCartUnits()
         ?: 0
     val resolvedCartCount = cartCount ?: liveDraftUnits
+    val vmEventTypeInput = viewModel?.eventTypeInput?.collectAsState()?.value.orEmpty()
+    val vmRosaEventType = viewModel?.rosaEventType?.collectAsState()?.value.orEmpty()
+    val vmVenueInput = viewModel?.eventVenueInput?.collectAsState()?.value.orEmpty()
+    val vmProposalMessage = viewModel?.rosaProposalMessage?.collectAsState()?.value.orEmpty()
+    val activeEventType = vmEventTypeInput.ifBlank { vmRosaEventType }
+    val (assistantTitle, assistantSubtitle) = resolveRosaHeaderSpeech(
+        step = step,
+        eventType = activeEventType,
+        venueLabel = vmVenueInput,
+        proposalMessage = vmProposalMessage,
+    )
+    val bubbleBorderColor = if (palette.isDark) palette.line else Color(0x33865DEC)
+    val subtitleColor = if (palette.isDark) Color(0xFFC5B4F8) else Color(0xFF7A4FD8)
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .zIndex(2f)
-            .background(if (RfThemeState.currentPalette.isDark) Color(0xFF1E1A36) else Color(0xFFDED5F7))
-            .padding(top = 16.dp, bottom = 12.dp, start = 16.dp, end = 16.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
+            .padding(top = 10.dp, bottom = 6.dp, start = 16.dp, end = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
             modifier = Modifier
-                .size(44.dp)
+                .size(40.dp)
                 .rfIconButtonShadow(CircleShape, isAdmin = false)
                 .clip(CircleShape)
-                .background(RfThemeState.currentPalette.surface)
+                .background(palette.surface)
                 .clickable(onClick = onBack),
             contentAlignment = Alignment.Center,
         ) {
             RfIcon(
                 kind = RfIconKind.BACK,
-                tint = RfThemeState.currentPalette.ink,
-                size = 22.dp,
+                tint = palette.ink,
+                size = 20.dp,
             )
         }
 
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+        Row(
+            modifier = Modifier
+                .weight(1f)
+                .clip(RoundedCornerShape(999.dp))
+                .background(palette.surface.copy(alpha = 0.82f))
+                .border(1.dp, bubbleBorderColor, RoundedCornerShape(999.dp))
+                .padding(horizontal = 10.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            BasicText(
-                text = "Paso $step de $totalSteps",
-                style = TextStyle(
-                    fontFamily = typo.bodyFamily,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 13.sp,
-                    color = RfThemeState.currentPalette.ink,
-                ),
-            )
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                modifier = Modifier.width(150.dp),
-            ) {
-                for (stepBarIndex in 1..totalSteps) {
-                    val targetCode = when (stepBarIndex) {
-                        1 -> if (step > 1) "BACK:s26" else "s26"
-                        2 -> if (step > 2) "BACK:s28" else "s28"
-                        3 -> if (step > 3) "BACK:s29" else "s29"
-                        4 -> if (step > 4) "BACK:s30" else "s30"
-                        5 -> if (step > 5) "BACK:s31" else "s31"
-                        else -> "s32"
-                    }
-                    val canNavigateToSegment = stepBarIndex <= step
-                    val segmentBackground = if (canNavigateToSegment) {
-                        Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB)))
-                    } else {
-                        SolidColor(Color(0xFFDDD3F3))
-                    }
-                    val segmentClickModifier = if (canNavigateToSegment) {
-                        Modifier.clickable { onSelectScreenCode(targetCode) }
-                    } else {
-                        Modifier
-                    }
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(5.dp)
-                            .clip(RoundedCornerShape(3.dp))
-                            .background(segmentBackground)
-                            .then(segmentClickModifier),
-                    )
-                }
+            RosaAvatar(size = RosaAvatarSize.MINI, forceAdminPalette = false)
+            Column(modifier = Modifier.weight(1f)) {
+                BasicText(
+                    text = assistantTitle,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    style = TextStyle(
+                        fontFamily = typo.bodyFamily,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp,
+                        lineHeight = 14.sp,
+                        color = palette.ink,
+                    ),
+                )
+                BasicText(
+                    text = assistantSubtitle,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    style = TextStyle(
+                        fontFamily = typo.bodyFamily,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 11.sp,
+                        lineHeight = 13.sp,
+                        color = subtitleColor,
+                    ),
+                )
             }
         }
 
         Box(
-            modifier = Modifier.size(44.dp),
+            modifier = Modifier.size(40.dp),
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .rfIconButtonShadow(CircleShape, isAdmin = false)
                     .clip(CircleShape)
-                    .background(RfThemeState.currentPalette.surface)
+                    .background(palette.surface)
                     .clickable(onClick = onCart),
                 contentAlignment = Alignment.Center,
             ) {
                 RfIcon(
                     kind = RfIconKind.PARTY,
-                    tint = RfThemeState.currentPalette.ink,
-                    size = 22.dp,
+                    tint = palette.ink,
+                    size = 20.dp,
                 )
             }
             if (resolvedCartCount > 0) {
@@ -776,10 +814,6 @@ internal fun RenderRosaEventTypeS26(
     viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
-    val vmEventTypeInput = viewModel?.eventTypeInput?.collectAsState()?.value.orEmpty()
-    val vmRosaEventType = viewModel?.rosaEventType?.collectAsState()?.value.orEmpty()
-    val activeTypeLabel = vmEventTypeInput.ifBlank { vmRosaEventType }
-    val activeMetadata = resolveRosaEventMetadata(activeTypeLabel)
     var promptText by remember { mutableStateOf("") }
     var isOtherSelected by remember { mutableStateOf(false) }
     var customEventTypeInput by remember { mutableStateOf("") }
@@ -796,73 +830,42 @@ internal fun RenderRosaEventTypeS26(
 
         RosaWizardHeader(
             step = 1,
-            totalSteps = 6,
             viewModel = viewModel,
             onBack = { onSelectScreenCode("BACK:s14") },
             onCart = { onSelectScreenCode("s25") },
-            onSelectScreenCode = onSelectScreenCode,
         )
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 74.dp, bottom = 88.dp)
+                .padding(top = 60.dp, bottom = 88.dp)
                 .verticalScroll(rememberScrollState())
-                .padding(top = 12.dp, start = 20.dp, end = 20.dp, bottom = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp),
+                .padding(top = 6.dp, start = 20.dp, end = 20.dp, bottom = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    RosaAvatar(size = RosaAvatarSize.MEDIUM, forceAdminPalette = false)
-                    Column {
-                        Row {
-                            BasicText(
-                                text = "¡Hola! Soy ",
-                                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF5A5672)),
-                            )
-                            BasicText(
-                                text = "Rosa",
-                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF9B45C8)),
-                            )
-                            BasicText(
-                                text = ", tu asistente.",
-                                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF5A5672)),
-                            )
-                        }
-                        BasicText(
-                            text = activeMetadata.subtitleBadge,
-                            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = Color(0xFF7A4FD8)),
-                        )
-                    }
-                }
-
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    BasicText(
-                        text = "¿Qué evento quieres",
-                        style = TextStyle(
-                            fontFamily = typo.displayFamily,
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 26.sp,
-                            lineHeight = 28.sp,
-                            letterSpacing = (-0.52).sp,
-                            color = RfThemeState.currentPalette.ink,
-                        ),
-                    )
-                    BasicText(
-                        text = "celebrar?",
-                        style = TextStyle(
-                            fontFamily = typo.displayFamily,
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 26.sp,
-                            lineHeight = 28.sp,
-                            letterSpacing = (-0.52).sp,
-                            color = RfThemeState.currentPalette.ink,
-                        ),
-                    )
-                }
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                BasicText(
+                    text = "¿Qué evento quieres",
+                    style = TextStyle(
+                        fontFamily = typo.displayFamily,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 26.sp,
+                        lineHeight = 28.sp,
+                        letterSpacing = (-0.52).sp,
+                        color = RfThemeState.currentPalette.ink,
+                    ),
+                )
+                BasicText(
+                    text = "celebrar?",
+                    style = TextStyle(
+                        fontFamily = typo.displayFamily,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 26.sp,
+                        lineHeight = 28.sp,
+                        letterSpacing = (-0.52).sp,
+                        color = RfThemeState.currentPalette.ink,
+                    ),
+                )
             }
 
             data class EventTypeItem(
@@ -1303,16 +1306,15 @@ internal fun RenderRosaTutorialS27(
             viewModel = viewModel,
             onBack = { onSelectScreenCode("BACK:s26") },
             onCart = { onSelectScreenCode("s25") },
-            onSelectScreenCode = onSelectScreenCode,
         )
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 74.dp, bottom = 88.dp)
+                .padding(top = 60.dp, bottom = 88.dp)
                 .verticalScroll(rememberScrollState()),
         ) {
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
             Column(
                 modifier = Modifier
@@ -1610,16 +1612,15 @@ internal fun RenderRosaHelpS28(
             viewModel = viewModel,
             onBack = { onSelectScreenCode("BACK:s27") },
             onCart = { onSelectScreenCode("s25") },
-            onSelectScreenCode = onSelectScreenCode,
         )
 
         Column(
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .fillMaxSize()
-                .padding(top = 74.dp, bottom = 224.dp)
+                .padding(top = 60.dp, bottom = 224.dp)
                 .verticalScroll(rememberScrollState())
-                .padding(top = 12.dp, start = 20.dp, end = 20.dp, bottom = 20.dp),
+                .padding(top = 6.dp, start = 20.dp, end = 20.dp, bottom = 20.dp),
             verticalArrangement = Arrangement.spacedBy(22.dp),
         ) {
             Box(
@@ -1931,14 +1932,13 @@ internal fun RenderRosaSuggestionsS29(
             viewModel = viewModel,
             onBack = { onSelectScreenCode("BACK:s28") },
             onCart = { onSelectScreenCode("s25") },
-            onSelectScreenCode = onSelectScreenCode,
         )
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(top = 78.dp, bottom = 160.dp),
+                .padding(top = 60.dp, bottom = 160.dp),
         ) {
             Column(
                 modifier = Modifier
@@ -2391,16 +2391,15 @@ internal fun RenderRosaCategoriesS30(
             viewModel = viewModel,
             onBack = { onSelectScreenCode("BACK:s29") },
             onCart = { onSelectScreenCode("s25") },
-            onSelectScreenCode = onSelectScreenCode,
         )
 
         Column(
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .fillMaxSize()
-                .padding(top = 74.dp, bottom = 148.dp)
+                .padding(top = 60.dp, bottom = 148.dp)
                 .verticalScroll(rememberScrollState())
-                .padding(top = 12.dp, start = 20.dp, end = 20.dp, bottom = 20.dp),
+                .padding(top = 6.dp, start = 20.dp, end = 20.dp, bottom = 20.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -2797,15 +2796,14 @@ internal fun RenderRosaDetailsS31(
             viewModel = viewModel,
             onBack = { onSelectScreenCode("BACK:s30") },
             onCart = { onSelectScreenCode("s25") },
-            onSelectScreenCode = onSelectScreenCode,
         )
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 74.dp, bottom = 148.dp)
+                .padding(top = 60.dp, bottom = 148.dp)
                 .verticalScroll(rememberScrollState())
-                .padding(top = 12.dp, start = 20.dp, end = 20.dp, bottom = 20.dp),
+                .padding(top = 6.dp, start = 20.dp, end = 20.dp, bottom = 20.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -3177,19 +3175,17 @@ internal fun RenderRosaSummaryS32(
     ) {
         RosaWizardHeader(
             step = 6,
-            totalSteps = 6,
             viewModel = viewModel,
             onBack = { onSelectScreenCode("BACK:s31") },
             onCart = { onSelectScreenCode("s25") },
-            onSelectScreenCode = onSelectScreenCode,
         )
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 74.dp, bottom = 148.dp)
+                .padding(top = 60.dp, bottom = 148.dp)
                 .verticalScroll(rememberScrollState())
-                .padding(top = 12.dp, start = 20.dp, end = 20.dp, bottom = 20.dp),
+                .padding(top = 6.dp, start = 20.dp, end = 20.dp, bottom = 20.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {

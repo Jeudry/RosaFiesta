@@ -80,6 +80,15 @@ class SecurityAndSoundTest {
         val player = NoOpSoundPlayer()
         player.playPaymentSuccess()
         assertEquals(SoundEffect.PAYMENT_SUCCESS, player.lastPlayedEffect)
+
+        val rosaReplyWav = PcmSoundSynthesizer.synthesizeWav(SoundEffect.ROSA_REPLY, volume = 0.8f)
+        assertTrue(rosaReplyWav.size > 44)
+        assertEquals("RIFF", rosaReplyWav.decodeToString(0, 4))
+        assertEquals("WAVE", rosaReplyWav.decodeToString(8, 12))
+        val rosaReplyPcm = rosaReplyWav.copyOfRange(44, rosaReplyWav.size)
+        assertTrue(WavPcmEncoder.computeNormalizedRms(rosaReplyPcm) > 0.01f)
+        player.playRosaReply()
+        assertEquals(SoundEffect.ROSA_REPLY, player.lastPlayedEffect)
     }
 
     @Test

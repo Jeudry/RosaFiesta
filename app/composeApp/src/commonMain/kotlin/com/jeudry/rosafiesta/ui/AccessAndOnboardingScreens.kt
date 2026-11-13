@@ -192,20 +192,6 @@ internal fun RenderPersonalSplashP00(
                 ),
             )
         }
-
-        // Puntos de carga inferiores (y = 764dp / bottom 70dp)
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 70.dp),
-        ) {
-            Box(Modifier.size(10.dp).background(Color(0xFFFFD45C), CircleShape))
-            Box(Modifier.size(10.dp).background(Color.White.copy(alpha = 0.8f), CircleShape))
-            Box(Modifier.size(10.dp).background(Color(0xFFD6EA8C), CircleShape))
-        }
     }
 }
 
