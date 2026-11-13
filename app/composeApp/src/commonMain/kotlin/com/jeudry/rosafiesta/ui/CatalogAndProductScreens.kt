@@ -58,6 +58,7 @@ import androidx.compose.ui.zIndex
 import com.jeudry.rosafiesta.core.engine.RosaFiestaEngine
 import com.jeudry.rosafiesta.designsystem.LocalRfPalette
 import com.jeudry.rosafiesta.designsystem.LocalRfTypography
+import com.jeudry.rosafiesta.designsystem.RfDimens
 import com.jeudry.rosafiesta.designsystem.RfGradientPriceText
 import com.jeudry.rosafiesta.designsystem.RfIcon
 import com.jeudry.rosafiesta.designsystem.RfIconKind
@@ -533,7 +534,7 @@ internal fun RenderPersonalCatalogS18(
                     }
                 }
             }
-            Spacer(Modifier.height(84.dp))
+            Spacer(Modifier.height(RfDimens.BottomBarContentClearance))
         }
     }
 }
@@ -1404,7 +1405,7 @@ internal fun RenderCategoriesScreenS20(
                 }
             }
 
-            Spacer(Modifier.height(96.dp))
+            Spacer(Modifier.height(RfDimens.BottomBarContentClearance))
         }
     }
 }
@@ -2984,7 +2985,7 @@ internal fun RenderShopScreenS23(
                 }
             }
 
-            Spacer(Modifier.height(96.dp))
+            Spacer(Modifier.height(RfDimens.BottomBarContentClearance))
         }
     }
 }

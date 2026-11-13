@@ -99,7 +99,7 @@ public enum class PersonalTab(
 
 /**
  * Componente `TabBar` de la App Personal (Sección 2.5 y 3):
- * - Alto 96 dp (`RfDimens.BottomBarHeight`), con `Rosa` de 56 dp en el centro sobresaliendo 26 dp (`RfDimens.RosaCenterProtrusion`).
+ * - Alto 76 dp (`RfDimens.BottomBarHeight`), con `Rosa` de 56 dp en el centro sobresaliendo 26 dp (`RfDimens.RosaCenterProtrusion`).
  * - Pestaña activa: píldora con el degradado `hero` (`linear-gradient(135deg,#E04FAF 0%,#945AE1 55%,#6664E9 100%)`).
  * - Soporta modo invitado (`Inicio · Catálogo · Rosa · Paquetes · Entrar`) y modo oscuro (`dark`).
  */
@@ -125,7 +125,7 @@ public fun PersonalTabBar(
             .fillMaxWidth()
             .height(RfDimens.BottomBarHeight),
     ) {
-        // Superficie principal de 96 dp con borde superior fino y sombra superior suave
+        // Superficie principal de 76 dp con borde superior fino y sombra superior suave
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -147,7 +147,7 @@ public fun PersonalTabBar(
                         strokeWidth = 1f,
                     )
                 }
-                .padding(top = 10.dp, start = 8.dp, end = 8.dp),
+                .padding(top = 8.dp, start = 8.dp, end = 8.dp),
         ) {
             Row(
                 verticalAlignment = Alignment.Top,
@@ -243,10 +243,10 @@ public fun PersonalTabBar(
         )
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(3.dp),
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .offset(y = (-16).dp)
+                .offset(y = (-18).dp)
                 .graphicsLayer {
                     scaleX = rosaScale
                     scaleY = rosaScale
@@ -315,7 +315,7 @@ public enum class AdminTab(
 /**
  * Componente `AdminBar` de la App Administrativa (Sección 2.5 y 3):
  * - `Inicio · Eventos · Rosa · Inventario · Más`
- * - Alto 96 dp (`RfDimens.BottomBarHeight`), con `Rosa` de 56 dp en el centro usando `rosa-admin-bg` (índigo → turquesa) sobresaliendo 26 dp.
+ * - Alto 76 dp (`RfDimens.BottomBarHeight`), con `Rosa` de 56 dp en el centro usando `rosa-admin-bg` (índigo → turquesa) sobresaliendo 26 dp.
  * - Pestaña activa: píldora con `primary` (`linear-gradient(135deg,#7C5CF0 0%,#5B6CF0 100%)`).
  */
 @Composable
@@ -362,7 +362,7 @@ public fun AdminTabBar(
                         strokeWidth = 1f,
                     )
                 }
-                .padding(top = 10.dp, start = 8.dp, end = 8.dp),
+                .padding(top = 8.dp, start = 8.dp, end = 8.dp),
         ) {
             Row(
                 verticalAlignment = Alignment.Top,
@@ -470,10 +470,10 @@ public fun AdminTabBar(
         )
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(3.dp),
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .offset(y = (-16).dp)
+                .offset(y = (-18).dp)
                 .graphicsLayer {
                     scaleX = rosaScale
                     scaleY = rosaScale

@@ -72,6 +72,7 @@ import com.jeudry.rosafiesta.designsystem.LocalRfTypography
 import com.jeudry.rosafiesta.designsystem.RfButton
 import com.jeudry.rosafiesta.designsystem.RfButtonStyle
 import com.jeudry.rosafiesta.designsystem.RfColors
+import com.jeudry.rosafiesta.designsystem.RfDimens
 import com.jeudry.rosafiesta.designsystem.RfGradientPriceText
 import com.jeudry.rosafiesta.designsystem.RfIcon
 import com.jeudry.rosafiesta.designsystem.RfIconKind
@@ -1123,7 +1124,7 @@ internal fun RenderPersonalPaymentsS82(
                     .weight(1f)
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
-                    .padding(top = 2.dp, bottom = 36.dp),
+                    .padding(top = 2.dp, bottom = RfDimens.BottomBarContentClearance),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 if (selectedPaymentsTab == 0) {
@@ -1983,7 +1984,7 @@ internal fun RenderAccountSettingsS86(
                 modifier = Modifier.fillMaxWidth(),
                 style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, textAlign = TextAlign.Center, color = RfThemeState.currentPalette.muted),
             )
-            Spacer(modifier = Modifier.height(30.dp))
+            Spacer(modifier = Modifier.height(RfDimens.BottomBarContentClearance))
         }
     }
 }

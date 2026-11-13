@@ -487,7 +487,7 @@ public enum class RfIconKind {
     DOWNLOAD,
 }
 
-private val iconPaths: Map<RfIconKind, String> = mapOf(
+internal val iconPaths: Map<RfIconKind, String> = mapOf(
     RfIconKind.GRID to "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z",
     RfIconKind.BAR_CHART to "M4 4v16h16M8 16v-4M12 16V9M16 16v-6",
     RfIconKind.HOME to "M3 10.5L12 3l9 7.5M5 9v11h5v-6h4v6h5V9",
@@ -507,9 +507,9 @@ private val iconPaths: Map<RfIconKind, String> = mapOf(
     RfIconKind.MORE to "M5 12h.01M12 12h.01M19 12h.01",
     RfIconKind.MORE_VERT to "M12 5h.01M12 12h.01M12 19h.01",
     RfIconKind.MORE_VERTICAL to "M12 5h.01M12 12h.01M12 19h.01",
-    RfIconKind.SETTINGS to "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z",
-    RfIconKind.ORDERS to "M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5M9 13h6M9 17h4",
-    RfIconKind.RECEIPT to "M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5M9 13h6M9 17h4",
+    RfIconKind.SETTINGS to "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M19.4 15a1.65 1.65 0 0 0 0.33 1.82l0.06 0.06a2 2 0 0 1-2.83 2.83l-0.06-0.06a1.65 1.65 0 0 0-1.82-0.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-0.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82 0.33l-0.06 0.06a2 2 0 0 1-2.83-2.83l0.06-0.06a1.65 1.65 0 0 0 0.33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h0.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-0.33-1.82l-0.06-0.06a2 2 0 0 1 2.83-2.83l0.06 0.06a1.65 1.65 0 0 0 1.82 0.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v0.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-0.33l0.06-0.06a2 2 0 0 1 2.83 2.83l-0.06 0.06a1.65 1.65 0 0 0-0.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-0.09a1.65 1.65 0 0 0-1.51 1z",
+    RfIconKind.ORDERS to "M9 2.5h6a1 1 0 0 1 1 1V6H8V3.5a1 1 0 0 1 1-1z M8 4.5H6a2 2 0 0 0-2 2V19a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6.5a2 2 0 0 0-2-2h-2 M8 11h8 M8 15h5",
+    RfIconKind.RECEIPT to "M4.5 3v18l2.5-1.8L9.5 21l2.5-1.8L14.5 21l2.5-1.8L19.5 21V3z M8 8h8 M8 12h8 M8 16h5",
     RfIconKind.CHAT to "M5 4h14a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-8l-5 4v-4H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z",
     RfIconKind.SEND to "M21 3L10 14M21 3l-6.5 18-4.5-7-7-4.5z",
     RfIconKind.STAR to "M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z",

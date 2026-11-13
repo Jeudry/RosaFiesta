@@ -55,8 +55,9 @@ public object RfDimens {
     public val BottomSheetHandleWidth: Dp = 40.dp
     public val BottomSheetHandleHeight: Dp = 5.dp
 
-    // Barra inferior: alto 96; Rosa de 56 px en el centro, sobresaliendo 26 px
-    public val BottomBarHeight: Dp = 96.dp
+    // Barra inferior: alto 76; Rosa de 56 px en el centro, sobresaliendo 26 px
+    public val BottomBarHeight: Dp = 76.dp
+    public val BottomBarContentClearance: Dp = 108.dp
     public val RosaCenterButtonSize: Dp = 56.dp
     public val RosaCenterProtrusion: Dp = 26.dp
 

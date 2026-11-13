@@ -1,6 +1,8 @@
 package com.jeudry.rosafiesta.designsystem
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.PathNode
+import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -67,7 +69,8 @@ class RfDesignSystemTest {
 
         assertEquals(20.dp, RfDimens.ScreenHorizontalPadding)
         assertEquals(54.dp, RfDimens.StatusBarHeight)
-        assertEquals(96.dp, RfDimens.BottomBarHeight)
+        assertEquals(76.dp, RfDimens.BottomBarHeight)
+        assertEquals(108.dp, RfDimens.BottomBarContentClearance)
         assertEquals(56.dp, RfDimens.RosaCenterButtonSize)
         assertEquals(26.dp, RfDimens.RosaCenterProtrusion)
         assertEquals(44.dp, RfDimens.IconButtonSize)
@@ -97,5 +100,30 @@ class RfDesignSystemTest {
         assertEquals(Color.White, lightPalette.surface)
         assertNotEquals(Color.White, darkPalette.surface)
         assertNotEquals(lightPalette.ink, darkPalette.ink)
+    }
+
+    @Test
+    fun `verifica iconografia diferenciada de ajustes reservas recibos y validez de trazos SVG`() {
+        iconPaths.values.forEach { rawPath ->
+            val nodes = PathParser().parsePathString(rawPath).toNodes()
+            assertTrue(nodes.isNotEmpty())
+        }
+
+        assertNotEquals(iconPaths[RfIconKind.ORDERS], iconPaths[RfIconKind.RECEIPT])
+
+        val settingsPath = requireNotNull(iconPaths[RfIconKind.SETTINGS])
+        val settingsNodes = PathParser().parsePathString(settingsPath).toNodes()
+        val verticalPoints = settingsNodes.mapNotNull { node ->
+            when (node) {
+                is PathNode.MoveTo -> node.y
+                is PathNode.LineTo -> node.y
+                is PathNode.VerticalTo -> node.y
+                is PathNode.ArcTo -> node.arcStartY
+                else -> null
+            }
+        }
+        val minY = verticalPoints.minOrNull() ?: 0f
+        val maxY = verticalPoints.maxOrNull() ?: 0f
+        assertTrue(maxY - minY > 16f)
     }
 }

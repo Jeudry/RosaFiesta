@@ -52,6 +52,7 @@ import com.jeudry.rosafiesta.designsystem.RfButton
 import com.jeudry.rosafiesta.designsystem.RfButtonStyle
 import com.jeudry.rosafiesta.designsystem.RfCard
 import com.jeudry.rosafiesta.designsystem.RfColors
+import com.jeudry.rosafiesta.designsystem.RfDimens
 import com.jeudry.rosafiesta.designsystem.RfIcon
 import com.jeudry.rosafiesta.designsystem.RfIconKind
 import com.jeudry.rosafiesta.designsystem.RfIconTile
@@ -62,8 +63,8 @@ import com.jeudry.rosafiesta.designsystem.RfThemeVariant
 
 public fun shouldShowBottomBar(code: String): Boolean = code.lowercase() in setOf(
     "a01", "a02", "a09", "a11", "a12", "a32", "a35", "a36", "a37",
-    "s01", "s02", "s14", "s15", "s16", "s17", "s18", "s20", "s21", "s23", "s24", "s26",
-    "s37", "s53", "s54", "s80", "s82", "s86", "s87", "s88", "s89", "s90", "s91", "s92",
+    "s01", "s02", "s14", "s15", "s16", "s18", "s20", "s21", "s23", "s24",
+    "s37", "s53", "s54", "s80", "s82", "s86", "s89", "s90", "s91", "s92",
 )
 
 @Composable
@@ -138,7 +139,7 @@ internal fun RenderPersonalMoreOptionsPanel(
     currentScreenCode: String,
     onDismiss: () -> Unit,
     onSelectOption: (String) -> Unit,
-    bottomClearance: Dp = 104.dp,
+    bottomClearance: Dp = RfDimens.BottomBarHeight + 10.dp,
 ) {
     val palette = LocalRfPalette.current
     val typo = LocalRfTypography.current

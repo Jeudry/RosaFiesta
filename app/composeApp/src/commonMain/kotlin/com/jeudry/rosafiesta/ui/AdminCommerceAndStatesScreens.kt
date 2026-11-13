@@ -70,6 +70,7 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import com.jeudry.rosafiesta.designsystem.LocalRfTypography
+import com.jeudry.rosafiesta.designsystem.RfDimens
 import com.jeudry.rosafiesta.designsystem.RfIcon
 import com.jeudry.rosafiesta.designsystem.RfIconKind
 import com.jeudry.rosafiesta.designsystem.RfLogo
@@ -4905,7 +4906,7 @@ internal fun RenderAdminCancellationsA32(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(top = 16.dp, start = 20.dp, end = 20.dp, bottom = 40.dp),
+                .padding(top = 16.dp, start = 20.dp, end = 20.dp, bottom = RfDimens.BottomBarContentClearance),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Row(
@@ -5847,7 +5848,7 @@ internal fun RenderAdminEmptyStateA35(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(top = 16.dp, start = 20.dp, end = 20.dp, bottom = 48.dp),
+                .padding(top = 16.dp, start = 20.dp, end = 20.dp, bottom = RfDimens.BottomBarContentClearance),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Row(
@@ -6082,7 +6083,7 @@ internal fun RenderAdminLoadingStateA36(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(top = 16.dp, start = 20.dp, end = 20.dp, bottom = 48.dp),
+                .padding(top = 16.dp, start = 20.dp, end = 20.dp, bottom = RfDimens.BottomBarContentClearance),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Row(
@@ -6427,7 +6428,7 @@ internal fun RenderAdminErrorStateA37(
                 .fillMaxSize()
                 .padding(top = 92.dp)
                 .verticalScroll(rememberScrollState())
-                .padding(top = 20.dp, start = 20.dp, end = 20.dp, bottom = 80.dp),
+                .padding(top = 20.dp, start = 20.dp, end = 20.dp, bottom = RfDimens.BottomBarContentClearance),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Row(

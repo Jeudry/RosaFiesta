@@ -59,6 +59,7 @@ import com.jeudry.rosafiesta.core.engine.RosaFiestaEngine
 import com.jeudry.rosafiesta.designsystem.LocalRfPalette
 import com.jeudry.rosafiesta.designsystem.LocalRfTypography
 import com.jeudry.rosafiesta.designsystem.RfColors
+import com.jeudry.rosafiesta.designsystem.RfDimens
 import com.jeudry.rosafiesta.designsystem.RfIcon
 import com.jeudry.rosafiesta.designsystem.RfIconKind
 import com.jeudry.rosafiesta.designsystem.RfPhoto
@@ -2122,7 +2123,7 @@ internal fun RenderMyReservationsScreenS53(
                     }
                 }
             }
-            Spacer(modifier = Modifier.height(30.dp))
+            Spacer(modifier = Modifier.height(RfDimens.BottomBarContentClearance))
         }
     }
 }
@@ -2661,7 +2662,7 @@ internal fun RenderUserProfileScreenS54(
                     onClick = { showLogoutConfirmModal = true },
                 ) {}
             }
-            Spacer(modifier = Modifier.height(30.dp))
+            Spacer(modifier = Modifier.height(RfDimens.BottomBarContentClearance))
         }
 
         if (showLogoutConfirmModal) {

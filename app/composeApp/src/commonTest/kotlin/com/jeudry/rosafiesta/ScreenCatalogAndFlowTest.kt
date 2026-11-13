@@ -73,6 +73,17 @@ class ScreenCatalogAndFlowTest {
         assertEquals(AdminTab.ROSA, ScreenCatalog.activeAdminTab("A08"))
         assertEquals(AdminTab.INVENTARIO, ScreenCatalog.activeAdminTab("A09"))
         assertEquals(AdminTab.MAS, ScreenCatalog.activeAdminTab("A12"))
+
+        assertFalse(com.jeudry.rosafiesta.ui.shouldShowBottomBar("s26"))
+        assertFalse(com.jeudry.rosafiesta.ui.shouldShowBottomBar("s27"))
+        assertFalse(com.jeudry.rosafiesta.ui.shouldShowBottomBar("s34"))
+        assertFalse(com.jeudry.rosafiesta.ui.shouldShowBottomBar("s17"))
+        assertFalse(com.jeudry.rosafiesta.ui.shouldShowBottomBar("s87"))
+        assertFalse(com.jeudry.rosafiesta.ui.shouldShowBottomBar("s88"))
+        assertFalse(com.jeudry.rosafiesta.ui.shouldShowBottomBar("A08"))
+        assertTrue(com.jeudry.rosafiesta.ui.shouldShowBottomBar("s14"))
+        assertTrue(com.jeudry.rosafiesta.ui.shouldShowBottomBar("s37"))
+        assertTrue(com.jeudry.rosafiesta.ui.shouldShowBottomBar("s54"))
     }
 
     @Test
