@@ -4095,24 +4095,47 @@ private fun AdminOnboardingVisualSlide(
 
         Spacer(modifier = Modifier.height(14.dp))
 
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 28.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+                .padding(horizontal = 20.dp)
+                .shadow(elevation = 12.dp, shape = RoundedCornerShape(24.dp), spotColor = Color(0x1F5B6CF0))
+                .clip(RoundedCornerShape(24.dp))
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            Color.White.copy(alpha = 0.94f),
+                            Color(0xFFFAF9FF).copy(alpha = 0.92f),
+                        ),
+                    ),
+                )
+                .border(1.dp, tagTint.copy(alpha = 0.16f), RoundedCornerShape(24.dp))
+                .padding(horizontal = 20.dp, vertical = 18.dp),
         ) {
-            BasicText(
-                text = stepTag,
-                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = tagTint, letterSpacing = 1.sp),
-            )
-            BasicText(
-                text = headline,
-                style = TextStyle(fontFamily = typo.displayFamily, fontSize = 27.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729), lineHeight = 32.sp),
-            )
-            BasicText(
-                text = subtitle,
-                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF5F6377), lineHeight = 22.sp),
-            )
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .background(tagTint.copy(alpha = 0.10f))
+                        .padding(horizontal = 10.dp, vertical = 4.dp),
+                ) {
+                    BasicText(
+                        text = stepTag,
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = tagTint, letterSpacing = 0.8.sp),
+                    )
+                }
+                BasicText(
+                    text = headline,
+                    style = TextStyle(fontFamily = typo.displayFamily, fontSize = 25.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729), lineHeight = 30.sp),
+                )
+                BasicText(
+                    text = subtitle,
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.5.sp, color = Color(0xFF5F6377), lineHeight = 21.sp),
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(12.dp))
