@@ -12,6 +12,7 @@ import com.jeudry.rosafiesta.domain.BotKeywordRecord
 import com.jeudry.rosafiesta.domain.BotThreadRecord
 import com.jeudry.rosafiesta.domain.BusinessMetrics
 import com.jeudry.rosafiesta.domain.BusinessSettings
+import com.jeudry.rosafiesta.domain.CanonicalSampleData
 import com.jeudry.rosafiesta.domain.CatalogArticle
 import com.jeudry.rosafiesta.domain.ChatMessageRecord
 import com.jeudry.rosafiesta.domain.ChatThread
@@ -258,7 +259,7 @@ public class RosaFiestaViewModel(
     private val _editingPackageId = MutableStateFlow<String?>(null)
     public val editingPackageId: StateFlow<String?> = _editingPackageId.asStateFlow()
 
-    private val _voiceReturnScreenCode = MutableStateFlow("s28")
+    private val _voiceReturnScreenCode = MutableStateFlow("s30")
     public val voiceReturnScreenCode: StateFlow<String> = _voiceReturnScreenCode.asStateFlow()
 
     private val _lastAddedDraftItem = MutableStateFlow<Pair<String, Int>?>(null)
@@ -1234,6 +1235,17 @@ public class RosaFiestaViewModel(
                     quantity = qty,
                     unitPriceDop = balloonItem.priceDop,
                     photo = balloonItem.photo,
+                )
+                continue
+            }
+            val extraWizardItem = CanonicalSampleData.rosaWizardExtras.firstOrNull { extra -> extra.id == itemId }
+            if (extraWizardItem != null) {
+                result += EventLineItem(
+                    articleCode = extraWizardItem.code,
+                    name = extraWizardItem.name,
+                    quantity = qty,
+                    unitPriceDop = extraWizardItem.pricePerDayDop,
+                    photo = extraWizardItem.photo,
                 )
             }
         }

@@ -889,7 +889,7 @@ internal fun RenderNewEventScreenS38(
                             .clickable {
                                 viewModel?.setEventTypeInput(resolvedEventTitle)
                                 viewModel?.updateRosaParameters(eventType = selectedType)
-                                onSelectScreenCode("s28")
+                                onSelectScreenCode("s30")
                             }
                             .padding(horizontal = 14.dp, vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically,

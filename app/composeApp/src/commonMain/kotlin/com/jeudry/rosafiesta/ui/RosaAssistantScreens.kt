@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -87,6 +88,7 @@ import com.jeudry.rosafiesta.domain.BalloonProduct
 import com.jeudry.rosafiesta.domain.CanonicalSampleData
 import com.jeudry.rosafiesta.domain.CatalogArticle
 import com.jeudry.rosafiesta.domain.EventLineItem
+import com.jeudry.rosafiesta.domain.EventPackage
 import com.jeudry.rosafiesta.domain.PhotoAsset
 import kotlin.math.PI
 import kotlin.math.cos
@@ -280,8 +282,8 @@ private fun resolveRosaHeaderSpeech(
         }
 
         "s30" -> {
-            val subtitle = cleanProposal.ifEmpty { "Activa o quita piezas a tu gusto" }
-            "¿Te falta algo? Mira por categoría" to subtitle
+            val subtitle = cleanProposal.ifEmpty { "Elige categorías, cantidades y arma tu evento" }
+            "¿Qué necesitas para tu $eventLower?" to subtitle
         }
 
         "s30_picker" -> {
@@ -1423,7 +1425,7 @@ internal fun RenderRosaTutorialS27(
                                 .rfPrimaryButtonShadow(RoundedCornerShape(14.dp), isAdmin = false)
                                 .clip(RoundedCornerShape(14.dp))
                                 .background(pillGradient)
-                                .clickable { onSelectScreenCode("s28") }
+                                .clickable { onSelectScreenCode("s30") }
                                 .padding(horizontal = 20.dp),
                             contentAlignment = Alignment.Center,
                         ) {
@@ -1498,7 +1500,7 @@ internal fun RenderRosaTutorialS27(
                 applyNaturalLanguageEventPrompt(submittedText, viewModel)
                 viewModel?.sendConversationalRosaPrompt(submittedText)
                 promptText = ""
-                onSelectScreenCode("s28")
+                onSelectScreenCode("s30")
             } else {
                 openRosaVoiceScreen(
                     viewModel = viewModel,
@@ -1833,6 +1835,56 @@ private fun buildSuggestionUiFromCatalogArticle(articleItem: CatalogArticle): Ro
     )
 }
 
+private fun balloonToCatalogArticle(balloon: BalloonProduct): CatalogArticle = CatalogArticle(
+    id = balloon.id,
+    code = balloon.code,
+    name = balloon.name,
+    category = "Globos personalizados",
+    description = balloon.description,
+    pricePerDayDop = balloon.unitPriceDop,
+    totalStock = balloon.totalStock,
+    availableOct23 = balloon.availableStock,
+    photo = balloon.photo,
+    variants = balloon.colors,
+    dimensions = balloon.dimensions,
+    material = balloon.material,
+    visibleInCatalog = true,
+)
+
+private fun mergeCatalogArticlesWithWizardOptions(
+    catalogArticles: List<CatalogArticle>,
+    balloonProducts: List<BalloonProduct>,
+): List<CatalogArticle> {
+    val mergedById = linkedMapOf<String, CatalogArticle>()
+    for (article in catalogArticles) {
+        mergedById[article.id] = article
+    }
+    for (extra in CanonicalSampleData.rosaWizardExtras) {
+        if (!mergedById.containsKey(extra.id)) {
+            mergedById[extra.id] = extra
+        }
+    }
+    for (balloon in balloonProducts) {
+        if (!mergedById.containsKey(balloon.id)) {
+            mergedById[balloon.id] = balloonToCatalogArticle(balloon)
+        }
+    }
+    return mergedById.values.toList()
+}
+
+private data class SelectedWizardArticleLine(
+    val article: CatalogArticle,
+    val quantity: Int,
+)
+
+private fun resolveSelectedWizardLines(
+    allPoolArticles: List<CatalogArticle>,
+    quantities: Map<String, Int>,
+): List<SelectedWizardArticleLine> = allPoolArticles.mapNotNull { article ->
+    val qty = quantities[article.id] ?: 0
+    if (qty > 0) SelectedWizardArticleLine(article = article, quantity = qty) else null
+}
+
 @Composable
 internal fun RenderRosaSuggestionsS29(
     onSelectScreenCode: (String) -> Unit = {},
@@ -1840,20 +1892,51 @@ internal fun RenderRosaSuggestionsS29(
 ) {
     val typo = LocalRfTypography.current
     val catalogArticles = viewModel?.articles?.collectAsState()?.value ?: CanonicalSampleData.articles
+    val balloonProducts = viewModel?.balloonProducts?.collectAsState()?.value ?: CanonicalSampleData.balloonProducts
+    val packagesPool = viewModel?.packages?.collectAsState()?.value ?: CanonicalSampleData.packages
     val draftQuantities = viewModel?.draftQuantities?.collectAsState()?.value.orEmpty()
+    val vmSelectedPackageId = viewModel?.selectedPackageId?.collectAsState()?.value
+    val vmEventTypeInput = viewModel?.eventTypeInput?.collectAsState()?.value.orEmpty()
+    val vmRosaEventType = viewModel?.rosaEventType?.collectAsState()?.value.orEmpty()
+    val activeEventType = vmEventTypeInput.ifBlank { vmRosaEventType }.ifBlank { "Boda" }
 
     var suggestionBatch by remember { mutableStateOf(0) }
     var hasRequestedConversationalPrompt by remember { mutableStateOf(false) }
-    var fallbackAddedIds by remember { mutableStateOf(emptySet<String>()) }
+    var fallbackQuantities by remember { mutableStateOf(emptyMap<String, Int>()) }
+    var fallbackPackageId by remember { mutableStateOf<String?>(null) }
+    var showSelectedSummaryModal by remember { mutableStateOf(false) }
     var promptText by remember { mutableStateOf("") }
 
-    val allCatalogSuggestions = remember(catalogArticles) {
-        catalogArticles.map { articleItem -> buildSuggestionUiFromCatalogArticle(articleItem) }
+    val activeQuantities = if (viewModel != null) draftQuantities else fallbackQuantities
+    val activePackageId = if (viewModel != null) vmSelectedPackageId else fallbackPackageId
+
+    val expandedArticlesPool = remember(catalogArticles, balloonProducts) {
+        mergeCatalogArticlesWithWizardOptions(catalogArticles, balloonProducts)
+    }
+    val allCatalogSuggestions = remember(expandedArticlesPool) {
+        expandedArticlesPool.map { articleItem -> buildSuggestionUiFromCatalogArticle(articleItem) }
+    }
+    val selectedLines = remember(expandedArticlesPool, activeQuantities) {
+        resolveSelectedWizardLines(expandedArticlesPool, activeQuantities)
+    }
+    val totalChosenUnits = selectedLines.sumOf { line -> line.quantity }
+
+    val updateArticleQuantity: (String, Int) -> Unit = { articleId, nextQty ->
+        val clamped = nextQty.coerceAtLeast(0)
+        if (viewModel != null) {
+            viewModel.setDraftQuantity(articleId, clamped)
+        } else {
+            fallbackQuantities = if (clamped == 0) {
+                fallbackQuantities - articleId
+            } else {
+                fallbackQuantities + (articleId to clamped)
+            }
+        }
     }
 
     val displayedSuggestions = remember(
         allCatalogSuggestions,
-        draftQuantities,
+        activeQuantities,
         suggestionBatch,
         hasRequestedConversationalPrompt,
     ) {
@@ -1862,7 +1945,7 @@ internal fun RenderRosaSuggestionsS29(
         } else {
             val prioritizedFromDraft = if (hasRequestedConversationalPrompt) {
                 allCatalogSuggestions.filter { suggestionItem ->
-                    val currentQty = draftQuantities[suggestionItem.articleId] ?: 0
+                    val currentQty = activeQuantities[suggestionItem.articleId] ?: 0
                     currentQty > 0
                 }
             } else {
@@ -1875,7 +1958,7 @@ internal fun RenderRosaSuggestionsS29(
             } else {
                 allCatalogSuggestions
             }
-            val pageSize = 3.coerceAtMost(orderedPool.size)
+            val pageSize = 5.coerceAtMost(orderedPool.size)
             val startIndex = (suggestionBatch * pageSize) % orderedPool.size
             val selectedItems = mutableListOf<RosaSuggestedArticleUi>()
             for (offsetIndex in 0 until pageSize) {
@@ -1886,6 +1969,13 @@ internal fun RenderRosaSuggestionsS29(
         }
     }
 
+    val orderedPackages = remember(packagesPool, activeEventType) {
+        val typeLower = activeEventType.lowercase()
+        val matching = packagesPool.filter { bundle -> bundle.name.lowercase().contains(typeLower) }
+        val rest = packagesPool.filterNot { bundle -> bundle.name.lowercase().contains(typeLower) }
+        matching + rest
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -1893,45 +1983,153 @@ internal fun RenderRosaSuggestionsS29(
     ) {
         RosaWizardHeader(
             screenCode = "s29",
+            cartCount = totalChosenUnits,
             viewModel = viewModel,
-            onBack = { onSelectScreenCode("BACK:s28") },
-            onCart = { onSelectScreenCode("s25") },
+            onBack = { onSelectScreenCode("BACK:s30") },
+            onCart = { showSelectedSummaryModal = true },
         )
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(top = 78.dp, bottom = 148.dp),
+                .padding(top = 78.dp, bottom = 152.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
-            Spacer(modifier = Modifier.height(14.dp))
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 20.dp),
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
-            ) {
-                displayedSuggestions.forEach { suggestion ->
-                    val liveQuantity = draftQuantities[suggestion.articleId] ?: 0
-                    val isAdded = if (viewModel != null) {
-                        liveQuantity > 0
-                    } else {
-                        suggestion.articleId in fallbackAddedIds
-                    }
-                    RosaSuggestionArticleCard(
-                        suggestion = suggestion,
-                        isAdded = isAdded,
-                        onAdd = {
-                            fallbackAddedIds = fallbackAddedIds + suggestion.articleId
-                            viewModel?.adjustDraftQuantity(suggestion.articleId, 1)
-                        },
-                        onRemove = {
-                            fallbackAddedIds = fallbackAddedIds - suggestion.articleId
-                            viewModel?.setDraftQuantity(suggestion.articleId, 0)
-                        },
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    BasicText(
+                        text = "RECOMENDADOS PARA TI",
+                        style = TextStyle(
+                            fontFamily = typo.bodyFamily,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 11.sp,
+                            letterSpacing = (0.08 * 11).sp,
+                            color = Color(0xFF6B5A8E),
+                        ),
                     )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (totalChosenUnits > 0) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(999.dp))
+                                    .background(Color(0xFFEEF6D6))
+                                    .clickable { showSelectedSummaryModal = true }
+                                    .padding(horizontal = 10.dp, vertical = 4.dp),
+                            ) {
+                                BasicText(
+                                    text = "Elegidos ($totalChosenUnits)",
+                                    style = TextStyle(
+                                        fontFamily = typo.bodyFamily,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 11.sp,
+                                        color = Color(0xFF4E6A10),
+                                    ),
+                                )
+                            }
+                        }
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(Color.White.copy(alpha = 0.85f))
+                                .clickable { suggestionBatch += 1 }
+                                .padding(horizontal = 10.dp, vertical = 4.dp),
+                        ) {
+                            BasicText(
+                                text = "Otras ideas ↻",
+                                style = TextStyle(
+                                    fontFamily = typo.bodyFamily,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 11.sp,
+                                    color = Color(0xFF7A4FD8),
+                                ),
+                            )
+                        }
+                    }
+                }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = 20.dp),
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                ) {
+                    displayedSuggestions.forEach { suggestion ->
+                        val liveQuantity = activeQuantities[suggestion.articleId] ?: 0
+                        RosaSuggestionArticleCard(
+                            suggestion = suggestion,
+                            quantity = liveQuantity,
+                            onAdd = { updateArticleQuantity(suggestion.articleId, 1) },
+                            onIncrement = { updateArticleQuantity(suggestion.articleId, liveQuantity + 1) },
+                            onDecrement = { updateArticleQuantity(suggestion.articleId, liveQuantity - 1) },
+                        )
+                    }
+                }
+            }
+
+            if (orderedPackages.isNotEmpty()) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        BasicText(
+                            text = "PROMOS Y PAQUETES",
+                            style = TextStyle(
+                                fontFamily = typo.bodyFamily,
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 11.sp,
+                                letterSpacing = (0.08 * 11).sp,
+                                color = Color(0xFF6B5A8E),
+                            ),
+                        )
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(Color(0xFFFDE6F2))
+                                .padding(horizontal = 10.dp, vertical = 4.dp),
+                        ) {
+                            BasicText(
+                                text = "Ahorra en combo",
+                                style = TextStyle(
+                                    fontFamily = typo.bodyFamily,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 11.sp,
+                                    color = Color(0xFFC2338F),
+                                ),
+                            )
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState())
+                            .padding(horizontal = 20.dp),
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    ) {
+                        orderedPackages.forEach { packageItem ->
+                            val isApplied = activePackageId == packageItem.id
+                            RosaPromoPackageCard(
+                                packageItem = packageItem,
+                                isApplied = isApplied,
+                                onApplyPromo = {
+                                    fallbackPackageId = packageItem.id
+                                    viewModel?.applyPackageToDraftCart(packageItem)
+                                },
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -1950,11 +2148,11 @@ internal fun RenderRosaSuggestionsS29(
                     .rfCardShadow(RoundedCornerShape(16.dp), isAdmin = false)
                     .clip(RoundedCornerShape(16.dp))
                     .background(RfThemeState.currentPalette.surface)
-                    .clickable { suggestionBatch += 1 },
+                    .clickable { onSelectScreenCode("s19") },
                 contentAlignment = Alignment.Center,
             ) {
                 BasicText(
-                    "Otras sugerencias",
+                    "Ver catálogo",
                     style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = RfThemeState.currentPalette.ink),
                 )
             }
@@ -1965,7 +2163,7 @@ internal fun RenderRosaSuggestionsS29(
                     .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
                     .clip(RoundedCornerShape(16.dp))
                     .background(RosaButtonGradient)
-                    .clickable { onSelectScreenCode("s30") },
+                    .clickable { onSelectScreenCode("s31") },
                 contentAlignment = Alignment.Center,
             ) {
                 BasicText(
@@ -2044,20 +2242,42 @@ internal fun RenderRosaSuggestionsS29(
                 }
             }
         }
+
+        if (showSelectedSummaryModal) {
+            SelectedItemsSummaryModal(
+                selectedLines = selectedLines,
+                onUpdateQuantity = updateArticleQuantity,
+                onClearAll = {
+                    if (viewModel != null) {
+                        viewModel.clearDraftCart()
+                    } else {
+                        fallbackQuantities = emptyMap()
+                        fallbackPackageId = null
+                    }
+                },
+                onOpenCatalog = {
+                    showSelectedSummaryModal = false
+                    onSelectScreenCode("s19")
+                },
+                onDismiss = { showSelectedSummaryModal = false },
+            )
+        }
     }
 }
 
 @Composable
 private fun RosaSuggestionArticleCard(
     suggestion: RosaSuggestedArticleUi,
-    isAdded: Boolean,
+    quantity: Int,
     onAdd: () -> Unit,
-    onRemove: () -> Unit,
+    onIncrement: () -> Unit,
+    onDecrement: () -> Unit,
 ) {
     val typo = LocalRfTypography.current
+    val isAdded = quantity > 0
     Box(
         modifier = Modifier
-            .width(172.dp)
+            .width(178.dp)
             .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
             .clip(RoundedCornerShape(20.dp))
             .background(RfThemeState.currentPalette.surface),
@@ -2066,7 +2286,7 @@ private fun RosaSuggestionArticleCard(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(116.dp)
+                    .height(112.dp)
                     .background(suggestion.photoBg),
             ) {
                 RfPhoto(
@@ -2100,26 +2320,54 @@ private fun RosaSuggestionArticleCard(
                 ) {
                     BasicText(
                         text = "RD$ ${suggestion.priceDop}",
-                        style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = RfThemeState.currentPalette.ink),
+                        style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp, color = RfThemeState.currentPalette.ink),
                     )
                     if (isAdded) {
                         Row(
                             modifier = Modifier
-                                .height(32.dp)
+                                .height(30.dp)
                                 .clip(CircleShape)
                                 .background(Color(0xFFEEF6D6))
-                                .clickable(onClick = onRemove)
-                                .padding(horizontal = 10.dp),
+                                .padding(horizontal = 4.dp),
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            RfIcon(kind = RfIconKind.CHECK, tint = Color(0xFF4E6A10), size = 14.dp)
-                            BasicText("Listo", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF4E6A10)))
+                            Box(
+                                modifier = Modifier
+                                    .size(22.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.White)
+                                    .clickable(onClick = onDecrement),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                BasicText(
+                                    text = "−",
+                                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF4E6A10)),
+                                )
+                            }
+                            BasicText(
+                                text = quantity.toString(),
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.ExtraBold, fontSize = 12.sp, color = Color(0xFF4E6A10)),
+                                modifier = Modifier.padding(horizontal = 4.dp),
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .size(22.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFF4E6A10))
+                                    .clickable(onClick = onIncrement),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                BasicText(
+                                    text = "+",
+                                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White),
+                                )
+                            }
                         }
                     } else {
                         Row(
                             modifier = Modifier
-                                .height(32.dp)
+                                .height(30.dp)
                                 .shadow(6.dp, CircleShape, spotColor = Color(0xB3865DEC))
                                 .clip(CircleShape)
                                 .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))))
@@ -2128,9 +2376,114 @@ private fun RosaSuggestionArticleCard(
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            RfIcon(kind = RfIconKind.PLUS, tint = Color.White, size = 14.dp)
+                            RfIcon(kind = RfIconKind.PLUS, tint = Color.White, size = 13.dp)
                             BasicText("Agregar", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.White))
                         }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RosaPromoPackageCard(
+    packageItem: EventPackage,
+    isApplied: Boolean,
+    onApplyPromo: () -> Unit,
+) {
+    val typo = LocalRfTypography.current
+    Box(
+        modifier = Modifier
+            .width(214.dp)
+            .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
+            .clip(RoundedCornerShape(20.dp))
+            .background(RfThemeState.currentPalette.surface),
+    ) {
+        Column {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(104.dp)
+                    .background(Color(0xFFFDE6F2)),
+            ) {
+                RfPhoto(
+                    photoKey = photoAssetToRfPhotoKey(packageItem.photo),
+                    contentDescription = packageItem.name,
+                    cornerRadius = 0.dp,
+                    modifier = Modifier.fillMaxSize(),
+                )
+                if (packageItem.savingsDop > 0) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(8.dp)
+                            .clip(RoundedCornerShape(999.dp))
+                            .background(Color(0xFFEEF6D6))
+                            .padding(horizontal = 8.dp, vertical = 3.dp),
+                    ) {
+                        BasicText(
+                            text = "Ahorra RD$ ${packageItem.savingsDop}",
+                            style = TextStyle(
+                                fontFamily = typo.bodyFamily,
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 11.sp,
+                                color = Color(0xFF4E6A10),
+                            ),
+                        )
+                    }
+                }
+            }
+            Column(
+                modifier = Modifier.padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                BasicText(
+                    text = packageItem.name,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = RfThemeState.currentPalette.ink),
+                )
+                BasicText(
+                    text = packageItem.subtitle,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 11.sp, lineHeight = 14.sp, color = RfThemeState.currentPalette.muted),
+                )
+                Spacer(Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    BasicText(
+                        text = "RD$ ${packageItem.priceDop}",
+                        style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp, color = RfThemeState.currentPalette.ink),
+                    )
+                    Box(
+                        modifier = Modifier
+                            .height(30.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (isApplied) {
+                                    Brush.linearGradient(listOf(Color(0xFFEEF6D6), Color(0xFFEEF6D6)))
+                                } else {
+                                    Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)))
+                                },
+                            )
+                            .clickable(onClick = onApplyPromo)
+                            .padding(horizontal = 10.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        BasicText(
+                            text = if (isApplied) "✓ Aplicado" else "Elegir promo",
+                            style = TextStyle(
+                                fontFamily = typo.bodyFamily,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp,
+                                color = if (isApplied) Color(0xFF4E6A10) else Color.White,
+                            ),
+                        )
                     }
                 }
             }
@@ -2152,14 +2505,18 @@ private fun resolveCategoryVisualStyle(categoryTitle: String): Triple<RfIconKind
     val isTableCategory = lower.contains("mesa") && !lower.contains("dulce")
     val isFloralCategory = lower.contains("floral") || lower.contains("centro")
     val isBalloonOrArchCategory = lower.contains("arco") || lower.contains("globo")
+    val isLightingCategory = lower.contains("ilumin") || lower.contains("sonido")
+    val isLinensCategory = lower.contains("mantel") || lower.contains("cristal")
+    val isStageCategory = lower.contains("pista") || lower.contains("tarima")
     return when {
         isSeatingCategory -> Triple(RfIconKind.STORE, Color(0xFFFFF2C9), Color(0xFF7A5700))
         isTableCategory -> Triple(RfIconKind.BOX, Color(0xFFEEF6D6), Color(0xFF4E6A10))
         isFloralCategory -> Triple(RfIconKind.SPARK, Color(0xFFFDE6F2), Color(0xFFC2338F))
         isBalloonOrArchCategory -> Triple(RfIconKind.PARTY, Color(0xFFFDE6F2), Color(0xFFC2338F))
-        lower.contains("dulce") -> Triple(RfIconKind.CAKE, Color(0xFFFFF2C9), Color(0xFF7A5700))
-        lower.contains("ilumin") -> Triple(RfIconKind.LIGHTBULB, Color(0xFFDDF4F3), Color(0xFF1F8A84))
-        lower.contains("mantel") -> Triple(RfIconKind.GRID, Color(0xFFEFE8FD), Color(0xFF7A4FD8))
+        lower.contains("dulce") -> Triple(RfIconKind.GIFT, Color(0xFFFFF2C9), Color(0xFF7A5700))
+        isLightingCategory -> Triple(RfIconKind.SPARKLE, Color(0xFFDDF4F3), Color(0xFF1F8A84))
+        isLinensCategory -> Triple(RfIconKind.CATALOG, Color(0xFFEFE8FD), Color(0xFF7A4FD8))
+        isStageCategory -> Triple(RfIconKind.STAR, Color(0xFFEEF6D6), Color(0xFF4E6A10))
         else -> Triple(RfIconKind.BOX, Color(0xFFEFE8FD), Color(0xFF7A4FD8))
     }
 }
@@ -2197,20 +2554,31 @@ internal fun RenderRosaCategoriesS30(
 ) {
     val typo = LocalRfTypography.current
     val catalogArticles = viewModel?.articles?.collectAsState()?.value ?: CanonicalSampleData.articles
+    val balloonProducts = viewModel?.balloonProducts?.collectAsState()?.value ?: CanonicalSampleData.balloonProducts
     val vmDraftQuantities = viewModel?.draftQuantities?.collectAsState()?.value.orEmpty()
     val vmOmittedCategories = viewModel?.rosaOmittedCategories?.collectAsState()?.value
 
     var fallbackQuantities by remember { mutableStateOf(emptyMap<String, Int>()) }
     var localOmittedCategories by remember { mutableStateOf(emptySet<String>()) }
     var activePickerCategoryTitle by remember { mutableStateOf<String?>(null) }
+    var showSelectedSummaryModal by remember { mutableStateOf(false) }
     var promptText by remember { mutableStateOf("") }
 
     val activeQuantities = if (viewModel != null) vmDraftQuantities else fallbackQuantities
     val activeOmittedCategories = vmOmittedCategories ?: localOmittedCategories
 
-    val displayedCategories = remember(catalogArticles) {
-        buildRealCategoryReviewSpecs(catalogArticles)
+    val expandedArticles = remember(catalogArticles, balloonProducts) {
+        mergeCatalogArticlesWithWizardOptions(catalogArticles, balloonProducts)
     }
+    val displayedCategories = remember(expandedArticles) {
+        buildRealCategoryReviewSpecs(expandedArticles)
+    }
+    val selectedLines = remember(expandedArticles, activeQuantities) {
+        resolveSelectedWizardLines(expandedArticles, activeQuantities)
+    }
+    val totalChosenUnits = selectedLines.sumOf { line -> line.quantity }
+    val totalChosenDop = selectedLines.sumOf { line -> line.quantity * line.article.pricePerDayDop }
+
     val activePickerCategory = remember(displayedCategories, activePickerCategoryTitle) {
         val targetTitle = activePickerCategoryTitle
         if (targetTitle == null) {
@@ -2249,16 +2617,17 @@ internal fun RenderRosaCategoriesS30(
     ) {
         RosaWizardHeader(
             screenCode = if (activePickerCategory != null) "s30_picker" else "s30",
+            cartCount = totalChosenUnits,
             activeCategoryTitle = activePickerCategory?.title.orEmpty(),
             viewModel = viewModel,
             onBack = {
                 if (activePickerCategory != null) {
                     activePickerCategoryTitle = null
                 } else {
-                    onSelectScreenCode("BACK:s29")
+                    onSelectScreenCode("BACK:s27")
                 }
             },
-            onCart = { onSelectScreenCode("s25") },
+            onCart = { showSelectedSummaryModal = true },
         )
 
         if (activePickerCategory != null) {
@@ -2273,8 +2642,9 @@ internal fun RenderRosaCategoriesS30(
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
                     .padding(top = 78.dp, bottom = 148.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(6.dp))
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -2284,12 +2654,12 @@ internal fun RenderRosaCategoriesS30(
                 ) {
                     categorySuggestions.forEach { suggestion ->
                         val liveQuantity = activeQuantities[suggestion.articleId] ?: 0
-                        val isAdded = liveQuantity > 0
                         RosaSuggestionArticleCard(
                             suggestion = suggestion,
-                            isAdded = isAdded,
+                            quantity = liveQuantity,
                             onAdd = { updateCategoryArticleQuantity(suggestion.articleId, 1) },
-                            onRemove = { updateCategoryArticleQuantity(suggestion.articleId, 0) },
+                            onIncrement = { updateCategoryArticleQuantity(suggestion.articleId, liveQuantity + 1) },
+                            onDecrement = { updateCategoryArticleQuantity(suggestion.articleId, liveQuantity - 1) },
                         )
                     }
                 }
@@ -2341,8 +2711,15 @@ internal fun RenderRosaCategoriesS30(
                     .padding(top = 78.dp, bottom = 148.dp)
                     .verticalScroll(rememberScrollState())
                     .padding(top = 8.dp, start = 20.dp, end = 20.dp, bottom = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
+                SelectedSummaryBanner(
+                    distinctCount = selectedLines.size,
+                    totalUnits = totalChosenUnits,
+                    totalDop = totalChosenDop,
+                    onOpenSummary = { showSelectedSummaryModal = true },
+                )
+
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -2363,7 +2740,7 @@ internal fun RenderRosaCategoriesS30(
                         val resolvedSubtitle = when {
                             isOmitted -> "Omitida"
                             isChosen -> "$chosenItemKinds artículo(s) · $chosenUnitsInCategory uds"
-                            else -> "${category.articles.size} disponible(s)"
+                            else -> "${category.articles.size} opciones disponibles"
                         }
                         CategoryReviewRow(
                             title = category.title,
@@ -2438,7 +2815,7 @@ internal fun RenderRosaCategoriesS30(
                         .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
                         .clip(RoundedCornerShape(16.dp))
                         .background(Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC))))
-                        .clickable { onSelectScreenCode("s31") },
+                        .clickable { onSelectScreenCode("s29") },
                     contentAlignment = Alignment.Center,
                 ) {
                     BasicText(
@@ -2521,6 +2898,345 @@ internal fun RenderRosaCategoriesS30(
                     tint = Color.White,
                     size = 22.dp,
                 )
+            }
+        }
+
+        if (showSelectedSummaryModal) {
+            SelectedItemsSummaryModal(
+                selectedLines = selectedLines,
+                onUpdateQuantity = updateCategoryArticleQuantity,
+                onClearAll = {
+                    if (viewModel != null) {
+                        viewModel.clearDraftCart()
+                    } else {
+                        fallbackQuantities = emptyMap()
+                    }
+                },
+                onOpenCatalog = {
+                    showSelectedSummaryModal = false
+                    onSelectScreenCode("s19")
+                },
+                onDismiss = { showSelectedSummaryModal = false },
+            )
+        }
+    }
+}
+
+@Composable
+private fun SelectedSummaryBanner(
+    distinctCount: Int,
+    totalUnits: Int,
+    totalDop: Int,
+    onOpenSummary: () -> Unit,
+) {
+    val typo = LocalRfTypography.current
+    val hasSelections = totalUnits > 0
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .rfCardShadow(RoundedCornerShape(18.dp), isAdmin = false)
+            .clip(RoundedCornerShape(18.dp))
+            .background(RfThemeState.currentPalette.surface)
+            .clickable(onClick = onOpenSummary)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(38.dp)
+                .clip(RoundedCornerShape(11.dp))
+                .background(if (hasSelections) Color(0xFFEEF6D6) else Color(0xFFEFE8FD)),
+            contentAlignment = Alignment.Center,
+        ) {
+            RfIcon(
+                kind = RfIconKind.ORDERS,
+                tint = if (hasSelections) Color(0xFF4E6A10) else Color(0xFF7A4FD8),
+                size = 19.dp,
+            )
+        }
+        Column(modifier = Modifier.weight(1f)) {
+            BasicText(
+                text = if (hasSelections) "Lo que llevas elegido" else "Lista de artículos",
+                style = TextStyle(
+                    fontFamily = typo.bodyFamily,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
+                    color = RfThemeState.currentPalette.ink,
+                ),
+            )
+            BasicText(
+                text = if (hasSelections) {
+                    "$distinctCount artículo(s) · $totalUnits uds · RD$ $totalDop"
+                } else {
+                    "Elige categorías o revisa tu lista aquí"
+                },
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                style = TextStyle(
+                    fontFamily = typo.bodyFamily,
+                    fontSize = 12.sp,
+                    color = if (hasSelections) Color(0xFF4E6A10) else RfThemeState.currentPalette.muted,
+                ),
+            )
+        }
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(999.dp))
+                .background(
+                    if (hasSelections) {
+                        Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)))
+                    } else {
+                        Brush.linearGradient(listOf(Color(0xFFF3EBFF), Color(0xFFF3EBFF)))
+                    },
+                )
+                .clickable(onClick = onOpenSummary)
+                .padding(horizontal = 12.dp, vertical = 7.dp),
+        ) {
+            BasicText(
+                text = if (hasSelections) "Ver elegidos ($totalUnits)" else "Ver elegidos",
+                style = TextStyle(
+                    fontFamily = typo.bodyFamily,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 12.sp,
+                    color = if (hasSelections) Color.White else Color(0xFF7A4FD8),
+                ),
+            )
+        }
+    }
+}
+
+@Composable
+private fun SelectedItemsSummaryModal(
+    selectedLines: List<SelectedWizardArticleLine>,
+    onUpdateQuantity: (String, Int) -> Unit,
+    onClearAll: () -> Unit,
+    onOpenCatalog: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val typo = LocalRfTypography.current
+    val palette = RfThemeState.currentPalette
+    val totalUnits = selectedLines.sumOf { line -> line.quantity }
+    val totalDop = selectedLines.sumOf { line -> line.quantity * line.article.pricePerDayDop }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .zIndex(6f)
+            .background(Color.Black.copy(alpha = 0.45f))
+            .clickable(onClick = onDismiss),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 18.dp, vertical = 28.dp)
+                .clip(RoundedCornerShape(26.dp))
+                .background(palette.surface)
+                .clickable(enabled = true, onClick = {})
+                .padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    BasicText(
+                        text = "Artículos elegidos",
+                        style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 19.sp, color = palette.ink),
+                    )
+                    BasicText(
+                        text = "$totalUnits unidad(es) seleccionadas",
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = palette.muted),
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .size(34.dp)
+                        .clip(CircleShape)
+                        .background(palette.chipBg)
+                        .clickable(onClick = onDismiss),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    RfIcon(kind = RfIconKind.CLOSE, tint = palette.ink, size = 16.dp)
+                }
+            }
+
+            if (selectedLines.isEmpty()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(Color(0xFFF8F6FC))
+                        .padding(horizontal = 16.dp, vertical = 22.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    RfIcon(kind = RfIconKind.CATALOG, tint = Color(0xFF945AE1), size = 28.dp)
+                    BasicText(
+                        text = "Aún no has elegido artículos",
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = palette.ink),
+                    )
+                    BasicText(
+                        text = "Toca \"Elegir\" en cualquier categoría o explora el catálogo para armar tu lista.",
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = palette.muted, textAlign = TextAlign.Center),
+                    )
+                }
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 310.dp)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    selectedLines.forEach { line ->
+                        val article = line.article
+                        val lineTotal = article.pricePerDayDop * line.quantity
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(Color(0xFFF8F6FC))
+                                .padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            RfPhoto(
+                                photoKey = photoAssetToRfPhotoKey(article.photo),
+                                contentDescription = article.name,
+                                cornerRadius = 10.dp,
+                                modifier = Modifier.size(48.dp),
+                            )
+                            Column(modifier = Modifier.weight(1f)) {
+                                BasicText(
+                                    text = article.name,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = palette.ink),
+                                )
+                                BasicText(
+                                    text = "${article.category} · RD$ ${article.pricePerDayDop}/u · Sub RD$ $lineTotal",
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 11.sp, color = palette.muted),
+                                )
+                            }
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(26.dp)
+                                        .clip(CircleShape)
+                                        .background(Color.White)
+                                        .border(1.dp, palette.lineSoft, CircleShape)
+                                        .clickable { onUpdateQuantity(article.id, line.quantity - 1) },
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    BasicText("−", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = palette.ink))
+                                }
+                                BasicText(
+                                    text = line.quantity.toString(),
+                                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.ExtraBold, fontSize = 13.sp, color = palette.ink),
+                                    modifier = Modifier.padding(horizontal = 4.dp),
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .size(26.dp)
+                                        .clip(CircleShape)
+                                        .background(Color(0xFF945AE1))
+                                        .clickable { onUpdateQuantity(article.id, line.quantity + 1) },
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    BasicText("+", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White))
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(Color(0xFFF3EBFF))
+                                        .clickable { onUpdateQuantity(article.id, line.quantity + 10) }
+                                        .padding(horizontal = 6.dp, vertical = 4.dp),
+                                ) {
+                                    BasicText("+10", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 10.sp, color = Color(0xFF7A4FD8)))
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(Color(0xFFEEF6D6))
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    BasicText(
+                        text = "Subtotal estimado",
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF4E6A10)),
+                    )
+                    BasicText(
+                        text = "RD$ $totalDop",
+                        style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = Color(0xFF4E6A10)),
+                    )
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                if (selectedLines.isNotEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .height(46.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(Color(0xFFFDE6F2))
+                            .clickable(onClick = onClearAll)
+                            .padding(horizontal = 12.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        BasicText(
+                            text = "Vaciar",
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFFC2338F)),
+                        )
+                    }
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(46.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(palette.chipBg)
+                            .clickable(onClick = onOpenCatalog),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        BasicText(
+                            text = "Ver catálogo",
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = palette.ink),
+                        )
+                    }
+                }
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(46.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(RosaButtonGradient)
+                        .clickable(onClick = onDismiss),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    BasicText(
+                        text = "Listo",
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White),
+                    )
+                }
             }
         }
     }
@@ -4110,11 +4826,11 @@ internal fun RenderRosaVoiceS35(
     val resolvedReturnCode = remember(vmReturnScreenCode, isSearchMode) {
         val cleanReturn = vmReturnScreenCode.trim()
         if (isSearchMode) {
-            val isDefaultWizardReturn = cleanReturn == "s28"
+            val isDefaultWizardReturn = cleanReturn == "s30"
             val useSearchDefault = if (cleanReturn.isEmpty()) true else isDefaultWizardReturn
             if (useSearchDefault) "s80" else cleanReturn
         } else {
-            cleanReturn.ifBlank { "s28" }
+            cleanReturn.ifBlank { "s30" }
         }
     }
 
