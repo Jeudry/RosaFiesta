@@ -4585,7 +4585,7 @@ internal fun RenderAdminSettingsA31(
                             modifier = Modifier
                                 .size(28.dp)
                                 .clip(CircleShape)
-                                .clickable { depositPercent = (depositPercent + 5).coerceAtMost(100) },
+                                .clickable { depositPercent = (depositPercent + 5).coerceAtMost(90) },
                             contentAlignment = Alignment.Center,
                         ) {
                             RfIcon(kind = RfIconKind.PLUS, tint = Color(0xFF5B6CF0), size = 14.dp)
@@ -5870,11 +5870,11 @@ internal fun RenderAdminEmptyStateA35(
 
                 Column(modifier = Modifier.weight(1f)) {
                     BasicText(
-                        text = "Catálogo e inventario",
+                        text = "Solicitudes por cotizar",
                         style = TextStyle(fontFamily = typo.displayFamily, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729)),
                     )
                     BasicText(
-                        text = "Categoría activa: $selectedCategory",
+                        text = "Filtro activo: $selectedCategory",
                         style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF5F6377)),
                     )
                 }
@@ -5960,14 +5960,14 @@ internal fun RenderAdminEmptyStateA35(
                 Spacer(modifier = Modifier.height(22.dp))
 
                 BasicText(
-                    text = if (selectedCategory == "Todos") "Sin artículos en esta vista" else "Sin piezas en $selectedCategory",
-                    style = TextStyle(fontFamily = typo.displayFamily, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729)),
+                    text = if (selectedCategory == "Todos") "No tienes solicitudes nuevas por cotizar" else "Sin solicitudes en $selectedCategory",
+                    style = TextStyle(fontFamily = typo.displayFamily, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729), textAlign = TextAlign.Center),
                 )
 
                 Spacer(modifier = Modifier.height(10.dp))
 
                 BasicText(
-                    text = "Agrega tu primer artículo a $selectedCategory o comparte el enlace público del catálogo con tus clientes.",
+                    text = "Crea una cotización manual o asistida con Rosa IA, o comparte el enlace de tu catálogo para recibir nuevas solicitudes.",
                     style = TextStyle(
                         fontFamily = typo.bodyFamily,
                         fontSize = 15.sp,
@@ -5993,14 +5993,13 @@ internal fun RenderAdminEmptyStateA35(
                             .clip(AdminButtonShape16)
                             .background(AdminButtonGradient)
                             .clickable {
-                                viewModel?.startEditingArticle(null)
-                                onSelectScreenCode("A10")
+                                onSelectScreenCode("A04")
                             },
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             RfIcon(kind = RfIconKind.PLUS, tint = Color.White, size = 18.dp)
                             BasicText(
-                                text = "+ Crear artículo",
+                                text = "Crear cotización manual",
                                 style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White),
                             )
                         }
@@ -6515,7 +6514,7 @@ internal fun RenderAdminErrorStateA37(
                             .background(AdminButtonGradient)
                             .clickable {
                                 viewModel?.syncOfflineQueue()
-                                onSelectScreenCode("A01")
+                                onSelectScreenCode("A09")
                             },
                         contentAlignment = Alignment.Center,
                     ) {
@@ -6555,7 +6554,7 @@ internal fun RenderAdminErrorStateA37(
                 onSyncAndOpenHome = {
                     viewModel?.syncOfflineQueue()
                     showQueueModal = false
-                    onSelectScreenCode("A01")
+                    onSelectScreenCode("A09")
                 },
             )
         }
@@ -6629,7 +6628,7 @@ internal fun RenderAdminSuccessStateA38(
                         .background(AdminButtonGradient)
                         .clickable {
                             viewModel?.syncOfflineQueue()
-                            onSelectScreenCode("A01")
+                            onSelectScreenCode("A13")
                         }
                         .padding(horizontal = 10.dp),
                     contentAlignment = Alignment.Center,
@@ -6649,7 +6648,7 @@ internal fun RenderAdminSuccessStateA38(
                 onSyncAndOpenHome = {
                     viewModel?.syncOfflineQueue()
                     showQueueModal = false
-                    onSelectScreenCode("A01")
+                    onSelectScreenCode("A13")
                 },
             )
         }

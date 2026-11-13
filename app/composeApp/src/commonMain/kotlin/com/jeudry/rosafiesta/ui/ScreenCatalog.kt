@@ -248,16 +248,16 @@ object ScreenCatalog {
     fun activePersonalTab(code: String): PersonalTab = when (code) {
         "s01", "s18", "s19", "s20", "s23", "s80", "s81", "s90", "s92" -> PersonalTab.CATALOGO
 
-        "s21", "s22" -> if (isGuestScreen(code)) PersonalTab.PAQUETES else PersonalTab.CATALOGO
+        "s21", "s22" -> PersonalTab.PAQUETES
 
         "s02" -> PersonalTab.FAVORITOS
 
-        "s16", "s17", "s24", "s54", "s82", "s86", "s87", "s88" -> PersonalTab.MAS
+        "s16", "s17", "s24", "s53", "s54", "s82", "s83", "s86", "s87", "s88" -> PersonalTab.MAS
 
         "s26", "s27", "s28", "s29", "s30", "s31", "s32", "s33", "s34", "s35", "s36", "s78" -> PersonalTab.ROSA
 
         "s25", "s37", "s38", "s39", "s40", "s41", "s42", "s43", "s44", "s45", "s46", "s47",
-        "s48", "s49", "s50", "s51", "s52", "s53", "s77", "s84", "s85", "s89",
+        "s48", "s49", "s50", "s51", "s52", "s77", "s79", "s84", "s85", "s89",
         -> PersonalTab.EVENTOS
 
         else -> PersonalTab.INICIO

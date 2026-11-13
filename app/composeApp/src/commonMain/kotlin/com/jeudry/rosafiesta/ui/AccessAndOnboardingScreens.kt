@@ -5055,6 +5055,7 @@ private fun GuestProductCard(
     isFavorite: Boolean = false,
     onCardClick: () -> Unit = {},
     onGuestRestrictedAction: () -> Unit = {},
+    onAddClick: () -> Unit = onGuestRestrictedAction,
     modifier: Modifier = Modifier,
 ) {
     val typo = LocalRfTypography.current
@@ -5118,7 +5119,7 @@ private fun GuestProductCard(
                             .background(
                                 Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))),
                             )
-                            .clickable(onClick = onGuestRestrictedAction),
+                            .clickable(onClick = onAddClick),
                     ) {
                         RfIcon(kind = RfIconKind.PLUS, tint = Color.White, size = 18.dp)
                     }
@@ -5287,6 +5288,9 @@ internal fun RenderGuestFavoritesS02(
                                 },
                                 onGuestRestrictedAction = {
                                     viewModel?.toggleFavorite(article.id)
+                                },
+                                onAddClick = {
+                                    onSelectScreenCode("s75")
                                 },
                                 modifier = Modifier.weight(1f),
                             )

@@ -324,7 +324,7 @@ internal fun RenderPersonalHomeScreen(
     val hasUnreadNotifications = notificationsList?.any { item -> !item.isRead } ?: true
     val draftQuantitiesState = viewModel?.draftQuantities?.collectAsState()?.value.orEmpty()
     val totalDraftCartCount = remember(draftQuantitiesState, viewModel) {
-        viewModel?.totalDraftCartUnits() ?: 160
+        viewModel?.totalDraftCartUnits() ?: 0
     }
     val matchingHomeArticles = remember(homeQuery, allHomeArticles) {
         val trimmedQuery = homeQuery.trim()
@@ -465,26 +465,33 @@ internal fun RenderPersonalHomeScreen(
                     .clip(CircleShape)
                     .background(Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC))))
                     .clickable { onSelectScreenCode("s25") }
-                    .padding(start = 12.dp, end = 8.dp),
+                    .padding(
+                        start = 12.dp,
+                        end = if (totalDraftCartCount > 0) 8.dp else 12.dp,
+                    ),
             ) {
                 RfIcon(kind = RfIconKind.PARTY, tint = Color.White, size = 20.dp)
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .height(24.dp)
-                        .widthIn(min = 30.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFFFFD45C))
-                        .padding(horizontal = 7.dp),
-                ) {
-                    BasicText(
-                        text = "$totalDraftCartCount",
-                        style = typo.caption.copy(
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF2E1A47),
-                        ),
-                    )
+                if (totalDraftCartCount > 0) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .height(24.dp)
+                            .widthIn(min = 30.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFFFD45C))
+                            .padding(horizontal = 7.dp),
+                    ) {
+                        BasicText(
+                            text = "$totalDraftCartCount",
+                            maxLines = 1,
+                            softWrap = false,
+                            style = typo.caption.copy(
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF2E1A47),
+                            ),
+                        )
+                    }
                 }
             }
         }

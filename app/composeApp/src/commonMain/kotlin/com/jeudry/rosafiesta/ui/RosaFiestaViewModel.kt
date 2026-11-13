@@ -276,15 +276,7 @@ public class RosaFiestaViewModel(
     private val _draftDiscountDop = MutableStateFlow(0)
     public val draftDiscountDop: StateFlow<Int> = _draftDiscountDop.asStateFlow()
 
-    private val _draftQuantities = MutableStateFlow(
-        mapOf(
-            "art-silla-tiffany" to 120,
-            "art-mesa-redonda" to 15,
-            "art-centro-floral" to 8,
-            "art-arco-rosa" to 1,
-            "art-mesa-helados" to 1,
-        ),
-    )
+    private val _draftQuantities = MutableStateFlow<Map<String, Int>>(emptyMap())
     public val draftQuantities: StateFlow<Map<String, Int>> = _draftQuantities.asStateFlow()
 
     private val _rosaEventType = MutableStateFlow("Boda Real Rosa & Dorado")
@@ -681,6 +673,14 @@ public class RosaFiestaViewModel(
             val savedEmailReceipts = secureStorage.get("rf_pref_email_receipts")
             if (savedEmailReceipts != null) {
                 _emailReceiptsEnabled.value = savedEmailReceipts == "true"
+            }
+            val savedBiometricLock = secureStorage.get("rf_pref_biometric_lock")
+            if (savedBiometricLock != null) {
+                _biometricLockEnabled.value = savedBiometricLock == "true"
+            }
+            val savedAutoSyncWifi = secureStorage.get("rf_pref_auto_sync_wifi")
+            if (savedAutoSyncWifi != null) {
+                _autoSyncWifiOnly.value = savedAutoSyncWifi == "true"
             }
             val savedAddress = secureStorage.get("rf_pref_zone")
             if (!savedAddress.isNullOrBlank()) {
@@ -1626,12 +1626,20 @@ public class RosaFiestaViewModel(
     }
 
     public fun toggleBiometricLock() {
-        _biometricLockEnabled.update { enabled -> !enabled }
+        val next = !_biometricLockEnabled.value
+        _biometricLockEnabled.value = next
+        securityScope.launch {
+            secureStorage.put("rf_pref_biometric_lock", next.toString())
+        }
     }
 
     public fun toggleAutoSyncWifiOnly() {
         soundPlayer.playTap()
-        _autoSyncWifiOnly.update { enabled -> !enabled }
+        val next = !_autoSyncWifiOnly.value
+        _autoSyncWifiOnly.value = next
+        securityScope.launch {
+            secureStorage.put("rf_pref_auto_sync_wifi", next.toString())
+        }
     }
 
     public fun toggleSoundEffects() {
@@ -2411,14 +2419,16 @@ public class RosaFiestaViewModel(
             }
         }
         val activeName = _profileName.value.trim()
-        val isInitialCanonicalPreview = activeName.equals("Invitado Rosa Fiesta", ignoreCase = true)
-        if (isInitialCanonicalPreview) {
-            return allEvents.filter { eventItem ->
-                eventItem.clientName.trim().equals("Camila Rodríguez", ignoreCase = true)
-            }
+        val isEmptyName = activeName.isEmpty()
+        val isGuest = activeName.equals("Invitado", ignoreCase = true)
+        val isGuestRosa = activeName.equals("Invitado Rosa Fiesta", ignoreCase = true)
+        if (isEmptyName) {
+            return emptyList()
         }
-        val isLoggedOutPlaceholder = activeName.isEmpty() || activeName.equals("Invitado", ignoreCase = true)
-        if (isLoggedOutPlaceholder) {
+        if (isGuest) {
+            return emptyList()
+        }
+        if (isGuestRosa) {
             return emptyList()
         }
         return allEvents.filter { eventItem ->
@@ -2571,32 +2581,47 @@ public class RosaFiestaViewModel(
     }
 
     public fun authenticateSocialAccount(provider: String, idToken: String = ""): Boolean {
+        if (_isSubmitting.value) return false
         val cleanProvider = provider.trim().ifBlank { "OAuth" }
         val cleanToken = idToken.trim()
+        if (cleanToken.isEmpty()) {
+            soundPlayer.playAlertError()
+            _formFeedback.value = null
+            _formError.value =
+                "El inicio de sesión con $cleanProvider requiere un token de identidad válido. Ingresa con tu correo y contraseña."
+            return false
+        }
         val looksLikeJwt = cleanToken.count { character -> character == '.' } == 2
         if (!looksLikeJwt) {
             soundPlayer.playAlertError()
+            _formFeedback.value = null
             _formError.value =
-                "El inicio de sesión con $cleanProvider no está configurado en este entorno. Ingresa con tu correo y contraseña."
+                "El token de $cleanProvider no tiene un formato válido. Ingresa con tu correo y contraseña."
             return false
         }
+        _isSubmitting.value = true
+        _formError.value = null
         securityScope.launch {
-            val outcome = repository.loginWithOAuth(cleanProvider.lowercase(), cleanToken)
-            val account = outcome.account
-            val isVerifiedOAuth = if (outcome.success) account != null else false
-            if (isVerifiedOAuth) {
-                val nonNullAccount = account ?: return@launch
-                applyAuthenticatedAccount(nonNullAccount, outcome.accessToken)
-                soundPlayer.playPaymentSuccess()
-                _formError.value = null
-                _formFeedback.value = "Sesión iniciada con $cleanProvider."
-            } else {
-                soundPlayer.playAlertError()
-                _formError.value = outcome.errorMessage
-                    ?: "No se pudo verificar la identidad con $cleanProvider."
+            try {
+                val outcome = repository.loginWithOAuth(cleanProvider.lowercase(), cleanToken)
+                val account = outcome.account
+                val isVerifiedOAuth = if (outcome.success) account != null else false
+                if (isVerifiedOAuth) {
+                    val nonNullAccount = account ?: return@launch
+                    applyAuthenticatedAccount(nonNullAccount, outcome.accessToken)
+                    soundPlayer.playPaymentSuccess()
+                    _formError.value = null
+                    _formFeedback.value = "Sesión iniciada con $cleanProvider."
+                } else {
+                    soundPlayer.playAlertError()
+                    _formError.value = outcome.errorMessage
+                        ?: "No se pudo verificar la identidad con $cleanProvider."
+                }
+            } finally {
+                _isSubmitting.value = false
             }
         }
-        return false
+        return true
     }
 
     public fun requestPasswordResetOtp(emailInput: String): Boolean {

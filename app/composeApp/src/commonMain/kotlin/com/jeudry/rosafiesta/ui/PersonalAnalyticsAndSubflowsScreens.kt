@@ -89,6 +89,7 @@ import com.jeudry.rosafiesta.domain.ClientProfile
 import com.jeudry.rosafiesta.domain.EventStatus
 import com.jeudry.rosafiesta.domain.InsurancePolicyRecord
 import com.jeudry.rosafiesta.domain.LeadRecord
+import com.jeudry.rosafiesta.domain.PaymentRecord
 import com.jeudry.rosafiesta.domain.PhotoAsset
 import com.jeudry.rosafiesta.domain.ReviewRecord
 import kotlin.math.roundToInt
@@ -2774,6 +2775,10 @@ internal fun RenderFinanceDashboardS59(
                             iconTint = Color(0xFF4E6A10),
                             amountColor = Color(0xFF4E6A10),
                             divider = paymentIndex > 0,
+                            onClick = {
+                                viewModel?.selectEvent(paymentItem.eventId)
+                                onSelectScreenCode("s83")
+                            },
                         )
                     }
                 }
@@ -4159,7 +4164,11 @@ internal fun RenderReportsIncomeS67(
         ReportCard(contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 12.dp)) {
             BasicText("Ingresos · $activePeriodLabel", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF151729)))
             Spacer(Modifier.height(14.dp))
-            IncomeChart67(periodIndex = periodIndex)
+            IncomeChart67(
+                periodIndex = periodIndex,
+                paymentsList = paymentsList,
+                monthLabels = monthLabelsForPeriod,
+            )
             Spacer(Modifier.height(6.dp))
             Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 monthLabelsForPeriod.forEach { monthLabel ->
@@ -4244,35 +4253,51 @@ private fun ReportMetric(label: String, value: String) {
 }
 
 @Composable
-private fun IncomeChart67(periodIndex: Int = 1) {
+private fun IncomeChart67(
+    periodIndex: Int = 1,
+    paymentsList: List<PaymentRecord> = emptyList(),
+    monthLabels: List<String> = listOf("Jul", "Ago", "Sep", "Oct", "Nov", "Dic"),
+) {
     val typo = LocalRfTypography.current
-    val bars = when (periodIndex) {
-        0 -> listOf(
-            Triple(62, "2.1k", Color(0xFFF9C7DD)),
-            Triple(78, "2.8k", Color(0xFFF9C7DD)),
-            Triple(54, "1.9k", Color(0xFFF9C7DD)),
-            Triple(92, "3.4k", Color(0xFFF9C7DD)),
-            Triple(80, "2.9k", Color(0xFFF9C7DD)),
-            Triple(102, "3.8k", Color(0xFFD63F98)),
-        )
+    val bucketTokens = when (periodIndex) {
+        0 -> listOf(listOf("ene"), listOf("feb"), listOf("mar"), listOf("abr"), listOf("may"), listOf("jun"))
 
-        1 -> listOf(
-            Triple(72, "2.6k", Color(0xFFF9C7DD)),
-            Triple(90, "3.2k", Color(0xFFF9C7DD)),
-            Triple(64, "2.4k", Color(0xFFF9C7DD)),
-            Triple(116, "12.4k", Color(0xFFD63F98)),
-            Triple(86, "4.1k", Color(0xFFF9C7DD)),
-            Triple(98, "5.2k", Color(0xFFF9C7DD)),
-        )
+        1 -> listOf(listOf("jul"), listOf("ago"), listOf("sep"), listOf("oct"), listOf("nov"), listOf("dic"))
 
         else -> listOf(
-            Triple(68, "4.9k", Color(0xFFF9C7DD)),
-            Triple(74, "5.3k", Color(0xFFF9C7DD)),
-            Triple(88, "6.7k", Color(0xFFF9C7DD)),
-            Triple(94, "7.8k", Color(0xFFF9C7DD)),
-            Triple(118, "14.8k", Color(0xFFD63F98)),
-            Triple(106, "9.3k", Color(0xFFF9C7DD)),
+            listOf("ene", "feb"),
+            listOf("mar", "abr"),
+            listOf("may", "jun"),
+            listOf("jul", "ago"),
+            listOf("sep", "oct"),
+            listOf("nov", "dic"),
         )
+    }
+    val bucketTotals = bucketTokens.map { tokens ->
+        paymentsList
+            .filter { paymentItem ->
+                val lowerDate = paymentItem.dateLabel.lowercase()
+                tokens.any { token -> lowerDate.contains(token) }
+            }
+            .sumOf { paymentItem -> paymentItem.amountDop }
+    }
+    val maxBucketTotal = bucketTotals.maxOrNull()?.coerceAtLeast(1) ?: 1
+    val bars = monthLabels.indices.map { bucketIdx ->
+        val amount = bucketTotals.getOrElse(bucketIdx) { 0 }
+        val barHeight = if (amount <= 0) {
+            16
+        } else {
+            (28 + ((amount.toFloat() / maxBucketTotal.toFloat()) * 90f).toInt()).coerceIn(28, 118)
+        }
+        val label = when {
+            amount <= 0 -> "0"
+            amount >= 1000 -> "${amount / 1000}.${(amount % 1000) / 100}k"
+            else -> amount.toString()
+        }
+        val peakAmount = bucketTotals.maxOrNull() ?: 0
+        val isPeak = if (amount > 0) amount == peakAmount else false
+        val barColor = if (isPeak) Color(0xFFD63F98) else Color(0xFFF9C7DD)
+        Triple(barHeight, label, barColor)
     }
 
     Box(
@@ -6973,12 +6998,17 @@ internal fun RenderClientsAnalyticsS62(
                     overflow = TextOverflow.Ellipsis,
                     style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.5.sp, color = Color(0xFF5F6377)),
                 )
-                BasicText(
-                    "${activeClient.zone} · ${activeClient.vipTag}",
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = Color(0xFF7A4FD8)),
-                )
+                val zoneVipMeta = listOf(activeClient.zone, activeClient.vipTag)
+                    .filter { metaPart -> metaPart.isNotBlank() }
+                    .joinToString(" · ")
+                if (zoneVipMeta.isNotEmpty()) {
+                    BasicText(
+                        zoneVipMeta,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = Color(0xFF7A4FD8)),
+                    )
+                }
             }
             Box(
                 modifier = Modifier
@@ -7110,12 +7140,13 @@ internal fun RenderClientsAnalyticsS62(
                 divider = false,
                 onClick = { onSelectScreenCode("A11") },
             )
+            val formattedPaymentsTotalLabel = RosaFiestaEngine.formatDop(paymentsTotalDop)
             ClientActionRow62(
                 label = "Pagos (${clientPayments.size})",
                 icon = RfIconKind.WALLET,
                 iconBackground = Color(0xFFEEF6D6),
                 iconTint = Color(0xFF4E6A10),
-                badge = formattedLtvLabel,
+                badge = formattedPaymentsTotalLabel,
                 divider = true,
                 onClick = { onSelectScreenCode("s59") },
             )

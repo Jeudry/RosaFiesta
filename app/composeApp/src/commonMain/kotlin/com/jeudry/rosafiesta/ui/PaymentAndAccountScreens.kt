@@ -75,6 +75,7 @@ import com.jeudry.rosafiesta.domain.BusinessSettings
 import com.jeudry.rosafiesta.domain.CanonicalSampleData
 import com.jeudry.rosafiesta.domain.ClientEvent
 import com.jeudry.rosafiesta.domain.EventStatus
+import com.jeudry.rosafiesta.domain.PaymentRecord
 import com.jeudry.rosafiesta.domain.QuoteRecord
 import com.jeudry.rosafiesta.domain.SupplierRecord
 import com.jeudry.rosafiesta.domain.validation.InputValidator
@@ -3660,6 +3661,7 @@ internal fun RenderSpendingAnalyticsScreenS57(
     val typo = LocalRfTypography.current
     val eventsState = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
     val paymentsState = viewModel?.payments?.collectAsState()?.value ?: CanonicalSampleData.payments
+    val damageIncidentsState = viewModel?.damageIncidents?.collectAsState()?.value ?: CanonicalSampleData.damageIncidents
 
     val periodOptions = listOf("Octubre 2026", "Trimestre Q4", "Anual 2026")
     var selectedPeriod by remember { mutableStateOf(periodOptions.first()) }
@@ -3669,12 +3671,14 @@ internal fun RenderSpendingAnalyticsScreenS57(
         else -> 1
     }
 
-    val baseIncomeDop = paymentsState.sumOf { paymentItem -> paymentItem.amountDop }.coerceAtLeast(12450)
+    val baseIncomeDop = paymentsState.sumOf { paymentItem -> paymentItem.amountDop }
     val totalIncomeDop = baseIncomeDop * periodMultiplier
-    val baseLogisticsDop = 1850 * periodMultiplier
-    val baseFloralDop = 2420 * periodMultiplier
-    val baseMaintenanceDop = 980 * periodMultiplier
-    val baseCrewDop = 1640 * periodMultiplier
+    val activeEventsForCost = eventsState.filter { eventItem -> eventItem.status != EventStatus.CANCELLED }
+    val totalContractedDop = activeEventsForCost.sumOf { eventItem -> eventItem.totalDop }
+    val baseFloralDop = (totalContractedDop * 16 / 100) * periodMultiplier
+    val baseLogisticsDop = (activeEventsForCost.size * 350) * periodMultiplier
+    val baseCrewDop = (activeEventsForCost.size * 420) * periodMultiplier
+    val baseMaintenanceDop = (damageIncidentsState.sumOf { incident -> incident.replacementDop } + activeEventsForCost.size * 180) * periodMultiplier
     val categoryStats = listOf(
         ExpenseCategoryStat57("Flores y decoración", baseFloralDop, Color(0xFFD63F98)),
         ExpenseCategoryStat57("Logística y transporte", baseLogisticsDop, Color(0xFF5B6CF0)),
@@ -3682,6 +3686,25 @@ internal fun RenderSpendingAnalyticsScreenS57(
         ExpenseCategoryStat57("Mantenimiento mobiliario", baseMaintenanceDop, Color(0xFF1FBDC0)),
     )
     val totalExpensesDop = categoryStats.sumOf { stat -> stat.amountDop }.coerceAtLeast(1)
+
+    val trendMonths = when (selectedPeriod) {
+        "Trimestre Q4" -> listOf("Ago", "Sep", "Oct")
+        "Anual 2026" -> listOf("Ene", "Mar", "May", "Jul", "Sep", "Oct")
+        else -> listOf("May", "Jun", "Jul", "Ago", "Sep", "Oct")
+    }
+    val trendSeriesValues = remember(paymentsState, selectedPeriod) {
+        computeMonthlyTrendValues57(paymentsState = paymentsState, monthLabels = trendMonths, periodMultiplier = periodMultiplier)
+    }
+    val previousTrendValue = trendSeriesValues.dropLast(1).lastOrNull() ?: 0
+    val latestTrendValue = trendSeriesValues.lastOrNull() ?: 0
+    val trendDeltaPercent = if (previousTrendValue > 0) {
+        ((latestTrendValue - previousTrendValue) * 100) / previousTrendValue
+    } else if (latestTrendValue > 0) {
+        100
+    } else {
+        0
+    }
+    val trendDeltaLabel = if (trendDeltaPercent >= 0) "+$trendDeltaPercent%" else "$trendDeltaPercent%"
 
     val confirmedCount = eventsState.count { eventItem -> eventItem.status == EventStatus.CONFIRMED }
     val completedCount = eventsState.count { eventItem -> eventItem.status == EventStatus.COMPLETED }
@@ -3807,14 +3830,22 @@ internal fun RenderSpendingAnalyticsScreenS57(
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(999.dp))
-                                .background(Color(0xFFEEF6D6))
+                                .background(if (trendDeltaPercent >= 0) Color(0xFFEEF6D6) else Color(0xFFFCE3E8))
                                 .padding(horizontal = 9.dp, vertical = 3.dp),
                         ) {
-                            BasicText("+18%", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.ExtraBold, fontSize = 12.sp, color = Color(0xFF4E6A10)))
+                            BasicText(
+                                text = trendDeltaLabel,
+                                style = TextStyle(
+                                    fontFamily = typo.bodyFamily,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 12.sp,
+                                    color = if (trendDeltaPercent >= 0) Color(0xFF4E6A10) else Color(0xFFB42345),
+                                ),
+                            )
                         }
                     }
                     Spacer(Modifier.height(10.dp))
-                    IncomeTrend57()
+                    IncomeTrend57(monthLabels = trendMonths, seriesValues = trendSeriesValues)
                 }
 
                 AdminPanelCard(contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp)) {
@@ -3880,37 +3911,78 @@ internal fun RenderSpendingAnalyticsScreenS57(
     }
 }
 
+private fun computeMonthlyTrendValues57(
+    paymentsState: List<PaymentRecord>,
+    monthLabels: List<String>,
+    periodMultiplier: Int,
+): List<Int> {
+    if (monthLabels.isEmpty()) return emptyList()
+    val totalsByMonth = monthLabels.map { monthLabel ->
+        val token = monthLabel.lowercase().take(3)
+        val matchedSum = paymentsState
+            .filter { payment -> payment.dateLabel.lowercase().contains(token) }
+            .sumOf { payment -> payment.amountDop }
+        matchedSum
+    }
+    val hasExplicitMonthMatches = totalsByMonth.any { amount -> amount > 0 }
+    if (hasExplicitMonthMatches) {
+        return totalsByMonth
+    }
+    val totalCollected = paymentsState.sumOf { payment -> payment.amountDop } * periodMultiplier
+    val count = monthLabels.size
+    return List(count) { index ->
+        ((totalCollected * (index + 1)) / (count * (count + 1) / 2)).coerceAtLeast(0)
+    }
+}
+
 @Composable
-private fun IncomeTrend57() {
+private fun IncomeTrend57(
+    monthLabels: List<String>,
+    seriesValues: List<Int>,
+) {
     val typo = LocalRfTypography.current
+    val maxVal = (seriesValues.maxOrNull() ?: 1).coerceAtLeast(1).toFloat()
 
     Column(modifier = Modifier.fillMaxWidth()) {
         Canvas(modifier = Modifier.fillMaxWidth().height(128.dp)) {
-            val scaleX = size.width / 326f
             listOf(30f, 75f, 120f).forEach { gridY ->
                 drawLine(Color(0xFFEDEDF5), Offset(0f, gridY), Offset(size.width, gridY), 1.dp.toPx())
             }
-            val trendLine = Path().apply {
-                moveTo(10f * scaleX, 108f)
-                cubicTo(40f * scaleX, 102f, 55f * scaleX, 94f, 72f * scaleX, 90f)
-                cubicTo(92f * scaleX, 85f, 112f * scaleX, 78f, 132f * scaleX, 74f)
-                cubicTo(154f * scaleX, 70f, 174f * scaleX, 58f, 194f * scaleX, 54f)
-                cubicTo(214f * scaleX, 50f, 236f * scaleX, 42f, 256f * scaleX, 36f)
-                cubicTo(276f * scaleX, 30f, 298f * scaleX, 27f, 316f * scaleX, 24f)
+            if (seriesValues.isNotEmpty()) {
+                val count = seriesValues.size
+                val paddingX = 12f
+                val usableWidth = (size.width - paddingX * 2f).coerceAtLeast(1f)
+                val stepX = if (count > 1) usableWidth / (count - 1).toFloat() else 0f
+                val points = seriesValues.mapIndexed { index, value ->
+                    val pointX = paddingX + stepX * index.toFloat()
+                    val ratio = (value.toFloat() / maxVal).coerceIn(0f, 1f)
+                    val pointY = 112f - ratio * 84f
+                    Offset(pointX, pointY)
+                }
+                val trendLine = Path().apply {
+                    moveTo(points.first().x, points.first().y)
+                    for (idx in 1 until points.size) {
+                        val prev = points[idx - 1]
+                        val curr = points[idx]
+                        val midX = (prev.x + curr.x) / 2f
+                        cubicTo(midX, prev.y, midX, curr.y, curr.x, curr.y)
+                    }
+                }
+                val filledArea = Path().apply {
+                    addPath(trendLine)
+                    lineTo(points.last().x, 128f)
+                    lineTo(points.first().x, 128f)
+                    close()
+                }
+                drawPath(filledArea, Color(0xFFECEBFF))
+                drawPath(trendLine, Color(0xFFD63F98), style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round))
+                val lastPoint = points.last()
+                drawCircle(Color.White, radius = 5.dp.toPx(), center = lastPoint)
+                drawCircle(Color(0xFFD63F98), radius = 5.dp.toPx(), center = lastPoint, style = Stroke(width = 2.5.dp.toPx()))
             }
-            val filledArea = Path().apply {
-                addPath(trendLine)
-                lineTo(316f * scaleX, 128f)
-                lineTo(10f * scaleX, 128f)
-                close()
-            }
-            drawPath(filledArea, Color(0xFFECEBFF))
-            drawPath(trendLine, Color(0xFFD63F98), style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round))
-            drawCircle(Color.White, radius = 5.dp.toPx(), center = Offset(316f * scaleX, 24f))
-            drawCircle(Color(0xFFD63F98), radius = 5.dp.toPx(), center = Offset(316f * scaleX, 24f), style = Stroke(width = 2.5.dp.toPx()))
         }
         Row(modifier = Modifier.fillMaxWidth().padding(top = 2.dp)) {
-            listOf("May", "Jun", "Jul", "Ago", "Sep", "Oct").forEach { monthLabel ->
+            monthLabels.forEach { monthLabel ->
                 BasicText(
                     monthLabel,
                     modifier = Modifier.weight(1f),
@@ -3953,7 +4025,8 @@ internal fun RenderFinancialDashboardScreenS58(
     val metricsState = viewModel?.metrics?.collectAsState()?.value ?: fallbackMetrics
 
     val collectedDop = paymentsState.sumOf { paymentItem -> paymentItem.amountDop }
-    val monthlyRevenueDop = collectedDop.coerceAtLeast(metricsState.octoberRevenueDop)
+    val monthlyRevenueDop = if (paymentsState.isNotEmpty()) collectedDop else metricsState.octoberRevenueDop
+    val sparklineValues = paymentsState.takeLast(6).map { paymentItem -> paymentItem.amountDop }
     val activeEventsCount = eventsState.count { eventItem -> eventItem.status != EventStatus.CANCELLED }
     val incidentsCount = damageIncidents.size
     val clientCount = clientsState.size
@@ -3994,22 +4067,36 @@ internal fun RenderFinancialDashboardScreenS58(
                         .padding(20.dp),
                 ) {
                     Canvas(modifier = Modifier.matchParentSize()) {
-                        val originX = size.width - 170f
-                        val originY = size.height - 110f
-                        val strokePath = Path().apply {
-                            moveTo(originX, originY + 100f)
-                            cubicTo(originX + 30f, originY + 96f, originX + 50f, originY + 70f, originX + 80f, originY + 74f)
-                            cubicTo(originX + 110f, originY + 78f, originX + 120f, originY + 40f, originX + 150f, originY + 30f)
-                            cubicTo(originX + 180f, originY + 20f, originX + 175f, originY + 20f, originX + 190f, originY + 10f)
+                        if (sparklineValues.isNotEmpty()) {
+                            val originX = size.width - 170f
+                            val originY = size.height - 110f
+                            val maxAmount = (sparklineValues.maxOrNull() ?: 1).coerceAtLeast(1).toFloat()
+                            val pointCount = sparklineValues.size
+                            val stepX = if (pointCount > 1) 190f / (pointCount - 1).toFloat() else 0f
+                            val sparkPoints = sparklineValues.mapIndexed { index, amount ->
+                                val px = originX + stepX * index.toFloat()
+                                val ratio = (amount.toFloat() / maxAmount).coerceIn(0f, 1f)
+                                val py = originY + 100f - ratio * 90f
+                                Offset(px, py)
+                            }
+                            val strokePath = Path().apply {
+                                moveTo(sparkPoints.first().x, sparkPoints.first().y)
+                                for (idx in 1 until sparkPoints.size) {
+                                    val prev = sparkPoints[idx - 1]
+                                    val curr = sparkPoints[idx]
+                                    val midX = (prev.x + curr.x) / 2f
+                                    cubicTo(midX, prev.y, midX, curr.y, curr.x, curr.y)
+                                }
+                            }
+                            val areaPath = Path().apply {
+                                addPath(strokePath)
+                                lineTo(sparkPoints.last().x, originY + 130f)
+                                lineTo(sparkPoints.first().x, originY + 130f)
+                                close()
+                            }
+                            drawPath(areaPath, Color(0x1FFFD45C))
+                            drawPath(strokePath, Color(0xFFFFD45C), style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round))
                         }
-                        val areaPath = Path().apply {
-                            addPath(strokePath)
-                            lineTo(originX + 190f, originY + 130f)
-                            lineTo(originX, originY + 130f)
-                            close()
-                        }
-                        drawPath(areaPath, Color(0x1FFFD45C))
-                        drawPath(strokePath, Color(0xFFFFD45C), style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round))
                     }
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -4228,7 +4315,7 @@ internal fun RenderOfficialReceiptScreenS83(
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(palette.surface)
-                        .clickable { onSelectScreenCode("BACK:s51") },
+                        .clickable { onSelectScreenCode("BACK") },
                     contentAlignment = Alignment.Center,
                 ) {
                     RfIcon(kind = RfIconKind.BACK, tint = palette.ink, size = 22.dp)

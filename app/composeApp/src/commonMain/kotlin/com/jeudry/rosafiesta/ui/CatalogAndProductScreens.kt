@@ -197,12 +197,16 @@ internal fun RenderPersonalCatalogS18(
                             modifier = Modifier
                                 .align(Alignment.TopEnd)
                                 .offset(x = 4.dp, y = (-4).dp)
-                                .size(20.dp)
-                                .clip(CircleShape)
-                                .background(Color(0xFFFFD45C)),
+                                .height(20.dp)
+                                .widthIn(min = 20.dp)
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(Color(0xFFFFD45C))
+                                .padding(horizontal = 5.dp),
                         ) {
                             BasicText(
                                 text = totalDraftCount.toString(),
+                                maxLines = 1,
+                                softWrap = false,
                                 style = typo.sectionCap.copy(fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF2E1A47)),
                             )
                         }
@@ -2709,12 +2713,24 @@ internal fun RenderShopScreenS23(
                         .padding(horizontal = 10.dp),
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        RfIcon(kind = RfIconKind.ORDERS, tint = Color.White, size = 20.dp)
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier.size(24.dp).clip(CircleShape).background(Color(0xFFFFD45C)),
-                        ) {
-                            BasicText("$cartCount", style = typo.sectionCap.copy(fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF2E1A47)))
+                        RfIcon(kind = RfIconKind.PARTY, tint = Color.White, size = 20.dp)
+                        if (cartCount > 0) {
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier
+                                    .height(22.dp)
+                                    .widthIn(min = 22.dp)
+                                    .clip(RoundedCornerShape(999.dp))
+                                    .background(Color(0xFFFFD45C))
+                                    .padding(horizontal = 6.dp),
+                            ) {
+                                BasicText(
+                                    text = "$cartCount",
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    style = typo.sectionCap.copy(fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF2E1A47)),
+                                )
+                            }
                         }
                     }
                 }

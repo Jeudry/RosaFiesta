@@ -11,7 +11,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,7 +54,36 @@ import com.jeudry.rosafiesta.designsystem.resources.foto_quinceanera
 import com.jeudry.rosafiesta.designsystem.resources.foto_silla_tiffany
 import com.jeudry.rosafiesta.designsystem.resources.logo_rosafiesta
 import org.jetbrains.compose.resources.DrawableResource
+import org.jetbrains.compose.resources.ExperimentalResourceApi
+import org.jetbrains.compose.resources.getDrawableResourceBytes
 import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.rememberResourceEnvironment
+
+private val cachedPhotoBitmaps: MutableMap<RfPhotoKey, ImageBitmap> = mutableMapOf()
+private var cachedLogoBitmap: ImageBitmap? = null
+
+@OptIn(ExperimentalResourceApi::class)
+@Composable
+public fun PreloadRfVisualAssets() {
+    val environment = rememberResourceEnvironment()
+    LaunchedEffect(Unit) {
+        if (cachedLogoBitmap == null) {
+            val logoBytes = runCatching { getDrawableResourceBytes(environment, Res.drawable.logo_rosafiesta) }.getOrNull()
+            if (logoBytes != null) {
+                cachedLogoBitmap = decodeEncodedImageBitmapOrNull(logoBytes)
+            }
+        }
+        RfPhotoKey.entries.forEach { photoKey ->
+            if (!cachedPhotoBitmaps.containsKey(photoKey)) {
+                val photoBytes = runCatching { getDrawableResourceBytes(environment, drawableForPhotoKey(photoKey)) }.getOrNull()
+                val decoded = if (photoBytes != null) decodeEncodedImageBitmapOrNull(photoBytes) else null
+                if (decoded != null) {
+                    cachedPhotoBitmaps[photoKey] = decoded
+                }
+            }
+        }
+    }
+}
 
 /**
  * Tamaños normalizados del logotipo oficial (`Logo`, Sección 3 de `entrega-de-diseno.md`).
@@ -84,12 +117,22 @@ public fun RfLogo(
             .border(1.5.dp, RfColors.LogoRing, CircleShape)
             .padding(padding),
     ) {
-        Image(
-            painter = painterResource(Res.drawable.logo_rosafiesta),
-            contentDescription = "Logo oficial de RosaFiesta",
-            contentScale = if (insetPadding) ContentScale.Fit else ContentScale.Crop,
-            modifier = Modifier.fillMaxSize(),
-        )
+        val preloadedLogo = cachedLogoBitmap
+        if (preloadedLogo != null) {
+            Image(
+                bitmap = preloadedLogo,
+                contentDescription = "Logo oficial de RosaFiesta",
+                contentScale = if (insetPadding) ContentScale.Fit else ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
+        } else {
+            Image(
+                painter = painterResource(Res.drawable.logo_rosafiesta),
+                contentDescription = "Logo oficial de RosaFiesta",
+                contentScale = if (insetPadding) ContentScale.Fit else ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
     }
 }
 
@@ -279,18 +322,43 @@ public fun RfPhoto(
     bottomScrim: Boolean = false,
     alignment: Alignment = Alignment.Center,
 ) {
+    val placeholderColor = LocalRfPalette.current.chipBg
+    val environment = rememberResourceEnvironment()
+    var bitmap by remember(photoKey) { mutableStateOf(cachedPhotoBitmaps[photoKey]) }
+    @OptIn(ExperimentalResourceApi::class)
+    LaunchedEffect(photoKey) {
+        if (bitmap == null) {
+            val photoBytes = runCatching { getDrawableResourceBytes(environment, drawableForPhotoKey(photoKey)) }.getOrNull()
+            val decoded = if (photoBytes != null) decodeEncodedImageBitmapOrNull(photoBytes) else null
+            if (decoded != null) {
+                cachedPhotoBitmaps[photoKey] = decoded
+                bitmap = decoded
+            }
+        }
+    }
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(cornerRadius))
-            .background(Color.Transparent),
+            .background(placeholderColor),
     ) {
-        Image(
-            painter = painterResource(drawableForPhotoKey(photoKey)),
-            contentDescription = contentDescription,
-            contentScale = ContentScale.Crop,
-            alignment = alignment,
-            modifier = Modifier.fillMaxSize(),
-        )
+        val resolvedBitmap = bitmap
+        if (resolvedBitmap != null) {
+            Image(
+                bitmap = resolvedBitmap,
+                contentDescription = contentDescription,
+                contentScale = ContentScale.Crop,
+                alignment = alignment,
+                modifier = Modifier.fillMaxSize(),
+            )
+        } else {
+            Image(
+                painter = painterResource(drawableForPhotoKey(photoKey)),
+                contentDescription = contentDescription,
+                contentScale = ContentScale.Crop,
+                alignment = alignment,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
         if (bottomScrim) {
             Box(
                 modifier = Modifier

@@ -5307,7 +5307,19 @@ internal fun RenderRosaSketchS36(
                             }
                     }
 
-                    Box(modifier = toolButtonModifier(0) {}, contentAlignment = Alignment.Center) {
+                    Box(
+                        modifier = toolButtonModifier(0) {
+                            if (canvasElements.isNotEmpty()) {
+                                val movedLast = canvasElements.last().let { lastEl ->
+                                    val shiftedX = if (lastEl.normX > 0.72f) 0.25f else (lastEl.normX + 0.14f)
+                                    val shiftedY = if (lastEl.normY > 0.78f) 0.30f else (lastEl.normY + 0.10f)
+                                    lastEl.copy(normX = shiftedX, normY = shiftedY)
+                                }
+                                commitElementsMutation(canvasElements.dropLast(1) + movedLast)
+                            }
+                        },
+                        contentAlignment = Alignment.Center,
+                    ) {
                         RfIcon(kind = RfIconKind.MOVE, tint = if (selectedToolIndex == 0) Color.White else Color(0xFF62627A), size = 20.dp)
                     }
                     Box(
@@ -5360,21 +5372,21 @@ internal fun RenderRosaSketchS36(
                     }
                     val canRedo = redoStack.isNotEmpty()
                     Box(
-                        modifier = toolButtonModifier(6) {
-                            if (redoStack.isNotEmpty()) {
-                                val restoredSnapshot = redoStack.last()
-                                redoStack = redoStack.dropLast(1)
-                                undoStack = (undoStack + listOf(canvasElements)).takeLast(30)
-                                canvasElements = restoredSnapshot
-                            }
-                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(44.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .clickable(enabled = canRedo) {
+                                if (redoStack.isNotEmpty()) {
+                                    val restoredSnapshot = redoStack.last()
+                                    redoStack = redoStack.dropLast(1)
+                                    undoStack = (undoStack + listOf(canvasElements)).takeLast(30)
+                                    canvasElements = restoredSnapshot
+                                }
+                            },
                         contentAlignment = Alignment.Center,
                     ) {
-                        val redoTint = when {
-                            selectedToolIndex == 6 -> Color.White
-                            canRedo -> Color(0xFF1A1A2E)
-                            else -> Color(0xFFA0A0B2)
-                        }
+                        val redoTint = if (canRedo) Color(0xFF1A1A2E) else Color(0xFFA0A0B2)
                         RfIcon(kind = RfIconKind.REDO, tint = redoTint, size = 20.dp)
                     }
                 }
@@ -5625,7 +5637,7 @@ internal fun RenderRosaSketchConfirmS78(
 
             Column(modifier = Modifier.weight(1f)) {
                 BasicText(
-                    text = "Revisa tu boceto 3D",
+                    text = "Revisa tu boceto 2D",
                     style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 19.sp, color = RfThemeState.currentPalette.ink),
                 )
                 BasicText(

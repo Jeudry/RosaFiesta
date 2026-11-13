@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import com.jeudry.rosafiesta.core.engine.AppView
 import com.jeudry.rosafiesta.designsystem.LocalRfPalette
 import com.jeudry.rosafiesta.designsystem.LocalRfTypography
+import com.jeudry.rosafiesta.designsystem.PreloadRfVisualAssets
 import com.jeudry.rosafiesta.designsystem.RfChip
 import com.jeudry.rosafiesta.designsystem.RfColors
 import com.jeudry.rosafiesta.designsystem.RfTag
@@ -274,6 +275,7 @@ public fun RosaFiestaApp(
                     .weight(1f)
                     .fillMaxWidth(),
             ) {
+                PreloadRfVisualAssets()
                 val transitionKind = navigator.lastTransition
                 AnimatedContent(
                     targetState = spec,

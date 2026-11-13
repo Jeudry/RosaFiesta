@@ -1833,6 +1833,18 @@ public class SqlRosaFiestaRepository(
             "guest" -> "invitado@rosafiesta.do"
             else -> "camila@rosafiesta.do"
         }
+        val targetView = when {
+            normalized == "admin" -> "admin"
+            normalized.startsWith("staff") -> "admin"
+            else -> "personal"
+        }
+        if (submodules.hasRealServerToken()) {
+            scope.launch {
+                runCatching {
+                    apiClient?.switchView(targetView = targetView)
+                }
+            }
+        }
     }
 
     override fun toggleFavorite(articleId: String) {
@@ -1849,6 +1861,7 @@ public class SqlRosaFiestaRepository(
     override fun toggleStaffPaymentAccess(staffName: String) {
         val target = staffName.trim()
         if (target.isEmpty()) return
+        var updatedMember: StaffMember? = null
         _staffMembers.update { list ->
             list.map { member ->
                 if (member.name.equals(target, ignoreCase = true)) {
@@ -1867,18 +1880,34 @@ public class SqlRosaFiestaRepository(
                     } else {
                         member.roleLabel
                     }
-                    member.copy(
+                    val updated = member.copy(
                         canViewPayments = nextCanView,
                         permissions = nextPerms,
                         roleLabel = nextLabel,
                     )
+                    updatedMember = updated
+                    updated
                 } else {
                     member
                 }
             }
         }
+        val synced = updatedMember
         scope.launch {
             toggleStaffPaymentAccessAsync(target)
+            if (synced != null) {
+                if (submodules.hasRealServerToken()) {
+                    runCatching {
+                        apiClient?.updateStaffMember(
+                            staffId = synced.id,
+                            input = UpdateStaffInputDto(
+                                roleLabel = synced.roleLabel,
+                                permissions = synced.permissions.map { perm -> perm.name.lowercase() },
+                            ),
+                        )
+                    }
+                }
+            }
         }
     }
 
@@ -1887,8 +1916,17 @@ public class SqlRosaFiestaRepository(
         if (cleanMsg.isEmpty()) return
         val cleanAuthor = author.trim().ifEmpty { "Camila" }
         _chatMessages.update { messages -> messages + "$cleanAuthor: $cleanMsg" }
+        val threadId = submodules.chatThreads.value.firstOrNull()?.id ?: "thread-general"
         scope.launch {
             sendChatMessageAsync(cleanAuthor, cleanMsg)
+            if (submodules.hasRealServerToken()) {
+                runCatching {
+                    apiClient?.sendThreadMessage(
+                        threadId = threadId,
+                        input = PostChatMessageInputDto(body = cleanMsg),
+                    )
+                }
+            }
         }
     }
 

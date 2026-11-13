@@ -336,6 +336,7 @@ public fun RenderScreenSpec(
     }
 
     LaunchedEffect(spec.code) {
+        kotlinx.coroutines.delay(280)
         viewModel?.refreshSharedStateFromDisk()
     }
 

@@ -229,6 +229,14 @@ internal class RosaFiestaSubmoduleCoordinator(
         }
 
         runCatching {
+            val response = client.listCategories()
+            val remoteCategories = response.categories
+            if (!remoteCategories.isNullOrEmpty()) {
+                anySucceeded = true
+            }
+        }
+
+        runCatching {
             val response = client.listReviews()
             val remoteReviews = response.reviews
             if (!remoteReviews.isNullOrEmpty()) {
@@ -241,11 +249,7 @@ internal class RosaFiestaSubmoduleCoordinator(
             }
         }
 
-        val hasSessionToken = currentSessionJwtFlow.value != null
-        val hasApiToken = client.currentAccessToken() != null
-        val isAuthenticated = if (hasSessionToken) true else hasApiToken
-
-        if (isAuthenticated) {
+        if (hasRealServerToken(client)) {
             runCatching {
                 val response = client.listEvents()
                 val remoteEvents = response.events
@@ -258,6 +262,8 @@ internal class RosaFiestaSubmoduleCoordinator(
                     anySucceeded = true
                 }
             }
+
+            syncEventGuestsAndSchedule(client)
 
             runCatching {
                 val response = client.listQuotes()
@@ -292,6 +298,8 @@ internal class RosaFiestaSubmoduleCoordinator(
                     anySucceeded = true
                 }
             }
+
+            syncThreadMessagesFromBackend(client)
 
             runCatching {
                 val response = client.listNotifications()
@@ -486,6 +494,65 @@ internal class RosaFiestaSubmoduleCoordinator(
             onPersistCoreSync()
         }
         anySucceeded
+    }
+
+    fun hasRealServerToken(client: RosaFiestaApiClient? = apiClient): Boolean {
+        val sessionToken = currentSessionJwtFlow.value?.trim().orEmpty()
+        val apiToken = client?.currentAccessToken()?.trim().orEmpty()
+        val activeToken = sessionToken.ifEmpty { apiToken }
+        if (activeToken.isEmpty()) {
+            return false
+        }
+        return !activeToken.startsWith("rf-local.")
+    }
+
+    private suspend fun syncEventGuestsAndSchedule(client: RosaFiestaApiClient) {
+        val currentEvents = eventsFlow.value
+        if (currentEvents.isEmpty()) return
+        val syncedGuests = mutableListOf<EventGuest>()
+        val syncedSchedule = mutableListOf<EventScheduleBlock>()
+        currentEvents.forEach { eventItem ->
+            runCatching {
+                val guestsResp = client.listEventGuests(eventItem.id)
+                guestsResp.guests?.forEach { dto ->
+                    syncedGuests.add(RosaFiestaBackendMappers.toEventGuest(dto))
+                }
+            }
+            runCatching {
+                val scheduleResp = client.listEventSchedule(eventItem.id)
+                scheduleResp.blocks?.forEach { dto ->
+                    syncedSchedule.add(RosaFiestaBackendMappers.toEventScheduleBlock(dto))
+                }
+            }
+        }
+        if (syncedGuests.isNotEmpty()) {
+            _eventGuests.value = syncedGuests
+        }
+        if (syncedSchedule.isNotEmpty()) {
+            _eventSchedule.value = syncedSchedule
+        }
+    }
+
+    private suspend fun syncThreadMessagesFromBackend(client: RosaFiestaApiClient) {
+        val currentThreads = _chatThreads.value
+        if (currentThreads.isEmpty()) return
+        val syncedMessages = mutableListOf<ChatMessageRecord>()
+        currentThreads.forEach { thread ->
+            runCatching {
+                val resp = client.listThreadMessages(thread.id)
+                resp.messages?.forEach { dto ->
+                    syncedMessages.add(
+                        RosaFiestaBackendMappers.toChatMessageRecord(
+                            dto = dto,
+                            contactName = thread.contactName,
+                        ),
+                    )
+                }
+            }
+        }
+        if (syncedMessages.isNotEmpty()) {
+            _threadMessages.value = syncedMessages
+        }
     }
 
     fun recomputeHonestMetrics() {
