@@ -296,6 +296,21 @@ public class RosaFiestaViewModel(
     private val _rosaProposalMessage = MutableStateFlow("")
     public val rosaProposalMessage: StateFlow<String> = _rosaProposalMessage.asStateFlow()
 
+    private val _clientEventTitleInput = MutableStateFlow("")
+    public val clientEventTitleInput: StateFlow<String> = _clientEventTitleInput.asStateFlow()
+
+    private val _guestsWizardMode = MutableStateFlow(false)
+    public val guestsWizardMode: StateFlow<Boolean> = _guestsWizardMode.asStateFlow()
+
+    private val _voiceAppendToIdea = MutableStateFlow(false)
+    public val voiceAppendToIdea: StateFlow<Boolean> = _voiceAppendToIdea.asStateFlow()
+
+    private val _wizardScheduleItems = MutableStateFlow<List<EventTimelineItemUiModel>>(emptyList())
+    public val wizardScheduleItems: StateFlow<List<EventTimelineItemUiModel>> = _wizardScheduleItems.asStateFlow()
+
+    private val _calendarSyncPromptDismissedIds = MutableStateFlow<Set<String>>(emptySet())
+    public val calendarSyncPromptDismissedIds: StateFlow<Set<String>> = _calendarSyncPromptDismissedIds.asStateFlow()
+
     private val _voiceInputOrigin = MutableStateFlow(VoiceInputOrigin.NONE)
     public val voiceInputOrigin: StateFlow<VoiceInputOrigin> = _voiceInputOrigin.asStateFlow()
 
@@ -1261,13 +1276,18 @@ public class RosaFiestaViewModel(
         val deliveryFee = _deliveryBaseInput.value.toIntOrNull() ?: 350
         val discount = _draftDiscountDop.value
         val clientLabel = _profileName.value.trim().ifBlank { "Cliente Rosa Fiesta" }
+        val resolvedTitle = _clientEventTitleInput.value.trim()
+            .ifBlank { _eventTypeInput.value.trim() }
+            .ifBlank { _rosaEventType.value.trim() }
+            .ifBlank { "Evento Rosa Fiesta" }
+        val resolvedGuests = (_eventGuestsInput.value.trim().toIntOrNull() ?: _rosaGuestsCount.value).coerceAtLeast(1)
         val created = repository.createQuote(
-            eventTitle = _rosaEventType.value.ifBlank { _eventTypeInput.value },
+            eventTitle = resolvedTitle,
             clientName = clientLabel,
             clientEmail = _profileEmail.value,
-            venue = _eventVenueInput.value.ifBlank { "Santo Domingo" },
+            venue = _eventVenueInput.value.ifBlank { "Por definir" },
             dateLabel = _eventDateInput.value.ifBlank { "Por definir" },
-            guests = _rosaGuestsCount.value,
+            guests = resolvedGuests,
             lines = lines,
             deliveryFeeDop = deliveryFee,
             discountDop = discount,
@@ -1430,6 +1450,56 @@ public class RosaFiestaViewModel(
 
     public fun setEventTypeInput(value: String) {
         _eventTypeInput.value = value
+    }
+
+    public fun setClientEventTitleInput(value: String) {
+        _clientEventTitleInput.value = value
+    }
+
+    public fun setRosaBudgetDop(value: Int) {
+        _rosaBudgetDop.value = value.coerceAtLeast(0)
+    }
+
+    public fun setGuestsWizardMode(enabled: Boolean) {
+        _guestsWizardMode.value = enabled
+    }
+
+    public fun setVoiceAppendToIdea(enabled: Boolean) {
+        _voiceAppendToIdea.value = enabled
+    }
+
+    public fun addWizardScheduleItem(
+        startTime: String,
+        endTime: String,
+        title: String,
+    ) {
+        val cleanTitle = title.trim()
+        if (cleanTitle.isEmpty()) return
+        soundPlayer.playTap()
+        val nextIndex = _wizardScheduleItems.value.size + 1
+        val item = EventTimelineItemUiModel(
+            id = "wiz-tl-$nextIndex-${cleanTitle.hashCode()}",
+            startTime = startTime.trim().ifBlank { "18:00" },
+            endTime = endTime.trim().ifBlank { "19:30" },
+            title = cleanTitle,
+            subtitle = "Definido por ti en la solicitud",
+            dotColorHex = 0xFF865DEC,
+            ringColorHex = 0xFFEFE8FD,
+        )
+        _wizardScheduleItems.update { currentList -> currentList + item }
+    }
+
+    public fun removeWizardScheduleItem(itemId: String) {
+        soundPlayer.playTap()
+        _wizardScheduleItems.update { currentList ->
+            currentList.filterNot { item -> item.id == itemId }
+        }
+    }
+
+    public fun markCalendarPromptDismissed(eventId: String) {
+        val cleanId = eventId.trim()
+        if (cleanId.isEmpty()) return
+        _calendarSyncPromptDismissedIds.update { existing -> existing + cleanId }
     }
 
     public fun setEventDateInput(value: String) {
@@ -2022,7 +2092,7 @@ public class RosaFiestaViewModel(
                 return false
             }
             repository.createEvent(title, client, date, venue, guests)
-            repository.events.value.firstOrNull()?.id?.let { createdId ->
+            repository.events.value.lastOrNull()?.id?.let { createdId ->
                 _selectedEventId.value = createdId
             }
             _formError.value = null
@@ -2037,10 +2107,11 @@ public class RosaFiestaViewModel(
         if (_isSubmitting.value) return false
         _isSubmitting.value = true
         try {
-            val title = _eventTypeInput.value.trim()
+            val categoryLabel = _eventTypeInput.value.trim().ifBlank { _rosaEventType.value.trim() }
+            val title = _clientEventTitleInput.value.trim().ifBlank { categoryLabel }
             val date = _eventDateInput.value.trim()
             val venue = _eventVenueInput.value.trim()
-            val guests = _eventGuestsInput.value.trim().toIntOrNull() ?: 0
+            val guests = _eventGuestsInput.value.trim().toIntOrNull() ?: _rosaGuestsCount.value
             val hasValidInputs = allConditionsTrue(
                 first = title.isNotEmpty(),
                 second = date.isNotEmpty(),
@@ -2048,14 +2119,28 @@ public class RosaFiestaViewModel(
                 fourth = guests > 0,
             )
             if (!hasValidInputs) {
-                _formError.value = "Completa el tipo de evento, fecha, lugar e invitados (> 0)."
+                _formError.value = "Completa el título o tipo de evento, fecha, lugar e invitados (> 0)."
                 return false
             }
             val accountName = currentAuthenticatedUser.value?.fullName.orEmpty().trim()
             val resolvedClientName = accountName.ifEmpty { _profileName.value.trim().ifEmpty { "Cliente" } }
             repository.createEvent(title, resolvedClientName, date, venue, guests)
-            repository.events.value.firstOrNull()?.id?.let { createdId ->
+            repository.events.value.lastOrNull()?.id?.let { createdId ->
                 _selectedEventId.value = createdId
+                val wizardBlocks = _wizardScheduleItems.value
+                if (wizardBlocks.isNotEmpty()) {
+                    _eventTimelineItems.value = wizardBlocks
+                    wizardBlocks.forEach { blockItem ->
+                        repository.addEventScheduleBlock(
+                            eventId = createdId,
+                            timeRange = "${blockItem.startTime} - ${blockItem.endTime}",
+                            title = blockItem.title,
+                            ownerName = resolvedClientName,
+                        )
+                    }
+                } else {
+                    _eventTimelineItems.value = emptyList()
+                }
             }
             _formError.value = null
             _formFeedback.value = "Evento '$title' configurado."

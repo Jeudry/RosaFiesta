@@ -1889,45 +1889,48 @@ internal fun RenderEventDetailScreenS40(
     } else {
         "Vie 23 oct · Jardín Botánico"
     }
-    val daysUntil = (activeEvent?.daysUntilEvent ?: 3).coerceAtLeast(0)
+    val daysUntil = (activeEvent?.daysUntilEvent ?: 0).coerceAtLeast(0)
     val daysFormatted = daysUntil.toString().padStart(2, '0')
-
-    val checklistSteps = viewModel?.checklist?.collectAsState()?.value ?: CanonicalSampleData.bodaChecklist
-    val completedStepsCount = checklistSteps.count { stepItem -> stepItem.completed }
-    val totalStepsCount = checklistSteps.size
+    val isQuotePendingApproval = activeEvent?.status == EventStatus.PENDING_QUOTE
+    val dismissedCalendarIds = viewModel?.calendarSyncPromptDismissedIds?.collectAsState()?.value.orEmpty()
 
     val vmEventTasks = viewModel?.eventTasksList?.collectAsState()?.value
-    val completedTasksCount = vmEventTasks?.count { taskItem -> taskItem.completed } ?: 2
-    val totalTasksCount = vmEventTasks?.size ?: 4
+    val completedTasksCount = vmEventTasks?.count { taskItem -> taskItem.completed } ?: 0
+    val totalTasksCount = vmEventTasks?.size ?: 0
 
     val vmTimelineItems = viewModel?.eventTimelineItems?.collectAsState()?.value
-    val timelineBlocksCount = vmTimelineItems?.size ?: 4
-    val firstStartTime = vmTimelineItems?.firstOrNull()?.startTime ?: "09:00"
+    val timelineBlocksCount = vmTimelineItems?.size ?: 0
+    val firstStartTime = vmTimelineItems?.firstOrNull()?.startTime.orEmpty()
+    val hasTimelineSchedule = firstStartTime.isNotBlank()
     val timeTokens = firstStartTime.split(":")
-    val countdownHours = if (daysUntil == 0) {
-        "00"
+    val countdownHours = if (hasTimelineSchedule) {
+        (timeTokens.getOrNull(0)?.filter { charItem -> charItem.isDigit() }?.take(2) ?: "00").padStart(2, '0')
     } else {
-        (timeTokens.getOrNull(0)?.filter { charItem -> charItem.isDigit() }?.take(2) ?: "09").padStart(2, '0')
+        "--"
     }
-    val countdownMinutes = if (daysUntil == 0) {
-        "00"
-    } else {
+    val countdownMinutes = if (hasTimelineSchedule) {
         (timeTokens.getOrNull(1)?.filter { charItem -> charItem.isDigit() }?.take(2) ?: "00").padStart(2, '0')
+    } else {
+        "--"
     }
 
     val vmGuests = viewModel?.eventGuestsList?.collectAsState()?.value
-    val confirmedGuestsCount = vmGuests?.count { guestItem -> guestItem.status == "Confirmado" } ?: 3
-    val totalRegisteredGuests = vmGuests?.size ?: 4
+    val confirmedGuestsCount = vmGuests?.count { guestItem -> guestItem.status == "Confirmado" } ?: 0
+    val totalRegisteredGuests = vmGuests?.size ?: 0
 
-    val paidDop = activeEvent?.paidDepositDop ?: 1350
-    val totalDop = (activeEvent?.totalDop ?: 4500).coerceAtLeast(1)
+    val paidDop = activeEvent?.paidDepositDop ?: 0
+    val totalDop = (activeEvent?.totalDop ?: 0).coerceAtLeast(1)
     val paidFraction = (paidDop.toFloat() / totalDop.toFloat()).coerceIn(0f, 1f)
     val paidPercent = (paidFraction * 100).toInt()
     val vmFeedback = viewModel?.formFeedback?.collectAsState()?.value
 
     var showMoreActionsSheet by remember { mutableStateOf(false) }
+    var showCalendarSyncPopup by remember { mutableStateOf(false) }
     var localActionFeedback by remember { mutableStateOf<String?>(null) }
     val visibleBannerMessage = localActionFeedback ?: vmFeedback
+    val activeEventId = activeEvent?.id.orEmpty()
+    val hasDismissedAutoPrompt = activeEventId.isEmpty() || activeEventId in dismissedCalendarIds
+    val shouldDisplayCalendarModal = if (showCalendarSyncPopup) true else !hasDismissedAutoPrompt
 
     RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -2112,6 +2115,85 @@ internal fun RenderEventDetailScreenS40(
                     )
                 }
 
+                if (isQuotePendingApproval) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = false)
+                            .clip(RoundedCornerShape(22.dp))
+                            .background(Color(0xFFFAF5FF))
+                            .border(1.dp, Color(0xFFE5D7FA), RoundedCornerShape(22.dp))
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        BasicText(
+                            text = "Cotización en revisión · Habla con Rosa",
+                            style = TextStyle(
+                                fontFamily = typo.displayFamily,
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 15.sp,
+                                color = Color(0xFF5D34B5),
+                            ),
+                        )
+                        BasicText(
+                            text = "Nuestro equipo prepara los detalles y tareas de tu evento. ¿Quieres ajustar algo ahora?",
+                            style = TextStyle(
+                                fontFamily = typo.bodyFamily,
+                                fontSize = 13.sp,
+                                lineHeight = 18.sp,
+                                color = RfThemeState.currentPalette.muted,
+                            ),
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(40.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(Color(0xFFEFE8FD))
+                                    .clickable { onSelectScreenCode("s41") },
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                BasicText(
+                                    text = "Chat en la app",
+                                    style = TextStyle(
+                                        fontFamily = typo.bodyFamily,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 13.sp,
+                                        color = Color(0xFF7A4FD8),
+                                    ),
+                                )
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(40.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(Color(0xFFE7F9EE))
+                                    .clickable {
+                                        viewModel?.openWhatsAppChat(
+                                            message = "Hola Rosa Fiesta, quiero conversar sobre mi solicitud para $eventTitle ($eventSubtitle).",
+                                        )
+                                    },
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                BasicText(
+                                    text = "WhatsApp Rosa",
+                                    style = TextStyle(
+                                        fontFamily = typo.bodyFamily,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 13.sp,
+                                        color = Color(0xFF1E7E45),
+                                    ),
+                                )
+                            }
+                        }
+                    }
+                }
+
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -2253,16 +2335,6 @@ internal fun RenderEventDetailScreenS40(
                     Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(RfThemeState.currentPalette.lineSoft))
 
                     ActionMenuRow(
-                        title = "Checklist y pagos",
-                        subtitle = "$completedStepsCount de $totalStepsCount pasos listos",
-                        icon = RfIconKind.WALLET,
-                        iconBg = Color(0xFFFDE6F2),
-                        iconTint = Color(0xFFC2338F),
-                        onClick = { onSelectScreenCode("s46") },
-                    )
-                    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(RfThemeState.currentPalette.lineSoft))
-
-                    ActionMenuRow(
                         title = "Lista de invitados",
                         subtitle = "$confirmedGuestsCount confirmados de $totalRegisteredGuests registrados",
                         icon = RfIconKind.GUESTS,
@@ -2278,91 +2350,189 @@ internal fun RenderEventDetailScreenS40(
                         icon = RfIconKind.CALENDAR,
                         iconBg = Color(0xFFEEF6D6),
                         iconTint = Color(0xFF5E7A12),
-                        onClick = {
-                            val calendarUrl = buildGoogleCalendarTemplateUrl(
-                                eventTitle = eventTitle,
-                                venue = activeVenue,
-                                dateSummary = eventSubtitle,
-                            )
-                            val openedCalendar = viewModel?.openExternalUrl(calendarUrl) == true
-                            if (openedCalendar) {
-                                localActionFeedback = "Abriendo Google Calendar para $eventTitle."
-                            }
-                        },
+                        onClick = { showCalendarSyncPopup = true },
                     )
                 }
 
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = false)
-                        .clip(RoundedCornerShape(22.dp))
-                        .background(RfThemeState.currentPalette.surface)
-                        .border(1.dp, Color(0xFFF0EDF3), RoundedCornerShape(22.dp))
-                        .clickable { onSelectScreenCode("s82") }
-                        .padding(horizontal = 18.dp, vertical = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
+                if (isQuotePendingApproval) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = false)
+                            .clip(RoundedCornerShape(22.dp))
+                            .background(RfThemeState.currentPalette.surface)
+                            .border(1.dp, Color(0xFFF0EDF3), RoundedCornerShape(22.dp))
+                            .padding(horizontal = 18.dp, vertical = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            BasicText(
+                                text = "Cotización y pago",
+                                style = TextStyle(
+                                    fontFamily = typo.bodyFamily,
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = RfThemeState.currentPalette.ink,
+                                ),
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .height(24.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFFFFF2C9))
+                                    .padding(horizontal = 9.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                BasicText(
+                                    text = "Pendiente de envío",
+                                    style = TextStyle(
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF7A5700),
+                                    ),
+                                )
+                            }
+                        }
                         BasicText(
-                            text = "Pagos",
+                            text = "Cuando el administrador envíe tu cotización y la apruebes al final, el botón de pago se habilitará aquí.",
                             style = TextStyle(
                                 fontFamily = typo.bodyFamily,
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = RfThemeState.currentPalette.ink,
+                                fontSize = 13.sp,
+                                lineHeight = 18.sp,
+                                color = RfThemeState.currentPalette.muted,
                             ),
                         )
                         Box(
                             modifier = Modifier
-                                .height(24.dp)
-                                .clip(CircleShape)
-                                .background(Color(0xFFEEF6D6))
-                                .padding(horizontal = 9.dp),
+                                .fillMaxWidth()
+                                .height(42.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color(0xFFEFE8FD))
+                                .clickable { onSelectScreenCode("s48") },
                             contentAlignment = Alignment.Center,
                         ) {
                             BasicText(
-                                text = "$paidPercent% pagado",
+                                text = "Ver estado de cotización",
                                 style = TextStyle(
-                                    fontSize = 12.sp,
+                                    fontFamily = typo.bodyFamily,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF4E5A12),
+                                    fontSize = 13.sp,
+                                    color = Color(0xFF7A4FD8),
                                 ),
                             )
                         }
                     }
-
-                    Box(
+                } else {
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(8.dp)
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(Color(0xFFEEEDF2)),
+                            .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = false)
+                            .clip(RoundedCornerShape(22.dp))
+                            .background(RfThemeState.currentPalette.surface)
+                            .border(1.dp, Color(0xFFF0EDF3), RoundedCornerShape(22.dp))
+                            .clickable { onSelectScreenCode("s50") }
+                            .padding(horizontal = 18.dp, vertical = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            BasicText(
+                                text = "Pago final",
+                                style = TextStyle(
+                                    fontFamily = typo.bodyFamily,
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = RfThemeState.currentPalette.ink,
+                                ),
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .height(24.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFFEEF6D6))
+                                    .padding(horizontal = 9.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                BasicText(
+                                    text = "$paidPercent% pagado",
+                                    style = TextStyle(
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF4E5A12),
+                                    ),
+                                )
+                            }
+                        }
+
                         Box(
                             modifier = Modifier
-                                .fillMaxWidth(paidFraction)
-                                .fillMaxHeight()
+                                .fillMaxWidth()
+                                .height(8.dp)
                                 .clip(RoundedCornerShape(4.dp))
-                                .background(Brush.horizontalGradient(listOf(Color(0xFFCFE48A), Color(0xFFA9CC3A)))),
-                        )
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            BasicText("Pagado", style = TextStyle(fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
-                            BasicText("RD$ $paidDop", style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF5E7A12)))
+                                .background(Color(0xFFEEEDF2)),
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth(paidFraction)
+                                    .fillMaxHeight()
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(Brush.horizontalGradient(listOf(Color(0xFFCFE48A), Color(0xFFA9CC3A)))),
+                            )
                         }
-                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            BasicText("Total", style = TextStyle(fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
-                            BasicText("RD$ $totalDop", style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = RfThemeState.currentPalette.ink))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                BasicText("Pagado", style = TextStyle(fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
+                                BasicText("RD$ $paidDop", style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF5E7A12)))
+                            }
+                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                BasicText("Total", style = TextStyle(fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
+                                BasicText("RD$ $totalDop", style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = RfThemeState.currentPalette.ink))
+                            }
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(42.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(RfThemeState.currentPalette.chipBg)
+                                    .clickable { onSelectScreenCode("s82") },
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                BasicText(
+                                    text = "Ver recibos",
+                                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = RfThemeState.currentPalette.ink),
+                                )
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(42.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(RosaButtonGradient)
+                                    .clickable { onSelectScreenCode("s50") },
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                BasicText(
+                                    text = "Pagar ahora",
+                                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White),
+                                )
+                            }
                         }
                     }
                 }
@@ -2424,14 +2594,14 @@ internal fun RenderEventDetailScreenS40(
                             },
                         )
                         ActionMenuRow(
-                            title = "Checklist y pagos",
-                            subtitle = "Pasos previos y saldo pendiente",
+                            title = if (isQuotePendingApproval) "Ver cotización" else "Pagos y recibos",
+                            subtitle = if (isQuotePendingApproval) "Estado de revisión y aprobación" else "Pagar saldo o descargar comprobantes",
                             icon = RfIconKind.WALLET,
                             iconBg = Color(0xFFFDE6F2),
                             iconTint = Color(0xFFC2338F),
                             onClick = {
                                 showMoreActionsSheet = false
-                                onSelectScreenCode("s46")
+                                onSelectScreenCode(if (isQuotePendingApproval) "s48" else "s50")
                             },
                         )
                         ActionMenuRow(
@@ -2469,6 +2639,111 @@ internal fun RenderEventDetailScreenS40(
                                 onSelectScreenCode("s85")
                             },
                         )
+                    }
+                }
+            }
+
+            if (shouldDisplayCalendarModal) {
+                val dismissCalendarPrompt = {
+                    if (activeEventId.isNotEmpty()) {
+                        viewModel?.markCalendarPromptDismissed(activeEventId)
+                    }
+                    showCalendarSyncPopup = false
+                }
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .zIndex(14f)
+                        .background(Color.Black.copy(alpha = 0.45f))
+                        .clickable(onClick = dismissCalendarPrompt)
+                        .padding(horizontal = 24.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(24.dp))
+                            .background(RfThemeState.currentPalette.surface)
+                            .clickable(enabled = false) {}
+                            .padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(38.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(Color(0xFFEEF6D6)),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                RfIcon(kind = RfIconKind.CALENDAR, tint = Color(0xFF5E7A12), size = 20.dp)
+                            }
+                            BasicText(
+                                text = "¿Sincronizar con tu calendario?",
+                                style = TextStyle(
+                                    fontFamily = typo.displayFamily,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 17.sp,
+                                    color = RfThemeState.currentPalette.ink,
+                                ),
+                            )
+                        }
+                        BasicText(
+                            text = "Agrega $eventTitle ($eventSubtitle) a tu Google o Apple Calendar para recibir recordatorios del día del evento.",
+                            style = TextStyle(
+                                fontFamily = typo.bodyFamily,
+                                fontSize = 14.sp,
+                                lineHeight = 20.sp,
+                                color = RfThemeState.currentPalette.muted,
+                            ),
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(44.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(RfThemeState.currentPalette.chipBg)
+                                    .clickable(onClick = dismissCalendarPrompt),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                BasicText(
+                                    text = "Ahora no",
+                                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = RfThemeState.currentPalette.ink),
+                                )
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(44.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(RosaButtonGradient)
+                                    .clickable {
+                                        val calendarUrl = buildGoogleCalendarTemplateUrl(
+                                            eventTitle = eventTitle,
+                                            venue = activeVenue,
+                                            dateSummary = eventSubtitle,
+                                        )
+                                        val openedCalendar = viewModel?.openExternalUrl(calendarUrl) == true
+                                        if (openedCalendar) {
+                                            localActionFeedback = "Calendario sincronizado para $eventTitle."
+                                        }
+                                        dismissCalendarPrompt()
+                                    },
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                BasicText(
+                                    text = "Sincronizar",
+                                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White),
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -4258,351 +4533,412 @@ internal fun RenderGuestsScreenS47(
     val confirmedCount = guestItems.count { guestItem -> guestItem.status == "Confirmado" }
     val pendingCount = guestItems.count { guestItem -> guestItem.status == "Pendiente" }
     val declinedCount = guestItems.count { guestItem -> guestItem.status == "Rechazado" }
+    val isWizardMode = viewModel?.guestsWizardMode?.collectAsState()?.value ?: false
 
     RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         Box(modifier = Modifier.fillMaxSize()) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 30.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+            Column(modifier = Modifier.fillMaxSize()) {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                        .padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(44.dp)
-                            .rfIconButtonShadow(CircleShape, isAdmin = false)
-                            .clip(CircleShape)
-                            .background(RfThemeState.currentPalette.surface)
-                            .clickable { onSelectScreenCode("BACK:s40") },
-                        contentAlignment = Alignment.Center,
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        RfIcon(kind = RfIconKind.BACK, tint = RfThemeState.currentPalette.ink, size = 22.dp)
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .rfIconButtonShadow(CircleShape, isAdmin = false)
+                                .clip(CircleShape)
+                                .background(RfThemeState.currentPalette.surface)
+                                .clickable {
+                                    if (isWizardMode) {
+                                        viewModel.setGuestsWizardMode(false)
+                                        onSelectScreenCode("BACK:s36")
+                                    } else {
+                                        onSelectScreenCode("BACK:s40")
+                                    }
+                                },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            RfIcon(kind = RfIconKind.BACK, tint = RfThemeState.currentPalette.ink, size = 22.dp)
+                        }
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            BasicText(
+                                text = "Invitados",
+                                style = TextStyle(
+                                    fontFamily = typo.displayFamily,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 20.sp,
+                                    lineHeight = 22.sp,
+                                    color = RfThemeState.currentPalette.ink,
+                                ),
+                            )
+                            BasicText(
+                                text = if (isWizardMode) {
+                                    "Opcional · Puedes omitir o agregar invitados"
+                                } else {
+                                    "${guestItems.size} registrados · ${event.title}"
+                                },
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                style = TextStyle(
+                                    fontFamily = typo.bodyFamily,
+                                    fontSize = 13.sp,
+                                    color = RfThemeState.currentPalette.muted,
+                                ),
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .rfIconButtonShadow(CircleShape, isAdmin = false)
+                                .clip(CircleShape)
+                                .background(RosaButtonGradient)
+                                .clickable {
+                                    guestFormError = null
+                                    showAddGuestModal = true
+                                },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            RfIcon(kind = RfIconKind.PLUS, tint = Color.White, size = 22.dp)
+                        }
                     }
 
-                    Column(modifier = Modifier.weight(1f)) {
-                        BasicText(
-                            text = "Invitados",
-                            style = TextStyle(
-                                fontFamily = typo.displayFamily,
-                                fontWeight = FontWeight.ExtraBold,
-                                fontSize = 20.sp,
-                                lineHeight = 22.sp,
-                                color = RfThemeState.currentPalette.ink,
-                            ),
-                        )
-                        BasicText(
-                            text = "${guestItems.size} registrados · ${event.title}",
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            style = TextStyle(
-                                fontFamily = typo.bodyFamily,
-                                fontSize = 13.sp,
-                                color = RfThemeState.currentPalette.muted,
-                            ),
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        val isConfirmedFilter = selectedStatusFilter == "Confirmado"
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .rfCardShadow(RoundedCornerShape(18.dp), isAdmin = false)
+                                .clip(RoundedCornerShape(18.dp))
+                                .background(Color(0xFFEEF6D6))
+                                .then(
+                                    if (isConfirmedFilter) {
+                                        Modifier.border(2.dp, Color(0xFF4E6A10), RoundedCornerShape(18.dp))
+                                    } else {
+                                        Modifier
+                                    },
+                                )
+                                .clickable {
+                                    selectedStatusFilter = if (isConfirmedFilter) "Todos" else "Confirmado"
+                                }
+                                .padding(12.dp),
+                        ) {
+                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                BasicText(
+                                    text = "Confirmados",
+                                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, color = RfThemeState.currentPalette.muted, fontSize = 12.sp),
+                                )
+                                BasicText(
+                                    text = "$confirmedCount",
+                                    style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, color = Color(0xFF4E6A10), fontSize = 24.sp),
+                                )
+                            }
+                        }
+
+                        val isPendingFilter = selectedStatusFilter == "Pendiente"
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .rfCardShadow(RoundedCornerShape(18.dp), isAdmin = false)
+                                .clip(RoundedCornerShape(18.dp))
+                                .background(Color(0xFFFFF2C9))
+                                .then(
+                                    if (isPendingFilter) {
+                                        Modifier.border(2.dp, Color(0xFF7A5700), RoundedCornerShape(18.dp))
+                                    } else {
+                                        Modifier
+                                    },
+                                )
+                                .clickable {
+                                    selectedStatusFilter = if (isPendingFilter) "Todos" else "Pendiente"
+                                }
+                                .padding(12.dp),
+                        ) {
+                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                BasicText(
+                                    text = "Pendientes",
+                                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, color = RfThemeState.currentPalette.muted, fontSize = 12.sp),
+                                )
+                                BasicText(
+                                    text = "$pendingCount",
+                                    style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, color = Color(0xFF7A5700), fontSize = 24.sp),
+                                )
+                            }
+                        }
+
+                        val isDeclinedFilter = selectedStatusFilter == "Rechazado"
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .rfCardShadow(RoundedCornerShape(18.dp), isAdmin = false)
+                                .clip(RoundedCornerShape(18.dp))
+                                .background(Color(0xFFFDE6F2))
+                                .then(
+                                    if (isDeclinedFilter) {
+                                        Modifier.border(2.dp, Color(0xFFB42345), RoundedCornerShape(18.dp))
+                                    } else {
+                                        Modifier
+                                    },
+                                )
+                                .clickable {
+                                    selectedStatusFilter = if (isDeclinedFilter) "Todos" else "Rechazado"
+                                }
+                                .padding(12.dp),
+                        ) {
+                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                BasicText(
+                                    text = "Rechazados",
+                                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, color = RfThemeState.currentPalette.muted, fontSize = 12.sp),
+                                )
+                                BasicText(
+                                    text = "$declinedCount",
+                                    style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, color = Color(0xFFB42345), fontSize = 24.sp),
+                                )
+                            }
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp)
+                            .rfInputShadow(RoundedCornerShape(16.dp))
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(RfThemeState.currentPalette.surface)
+                            .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(16.dp))
+                            .padding(horizontal = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        RfIcon(kind = RfIconKind.SEARCH, tint = RfThemeState.currentPalette.muted, size = 18.dp)
+                        BasicTextField(
+                            value = searchQuery,
+                            onValueChange = { updatedText -> searchQuery = updatedText },
+                            singleLine = true,
+                            textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.ink),
+                            cursorBrush = SolidColor(Color(0xFFC2338F)),
+                            modifier = Modifier.weight(1f),
+                            decorationBox = { innerTextField ->
+                                if (searchQuery.isEmpty()) {
+                                    BasicText(
+                                        text = "Buscar invitado por nombre o mesa",
+                                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.muted),
+                                    )
+                                }
+                                innerTextField()
+                            },
                         )
                     }
 
                     Box(
                         modifier = Modifier
-                            .size(44.dp)
-                            .rfIconButtonShadow(CircleShape, isAdmin = false)
-                            .clip(CircleShape)
-                            .background(RosaButtonGradient)
+                            .fillMaxWidth()
+                            .height(46.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color(0xFFFDE6F2))
+                            .border(1.dp, Color(0xFFF2C2DF), RoundedCornerShape(16.dp))
                             .clickable {
                                 guestFormError = null
                                 showAddGuestModal = true
                             },
                         contentAlignment = Alignment.Center,
                     ) {
-                        RfIcon(kind = RfIconKind.PLUS, tint = Color.White, size = 22.dp)
-                    }
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    val isConfirmedFilter = selectedStatusFilter == "Confirmado"
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .rfCardShadow(RoundedCornerShape(18.dp), isAdmin = false)
-                            .clip(RoundedCornerShape(18.dp))
-                            .background(Color(0xFFEEF6D6))
-                            .then(
-                                if (isConfirmedFilter) {
-                                    Modifier.border(2.dp, Color(0xFF4E6A10), RoundedCornerShape(18.dp))
-                                } else {
-                                    Modifier
-                                },
-                            )
-                            .clickable {
-                                selectedStatusFilter = if (isConfirmedFilter) "Todos" else "Confirmado"
-                            }
-                            .padding(12.dp),
-                    ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            RfIcon(kind = RfIconKind.PLUS, tint = Color(0xFFC2338F), size = 18.dp)
                             BasicText(
-                                text = "Confirmados",
-                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, color = RfThemeState.currentPalette.muted, fontSize = 12.sp),
-                            )
-                            BasicText(
-                                text = "$confirmedCount",
-                                style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, color = Color(0xFF4E6A10), fontSize = 24.sp),
+                                text = "Agregar invitado",
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFFC2338F)),
                             )
                         }
                     }
 
-                    val isPendingFilter = selectedStatusFilter == "Pendiente"
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .rfCardShadow(RoundedCornerShape(18.dp), isAdmin = false)
-                            .clip(RoundedCornerShape(18.dp))
-                            .background(Color(0xFFFFF2C9))
-                            .then(
-                                if (isPendingFilter) {
-                                    Modifier.border(2.dp, Color(0xFF7A5700), RoundedCornerShape(18.dp))
-                                } else {
-                                    Modifier
-                                },
-                            )
-                            .clickable {
-                                selectedStatusFilter = if (isPendingFilter) "Todos" else "Pendiente"
-                            }
-                            .padding(12.dp),
-                    ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            BasicText(
-                                text = "Pendientes",
-                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, color = RfThemeState.currentPalette.muted, fontSize = 12.sp),
-                            )
-                            BasicText(
-                                text = "$pendingCount",
-                                style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, color = Color(0xFF7A5700), fontSize = 24.sp),
-                            )
+                    val filteredGuests = guestItems.filter { guestItem ->
+                        val matchesStatus = if (selectedStatusFilter == "Todos") {
+                            true
+                        } else {
+                            guestItem.status == selectedStatusFilter
                         }
-                    }
-
-                    val isDeclinedFilter = selectedStatusFilter == "Rechazado"
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .rfCardShadow(RoundedCornerShape(18.dp), isAdmin = false)
-                            .clip(RoundedCornerShape(18.dp))
-                            .background(Color(0xFFFDE6F2))
-                            .then(
-                                if (isDeclinedFilter) {
-                                    Modifier.border(2.dp, Color(0xFFB42345), RoundedCornerShape(18.dp))
-                                } else {
-                                    Modifier
-                                },
-                            )
-                            .clickable {
-                                selectedStatusFilter = if (isDeclinedFilter) "Todos" else "Rechazado"
-                            }
-                            .padding(12.dp),
-                    ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            BasicText(
-                                text = "Rechazados",
-                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, color = RfThemeState.currentPalette.muted, fontSize = 12.sp),
-                            )
-                            BasicText(
-                                text = "$declinedCount",
-                                style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, color = Color(0xFFB42345), fontSize = 24.sp),
-                            )
+                        val trimmedSearch = searchQuery.trim()
+                        val matchesSearch = if (trimmedSearch.isEmpty()) {
+                            true
+                        } else {
+                            "${guestItem.name} ${guestItem.details}".contains(trimmedSearch, ignoreCase = true)
                         }
+                        if (matchesStatus) matchesSearch else false
                     }
-                }
 
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp)
-                        .rfInputShadow(RoundedCornerShape(16.dp))
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(RfThemeState.currentPalette.surface)
-                        .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(16.dp))
-                        .padding(horizontal = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    RfIcon(kind = RfIconKind.SEARCH, tint = RfThemeState.currentPalette.muted, size = 18.dp)
-                    BasicTextField(
-                        value = searchQuery,
-                        onValueChange = { updatedText -> searchQuery = updatedText },
-                        singleLine = true,
-                        textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.ink),
-                        cursorBrush = SolidColor(Color(0xFFC2338F)),
-                        modifier = Modifier.weight(1f),
-                        decorationBox = { innerTextField ->
-                            if (searchQuery.isEmpty()) {
-                                BasicText(
-                                    text = "Buscar invitado por nombre o mesa",
-                                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.muted),
-                                )
-                            }
-                            innerTextField()
-                        },
-                    )
-                }
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(46.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Color(0xFFFDE6F2))
-                        .border(1.dp, Color(0xFFF2C2DF), RoundedCornerShape(16.dp))
-                        .clickable {
-                            guestFormError = null
-                            showAddGuestModal = true
-                        },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        RfIcon(kind = RfIconKind.PLUS, tint = Color(0xFFC2338F), size = 18.dp)
-                        BasicText(
-                            text = "Agregar invitado",
-                            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFFC2338F)),
-                        )
-                    }
-                }
-
-                val filteredGuests = guestItems.filter { guestItem ->
-                    val matchesStatus = if (selectedStatusFilter == "Todos") {
-                        true
-                    } else {
-                        guestItem.status == selectedStatusFilter
-                    }
-                    val trimmedSearch = searchQuery.trim()
-                    val matchesSearch = if (trimmedSearch.isEmpty()) {
-                        true
-                    } else {
-                        "${guestItem.name} ${guestItem.details}".contains(trimmedSearch, ignoreCase = true)
-                    }
-                    if (matchesStatus) matchesSearch else false
-                }
-
-                if (filteredGuests.isEmpty()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(18.dp))
-                            .background(RfThemeState.currentPalette.surface)
-                            .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(18.dp))
-                            .padding(16.dp),
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
+                    if (filteredGuests.isEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(18.dp))
+                                .background(RfThemeState.currentPalette.surface)
+                                .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(18.dp))
+                                .padding(16.dp),
                         ) {
-                            BasicText(
-                                text = "Sin invitados con filtro '$selectedStatusFilter'",
-                                modifier = Modifier.weight(1f),
-                                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = RfThemeState.currentPalette.muted),
-                            )
-                            if (selectedStatusFilter != "Todos") {
-                                Box(
-                                    modifier = Modifier
-                                        .height(30.dp)
-                                        .clip(RoundedCornerShape(999.dp))
-                                        .background(Color(0xFFFDE6F2))
-                                        .clickable { selectedStatusFilter = "Todos" }
-                                        .padding(horizontal = 10.dp),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    BasicText(
-                                        text = "Ver todos",
-                                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFFC2338F)),
-                                    )
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        filteredGuests.forEach { guestItem ->
-                            val (badgeBg, badgeTextColor) = when (guestItem.status) {
-                                "Confirmado" -> Color(0xFFEEF6D6) to Color(0xFF4E6A10)
-                                "Rechazado" -> Color(0xFFFCE8E8) to Color(0xFFB42345)
-                                else -> Color(0xFFFFF2C9) to Color(0xFF7A5700)
-                            }
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
-                                    .clip(RoundedCornerShape(20.dp))
-                                    .background(RfThemeState.currentPalette.surface)
-                                    .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(20.dp))
-                                    .clickable {
-                                        if (viewModel != null) {
-                                            viewModel.toggleEventGuestStatus(guestItem.id)
-                                        } else {
-                                            fallbackGuests = fallbackGuests.map { currentGuest ->
-                                                if (currentGuest.id == guestItem.id) {
-                                                    val nextStatus = when (currentGuest.status) {
-                                                        "Confirmado" -> "Pendiente"
-                                                        "Pendiente" -> "Rechazado"
-                                                        else -> "Confirmado"
-                                                    }
-                                                    currentGuest.copy(status = nextStatus)
-                                                } else {
-                                                    currentGuest
-                                                }
-                                            }
-                                        }
-                                    }
-                                    .padding(14.dp),
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                ) {
-                                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                                        BasicText(
-                                            text = guestItem.name,
-                                            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, color = RfThemeState.currentPalette.ink, fontSize = 15.sp),
-                                        )
-                                        BasicText(
-                                            text = guestItem.details,
-                                            style = TextStyle(fontFamily = typo.bodyFamily, color = RfThemeState.currentPalette.muted, fontSize = 13.sp),
-                                        )
-                                    }
+                                BasicText(
+                                    text = "Sin invitados con filtro '$selectedStatusFilter'",
+                                    modifier = Modifier.weight(1f),
+                                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = RfThemeState.currentPalette.muted),
+                                )
+                                if (selectedStatusFilter != "Todos") {
                                     Box(
                                         modifier = Modifier
-                                            .height(24.dp)
-                                            .clip(CircleShape)
-                                            .background(badgeBg)
-                                            .padding(horizontal = 9.dp),
+                                            .height(30.dp)
+                                            .clip(RoundedCornerShape(999.dp))
+                                            .background(Color(0xFFFDE6F2))
+                                            .clickable { selectedStatusFilter = "Todos" }
+                                            .padding(horizontal = 10.dp),
                                         contentAlignment = Alignment.Center,
                                     ) {
                                         BasicText(
-                                            text = guestItem.status,
-                                            style = TextStyle(
-                                                fontFamily = typo.bodyFamily,
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 12.sp,
-                                                color = badgeTextColor,
-                                            ),
+                                            text = "Ver todos",
+                                            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFFC2338F)),
                                         )
                                     }
                                 }
                             }
                         }
+                    } else {
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            filteredGuests.forEach { guestItem ->
+                                val (badgeBg, badgeTextColor) = when (guestItem.status) {
+                                    "Confirmado" -> Color(0xFFEEF6D6) to Color(0xFF4E6A10)
+                                    "Rechazado" -> Color(0xFFFCE8E8) to Color(0xFFB42345)
+                                    else -> Color(0xFFFFF2C9) to Color(0xFF7A5700)
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
+                                        .clip(RoundedCornerShape(20.dp))
+                                        .background(RfThemeState.currentPalette.surface)
+                                        .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(20.dp))
+                                        .clickable {
+                                            if (viewModel != null) {
+                                                viewModel.toggleEventGuestStatus(guestItem.id)
+                                            } else {
+                                                fallbackGuests = fallbackGuests.map { currentGuest ->
+                                                    if (currentGuest.id == guestItem.id) {
+                                                        val nextStatus = when (currentGuest.status) {
+                                                            "Confirmado" -> "Pendiente"
+                                                            "Pendiente" -> "Rechazado"
+                                                            else -> "Confirmado"
+                                                        }
+                                                        currentGuest.copy(status = nextStatus)
+                                                    } else {
+                                                        currentGuest
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        .padding(14.dp),
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                            BasicText(
+                                                text = guestItem.name,
+                                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, color = RfThemeState.currentPalette.ink, fontSize = 15.sp),
+                                            )
+                                            BasicText(
+                                                text = guestItem.details,
+                                                style = TextStyle(fontFamily = typo.bodyFamily, color = RfThemeState.currentPalette.muted, fontSize = 13.sp),
+                                            )
+                                        }
+                                        Box(
+                                            modifier = Modifier
+                                                .height(24.dp)
+                                                .clip(CircleShape)
+                                                .background(badgeBg)
+                                                .padding(horizontal = 9.dp),
+                                            contentAlignment = Alignment.Center,
+                                        ) {
+                                            BasicText(
+                                                text = guestItem.status,
+                                                style = TextStyle(
+                                                    fontFamily = typo.bodyFamily,
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 12.sp,
+                                                    color = badgeTextColor,
+                                                ),
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
+
+                    Spacer(modifier = Modifier.height(12.dp))
                 }
 
-                Spacer(modifier = Modifier.height(30.dp))
+                if (isWizardMode) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 14.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(52.dp)
+                                .rfCardShadow(RoundedCornerShape(16.dp), isAdmin = false)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(RfThemeState.currentPalette.surface)
+                                .clickable {
+                                    viewModel.setGuestsWizardMode(false)
+                                    onSelectScreenCode("s32")
+                                },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            BasicText(
+                                text = "Omitir",
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = RfThemeState.currentPalette.ink),
+                            )
+                        }
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(52.dp)
+                                .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(RosaButtonGradient)
+                                .clickable {
+                                    viewModel.setGuestsWizardMode(false)
+                                    onSelectScreenCode("s32")
+                                },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            BasicText(
+                                text = "Continuar",
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp, color = Color.White),
+                            )
+                        }
+                    }
+                }
             }
 
             if (showAddGuestModal) {

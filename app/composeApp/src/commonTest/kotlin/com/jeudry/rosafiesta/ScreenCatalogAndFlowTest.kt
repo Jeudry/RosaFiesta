@@ -723,4 +723,32 @@ class ScreenCatalogAndFlowTest {
         onNodeWithTag("payments-tab-1").performClick()
         onNodeWithText("COMPROBANTES EMITIDOS").assertExists()
     }
+
+    @Test
+    fun `flujo Rosa IA conserva titulo horarios presupuesto y selecciona el evento creado`() {
+        assertEquals("s31", ScreenCatalog.defaultNextCode("s30"))
+        assertEquals("s36", ScreenCatalog.defaultNextCode("s31"))
+
+        val koin = org.koin.dsl.koinApplication {
+            modules(com.jeudry.rosafiesta.di.appModule)
+        }.koin
+        val viewModel = koin.get<RosaFiestaViewModel>()
+
+        viewModel.setEventTypeInput("Boda")
+        viewModel.setClientEventTitleInput("Boda Jardín Encantado")
+        viewModel.setRosaBudgetDop(75000)
+        viewModel.setEventDateInput("25/10/2026")
+        viewModel.setEventGuestsInput("120")
+        viewModel.setEventVenueInput("Jardín Botánico Nacional")
+        viewModel.addWizardScheduleItem("18:00", "19:00", "Ceremonia al aire libre")
+
+        assertTrue(viewModel.submitQuickClientEvent())
+        val createdEvent = viewModel.activeClientEvent()
+        assertEquals("Boda Jardín Encantado", createdEvent.title)
+        assertTrue(viewModel.eventTimelineItems.value.any { timelineBlock -> timelineBlock.title == "Ceremonia al aire libre" })
+
+        val eventId = createdEvent.id
+        viewModel.markCalendarPromptDismissed(eventId)
+        assertTrue(eventId in viewModel.calendarSyncPromptDismissedIds.value)
+    }
 }
