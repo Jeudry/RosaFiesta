@@ -3,15 +3,13 @@ package com.jeudry.rosafiesta
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ContentTransform
+import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
 import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -279,7 +277,9 @@ public fun RosaFiestaApp(
                 val transitionKind = navigator.lastTransition
                 AnimatedContent(
                     targetState = spec,
-                    transitionSpec = { buildScreenTransition(transitionKind) },
+                    transitionSpec = {
+                        buildScreenTransition(transitionKind).using(SizeTransform(clip = false))
+                    },
                     contentKey = { screenItem -> screenAnimationGroupKey(screenItem.code) },
                     label = "rf-screen-transition",
                 ) { targetSpec ->
@@ -363,41 +363,46 @@ private fun buildScreenTransition(kind: NavigationTransitionKind): ContentTransf
             fadeOut(
                 animationSpec = tween(durationMillis = 150, easing = FastOutSlowInEasing),
             ),
-        )
+        ).apply {
+            targetContentZIndex = 1f
+        }
 
     NavigationTransitionKind.FORWARD -> (
         slideInHorizontally(
-            animationSpec = tween(durationMillis = 260, easing = FastOutSlowInEasing),
-            initialOffsetX = { fullWidth -> fullWidth / 6 },
-        ) + fadeIn(animationSpec = tween(durationMillis = 220))
+            animationSpec = tween(durationMillis = 240, easing = FastOutSlowInEasing),
+            initialOffsetX = { fullWidth -> fullWidth / 3 },
+        ) + fadeIn(animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing))
         ).togetherWith(
         slideOutHorizontally(
-            animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing),
-            targetOffsetX = { fullWidth -> -fullWidth / 8 },
-        ) + fadeOut(animationSpec = tween(durationMillis = 180)),
-    )
+            animationSpec = tween(durationMillis = 240, easing = FastOutSlowInEasing),
+            targetOffsetX = { fullWidth -> -fullWidth / 5 },
+        ) + fadeOut(animationSpec = tween(durationMillis = 180, easing = FastOutSlowInEasing)),
+    ).apply {
+        targetContentZIndex = 1f
+    }
 
     NavigationTransitionKind.BACKWARD -> (
         slideInHorizontally(
-            animationSpec = tween(durationMillis = 240, easing = FastOutSlowInEasing),
-            initialOffsetX = { fullWidth -> -fullWidth / 6 },
-        ) + fadeIn(animationSpec = tween(durationMillis = 200))
+            animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing),
+            initialOffsetX = { fullWidth -> -fullWidth / 5 },
+        ) + fadeIn(animationSpec = tween(durationMillis = 200, easing = FastOutSlowInEasing))
         ).togetherWith(
         slideOutHorizontally(
-            animationSpec = tween(durationMillis = 200, easing = FastOutSlowInEasing),
-            targetOffsetX = { fullWidth -> fullWidth / 8 },
-        ) + fadeOut(animationSpec = tween(durationMillis = 160)),
-    )
+            animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing),
+            targetOffsetX = { fullWidth -> fullWidth / 3 },
+        ) + fadeOut(animationSpec = tween(durationMillis = 180, easing = FastOutSlowInEasing)),
+    ).apply {
+        targetContentZIndex = 0f
+    }
 
-    NavigationTransitionKind.TAB_SWITCH, NavigationTransitionKind.NONE -> (
-        fadeIn(animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing)) +
-            scaleIn(
-                initialScale = 0.985f,
-                animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing),
-            )
+    NavigationTransitionKind.TAB_SWITCH, NavigationTransitionKind.NONE ->
+        fadeIn(
+            animationSpec = tween(durationMillis = 180, easing = FastOutSlowInEasing),
         ).togetherWith(
-        fadeOut(animationSpec = tween(durationMillis = 160)),
-    )
+            fadeOut(
+                animationSpec = tween(durationMillis = 140, easing = FastOutSlowInEasing),
+            ),
+        )
 }
 
 private fun screenAnimationGroupKey(code: String): String = when (code) {

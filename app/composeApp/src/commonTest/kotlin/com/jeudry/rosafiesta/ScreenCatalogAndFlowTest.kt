@@ -674,4 +674,38 @@ class ScreenCatalogAndFlowTest {
         onNodeWithText("¿Qué celebramos hoy? (sillas, arcos, mesas...)").assertExists()
         onNodeWithText("Buscar sillas, mesas, arcos...").assertDoesNotExist()
     }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun `pantalla s82 separa proximos pagos e historial en pestanas y Navigator mantiene transiciones simetricas`() = runComposeUiTest {
+        val navigator = Navigator(AppView.PERSONAL, "s14")
+        navigator.navigateTo("s21")
+        assertEquals(com.jeudry.rosafiesta.ui.NavigationTransitionKind.FORWARD, navigator.lastTransition)
+
+        navigator.navigateTo("BACK:s14")
+        assertEquals(com.jeudry.rosafiesta.ui.NavigationTransitionKind.BACKWARD, navigator.lastTransition)
+
+        navigator.navigateTo("s18")
+        assertEquals(com.jeudry.rosafiesta.ui.NavigationTransitionKind.TAB_SWITCH, navigator.lastTransition)
+        navigator.navigateTo("s19")
+        assertEquals(com.jeudry.rosafiesta.ui.NavigationTransitionKind.FORWARD, navigator.lastTransition)
+        navigator.navigateTo("s18")
+        assertEquals(com.jeudry.rosafiesta.ui.NavigationTransitionKind.TAB_SWITCH, navigator.lastTransition)
+
+        setContent {
+            com.jeudry.rosafiesta.ui.RenderScreenSpec(
+                spec = ScreenCatalog.findByCode("s82"),
+                isFrameHarness = false,
+                includeBottomBar = false,
+            )
+        }
+
+        onNodeWithTag("payments-tab-0").assertExists()
+        onNodeWithTag("payments-tab-1").assertExists()
+        onNodeWithText("PRÓXIMOS PAGOS").assertExists()
+        onNodeWithText("Método de pago preferido").assertExists()
+
+        onNodeWithTag("payments-tab-1").performClick()
+        onNodeWithText("COMPROBANTES EMITIDOS").assertExists()
+    }
 }

@@ -57,6 +57,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -1000,6 +1001,7 @@ internal fun RenderPersonalPaymentsS82(
     val savedPaymentMethod = viewModel?.savedPaymentMethod?.collectAsState()?.value ?: "Transferencia Banreservas"
     var localSavedMethod by remember(savedPaymentMethod) { mutableStateOf(savedPaymentMethod) }
     var showPaymentMethodSelector by remember { mutableStateOf(false) }
+    var selectedPaymentsTab by remember { mutableStateOf(0) }
 
     val paidFromEvents = userEvents.sumOf { eventItem -> eventItem.paidDepositDop }
     val paidFromReceipts = userPayments.sumOf { paymentItem -> paymentItem.amountDop }
@@ -1013,7 +1015,6 @@ internal fun RenderPersonalPaymentsS82(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
                 .padding(start = 20.dp, end = 20.dp, top = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -1110,224 +1111,304 @@ internal fun RenderPersonalPaymentsS82(
                 }
             }
 
-            BasicText(
-                text = "PRÓXIMOS PAGOS",
-                style = TextStyle(
-                    fontFamily = typo.bodyFamily,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 12.sp,
-                    letterSpacing = 0.96.sp,
-                    color = palette.muted,
-                ),
+            PaymentsSegmentedTabs82(
+                selectedTab = selectedPaymentsTab,
+                pendingCount = pendingEvents.size,
+                historyCount = userPayments.size,
+                onSelectTab = { nextTab -> selectedPaymentsTab = nextTab },
             )
 
             Column(
                 modifier = Modifier
+                    .weight(1f)
                     .fillMaxWidth()
-                    .rfCardShadow(cardShape, isAdmin = false)
-                    .clip(cardShape)
-                    .background(palette.surface),
+                    .verticalScroll(rememberScrollState())
+                    .padding(top = 2.dp, bottom = 36.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                if (userEvents.isEmpty()) {
+                if (selectedPaymentsTab == 0) {
+                    BasicText(
+                        text = "PRÓXIMOS PAGOS",
+                        style = TextStyle(
+                            fontFamily = typo.bodyFamily,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 12.sp,
+                            letterSpacing = 0.96.sp,
+                            color = palette.muted,
+                        ),
+                    )
+
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(20.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                            .rfCardShadow(cardShape, isAdmin = false)
+                            .clip(cardShape)
+                            .background(palette.surface),
                     ) {
-                        BasicText(
-                            text = "Aún no tienes eventos registrados",
-                            style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = palette.ink),
-                        )
-                        BasicText(
-                            text = "Arma tu evento en el catálogo para gestionar tus anticipos y saldos aquí.",
-                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = palette.muted, textAlign = TextAlign.Center),
-                        )
-                        Box(
-                            modifier = Modifier
-                                .padding(top = 2.dp)
-                                .height(36.dp)
-                                .clip(RoundedCornerShape(999.dp))
-                                .background(Color(0xFFFDE6F2))
-                                .clickable { onSelectScreenCode("s18") }
-                                .padding(horizontal = 16.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            BasicText(
-                                text = "Explorar catálogo",
-                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFFC2338F)),
-                            )
-                        }
-                    }
-                } else if (pendingEvents.isEmpty()) {
-                    PendingPaymentRow82(
-                        title = "Todos tus eventos están al día",
-                        due = "Sin saldos pendientes",
-                        dueColor = Color(0xFF4E6A10),
-                        amount = "RD$ 0",
-                        actionLabel = "Ver eventos",
-                        highlighted = false,
-                        onClick = { onSelectScreenCode("s37") },
-                    )
-                } else {
-                    pendingEvents.forEachIndexed { index, eventItem ->
-                        if (index > 0) {
-                            Box(
+                        if (userEvents.isEmpty()) {
+                            Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(1.dp)
-                                    .background(palette.lineSoft),
+                                    .padding(20.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                BasicText(
+                                    text = "Aún no tienes eventos registrados",
+                                    style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = palette.ink),
+                                )
+                                BasicText(
+                                    text = "Arma tu evento en el catálogo para gestionar tus anticipos y saldos aquí.",
+                                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = palette.muted, textAlign = TextAlign.Center),
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .padding(top = 2.dp)
+                                        .height(36.dp)
+                                        .clip(RoundedCornerShape(999.dp))
+                                        .background(Color(0xFFFDE6F2))
+                                        .clickable { onSelectScreenCode("s18") }
+                                        .padding(horizontal = 16.dp),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    BasicText(
+                                        text = "Explorar catálogo",
+                                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFFC2338F)),
+                                    )
+                                }
+                            }
+                        } else if (pendingEvents.isEmpty()) {
+                            PendingPaymentRow82(
+                                title = "Todos tus eventos están al día",
+                                due = "Sin saldos pendientes",
+                                dueColor = Color(0xFF4E6A10),
+                                amount = "RD$ 0",
+                                actionLabel = "Ver eventos",
+                                highlighted = false,
+                                onClick = { onSelectScreenCode("s37") },
                             )
+                        } else {
+                            pendingEvents.forEachIndexed { index, eventItem ->
+                                if (index > 0) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(1.dp)
+                                            .background(palette.lineSoft),
+                                    )
+                                }
+                                val remainingAmount = (eventItem.totalDop - eventItem.paidDepositDop).coerceAtLeast(0)
+                                val actionLabel = if (eventItem.paidDepositDop > 0) "Pagar saldo" else "Abonar"
+                                PendingPaymentRow82(
+                                    title = "${eventItem.title} · saldo",
+                                    due = "Vence ${eventItem.balanceDueDateLabel.ifBlank { eventItem.dateLabel }}",
+                                    dueColor = if (index == 0) Color(0xFFB42345) else Color(0xFF7A5700),
+                                    amount = RosaFiestaEngine.formatDop(remainingAmount),
+                                    actionLabel = actionLabel,
+                                    highlighted = index == 0,
+                                    onClick = {
+                                        viewModel?.selectEvent(eventItem.id)
+                                        viewModel?.setPaymentCheckoutMode("BALANCE")
+                                        onSelectScreenCode("s50")
+                                    },
+                                )
+                            }
                         }
-                        val remainingAmount = (eventItem.totalDop - eventItem.paidDepositDop).coerceAtLeast(0)
-                        val actionLabel = if (eventItem.paidDepositDop > 0) "Pagar saldo" else "Abonar"
-                        PendingPaymentRow82(
-                            title = "${eventItem.title} · saldo",
-                            due = "Vence ${eventItem.balanceDueDateLabel.ifBlank { eventItem.dateLabel }}",
-                            dueColor = if (index == 0) Color(0xFFB42345) else Color(0xFF7A5700),
-                            amount = RosaFiestaEngine.formatDop(remainingAmount),
-                            actionLabel = actionLabel,
-                            highlighted = index == 0,
-                            onClick = {
-                                viewModel?.selectEvent(eventItem.id)
-                                viewModel?.setPaymentCheckoutMode("BALANCE")
-                                onSelectScreenCode("s50")
-                            },
-                        )
                     }
-                }
-            }
 
-            BasicText(
-                text = "HISTORIAL",
-                style = TextStyle(
-                    fontFamily = typo.bodyFamily,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 12.sp,
-                    letterSpacing = 0.96.sp,
-                    color = palette.muted,
-                ),
-            )
+                    BasicText(
+                        text = "PREFERENCIAS",
+                        style = TextStyle(
+                            fontFamily = typo.bodyFamily,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 12.sp,
+                            letterSpacing = 0.96.sp,
+                            color = palette.muted,
+                        ),
+                    )
 
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .rfCardShadow(cardShape, isAdmin = false)
-                    .clip(cardShape)
-                    .background(palette.surface),
-            ) {
-                if (userPayments.isEmpty()) {
-                    Box(
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 18.dp),
-                        contentAlignment = Alignment.Center,
+                            .rfCardShadow(cardShape, isAdmin = false)
+                            .clip(cardShape)
+                            .background(palette.surface)
+                            .clickable { showPaymentMethodSelector = !showPaymentMethodSelector }
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        BasicText(
-                            text = "Sin comprobantes de pago registrados todavía.",
-                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.5.sp, color = palette.muted),
+                        RfIcon(kind = RfIconKind.WALLET, tint = palette.ink, size = 18.dp)
+                        Column(modifier = Modifier.weight(1f)) {
+                            BasicText(
+                                text = "Método de pago preferido",
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Medium, fontSize = 15.sp, color = palette.ink),
+                            )
+                            BasicText(
+                                text = localSavedMethod,
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = palette.muted),
+                            )
+                        }
+                        RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = palette.muted, size = 16.dp)
+                    }
+
+                    if (showPaymentMethodSelector) {
+                        val methodOptions = listOf(
+                            "Transferencia Banreservas",
+                            "Transferencia Banco Popular",
+                            "Transferencia BHD",
+                            "Tarjeta de crédito / débito",
+                            "Efectivo en tienda",
                         )
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(cardShape)
+                                .background(palette.surface)
+                                .border(1.dp, palette.line, cardShape)
+                                .padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            methodOptions.forEach { optionLabel ->
+                                val isOptionSelected = optionLabel == localSavedMethod
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(if (isOptionSelected) palette.chipBg else Color.Transparent)
+                                        .clickable {
+                                            localSavedMethod = optionLabel
+                                            viewModel?.setSavedPaymentMethod(optionLabel)
+                                            showPaymentMethodSelector = false
+                                        }
+                                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                ) {
+                                    BasicText(
+                                        text = optionLabel,
+                                        style = TextStyle(
+                                            fontFamily = typo.bodyFamily,
+                                            fontWeight = if (isOptionSelected) FontWeight.Bold else FontWeight.Medium,
+                                            fontSize = 14.sp,
+                                            color = palette.ink,
+                                        ),
+                                    )
+                                    if (isOptionSelected) {
+                                        RfIcon(kind = RfIconKind.CHECK, tint = palette.primaryAccent, size = 16.dp)
+                                    }
+                                }
+                            }
+                        }
                     }
                 } else {
-                    userPayments.forEachIndexed { index, paymentItem ->
-                        if (index > 0) {
+                    BasicText(
+                        text = "COMPROBANTES EMITIDOS",
+                        style = TextStyle(
+                            fontFamily = typo.bodyFamily,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 12.sp,
+                            letterSpacing = 0.96.sp,
+                            color = palette.muted,
+                        ),
+                    )
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .rfCardShadow(cardShape, isAdmin = false)
+                            .clip(cardShape)
+                            .background(palette.surface),
+                    ) {
+                        if (userPayments.isEmpty()) {
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(1.dp)
-                                    .background(palette.lineSoft),
-                            )
-                        }
-                        ReceiptRow82(
-                            title = "${paymentItem.kindLabel} · ${paymentItem.eventTitle}",
-                            subtitle = "${paymentItem.dateLabel} · ${paymentItem.methodLabel} (${paymentItem.receiptNumber})",
-                            amount = RosaFiestaEngine.formatDop(paymentItem.amountDop),
-                            onClick = {
-                                viewModel?.selectEvent(paymentItem.eventId)
-                                onSelectScreenCode("s83")
-                            },
-                        )
-                    }
-                }
-            }
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .rfCardShadow(cardShape, isAdmin = false)
-                    .clip(cardShape)
-                    .background(palette.surface)
-                    .clickable { showPaymentMethodSelector = !showPaymentMethodSelector }
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                RfIcon(kind = RfIconKind.WALLET, tint = palette.ink, size = 18.dp)
-                Column(modifier = Modifier.weight(1f)) {
-                    BasicText(
-                        text = "Método de pago preferido",
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Medium, fontSize = 15.sp, color = palette.ink),
-                    )
-                    BasicText(
-                        text = localSavedMethod,
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = palette.muted),
-                    )
-                }
-                RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = palette.muted, size = 16.dp)
-            }
-
-            if (showPaymentMethodSelector) {
-                val methodOptions = listOf(
-                    "Transferencia Banreservas",
-                    "Transferencia Banco Popular",
-                    "Transferencia BHD",
-                    "Tarjeta de crédito / débito",
-                    "Efectivo en tienda",
-                )
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(cardShape)
-                        .background(palette.surface)
-                        .border(1.dp, palette.line, cardShape)
-                        .padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    methodOptions.forEach { optionLabel ->
-                        val isOptionSelected = optionLabel == localSavedMethod
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(if (isOptionSelected) palette.chipBg else Color.Transparent)
-                                .clickable {
-                                    localSavedMethod = optionLabel
-                                    viewModel?.setSavedPaymentMethod(optionLabel)
-                                    showPaymentMethodSelector = false
+                                    .padding(horizontal = 16.dp, vertical = 22.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                BasicText(
+                                    text = "Sin comprobantes de pago registrados todavía.",
+                                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.5.sp, color = palette.muted),
+                                )
+                            }
+                        } else {
+                            userPayments.forEachIndexed { index, paymentItem ->
+                                if (index > 0) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(1.dp)
+                                            .background(palette.lineSoft),
+                                    )
                                 }
-                                .padding(horizontal = 12.dp, vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                        ) {
-                            BasicText(
-                                text = optionLabel,
-                                style = TextStyle(
-                                    fontFamily = typo.bodyFamily,
-                                    fontWeight = if (isOptionSelected) FontWeight.Bold else FontWeight.Medium,
-                                    fontSize = 14.sp,
-                                    color = palette.ink,
-                                ),
-                            )
-                            if (isOptionSelected) {
-                                RfIcon(kind = RfIconKind.CHECK, tint = palette.primaryAccent, size = 16.dp)
+                                ReceiptRow82(
+                                    title = "${paymentItem.kindLabel} · ${paymentItem.eventTitle}",
+                                    subtitle = "${paymentItem.dateLabel} · ${paymentItem.methodLabel} (${paymentItem.receiptNumber})",
+                                    amount = RosaFiestaEngine.formatDop(paymentItem.amountDop),
+                                    onClick = {
+                                        viewModel?.selectEvent(paymentItem.eventId)
+                                        onSelectScreenCode("s83")
+                                    },
+                                )
                             }
                         }
                     }
                 }
             }
+        }
+    }
+}
 
-            Spacer(modifier = Modifier.height(16.dp))
+@Composable
+private fun PaymentsSegmentedTabs82(
+    selectedTab: Int,
+    pendingCount: Int,
+    historyCount: Int,
+    onSelectTab: (Int) -> Unit,
+) {
+    val typo = LocalRfTypography.current
+    val palette = RfThemeState.currentPalette
+    val tabs = listOf(
+        "Por pagar ($pendingCount)",
+        "Historial ($historyCount)",
+    )
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(palette.surface)
+            .border(1.dp, palette.line, RoundedCornerShape(16.dp))
+            .padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        tabs.forEachIndexed { tabIndex, tabTitle ->
+            val isSelected = selectedTab == tabIndex
+            val tabBrush = if (isSelected) {
+                Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)))
+            } else {
+                SolidColor(Color.Transparent)
+            }
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(38.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(tabBrush)
+                    .clickable { onSelectTab(tabIndex) }
+                    .testTag("payments-tab-$tabIndex"),
+            ) {
+                BasicText(
+                    text = tabTitle,
+                    style = TextStyle(
+                        fontFamily = typo.bodyFamily,
+                        fontSize = 13.5.sp,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                        color = if (isSelected) Color.White else palette.muted,
+                    ),
+                )
+            }
         }
     }
 }
@@ -1800,6 +1881,14 @@ internal fun RenderAccountSettingsS86(
                                         viewModel?.setProfileZone(cleanZone)
                                         addressStatusBanner = if (isEnglish) "Default event address saved." else "Dirección guardada correctamente."
                                         showAddressEditor = false
+                                    } else {
+                                        val validationMessage = if (isEnglish) {
+                                            "Enter at least 4 characters for the address."
+                                        } else {
+                                            "Escribe al menos 4 caracteres para la dirección."
+                                        }
+                                        addressStatusBanner = validationMessage
+                                        viewModel?.postFeedback(validationMessage)
                                     }
                                 },
                             contentAlignment = Alignment.Center,
@@ -1852,9 +1941,23 @@ internal fun RenderAccountSettingsS86(
             SettingsCaption86(legalHeader)
             Spacer(modifier = Modifier.height(8.dp))
             SettingsGroup86 {
-                SettingsRow86(if (isEnglish) "Terms & conditions" else "Términos y condiciones", RfIconKind.NOTE, onClick = { onSelectScreenCode("s87") })
+                SettingsRow86(
+                    if (isEnglish) "Terms & conditions" else "Términos y condiciones",
+                    RfIconKind.NOTE,
+                    onClick = {
+                        pendingTermsSegmentIndex87 = 0
+                        onSelectScreenCode("s87")
+                    },
+                )
                 SettingsDivider86()
-                SettingsRow86(if (isEnglish) "Privacy policy" else "Política de privacidad", RfIconKind.SHIELD, onClick = { onSelectScreenCode("s87") })
+                SettingsRow86(
+                    if (isEnglish) "Privacy policy" else "Política de privacidad",
+                    RfIconKind.SHIELD,
+                    onClick = {
+                        pendingTermsSegmentIndex87 = 1
+                        onSelectScreenCode("s87")
+                    },
+                )
             }
 
             Spacer(modifier = Modifier.height(14.dp))
@@ -2013,6 +2116,8 @@ private fun SettingsSwitch86(
     }
 }
 
+private var pendingTermsSegmentIndex87: Int = 0
+
 @Composable
 internal fun RenderTermsS87(
     viewModel: RosaFiestaViewModel? = null,
@@ -2020,7 +2125,11 @@ internal fun RenderTermsS87(
 ) {
     val typo = LocalRfTypography.current
     val cardShape = RoundedCornerShape(20.dp)
-    var selectedSegmentIndex by remember { mutableStateOf(0) }
+    var selectedSegmentIndex by remember {
+        val initialSegment = pendingTermsSegmentIndex87
+        pendingTermsSegmentIndex87 = 0
+        mutableStateOf(initialSegment)
+    }
     val businessSettings = viewModel?.businessSettings?.collectAsState()?.value
     val commercialBrand = businessSettings?.businessName ?: "RosaFiesta Eventos & Alquileres"
     val legalEntityName = "RosaFiesta SRL ($commercialBrand)"
@@ -2265,7 +2374,7 @@ internal fun RenderDeleteAccountS88(
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(RfThemeState.currentPalette.surface)
-                        .clickable { onSelectScreenCode("BACK:s54") },
+                        .clickable { onSelectScreenCode("BACK") },
                     contentAlignment = Alignment.Center,
                 ) {
                     RfIcon(kind = RfIconKind.BACK, tint = RfThemeState.currentPalette.ink, size = 22.dp)
@@ -3479,7 +3588,6 @@ internal fun RenderEventReviewsModalS77(
     val sheetSlideModifier = rememberModalSheetSlideModifier()
     val activeEvent = viewModel?.activeClientEvent() ?: CanonicalSampleData.events.last()
     val reviewsState = viewModel?.companyReviews?.collectAsState()?.value ?: emptyList()
-    val latestReview = reviewsState.firstOrNull()
     var showComposer by remember { mutableStateOf(false) }
     var selectedStars by remember { mutableStateOf(5) }
     var draftComment by remember { mutableStateOf("") }
@@ -3569,78 +3677,108 @@ internal fun RenderEventReviewsModalS77(
                     }
                 }
 
-                val reviewInitial = latestReview?.initial ?: "A"
-                val reviewAuthor = latestReview?.author ?: "Cliente verificado"
-                val reviewStars = latestReview?.rating ?: 5
-                val reviewDate = latestReview?.dateLabel ?: "19 oct"
-                val reviewBody = latestReview?.comment ?: "Excelente coordinación en nuestra Gala Corporativa. Todo el mobiliario llegó impecable."
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(RfThemeState.currentPalette.surface)
-                        .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(20.dp))
-                        .padding(16.dp),
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Box(
-                                contentAlignment = Alignment.Center,
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(CircleShape)
-                                    .background(Color(0xFFFFF2C9)),
-                            ) {
-                                BasicText(
-                                    reviewInitial,
-                                    style = TextStyle(
-                                        fontFamily = typo.bodyFamily,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        fontSize = 16.sp,
-                                        color = Color(0xFF7A5700),
-                                    ),
-                                )
-                            }
-                            Column(modifier = Modifier.weight(1f)) {
-                                BasicText(
-                                    reviewAuthor,
-                                    style = TextStyle(
-                                        fontFamily = typo.bodyFamily,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 15.sp,
-                                        color = RfThemeState.currentPalette.ink,
-                                    ),
-                                )
-                                Spacer(Modifier.height(2.dp))
-                                Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                                    repeat(reviewStars) {
-                                        RfIcon(kind = RfIconKind.STAR, tint = Color(0xFFF7B500), size = 14.dp)
-                                    }
-                                }
-                            }
+                if (reviewsState.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(RfThemeState.currentPalette.surface)
+                            .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(20.dp))
+                            .padding(20.dp),
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             BasicText(
-                                reviewDate,
+                                "Aún no hay reseñas publicadas",
                                 style = TextStyle(
                                     fontFamily = typo.bodyFamily,
-                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 15.sp,
+                                    color = RfThemeState.currentPalette.ink,
+                                ),
+                            )
+                            BasicText(
+                                "Sé el primero en compartir tu experiencia con Rosa Fiesta.",
+                                style = TextStyle(
+                                    fontFamily = typo.bodyFamily,
+                                    fontSize = 13.5.sp,
                                     color = RfThemeState.currentPalette.muted,
+                                    lineHeight = 19.sp,
                                 ),
                             )
                         }
-                        BasicText(
-                            reviewBody,
-                            style = TextStyle(
-                                fontFamily = typo.bodyFamily,
-                                fontSize = 15.sp,
-                                color = RfThemeState.currentPalette.ink,
-                                lineHeight = 22.sp,
-                            ),
-                        )
+                    }
+                } else {
+                    reviewsState.forEach { reviewItem ->
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(RfThemeState.currentPalette.surface)
+                                .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(20.dp))
+                                .padding(16.dp),
+                        ) {
+                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    Box(
+                                        contentAlignment = Alignment.Center,
+                                        modifier = Modifier
+                                            .size(40.dp)
+                                            .clip(CircleShape)
+                                            .background(Color(0xFFFFF2C9)),
+                                    ) {
+                                        BasicText(
+                                            reviewItem.initial,
+                                            style = TextStyle(
+                                                fontFamily = typo.bodyFamily,
+                                                fontWeight = FontWeight.ExtraBold,
+                                                fontSize = 16.sp,
+                                                color = Color(0xFF7A5700),
+                                            ),
+                                        )
+                                    }
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        BasicText(
+                                            reviewItem.author,
+                                            style = TextStyle(
+                                                fontFamily = typo.bodyFamily,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 15.sp,
+                                                color = RfThemeState.currentPalette.ink,
+                                            ),
+                                        )
+                                        Spacer(Modifier.height(2.dp))
+                                        Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                                            repeat(reviewItem.rating.coerceIn(1, 5)) {
+                                                RfIcon(kind = RfIconKind.STAR, tint = Color(0xFFF7B500), size = 14.dp)
+                                            }
+                                        }
+                                    }
+                                    BasicText(
+                                        reviewItem.dateLabel,
+                                        style = TextStyle(
+                                            fontFamily = typo.bodyFamily,
+                                            fontSize = 13.sp,
+                                            color = RfThemeState.currentPalette.muted,
+                                        ),
+                                    )
+                                }
+                                BasicText(
+                                    reviewItem.comment,
+                                    style = TextStyle(
+                                        fontFamily = typo.bodyFamily,
+                                        fontSize = 15.sp,
+                                        color = RfThemeState.currentPalette.ink,
+                                        lineHeight = 22.sp,
+                                    ),
+                                )
+                            }
+                        }
                     }
                 }
 

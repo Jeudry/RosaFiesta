@@ -93,10 +93,16 @@ public class Navigator(
             return
         }
         if (code == currentCode) return
+        val isRootTab = code in ROOT_TAB_CODES
         val existingBackIndex = backStack.indexOf(code)
         if (existingBackIndex >= 0) {
             backStack.removeRange(existingBackIndex, backStack.size)
-            lastTransition = backTransitionKind
+            val useTabSwitch = isRootTab && !leavingModalSheet
+            lastTransition = if (useTabSwitch) {
+                NavigationTransitionKind.TAB_SWITCH
+            } else {
+                backTransitionKind
+            }
             currentCode = code
             return
         }
@@ -113,7 +119,6 @@ public class Navigator(
             }
         }
         val isModalTransition = if (enteringModalSheet) true else leavingModalSheet
-        val isRootTab = code in ROOT_TAB_CODES
         lastTransition = when {
             isModalTransition -> NavigationTransitionKind.MODAL_SHEET
             isRootTab -> NavigationTransitionKind.TAB_SWITCH
@@ -175,10 +180,13 @@ public class Navigator(
     private companion object {
         val SPLASH_CODES = setOf("p00", "A00")
         val HOME_TAB_CODES = setOf("s01", "s14", "s15", "A01")
-        val ROOT_TAB_CODES = setOf("s01", "s02", "s14", "s15", "s18", "s21", "s24", "s26", "s37", "A01", "A08", "A09", "A11", "A12")
+        val ROOT_TAB_CODES = setOf("s01", "s14", "s15", "s18", "s26", "s37", "A01", "A08", "A09", "A11", "A12")
         val SIBLING_TAB_GROUPS = listOf(
             setOf("s84", "s85"),
             setOf("s58", "s59", "s60", "s61", "s62"),
+            setOf("s64", "s65", "s66"),
+            setOf("s67", "s68", "s69", "s70"),
+            setOf("s72", "s73", "s74"),
         )
     }
 }
