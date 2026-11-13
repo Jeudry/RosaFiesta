@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -276,6 +277,9 @@ public fun RosaFiestaApp(
                     .fillMaxWidth(),
             ) {
                 PreloadRfVisualAssets()
+                LaunchedEffect(viewModel) {
+                    viewModel.refreshSharedStateFromDisk()
+                }
                 val transitionKind = navigator.lastTransition
                 AnimatedContent(
                     targetState = spec,

@@ -335,11 +335,6 @@ public fun RenderScreenSpec(
         return
     }
 
-    LaunchedEffect(spec.code) {
-        kotlinx.coroutines.delay(280)
-        viewModel?.refreshSharedStateFromDisk()
-    }
-
     val isAdmin = spec.variant == RfThemeVariant.ADMIN
     val isDarkThemeEnabled = viewModel?.isDarkTheme?.collectAsState()?.value ?: false
     val usePersonalDark = if (isAdmin) false else isDarkThemeEnabled

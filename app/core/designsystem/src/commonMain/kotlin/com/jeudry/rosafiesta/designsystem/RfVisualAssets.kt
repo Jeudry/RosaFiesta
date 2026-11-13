@@ -13,9 +13,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -59,8 +61,8 @@ import org.jetbrains.compose.resources.getDrawableResourceBytes
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.rememberResourceEnvironment
 
-private val cachedPhotoBitmaps: MutableMap<RfPhotoKey, ImageBitmap> = mutableMapOf()
-private var cachedLogoBitmap: ImageBitmap? = null
+private val cachedPhotoBitmaps: SnapshotStateMap<RfPhotoKey, ImageBitmap> = mutableStateMapOf()
+private var cachedLogoBitmap: ImageBitmap? by mutableStateOf(null)
 
 @OptIn(ExperimentalResourceApi::class)
 @Composable
@@ -323,25 +325,12 @@ public fun RfPhoto(
     alignment: Alignment = Alignment.Center,
 ) {
     val placeholderColor = LocalRfPalette.current.chipBg
-    val environment = rememberResourceEnvironment()
-    var bitmap by remember(photoKey) { mutableStateOf(cachedPhotoBitmaps[photoKey]) }
-    @OptIn(ExperimentalResourceApi::class)
-    LaunchedEffect(photoKey) {
-        if (bitmap == null) {
-            val photoBytes = runCatching { getDrawableResourceBytes(environment, drawableForPhotoKey(photoKey)) }.getOrNull()
-            val decoded = if (photoBytes != null) decodeEncodedImageBitmapOrNull(photoBytes) else null
-            if (decoded != null) {
-                cachedPhotoBitmaps[photoKey] = decoded
-                bitmap = decoded
-            }
-        }
-    }
+    val resolvedBitmap = cachedPhotoBitmaps[photoKey]
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(cornerRadius))
             .background(placeholderColor),
     ) {
-        val resolvedBitmap = bitmap
         if (resolvedBitmap != null) {
             Image(
                 bitmap = resolvedBitmap,
