@@ -4,10 +4,13 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -34,6 +37,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -52,6 +56,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -83,9 +88,9 @@ import com.jeudry.rosafiesta.domain.CanonicalSampleData
 import com.jeudry.rosafiesta.domain.CatalogArticle
 import com.jeudry.rosafiesta.domain.EventLineItem
 import com.jeudry.rosafiesta.domain.PhotoAsset
-import com.jeudry.rosafiesta.domain.platform.ExternalUrlBuilder
 import kotlin.math.PI
 import kotlin.math.cos
+import kotlin.math.hypot
 import kotlin.math.sin
 
 private val RosaBackgroundGradient: Brush
@@ -237,10 +242,12 @@ private fun resolveRosaHeaderSpeech(
     venueLabel: String,
     proposalMessage: String,
     draftCount: Int,
+    activeCategoryTitle: String = "",
 ): Pair<String, String> {
     val cleanType = eventType.trim()
     val cleanVenue = venueLabel.trim()
     val cleanProposal = proposalMessage.trim()
+    val cleanCategory = activeCategoryTitle.trim()
     val eventMeta = resolveRosaEventMetadata(cleanType.ifEmpty { "Boda" })
     val eventLower = eventMeta.displayTitle.lowercase()
     return when (screenCode) {
@@ -277,6 +284,15 @@ private fun resolveRosaHeaderSpeech(
             "¿Te falta algo? Mira por categoría" to subtitle
         }
 
+        "s30_picker" -> {
+            val titleText = if (cleanCategory.isNotEmpty()) {
+                "Para $cleanCategory te recomiendo:"
+            } else {
+                "Elige tus artículos"
+            }
+            titleText to "Agrega o quita piezas a tu evento"
+        }
+
         "s31" -> {
             val subtitle = if (cleanVenue.isNotEmpty()) {
                 "$cleanVenue · Confirma fecha y horario"
@@ -297,6 +313,7 @@ private fun resolveRosaHeaderSpeech(
 private fun RosaWizardHeader(
     screenCode: String,
     cartCount: Int? = null,
+    activeCategoryTitle: String = "",
     viewModel: RosaFiestaViewModel? = null,
     onBack: () -> Unit = {},
     onCart: () -> Unit = {},
@@ -322,6 +339,7 @@ private fun RosaWizardHeader(
         venueLabel = vmVenueInput,
         proposalMessage = vmProposalMessage,
         draftCount = resolvedCartCount,
+        activeCategoryTitle = activeCategoryTitle,
     )
     val subtitleColor = if (palette.isDark) Color(0xFFC5B4F8) else Color(0xFF7A4FD8)
 
@@ -1902,93 +1920,18 @@ internal fun RenderRosaSuggestionsS29(
                     } else {
                         suggestion.articleId in fallbackAddedIds
                     }
-                    Box(
-                        modifier = Modifier
-                            .width(172.dp)
-                            .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
-                            .clip(RoundedCornerShape(20.dp))
-                            .background(RfThemeState.currentPalette.surface),
-                    ) {
-                        Column {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(116.dp)
-                                    .background(suggestion.photoBg),
-                            ) {
-                                RfPhoto(
-                                    photoKey = suggestion.photoKey,
-                                    contentDescription = suggestion.title,
-                                    cornerRadius = 0.dp,
-                                    modifier = Modifier.fillMaxSize(),
-                                )
-                            }
-                            Column(
-                                modifier = Modifier.padding(12.dp),
-                                verticalArrangement = Arrangement.spacedBy(4.dp),
-                            ) {
-                                BasicText(
-                                    text = suggestion.title,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = RfThemeState.currentPalette.ink),
-                                )
-                                BasicText(
-                                    text = suggestion.subtitle,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = RfThemeState.currentPalette.muted),
-                                )
-                                Spacer(Modifier.height(6.dp))
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    BasicText(
-                                        text = "RD$ ${suggestion.priceDop}",
-                                        style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = RfThemeState.currentPalette.ink),
-                                    )
-                                    if (isAdded) {
-                                        Row(
-                                            modifier = Modifier
-                                                .height(32.dp)
-                                                .clip(CircleShape)
-                                                .background(Color(0xFFEEF6D6))
-                                                .clickable {
-                                                    fallbackAddedIds = fallbackAddedIds - suggestion.articleId
-                                                    viewModel?.setDraftQuantity(suggestion.articleId, 0)
-                                                }
-                                                .padding(horizontal = 10.dp),
-                                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                        ) {
-                                            RfIcon(kind = RfIconKind.CHECK, tint = Color(0xFF4E6A10), size = 14.dp)
-                                            BasicText("Listo", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF4E6A10)))
-                                        }
-                                    } else {
-                                        Row(
-                                            modifier = Modifier
-                                                .height(32.dp)
-                                                .shadow(6.dp, CircleShape, spotColor = Color(0xB3865DEC))
-                                                .clip(CircleShape)
-                                                .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))))
-                                                .clickable {
-                                                    fallbackAddedIds = fallbackAddedIds + suggestion.articleId
-                                                    viewModel?.adjustDraftQuantity(suggestion.articleId, 1)
-                                                }
-                                                .padding(horizontal = 10.dp),
-                                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                        ) {
-                                            RfIcon(kind = RfIconKind.PLUS, tint = Color.White, size = 14.dp)
-                                            BasicText("Agregar", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.White))
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    RosaSuggestionArticleCard(
+                        suggestion = suggestion,
+                        isAdded = isAdded,
+                        onAdd = {
+                            fallbackAddedIds = fallbackAddedIds + suggestion.articleId
+                            viewModel?.adjustDraftQuantity(suggestion.articleId, 1)
+                        },
+                        onRemove = {
+                            fallbackAddedIds = fallbackAddedIds - suggestion.articleId
+                            viewModel?.setDraftQuantity(suggestion.articleId, 0)
+                        },
+                    )
                 }
             }
         }
@@ -2098,6 +2041,97 @@ internal fun RenderRosaSuggestionsS29(
                         tint = Color.White,
                         size = 22.dp,
                     )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RosaSuggestionArticleCard(
+    suggestion: RosaSuggestedArticleUi,
+    isAdded: Boolean,
+    onAdd: () -> Unit,
+    onRemove: () -> Unit,
+) {
+    val typo = LocalRfTypography.current
+    Box(
+        modifier = Modifier
+            .width(172.dp)
+            .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
+            .clip(RoundedCornerShape(20.dp))
+            .background(RfThemeState.currentPalette.surface),
+    ) {
+        Column {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(116.dp)
+                    .background(suggestion.photoBg),
+            ) {
+                RfPhoto(
+                    photoKey = suggestion.photoKey,
+                    contentDescription = suggestion.title,
+                    cornerRadius = 0.dp,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+            Column(
+                modifier = Modifier.padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                BasicText(
+                    text = suggestion.title,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = RfThemeState.currentPalette.ink),
+                )
+                BasicText(
+                    text = suggestion.subtitle,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = RfThemeState.currentPalette.muted),
+                )
+                Spacer(Modifier.height(6.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    BasicText(
+                        text = "RD$ ${suggestion.priceDop}",
+                        style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = RfThemeState.currentPalette.ink),
+                    )
+                    if (isAdded) {
+                        Row(
+                            modifier = Modifier
+                                .height(32.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFFEEF6D6))
+                                .clickable(onClick = onRemove)
+                                .padding(horizontal = 10.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            RfIcon(kind = RfIconKind.CHECK, tint = Color(0xFF4E6A10), size = 14.dp)
+                            BasicText("Listo", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF4E6A10)))
+                        }
+                    } else {
+                        Row(
+                            modifier = Modifier
+                                .height(32.dp)
+                                .shadow(6.dp, CircleShape, spotColor = Color(0xB3865DEC))
+                                .clip(CircleShape)
+                                .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))))
+                                .clickable(onClick = onAdd)
+                                .padding(horizontal = 10.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            RfIcon(kind = RfIconKind.PLUS, tint = Color.White, size = 14.dp)
+                            BasicText("Agregar", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.White))
+                        }
+                    }
                 }
             }
         }
@@ -2214,128 +2248,209 @@ internal fun RenderRosaCategoriesS30(
             ),
     ) {
         RosaWizardHeader(
-            screenCode = "s30",
+            screenCode = if (activePickerCategory != null) "s30_picker" else "s30",
+            activeCategoryTitle = activePickerCategory?.title.orEmpty(),
             viewModel = viewModel,
-            onBack = { onSelectScreenCode("BACK:s29") },
+            onBack = {
+                if (activePickerCategory != null) {
+                    activePickerCategoryTitle = null
+                } else {
+                    onSelectScreenCode("BACK:s29")
+                }
+            },
             onCart = { onSelectScreenCode("s25") },
         )
 
-        Column(
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .fillMaxSize()
-                .padding(top = 78.dp, bottom = 148.dp)
-                .verticalScroll(rememberScrollState())
-                .padding(top = 8.dp, start = 20.dp, end = 20.dp, bottom = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
+        if (activePickerCategory != null) {
+            val categorySuggestions = remember(activePickerCategory) {
+                activePickerCategory.articles.map { articleItem ->
+                    buildSuggestionUiFromCatalogArticle(articleItem)
+                }
+            }
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(RfThemeState.currentPalette.surface)
-                    .padding(vertical = 6.dp),
+                    .align(Alignment.TopStart)
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(top = 78.dp, bottom = 148.dp),
             ) {
-                displayedCategories.forEachIndexed { index, category ->
-                    if (index > 0) {
-                        Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(RfThemeState.currentPalette.lineSoft))
+                Spacer(modifier = Modifier.height(14.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = 20.dp),
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                ) {
+                    categorySuggestions.forEach { suggestion ->
+                        val liveQuantity = activeQuantities[suggestion.articleId] ?: 0
+                        val isAdded = liveQuantity > 0
+                        RosaSuggestionArticleCard(
+                            suggestion = suggestion,
+                            isAdded = isAdded,
+                            onAdd = { updateCategoryArticleQuantity(suggestion.articleId, 1) },
+                            onRemove = { updateCategoryArticleQuantity(suggestion.articleId, 0) },
+                        )
                     }
-                    val chosenUnitsInCategory = category.articles.sumOf { item -> activeQuantities[item.id] ?: 0 }
-                    val chosenItemKinds = category.articles.count { item -> (activeQuantities[item.id] ?: 0) > 0 }
-                    val isOmitted = category.title in activeOmittedCategories
-                    val hasSelectedUnits = chosenUnitsInCategory > 0
-                    val isChosen = if (isOmitted) false else hasSelectedUnits
+                }
+            }
 
-                    val resolvedSubtitle = when {
-                        isOmitted -> "Omitida"
-                        isChosen -> "$chosenItemKinds artículo(s) · $chosenUnitsInCategory uds"
-                        else -> "${category.articles.size} disponible(s)"
-                    }
-                    CategoryReviewRow(
-                        title = category.title,
-                        subtitle = resolvedSubtitle,
-                        iconKind = category.iconKind,
-                        iconBg = category.iconBg,
-                        iconTint = category.iconTint,
-                        isChosen = isChosen,
-                        isOmitted = isOmitted,
-                        onOmit = {
-                            viewModel?.toggleRosaOmittedCategory(category.title)
-                            localOmittedCategories = if (isOmitted) {
-                                localOmittedCategories - category.title
-                            } else {
-                                localOmittedCategories + category.title
-                            }
-                            if (!isOmitted) {
-                                for (item in category.articles) {
-                                    updateCategoryArticleQuantity(item.id, 0)
-                                }
-                            }
-                        },
-                        onChoose = {
-                            if (isOmitted) {
-                                viewModel?.toggleRosaOmittedCategory(category.title)
-                                localOmittedCategories = localOmittedCategories - category.title
-                            }
-                            activePickerCategoryTitle = category.title
-                        },
-                        onToggleChosen = {
-                            activePickerCategoryTitle = category.title
-                        },
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.BottomCenter)
+                    .padding(start = 20.dp, end = 20.dp, bottom = 86.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp)
+                        .rfCardShadow(RoundedCornerShape(16.dp), isAdmin = false)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(RfThemeState.currentPalette.surface)
+                        .clickable { activePickerCategoryTitle = null },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    BasicText(
+                        "Volver",
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = RfThemeState.currentPalette.ink),
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp)
+                        .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(RosaButtonGradient)
+                        .clickable { activePickerCategoryTitle = null },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    BasicText(
+                        "Listo",
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White),
                     )
                 }
             }
-        }
-
-        Row(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .padding(start = 20.dp, end = 20.dp, bottom = 88.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Box(
+        } else {
+            Column(
                 modifier = Modifier
-                    .weight(1f)
-                    .height(54.dp)
-                    .rfCardShadow(RoundedCornerShape(16.dp), isAdmin = false)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(RfThemeState.currentPalette.surface)
-                    .clickable {
-                        onSelectScreenCode("s19")
-                    },
-                contentAlignment = Alignment.Center,
+                    .align(Alignment.TopStart)
+                    .fillMaxSize()
+                    .padding(top = 78.dp, bottom = 148.dp)
+                    .verticalScroll(rememberScrollState())
+                    .padding(top = 8.dp, start = 20.dp, end = 20.dp, bottom = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                BasicText(
-                    text = "Ver catálogo",
-                    style = TextStyle(
-                        fontFamily = typo.bodyFamily,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = RfThemeState.currentPalette.ink,
-                    ),
-                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(RfThemeState.currentPalette.surface)
+                        .padding(vertical = 6.dp),
+                ) {
+                    displayedCategories.forEachIndexed { index, category ->
+                        if (index > 0) {
+                            Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(RfThemeState.currentPalette.lineSoft))
+                        }
+                        val chosenUnitsInCategory = category.articles.sumOf { item -> activeQuantities[item.id] ?: 0 }
+                        val chosenItemKinds = category.articles.count { item -> (activeQuantities[item.id] ?: 0) > 0 }
+                        val isOmitted = category.title in activeOmittedCategories
+                        val hasSelectedUnits = chosenUnitsInCategory > 0
+                        val isChosen = if (isOmitted) false else hasSelectedUnits
+
+                        val resolvedSubtitle = when {
+                            isOmitted -> "Omitida"
+                            isChosen -> "$chosenItemKinds artículo(s) · $chosenUnitsInCategory uds"
+                            else -> "${category.articles.size} disponible(s)"
+                        }
+                        CategoryReviewRow(
+                            title = category.title,
+                            subtitle = resolvedSubtitle,
+                            iconKind = category.iconKind,
+                            iconBg = category.iconBg,
+                            iconTint = category.iconTint,
+                            isChosen = isChosen,
+                            isOmitted = isOmitted,
+                            onOmit = {
+                                viewModel?.toggleRosaOmittedCategory(category.title)
+                                localOmittedCategories = if (isOmitted) {
+                                    localOmittedCategories - category.title
+                                } else {
+                                    localOmittedCategories + category.title
+                                }
+                                if (!isOmitted) {
+                                    for (item in category.articles) {
+                                        updateCategoryArticleQuantity(item.id, 0)
+                                    }
+                                }
+                            },
+                            onChoose = {
+                                if (isOmitted) {
+                                    viewModel?.toggleRosaOmittedCategory(category.title)
+                                    localOmittedCategories = localOmittedCategories - category.title
+                                }
+                                activePickerCategoryTitle = category.title
+                            },
+                            onToggleChosen = {
+                                activePickerCategoryTitle = category.title
+                            },
+                        )
+                    }
+                }
             }
 
-            Box(
+            Row(
                 modifier = Modifier
-                    .weight(1f)
-                    .height(54.dp)
-                    .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC))))
-                    .clickable { onSelectScreenCode("s31") },
-                contentAlignment = Alignment.Center,
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .padding(start = 20.dp, end = 20.dp, bottom = 88.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                BasicText(
-                    text = "Siguiente",
-                    style = TextStyle(
-                        fontFamily = typo.bodyFamily,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                    ),
-                )
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(54.dp)
+                        .rfCardShadow(RoundedCornerShape(16.dp), isAdmin = false)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(RfThemeState.currentPalette.surface)
+                        .clickable {
+                            onSelectScreenCode("s19")
+                        },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    BasicText(
+                        text = "Ver catálogo",
+                        style = TextStyle(
+                            fontFamily = typo.bodyFamily,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = RfThemeState.currentPalette.ink,
+                        ),
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(54.dp)
+                        .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC))))
+                        .clickable { onSelectScreenCode("s31") },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    BasicText(
+                        text = "Siguiente",
+                        style = TextStyle(
+                            fontFamily = typo.bodyFamily,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                        ),
+                    )
+                }
             }
         }
 
@@ -2405,180 +2520,6 @@ internal fun RenderRosaCategoriesS30(
                     kind = if (hasPromptText) RfIconKind.SEND else RfIconKind.MIC,
                     tint = Color.White,
                     size = 22.dp,
-                )
-            }
-        }
-
-        if (activePickerCategory != null) {
-            CategoryArticlePickerModal(
-                category = activePickerCategory,
-                activeQuantities = activeQuantities,
-                onUpdateQuantity = updateCategoryArticleQuantity,
-                onDismiss = { activePickerCategoryTitle = null },
-            )
-        }
-    }
-}
-
-@Composable
-private fun CategoryArticlePickerModal(
-    category: RosaCategoryReviewSpec,
-    activeQuantities: Map<String, Int>,
-    onUpdateQuantity: (String, Int) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    val typo = LocalRfTypography.current
-    val palette = RfThemeState.currentPalette
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier
-            .fillMaxSize()
-            .zIndex(5f)
-            .background(Color(0xFF151729).copy(alpha = 0.55f))
-            .clickable(onClick = onDismiss)
-            .padding(horizontal = 20.dp),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .rfCardShadow(RoundedCornerShape(24.dp), isAdmin = false)
-                .clip(RoundedCornerShape(24.dp))
-                .background(palette.surface)
-                .clickable(enabled = true, onClick = {})
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    BasicText(
-                        text = category.title,
-                        style = TextStyle(
-                            fontFamily = typo.displayFamily,
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 19.sp,
-                            color = palette.ink,
-                        ),
-                    )
-                    BasicText(
-                        text = "Elige los artículos y cantidades para tu evento",
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = palette.muted),
-                    )
-                }
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .size(34.dp)
-                        .clip(CircleShape)
-                        .background(palette.chipBg)
-                        .clickable(onClick = onDismiss),
-                ) {
-                    RfIcon(kind = RfIconKind.CLOSE, tint = palette.ink, size = 16.dp)
-                }
-            }
-
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                category.articles.forEach { article ->
-                    val currentQuantity = activeQuantities[article.id] ?: 0
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(if (palette.isDark) Color(0xFF26243D) else Color(0xFFFBF8FD))
-                            .padding(10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
-                        RfPhoto(
-                            photoKey = photoAssetToRfPhotoKey(article.photo),
-                            contentDescription = article.name,
-                            cornerRadius = 10.dp,
-                            modifier = Modifier.size(48.dp),
-                        )
-                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            BasicText(
-                                text = article.name,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = palette.ink),
-                            )
-                            BasicText(
-                                text = "RD$ ${article.pricePerDayDop}/día · Disp: ${article.availableOct23}",
-                                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = palette.muted),
-                            )
-                        }
-                        if (currentQuantity <= 0) {
-                            Box(
-                                modifier = Modifier
-                                    .height(34.dp)
-                                    .clip(CircleShape)
-                                    .background(RosaButtonGradient)
-                                    .clickable { onUpdateQuantity(article.id, 1) }
-                                    .padding(horizontal = 12.dp),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                BasicText(
-                                    text = "Agregar",
-                                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.White),
-                                )
-                            }
-                        } else {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            ) {
-                                Box(
-                                    contentAlignment = Alignment.Center,
-                                    modifier = Modifier
-                                        .size(30.dp)
-                                        .clip(CircleShape)
-                                        .background(palette.surface)
-                                        .border(1.dp, palette.line, CircleShape)
-                                        .clickable { onUpdateQuantity(article.id, currentQuantity - 1) },
-                                ) {
-                                    BasicText(
-                                        text = "−",
-                                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = palette.ink),
-                                    )
-                                }
-                                BasicText(
-                                    text = currentQuantity.toString(),
-                                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, color = palette.ink),
-                                )
-                                Box(
-                                    contentAlignment = Alignment.Center,
-                                    modifier = Modifier
-                                        .size(30.dp)
-                                        .clip(CircleShape)
-                                        .background(RosaButtonGradient)
-                                        .clickable { onUpdateQuantity(article.id, currentQuantity + 1) },
-                                ) {
-                                    BasicText(
-                                        text = "+",
-                                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.White),
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(RosaButtonGradient)
-                    .clickable(onClick = onDismiss),
-            ) {
-                BasicText(
-                    text = "Listo",
-                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.White),
                 )
             }
         }
@@ -2712,6 +2653,7 @@ internal fun RenderRosaDetailsS31(
     var eventTypeValue by remember(initialEventType) { mutableStateOf(initialEventType) }
     var dateValue by remember(vmEventDateInput) { mutableStateOf(vmEventDateInput) }
     var showEventCalendar by remember { mutableStateOf(false) }
+    var showInAppMapModal by remember { mutableStateOf(false) }
     var guestsValue by remember(vmEventGuestsInput) { mutableStateOf(vmEventGuestsInput) }
     var venueValue by remember(vmEventVenueInput) { mutableStateOf(vmEventVenueInput) }
     var ideaValue by remember(vmEventNotesInput) { mutableStateOf(vmEventNotesInput) }
@@ -2778,6 +2720,8 @@ internal fun RenderRosaDetailsS31(
                     }
                 }
                 Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(RfThemeState.currentPalette.lineSoft))
+                val displayDateLabel = formatReadableSpanishDateText(dateValue)
+                val hasChosenDate = displayDateLabel.isNotBlank()
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -2788,18 +2732,39 @@ internal fun RenderRosaDetailsS31(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     RfIcon(kind = RfIconKind.CALENDAR, tint = RfThemeState.currentPalette.muted, size = 20.dp)
-                    RfMaskedDateField(
-                        value = dateValue,
-                        onValueChange = { updatedDate ->
-                            dateValue = updatedDate
-                            viewModel?.setEventDateInput(updatedDate)
-                        },
-                        onOpenCalendar = { showEventCalendar = true },
-                        placeholder = "Fecha del evento (DD/MM/AAAA)",
-                        isAdmin = false,
-                        compactInline = true,
-                        modifier = Modifier.weight(1f),
-                    )
+                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                        BasicText(
+                            text = if (hasChosenDate) displayDateLabel else "Fecha del evento (toca para elegir)",
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            style = TextStyle(
+                                fontFamily = typo.bodyFamily,
+                                fontWeight = if (hasChosenDate) FontWeight.SemiBold else FontWeight.Normal,
+                                fontSize = 15.sp,
+                                color = if (hasChosenDate) RfThemeState.currentPalette.ink else RfThemeState.currentPalette.muted,
+                            ),
+                        )
+                    }
+                    Row(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color(0xFFFDE6F2))
+                            .clickable { showEventCalendar = true }
+                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        RfIcon(kind = RfIconKind.CALENDAR, tint = Color(0xFFC2338F), size = 14.dp)
+                        BasicText(
+                            text = if (hasChosenDate) "Cambiar" else "Elegir",
+                            style = TextStyle(
+                                fontFamily = typo.bodyFamily,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                color = Color(0xFFC2338F),
+                            ),
+                        )
+                    }
                 }
                 Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(RfThemeState.currentPalette.lineSoft))
                 Row(
@@ -2845,6 +2810,24 @@ internal fun RenderRosaDetailsS31(
                             ),
                         )
                     }
+                    GuestStepperButtons(
+                        onIncrement = {
+                            val currentCount = guestsValue.toIntOrNull() ?: 0
+                            val nextCount = (currentCount + 1).coerceAtLeast(1)
+                            val updatedText = nextCount.toString()
+                            guestsValue = updatedText
+                            viewModel?.setEventGuestsInput(updatedText)
+                            viewModel?.updateRosaParameters(guests = nextCount)
+                        },
+                        onDecrement = {
+                            val currentCount = guestsValue.toIntOrNull() ?: 1
+                            val nextCount = (currentCount - 1).coerceAtLeast(1)
+                            val updatedText = nextCount.toString()
+                            guestsValue = updatedText
+                            viewModel?.setEventGuestsInput(updatedText)
+                            viewModel?.updateRosaParameters(guests = nextCount)
+                        },
+                    )
                 }
                 Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(RfThemeState.currentPalette.lineSoft))
                 Row(
@@ -2878,13 +2861,7 @@ internal fun RenderRosaDetailsS31(
                         modifier = Modifier
                             .clip(RoundedCornerShape(10.dp))
                             .background(Color(0xFFF3EBFF))
-                            .clickable {
-                                val targetQuery = venueValue.trim().ifBlank { "República Dominicana" }
-                                val mapsUrl = ExternalUrlBuilder.buildGoogleMapsSearchUrl(targetQuery)
-                                if (mapsUrl != null) {
-                                    viewModel?.openExternalUrl(mapsUrl)
-                                }
-                            }
+                            .clickable { showInAppMapModal = true }
                             .padding(horizontal = 10.dp, vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -2905,13 +2882,18 @@ internal fun RenderRosaDetailsS31(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .defaultMinSize(minHeight = 58.dp)
-                        .padding(horizontal = 16.dp, vertical = 18.dp),
+                        .defaultMinSize(minHeight = 120.dp)
+                        .padding(horizontal = 16.dp, vertical = 16.dp),
                     verticalAlignment = Alignment.Top,
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     RfIcon(kind = RfIconKind.EDIT, tint = RfThemeState.currentPalette.muted, size = 20.dp)
-                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.TopStart) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .defaultMinSize(minHeight = 88.dp),
+                        contentAlignment = Alignment.TopStart,
+                    ) {
                         if (ideaValue.isEmpty()) {
                             BasicText(
                                 text = "Cuéntame tu idea o notas (opcional)",
@@ -2925,7 +2907,9 @@ internal fun RenderRosaDetailsS31(
                                 viewModel?.setEventNotesInput(updatedIdea)
                             },
                             textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = RfThemeState.currentPalette.ink),
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .defaultMinSize(minHeight = 88.dp),
                         )
                     }
                 }
@@ -3052,6 +3036,7 @@ internal fun RenderRosaDetailsS31(
                 defaultYear = 2026,
                 isAdmin = false,
                 allowRangeSelection = true,
+                preferReadableFormat = true,
                 onDismiss = { showEventCalendar = false },
                 onSelectDate = { formattedDate ->
                     dateValue = formattedDate
@@ -3059,6 +3044,72 @@ internal fun RenderRosaDetailsS31(
                     showEventCalendar = false
                 },
             )
+        }
+        if (showInAppMapModal) {
+            RfInAppMapPickerModal(
+                initialQuery = venueValue,
+                onDismiss = { showInAppMapModal = false },
+                onConfirmLocation = { selectedAddress ->
+                    venueValue = selectedAddress
+                    viewModel?.setEventVenueInput(selectedAddress)
+                    showInAppMapModal = false
+                },
+            )
+        }
+    }
+}
+
+@Composable
+private fun GuestStepperButtons(
+    onIncrement: () -> Unit,
+    onDecrement: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(Color(0xFFF3EBFF))
+            .border(1.dp, Color(0xFFE0D1FB), RoundedCornerShape(8.dp)),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Box(
+            modifier = Modifier
+                .width(28.dp)
+                .height(18.dp)
+                .clickable(onClick = onIncrement),
+            contentAlignment = Alignment.Center,
+        ) {
+            Canvas(modifier = Modifier.size(9.dp, 6.dp)) {
+                val chevronUp = Path().apply {
+                    moveTo(size.width * 0.5f, 0f)
+                    lineTo(size.width, size.height)
+                    lineTo(0f, size.height)
+                    close()
+                }
+                drawPath(path = chevronUp, color = Color(0xFF7A4FD8))
+            }
+        }
+        Box(
+            modifier = Modifier
+                .width(28.dp)
+                .height(1.dp)
+                .background(Color(0xFFE0D1FB)),
+        )
+        Box(
+            modifier = Modifier
+                .width(28.dp)
+                .height(18.dp)
+                .clickable(onClick = onDecrement),
+            contentAlignment = Alignment.Center,
+        ) {
+            Canvas(modifier = Modifier.size(9.dp, 6.dp)) {
+                val chevronDown = Path().apply {
+                    moveTo(0f, 0f)
+                    lineTo(size.width, 0f)
+                    lineTo(size.width * 0.5f, size.height)
+                    close()
+                }
+                drawPath(path = chevronDown, color = Color(0xFF7A4FD8))
+            }
         }
     }
 }
@@ -3073,7 +3124,8 @@ internal fun RenderRosaSummaryS32(
     val rawRosaEventType = viewModel?.rosaEventType?.collectAsState()?.value.orEmpty()
     val eventType = rawEventTypeInput.ifBlank { rawRosaEventType.ifBlank { "Boda" } }
     val eventMetadata = resolveRosaEventMetadata(eventType)
-    val eventDate = viewModel?.eventDateInput?.collectAsState()?.value.orEmpty().trim()
+    val rawEventDate = viewModel?.eventDateInput?.collectAsState()?.value.orEmpty().trim()
+    val eventDate = formatReadableSpanishDateText(rawEventDate)
     val eventVenue = viewModel?.eventVenueInput?.collectAsState()?.value.orEmpty().trim()
     val rawGuestsInput = viewModel?.eventGuestsInput?.collectAsState()?.value.orEmpty().trim()
     val resolvedGuestsCount = rawGuestsInput.toIntOrNull() ?: 0
@@ -4505,6 +4557,18 @@ private enum class SketchElementKind {
     CHAIR_GROUP,
     ARCH_STAGE,
     TEXT_LABEL,
+    FREEHAND_STROKE,
+}
+
+private enum class SketchToolKind(val title: String, val hint: String) {
+    PENCIL("Lápiz", "Dibuja libremente sobre el lienzo"),
+    MOVE("Mover", "Arrastra trazos o figuras"),
+    STAGE("Tarima", "Toca el lienzo para poner tarima"),
+    ROUND_TABLE("Mesa ○", "Toca el lienzo para poner mesa redonda"),
+    RECT_TABLE("Mesa ▭", "Toca el lienzo para poner mesa imperial"),
+    CHAIRS("Sillas", "Toca el lienzo para poner fila de sillas"),
+    TEXT("Texto", "Toca el lienzo para agregar etiqueta"),
+    ERASE("Borrar", "Toca o desliza para borrar"),
 }
 
 private data class SketchCanvasElement(
@@ -4514,57 +4578,8 @@ private data class SketchCanvasElement(
     val normY: Float,
     val colorHex: Long,
     val label: String = "",
+    val points: List<Pair<Float, Float>> = emptyList(),
 )
-
-private fun buildDefaultSketchElements(tableCount: Int): List<SketchCanvasElement> {
-    val clampedTables = tableCount.coerceIn(2, 12)
-    val elements = mutableListOf(
-        SketchCanvasElement(
-            id = "arch-1",
-            kind = SketchElementKind.ARCH_STAGE,
-            normX = 0.50f,
-            normY = 0.12f,
-            colorHex = 0xFF865DEC,
-            label = "Tarima",
-        ),
-        SketchCanvasElement(
-            id = "lbl-dance",
-            kind = SketchElementKind.TEXT_LABEL,
-            normX = 0.50f,
-            normY = 0.68f,
-            colorHex = 0xFF8DB52C,
-            label = "Pista de baile",
-        ),
-    )
-    val candidatePositions = listOf(
-        Pair(0.22f, 0.36f),
-        Pair(0.78f, 0.36f),
-        Pair(0.22f, 0.58f),
-        Pair(0.78f, 0.58f),
-        Pair(0.22f, 0.82f),
-        Pair(0.78f, 0.82f),
-        Pair(0.42f, 0.36f),
-        Pair(0.58f, 0.36f),
-        Pair(0.38f, 0.84f),
-        Pair(0.62f, 0.84f),
-        Pair(0.50f, 0.46f),
-        Pair(0.50f, 0.26f),
-    )
-    for (tableIndex in 0 until clampedTables) {
-        val posPair = candidatePositions[tableIndex % candidatePositions.size]
-        elements.add(
-            SketchCanvasElement(
-                id = "round-${tableIndex + 1}",
-                kind = SketchElementKind.ROUND_TABLE,
-                normX = posPair.first,
-                normY = posPair.second,
-                colorHex = 0xFFEA4EA9,
-                label = "M${tableIndex + 1}",
-            ),
-        )
-    }
-    return elements
-}
 
 private fun buildAiBalancedSketchLayout(guestCount: Int): List<SketchCanvasElement> {
     val safeGuests = guestCount.coerceAtLeast(16)
@@ -4644,25 +4659,55 @@ private fun sanitizeSketchToken(rawValue: String): String = rawValue
     .replace("\n", " ")
     .trim()
 
+private fun serializeStrokePoints(points: List<Pair<Float, Float>>): String {
+    if (points.isEmpty()) {
+        return ""
+    }
+    return points.joinToString("~") { point ->
+        val px = ((point.first * 1000f).toInt() / 1000f)
+        val py = ((point.second * 1000f).toInt() / 1000f)
+        "$px,$py"
+    }
+}
+
+private fun parseStrokePoints(rawPoints: String): List<Pair<Float, Float>> {
+    val trimmed = rawPoints.trim()
+    if (trimmed.isEmpty()) {
+        return emptyList()
+    }
+    return trimmed.split("~").mapNotNull { pairToken ->
+        val coords = pairToken.split(",")
+        val coordX = coords.getOrNull(0)?.toFloatOrNull()
+        val coordY = coords.getOrNull(1)?.toFloatOrNull()
+        if (coordX != null) {
+            if (coordY != null) {
+                Pair(coordX.coerceIn(0.01f, 0.99f), coordY.coerceIn(0.01f, 0.99f))
+            } else {
+                null
+            }
+        } else {
+            null
+        }
+    }
+}
+
 private fun serializeSketchElements(elements: List<SketchCanvasElement>): String = elements.joinToString(";") { item ->
     val safeId = sanitizeSketchToken(item.id)
     val safeLabel = sanitizeSketchToken(item.label)
     val roundedX = ((item.normX * 1000f).toInt() / 1000f)
     val roundedY = ((item.normY * 1000f).toInt() / 1000f)
-    "$safeId|${item.kind.name}|$roundedX|$roundedY|${item.colorHex}|$safeLabel"
+    val encodedPoints = serializeStrokePoints(item.points)
+    "$safeId|${item.kind.name}|$roundedX|$roundedY|${item.colorHex}|$safeLabel|$encodedPoints"
 }
 
-private fun parseSketchElements(
-    rawSerialized: String,
-    fallbackTableCount: Int,
-): List<SketchCanvasElement> {
+private fun parseSketchElements(rawSerialized: String): List<SketchCanvasElement> {
     val trimmed = rawSerialized.trim()
     if (trimmed.isEmpty()) {
-        return buildDefaultSketchElements(fallbackTableCount)
+        return emptyList()
     }
     val records = trimmed.split(";").filter { token -> token.isNotBlank() }
     val parsed = mutableListOf<SketchCanvasElement>()
-    val maxRecords = records.size.coerceAtMost(80)
+    val maxRecords = records.size.coerceAtMost(120)
     for (recordIndex in 0 until maxRecords) {
         val parts = records[recordIndex].split("|")
         if (parts.size >= 5) {
@@ -4670,10 +4715,11 @@ private fun parseSketchElements(
                 candidate.name == parts[1].trim()
             } ?: SketchElementKind.NONE
             if (resolvedKind != SketchElementKind.NONE) {
-                val parsedX = (parts[2].toFloatOrNull() ?: 0.5f).coerceIn(0.08f, 0.92f)
-                val parsedY = (parts[3].toFloatOrNull() ?: 0.5f).coerceIn(0.08f, 0.92f)
+                val parsedX = (parts[2].toFloatOrNull() ?: 0.5f).coerceIn(0.02f, 0.98f)
+                val parsedY = (parts[3].toFloatOrNull() ?: 0.5f).coerceIn(0.02f, 0.98f)
                 val parsedColor = parts[4].toLongOrNull() ?: 0xFFEA4EA9
                 val parsedLabel = if (parts.size >= 6) parts[5] else ""
+                val parsedPoints = if (parts.size >= 7) parseStrokePoints(parts[6]) else emptyList()
                 parsed.add(
                     SketchCanvasElement(
                         id = parts[0].ifBlank { "el-$recordIndex" },
@@ -4682,12 +4728,66 @@ private fun parseSketchElements(
                         normY = parsedY,
                         colorHex = parsedColor,
                         label = parsedLabel,
+                        points = parsedPoints,
                     ),
                 )
             }
         }
     }
-    return if (parsed.isEmpty()) buildDefaultSketchElements(fallbackTableCount) else parsed
+    return parsed
+}
+
+private fun findNearestSketchElementIndex(
+    elements: List<SketchCanvasElement>,
+    targetNormX: Float,
+    targetNormY: Float,
+): Int {
+    var bestIndex = -1
+    var bestDistance = 0.12f
+    elements.forEachIndexed { index, element ->
+        var elementDistance = hypot(
+            (element.normX - targetNormX).toDouble(),
+            (element.normY - targetNormY).toDouble(),
+        ).toFloat()
+        if (element.kind == SketchElementKind.FREEHAND_STROKE) {
+            element.points.forEach { strokePoint ->
+                val vertexDistance = hypot(
+                    (strokePoint.first - targetNormX).toDouble(),
+                    (strokePoint.second - targetNormY).toDouble(),
+                ).toFloat()
+                if (vertexDistance < elementDistance) {
+                    elementDistance = vertexDistance
+                }
+            }
+        }
+        if (elementDistance <= bestDistance) {
+            bestDistance = elementDistance
+            bestIndex = index
+        }
+    }
+    return bestIndex
+}
+
+private fun translateSketchElement(
+    element: SketchCanvasElement,
+    deltaNormX: Float,
+    deltaNormY: Float,
+): SketchCanvasElement {
+    val shiftedX = (element.normX + deltaNormX).coerceIn(0.04f, 0.96f)
+    val shiftedY = (element.normY + deltaNormY).coerceIn(0.04f, 0.96f)
+    val actualDeltaX = shiftedX - element.normX
+    val actualDeltaY = shiftedY - element.normY
+    val shiftedPoints = element.points.map { point ->
+        Pair(
+            (point.first + actualDeltaX).coerceIn(0.01f, 0.99f),
+            (point.second + actualDeltaY).coerceIn(0.01f, 0.99f),
+        )
+    }
+    return element.copy(
+        normX = shiftedX,
+        normY = shiftedY,
+        points = shiftedPoints,
+    )
 }
 
 private fun syncSketchElementsIdempotently(
@@ -4702,7 +4802,7 @@ private fun syncSketchElementsIdempotently(
     val computedChairs = (roundTableCount * 8) + (rectTableCount * 10) + (chairGroupCount * 6)
     val serialized = serializeSketchElements(elements)
 
-    viewModel?.setSketchTableCount(totalTables.coerceIn(2, 12))
+    viewModel?.setSketchTableCount(totalTables.coerceIn(0, 12))
     viewModel?.setDraftQuantity("art-mesa-redonda", roundTableCount)
     viewModel?.setDraftQuantity("art-mesa-plegable", rectTableCount)
     viewModel?.setDraftQuantity("art-silla-tiffany", computedChairs)
@@ -4712,23 +4812,329 @@ private fun syncSketchElementsIdempotently(
     viewModel?.saveSketchLayoutJson(serialized)
 }
 
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawSingleSketchElement(
+    element: SketchCanvasElement,
+    isThreeDimensionalPreview: Boolean,
+) {
+    val canvasW = size.width
+    val canvasH = size.height
+    val centerX = element.normX * canvasW
+    val centerY = element.normY * canvasH
+    val itemColor = Color(element.colorHex)
+    val elevationOffset = if (isThreeDimensionalPreview) 5.dp.toPx() else 0f
+
+    when (element.kind) {
+        SketchElementKind.NONE -> Unit
+
+        SketchElementKind.FREEHAND_STROKE -> {
+            if (element.points.size == 1) {
+                val point = element.points.first()
+                drawCircle(
+                    color = itemColor,
+                    radius = 2.5.dp.toPx(),
+                    center = Offset(point.first * canvasW, point.second * canvasH),
+                )
+            } else if (element.points.size > 1) {
+                val strokePath = Path().apply {
+                    val startPt = element.points.first()
+                    moveTo(startPt.first * canvasW, startPt.second * canvasH)
+                    for (idx in 1 until element.points.size) {
+                        val pt = element.points[idx]
+                        lineTo(pt.first * canvasW, pt.second * canvasH)
+                    }
+                }
+                drawPath(
+                    path = strokePath,
+                    color = itemColor,
+                    style = Stroke(
+                        width = 3.5.dp.toPx(),
+                        cap = StrokeCap.Round,
+                        join = StrokeJoin.Round,
+                    ),
+                )
+            }
+        }
+
+        SketchElementKind.ARCH_STAGE -> {
+            val stageW = canvasW * 0.54f
+            val stageH = canvasH * 0.11f
+            val topLeft = Offset(centerX - stageW / 2f, centerY - stageH / 2f)
+            if (isThreeDimensionalPreview) {
+                drawRoundRect(
+                    color = itemColor.copy(alpha = 0.22f),
+                    topLeft = Offset(topLeft.x + elevationOffset, topLeft.y + elevationOffset),
+                    size = Size(stageW, stageH),
+                    cornerRadius = CornerRadius(8.dp.toPx()),
+                )
+            }
+            drawRoundRect(
+                color = itemColor.copy(alpha = 0.12f),
+                topLeft = topLeft,
+                size = Size(stageW, stageH),
+                cornerRadius = CornerRadius(8.dp.toPx()),
+            )
+            drawRoundRect(
+                color = itemColor,
+                topLeft = topLeft,
+                size = Size(stageW, stageH),
+                cornerRadius = CornerRadius(8.dp.toPx()),
+                style = Stroke(width = 2.6.dp.toPx()),
+            )
+        }
+
+        SketchElementKind.ROUND_TABLE -> {
+            val radius = (canvasW * 0.068f).coerceIn(14f, 28f)
+            if (isThreeDimensionalPreview) {
+                drawCircle(
+                    color = itemColor.copy(alpha = 0.22f),
+                    radius = radius,
+                    center = Offset(centerX + elevationOffset, centerY + elevationOffset),
+                )
+                drawCircle(
+                    color = Color.White,
+                    radius = radius,
+                    center = Offset(centerX, centerY),
+                )
+            }
+            drawCircle(
+                color = itemColor,
+                radius = radius,
+                center = Offset(centerX, centerY),
+                style = Stroke(width = 2.6.dp.toPx()),
+            )
+            val chairDistance = radius + 5.dp.toPx()
+            for (seatIdx in 0 until 6) {
+                val angleRad = (seatIdx * 60.0) * PI / 180.0
+                val seatX = centerX + (chairDistance * cos(angleRad)).toFloat()
+                val seatY = centerY + (chairDistance * sin(angleRad)).toFloat()
+                drawCircle(
+                    color = itemColor.copy(alpha = 0.55f),
+                    radius = 2.6.dp.toPx(),
+                    center = Offset(seatX, seatY),
+                )
+            }
+        }
+
+        SketchElementKind.RECT_TABLE -> {
+            val rectW = (canvasW * 0.20f).coerceAtLeast(36f)
+            val rectH = (canvasH * 0.072f).coerceAtLeast(18f)
+            val topLeft = Offset(centerX - rectW / 2f, centerY - rectH / 2f)
+            if (isThreeDimensionalPreview) {
+                drawRoundRect(
+                    color = itemColor.copy(alpha = 0.24f),
+                    topLeft = Offset(topLeft.x + elevationOffset, topLeft.y + elevationOffset),
+                    size = Size(rectW, rectH),
+                    cornerRadius = CornerRadius(5.dp.toPx()),
+                )
+                drawRoundRect(
+                    color = Color.White,
+                    topLeft = topLeft,
+                    size = Size(rectW, rectH),
+                    cornerRadius = CornerRadius(5.dp.toPx()),
+                )
+            }
+            drawRoundRect(
+                color = itemColor,
+                topLeft = topLeft,
+                size = Size(rectW, rectH),
+                cornerRadius = CornerRadius(5.dp.toPx()),
+                style = Stroke(width = 2.6.dp.toPx()),
+            )
+            for (seatCol in 0 until 4) {
+                val seatX = topLeft.x + (rectW * (seatCol + 0.5f) / 4f)
+                drawCircle(itemColor.copy(alpha = 0.55f), radius = 2.4.dp.toPx(), center = Offset(seatX, topLeft.y - 4.dp.toPx()))
+                drawCircle(itemColor.copy(alpha = 0.55f), radius = 2.4.dp.toPx(), center = Offset(seatX, topLeft.y + rectH + 4.dp.toPx()))
+            }
+        }
+
+        SketchElementKind.CHAIR_GROUP -> {
+            val totalRowWidth = (canvasW * 0.22f).coerceAtLeast(42f)
+            val startX = centerX - totalRowWidth / 2f
+            val stepChair = totalRowWidth / 5f
+            for (chairIdx in 0 until 6) {
+                val chairX = startX + chairIdx * stepChair
+                drawRoundRect(
+                    color = itemColor,
+                    topLeft = Offset(chairX - 4.dp.toPx(), centerY - 4.dp.toPx()),
+                    size = Size(8.dp.toPx(), 8.dp.toPx()),
+                    cornerRadius = CornerRadius(2.dp.toPx()),
+                    style = Stroke(width = 2.dp.toPx()),
+                )
+            }
+        }
+
+        SketchElementKind.TEXT_LABEL -> {
+            val zoneW = (canvasW * 0.26f).coerceAtLeast(52f)
+            val zoneH = (canvasH * 0.09f).coerceAtLeast(22f)
+            drawRoundRect(
+                color = itemColor,
+                topLeft = Offset(centerX - zoneW / 2f, centerY - zoneH / 2f),
+                size = Size(zoneW, zoneH),
+                cornerRadius = CornerRadius(6.dp.toPx()),
+                style = Stroke(
+                    width = 2.dp.toPx(),
+                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 5.dp.toPx())),
+                ),
+            )
+        }
+    }
+}
+
 @Composable
 private fun SketchCanvasPreviewSurface(
     elements: List<SketchCanvasElement>,
     isThreeDimensionalPreview: Boolean,
     modifier: Modifier = Modifier,
-    onCanvasTap: (() -> Unit)? = null,
+    interactiveEnabled: Boolean = false,
+    activeTool: SketchToolKind = SketchToolKind.PENCIL,
+    activeColorHex: Long = 0xFFEA4EA9L,
+    onTapAtNormalized: ((Float, Float) -> Unit)? = null,
+    onCommitFreehandStroke: ((List<Pair<Float, Float>>) -> Unit)? = null,
+    onCommitElementMove: ((Int, Float, Float) -> Unit)? = null,
+    onEraseAtNormalized: ((Float, Float) -> Unit)? = null,
 ) {
     val typo = LocalRfTypography.current
-    val clickableModifier = if (onCanvasTap != null) {
-        Modifier.clickable { onCanvasTap() }
+    val latestElements by rememberUpdatedState(elements)
+    val latestTool by rememberUpdatedState(activeTool)
+    val latestOnTap by rememberUpdatedState(onTapAtNormalized)
+    val latestOnCommitStroke by rememberUpdatedState(onCommitFreehandStroke)
+    val latestOnCommitMove by rememberUpdatedState(onCommitElementMove)
+    val latestOnErase by rememberUpdatedState(onEraseAtNormalized)
+    var activeStrokePoints by remember { mutableStateOf<List<Pair<Float, Float>>>(emptyList()) }
+    var draggingElementIndex by remember { mutableStateOf(-1) }
+    var dragDeltaNorm by remember { mutableStateOf(Pair(0f, 0f)) }
+
+    val displayedElements = remember(elements, draggingElementIndex, dragDeltaNorm) {
+        if (draggingElementIndex in elements.indices) {
+            elements.mapIndexed { idx, item ->
+                if (idx == draggingElementIndex) {
+                    translateSketchElement(item, dragDeltaNorm.first, dragDeltaNorm.second)
+                } else {
+                    item
+                }
+            }
+        } else {
+            elements
+        }
+    }
+
+    val gestureModifier = if (interactiveEnabled) {
+        Modifier
+            .pointerInput(Unit) {
+                detectTapGestures { tapOffset ->
+                    val normX = (tapOffset.x / size.width.toFloat().coerceAtLeast(1f)).coerceIn(0.04f, 0.96f)
+                    val normY = (tapOffset.y / size.height.toFloat().coerceAtLeast(1f)).coerceIn(0.04f, 0.96f)
+                    when (latestTool) {
+                        SketchToolKind.PENCIL -> {
+                            latestOnCommitStroke?.invoke(listOf(Pair(normX, normY)))
+                        }
+
+                        SketchToolKind.ERASE -> {
+                            latestOnErase?.invoke(normX, normY)
+                        }
+
+                        SketchToolKind.MOVE -> Unit
+
+                        else -> {
+                            latestOnTap?.invoke(normX, normY)
+                        }
+                    }
+                }
+            }
+            .pointerInput(Unit) {
+                detectDragGestures(
+                    onDragStart = { startOffset ->
+                        val normX = (startOffset.x / size.width.toFloat().coerceAtLeast(1f)).coerceIn(0.02f, 0.98f)
+                        val normY = (startOffset.y / size.height.toFloat().coerceAtLeast(1f)).coerceIn(0.02f, 0.98f)
+                        when (latestTool) {
+                            SketchToolKind.PENCIL -> {
+                                activeStrokePoints = listOf(Pair(normX, normY))
+                            }
+
+                            SketchToolKind.MOVE -> {
+                                draggingElementIndex = findNearestSketchElementIndex(
+                                    elements = latestElements,
+                                    targetNormX = normX,
+                                    targetNormY = normY,
+                                )
+                                dragDeltaNorm = Pair(0f, 0f)
+                            }
+
+                            SketchToolKind.ERASE -> {
+                                latestOnErase?.invoke(normX, normY)
+                            }
+
+                            else -> Unit
+                        }
+                    },
+                    onDragEnd = {
+                        if (activeStrokePoints.isNotEmpty()) {
+                            latestOnCommitStroke?.invoke(activeStrokePoints)
+                            activeStrokePoints = emptyList()
+                        }
+                        if (draggingElementIndex >= 0) {
+                            latestOnCommitMove?.invoke(
+                                draggingElementIndex,
+                                dragDeltaNorm.first,
+                                dragDeltaNorm.second,
+                            )
+                            draggingElementIndex = -1
+                            dragDeltaNorm = Pair(0f, 0f)
+                        }
+                    },
+                    onDragCancel = {
+                        activeStrokePoints = emptyList()
+                        draggingElementIndex = -1
+                        dragDeltaNorm = Pair(0f, 0f)
+                    },
+                ) { pointerChange, dragAmount ->
+                    pointerChange.consume()
+                    val canvasW = size.width.toFloat().coerceAtLeast(1f)
+                    val canvasH = size.height.toFloat().coerceAtLeast(1f)
+                    val posX = (pointerChange.position.x / canvasW).coerceIn(0.02f, 0.98f)
+                    val posY = (pointerChange.position.y / canvasH).coerceIn(0.02f, 0.98f)
+                    when (latestTool) {
+                        SketchToolKind.PENCIL -> {
+                            val previous = activeStrokePoints.lastOrNull()
+                            val distance = if (previous != null) {
+                                hypot((posX - previous.first).toDouble(), (posY - previous.second).toDouble()).toFloat()
+                            } else {
+                                1f
+                            }
+                            if (distance >= 0.008f) {
+                                activeStrokePoints = activeStrokePoints + Pair(posX, posY)
+                            }
+                        }
+
+                        SketchToolKind.MOVE -> {
+                            if (draggingElementIndex >= 0) {
+                                val deltaX = dragAmount.x / canvasW
+                                val deltaY = dragAmount.y / canvasH
+                                dragDeltaNorm = Pair(
+                                    dragDeltaNorm.first + deltaX,
+                                    dragDeltaNorm.second + deltaY,
+                                )
+                            }
+                        }
+
+                        SketchToolKind.ERASE -> {
+                            latestOnErase?.invoke(posX, posY)
+                        }
+
+                        else -> Unit
+                    }
+                }
+            }
     } else {
         Modifier
     }
-    Box(
-        modifier = modifier
-            .then(clickableModifier),
+
+    BoxWithConstraints(
+        modifier = modifier.then(gestureModifier),
     ) {
+        val surfaceWidth = maxWidth
+        val surfaceHeight = maxHeight
+
         Canvas(modifier = Modifier.fillMaxSize()) {
             val canvasW = size.width
             val canvasH = size.height
@@ -4749,155 +5155,83 @@ private fun SketchCanvasPreviewSurface(
                 }
             }
 
-            elements.forEach { element ->
-                val centerX = element.normX * canvasW
-                val centerY = element.normY * canvasH
-                val itemColor = Color(element.colorHex)
-                val elevationOffset = if (isThreeDimensionalPreview) 5.dp.toPx() else 0f
+            displayedElements.forEach { element ->
+                drawSingleSketchElement(
+                    element = element,
+                    isThreeDimensionalPreview = isThreeDimensionalPreview,
+                )
+            }
 
-                when (element.kind) {
-                    SketchElementKind.NONE -> Unit
-
-                    SketchElementKind.ARCH_STAGE -> {
-                        val stageW = canvasW * 0.62f
-                        val stageH = canvasH * 0.11f
-                        val topLeft = Offset(centerX - stageW / 2f, centerY - stageH / 2f)
-                        if (isThreeDimensionalPreview) {
-                            drawRoundRect(
-                                color = itemColor.copy(alpha = 0.22f),
-                                topLeft = Offset(topLeft.x + elevationOffset, topLeft.y + elevationOffset),
-                                size = Size(stageW, stageH),
-                                cornerRadius = CornerRadius(8.dp.toPx()),
-                            )
-                        }
-                        drawRoundRect(
-                            color = itemColor.copy(alpha = 0.12f),
-                            topLeft = topLeft,
-                            size = Size(stageW, stageH),
-                            cornerRadius = CornerRadius(8.dp.toPx()),
-                        )
-                        drawRoundRect(
-                            color = itemColor,
-                            topLeft = topLeft,
-                            size = Size(stageW, stageH),
-                            cornerRadius = CornerRadius(8.dp.toPx()),
-                            style = Stroke(width = 2.8.dp.toPx()),
-                        )
+            if (activeStrokePoints.size > 1) {
+                val liveStrokePath = Path().apply {
+                    val startPt = activeStrokePoints.first()
+                    moveTo(startPt.first * canvasW, startPt.second * canvasH)
+                    for (idx in 1 until activeStrokePoints.size) {
+                        val pt = activeStrokePoints[idx]
+                        lineTo(pt.first * canvasW, pt.second * canvasH)
                     }
+                }
+                drawPath(
+                    path = liveStrokePath,
+                    color = Color(activeColorHex),
+                    style = Stroke(
+                        width = 3.5.dp.toPx(),
+                        cap = StrokeCap.Round,
+                        join = StrokeJoin.Round,
+                    ),
+                )
+            }
+        }
 
-                    SketchElementKind.ROUND_TABLE -> {
-                        val radius = (canvasW * 0.068f).coerceIn(14f, 30f)
-                        if (isThreeDimensionalPreview) {
-                            drawCircle(
-                                color = itemColor.copy(alpha = 0.22f),
-                                radius = radius,
-                                center = Offset(centerX + elevationOffset, centerY + elevationOffset),
-                            )
-                            drawCircle(
-                                color = Color.White,
-                                radius = radius,
-                                center = Offset(centerX, centerY),
-                            )
-                        }
-                        drawCircle(
-                            color = itemColor,
-                            radius = radius,
-                            center = Offset(centerX, centerY),
-                            style = Stroke(width = 2.8.dp.toPx()),
-                        )
-                        val chairDistance = radius + 5.dp.toPx()
-                        for (seatIdx in 0 until 6) {
-                            val angleRad = (seatIdx * 60.0) * PI / 180.0
-                            val seatX = centerX + (chairDistance * cos(angleRad)).toFloat()
-                            val seatY = centerY + (chairDistance * sin(angleRad)).toFloat()
-                            drawCircle(
-                                color = itemColor.copy(alpha = 0.55f),
-                                radius = 2.8.dp.toPx(),
-                                center = Offset(seatX, seatY),
-                            )
-                        }
-                    }
-
-                    SketchElementKind.RECT_TABLE -> {
-                        val rectW = (canvasW * 0.20f).coerceAtLeast(36f)
-                        val rectH = (canvasH * 0.068f).coerceAtLeast(18f)
-                        val topLeft = Offset(centerX - rectW / 2f, centerY - rectH / 2f)
-                        if (isThreeDimensionalPreview) {
-                            drawRoundRect(
-                                color = itemColor.copy(alpha = 0.24f),
-                                topLeft = Offset(topLeft.x + elevationOffset, topLeft.y + elevationOffset),
-                                size = Size(rectW, rectH),
-                                cornerRadius = CornerRadius(5.dp.toPx()),
-                            )
-                            drawRoundRect(
-                                color = Color.White,
-                                topLeft = topLeft,
-                                size = Size(rectW, rectH),
-                                cornerRadius = CornerRadius(5.dp.toPx()),
-                            )
-                        }
-                        drawRoundRect(
-                            color = itemColor,
-                            topLeft = topLeft,
-                            size = Size(rectW, rectH),
-                            cornerRadius = CornerRadius(5.dp.toPx()),
-                            style = Stroke(width = 2.8.dp.toPx()),
-                        )
-                        for (seatCol in 0 until 4) {
-                            val seatX = topLeft.x + (rectW * (seatCol + 0.5f) / 4f)
-                            drawCircle(itemColor.copy(alpha = 0.55f), radius = 2.5.dp.toPx(), center = Offset(seatX, topLeft.y - 4.dp.toPx()))
-                            drawCircle(itemColor.copy(alpha = 0.55f), radius = 2.5.dp.toPx(), center = Offset(seatX, topLeft.y + rectH + 4.dp.toPx()))
-                        }
-                    }
-
-                    SketchElementKind.CHAIR_GROUP -> {
-                        val totalRowWidth = (canvasW * 0.22f).coerceAtLeast(42f)
-                        val startX = centerX - totalRowWidth / 2f
-                        val stepChair = totalRowWidth / 5f
-                        for (chairIdx in 0 until 6) {
-                            val chairX = startX + chairIdx * stepChair
-                            drawRoundRect(
-                                color = itemColor,
-                                topLeft = Offset(chairX - 4.dp.toPx(), centerY - 4.dp.toPx()),
-                                size = Size(8.dp.toPx(), 8.dp.toPx()),
-                                cornerRadius = CornerRadius(2.dp.toPx()),
-                                style = Stroke(width = 2.dp.toPx()),
-                            )
-                        }
-                    }
-
-                    SketchElementKind.TEXT_LABEL -> {
-                        val zoneW = (canvasW * 0.26f).coerceAtLeast(52f)
-                        val zoneH = (canvasH * 0.09f).coerceAtLeast(22f)
-                        drawRoundRect(
-                            color = itemColor,
-                            topLeft = Offset(centerX - zoneW / 2f, centerY - zoneH / 2f),
-                            size = Size(zoneW, zoneH),
-                            cornerRadius = CornerRadius(6.dp.toPx()),
-                            style = Stroke(
-                                width = 2.dp.toPx(),
-                                pathEffect = PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 5.dp.toPx())),
-                            ),
-                        )
-                    }
+        if (displayedElements.isEmpty()) {
+            if (activeStrokePoints.isEmpty()) {
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .padding(horizontal = 24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    RfIcon(kind = RfIconKind.EDIT, tint = Color(0xFFB5A9D0), size = 28.dp)
+                    BasicText(
+                        text = "Dibuja tu espacio aquí",
+                        style = TextStyle(
+                            fontFamily = typo.displayFamily,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp,
+                            color = Color(0xFF8C82A8),
+                        ),
+                    )
+                    BasicText(
+                        text = "Usa el lápiz para trazar libremente o elige mesas y sillas de la caja de herramientas",
+                        style = TextStyle(
+                            fontFamily = typo.bodyFamily,
+                            fontSize = 12.sp,
+                            lineHeight = 16.sp,
+                            color = Color(0xFFA098BA),
+                            textAlign = TextAlign.Center,
+                        ),
+                    )
                 }
             }
         }
 
-        val labelElements = elements.filter { item ->
+        val labelElements = displayedElements.filter { item ->
             val isExplicitLabel = item.kind == SketchElementKind.TEXT_LABEL
             val isStageWithLabel = if (item.kind == SketchElementKind.ARCH_STAGE) item.label.isNotBlank() else false
             if (isExplicitLabel) true else isStageWithLabel
         }
         labelElements.forEach { labelElement ->
-            val verticalBiasOffset = ((labelElement.normY - 0.5f) * 200f).dp
-            val horizontalBiasOffset = ((labelElement.normX - 0.5f) * 160f).dp
+            val targetX = (surfaceWidth * labelElement.normX - 38.dp)
+                .coerceIn(4.dp, (surfaceWidth - 82.dp).coerceAtLeast(4.dp))
+            val targetY = (surfaceHeight * labelElement.normY - 12.dp)
+                .coerceIn(4.dp, (surfaceHeight - 28.dp).coerceAtLeast(4.dp))
             Box(
                 modifier = Modifier
-                    .align(Alignment.Center)
-                    .offset(x = horizontalBiasOffset, y = verticalBiasOffset)
+                    .align(Alignment.TopStart)
+                    .offset(x = targetX, y = targetY)
                     .clip(RoundedCornerShape(8.dp))
-                    .background(Color.White.copy(alpha = 0.90f))
+                    .background(Color.White.copy(alpha = 0.92f))
                     .border(1.dp, Color(labelElement.colorHex).copy(alpha = 0.45f), RoundedCornerShape(8.dp))
                     .padding(horizontal = 8.dp, vertical = 3.dp),
             ) {
@@ -4934,17 +5268,17 @@ internal fun RenderRosaSketchS36(
         )
     }
     var selectedSwatchIndex by remember { mutableStateOf(0) }
-    var selectedToolIndex by remember { mutableStateOf(2) }
-    val vmTableCount = viewModel?.sketchTableCount?.collectAsState()?.value ?: 6
+    var selectedTool by remember { mutableStateOf(SketchToolKind.PENCIL) }
     val vmSketchJson = viewModel?.sketchLayoutJson?.collectAsState()?.value.orEmpty()
     val vmRosaGuests = viewModel?.rosaGuestsCount?.collectAsState()?.value ?: 80
 
     var canvasElements by remember(vmSketchJson) {
-        mutableStateOf(parseSketchElements(vmSketchJson, vmTableCount))
+        mutableStateOf(parseSketchElements(vmSketchJson))
     }
     var undoStack by remember { mutableStateOf(emptyList<List<SketchCanvasElement>>()) }
     var redoStack by remember { mutableStateOf(emptyList<List<SketchCanvasElement>>()) }
     var showLabelEditorModal by remember { mutableStateOf(false) }
+    var pendingLabelCoordinates by remember { mutableStateOf(Pair(0.50f, 0.50f)) }
     var customLabelInput by remember { mutableStateOf("Tarima DJ") }
     var nextElementSerial by remember { mutableStateOf(100) }
 
@@ -4961,25 +5295,14 @@ internal fun RenderRosaSketchS36(
         canvasElements = updatedList
     }
 
-    val appendShapeElement: (SketchElementKind, String) -> Unit = { elementKind, defaultLabel ->
-        val currentSameKindCount = canvasElements.count { existing -> existing.kind == elementKind }
-        val gridColumn = currentSameKindCount % 3
-        val gridRow = (currentSameKindCount / 3) % 3
-        val computedX = when (elementKind) {
-            SketchElementKind.ARCH_STAGE -> 0.50f
-            else -> (0.24f + gridColumn * 0.26f).coerceIn(0.18f, 0.82f)
-        }
-        val computedY = when (elementKind) {
-            SketchElementKind.ARCH_STAGE -> (0.12f + (currentSameKindCount % 2) * 0.72f).coerceIn(0.12f, 0.86f)
-            else -> (0.32f + gridRow * 0.24f).coerceIn(0.22f, 0.86f)
-        }
+    val appendShapeAt: (SketchElementKind, Float, Float, String) -> Unit = { elementKind, normX, normY, defaultLabel ->
         val currentId = nextElementSerial
         nextElementSerial += 1
         val createdElement = SketchCanvasElement(
             id = "el-$currentId",
             kind = elementKind,
-            normX = computedX,
-            normY = computedY,
+            normX = normX.coerceIn(0.06f, 0.94f),
+            normY = normY.coerceIn(0.06f, 0.94f),
             colorHex = activeSwatchHex,
             label = defaultLabel,
         )
@@ -4993,41 +5316,43 @@ internal fun RenderRosaSketchS36(
                     .fillMaxWidth()
                     .zIndex(2f)
                     .background(RfThemeState.currentPalette.bg)
-                    .padding(top = 16.dp, bottom = 12.dp, start = 16.dp, end = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    .padding(top = 14.dp, bottom = 10.dp, start = 16.dp, end = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(
                     modifier = Modifier
-                        .size(44.dp)
+                        .size(40.dp)
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(RfThemeState.currentPalette.surface)
                         .clickable { onSelectScreenCode("BACK:s31") },
                     contentAlignment = Alignment.Center,
                 ) {
-                    RfIcon(kind = RfIconKind.CLOSE, tint = RfThemeState.currentPalette.ink, size = 22.dp)
+                    RfIcon(kind = RfIconKind.CLOSE, tint = RfThemeState.currentPalette.ink, size = 20.dp)
                 }
 
                 Column(modifier = Modifier.weight(1f)) {
                     BasicText(
                         text = "Boceto del espacio",
-                        style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 19.sp, lineHeight = (19 * 1.1f).sp, color = RfThemeState.currentPalette.ink),
+                        style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, lineHeight = 20.sp, color = RfThemeState.currentPalette.ink),
                     )
                     BasicText(
                         text = "Vista 2D · $totalTablesCount mesas · ${canvasElements.size} elementos",
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = RfThemeState.currentPalette.muted),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = RfThemeState.currentPalette.muted),
                     )
                 }
 
                 val canUndo = undoStack.isNotEmpty()
                 Box(
                     modifier = Modifier
-                        .size(44.dp)
+                        .size(38.dp)
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(RfThemeState.currentPalette.surface)
-                        .clickable {
+                        .clickable(enabled = canUndo) {
                             if (undoStack.isNotEmpty()) {
                                 val previousSnapshot = undoStack.last()
                                 undoStack = undoStack.dropLast(1)
@@ -5040,51 +5365,78 @@ internal fun RenderRosaSketchS36(
                     RfIcon(
                         kind = RfIconKind.UNDO,
                         tint = if (canUndo) RfThemeState.currentPalette.ink else RfThemeState.currentPalette.muted,
-                        size = 20.dp,
+                        size = 18.dp,
+                    )
+                }
+
+                val canRedo = redoStack.isNotEmpty()
+                Box(
+                    modifier = Modifier
+                        .size(38.dp)
+                        .rfIconButtonShadow(CircleShape, isAdmin = false)
+                        .clip(CircleShape)
+                        .background(RfThemeState.currentPalette.surface)
+                        .clickable(enabled = canRedo) {
+                            if (redoStack.isNotEmpty()) {
+                                val restoredSnapshot = redoStack.last()
+                                redoStack = redoStack.dropLast(1)
+                                undoStack = (undoStack + listOf(canvasElements)).takeLast(30)
+                                canvasElements = restoredSnapshot
+                            }
+                        },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    RfIcon(
+                        kind = RfIconKind.REDO,
+                        tint = if (canRedo) RfThemeState.currentPalette.ink else RfThemeState.currentPalette.muted,
+                        size = 18.dp,
                     )
                 }
 
                 Box(
                     modifier = Modifier
-                        .size(44.dp)
+                        .size(38.dp)
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(RfThemeState.currentPalette.surface)
                         .clickable {
-                            commitElementsMutation(buildDefaultSketchElements(2))
+                            if (canvasElements.isNotEmpty()) {
+                                commitElementsMutation(emptyList())
+                            }
                         },
                     contentAlignment = Alignment.Center,
                 ) {
-                    RfIcon(kind = RfIconKind.DELETE, tint = RfThemeState.currentPalette.ink, size = 20.dp)
+                    RfIcon(kind = RfIconKind.DELETE, tint = RfThemeState.currentPalette.ink, size = 18.dp)
                 }
             }
 
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(top = 72.dp, bottom = 88.dp)
-                    .verticalScroll(rememberScrollState())
-                    .padding(top = 10.dp, bottom = 16.dp),
+                    .padding(top = 66.dp, bottom = 86.dp)
+                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
                         .clip(RoundedCornerShape(16.dp))
                         .background(Color(0xFFEFE8FD))
-                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     RosaAvatar(size = RosaAvatarSize.MINI)
                     BasicText(
-                        text = "Agrega mesas, sillas, arcos o etiquetas.",
+                        text = selectedTool.hint,
                         modifier = Modifier.weight(1f),
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, lineHeight = 18.sp, color = RfThemeState.currentPalette.ink),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Medium, fontSize = 12.sp, color = RfThemeState.currentPalette.ink),
                     )
                     Box(
                         modifier = Modifier
-                            .height(32.dp)
+                            .height(30.dp)
                             .clip(RoundedCornerShape(999.dp))
                             .background(RosaButtonGradient)
                             .clickable {
@@ -5092,62 +5444,88 @@ internal fun RenderRosaSketchS36(
                                 commitElementsMutation(balanced)
                                 syncSketchElementsIdempotently(balanced, viewModel)
                             }
-                            .padding(horizontal = 12.dp),
+                            .padding(horizontal = 10.dp),
                         contentAlignment = Alignment.Center,
                     ) {
                         BasicText(
                             text = "Ayúdame con IA",
-                            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.White),
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color.White),
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(14.dp))
-
                 SketchCanvasPreviewSurface(
                     elements = canvasElements,
                     isThreeDimensionalPreview = false,
+                    interactiveEnabled = true,
+                    activeTool = selectedTool,
+                    activeColorHex = activeSwatchHex,
                     modifier = Modifier
+                        .weight(1f)
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                        .height(380.dp)
-                        .clip(RoundedCornerShape(24.dp))
+                        .clip(RoundedCornerShape(22.dp))
                         .background(RfThemeState.currentPalette.surface)
-                        .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(24.dp)),
-                    onCanvasTap = {
-                        when (selectedToolIndex) {
-                            0 -> {
-                                if (canvasElements.isNotEmpty()) {
-                                    val movedLast = canvasElements.last().let { lastEl ->
-                                        val shiftedX = if (lastEl.normX > 0.72f) 0.25f else (lastEl.normX + 0.14f)
-                                        val shiftedY = if (lastEl.normY > 0.78f) 0.30f else (lastEl.normY + 0.10f)
-                                        lastEl.copy(normX = shiftedX, normY = shiftedY)
-                                    }
-                                    commitElementsMutation(canvasElements.dropLast(1) + movedLast)
-                                }
+                        .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(22.dp)),
+                    onTapAtNormalized = { normX, normY ->
+                        when (selectedTool) {
+                            SketchToolKind.STAGE -> appendShapeAt(SketchElementKind.ARCH_STAGE, normX, normY, "Tarima")
+
+                            SketchToolKind.ROUND_TABLE -> appendShapeAt(SketchElementKind.ROUND_TABLE, normX, normY, "Mesa")
+
+                            SketchToolKind.RECT_TABLE -> appendShapeAt(SketchElementKind.RECT_TABLE, normX, normY, "Mesa")
+
+                            SketchToolKind.CHAIRS -> appendShapeAt(SketchElementKind.CHAIR_GROUP, normX, normY, "Sillas")
+
+                            SketchToolKind.TEXT -> {
+                                pendingLabelCoordinates = Pair(normX, normY)
+                                showLabelEditorModal = true
                             }
-
-                            1 -> appendShapeElement(SketchElementKind.ARCH_STAGE, "Arco / Tarima")
-
-                            2 -> appendShapeElement(SketchElementKind.ROUND_TABLE, "Mesa redonda")
-
-                            3 -> appendShapeElement(SketchElementKind.RECT_TABLE, "Mesa imperial")
-
-                            4 -> appendShapeElement(SketchElementKind.CHAIR_GROUP, "Fila sillas")
-
-                            5 -> showLabelEditorModal = true
 
                             else -> Unit
                         }
                     },
+                    onCommitFreehandStroke = { strokePoints ->
+                        if (strokePoints.isNotEmpty()) {
+                            val centerX = strokePoints.map { pt -> pt.first }.average().toFloat()
+                            val centerY = strokePoints.map { pt -> pt.second }.average().toFloat()
+                            val strokeId = nextElementSerial
+                            nextElementSerial += 1
+                            val createdStroke = SketchCanvasElement(
+                                id = "stroke-$strokeId",
+                                kind = SketchElementKind.FREEHAND_STROKE,
+                                normX = centerX,
+                                normY = centerY,
+                                colorHex = activeSwatchHex,
+                                points = strokePoints,
+                            )
+                            commitElementsMutation(canvasElements + createdStroke)
+                        }
+                    },
+                    onCommitElementMove = { movedIndex, deltaX, deltaY ->
+                        if (movedIndex in canvasElements.indices) {
+                            val updatedList = canvasElements.mapIndexed { idx, existing ->
+                                if (idx == movedIndex) {
+                                    translateSketchElement(existing, deltaX, deltaY)
+                                } else {
+                                    existing
+                                }
+                            }
+                            commitElementsMutation(updatedList)
+                        }
+                    },
+                    onEraseAtNormalized = { normX, normY ->
+                        val hitIndex = findNearestSketchElementIndex(canvasElements, normX, normY)
+                        if (hitIndex in canvasElements.indices) {
+                            val remaining = canvasElements.filterIndexed { idx, _ -> idx != hitIndex }
+                            commitElementsMutation(remaining)
+                        }
+                    },
                 )
-
-                Spacer(modifier = Modifier.height(12.dp))
 
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 28.dp),
+                        .padding(horizontal = 8.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -5156,7 +5534,7 @@ internal fun RenderRosaSketchS36(
                         val isSelected = index == selectedSwatchIndex
                         Box(
                             modifier = Modifier
-                                .size(32.dp)
+                                .size(28.dp)
                                 .then(
                                     if (isSelected) {
                                         Modifier
@@ -5175,139 +5553,26 @@ internal fun RenderRosaSketchS36(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                        .shadow(
-                            elevation = 8.dp,
-                            shape = RoundedCornerShape(18.dp),
-                            spotColor = Color(0x73B450B4),
-                            ambientColor = Color(0x23B450B4),
-                        )
-                        .clip(RoundedCornerShape(18.dp))
-                        .background(RfThemeState.currentPalette.surface)
-                        .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(18.dp))
-                        .padding(4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(0.dp),
-                ) {
-                    val toolButtonModifier: (Int, () -> Unit) -> Modifier = { toolIdx, extraAction ->
-                        Modifier
-                            .weight(1f)
-                            .height(44.dp)
-                            .clip(RoundedCornerShape(14.dp))
-                            .then(
-                                if (selectedToolIndex == toolIdx) {
-                                    Modifier.background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))))
-                                } else {
-                                    Modifier
-                                },
-                            )
-                            .clickable {
-                                selectedToolIndex = toolIdx
-                                extraAction()
-                            }
-                    }
-
-                    Box(
-                        modifier = toolButtonModifier(0) {
-                            if (canvasElements.isNotEmpty()) {
-                                val movedLast = canvasElements.last().let { lastEl ->
-                                    val shiftedX = if (lastEl.normX > 0.72f) 0.25f else (lastEl.normX + 0.14f)
-                                    val shiftedY = if (lastEl.normY > 0.78f) 0.30f else (lastEl.normY + 0.10f)
-                                    lastEl.copy(normX = shiftedX, normY = shiftedY)
-                                }
-                                commitElementsMutation(canvasElements.dropLast(1) + movedLast)
-                            }
-                        },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        RfIcon(kind = RfIconKind.MOVE, tint = if (selectedToolIndex == 0) Color.White else Color(0xFF62627A), size = 20.dp)
-                    }
-                    Box(
-                        modifier = toolButtonModifier(1) {
-                            appendShapeElement(SketchElementKind.ARCH_STAGE, "Arco / Tarima")
-                        },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        RfIcon(kind = RfIconKind.SPARKLE, tint = if (selectedToolIndex == 1) Color.White else Color(0xFF62627A), size = 20.dp)
-                    }
-                    Box(
-                        modifier = toolButtonModifier(2) {
-                            appendShapeElement(SketchElementKind.ROUND_TABLE, "Mesa redonda")
-                        },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        RfIcon(kind = RfIconKind.CIRCLE, tint = if (selectedToolIndex == 2) Color.White else Color(0xFF62627A), size = 20.dp)
-                    }
-                    Box(
-                        modifier = toolButtonModifier(3) {
-                            appendShapeElement(SketchElementKind.RECT_TABLE, "Mesa imperial")
-                        },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        RfIcon(kind = RfIconKind.TABLE, tint = if (selectedToolIndex == 3) Color.White else Color(0xFF62627A), size = 20.dp)
-                    }
-                    Box(
-                        modifier = toolButtonModifier(4) {
-                            appendShapeElement(SketchElementKind.CHAIR_GROUP, "Fila sillas")
-                        },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        RfIcon(kind = RfIconKind.CHAIR, tint = if (selectedToolIndex == 4) Color.White else Color(0xFF62627A), size = 20.dp)
-                    }
-                    Box(
-                        modifier = toolButtonModifier(5) {
-                            showLabelEditorModal = true
-                        },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        BasicText(
-                            text = "Aa",
-                            style = TextStyle(
-                                fontFamily = typo.displayFamily,
-                                fontWeight = FontWeight.ExtraBold,
-                                fontSize = 17.sp,
-                                color = if (selectedToolIndex == 5) Color.White else Color(0xFF62627A),
-                            ),
-                        )
-                    }
-                    val canRedo = redoStack.isNotEmpty()
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(44.dp)
-                            .clip(RoundedCornerShape(14.dp))
-                            .clickable(enabled = canRedo) {
-                                if (redoStack.isNotEmpty()) {
-                                    val restoredSnapshot = redoStack.last()
-                                    redoStack = redoStack.dropLast(1)
-                                    undoStack = (undoStack + listOf(canvasElements)).takeLast(30)
-                                    canvasElements = restoredSnapshot
-                                }
-                            },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        val redoTint = if (canRedo) Color(0xFF1A1A2E) else Color(0xFFA0A0B2)
-                        RfIcon(kind = RfIconKind.REDO, tint = redoTint, size = 20.dp)
-                    }
-                }
+                SketchToolboxPanel(
+                    selectedTool = selectedTool,
+                    onSelectTool = { chosenTool ->
+                        selectedTool = chosenTool
+                    },
+                )
             }
 
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .align(Alignment.BottomCenter)
-                    .padding(horizontal = 16.dp, vertical = 18.dp),
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .height(56.dp)
+                        .height(54.dp)
                         .rfCardShadow(RoundedCornerShape(16.dp), isAdmin = false)
                         .clip(RoundedCornerShape(16.dp))
                         .background(RfThemeState.currentPalette.surface)
@@ -5322,7 +5587,7 @@ internal fun RenderRosaSketchS36(
                 Row(
                     modifier = Modifier
                         .weight(1f)
-                        .height(56.dp)
+                        .height(54.dp)
                         .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
                         .clip(RoundedCornerShape(16.dp))
                         .background(RosaButtonGradient)
@@ -5456,7 +5721,12 @@ internal fun RenderRosaSketchS36(
                                     .background(RosaButtonGradient)
                                     .clickable {
                                         val resolvedLabel = customLabelInput.trim().ifBlank { "Zona especial" }
-                                        appendShapeElement(SketchElementKind.TEXT_LABEL, resolvedLabel)
+                                        appendShapeAt(
+                                            SketchElementKind.TEXT_LABEL,
+                                            pendingLabelCoordinates.first,
+                                            pendingLabelCoordinates.second,
+                                            resolvedLabel,
+                                        )
                                         showLabelEditorModal = false
                                     },
                                 contentAlignment = Alignment.Center,
@@ -5471,6 +5741,125 @@ internal fun RenderRosaSketchS36(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun SketchToolboxPanel(
+    selectedTool: SketchToolKind,
+    onSelectTool: (SketchToolKind) -> Unit,
+) {
+    val typo = LocalRfTypography.current
+    val firstRowTools = remember {
+        listOf(
+            SketchToolKind.PENCIL,
+            SketchToolKind.MOVE,
+            SketchToolKind.STAGE,
+            SketchToolKind.ROUND_TABLE,
+        )
+    }
+    val secondRowTools = remember {
+        listOf(
+            SketchToolKind.RECT_TABLE,
+            SketchToolKind.CHAIRS,
+            SketchToolKind.TEXT,
+            SketchToolKind.ERASE,
+        )
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(
+                elevation = 8.dp,
+                shape = RoundedCornerShape(18.dp),
+                spotColor = Color(0x55B450B4),
+                ambientColor = Color(0x1AB450B4),
+            )
+            .clip(RoundedCornerShape(18.dp))
+            .background(RfThemeState.currentPalette.surface)
+            .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(18.dp))
+            .padding(6.dp),
+        verticalArrangement = Arrangement.spacedBy(5.dp),
+    ) {
+        listOf(firstRowTools, secondRowTools).forEach { toolRow ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(5.dp),
+            ) {
+                toolRow.forEach { tool ->
+                    val isSelected = tool == selectedTool
+                    val contentTint = if (isSelected) Color.White else Color(0xFF565672)
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(44.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .then(
+                                if (isSelected) {
+                                    Modifier.background(
+                                        Brush.linearGradient(
+                                            listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)),
+                                        ),
+                                    )
+                                } else {
+                                    Modifier.background(Color(0xFFF8F6FC))
+                                },
+                            )
+                            .clickable { onSelectTool(tool) },
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                    ) {
+                        SketchToolIconGraphic(tool = tool, tint = contentTint)
+                        BasicText(
+                            text = tool.title,
+                            maxLines = 1,
+                            style = TextStyle(
+                                fontFamily = typo.bodyFamily,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
+                                fontSize = 10.sp,
+                                color = contentTint,
+                            ),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SketchToolIconGraphic(
+    tool: SketchToolKind,
+    tint: Color,
+) {
+    val typo = LocalRfTypography.current
+    when (tool) {
+        SketchToolKind.PENCIL -> RfIcon(kind = RfIconKind.EDIT, tint = tint, size = 15.dp)
+
+        SketchToolKind.MOVE -> RfIcon(kind = RfIconKind.MOVE, tint = tint, size = 15.dp)
+
+        SketchToolKind.STAGE -> RfIcon(kind = RfIconKind.SPARKLE, tint = tint, size = 15.dp)
+
+        SketchToolKind.ROUND_TABLE -> RfIcon(kind = RfIconKind.CIRCLE, tint = tint, size = 15.dp)
+
+        SketchToolKind.RECT_TABLE -> RfIcon(kind = RfIconKind.TABLE, tint = tint, size = 15.dp)
+
+        SketchToolKind.CHAIRS -> RfIcon(kind = RfIconKind.CHAIR, tint = tint, size = 15.dp)
+
+        SketchToolKind.TEXT -> {
+            BasicText(
+                text = "Aa",
+                style = TextStyle(
+                    fontFamily = typo.displayFamily,
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 13.sp,
+                    color = tint,
+                ),
+            )
+        }
+
+        SketchToolKind.ERASE -> RfIcon(kind = RfIconKind.CLOSE, tint = tint, size = 15.dp)
     }
 }
 
@@ -5522,7 +5911,7 @@ internal fun RenderRosaSketchConfirmS78(
     val fallbackEventTitle = viewModel?.eventTypeInput?.collectAsState()?.value.orEmpty()
 
     var previewElements by remember(vmSketchJson, vmSketchTables) {
-        mutableStateOf(parseSketchElements(vmSketchJson, vmSketchTables))
+        mutableStateOf(parseSketchElements(vmSketchJson))
     }
 
     val activeEventTitle = remember(observedEvents, observedSelectedEventId, fallbackEventTitle) {

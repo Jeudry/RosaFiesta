@@ -261,6 +261,18 @@ internal fun RfMaskedDateField(
     }
 }
 
+private val spanishWeekdaysShort = listOf("Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom")
+
+private val spanishMonthsShort = listOf(
+    "ene", "feb", "mar", "abr", "may", "jun",
+    "jul", "ago", "sep", "oct", "nov", "dic",
+)
+
+private val spanishMonthsFull = listOf(
+    "enero", "febrero", "marzo", "abril", "mayo", "junio",
+    "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
+)
+
 private data class CalendarDateParts(
     val day: Int,
     val month: Int,
@@ -277,6 +289,124 @@ private data class CalendarDateParts(
         val monthText = month.toString().padStart(2, '0')
         return "$dayText/$monthText/$year"
     }
+
+    fun formatShortLetters(): String {
+        val monthShort = spanishMonthsShort[month - 1]
+        return "$day $monthShort $year"
+    }
+
+    fun formatReadableSpanish(): String {
+        val firstDayOffset = computeGregorianMondayFirstOffset(year, month)
+        val weekdayIndex = (firstDayOffset + (day - 1)) % 7
+        val weekdayLabel = spanishWeekdaysShort[weekdayIndex]
+        val monthFull = spanishMonthsFull[month - 1]
+        return "$weekdayLabel, $day de $monthFull $year"
+    }
+}
+
+private fun formatReadableSpanishDateRange(
+    start: CalendarDateParts,
+    end: CalendarDateParts,
+): String {
+    if (start == end) {
+        return start.formatReadableSpanish()
+    }
+    val sameYear = start.year == end.year
+    val sameMonth = start.month == end.month
+    val sameMonthAndYear = if (sameYear) sameMonth else false
+    if (sameMonthAndYear) {
+        val monthFull = spanishMonthsFull[start.month - 1]
+        return "Del ${start.day} al ${end.day} de $monthFull ${start.year}"
+    }
+    if (sameYear) {
+        val startMonthShort = spanishMonthsShort[start.month - 1]
+        val endMonthShort = spanishMonthsShort[end.month - 1]
+        return "${start.day} $startMonthShort – ${end.day} $endMonthShort ${start.year}"
+    }
+    return "${start.formatShortLetters()} – ${end.formatShortLetters()}"
+}
+
+private fun matchSpanishMonthIndex(word: String): Int? {
+    val clean = word.lowercase().trimEnd('.', ',')
+    val fullIndex = spanishMonthsFull.indexOf(clean)
+    if (fullIndex >= 0) {
+        return fullIndex + 1
+    }
+    val shortIndex = spanishMonthsShort.indexOf(clean)
+    if (shortIndex >= 0) {
+        return shortIndex + 1
+    }
+    return null
+}
+
+private fun buildSafeDateParts(
+    rawDay: Int,
+    rawMonth: Int,
+    rawYear: Int,
+    minYear: Int,
+    maxYear: Int,
+): CalendarDateParts {
+    val safeYear = rawYear.coerceIn(minYear, maxYear)
+    val safeMonth = rawMonth.coerceIn(1, 12)
+    val maxDayInMonth = computeDaysInGregorianMonth(safeYear, safeMonth)
+    val safeDay = rawDay.coerceIn(1, maxDayInMonth)
+    return CalendarDateParts(day = safeDay, month = safeMonth, year = safeYear)
+}
+
+private fun parseSpanishTextDateRange(
+    dateText: String,
+    minYear: Int,
+    maxYear: Int,
+    defaultYear: Int,
+): Pair<CalendarDateParts, CalendarDateParts?> {
+    val normalized = dateText.replace("–", " ").replace("-", " ")
+    val rawTokens = normalized.split(" ").filter { token -> token.isNotBlank() }
+    val numbers = mutableListOf<Int>()
+    val months = mutableListOf<Int>()
+    var hasSeenDayNumber = false
+
+    for (token in rawTokens) {
+        val cleanToken = token.trim(',', '.')
+        val numericValue = cleanToken.toIntOrNull()
+        if (numericValue != null) {
+            numbers.add(numericValue)
+            hasSeenDayNumber = true
+        } else if (hasSeenDayNumber) {
+            val matchedMonth = matchSpanishMonthIndex(cleanToken)
+            if (matchedMonth != null) {
+                months.add(matchedMonth)
+            }
+        }
+    }
+
+    val startMonth = months.getOrNull(0) ?: 10
+    val firstNum = numbers.getOrNull(0) ?: 22
+    val secondNum = numbers.getOrNull(1)
+    val thirdNum = numbers.getOrNull(2)
+    val fourthNum = numbers.getOrNull(3)
+
+    val hasSeparateSecondDay = if (secondNum != null) secondNum <= 31 else false
+    if (hasSeparateSecondDay) {
+        val startYear = if (fourthNum != null) {
+            secondNum ?: defaultYear
+        } else {
+            thirdNum ?: defaultYear
+        }
+        val endDay = if (fourthNum != null) {
+            thirdNum ?: firstNum
+        } else {
+            secondNum ?: firstNum
+        }
+        val endMonth = months.getOrNull(1) ?: startMonth
+        val endYear = fourthNum ?: startYear
+        val startParts = buildSafeDateParts(firstNum, startMonth, startYear, minYear, maxYear)
+        val endParts = buildSafeDateParts(endDay, endMonth, endYear, minYear, maxYear)
+        return startParts to endParts
+    }
+
+    val singleYear = secondNum ?: defaultYear
+    val singleParts = buildSafeDateParts(firstNum, startMonth, singleYear, minYear, maxYear)
+    return singleParts to null
 }
 
 private fun parseCalendarDateOrDefault(
@@ -291,12 +421,55 @@ private fun parseCalendarDateOrDefault(
     val parsedDay = parts.getOrNull(0)?.filter { charItem -> charItem.isDigit() }?.toIntOrNull()?.coerceIn(1, 31) ?: defaultDay
     val parsedMonth = parts.getOrNull(1)?.filter { charItem -> charItem.isDigit() }?.toIntOrNull()?.coerceIn(1, 12) ?: defaultMonth
     val parsedYear = parts.getOrNull(2)?.filter { charItem -> charItem.isDigit() }?.toIntOrNull()?.coerceIn(minYear, maxYear) ?: defaultYear
-    val maxDayInMonth = computeDaysInGregorianMonth(parsedYear, parsedMonth)
-    return CalendarDateParts(
-        day = parsedDay.coerceAtMost(maxDayInMonth),
-        month = parsedMonth,
-        year = parsedYear,
-    )
+    return buildSafeDateParts(parsedDay, parsedMonth, parsedYear, minYear, maxYear)
+}
+
+private fun parseCalendarRangeOrDefault(
+    dateText: String,
+    minYear: Int,
+    maxYear: Int,
+    defaultYear: Int,
+): Triple<CalendarDateParts, CalendarDateParts, Boolean> {
+    val trimmed = dateText.trim()
+    if (trimmed.contains("/")) {
+        val dateSegments = trimmed.split(" - ")
+        val startSegment = dateSegments.getOrNull(0).orEmpty()
+        val endSegment = dateSegments.getOrNull(1).orEmpty()
+        val startParts = parseCalendarDateOrDefault(startSegment, minYear, maxYear, defaultYear)
+        val hasRangeSegment = endSegment.isNotBlank()
+        val endParts = if (hasRangeSegment) {
+            parseCalendarDateOrDefault(endSegment, minYear, maxYear, startParts.year, startParts.month, startParts.day)
+        } else {
+            startParts
+        }
+        return Triple(startParts, endParts, hasRangeSegment)
+    }
+    val hasLetterMonth = trimmed.any { character -> character.isLetter() }
+    if (hasLetterMonth) {
+        val (startParts, maybeEndParts) = parseSpanishTextDateRange(trimmed, minYear, maxYear, defaultYear)
+        val resolvedEnd = maybeEndParts ?: startParts
+        return Triple(startParts, resolvedEnd, maybeEndParts != null)
+    }
+    val fallback = buildSafeDateParts(22, 10, defaultYear, minYear, maxYear)
+    return Triple(fallback, fallback, false)
+}
+
+internal fun formatReadableSpanishDateText(rawDateText: String): String {
+    val trimmed = rawDateText.trim()
+    if (trimmed.isEmpty()) return ""
+    val isSlashFormat = trimmed.contains("/")
+    if (!isSlashFormat) {
+        return trimmed
+    }
+    val dateSegments = trimmed.split(" - ")
+    val startSegment = dateSegments.getOrNull(0).orEmpty()
+    val endSegment = dateSegments.getOrNull(1).orEmpty()
+    val startParts = parseCalendarDateOrDefault(startSegment, 1925, 2035, 2026)
+    if (endSegment.isBlank()) {
+        return startParts.formatReadableSpanish()
+    }
+    val endParts = parseCalendarDateOrDefault(endSegment, 1925, 2035, startParts.year, startParts.month, startParts.day)
+    return formatReadableSpanishDateRange(startParts, endParts)
 }
 
 /**
@@ -312,22 +485,20 @@ internal fun RfInteractiveCalendarModal(
     defaultYear: Int = 1996,
     quickYears: List<Int> = listOf(1985, 1990, 1995, 1996, 2000, 2004, 2008),
     allowRangeSelection: Boolean = false,
+    preferReadableFormat: Boolean = false,
     isAdmin: Boolean = false,
     onSelectDate: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val typo = LocalRfTypography.current
     val palette = LocalRfPalette.current
-    val dateSegments = currentDateText.split(" - ")
-    val startSegment = dateSegments.getOrNull(0).orEmpty()
-    val endSegment = dateSegments.getOrNull(1).orEmpty()
-    val initialStart = parseCalendarDateOrDefault(startSegment, minYear, maxYear, defaultYear)
-    val initialEnd = if (endSegment.isNotBlank()) {
-        parseCalendarDateOrDefault(endSegment, minYear, maxYear, initialStart.year, initialStart.month, initialStart.day)
-    } else {
-        initialStart
-    }
-    val hasInitialRange = if (allowRangeSelection) currentDateText.contains(" - ") else false
+    val (initialStart, initialEnd, parsedHasRange) = parseCalendarRangeOrDefault(
+        dateText = currentDateText,
+        minYear = minYear,
+        maxYear = maxYear,
+        defaultYear = defaultYear,
+    )
+    val hasInitialRange = if (allowRangeSelection) parsedHasRange else false
 
     var isRangeMode by remember(currentDateText, allowRangeSelection) { mutableStateOf(hasInitialRange) }
     var editingEndDate by remember(currentDateText, allowRangeSelection) { mutableStateOf(false) }
@@ -495,7 +666,7 @@ internal fun RfInteractiveCalendarModal(
                                     style = typo.body.copy(fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = palette.muted),
                                 )
                                 BasicText(
-                                    text = startDate.formatSlash(),
+                                    text = if (preferReadableFormat) startDate.formatShortLetters() else startDate.formatSlash(),
                                     style = typo.body.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = palette.ink),
                                 )
                             }
@@ -523,7 +694,7 @@ internal fun RfInteractiveCalendarModal(
                                     style = typo.body.copy(fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = palette.muted),
                                 )
                                 BasicText(
-                                    text = endDate.formatSlash(),
+                                    text = if (preferReadableFormat) endDate.formatShortLetters() else endDate.formatSlash(),
                                     style = typo.body.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = palette.ink),
                                 )
                             }
@@ -740,7 +911,13 @@ internal fun RfInteractiveCalendarModal(
 
             val startPreview = startDate.formatSlash()
             val endPreview = endDate.formatSlash()
-            val formattedPreview = if (isRangeMode) "$startPreview - $endPreview" else startPreview
+            val slashPreview = if (isRangeMode) "$startPreview - $endPreview" else startPreview
+            val readablePreview = if (isRangeMode) {
+                formatReadableSpanishDateRange(startDate, endDate)
+            } else {
+                startDate.formatReadableSpanish()
+            }
+            val formattedPreview = if (preferReadableFormat) readablePreview else slashPreview
 
             Box(
                 contentAlignment = Alignment.Center,
@@ -752,10 +929,13 @@ internal fun RfInteractiveCalendarModal(
                     .background(primaryBrush)
                     .clickable {
                         onSelectDate(formattedPreview)
-                    },
+                    }
+                    .padding(horizontal = 12.dp),
             ) {
                 BasicText(
                     text = "Confirmar $formattedPreview",
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                     style = typo.body.copy(fontSize = 14.5.sp, fontWeight = FontWeight.Bold, color = Color.White),
                 )
             }
