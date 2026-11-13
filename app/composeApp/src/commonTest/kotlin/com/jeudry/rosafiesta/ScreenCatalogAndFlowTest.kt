@@ -1005,4 +1005,30 @@ class ScreenCatalogAndFlowTest {
         onNodeWithText("AUDIO Y EFECTOS DE SONIDO").assertExists()
         onNodeWithText("Probar").assertExists()
     }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun `onboarding admin A30 muestra etapas visuales ilustradas y llega a entrada`() = runComposeUiTest {
+        setContent {
+            com.jeudry.rosafiesta.ui.RenderScreenSpec(
+                spec = ScreenCatalog.findByCode("A30"),
+                isFrameHarness = false,
+                includeBottomBar = false,
+            )
+        }
+        onNodeWithText("01 · OPERACIONES EN VIVO").assertExists()
+        onNodeWithText("Tu semana de eventos, de un vistazo").assertExists()
+        onNodeWithText("Omitir").assertExists()
+
+        onNodeWithTag("admin-onboarding-next").performClick()
+        waitForIdle()
+        onNodeWithText("02 · COPILOTO ROSA IA").assertExists()
+        onNodeWithText("Rosa IA cuida tu stock por fecha").assertExists()
+
+        onNodeWithTag("admin-onboarding-skip").performClick()
+        waitForIdle()
+        onNodeWithText("Elige cómo deseas entrar hoy").assertExists()
+        onNodeWithText("Entrar al panel Admin").assertExists()
+        onNodeWithText("Entrar como cliente").assertExists()
+    }
 }
