@@ -1885,6 +1885,181 @@ private fun resolveSelectedWizardLines(
     if (qty > 0) SelectedWizardArticleLine(article = article, quantity = qty) else null
 }
 
+private fun orderEventPackages(
+    packagesPool: List<EventPackage>,
+    eventType: String,
+): List<EventPackage> {
+    val typeLower = eventType.lowercase()
+    val matching = packagesPool.filter { bundle -> bundle.name.lowercase().contains(typeLower) }
+    val rest = packagesPool.filterNot { bundle -> bundle.name.lowercase().contains(typeLower) }
+    return matching + rest
+}
+
+@Composable
+private fun RosaSuggestionsCarouselSection(
+    sectionTitle: String,
+    suggestions: List<RosaSuggestedArticleUi>,
+    activeQuantities: Map<String, Int>,
+    totalChosenUnits: Int,
+    onOpenSelectedSummary: () -> Unit,
+    onUpdateQuantity: (String, Int) -> Unit,
+    showSelectedChipWhenZero: Boolean = false,
+    secondaryChipLabel: String? = null,
+    onSecondaryChipClick: (() -> Unit)? = null,
+) {
+    val typo = LocalRfTypography.current
+    val shouldShowSelectedChip = if (totalChosenUnits > 0) true else showSelectedChipWhenZero
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            BasicText(
+                text = sectionTitle,
+                style = TextStyle(
+                    fontFamily = typo.bodyFamily,
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 11.sp,
+                    letterSpacing = (0.08 * 11).sp,
+                    color = Color(0xFF6B5A8E),
+                ),
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (shouldShowSelectedChip) {
+                    val selectedChipText = if (totalChosenUnits > 0) {
+                        "Elegidos ($totalChosenUnits)"
+                    } else {
+                        "Ver elegidos"
+                    }
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(999.dp))
+                            .background(Color(0xFFEEF6D6))
+                            .clickable(onClick = onOpenSelectedSummary)
+                            .padding(horizontal = 10.dp, vertical = 4.dp),
+                    ) {
+                        BasicText(
+                            text = selectedChipText,
+                            style = TextStyle(
+                                fontFamily = typo.bodyFamily,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp,
+                                color = Color(0xFF4E6A10),
+                            ),
+                        )
+                    }
+                }
+                if (secondaryChipLabel != null) {
+                    if (onSecondaryChipClick != null) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(Color.White.copy(alpha = 0.85f))
+                                .clickable(onClick = onSecondaryChipClick)
+                                .padding(horizontal = 10.dp, vertical = 4.dp),
+                        ) {
+                            BasicText(
+                                text = secondaryChipLabel,
+                                style = TextStyle(
+                                    fontFamily = typo.bodyFamily,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 11.sp,
+                                    color = Color(0xFF7A4FD8),
+                                ),
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            suggestions.forEach { suggestion ->
+                val liveQuantity = activeQuantities[suggestion.articleId] ?: 0
+                RosaSuggestionArticleCard(
+                    suggestion = suggestion,
+                    quantity = liveQuantity,
+                    onAdd = { onUpdateQuantity(suggestion.articleId, 1) },
+                    onIncrement = { onUpdateQuantity(suggestion.articleId, liveQuantity + 1) },
+                    onDecrement = { onUpdateQuantity(suggestion.articleId, liveQuantity - 1) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun RosaPromosCarouselSection(
+    packages: List<EventPackage>,
+    activePackageId: String?,
+    onApplyPromo: (EventPackage) -> Unit,
+) {
+    val typo = LocalRfTypography.current
+    if (packages.isEmpty()) return
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            BasicText(
+                text = "PROMOS Y PAQUETES",
+                style = TextStyle(
+                    fontFamily = typo.bodyFamily,
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 11.sp,
+                    letterSpacing = (0.08 * 11).sp,
+                    color = Color(0xFF6B5A8E),
+                ),
+            )
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(Color(0xFFFDE6F2))
+                    .padding(horizontal = 10.dp, vertical = 4.dp),
+            ) {
+                BasicText(
+                    text = "Ahorra en combo",
+                    style = TextStyle(
+                        fontFamily = typo.bodyFamily,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 11.sp,
+                        color = Color(0xFFC2338F),
+                    ),
+                )
+            }
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            packages.forEach { packageItem ->
+                val isApplied = activePackageId == packageItem.id
+                RosaPromoPackageCard(
+                    packageItem = packageItem,
+                    isApplied = isApplied,
+                    onApplyPromo = { onApplyPromo(packageItem) },
+                )
+            }
+        }
+    }
+}
+
 @Composable
 internal fun RenderRosaSuggestionsS29(
     onSelectScreenCode: (String) -> Unit = {},
@@ -1970,10 +2145,7 @@ internal fun RenderRosaSuggestionsS29(
     }
 
     val orderedPackages = remember(packagesPool, activeEventType) {
-        val typeLower = activeEventType.lowercase()
-        val matching = packagesPool.filter { bundle -> bundle.name.lowercase().contains(typeLower) }
-        val rest = packagesPool.filterNot { bundle -> bundle.name.lowercase().contains(typeLower) }
-        matching + rest
+        orderEventPackages(packagesPool, activeEventType)
     }
 
     Box(
@@ -1996,142 +2168,25 @@ internal fun RenderRosaSuggestionsS29(
                 .padding(top = 78.dp, bottom = 152.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    BasicText(
-                        text = "RECOMENDADOS PARA TI",
-                        style = TextStyle(
-                            fontFamily = typo.bodyFamily,
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 11.sp,
-                            letterSpacing = (0.08 * 11).sp,
-                            color = Color(0xFF6B5A8E),
-                        ),
-                    )
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        if (totalChosenUnits > 0) {
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(999.dp))
-                                    .background(Color(0xFFEEF6D6))
-                                    .clickable { showSelectedSummaryModal = true }
-                                    .padding(horizontal = 10.dp, vertical = 4.dp),
-                            ) {
-                                BasicText(
-                                    text = "Elegidos ($totalChosenUnits)",
-                                    style = TextStyle(
-                                        fontFamily = typo.bodyFamily,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 11.sp,
-                                        color = Color(0xFF4E6A10),
-                                    ),
-                                )
-                            }
-                        }
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(999.dp))
-                                .background(Color.White.copy(alpha = 0.85f))
-                                .clickable { suggestionBatch += 1 }
-                                .padding(horizontal = 10.dp, vertical = 4.dp),
-                        ) {
-                            BasicText(
-                                text = "Otras ideas ↻",
-                                style = TextStyle(
-                                    fontFamily = typo.bodyFamily,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 11.sp,
-                                    color = Color(0xFF7A4FD8),
-                                ),
-                            )
-                        }
-                    }
-                }
+            RosaSuggestionsCarouselSection(
+                sectionTitle = "RECOMENDADOS PARA TI",
+                suggestions = displayedSuggestions,
+                activeQuantities = activeQuantities,
+                totalChosenUnits = totalChosenUnits,
+                onOpenSelectedSummary = { showSelectedSummaryModal = true },
+                onUpdateQuantity = updateArticleQuantity,
+                secondaryChipLabel = "Otras ideas ↻",
+                onSecondaryChipClick = { suggestionBatch += 1 },
+            )
 
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState())
-                        .padding(horizontal = 20.dp),
-                    horizontalArrangement = Arrangement.spacedBy(14.dp),
-                ) {
-                    displayedSuggestions.forEach { suggestion ->
-                        val liveQuantity = activeQuantities[suggestion.articleId] ?: 0
-                        RosaSuggestionArticleCard(
-                            suggestion = suggestion,
-                            quantity = liveQuantity,
-                            onAdd = { updateArticleQuantity(suggestion.articleId, 1) },
-                            onIncrement = { updateArticleQuantity(suggestion.articleId, liveQuantity + 1) },
-                            onDecrement = { updateArticleQuantity(suggestion.articleId, liveQuantity - 1) },
-                        )
-                    }
-                }
-            }
-
-            if (orderedPackages.isNotEmpty()) {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 20.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        BasicText(
-                            text = "PROMOS Y PAQUETES",
-                            style = TextStyle(
-                                fontFamily = typo.bodyFamily,
-                                fontWeight = FontWeight.ExtraBold,
-                                fontSize = 11.sp,
-                                letterSpacing = (0.08 * 11).sp,
-                                color = Color(0xFF6B5A8E),
-                            ),
-                        )
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(999.dp))
-                                .background(Color(0xFFFDE6F2))
-                                .padding(horizontal = 10.dp, vertical = 4.dp),
-                        ) {
-                            BasicText(
-                                text = "Ahorra en combo",
-                                style = TextStyle(
-                                    fontFamily = typo.bodyFamily,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 11.sp,
-                                    color = Color(0xFFC2338F),
-                                ),
-                            )
-                        }
-                    }
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState())
-                            .padding(horizontal = 20.dp),
-                        horizontalArrangement = Arrangement.spacedBy(14.dp),
-                    ) {
-                        orderedPackages.forEach { packageItem ->
-                            val isApplied = activePackageId == packageItem.id
-                            RosaPromoPackageCard(
-                                packageItem = packageItem,
-                                isApplied = isApplied,
-                                onApplyPromo = {
-                                    fallbackPackageId = packageItem.id
-                                    viewModel?.applyPackageToDraftCart(packageItem)
-                                },
-                            )
-                        }
-                    }
-                }
-            }
+            RosaPromosCarouselSection(
+                packages = orderedPackages,
+                activePackageId = activePackageId,
+                onApplyPromo = { packageItem ->
+                    fallbackPackageId = packageItem.id
+                    viewModel?.applyPackageToDraftCart(packageItem)
+                },
+            )
         }
 
         Row(
@@ -2555,20 +2610,30 @@ internal fun RenderRosaCategoriesS30(
     val typo = LocalRfTypography.current
     val catalogArticles = viewModel?.articles?.collectAsState()?.value ?: CanonicalSampleData.articles
     val balloonProducts = viewModel?.balloonProducts?.collectAsState()?.value ?: CanonicalSampleData.balloonProducts
+    val packagesPool = viewModel?.packages?.collectAsState()?.value ?: CanonicalSampleData.packages
     val vmDraftQuantities = viewModel?.draftQuantities?.collectAsState()?.value.orEmpty()
+    val vmSelectedPackageId = viewModel?.selectedPackageId?.collectAsState()?.value
     val vmOmittedCategories = viewModel?.rosaOmittedCategories?.collectAsState()?.value
+    val vmEventTypeInput = viewModel?.eventTypeInput?.collectAsState()?.value.orEmpty()
+    val vmRosaEventType = viewModel?.rosaEventType?.collectAsState()?.value.orEmpty()
+    val activeEventType = vmEventTypeInput.ifBlank { vmRosaEventType }.ifBlank { "Boda" }
 
     var fallbackQuantities by remember { mutableStateOf(emptyMap<String, Int>()) }
+    var fallbackPackageId by remember { mutableStateOf<String?>(null) }
     var localOmittedCategories by remember { mutableStateOf(emptySet<String>()) }
     var activePickerCategoryTitle by remember { mutableStateOf<String?>(null) }
     var showSelectedSummaryModal by remember { mutableStateOf(false) }
     var promptText by remember { mutableStateOf("") }
 
     val activeQuantities = if (viewModel != null) vmDraftQuantities else fallbackQuantities
+    val activePackageId = if (viewModel != null) vmSelectedPackageId else fallbackPackageId
     val activeOmittedCategories = vmOmittedCategories ?: localOmittedCategories
 
     val expandedArticles = remember(catalogArticles, balloonProducts) {
         mergeCatalogArticlesWithWizardOptions(catalogArticles, balloonProducts)
+    }
+    val orderedPackages = remember(packagesPool, activeEventType) {
+        orderEventPackages(packagesPool, activeEventType)
     }
     val displayedCategories = remember(expandedArticles) {
         buildRealCategoryReviewSpecs(expandedArticles)
@@ -2636,32 +2701,51 @@ internal fun RenderRosaCategoriesS30(
                     buildSuggestionUiFromCatalogArticle(articleItem)
                 }
             }
+            val complementarySuggestions = remember(expandedArticles, activePickerCategory) {
+                expandedArticles
+                    .filter { articleItem -> articleItem.category != activePickerCategory.title }
+                    .take(6)
+                    .map { articleItem -> buildSuggestionUiFromCatalogArticle(articleItem) }
+            }
             Column(
                 modifier = Modifier
                     .align(Alignment.TopStart)
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
                     .padding(top = 78.dp, bottom = 148.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
+                verticalArrangement = Arrangement.spacedBy(18.dp),
             ) {
-                Spacer(modifier = Modifier.height(6.dp))
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState())
-                        .padding(horizontal = 20.dp),
-                    horizontalArrangement = Arrangement.spacedBy(14.dp),
-                ) {
-                    categorySuggestions.forEach { suggestion ->
-                        val liveQuantity = activeQuantities[suggestion.articleId] ?: 0
-                        RosaSuggestionArticleCard(
-                            suggestion = suggestion,
-                            quantity = liveQuantity,
-                            onAdd = { updateCategoryArticleQuantity(suggestion.articleId, 1) },
-                            onIncrement = { updateCategoryArticleQuantity(suggestion.articleId, liveQuantity + 1) },
-                            onDecrement = { updateCategoryArticleQuantity(suggestion.articleId, liveQuantity - 1) },
-                        )
-                    }
+                Spacer(modifier = Modifier.height(2.dp))
+                RosaSuggestionsCarouselSection(
+                    sectionTitle = activePickerCategory.title.uppercase(),
+                    suggestions = categorySuggestions,
+                    activeQuantities = activeQuantities,
+                    totalChosenUnits = totalChosenUnits,
+                    onOpenSelectedSummary = { showSelectedSummaryModal = true },
+                    onUpdateQuantity = updateCategoryArticleQuantity,
+                    showSelectedChipWhenZero = true,
+                    secondaryChipLabel = "Ver catálogo",
+                    onSecondaryChipClick = { onSelectScreenCode("s19") },
+                )
+
+                RosaPromosCarouselSection(
+                    packages = orderedPackages,
+                    activePackageId = activePackageId,
+                    onApplyPromo = { packageItem ->
+                        fallbackPackageId = packageItem.id
+                        viewModel?.applyPackageToDraftCart(packageItem)
+                    },
+                )
+
+                if (complementarySuggestions.isNotEmpty()) {
+                    RosaSuggestionsCarouselSection(
+                        sectionTitle = "TAMBIÉN PARA TU EVENTO",
+                        suggestions = complementarySuggestions,
+                        activeQuantities = activeQuantities,
+                        totalChosenUnits = totalChosenUnits,
+                        onOpenSelectedSummary = { showSelectedSummaryModal = true },
+                        onUpdateQuantity = updateCategoryArticleQuantity,
+                    )
                 }
             }
 
