@@ -31,6 +31,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
@@ -243,10 +244,11 @@ public fun PersonalTabBar(
         )
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(3.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .offset(y = (-18).dp)
+                .wrapContentHeight(align = Alignment.Top, unbounded = true)
+                .offset(y = (-22).dp)
                 .graphicsLayer {
                     scaleX = rosaScale
                     scaleY = rosaScale
@@ -470,10 +472,11 @@ public fun AdminTabBar(
         )
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(3.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .offset(y = (-18).dp)
+                .wrapContentHeight(align = Alignment.Top, unbounded = true)
+                .offset(y = (-22).dp)
                 .graphicsLayer {
                     scaleX = rosaScale
                     scaleY = rosaScale
