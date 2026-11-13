@@ -497,7 +497,7 @@ class ScreenCatalogAndFlowTest {
         onNodeWithTag("more-option-s53").assertExists()
         onNodeWithTag("more-option-s86").assertExists()
         onNodeWithTag("more-option-s16").assertExists()
-        onNodeWithTag("more-option-s54").assertExists()
+        onNodeWithTag("more-option-s54").assertDoesNotExist()
 
         onNodeWithTag("personal-more-panel").performTouchInput {
             val headerPoint = Offset(centerX, top + 10f)

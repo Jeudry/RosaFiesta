@@ -60,7 +60,8 @@ import com.jeudry.rosafiesta.designsystem.RfThemeVariant
 
 public fun shouldShowBottomBar(code: String): Boolean = code.lowercase() in setOf(
     "a01", "a02", "a09", "a11", "a12", "a32", "a35", "a36", "a37",
-    "s01", "s02", "s14", "s15", "s18", "s20", "s21", "s23", "s24", "s37", "s80", "s89", "s90", "s91", "s92",
+    "s01", "s02", "s14", "s15", "s16", "s17", "s18", "s20", "s21", "s23", "s24", "s26",
+    "s37", "s53", "s54", "s80", "s82", "s86", "s87", "s88", "s89", "s90", "s91", "s92",
 )
 
 @Composable
@@ -171,12 +172,6 @@ internal fun RenderPersonalMoreOptionsPanel(
                 subtitle = "Reseñas 5.0 ★, historia y garantías de servicio",
                 icon = RfIconKind.INFO,
                 targetCode = "s16",
-            ),
-            PersonalMoreMenuItem(
-                title = "Mi perfil",
-                subtitle = "Editar foto, datos personales y cerrar sesión",
-                icon = RfIconKind.USER,
-                targetCode = "s54",
             ),
         )
     }
