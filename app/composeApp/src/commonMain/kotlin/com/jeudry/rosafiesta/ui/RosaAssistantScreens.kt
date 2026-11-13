@@ -4858,9 +4858,10 @@ internal fun RenderRosaSubmittedS33(
     val summaryTitle = activeEvent?.title
         ?: activeQuote?.eventTitle
         ?: fallbackEventType.ifBlank { "Mi evento Rosa Fiesta" }
-    val summaryDate = activeEvent?.dateLabel
+    val rawSummaryDate = activeEvent?.dateLabel
         ?: activeQuote?.dateLabel
         ?: fallbackEventDate.ifBlank { "Por confirmar" }
+    val summaryDate = formatReadableSpanishDateText(rawSummaryDate)
     val summaryGuests = activeEvent?.guests
         ?: activeQuote?.guests
         ?: fallbackGuests

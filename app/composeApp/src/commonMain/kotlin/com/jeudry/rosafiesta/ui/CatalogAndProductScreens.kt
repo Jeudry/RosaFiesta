@@ -999,7 +999,7 @@ internal fun RenderProductDetailS19(
                         val displayReviews: List<Triple<String, String, String>> = if (companyReviews.isNotEmpty()) {
                             companyReviews.take(4).map { reviewModel ->
                                 val starsLabel = "★".repeat(reviewModel.rating.coerceIn(1, 5))
-                                Triple(reviewModel.author, "$starsLabel · ${reviewModel.dateLabel}", reviewModel.comment)
+                                Triple(reviewModel.author, "$starsLabel · ${formatReadableSpanishDateText(reviewModel.dateLabel)}", reviewModel.comment)
                             }
                         } else {
                             domainReviews.take(4).map { reviewRecord ->

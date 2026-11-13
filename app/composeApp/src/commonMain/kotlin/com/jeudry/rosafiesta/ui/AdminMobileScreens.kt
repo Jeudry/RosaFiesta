@@ -353,11 +353,14 @@ private fun resolveAdminFirstName(rawProfileName: String): String {
     return trimmed.substringBefore(" ")
 }
 
-private fun buildHeroTimingBadge(eventItem: ClientEvent): String = when {
-    eventItem.daysUntilEvent == 0 -> "Hoy · ${eventItem.dateLabel}"
-    eventItem.daysUntilEvent == 1 -> "Mañana · ${eventItem.dateLabel}"
-    eventItem.daysUntilEvent > 1 -> "${eventItem.dateLabel} · en ${eventItem.daysUntilEvent} días"
-    else -> eventItem.dateLabel
+private fun buildHeroTimingBadge(eventItem: ClientEvent): String {
+    val readableDate = formatReadableSpanishDateText(eventItem.dateLabel)
+    return when {
+        eventItem.daysUntilEvent == 0 -> "Hoy · $readableDate"
+        eventItem.daysUntilEvent == 1 -> "Mañana · $readableDate"
+        eventItem.daysUntilEvent > 1 -> "$readableDate · en ${eventItem.daysUntilEvent} días"
+        else -> readableDate
+    }
 }
 
 @Composable
@@ -443,7 +446,7 @@ internal fun RenderAdminHomeA01(
             builtRows.add(
                 AdminHomeAlertRow(
                     title = "Cotización · ${topPendingQuote.eventTitle}",
-                    subtitle = "${topPendingQuote.clientName} · ${topPendingQuote.dateLabel}",
+                    subtitle = "${topPendingQuote.clientName} · ${formatReadableSpanishDateText(topPendingQuote.dateLabel)}",
                     trailingBadge = formatAdminDop(topPendingQuote.totalDop),
                     isBadgePill = false,
                     iconKind = RfIconKind.ORDERS,
@@ -462,7 +465,7 @@ internal fun RenderAdminHomeA01(
             builtRows.add(
                 AdminHomeAlertRow(
                     title = "Solicitud nueva · ${topNewLead.clientName}",
-                    subtitle = "${topNewLead.eventType} · ${topNewLead.dateLabel} · ${topNewLead.channel}",
+                    subtitle = "${topNewLead.eventType} · ${formatReadableSpanishDateText(topNewLead.dateLabel)} · ${topNewLead.channel}",
                     trailingBadge = "Cotizar",
                     isBadgePill = true,
                     iconKind = RfIconKind.SPARK,
@@ -481,7 +484,7 @@ internal fun RenderAdminHomeA01(
             builtRows.add(
                 AdminHomeAlertRow(
                     title = "Expediente · ${secondUnpaidEvent.title}",
-                    subtitle = "${secondUnpaidEvent.clientName} · ${secondUnpaidEvent.dateLabel}",
+                    subtitle = "${secondUnpaidEvent.clientName} · ${formatReadableSpanishDateText(secondUnpaidEvent.dateLabel)}",
                     trailingBadge = formatAdminDop(secondUnpaidEvent.balanceDop),
                     isBadgePill = false,
                     iconKind = RfIconKind.CALENDAR,
@@ -1261,7 +1264,7 @@ internal fun RenderAdminRequestsA02(
                                     style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2E324A)),
                                 )
                                 BasicText(
-                                    text = "${requestItem.clientName} · ${requestItem.dateLabel}",
+                                    text = "${requestItem.clientName} · ${formatReadableSpanishDateText(requestItem.dateLabel)}",
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
                                     style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF5F6377)),
@@ -2812,7 +2815,7 @@ internal fun RenderAdminEventsA11(
                                     style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = Color(0xFF2E324A)),
                                 )
                                 BasicText(
-                                    text = "${eventItem.dateLabel} · ${eventItem.clientName} · ${eventItem.venue}",
+                                    text = "${formatReadableSpanishDateText(eventItem.dateLabel)} · ${eventItem.clientName} · ${eventItem.venue}",
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
                                     style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = Color(0xFF5F6377)),
@@ -3811,9 +3814,10 @@ internal fun RenderAdminRecordPaymentA21(
                             value = paymentDate,
                             onValueChange = { updatedText -> paymentDate = updatedText },
                             onOpenCalendar = { showPaymentDatePicker = true },
-                            placeholder = "DD/MM/AAAA",
+                            placeholder = "Elegir fecha",
                             isAdmin = true,
                             compactInline = true,
+                            embeddedInContainer = true,
                             modifier = Modifier.fillMaxWidth(),
                         )
                     }
@@ -3991,7 +3995,7 @@ internal fun RenderAdminEventDetailA13(
         selectedEvent.daysUntilEvent == 0 -> "Hoy"
         selectedEvent.daysUntilEvent == 1 -> "Mañana"
         selectedEvent.daysUntilEvent > 1 -> "En ${selectedEvent.daysUntilEvent} días"
-        else -> selectedEvent.dateLabel
+        else -> formatReadableSpanishDateText(selectedEvent.dateLabel)
     }
     val executionCtaBrush = Brush.linearGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0), Color(0xFF2FB8C8)))
 
@@ -4034,7 +4038,7 @@ internal fun RenderAdminEventDetailA13(
                         style = TextStyle(fontFamily = typo.displayFamily, fontSize = 19.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.5).sp, color = Color(0xFF2E324A)),
                     )
                     BasicText(
-                        text = "${selectedEvent.dateLabel} · ${selectedEvent.venue}",
+                        text = "${formatReadableSpanishDateText(selectedEvent.dateLabel)} · ${selectedEvent.venue}",
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF5F6377)),
@@ -4744,7 +4748,7 @@ internal fun RenderAdminExecutionA16(
     val venueSubtitle = if (matchingStop != null) {
         "${matchingStop.windowLabel} · ${matchingStop.vehicleAndCrew} · ${selectedEvent.clientName}"
     } else {
-        "${selectedEvent.dateLabel} · Contacto: ${selectedEvent.clientName}"
+        "${formatReadableSpanishDateText(selectedEvent.dateLabel)} · Contacto: ${selectedEvent.clientName}"
     }
     val headerHeroBrush = Brush.linearGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0), Color(0xFF2FB8C8)))
 
@@ -4826,7 +4830,7 @@ internal fun RenderAdminExecutionA16(
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             BasicText(
-                                text = "${matchingStop?.windowLabel ?: selectedEvent.dateLabel} · $venueTitle",
+                                text = "${matchingStop?.windowLabel ?: formatReadableSpanishDateText(selectedEvent.dateLabel)} · $venueTitle",
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                                 style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFFE9EEFF)),
@@ -6279,7 +6283,7 @@ internal fun RenderAdminCloseoutA19(
                         style = TextStyle(fontFamily = typo.displayFamily, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729), lineHeight = 22.sp),
                     )
                     BasicText(
-                        text = "${selectedEvent.title} · ${selectedEvent.dateLabel}",
+                        text = "${selectedEvent.title} · ${formatReadableSpanishDateText(selectedEvent.dateLabel)}",
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, fontWeight = FontWeight.Normal, color = Color(0xFF5F6377)),
@@ -8919,7 +8923,7 @@ internal fun RenderAdminClientProfileA27(
                             }
                             Column(modifier = Modifier.weight(1f)) {
                                 BasicText(clientEvent.title, maxLines = 1, overflow = TextOverflow.Ellipsis, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2E324A)))
-                                BasicText("${clientEvent.dateLabel} · ${clientEvent.statusLabel}", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = Color(0xFF5F6377)))
+                                BasicText("${formatReadableSpanishDateText(clientEvent.dateLabel)} · ${clientEvent.statusLabel}", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = Color(0xFF5F6377)))
                             }
                             RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = Color(0xFF5F6377), size = 18.dp)
                         }

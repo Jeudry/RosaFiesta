@@ -33,9 +33,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -133,26 +135,38 @@ public fun formatDateDigitsWithSlashes(
 }
 
 /**
- * Reusable date input box with automatic `DD/MM/AAAA` slash masking and a calendar button
- * that opens [RfInteractiveCalendarModal].
+ * Reusable date input box that displays dates in legible Spanish words when not actively typing
+ * digits, supports automatic `DD/MM/AAAA` slash masking while editing, and opens [RfInteractiveCalendarModal].
  */
 @Composable
 internal fun RfMaskedDateField(
     value: String,
     onValueChange: (String) -> Unit,
     onOpenCalendar: () -> Unit,
-    placeholder: String = "DD/MM/AAAA",
+    placeholder: String = "Elegir fecha",
     hasError: Boolean = false,
     isAdmin: Boolean = false,
     compactInline: Boolean = false,
+    embeddedInContainer: Boolean = false,
+    readableFormatter: (String) -> String = ::formatReadableSpanishDateText,
     modifier: Modifier = Modifier,
 ) {
     val typo = LocalRfTypography.current
     val palette = LocalRfPalette.current
-    val textFieldValue = remember(value) {
+    val focusManager = LocalFocusManager.current
+    var isFocused by remember { mutableStateOf(false) }
+
+    val shouldShowReadableValue = if (!isFocused) value.isNotBlank() else false
+    val displayText = if (shouldShowReadableValue) {
+        readableFormatter(value)
+    } else {
+        value
+    }
+    val useCompactStandaloneTypography = if (compactInline) !embeddedInContainer else false
+    val textFieldValue = remember(displayText) {
         TextFieldValue(
-            text = value,
-            selection = TextRange(value.length),
+            text = displayText,
+            selection = TextRange(displayText.length),
         )
     }
     val accentColor = if (isAdmin) Color(0xFF4B47D6) else Color(0xFFC2338F)
@@ -168,14 +182,23 @@ internal fun RfMaskedDateField(
     }
     val fieldHeight = if (compactInline) 40.dp else 52.dp
     val cornerRadius = if (compactInline) 12.dp else 16.dp
-
-    Row(
-        modifier = modifier
+    val rowModifier = if (embeddedInContainer) {
+        modifier
+    } else {
+        modifier
             .height(fieldHeight)
             .clip(RoundedCornerShape(cornerRadius))
             .background(containerBg)
             .border(1.5.dp, borderColor, RoundedCornerShape(cornerRadius))
-            .padding(start = 12.dp, end = 6.dp),
+            .padding(start = 12.dp, end = 6.dp)
+    }
+    val triggerCalendarPicker = {
+        focusManager.clearFocus()
+        onOpenCalendar()
+    }
+
+    Row(
+        modifier = rowModifier,
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
@@ -184,7 +207,7 @@ internal fun RfMaskedDateField(
                 modifier = Modifier
                     .size(28.dp)
                     .clip(CircleShape)
-                    .clickable { onOpenCalendar() },
+                    .clickable { triggerCalendarPicker() },
                 contentAlignment = Alignment.Center,
             ) {
                 RfIcon(
@@ -197,6 +220,7 @@ internal fun RfMaskedDateField(
         BasicTextField(
             value = textFieldValue,
             onValueChange = { updatedFieldValue ->
+                if (!isFocused) return@BasicTextField
                 val rawText = updatedFieldValue.text
                 val keepsRangeSeparator = rawText.contains(" - ")
                 if (keepsRangeSeparator) {
@@ -214,12 +238,16 @@ internal fun RfMaskedDateField(
             singleLine = true,
             textStyle = TextStyle(
                 fontFamily = typo.bodyFamily,
-                fontWeight = if (compactInline) FontWeight.Bold else FontWeight.SemiBold,
-                fontSize = if (compactInline) 14.sp else 15.sp,
+                fontWeight = if (useCompactStandaloneTypography) FontWeight.Bold else FontWeight.SemiBold,
+                fontSize = if (useCompactStandaloneTypography) 14.sp else 15.sp,
                 color = palette.ink,
             ),
             cursorBrush = SolidColor(accentColor),
-            modifier = Modifier.weight(1f),
+            modifier = Modifier
+                .weight(1f)
+                .onFocusChanged { focusState ->
+                    isFocused = focusState.isFocused
+                },
             decorationBox = { innerTextField ->
                 if (value.isEmpty()) {
                     BasicText(
@@ -228,7 +256,7 @@ internal fun RfMaskedDateField(
                         overflow = TextOverflow.Ellipsis,
                         style = TextStyle(
                             fontFamily = typo.bodyFamily,
-                            fontSize = if (compactInline) 13.5.sp else 14.5.sp,
+                            fontSize = if (useCompactStandaloneTypography) 13.5.sp else 14.5.sp,
                             color = palette.muted,
                         ),
                     )
@@ -250,7 +278,7 @@ internal fun RfMaskedDateField(
                         Color(0xFFFDE6F2)
                     },
                 )
-                .clickable { onOpenCalendar() },
+                .clickable { triggerCalendarPicker() },
         ) {
             RfIcon(
                 kind = RfIconKind.CALENDAR,
@@ -457,19 +485,55 @@ private fun parseCalendarRangeOrDefault(
 internal fun formatReadableSpanishDateText(rawDateText: String): String {
     val trimmed = rawDateText.trim()
     if (trimmed.isEmpty()) return ""
+
+    val slashRegex = Regex("""^\d{1,2}/\d{1,2}/\d{2,4}""")
     val isSlashFormat = trimmed.contains("/")
-    if (!isSlashFormat) {
-        return trimmed
+    if (isSlashFormat) {
+        val dateSegments = trimmed.split(" - ")
+        val startSegment = dateSegments.getOrNull(0).orEmpty()
+        val endSegment = dateSegments.getOrNull(1).orEmpty()
+        if (!slashRegex.containsMatchIn(startSegment.trim())) {
+            return trimmed
+        }
+        val startParts = parseCalendarDateOrDefault(startSegment, 1925, 2035, 2026)
+        if (endSegment.isBlank()) {
+            return startParts.formatReadableSpanish()
+        }
+        val endParts = parseCalendarDateOrDefault(endSegment, 1925, 2035, startParts.year, startParts.month, startParts.day)
+        return formatReadableSpanishDateRange(startParts, endParts)
     }
-    val dateSegments = trimmed.split(" - ")
-    val startSegment = dateSegments.getOrNull(0).orEmpty()
-    val endSegment = dateSegments.getOrNull(1).orEmpty()
-    val startParts = parseCalendarDateOrDefault(startSegment, 1925, 2035, 2026)
-    if (endSegment.isBlank()) {
-        return startParts.formatReadableSpanish()
+
+    val isoParts = parseDayMonthYearParts(trimmed)
+    if (isoParts != null) {
+        val safeIso = buildSafeDateParts(isoParts.first, isoParts.second, isoParts.third, 1925, 2035)
+        return safeIso.formatReadableSpanish()
     }
-    val endParts = parseCalendarDateOrDefault(endSegment, 1925, 2035, startParts.year, startParts.month, startParts.day)
-    return formatReadableSpanishDateRange(startParts, endParts)
+
+    val expandedShortMonth = expandAbbreviatedSpanishMonths(trimmed)
+    return expandedShortMonth
+}
+
+private fun expandAbbreviatedSpanishMonths(rawText: String): String {
+    val tokens = rawText.split(" ")
+    if (tokens.none { token -> matchAbbreviatedMonthOnly(token) != null }) {
+        return rawText
+    }
+    return tokens.joinToString(" ") { token ->
+        val cleanToken = token.trimEnd(',', '.')
+        val matchedMonth = matchAbbreviatedMonthOnly(cleanToken)
+        if (matchedMonth != null) {
+            val fullMonth = spanishMonthsFull[matchedMonth - 1]
+            "de $fullMonth"
+        } else {
+            token
+        }
+    }.replace(" de de ", " de ")
+}
+
+private fun matchAbbreviatedMonthOnly(word: String): Int? {
+    val clean = word.lowercase().trimEnd('.', ',')
+    val shortIndex = spanishMonthsShort.indexOf(clean)
+    return if (shortIndex >= 0) shortIndex + 1 else null
 }
 
 /**

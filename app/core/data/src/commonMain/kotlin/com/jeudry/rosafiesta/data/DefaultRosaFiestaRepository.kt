@@ -285,6 +285,35 @@ public class DefaultRosaFiestaRepository(
 
     override suspend fun authenticateUserOnline(identifier: String, password: String): AuthOutcome = submodules.authenticateUserOnline(identifier, password, ::authenticateUser)
 
+    override suspend fun registerUserOnline(
+        firstName: String,
+        lastName: String,
+        username: String,
+        email: String,
+        password: String,
+        birthDate: String,
+        phone: String,
+    ): AuthOutcome = submodules.registerUserOnline(
+        firstName = firstName,
+        lastName = lastName,
+        username = username,
+        email = email,
+        password = password,
+        birthDate = birthDate,
+        phone = phone,
+        localFallback = {
+            registerUser(
+                firstName = firstName,
+                lastName = lastName,
+                username = username,
+                email = email,
+                password = password,
+                birthDate = birthDate,
+                phone = phone,
+            )
+        },
+    )
+
     override fun authenticateUser(identifier: String, password: String): AuthOutcome {
         val cleanIdentifier = identifier.trim().lowercase()
         val cleanPass = password.trim()

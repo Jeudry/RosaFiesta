@@ -19,6 +19,7 @@ import com.jeudry.rosafiesta.domain.security.InMemorySecureStorage
 import com.jeudry.rosafiesta.ui.Navigator
 import com.jeudry.rosafiesta.ui.RosaFiestaViewModel
 import com.jeudry.rosafiesta.ui.ScreenCatalog
+import com.jeudry.rosafiesta.ui.formatReadableSpanishDateText
 import com.jeudry.rosafiesta.ui.formatSpanishDateWithWords
 import kotlin.io.encoding.Base64
 import kotlin.test.Test
@@ -287,10 +288,11 @@ class ScreenCatalogAndFlowTest {
     @OptIn(ExperimentalTestApi::class)
     @Test
     fun `pantalla A09 filtra articulos por categoria y A25 recalcula descuento del paquete`() = runComposeUiTest {
-        val koin = org.koin.dsl.koinApplication {
-            modules(com.jeudry.rosafiesta.di.appModule)
-        }.koin
-        val viewModel = koin.get<com.jeudry.rosafiesta.ui.RosaFiestaViewModel>()
+        val viewModel = RosaFiestaViewModel(
+            repository = com.jeudry.rosafiesta.data.DefaultRosaFiestaRepository(),
+            secureStorage = InMemorySecureStorage(),
+            platformActions = NoOpPlatformActions(),
+        )
 
         setContent {
             RosaFiestaApp(
@@ -462,10 +464,11 @@ class ScreenCatalogAndFlowTest {
     @OptIn(ExperimentalTestApi::class)
     @Test
     fun `Yuli sin permiso de pagos ve pantalla restringida en A20 hasta habilitar acceso en ViewModel`() = runComposeUiTest {
-        val koin = org.koin.dsl.koinApplication {
-            modules(com.jeudry.rosafiesta.di.appModule)
-        }.koin
-        val viewModel = koin.get<com.jeudry.rosafiesta.ui.RosaFiestaViewModel>()
+        val viewModel = RosaFiestaViewModel(
+            repository = com.jeudry.rosafiesta.data.DefaultRosaFiestaRepository(),
+            secureStorage = InMemorySecureStorage(),
+            platformActions = NoOpPlatformActions(),
+        )
         viewModel.switchRole("staff_yuli")
 
         val restrictedCodes = listOf("A20", "A21", "A32", "A33", "s57", "s58", "s59", "s67")
@@ -750,5 +753,13 @@ class ScreenCatalogAndFlowTest {
         val eventId = createdEvent.id
         viewModel.markCalendarPromptDismissed(eventId)
         assertTrue(eventId in viewModel.calendarSyncPromptDismissedIds.value)
+    }
+
+    @Test
+    fun `formatea fechas legibles en espanol completo desde formatos ISO barra y abreviados`() {
+        assertEquals("Vie, 23 de octubre 2026", formatReadableSpanishDateText("2026-10-23"))
+        assertEquals("Vie, 21 de agosto 1998", formatReadableSpanishDateText("21/08/1998"))
+        assertEquals("Vie 23 de octubre", formatReadableSpanishDateText("Vie 23 oct"))
+        assertEquals("21 de agosto de 1998", formatSpanishDateWithWords("21/08/1998"))
     }
 }

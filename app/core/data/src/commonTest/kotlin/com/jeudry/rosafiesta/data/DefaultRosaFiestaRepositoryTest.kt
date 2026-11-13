@@ -16,6 +16,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
@@ -304,5 +305,98 @@ class DefaultRosaFiestaRepositoryTest {
         repo.syncFromBackendAsync()
         assertEquals("Bearer jwt-wasm-session-99", capturedAuthHeader)
         assertEquals("Bouquet helio sincronizado", repo.balloonProducts.value.first().name)
+    }
+
+    @Test
+    fun `online registration awaits server and rejects conflict or unauthorized without fake fallback`() = runTest {
+        val testDispatcher = StandardTestDispatcher(testScheduler)
+        var registerAttempt = 0
+        val mockEngine = MockEngine { request ->
+            when (request.url.encodedPath) {
+                "/v1/auth/register" -> {
+                    val isFirstConflictAttempt = registerAttempt == 0
+                    registerAttempt += 1
+                    if (isFirstConflictAttempt) {
+                        respond(
+                            content = """{"code":"AUTH_EMAIL_TAKEN","message":"Este correo ya está registrado"}""",
+                            status = HttpStatusCode.Conflict,
+                            headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+                        )
+                    } else {
+                        respond(
+                            content = """
+                                {
+                                  "accessToken": "jwt-nuevo-registro-2026",
+                                  "user": {
+                                    "id": "usr-nuevo",
+                                    "username": "jeudry_nuevo",
+                                    "fullName": "Jeudry Peña",
+                                    "email": "nuevo@gmail.com",
+                                    "role": "client"
+                                  }
+                                }
+                            """.trimIndent(),
+                            status = HttpStatusCode.OK,
+                            headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+                        )
+                    }
+                }
+
+                "/v1/auth/login" -> respond(
+                    content = """{"code":"AUTH_INVALID_CREDENTIALS","message":"Credenciales inválidas"}""",
+                    status = HttpStatusCode.Unauthorized,
+                    headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+                )
+
+                else -> respond(
+                    content = """{"queue":[]}""",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+                )
+            }
+        }
+        val httpClient = HttpClient(mockEngine) {
+            install(ContentNegotiation) {
+                json(Json { ignoreUnknownKeys = true })
+            }
+        }
+        val apiClient = RosaFiestaApiClient(
+            baseUrl = "http://localhost:8788",
+            ioDispatcher = testDispatcher,
+            httpClient = httpClient,
+        )
+        val repo = DefaultRosaFiestaRepository(
+            apiClient = apiClient,
+            ioDispatcher = testDispatcher,
+        )
+
+        val conflictOutcome = repo.registerUserOnline(
+            firstName = "Jeudry",
+            lastName = "Peña",
+            username = "jeudry",
+            email = "repetido@gmail.com",
+            birthDate = "21/08/1998",
+            phone = "8497505944",
+            password = "ClaveSegura2026!",
+        )
+        assertFalse(conflictOutcome.success)
+        assertEquals("AUTH_EMAIL_TAKEN", conflictOutcome.errorCode)
+
+        val createdOutcome = repo.registerUserOnline(
+            firstName = "Jeudry",
+            lastName = "Peña",
+            username = "jeudry_nuevo",
+            email = "nuevo@gmail.com",
+            birthDate = "21/08/1998",
+            phone = "8497505944",
+            password = "ClaveSegura2026!",
+        )
+        assertTrue(createdOutcome.success)
+        assertEquals("jwt-nuevo-registro-2026", createdOutcome.accessToken)
+        assertEquals("jwt-nuevo-registro-2026", apiClient.currentAccessToken())
+
+        val invalidLogin = repo.authenticateUserOnline("nuevo@gmail.com", "ClaveErronea123!")
+        assertFalse(invalidLogin.success)
+        assertEquals("AUTH_INVALID_CREDENTIALS", invalidLogin.errorCode)
     }
 }

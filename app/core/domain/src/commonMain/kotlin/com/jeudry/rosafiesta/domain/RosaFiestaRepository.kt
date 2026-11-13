@@ -165,6 +165,27 @@ public interface RosaFiestaRepository {
     public suspend fun authenticateUserOnline(identifier: String, password: String): AuthOutcome = authenticateUser(identifier, password)
 
     /**
+     * Registers a new account against the remote backend and awaits server persistence before authenticating.
+     */
+    public suspend fun registerUserOnline(
+        firstName: String,
+        lastName: String,
+        username: String,
+        email: String,
+        password: String,
+        birthDate: String,
+        phone: String = "",
+    ): AuthOutcome = registerUser(
+        firstName = firstName,
+        lastName = lastName,
+        username = username,
+        email = email,
+        password = password,
+        birthDate = birthDate,
+        phone = phone,
+    )
+
+    /**
      * Requests a one-time password recovery code for [email].
      */
     public suspend fun requestPasswordOtp(email: String): OtpChallengeOutcome = OtpChallengeOutcome(

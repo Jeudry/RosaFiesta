@@ -46,6 +46,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -97,6 +98,7 @@ import com.jeudry.rosafiesta.domain.PhotoAsset
 import com.jeudry.rosafiesta.domain.QuoteRecord
 import com.jeudry.rosafiesta.domain.RefundRequest
 import com.jeudry.rosafiesta.domain.ReviewRecord
+import kotlinx.coroutines.launch
 
 private val AdminButtonGradient = Brush.horizontalGradient(
     listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0)),
@@ -662,7 +664,7 @@ internal fun RenderAdminCreateEventA04(
                                             style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2E324A)),
                                         )
                                         BasicText(
-                                            text = "${eventChoice.clientName} · ${eventChoice.dateLabel} · ${eventChoice.guests} inv.",
+                                            text = "${eventChoice.clientName} · ${formatReadableSpanishDateText(eventChoice.dateLabel)} · ${eventChoice.guests} inv.",
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis,
                                             style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.5.sp, color = Color(0xFF5F6377)),
@@ -1045,9 +1047,10 @@ internal fun RenderAdminManualEventA05(
                             value = dateValue,
                             onValueChange = updateDate,
                             onOpenCalendar = { showDatePickerModal = true },
-                            placeholder = "DD/MM/AAAA",
+                            placeholder = "Elegir fecha",
                             isAdmin = true,
                             compactInline = true,
+                            embeddedInContainer = true,
                             modifier = Modifier.fillMaxWidth(),
                         )
                     }
@@ -1668,7 +1671,12 @@ internal fun RenderAdminEventSummaryA07(
 
     val draftTitle = if (viewModel != null) rawTitle.ifBlank { "Sin título de evento" } else "Cumpleaños de Mateo"
     val clientName = if (viewModel != null) rawClient.ifBlank { "Sin cliente asignado" } else "Laura Peña"
-    val draftDate = if (viewModel != null) rawDate.ifBlank { "Fecha pendiente" } else "07/11/2026"
+    val draftDate = if (viewModel != null) {
+        val formattedDate = formatReadableSpanishDateText(rawDate)
+        formattedDate.ifBlank { "Fecha pendiente" }
+    } else {
+        "Sáb, 7 de noviembre 2026"
+    }
     val draftVenue = if (viewModel != null) rawVenue.ifBlank { "Lugar por confirmar" } else "Terraza Los Prados"
     val draftGuests = if (viewModel != null) rawGuests.ifBlank { "0" } else "40"
 
@@ -3208,7 +3216,7 @@ internal fun RenderAdminQuotesA22(
                                         style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2E324A)),
                                     )
                                     BasicText(
-                                        text = "${quoteItem.clientName} · ${quoteItem.code} · ${quoteItem.dateLabel}",
+                                        text = "${quoteItem.clientName} · ${quoteItem.code} · ${formatReadableSpanishDateText(quoteItem.dateLabel)}",
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
                                         style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = Color(0xFF5F6377)),
@@ -3636,12 +3644,14 @@ internal fun RenderAdminEntryChoiceA30(
     onSwitchAppMode: () -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
+    val coroutineScope = rememberCoroutineScope()
     var onboardingStep by remember { mutableStateOf(0) }
     var rememberChoice by remember { mutableStateOf(true) }
     var showAdminLoginForm by remember { mutableStateOf(false) }
     var fallbackEmail by remember { mutableStateOf("maria@rosafiesta.do") }
     var fallbackPassword by remember { mutableStateOf("") }
     var localAuthError by remember { mutableStateOf<String?>(null) }
+    var isSubmittingAdminLogin by remember { mutableStateOf(false) }
 
     val vmLoginEmail = viewModel?.loginEmail?.collectAsState()?.value
     val vmLoginPassword = viewModel?.loginPassword?.collectAsState()?.value
@@ -3984,25 +3994,41 @@ internal fun RenderAdminEntryChoiceA30(
                                 .clip(AdminButtonShape16)
                                 .background(AdminButtonGradient)
                                 .clickable {
-                                    val loggedIn = viewModel?.submitLogin() ?: true
-                                    val isAuthorizedAdmin = viewModel?.isCurrentSessionAdminOrStaff() ?: true
-                                    val canEnterAdmin = bothTrue(loggedIn, isAuthorizedAdmin)
-                                    if (canEnterAdmin) {
+                                    if (isSubmittingAdminLogin) {
+                                        return@clickable
+                                    }
+                                    if (viewModel == null) {
                                         localAuthError = null
                                         showAdminLoginForm = false
                                         onSelectScreenCode("A01")
-                                    } else if (loggedIn) {
-                                        val roleDeniedMessage = "Esta cuenta es de cliente y no tiene acceso al panel Admin."
-                                        localAuthError = roleDeniedMessage
-                                        viewModel?.postError(roleDeniedMessage)
-                                    } else {
-                                        localAuthError = viewModel.formError.value ?: "Credenciales inválidas. Verifica correo y contraseña."
+                                        return@clickable
+                                    }
+                                    isSubmittingAdminLogin = true
+                                    coroutineScope.launch {
+                                        try {
+                                            val loggedIn = viewModel.submitLoginOnline()
+                                            val isAuthorizedAdmin = viewModel.isCurrentSessionAdminOrStaff()
+                                            val canEnterAdmin = bothTrue(loggedIn, isAuthorizedAdmin)
+                                            if (canEnterAdmin) {
+                                                localAuthError = null
+                                                showAdminLoginForm = false
+                                                onSelectScreenCode("A01")
+                                            } else if (loggedIn) {
+                                                val roleDeniedMessage = "Esta cuenta es de cliente y no tiene acceso al panel Admin."
+                                                localAuthError = roleDeniedMessage
+                                                viewModel.postError(roleDeniedMessage)
+                                            } else {
+                                                localAuthError = viewModel.formError.value ?: "Credenciales inválidas. Verifica correo y contraseña."
+                                            }
+                                        } finally {
+                                            isSubmittingAdminLogin = false
+                                        }
                                     }
                                 },
                             contentAlignment = Alignment.Center,
                         ) {
                             BasicText(
-                                text = "Iniciar sesión Admin",
+                                text = if (isSubmittingAdminLogin) "Verificando..." else "Iniciar sesión Admin",
                                 style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.White),
                             )
                         }
@@ -5566,7 +5592,7 @@ internal fun RenderAdminReplyReviewA34(
                         style = TextStyle(fontFamily = typo.displayFamily, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E324A)),
                     )
                     BasicText(
-                        text = "${activeReview.eventTitle} · ${activeReview.dateLabel}",
+                        text = "${activeReview.eventTitle} · ${formatReadableSpanishDateText(activeReview.dateLabel)}",
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF5F6377)),
@@ -5614,7 +5640,7 @@ internal fun RenderAdminReplyReviewA34(
                                 style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2E324A)),
                             )
                             BasicText(
-                                text = "${activeReview.eventTitle} · ${activeReview.dateLabel}",
+                                text = "${activeReview.eventTitle} · ${formatReadableSpanishDateText(activeReview.dateLabel)}",
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                                 style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF5F6377)),

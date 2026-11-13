@@ -50,6 +50,7 @@ import com.jeudry.rosafiesta.domain.platform.ReceiptPdfBuilder
 import com.jeudry.rosafiesta.domain.platform.ReceiptPdfDocument
 import com.jeudry.rosafiesta.domain.platform.ReceiptPdfLineItem
 import com.jeudry.rosafiesta.domain.platform.ReportCsvBuilder
+import com.jeudry.rosafiesta.domain.security.AuthOutcome
 import com.jeudry.rosafiesta.domain.security.InMemorySecureStorage
 import com.jeudry.rosafiesta.domain.security.RegisteredUserAccount
 import com.jeudry.rosafiesta.domain.security.SecureStorage
@@ -1798,43 +1799,107 @@ public class RosaFiestaViewModel(
         return !hasPaymentPermission
     }
 
+    private fun validateLoginInputs(): Boolean {
+        val identifierError = InputValidator.validateLoginIdentifier(_loginEmail.value)
+        if (identifierError != null) {
+            soundPlayer.playAlertError()
+            _formError.value = identifierError
+            return false
+        }
+        val passwordError = InputValidator.validatePassword(_loginPassword.value)
+        if (passwordError != null) {
+            soundPlayer.playAlertError()
+            _formError.value = passwordError
+            return false
+        }
+        return true
+    }
+
+    private fun applyLoginOutcome(outcome: AuthOutcome): Boolean {
+        if (!outcome.success) {
+            soundPlayer.playAlertError()
+            _formError.value = outcome.errorMessage
+                ?: SensitiveDataRedactor.translateBusinessError(outcome.errorCode, null)
+            return false
+        }
+        val account = outcome.account
+        if (account != null) {
+            applyAuthenticatedAccount(account, outcome.accessToken)
+        } else {
+            applyUserIdentityFromLogin(_loginEmail.value)
+        }
+        soundPlayer.playPaymentSuccess()
+        _formError.value = null
+        val maskedEmail = SensitiveDataRedactor.maskEmail(_profileEmail.value)
+        _formFeedback.value = "Sesión iniciada como $maskedEmail"
+        return true
+    }
+
     public fun submitLogin(): Boolean {
         if (_isSubmitting.value) return false
         _isSubmitting.value = true
         try {
-            val identifierError = InputValidator.validateLoginIdentifier(_loginEmail.value)
-            if (identifierError != null) {
-                soundPlayer.playAlertError()
-                _formError.value = identifierError
-                return false
-            }
-            val passwordError = InputValidator.validatePassword(_loginPassword.value)
-            if (passwordError != null) {
-                soundPlayer.playAlertError()
-                _formError.value = passwordError
-                return false
-            }
+            if (!validateLoginInputs()) return false
             val outcome = repository.authenticateUser(_loginEmail.value, _loginPassword.value)
-            if (!outcome.success) {
-                soundPlayer.playAlertError()
-                _formError.value = outcome.errorMessage
-                    ?: SensitiveDataRedactor.translateBusinessError(outcome.errorCode, null)
-                return false
-            }
-            val account = outcome.account
-            if (account != null) {
-                applyAuthenticatedAccount(account, outcome.accessToken)
-            } else {
-                applyUserIdentityFromLogin(_loginEmail.value)
-            }
-            soundPlayer.playPaymentSuccess()
-            _formError.value = null
-            val maskedEmail = SensitiveDataRedactor.maskEmail(_profileEmail.value)
-            _formFeedback.value = "Sesión iniciada como $maskedEmail"
-            return true
+            return applyLoginOutcome(outcome)
         } finally {
             _isSubmitting.value = false
         }
+    }
+
+    public suspend fun submitLoginOnline(): Boolean {
+        if (_isSubmitting.value) return false
+        _isSubmitting.value = true
+        try {
+            if (!validateLoginInputs()) return false
+            val outcome = repository.authenticateUserOnline(_loginEmail.value, _loginPassword.value)
+            return applyLoginOutcome(outcome)
+        } finally {
+            _isSubmitting.value = false
+        }
+    }
+
+    private fun validateRegistrationInputs(
+        firstName: String,
+        lastName: String,
+        username: String,
+        email: String,
+        password: String,
+        birthDate: String,
+        acceptedTerms: Boolean,
+    ): Boolean {
+        val validationError = listOfNotNull(
+            InputValidator.validatePersonNamePart(firstName, "El nombre"),
+            InputValidator.validatePersonNamePart(lastName, "El apellido"),
+            InputValidator.validateUsername(username),
+            InputValidator.validateEmail(email),
+            InputValidator.validateBirthDate(birthDate, isRequired = true),
+            InputValidator.validatePassword(password),
+            if (!acceptedTerms) SensitiveDataRedactor.translateBusinessError("AUTH_TERMS_REQUIRED", null) else null,
+        ).firstOrNull()
+        if (validationError != null) {
+            soundPlayer.playAlertError()
+            _formError.value = validationError
+            return false
+        }
+        return true
+    }
+
+    private fun applyRegistrationOutcome(outcome: AuthOutcome): Boolean {
+        if (!outcome.success) {
+            soundPlayer.playAlertError()
+            _formError.value = outcome.errorMessage
+                ?: SensitiveDataRedactor.translateBusinessError(outcome.errorCode, null)
+            return false
+        }
+        val account = outcome.account
+        if (account != null) {
+            applyAuthenticatedAccount(account, outcome.accessToken)
+        }
+        soundPlayer.playPaymentSuccess()
+        _formError.value = null
+        _formFeedback.value = "Cuenta creada correctamente."
+        return true
     }
 
     public fun submitRegistration(
@@ -1850,47 +1915,16 @@ public class RosaFiestaViewModel(
         if (_isSubmitting.value) return false
         _isSubmitting.value = true
         try {
-            val firstNameError = InputValidator.validatePersonNamePart(firstName, "El nombre")
-            if (firstNameError != null) {
-                soundPlayer.playAlertError()
-                _formError.value = firstNameError
-                return false
-            }
-            val lastNameError = InputValidator.validatePersonNamePart(lastName, "El apellido")
-            if (lastNameError != null) {
-                soundPlayer.playAlertError()
-                _formError.value = lastNameError
-                return false
-            }
-            val usernameError = InputValidator.validateUsername(username)
-            if (usernameError != null) {
-                soundPlayer.playAlertError()
-                _formError.value = usernameError
-                return false
-            }
-            val emailError = InputValidator.validateEmail(email)
-            if (emailError != null) {
-                soundPlayer.playAlertError()
-                _formError.value = emailError
-                return false
-            }
-            val birthDateError = InputValidator.validateBirthDate(birthDate, isRequired = true)
-            if (birthDateError != null) {
-                soundPlayer.playAlertError()
-                _formError.value = birthDateError
-                return false
-            }
-            val passwordError = InputValidator.validatePassword(password)
-            if (passwordError != null) {
-                soundPlayer.playAlertError()
-                _formError.value = passwordError
-                return false
-            }
-            if (!acceptedTerms) {
-                soundPlayer.playAlertError()
-                _formError.value = SensitiveDataRedactor.translateBusinessError("AUTH_TERMS_REQUIRED", null)
-                return false
-            }
+            val isValid = validateRegistrationInputs(
+                firstName = firstName,
+                lastName = lastName,
+                username = username,
+                email = email,
+                password = password,
+                birthDate = birthDate,
+                acceptedTerms = acceptedTerms,
+            )
+            if (!isValid) return false
             val outcome = repository.registerUser(
                 firstName = firstName,
                 lastName = lastName,
@@ -1900,20 +1934,45 @@ public class RosaFiestaViewModel(
                 birthDate = birthDate,
                 phone = phone.trim(),
             )
-            if (!outcome.success) {
-                soundPlayer.playAlertError()
-                _formError.value = outcome.errorMessage
-                    ?: SensitiveDataRedactor.translateBusinessError(outcome.errorCode, null)
-                return false
-            }
-            val account = outcome.account
-            if (account != null) {
-                applyAuthenticatedAccount(account, outcome.accessToken)
-            }
-            soundPlayer.playPaymentSuccess()
-            _formError.value = null
-            _formFeedback.value = "Cuenta creada correctamente."
-            return true
+            return applyRegistrationOutcome(outcome)
+        } finally {
+            _isSubmitting.value = false
+        }
+    }
+
+    public suspend fun submitRegistrationOnline(
+        firstName: String,
+        lastName: String,
+        username: String,
+        email: String,
+        password: String,
+        birthDate: String,
+        acceptedTerms: Boolean,
+        phone: String = _registerPhone.value,
+    ): Boolean {
+        if (_isSubmitting.value) return false
+        _isSubmitting.value = true
+        try {
+            val isValid = validateRegistrationInputs(
+                firstName = firstName,
+                lastName = lastName,
+                username = username,
+                email = email,
+                password = password,
+                birthDate = birthDate,
+                acceptedTerms = acceptedTerms,
+            )
+            if (!isValid) return false
+            val outcome = repository.registerUserOnline(
+                firstName = firstName,
+                lastName = lastName,
+                username = username,
+                email = email,
+                password = password,
+                birthDate = birthDate,
+                phone = phone.trim(),
+            )
+            return applyRegistrationOutcome(outcome)
         } finally {
             _isSubmitting.value = false
         }

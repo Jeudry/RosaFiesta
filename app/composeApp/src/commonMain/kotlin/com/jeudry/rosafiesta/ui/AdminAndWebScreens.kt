@@ -1079,8 +1079,12 @@ private fun AdminDesktopInicioContent(
     } else {
         "Est. RD$ 2,545 en total"
     }
-    val nextEventDate = eventsList.firstOrNull { eventItem -> eventItem.status != EventStatus.CANCELLED }?.dateLabel?.lowercase()
-        ?: "vie 23 oct"
+    val rawNextDate = eventsList.firstOrNull { eventItem -> eventItem.status != EventStatus.CANCELLED }?.dateLabel
+    val nextEventDate = if (rawNextDate != null) {
+        formatReadableSpanishDateText(rawNextDate).lowercase()
+    } else {
+        "vie, 23 de octubre"
+    }
 
     Column(
         verticalArrangement = Arrangement.spacedBy(20.dp),
@@ -1388,7 +1392,7 @@ private fun mapEventToDesktopRowSpec(eventItem: ClientEvent): AdminDesktopEventR
         eventId = eventItem.id,
         photoKey = photoKeyForDesktopEvent(eventItem.photo),
         title = eventItem.title,
-        date = eventItem.dateLabel,
+        date = formatReadableSpanishDateText(eventItem.dateLabel),
         client = shortClientName,
         total = totalText,
         percent = paidPercent,
@@ -1660,7 +1664,7 @@ private fun AdminHeroEventBanner(
         "Montaje 2:00 p. m. · Jardín Botánico · 120 invitados"
     }
     val timingText = if (heroEvent != null) {
-        "${heroEvent.dateLabel} · Próximo montaje"
+        "${formatReadableSpanishDateText(heroEvent.dateLabel)} · Próximo montaje"
     } else {
         "Este viernes · en 3 días"
     }
@@ -1775,7 +1779,7 @@ private fun AdminNewRequestsCard(
                 AdminNewRequestRow(
                     photoKey = photoKeyForDesktopCategory(leadItem.eventType),
                     title = leadItem.eventType,
-                    subtitle = "${leadItem.clientName} · ${leadItem.dateLabel}",
+                    subtitle = "${leadItem.clientName} · ${formatReadableSpanishDateText(leadItem.dateLabel)}",
                     onQuoteClick = { onQuoteLead(leadItem.id) },
                 )
             }
@@ -1783,7 +1787,7 @@ private fun AdminNewRequestsCard(
             AdminNewRequestRow(
                 photoKey = RfPhotoKey.CUMPLE_INFANTIL,
                 title = "Cumpleaños de Mateo",
-                subtitle = "Laura Peña · Sáb 7 nov",
+                subtitle = "Laura Peña · Sáb, 7 de noviembre",
                 onQuoteClick = onOpenFallbackBuilder,
             )
             AdminNewRequestRow(
@@ -2028,7 +2032,7 @@ private fun AdminDesktopLeadsSection(
                             style = typo.bodyStrong.copy(fontSize = 15.sp),
                         )
                         BasicText(
-                            text = "${lead.dateLabel} · ${lead.guests} invitados · ${formatDesktopDop(lead.estimatedDop)} · Canal ${lead.channel}",
+                            text = "${formatReadableSpanishDateText(lead.dateLabel)} · ${lead.guests} invitados · ${formatDesktopDop(lead.estimatedDop)} · Canal ${lead.channel}",
                             style = typo.secondary.copy(fontSize = 12.5.sp, color = Color(0xFF5F6377)),
                         )
                     }
@@ -2105,7 +2109,7 @@ private fun AdminDesktopEventsSection(
                     Column(modifier = Modifier.weight(1f)) {
                         BasicText(text = eventItem.title, style = typo.bodyStrong.copy(fontSize = 14.5.sp))
                         BasicText(
-                            text = "${eventItem.dateLabel} · ${eventItem.clientName} · ${eventItem.venue} · ${eventItem.guests} inv.",
+                            text = "${formatReadableSpanishDateText(eventItem.dateLabel)} · ${eventItem.clientName} · ${eventItem.venue} · ${eventItem.guests} inv.",
                             style = typo.secondary.copy(fontSize = 12.5.sp, color = Color(0xFF5F6377)),
                         )
                     }
@@ -2237,7 +2241,7 @@ private fun AdminDesktopQuotesSection(
                     Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         BasicText(text = "${quote.code} · ${quote.eventTitle}", style = typo.bodyStrong.copy(fontSize = 14.5.sp))
                         BasicText(
-                            text = "${quote.clientName} · ${quote.dateLabel} · Total ${formatDesktopDop(quote.totalDop)}",
+                            text = "${quote.clientName} · ${formatReadableSpanishDateText(quote.dateLabel)} · Total ${formatDesktopDop(quote.totalDop)}",
                             style = typo.secondary.copy(fontSize = 12.5.sp, color = Color(0xFF5F6377)),
                         )
                     }
@@ -2341,7 +2345,7 @@ private fun AdminDesktopPaymentsSection(
                     Column(modifier = Modifier.weight(1f)) {
                         BasicText(text = "${payment.receiptNumber} · ${payment.eventTitle}", style = typo.bodyStrong.copy(fontSize = 14.5.sp))
                         BasicText(
-                            text = "${payment.clientName} · ${payment.methodLabel} · ${payment.dateLabel} · Ref ${payment.referenceCode}",
+                            text = "${payment.clientName} · ${payment.methodLabel} · ${formatReadableSpanishDateText(payment.dateLabel)} · Ref ${payment.referenceCode}",
                             style = typo.secondary.copy(fontSize = 12.5.sp, color = Color(0xFF5F6377)),
                         )
                     }
@@ -2804,7 +2808,7 @@ private fun AdminDesktopNewEventModal(
     DesktopInlineInput(value = title, placeholder = "Título del evento", onValueChange = { updated -> viewModel?.setNewEventTitle(updated) }, modifier = Modifier.fillMaxWidth())
     DesktopInlineInput(value = client, placeholder = "Nombre del cliente", onValueChange = { updated -> viewModel?.setNewEventClient(updated) }, modifier = Modifier.fillMaxWidth())
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-        DesktopInlineInput(value = date, placeholder = "Fecha (ej. Sáb 14 nov)", onValueChange = { updated -> viewModel?.setNewEventDate(updated) }, modifier = Modifier.weight(1f))
+        DesktopInlineInput(value = date, placeholder = "Fecha (ej. Sáb, 14 de noviembre 2026)", onValueChange = { updated -> viewModel?.setNewEventDate(updated) }, modifier = Modifier.weight(1f))
         DesktopInlineInput(value = guests, placeholder = "Invitados", onValueChange = { updated -> viewModel?.setNewEventGuests(updated) }, modifier = Modifier.width(120.dp))
     }
     DesktopInlineInput(value = venue, placeholder = "Lugar o salón", onValueChange = { updated -> viewModel?.setNewEventVenue(updated) }, modifier = Modifier.fillMaxWidth())
@@ -2836,7 +2840,7 @@ private fun AdminDesktopEventDetailModal(
     }
     if (selectedEvent != null) {
         BasicText(
-            text = "Código: ${selectedEvent.code} · Cliente: ${selectedEvent.clientName} · Fecha: ${selectedEvent.dateLabel}",
+            text = "Código: ${selectedEvent.code} · Cliente: ${selectedEvent.clientName} · Fecha: ${formatReadableSpanishDateText(selectedEvent.dateLabel)}",
             style = typo.bodyStrong.copy(fontSize = 14.sp),
         )
         BasicText(

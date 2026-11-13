@@ -1202,7 +1202,7 @@ internal fun RenderPersonalPaymentsS82(
                                 val actionLabel = if (eventItem.paidDepositDop > 0) "Pagar saldo" else "Abonar"
                                 PendingPaymentRow82(
                                     title = "${eventItem.title} · saldo",
-                                    due = "Vence ${eventItem.balanceDueDateLabel.ifBlank { eventItem.dateLabel }}",
+                                    due = "Vence ${formatReadableSpanishDateText(eventItem.balanceDueDateLabel.ifBlank { eventItem.dateLabel })}",
                                     dueColor = if (index == 0) Color(0xFFB42345) else Color(0xFF7A5700),
                                     amount = RosaFiestaEngine.formatDop(remainingAmount),
                                     actionLabel = actionLabel,
@@ -1345,7 +1345,7 @@ internal fun RenderPersonalPaymentsS82(
                                 }
                                 ReceiptRow82(
                                     title = "${paymentItem.kindLabel} · ${paymentItem.eventTitle}",
-                                    subtitle = "${paymentItem.dateLabel} · ${paymentItem.methodLabel} (${paymentItem.receiptNumber})",
+                                    subtitle = "${formatReadableSpanishDateText(paymentItem.dateLabel)} · ${paymentItem.methodLabel} (${paymentItem.receiptNumber})",
                                     amount = RosaFiestaEngine.formatDop(paymentItem.amountDop),
                                     onClick = {
                                         viewModel?.selectEvent(paymentItem.eventId)
@@ -3761,7 +3761,7 @@ internal fun RenderEventReviewsModalS77(
                                         }
                                     }
                                     BasicText(
-                                        reviewItem.dateLabel,
+                                        formatReadableSpanishDateText(reviewItem.dateLabel),
                                         style = TextStyle(
                                             fontFamily = typo.bodyFamily,
                                             fontSize = 13.sp,
@@ -4834,7 +4834,7 @@ internal fun RenderCancelEventModalS85(
         ?: eventsState.firstOrNull { eventItem -> eventItem.id == selectedEventId }
         ?: eventsState.firstOrNull()
     val eventHeaderSubtitle = if (activeEvent != null) {
-        "${activeEvent.title} · ${activeEvent.dateLabel}"
+        "${activeEvent.title} · ${formatReadableSpanishDateText(activeEvent.dateLabel)}"
     } else {
         "Evento activo"
     }

@@ -592,36 +592,134 @@ internal class RosaFiestaSubmoduleCoordinator(
             else -> "$cleanIdentifier@rosafiesta.do"
         }
 
-        val remoteResult = runCatching {
+        val remoteResult = try {
             client.login(LoginInputDto(email = resolvedEmail, password = cleanPassword))
-        }.getOrNull()
-
-        if (remoteResult != null) {
-            val remoteUser = remoteResult.user
-            val salt = JwtAuthManager.generateDeterministicSalt("${remoteUser.email}:${remoteUser.username}")
-            val verifiedHash = JwtAuthManager.hashPassword(cleanPassword, salt)
-            val syncedAccount = RegisteredUserAccount(
-                id = remoteUser.id,
-                username = remoteUser.username.ifBlank { remoteUser.email.substringBefore("@") },
-                email = remoteUser.email.trim().lowercase(),
-                fullName = remoteUser.fullName,
-                passwordHash = verifiedHash,
-                salt = salt,
-                birthDate = remoteUser.birthDate,
-                phone = remoteUser.phone,
-                role = remoteUser.role.ifBlank { "client" },
-            )
-            upsertAccountInMemory(syncedAccount)
-            applyAuthenticatedSession(syncedAccount, remoteResult.accessToken)
-            onPersistAccountAndSession(syncedAccount, remoteResult.accessToken)
-            runCatching { syncFromBackendAsync() }
-            return@withContext AuthOutcome.authenticated(
-                accessToken = remoteResult.accessToken,
-                account = syncedAccount,
-            )
+        } catch (cancelled: kotlin.coroutines.cancellation.CancellationException) {
+            throw cancelled
+        } catch (error: Throwable) {
+            return@withContext mapOnlineAuthException(error)
         }
 
-        localFallback(identifier, password)
+        val remoteUser = remoteResult.user
+        val salt = JwtAuthManager.generateDeterministicSalt("${remoteUser.email}:${remoteUser.username}")
+        val verifiedHash = JwtAuthManager.hashPassword(cleanPassword, salt)
+        val syncedAccount = RegisteredUserAccount(
+            id = remoteUser.id,
+            username = remoteUser.username.ifBlank { remoteUser.email.substringBefore("@") },
+            email = remoteUser.email.trim().lowercase(),
+            fullName = remoteUser.fullName,
+            passwordHash = verifiedHash,
+            salt = salt,
+            birthDate = remoteUser.birthDate,
+            phone = remoteUser.phone,
+            role = remoteUser.role.ifBlank { "client" },
+        )
+        upsertAccountInMemory(syncedAccount)
+        applyAuthenticatedSession(syncedAccount, remoteResult.accessToken)
+        onPersistAccountAndSession(syncedAccount, remoteResult.accessToken)
+        runCatching { syncFromBackendAsync() }
+        AuthOutcome.authenticated(
+            accessToken = remoteResult.accessToken,
+            account = syncedAccount,
+        )
+    }
+
+    suspend fun registerUserOnline(
+        firstName: String,
+        lastName: String,
+        username: String,
+        email: String,
+        password: String,
+        birthDate: String,
+        phone: String,
+        localFallback: () -> AuthOutcome,
+    ): AuthOutcome = withContext(ioDispatcher) {
+        val cleanFirst = firstName.trim()
+        val cleanLast = lastName.trim()
+        val cleanUsername = username.trim().lowercase()
+        val cleanEmail = email.trim().lowercase()
+        val cleanPassword = password.trim()
+        val cleanBirthDate = birthDate.trim()
+        val cleanPhone = phone.trim()
+
+        val fullName = listOf(cleanFirst, cleanLast).filter { part -> part.isNotEmpty() }.joinToString(" ")
+        val resolvedUsername = cleanUsername.ifEmpty { cleanEmail.substringBefore("@") }
+
+        val fullNameError = InputValidator.validateFullName(fullName)
+        if (fullNameError != null) {
+            return@withContext AuthOutcome.failure("AUTH_MISSING_FIELDS", fullNameError)
+        }
+        val usernameError = InputValidator.validateUsername(resolvedUsername)
+        if (usernameError != null) {
+            return@withContext AuthOutcome.failure("AUTH_MISSING_FIELDS", usernameError)
+        }
+        val emailError = InputValidator.validateEmail(cleanEmail)
+        if (emailError != null) {
+            return@withContext AuthOutcome.failure("AUTH_MISSING_FIELDS", emailError)
+        }
+        val birthDateError = InputValidator.validateBirthDate(cleanBirthDate, isRequired = true)
+        if (birthDateError != null) {
+            return@withContext AuthOutcome.failure("AUTH_MISSING_FIELDS", birthDateError)
+        }
+        val passwordError = InputValidator.validatePassword(cleanPassword)
+        if (passwordError != null) {
+            return@withContext AuthOutcome.failure("AUTH_WEAK_PASSWORD", passwordError)
+        }
+
+        val client = apiClient ?: return@withContext localFallback()
+        val remoteResult = try {
+            client.register(
+                RegisterInputDto(
+                    username = resolvedUsername,
+                    fullName = fullName,
+                    email = cleanEmail,
+                    password = cleanPassword,
+                    birthDate = cleanBirthDate,
+                    phone = cleanPhone,
+                ),
+            )
+        } catch (cancelled: kotlin.coroutines.cancellation.CancellationException) {
+            throw cancelled
+        } catch (error: Throwable) {
+            return@withContext mapOnlineAuthException(error)
+        }
+
+        val remoteUser = remoteResult.user
+        val salt = JwtAuthManager.generateDeterministicSalt("${remoteUser.email}:${remoteUser.username}")
+        val verifiedHash = JwtAuthManager.hashPassword(cleanPassword, salt)
+        val syncedAccount = RegisteredUserAccount(
+            id = remoteUser.id,
+            username = remoteUser.username.ifBlank { resolvedUsername },
+            email = remoteUser.email.trim().lowercase(),
+            fullName = remoteUser.fullName.ifBlank { fullName },
+            passwordHash = verifiedHash,
+            salt = salt,
+            birthDate = remoteUser.birthDate.ifBlank { cleanBirthDate },
+            phone = remoteUser.phone.ifBlank { cleanPhone },
+            role = remoteUser.role.ifBlank { "client" },
+        )
+        upsertAccountInMemory(syncedAccount)
+        applyAuthenticatedSession(syncedAccount, remoteResult.accessToken)
+        onPersistAccountAndSession(syncedAccount, remoteResult.accessToken)
+        runCatching { syncFromBackendAsync() }
+        AuthOutcome.authenticated(
+            accessToken = remoteResult.accessToken,
+            account = syncedAccount,
+        )
+    }
+
+    private fun mapOnlineAuthException(error: Throwable): AuthOutcome {
+        if (error is RosaFiestaApiException) {
+            val translated = SensitiveDataRedactor.translateBusinessError(error.errorCode, error.message)
+            return AuthOutcome.failure(
+                errorCode = error.errorCode,
+                errorMessage = translated,
+            )
+        }
+        return AuthOutcome.failure(
+            errorCode = "NETWORK_ERROR",
+            errorMessage = "No pudimos conectar con el servidor de RosaFiesta. Verifica que el backend esté activo e inténtalo de nuevo.",
+        )
     }
 
     suspend fun requestPasswordOtp(email: String): OtpChallengeOutcome = withContext(ioDispatcher) {

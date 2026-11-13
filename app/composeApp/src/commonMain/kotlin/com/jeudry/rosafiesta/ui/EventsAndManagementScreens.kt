@@ -425,7 +425,7 @@ internal fun RenderMyEventsScreenS37(
 
                     MyEventRow37(
                         title = eventItem.title,
-                        date = eventItem.dateLabel,
+                        date = formatReadableSpanishDateText(eventItem.dateLabel),
                         status = eventItem.statusLabel,
                         statusBg = statusBg,
                         statusColor = statusColor,
@@ -957,7 +957,7 @@ internal fun RenderNewEventScreenS38(
                                     viewModel?.setEventDateInput(updatedDate)
                                 },
                                 onOpenCalendar = { showCalendarModal = true },
-                                placeholder = "DD/MM/AAAA",
+                                placeholder = "Elegir fecha del evento",
                                 modifier = Modifier.fillMaxWidth(),
                             )
                         }
@@ -1836,7 +1836,7 @@ internal fun RenderCalendarScreenS39(
                             )
                             Column(modifier = Modifier.weight(1f)) {
                                 BasicText(
-                                    text = eventItem.dateLabel,
+                                    text = formatReadableSpanishDateText(eventItem.dateLabel),
                                     style = TextStyle(
                                         fontFamily = typo.bodyFamily,
                                         fontWeight = FontWeight.Bold,
@@ -1885,9 +1885,9 @@ internal fun RenderEventDetailScreenS40(
     val eventTitle = activeEvent?.title ?: "Boda Real Rosa & Dorado"
     val activeVenue = activeEvent?.venue ?: "Jardín Botánico"
     val eventSubtitle = if (activeEvent != null) {
-        "${activeEvent.dateLabel} · ${activeEvent.venue}"
+        "${formatReadableSpanishDateText(activeEvent.dateLabel)} · ${activeEvent.venue}"
     } else {
-        "Vie 23 oct · Jardín Botánico"
+        "Vie, 23 de octubre · Jardín Botánico"
     }
     val daysUntil = (activeEvent?.daysUntilEvent ?: 0).coerceAtLeast(0)
     val daysFormatted = daysUntil.toString().padStart(2, '0')
@@ -3271,7 +3271,7 @@ internal fun RenderTimelineScreenS44(
                             ),
                         )
                         BasicText(
-                            text = "${event.title} · ${event.dateLabel}",
+                            text = "${event.title} · ${formatReadableSpanishDateText(event.dateLabel)}",
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             style = TextStyle(
@@ -4273,7 +4273,7 @@ internal fun RenderChecklistScreenS46(
                         ),
                     )
                     BasicText(
-                        text = "${event.dateLabel} · ${event.venue}",
+                        text = "${formatReadableSpanishDateText(event.dateLabel)} · ${event.venue}",
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         style = TextStyle(
@@ -5184,7 +5184,7 @@ internal fun RenderQuoteScreenS48(
     }
 
     val quoteTitle = activeQuote?.eventTitle ?: fallbackEvent.title
-    val quoteDateLabel = activeQuote?.dateLabel ?: fallbackEvent.dateLabel
+    val quoteDateLabel = formatReadableSpanishDateText(activeQuote?.dateLabel ?: fallbackEvent.dateLabel)
     val quoteVenue = activeQuote?.venue ?: fallbackEvent.venue
     val quoteGuests = activeQuote?.guests ?: fallbackEvent.guests
     val quoteStatusLabel = activeQuote?.status?.ifBlank { "Lista para aprobar" } ?: "Lista para aprobar"

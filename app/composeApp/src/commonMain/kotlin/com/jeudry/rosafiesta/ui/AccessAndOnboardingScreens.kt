@@ -45,6 +45,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -104,6 +105,7 @@ import com.jeudry.rosafiesta.domain.CanonicalSampleData
 import com.jeudry.rosafiesta.domain.CatalogArticle
 import com.jeudry.rosafiesta.domain.validation.InputValidator
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.compose.ui.graphics.drawscope.rotate as drawScopeRotate
 
 // ==============================================================================
@@ -1810,6 +1812,7 @@ internal fun RenderLoginScreenS07(
     onSwitchAppMode: () -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
+    val coroutineScope = rememberCoroutineScope()
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
@@ -2121,13 +2124,15 @@ internal fun RenderLoginScreenS07(
                             localLoginError = null
                             viewModel?.setLoginEmail(trimmedIdentifier)
                             viewModel?.setLoginPassword(password)
-                            val success = viewModel?.submitLogin() ?: true
-                            if (success) {
-                                val isAdminOrStaff = viewModel?.isCurrentSessionAdminOrStaff() == true
-                                if (isAdminOrStaff) {
-                                    onSwitchAppMode()
-                                } else {
-                                    onSelectScreenCode("s14")
+                            coroutineScope.launch {
+                                val success = viewModel?.submitLoginOnline() ?: true
+                                if (success) {
+                                    val isAdminOrStaff = viewModel?.isCurrentSessionAdminOrStaff() == true
+                                    if (isAdminOrStaff) {
+                                        onSwitchAppMode()
+                                    } else {
+                                        onSelectScreenCode("s14")
+                                    }
                                 }
                             }
                         }
@@ -2467,6 +2472,7 @@ internal fun RenderRegisterScreenS08(
     onSelectScreenCode: (String) -> Unit,
 ) {
     val typo = LocalRfTypography.current
+    val coroutineScope = rememberCoroutineScope()
     var firstName by remember { mutableStateOf("") }
     var lastName by remember { mutableStateOf("") }
     var username by remember { mutableStateOf("") }
@@ -2923,10 +2929,12 @@ internal fun RenderRegisterScreenS08(
                             viewModel?.clearFormError()
                         },
                         onOpenCalendar = { showBirthDatePicker = true },
-                        placeholder = "Fecha de nacimiento (DD/MM/AAAA)",
+                        placeholder = "Fecha de nacimiento",
                         hasError = birthDateError != null,
                         isAdmin = false,
                         compactInline = true,
+                        embeddedInContainer = true,
+                        readableFormatter = ::formatSpanishDateWithWords,
                         modifier = Modifier.weight(1f),
                     )
                 }
@@ -3045,18 +3053,20 @@ internal fun RenderRegisterScreenS08(
                         } else {
                             localRegisterError = null
                             viewModel?.setRegisterPhone(phone)
-                            val registered = viewModel?.submitRegistration(
-                                firstName = firstName,
-                                lastName = lastName,
-                                username = username,
-                                email = email,
-                                password = password,
-                                birthDate = birthDate,
-                                acceptedTerms = acceptedTerms,
-                                phone = phone,
-                            ) ?: true
-                            if (registered) {
-                                onSelectScreenCode("s14")
+                            coroutineScope.launch {
+                                val registered = viewModel?.submitRegistrationOnline(
+                                    firstName = firstName,
+                                    lastName = lastName,
+                                    username = username,
+                                    email = email,
+                                    password = password,
+                                    birthDate = birthDate,
+                                    acceptedTerms = acceptedTerms,
+                                    phone = phone,
+                                ) ?: true
+                                if (registered) {
+                                    onSelectScreenCode("s14")
+                                }
                             }
                         }
                     },
@@ -4471,9 +4481,14 @@ internal fun RenderRecoveryAndConfirmationScreens(
                                 }
                             } else {
                                 s13Events.take(3).forEachIndexed { eventIndex, eventItem ->
-                                    val dateParts = eventItem.dateLabel.split(" ")
+                                    val readableEventDate = formatReadableSpanishDateText(eventItem.dateLabel)
+                                    val dateParts = readableEventDate.split(" ")
                                     val dayText = dateParts.firstOrNull { token -> token.any { character -> character.isDigit() } } ?: "${23 + eventIndex}"
-                                    val monthText = dateParts.lastOrNull { token -> token.all { character -> character.isLetter() } }?.take(3)?.uppercase() ?: "OCT"
+                                    val monthText = dateParts.lastOrNull { token ->
+                                        val isLetters = token.all { character -> character.isLetter() }
+                                        val isPreposition = token.equals("de", ignoreCase = true)
+                                        if (isLetters) !isPreposition else false
+                                    }?.take(3)?.uppercase() ?: "OCT"
                                     val dateBg = when (eventIndex % 3) {
                                         0 -> Color(0xFFFDE6F2)
                                         1 -> Color(0xFFEFE8FD)

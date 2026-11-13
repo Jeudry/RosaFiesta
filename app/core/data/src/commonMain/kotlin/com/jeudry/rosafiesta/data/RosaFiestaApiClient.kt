@@ -12,10 +12,12 @@ import io.ktor.client.request.patch
 import io.ktor.client.request.post
 import io.ktor.client.request.put
 import io.ktor.client.request.setBody
+import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
+import io.ktor.http.isSuccess
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -532,6 +534,23 @@ public data class RosaProposalOutputDto(
 )
 
 /**
+ * HTTP API failure carrying structured backend status and business error code.
+ */
+public class RosaFiestaApiException(
+    public val statusCode: Int,
+    public val errorCode: String,
+    override val message: String,
+) : RuntimeException(message)
+
+@Serializable
+private data class ApiErrorEnvelopeDto(
+    val code: String = "",
+    val message: String = "",
+    val detail: String = "",
+    val title: String = "",
+)
+
+/**
  * Typed Ktor HTTP client for the RosaFiesta Go API (`api/openapi.json`).
  * Automatically attaches `Authorization: Bearer <token>` on every authenticated endpoint when available.
  */
@@ -594,18 +613,44 @@ public class RosaFiestaApiClient(
         httpClient.get("$baseUrl/readyz").body()
     }
 
+    private suspend fun HttpResponse.decodeLoginOrThrow(): LoginOutputDto {
+        if (status.isSuccess()) {
+            return body()
+        }
+        val rawBody = runCatching { bodyAsText() }.getOrDefault("")
+        val parsed = runCatching {
+            errorEnvelopeJson.decodeFromString<ApiErrorEnvelopeDto>(rawBody)
+        }.getOrNull()
+        val resolvedCode = parsed?.code?.trim().orEmpty().ifEmpty { "HTTP_${status.value}" }
+        val resolvedMessage = parsed?.message?.trim().orEmpty()
+            .ifEmpty { parsed?.detail?.trim().orEmpty() }
+            .ifEmpty { parsed?.title?.trim().orEmpty() }
+            .ifEmpty { status.description }
+        throw RosaFiestaApiException(
+            statusCode = status.value,
+            errorCode = resolvedCode,
+            message = resolvedMessage,
+        )
+    }
+
     public suspend fun login(input: LoginInputDto): LoginOutputDto = withContext(ioDispatcher) {
-        httpClient.post("$baseUrl/v1/auth/login") {
+        val response = httpClient.post("$baseUrl/v1/auth/login") {
             contentType(ContentType.Application.Json)
             setBody(input)
-        }.body()
+        }
+        response.decodeLoginOrThrow()
     }
 
     public suspend fun register(input: RegisterInputDto): LoginOutputDto = withContext(ioDispatcher) {
-        httpClient.post("$baseUrl/v1/auth/register") {
+        val response = httpClient.post("$baseUrl/v1/auth/register") {
             contentType(ContentType.Application.Json)
             setBody(input)
-        }.body()
+        }
+        response.decodeLoginOrThrow()
+    }
+
+    private companion object {
+        val errorEnvelopeJson = Json { ignoreUnknownKeys = true }
     }
 
     public suspend fun logout(): LogoutOutputDto = withContext(ioDispatcher) {

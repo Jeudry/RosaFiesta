@@ -143,7 +143,7 @@ private data class QuoteHistoryItem49(
                 eventId = quoteItem.eventId,
                 code = quoteItem.code,
                 title = quoteItem.eventTitle,
-                dateLocation = "${quoteItem.dateLabel} · ${quoteItem.venue}",
+                dateLocation = "${formatReadableSpanishDateText(quoteItem.dateLabel)} · ${quoteItem.venue}",
                 tagText = tagText,
                 tagBg = tagBg,
                 tagTextCol = tagTextCol,
@@ -1332,7 +1332,7 @@ internal fun RenderPaymentSuccessScreenS51(
                     ),
                 )
 
-                BasicText("Todo listo para ${event.dateLabel} · ${event.venue}.", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = RfThemeState.currentPalette.muted))
+                BasicText("Todo listo para ${formatReadableSpanishDateText(event.dateLabel)} · ${event.venue}.", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = RfThemeState.currentPalette.muted))
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -1449,7 +1449,7 @@ internal fun RenderPaymentSuccessScreenS51(
                                         .padding(horizontal = 10.dp),
                                     contentAlignment = Alignment.Center,
                                 ) {
-                                    BasicText(event.dateLabel, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.5.sp, color = Color(0xFF7A5700)))
+                                    BasicText(formatReadableSpanishDateText(event.dateLabel), style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.5.sp, color = Color(0xFF7A5700)))
                                 }
                             }
 
@@ -1673,7 +1673,7 @@ internal fun RenderPostEventReviewScreenS52(
                         style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, lineHeight = 22.sp, color = palette.ink),
                     )
                     BasicText(
-                        text = "${event.title} · ${event.dateLabel}",
+                        text = "${event.title} · ${formatReadableSpanishDateText(event.dateLabel)}",
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = palette.muted),
@@ -2106,7 +2106,7 @@ internal fun RenderMyReservationsScreenS53(
                         }
                         ReservationCard53(
                             title = eventItem.title,
-                            meta = "${eventItem.dateLabel} · ${eventItem.venue}",
+                            meta = "${formatReadableSpanishDateText(eventItem.dateLabel)} · ${eventItem.venue}",
                             tag = eventItem.statusLabel,
                             tagBackground = tagBg,
                             tagColor = tagTextColor,
@@ -2537,9 +2537,10 @@ internal fun RenderUserProfileScreenS54(
                     if (isEditing) {
                         RfMaskedDateField(
                             value = draftBirthDate,
-                            placeholder = "DD/MM/AAAA",
+                            placeholder = "Fecha de nacimiento",
                             hasError = liveBirthDateError != null,
                             compactInline = true,
+                            readableFormatter = ::formatSpanishDateWithWords,
                             modifier = Modifier.width(184.dp),
                             onValueChange = { formattedBirthDate ->
                                 draftBirthDate = formattedBirthDate.take(InputValidator.MAX_BIRTH_DATE_LENGTH)
@@ -2558,7 +2559,7 @@ internal fun RenderUserProfileScreenS54(
                 if (isEditing) {
                     ProfileInlineFieldHelper54(
                         errorText = liveBirthDateError,
-                        hintText = "Máscara automática DD/MM/AAAA o toca el icono de calendario",
+                        hintText = "Escribe o toca el calendario para elegir tu fecha",
                     )
                 }
                 ProfileDivider54()
@@ -4285,7 +4286,8 @@ internal fun RenderOfficialReceiptScreenS83(
     val remainingDop = (totalEventDop - paidDop).coerceAtLeast(0)
     val receiptCode = latestPayment?.receiptNumber ?: "REC-${event.code}"
     val receiptMethod = latestPayment?.methodLabel ?: savedMethod
-    val receiptDate = latestPayment?.dateLabel ?: event.depositDateLabel.ifBlank { event.dateLabel }
+    val rawReceiptDate = latestPayment?.dateLabel ?: event.depositDateLabel.ifBlank { event.dateLabel }
+    val receiptDate = formatReadableSpanishDateText(rawReceiptDate)
     val billedClientName = latestPayment?.clientName?.ifBlank { event.clientName } ?: profileName.ifBlank { event.clientName }
     val receiptConcept = latestPayment?.kindLabel ?: "Abono · ${event.title}"
 
@@ -4456,7 +4458,7 @@ internal fun RenderOfficialReceiptScreenS83(
                         "Fecha de emisión" to receiptDate,
                         "Método" to receiptMethod,
                         "Cliente" to billedClientName,
-                        "Evento" to "${event.dateLabel} · ${event.venue}",
+                        "Evento" to "${formatReadableSpanishDateText(event.dateLabel)} · ${event.venue}",
                     )
 
                     summaryRows.forEach { rowEntry ->

@@ -288,4 +288,99 @@ class SqlRosaFiestaRepositoryTest {
         assertFalse(registeredPayment?.dateLabel == "20 oct 2026")
         assertTrue(capturedPaymentBody.isNotEmpty())
     }
+
+    @Test
+    fun `sql online registration propagates backend 409 conflict and persists 200 session`() = runTest {
+        val testDispatcher = StandardTestDispatcher(testScheduler)
+        val driver = DriverFactory().createDriver()
+        var registerAttempt = 0
+        val mockEngine = MockEngine { request ->
+            when (request.url.encodedPath) {
+                "/v1/auth/register" -> {
+                    val isFirstConflictAttempt = registerAttempt == 0
+                    registerAttempt += 1
+                    if (isFirstConflictAttempt) {
+                        respond(
+                            content = """{"code":"AUTH_EMAIL_TAKEN","message":"Correo ya en uso"}""",
+                            status = HttpStatusCode.Conflict,
+                            headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+                        )
+                    } else {
+                        respond(
+                            content = """
+                                {
+                                  "accessToken": "jwt-sql-registro-2026",
+                                  "user": {
+                                    "id": "usr-sql-nuevo",
+                                    "username": "laura_sql",
+                                    "fullName": "Laura Gómez",
+                                    "email": "laura_sql@gmail.com",
+                                    "role": "client"
+                                  }
+                                }
+                            """.trimIndent(),
+                            status = HttpStatusCode.OK,
+                            headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+                        )
+                    }
+                }
+
+                "/v1/auth/login" -> respond(
+                    content = """{"code":"AUTH_INVALID_CREDENTIALS","message":"Credenciales inválidas"}""",
+                    status = HttpStatusCode.Unauthorized,
+                    headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+                )
+
+                else -> respond(
+                    content = """{"queue":[]}""",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+                )
+            }
+        }
+        val httpClient = HttpClient(mockEngine) {
+            install(ContentNegotiation) {
+                json(Json { ignoreUnknownKeys = true })
+            }
+        }
+        val apiClient = RosaFiestaApiClient(
+            baseUrl = "http://localhost:8788",
+            ioDispatcher = testDispatcher,
+            httpClient = httpClient,
+        )
+        val repo = SqlRosaFiestaRepository(
+            driver = driver,
+            ioDispatcher = testDispatcher,
+            apiClient = apiClient,
+        )
+
+        val duplicateOutcome = repo.registerUserOnline(
+            firstName = "Laura",
+            lastName = "Gómez",
+            username = "laura_dup",
+            email = "duplicado@gmail.com",
+            birthDate = "21/08/1998",
+            phone = "809-555-0199",
+            password = "ClaveSql2026!",
+        )
+        assertFalse(duplicateOutcome.success)
+        assertEquals("AUTH_EMAIL_TAKEN", duplicateOutcome.errorCode)
+
+        val okOutcome = repo.registerUserOnline(
+            firstName = "Laura",
+            lastName = "Gómez",
+            username = "laura_sql",
+            email = "laura_sql@gmail.com",
+            birthDate = "21/08/1998",
+            phone = "809-555-0199",
+            password = "ClaveSql2026!",
+        )
+        assertTrue(okOutcome.success)
+        assertEquals("jwt-sql-registro-2026", okOutcome.accessToken)
+        assertEquals("laura_sql@gmail.com", repo.currentUserEmail.value)
+
+        val badLogin = repo.authenticateUserOnline("laura_sql@gmail.com", "ClaveMala!")
+        assertFalse(badLogin.success)
+        assertEquals("AUTH_INVALID_CREDENTIALS", badLogin.errorCode)
+    }
 }

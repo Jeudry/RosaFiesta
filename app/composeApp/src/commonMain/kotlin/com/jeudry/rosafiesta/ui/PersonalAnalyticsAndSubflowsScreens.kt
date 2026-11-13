@@ -1002,7 +1002,7 @@ internal fun RenderCompanyReviewsS17(
                     avatarTextColor = Color(reviewItem.avatarInkHex),
                     initial = reviewItem.initial,
                     author = reviewItem.author,
-                    date = reviewItem.dateLabel,
+                    date = formatReadableSpanishDateText(reviewItem.dateLabel),
                     comment = reviewItem.comment,
                     rating = reviewItem.rating,
                     isVerified = reviewItem.isVerified,
@@ -1732,7 +1732,7 @@ internal fun RenderEventChatTabS41(
                         overflow = TextOverflow.Ellipsis,
                     )
                     BasicText(
-                        text = "${activeEvent.dateLabel} · ${activeEvent.venue}",
+                        text = "${formatReadableSpanishDateText(activeEvent.dateLabel)} · ${activeEvent.venue}",
                         style = TextStyle(
                             fontFamily = typo.bodyFamily,
                             fontSize = 13.sp,
@@ -1774,7 +1774,7 @@ internal fun RenderEventChatTabS41(
                         .background(palette.surface)
                         .border(1.dp, palette.line, CircleShape)
                         .clickable {
-                            val shareSummaryText = "${activeEvent.title} · ${activeEvent.dateLabel} · ${activeEvent.venue}"
+                            val shareSummaryText = "${activeEvent.title} · ${formatReadableSpanishDateText(activeEvent.dateLabel)} · ${activeEvent.venue}"
                             viewModel?.sharePlainText(activeEvent.title, shareSummaryText)
                         },
                     contentAlignment = Alignment.Center,
@@ -2234,7 +2234,7 @@ internal fun RenderEventChatS42(
                         overflow = TextOverflow.Ellipsis,
                     )
                     BasicText(
-                        text = "${activeEvent.dateLabel} · ${activeEvent.guests} invitados · ${activeEvent.venue}",
+                        text = "${formatReadableSpanishDateText(activeEvent.dateLabel)} · ${activeEvent.guests} invitados · ${activeEvent.venue}",
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         style = TextStyle(
@@ -2599,7 +2599,7 @@ internal fun RenderEventChatS42(
                     )
                     ChatActionSheetRow(
                         label = "Ver detalle del evento",
-                        subtitle = "${activeEvent.dateLabel} · ${activeEvent.venue}",
+                        subtitle = "${formatReadableSpanishDateText(activeEvent.dateLabel)} · ${activeEvent.venue}",
                         onClick = {
                             showMoreMenuSheet = false
                             onSelectScreenCode("s40")
@@ -2610,7 +2610,7 @@ internal fun RenderEventChatS42(
                         subtitle = "Enviar resumen de cotización y fecha",
                         onClick = {
                             showMoreMenuSheet = false
-                            val summaryPayload = "${activeEvent.title} · ${activeEvent.dateLabel} · ${activeEvent.venue}"
+                            val summaryPayload = "${activeEvent.title} · ${formatReadableSpanishDateText(activeEvent.dateLabel)} · ${activeEvent.venue}"
                             viewModel?.sharePlainText(activeEvent.title, summaryPayload)
                         },
                     )
@@ -2769,7 +2769,7 @@ internal fun RenderFinanceDashboardS59(
                         val formattedAmount = RosaFiestaEngine.formatDop(paymentItem.amountDop)
                         PanelMovementRow59(
                             title = "${paymentItem.kindLabel} · ${paymentItem.eventTitle}",
-                            subtitle = "${paymentItem.methodLabel} · ${paymentItem.dateLabel} · $receiptStatus",
+                            subtitle = "${paymentItem.methodLabel} · ${formatReadableSpanishDateText(paymentItem.dateLabel)} · $receiptStatus",
                             amount = "+$formattedAmount",
                             icon = RfIconKind.TREND_UP,
                             iconBackground = Color(0xFFEEF6D6),
@@ -2789,7 +2789,7 @@ internal fun RenderFinanceDashboardS59(
                         val formattedQuoteTotal = RosaFiestaEngine.formatDop(quoteItem.totalDop)
                         PanelMovementRow59(
                             title = "${quoteItem.clientName} · ${quoteItem.eventTitle}",
-                            subtitle = "${quoteItem.code} · ${quoteItem.status} · ${quoteItem.dateLabel}",
+                            subtitle = "${quoteItem.code} · ${quoteItem.status} · ${formatReadableSpanishDateText(quoteItem.dateLabel)}",
                             amount = formattedQuoteTotal,
                             icon = RfIconKind.NOTE,
                             iconBackground = Color(0xFFEEE8FD),
@@ -3376,7 +3376,7 @@ internal fun RenderLeadsPipelineS64(
                         status = leadItem.stage,
                         statusBackground = statusBadgeBg,
                         statusColor = statusBadgeFg,
-                        event = "${leadItem.eventType} · ${leadItem.guests} inv · ${leadItem.dateLabel}",
+                        event = "${leadItem.eventType} · ${leadItem.guests} inv · ${formatReadableSpanishDateText(leadItem.dateLabel)}",
                         budget = "$formattedBudget · ${leadItem.channel}",
                         priority = if (normalizedStage == "GANADO") "Cerrado" else "Avanzar a $nextStage",
                         priorityColor = if (normalizedStage == "GANADO") Color(0xFF4E6A10) else Color(0xFF4B47D6),
@@ -3811,7 +3811,7 @@ internal fun RenderLeadsFollowupS65(
                 LeadFollowupCard65(
                     leadItem = leadItem,
                     task = "${leadItem.clientName} · $taskDescription",
-                    due = "${leadItem.stage} · ${leadItem.dateLabel}",
+                    due = "${leadItem.stage} · ${formatReadableSpanishDateText(leadItem.dateLabel)}",
                     isCompleted = isCompletedLead,
                     onToggleFollowUp = {
                         viewModel?.selectLead(leadItem.id)
@@ -5232,7 +5232,7 @@ internal fun RenderReviewModerationS71(
                         val isEvenIndex = reviewIndex % 2 == 0
                         val avatarBg = if (isEvenIndex) Color(0xFFEFE8FD) else Color(0xFFECEBFF)
                         val avatarFg = if (isEvenIndex) Color(0xFF7A4FD8) else Color(0xFF4B47D6)
-                        val subtitleLabel = "${reviewItem.eventTitle.ifBlank { "Evento RosaFiesta" }} · ${reviewItem.dateLabel}"
+                        val subtitleLabel = "${reviewItem.eventTitle.ifBlank { "Evento RosaFiesta" }} · ${formatReadableSpanishDateText(reviewItem.dateLabel)}"
                         val trimmedReply = reviewItem.adminReply.trim().takeIf { replyValue -> replyValue.isNotEmpty() }
                         ReviewCard71(
                             initial = authorInitial,
@@ -7077,7 +7077,7 @@ internal fun RenderClientsAnalyticsS62(
 
         val upcomingTitle = nextClientEvent?.title ?: "Historial de ${activeClient.fullName}"
         val upcomingSubtitle = nextClientEvent?.let { eventRecord ->
-            "${eventRecord.dateLabel} · ${eventRecord.venue}"
+            "${formatReadableSpanishDateText(eventRecord.dateLabel)} · ${eventRecord.venue}"
         } ?: "$computedEventsCount eventos registrados · ${activeClient.zone}"
         val upcomingDayDigits = nextClientEvent?.dateLabel
             ?.trim()
