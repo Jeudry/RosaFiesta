@@ -296,7 +296,6 @@ private fun RosaWizardHeader(
         venueLabel = vmVenueInput,
         proposalMessage = vmProposalMessage,
     )
-    val bubbleBorderColor = if (palette.isDark) palette.line else Color(0x33865DEC)
     val subtitleColor = if (palette.isDark) Color(0xFFC5B4F8) else Color(0xFF7A4FD8)
 
     Row(
@@ -304,7 +303,7 @@ private fun RosaWizardHeader(
             .fillMaxWidth()
             .zIndex(2f)
             .padding(top = 10.dp, bottom = 6.dp, start = 16.dp, end = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
@@ -324,16 +323,11 @@ private fun RosaWizardHeader(
         }
 
         Row(
-            modifier = Modifier
-                .weight(1f)
-                .clip(RoundedCornerShape(999.dp))
-                .background(palette.surface.copy(alpha = 0.82f))
-                .border(1.dp, bubbleBorderColor, RoundedCornerShape(999.dp))
-                .padding(horizontal = 10.dp, vertical = 6.dp),
+            modifier = Modifier.weight(1f),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            RosaAvatar(size = RosaAvatarSize.MINI, forceAdminPalette = false)
+            RosaAvatar(size = RosaAvatarSize.MEDIUM, forceAdminPalette = false, customSize = 42.dp)
             Column(modifier = Modifier.weight(1f)) {
                 BasicText(
                     text = assistantTitle,
@@ -342,20 +336,20 @@ private fun RosaWizardHeader(
                     style = TextStyle(
                         fontFamily = typo.bodyFamily,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 12.sp,
-                        lineHeight = 14.sp,
+                        fontSize = 14.sp,
+                        lineHeight = 17.sp,
                         color = palette.ink,
                     ),
                 )
                 BasicText(
                     text = assistantSubtitle,
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                     style = TextStyle(
                         fontFamily = typo.bodyFamily,
                         fontWeight = FontWeight.SemiBold,
-                        fontSize = 11.sp,
-                        lineHeight = 13.sp,
+                        fontSize = 12.sp,
+                        lineHeight = 15.sp,
                         color = subtitleColor,
                     ),
                 )
@@ -838,9 +832,9 @@ internal fun RenderRosaEventTypeS26(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 60.dp, bottom = 88.dp)
+                .padding(top = 66.dp, bottom = 88.dp)
                 .verticalScroll(rememberScrollState())
-                .padding(top = 6.dp, start = 20.dp, end = 20.dp, bottom = 12.dp),
+                .padding(top = 8.dp, start = 20.dp, end = 20.dp, bottom = 12.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -1311,16 +1305,16 @@ internal fun RenderRosaTutorialS27(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 60.dp, bottom = 88.dp)
+                .padding(top = 66.dp, bottom = 88.dp)
                 .verticalScroll(rememberScrollState()),
         ) {
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(22.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 Box(modifier = Modifier.fillMaxWidth()) {
                     Box(
@@ -1365,19 +1359,16 @@ internal fun RenderRosaTutorialS27(
                     }
                 }
 
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    RosaAvatar(size = RosaAvatarSize.MEDIUM, forceAdminPalette = false)
-                    BasicText(
-                        text = "${eventMetadata.spanishGreeting} Me encanta.",
-                        style = TextStyle(
-                            fontFamily = typo.displayFamily,
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 26.sp,
-                            lineHeight = (26 * 1.05f).sp,
-                            color = RfThemeState.currentPalette.ink,
-                        ),
-                    )
-                }
+                BasicText(
+                    text = "${eventMetadata.spanishGreeting} Me encanta.",
+                    style = TextStyle(
+                        fontFamily = typo.displayFamily,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 23.sp,
+                        lineHeight = 26.sp,
+                        color = RfThemeState.currentPalette.ink,
+                    ),
+                )
 
                 Box(
                     modifier = Modifier
@@ -1444,24 +1435,24 @@ internal fun RenderRosaTutorialS27(
         Canvas(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(end = 20.dp, bottom = 130.dp)
-                .size(width = 140.dp, height = 220.dp),
+                .padding(end = 24.dp, bottom = 92.dp)
+                .size(width = 108.dp, height = 112.dp),
         ) {
-            val scaleX = size.width / 140f
-            val scaleY = size.height / 220f
+            val scaleX = size.width / 108f
+            val scaleY = size.height / 112f
             val dashEffect = PathEffect.dashPathEffect(
                 floatArrayOf(6f * scaleX, 7f * scaleX),
             )
             val strokeColor = Color(0xFF865DEC)
             val curvePath = Path().apply {
-                moveTo(20f * scaleX, 10f * scaleY)
+                moveTo(14f * scaleX, 12f * scaleY)
                 cubicTo(
-                    70f * scaleX,
-                    30f * scaleY,
-                    110f * scaleX,
-                    80f * scaleY,
-                    106f * scaleX,
-                    150f * scaleY,
+                    54f * scaleX,
+                    16f * scaleY,
+                    84f * scaleX,
+                    46f * scaleY,
+                    82f * scaleX,
+                    94f * scaleY,
                 )
             }
             drawPath(
@@ -1474,9 +1465,9 @@ internal fun RenderRosaTutorialS27(
                 ),
             )
             val arrowPath = Path().apply {
-                moveTo(94f * scaleX, 140f * scaleY)
-                lineTo(106f * scaleX, 158f * scaleY)
-                lineTo(118f * scaleX, 141f * scaleY)
+                moveTo(71f * scaleX, 85f * scaleY)
+                lineTo(82f * scaleX, 100f * scaleY)
+                lineTo(93f * scaleX, 86f * scaleY)
             }
             drawPath(
                 path = arrowPath,
@@ -1618,10 +1609,10 @@ internal fun RenderRosaHelpS28(
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .fillMaxSize()
-                .padding(top = 60.dp, bottom = 224.dp)
+                .padding(top = 66.dp, bottom = 224.dp)
                 .verticalScroll(rememberScrollState())
-                .padding(top = 6.dp, start = 20.dp, end = 20.dp, bottom = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(22.dp),
+                .padding(top = 8.dp, start = 20.dp, end = 20.dp, bottom = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
             Box(
                 modifier = Modifier
@@ -1658,8 +1649,6 @@ internal fun RenderRosaHelpS28(
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                RosaAvatar(size = RosaAvatarSize.MEDIUM, customSize = 40.dp)
-
                 BasicText(
                     text = eventMetadata.spanishGreeting,
                     style = TextStyle(
@@ -1675,9 +1664,9 @@ internal fun RenderRosaHelpS28(
                     style = TextStyle(
                         fontFamily = typo.displayFamily,
                         fontWeight = FontWeight.ExtraBold,
-                        fontSize = 26.sp,
+                        fontSize = 23.sp,
                         color = RfThemeState.currentPalette.ink,
-                        lineHeight = 28.sp,
+                        lineHeight = 27.sp,
                     ),
                 )
                 BasicText(
@@ -1872,7 +1861,6 @@ internal fun RenderRosaSuggestionsS29(
     val typo = LocalRfTypography.current
     val catalogArticles = viewModel?.articles?.collectAsState()?.value ?: CanonicalSampleData.articles
     val draftQuantities = viewModel?.draftQuantities?.collectAsState()?.value.orEmpty()
-    val rosaProposalMessage = viewModel?.rosaProposalMessage?.collectAsState()?.value.orEmpty()
     val eventTypeInputValue = viewModel?.eventTypeInput?.collectAsState()?.value.orEmpty()
     val rosaEventTypeValue = viewModel?.rosaEventType?.collectAsState()?.value.orEmpty()
     val selectedEventType = eventTypeInputValue.ifBlank { rosaEventTypeValue.ifBlank { "Boda" } }
@@ -1938,72 +1926,33 @@ internal fun RenderRosaSuggestionsS29(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(top = 60.dp, bottom = 160.dp),
+                .padding(top = 66.dp, bottom = 148.dp),
         ) {
-            Column(
+            Spacer(modifier = Modifier.height(10.dp))
+
+            BasicText(
+                text = "Para tu ${eventMetadata.displayTitle.lowercase()} te recomiendo estos artículos",
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(
-                            Brush.linearGradient(
-                                listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)),
-                            ),
-                        ),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    RosaAvatar(RosaAvatarSize.MEDIUM)
-                }
+                style = TextStyle(
+                    fontFamily = typo.displayFamily,
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 22.sp,
+                    letterSpacing = (-0.44).sp,
+                    lineHeight = 26.sp,
+                    color = RfThemeState.currentPalette.ink,
+                ),
+            )
 
-                BasicText(
-                    text = "Para tu ${eventMetadata.displayTitle.lowercase()} te recomiendo estos artículos",
-                    style = TextStyle(
-                        fontFamily = typo.displayFamily,
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 26.sp,
-                        letterSpacing = (-0.52).sp,
-                        lineHeight = 30.sp,
-                        color = RfThemeState.currentPalette.ink,
-                    ),
-                )
-
-                if (rosaProposalMessage.isNotBlank()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(RfThemeState.currentPalette.surface.copy(alpha = 0.92f))
-                            .border(1.dp, Color(0xFFE7DEF5), RoundedCornerShape(16.dp))
-                            .padding(horizontal = 14.dp, vertical = 10.dp),
-                    ) {
-                        BasicText(
-                            text = rosaProposalMessage,
-                            maxLines = 3,
-                            overflow = TextOverflow.Ellipsis,
-                            style = TextStyle(
-                                fontFamily = typo.bodyFamily,
-                                fontSize = 13.sp,
-                                lineHeight = 19.sp,
-                                color = RfThemeState.currentPalette.ink,
-                            ),
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(18.dp))
 
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .horizontalScroll(rememberScrollState())
                     .padding(horizontal = 20.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 displayedSuggestions.forEach { suggestion ->
                     val liveQuantity = draftQuantities[suggestion.articleId] ?: 0
@@ -2014,16 +1963,16 @@ internal fun RenderRosaSuggestionsS29(
                     }
                     Box(
                         modifier = Modifier
-                            .width(208.dp)
-                            .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = false)
-                            .clip(RoundedCornerShape(22.dp))
+                            .width(172.dp)
+                            .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
+                            .clip(RoundedCornerShape(20.dp))
                             .background(RfThemeState.currentPalette.surface),
                     ) {
                         Column {
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(150.dp)
+                                    .height(116.dp)
                                     .background(suggestion.photoBg),
                             ) {
                                 RfPhoto(
@@ -2034,20 +1983,20 @@ internal fun RenderRosaSuggestionsS29(
                                 )
                             }
                             Column(
-                                modifier = Modifier.padding(14.dp),
+                                modifier = Modifier.padding(12.dp),
                                 verticalArrangement = Arrangement.spacedBy(4.dp),
                             ) {
                                 BasicText(
                                     text = suggestion.title,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
-                                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = RfThemeState.currentPalette.ink),
+                                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = RfThemeState.currentPalette.ink),
                                 )
                                 BasicText(
                                     text = suggestion.subtitle,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
-                                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = RfThemeState.currentPalette.muted),
+                                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = RfThemeState.currentPalette.muted),
                                 )
                                 Spacer(Modifier.height(6.dp))
                                 Row(
@@ -2057,42 +2006,42 @@ internal fun RenderRosaSuggestionsS29(
                                 ) {
                                     BasicText(
                                         text = "RD$ ${suggestion.priceDop}",
-                                        style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 19.sp, color = RfThemeState.currentPalette.ink),
+                                        style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = RfThemeState.currentPalette.ink),
                                     )
                                     if (isAdded) {
                                         Row(
                                             modifier = Modifier
-                                                .height(36.dp)
+                                                .height(32.dp)
                                                 .clip(CircleShape)
                                                 .background(Color(0xFFEEF6D6))
                                                 .clickable {
                                                     fallbackAddedIds = fallbackAddedIds - suggestion.articleId
                                                     viewModel?.setDraftQuantity(suggestion.articleId, 0)
                                                 }
-                                                .padding(horizontal = 12.dp),
+                                                .padding(horizontal = 10.dp),
                                             horizontalArrangement = Arrangement.spacedBy(4.dp),
                                             verticalAlignment = Alignment.CenterVertically,
                                         ) {
-                                            RfIcon(kind = RfIconKind.CHECK, tint = Color(0xFF4E6A10), size = 16.dp)
-                                            BasicText("Agregado", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF4E6A10)))
+                                            RfIcon(kind = RfIconKind.CHECK, tint = Color(0xFF4E6A10), size = 14.dp)
+                                            BasicText("Listo", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF4E6A10)))
                                         }
                                     } else {
                                         Row(
                                             modifier = Modifier
-                                                .height(36.dp)
-                                                .shadow(8.dp, CircleShape, spotColor = Color(0xB3865DEC))
+                                                .height(32.dp)
+                                                .shadow(6.dp, CircleShape, spotColor = Color(0xB3865DEC))
                                                 .clip(CircleShape)
                                                 .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))))
                                                 .clickable {
                                                     fallbackAddedIds = fallbackAddedIds + suggestion.articleId
                                                     viewModel?.adjustDraftQuantity(suggestion.articleId, 1)
                                                 }
-                                                .padding(horizontal = 14.dp),
+                                                .padding(horizontal = 10.dp),
                                             horizontalArrangement = Arrangement.spacedBy(4.dp),
                                             verticalAlignment = Alignment.CenterVertically,
                                         ) {
-                                            RfIcon(kind = RfIconKind.PLUS, tint = Color.White, size = 16.dp)
-                                            BasicText("Agregar", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White))
+                                            RfIcon(kind = RfIconKind.PLUS, tint = Color.White, size = 14.dp)
+                                            BasicText("Agregar", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.White))
                                         }
                                     }
                                 }
@@ -2107,13 +2056,13 @@ internal fun RenderRosaSuggestionsS29(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter)
-                .padding(start = 20.dp, end = 20.dp, bottom = 88.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                .padding(start = 20.dp, end = 20.dp, bottom = 86.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .height(54.dp)
+                    .height(48.dp)
                     .rfCardShadow(RoundedCornerShape(16.dp), isAdmin = false)
                     .clip(RoundedCornerShape(16.dp))
                     .background(RfThemeState.currentPalette.surface)
@@ -2122,13 +2071,13 @@ internal fun RenderRosaSuggestionsS29(
             ) {
                 BasicText(
                     "Otras sugerencias",
-                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = RfThemeState.currentPalette.ink),
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = RfThemeState.currentPalette.ink),
                 )
             }
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .height(54.dp)
+                    .height(48.dp)
                     .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
                     .clip(RoundedCornerShape(16.dp))
                     .background(RosaButtonGradient)
@@ -2137,7 +2086,7 @@ internal fun RenderRosaSuggestionsS29(
             ) {
                 BasicText(
                     "Continuar",
-                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White),
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White),
                 )
             }
         }
@@ -2289,7 +2238,6 @@ internal fun RenderRosaCategoriesS30(
     val catalogArticles = viewModel?.articles?.collectAsState()?.value ?: CanonicalSampleData.articles
     val draftQuantities = viewModel?.draftQuantities?.collectAsState()?.value.orEmpty()
     val vmOmittedCategories = viewModel?.rosaOmittedCategories?.collectAsState()?.value
-    val rosaProposalMessage = viewModel?.rosaProposalMessage?.collectAsState()?.value.orEmpty()
 
     var manualChosenCategories by remember { mutableStateOf(setOf("Sillas", "Mesas")) }
     var localOmittedCategories by remember { mutableStateOf(emptySet<String>()) }
@@ -2397,46 +2345,21 @@ internal fun RenderRosaCategoriesS30(
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .fillMaxSize()
-                .padding(top = 60.dp, bottom = 148.dp)
+                .padding(top = 66.dp, bottom = 148.dp)
                 .verticalScroll(rememberScrollState())
-                .padding(top = 6.dp, start = 20.dp, end = 20.dp, bottom = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp),
+                .padding(top = 8.dp, start = 20.dp, end = 20.dp, bottom = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                RosaAvatar(size = RosaAvatarSize.MEDIUM, customSize = 40.dp)
-                BasicText(
-                    text = "¿Te falta algo? Revisemos por categoría",
-                    style = TextStyle(
-                        fontFamily = typo.displayFamily,
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 26.sp,
-                        color = RfThemeState.currentPalette.ink,
-                        lineHeight = 28.sp,
-                    ),
-                )
-                if (rosaProposalMessage.isNotBlank()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(RfThemeState.currentPalette.surface.copy(alpha = 0.92f))
-                            .border(1.dp, Color(0xFFE7DEF5), RoundedCornerShape(16.dp))
-                            .padding(horizontal = 14.dp, vertical = 10.dp),
-                    ) {
-                        BasicText(
-                            text = rosaProposalMessage,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                            style = TextStyle(
-                                fontFamily = typo.bodyFamily,
-                                fontSize = 13.sp,
-                                lineHeight = 18.sp,
-                                color = RfThemeState.currentPalette.ink,
-                            ),
-                        )
-                    }
-                }
-            }
+            BasicText(
+                text = "¿Te falta algo? Revisemos por categoría",
+                style = TextStyle(
+                    fontFamily = typo.displayFamily,
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 22.sp,
+                    color = RfThemeState.currentPalette.ink,
+                    lineHeight = 26.sp,
+                ),
+            )
 
             Column(
                 modifier = Modifier
@@ -2801,25 +2724,22 @@ internal fun RenderRosaDetailsS31(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 60.dp, bottom = 148.dp)
+                .padding(top = 66.dp, bottom = 148.dp)
                 .verticalScroll(rememberScrollState())
-                .padding(top = 6.dp, start = 20.dp, end = 20.dp, bottom = 20.dp),
+                .padding(top = 8.dp, start = 20.dp, end = 20.dp, bottom = 20.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                RosaAvatar(size = RosaAvatarSize.MEDIUM, customSize = 40.dp)
-                BasicText(
-                    text = "Ahora, los detalles de tu evento",
-                    style = TextStyle(
-                        fontFamily = typo.displayFamily,
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 26.sp,
-                        lineHeight = 28.sp,
-                        letterSpacing = (-0.52).sp,
-                        color = RfThemeState.currentPalette.ink,
-                    ),
-                )
-            }
+            BasicText(
+                text = "Ahora, los detalles de tu evento",
+                style = TextStyle(
+                    fontFamily = typo.displayFamily,
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 22.sp,
+                    lineHeight = 26.sp,
+                    letterSpacing = (-0.44).sp,
+                    color = RfThemeState.currentPalette.ink,
+                ),
+            )
 
             Column(
                 modifier = Modifier
@@ -3183,24 +3103,21 @@ internal fun RenderRosaSummaryS32(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 60.dp, bottom = 148.dp)
+                .padding(top = 66.dp, bottom = 148.dp)
                 .verticalScroll(rememberScrollState())
-                .padding(top = 6.dp, start = 20.dp, end = 20.dp, bottom = 20.dp),
+                .padding(top = 8.dp, start = 20.dp, end = 20.dp, bottom = 20.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                RosaAvatar(size = RosaAvatarSize.MEDIUM, forceAdminPalette = false)
-                BasicText(
-                    text = "Listo. Revisa que todo esté bien",
-                    style = TextStyle(
-                        fontFamily = typo.displayFamily,
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 26.sp,
-                        lineHeight = 28.sp,
-                        color = RfThemeState.currentPalette.ink,
-                    ),
-                )
-            }
+            BasicText(
+                text = "Listo. Revisa que todo esté bien",
+                style = TextStyle(
+                    fontFamily = typo.displayFamily,
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 22.sp,
+                    lineHeight = 26.sp,
+                    color = RfThemeState.currentPalette.ink,
+                ),
+            )
 
             if (formErrorMessage != null) {
                 Box(
