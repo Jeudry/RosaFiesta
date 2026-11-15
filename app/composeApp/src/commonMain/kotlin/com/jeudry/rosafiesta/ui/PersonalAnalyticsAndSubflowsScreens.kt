@@ -2978,8 +2978,21 @@ internal fun RenderInventoryCalendarS63(
 ) {
     val typo = LocalRfTypography.current
     val articlesList = viewModel?.articles?.collectAsState()?.value ?: CanonicalSampleData.articles
+    if (articlesList.isEmpty()) {
+        RenderAdminEmptyFeatureState(
+            headerTitle = "Disponibilidad",
+            emptyTitle = "Sin artículos en inventario",
+            emptyMessage = "Agrega al menos un artículo para consultar su disponibilidad y reservas por fecha.",
+            backTargetCode = "BACK:A09",
+            iconKind = RfIconKind.CATALOG,
+            onSelectScreenCode = onSelectScreenCode,
+            ctaLabel = "Nuevo artículo",
+            ctaTargetCode = "A10",
+        )
+        return
+    }
     val vmSelectedArticleId = viewModel?.selectedArticleId?.collectAsState()?.value
-    var localSelectedArticleId by remember { mutableStateOf(articlesList.first().id) }
+    var localSelectedArticleId by remember { mutableStateOf(articlesList.firstOrNull()?.id.orEmpty()) }
     val resolvedArticleId = vmSelectedArticleId ?: localSelectedArticleId
     val activeArticle: CatalogArticle = remember(articlesList, resolvedArticleId) {
         articlesList.firstOrNull { articleItem -> articleItem.id == resolvedArticleId } ?: articlesList.first()

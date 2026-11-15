@@ -755,7 +755,17 @@ internal fun RenderProductDetailS19(
     val typo = LocalRfTypography.current
     val selectedArticleId = viewModel?.selectedArticleId?.collectAsState()?.value ?: "art-silla-tiffany"
     val articlesState = viewModel?.articles?.collectAsState()?.value ?: CanonicalSampleData.articles
-    val currentArticle = articlesState.firstOrNull { article -> article.id == selectedArticleId } ?: articlesState.first()
+    val currentArticle = articlesState.firstOrNull { article -> article.id == selectedArticleId } ?: articlesState.firstOrNull()
+    if (currentArticle == null) {
+        RenderPersonalEmptyCatalogDetail(
+            headerTitle = "Detalle de artículo",
+            emptyTitle = "Producto no disponible",
+            emptyMessage = "El catálogo aún no tiene artículos publicados.",
+            backTargetCode = "BACK:s18",
+            onSelectScreenCode = onSelectScreenCode,
+        )
+        return
+    }
     val draftQuantities = viewModel?.draftQuantities?.collectAsState()?.value ?: emptyMap()
     val maxAvailableUnits = currentArticle.availableOct23.coerceAtLeast(1)
     val initialDraftCount = draftQuantities[currentArticle.id] ?: 1
@@ -2240,7 +2250,17 @@ internal fun RenderPackageDetailScreenS22(
     val selectedPkgId = viewModel?.selectedPackageId?.collectAsState()?.value ?: "pkg-boda-real"
     val allPackages = viewModel?.packages?.collectAsState()?.value ?: CanonicalSampleData.packages
     val articlesState = viewModel?.articles?.collectAsState()?.value ?: CanonicalSampleData.articles
-    val selectedPackage = allPackages.firstOrNull { packageItem -> packageItem.id == selectedPkgId } ?: allPackages.first()
+    val selectedPackage = allPackages.firstOrNull { packageItem -> packageItem.id == selectedPkgId } ?: allPackages.firstOrNull()
+    if (selectedPackage == null) {
+        RenderPersonalEmptyCatalogDetail(
+            headerTitle = "Detalle de paquete",
+            emptyTitle = "Paquete no disponible",
+            emptyMessage = "Aún no hay paquetes armados en el catálogo.",
+            backTargetCode = "BACK:s21",
+            onSelectScreenCode = onSelectScreenCode,
+        )
+        return
+    }
 
     val resolvedItems = remember(selectedPackage, articlesState) {
         resolvePackageIncludedItems(selectedPackage, articlesState)
@@ -3625,6 +3645,81 @@ internal fun RenderClientFavoritesScreenS24(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RenderPersonalEmptyCatalogDetail(
+    headerTitle: String,
+    emptyTitle: String,
+    emptyMessage: String,
+    backTargetCode: String,
+    onSelectScreenCode: (String) -> Unit,
+) {
+    val typo = LocalRfTypography.current
+    val palette = RfThemeState.currentPalette
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(palette.bg)
+            .padding(top = 16.dp, start = 20.dp, end = 20.dp, bottom = 100.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .rfIconButtonShadow(CircleShape, isAdmin = false)
+                    .clip(CircleShape)
+                    .background(palette.surface)
+                    .border(1.dp, palette.line, CircleShape)
+                    .clickable { onSelectScreenCode(backTargetCode) },
+                contentAlignment = Alignment.Center,
+            ) {
+                RfIcon(kind = RfIconKind.BACK, tint = palette.ink, size = 20.dp)
+            }
+            BasicText(
+                text = headerTitle,
+                style = typo.displayFamily.let { family ->
+                    TextStyle(fontFamily = family, fontSize = 19.sp, fontWeight = FontWeight.Bold, color = palette.ink)
+                },
+            )
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            contentAlignment = Alignment.Center,
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(22.dp))
+                    .background(palette.surface)
+                    .border(1.dp, palette.line, RoundedCornerShape(22.dp))
+                    .padding(horizontal = 24.dp, vertical = 28.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                RfIcon(kind = RfIconKind.CATALOG, tint = Color(0xFFC2338F), size = 30.dp)
+                BasicText(
+                    text = emptyTitle,
+                    style = typo.displayFamily.let { family ->
+                        TextStyle(fontFamily = family, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = palette.ink, textAlign = TextAlign.Center)
+                    },
+                )
+                BasicText(
+                    text = emptyMessage,
+                    style = typo.body.copy(fontSize = 13.5.sp, lineHeight = 19.sp, color = palette.muted, textAlign = TextAlign.Center),
+                )
             }
         }
     }

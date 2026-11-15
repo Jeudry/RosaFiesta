@@ -524,46 +524,54 @@ internal fun RenderAdminHomeA01(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Box(
+            Row(
                 modifier = Modifier
-                    .size(44.dp)
-                    .rfIconButtonShadow(CircleShape, isAdmin = true)
-                    .clip(CircleShape)
-                    .background(Color.White)
-                    .border(1.dp, Color(0x24EA4EA9), CircleShape),
-                contentAlignment = Alignment.Center,
+                    .weight(1f)
+                    .clickable { onSelectScreenCode("s54") },
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                RfLogo(size = RfLogoSize.MEDIUM)
-            }
-
-            Column(modifier = Modifier.weight(1f)) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .rfIconButtonShadow(CircleShape, isAdmin = true)
+                        .clip(CircleShape)
+                        .background(Color.White)
+                        .border(1.dp, Color(0x24EA4EA9), CircleShape),
+                    contentAlignment = Alignment.Center,
                 ) {
-                    BasicText(
-                        text = "Rosa Fiesta",
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF5F6377)),
-                    )
-                    Box(
-                        modifier = Modifier
-                            .height(20.dp)
-                            .background(Color(0xFFECEBFF), CircleShape)
-                            .padding(horizontal = 7.dp),
-                        contentAlignment = Alignment.Center,
+                    RfLogo(size = RfLogoSize.MEDIUM)
+                }
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
                         BasicText(
-                            text = "Admin",
-                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF4B47D6)),
+                            text = "Rosa Fiesta",
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF5F6377)),
                         )
+                        Box(
+                            modifier = Modifier
+                                .height(20.dp)
+                                .background(Color(0xFFECEBFF), CircleShape)
+                                .padding(horizontal = 7.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            BasicText(
+                                text = "Admin",
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF4B47D6)),
+                            )
+                        }
                     }
+                    BasicText(
+                        text = "Hola, $adminFirstName",
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        style = TextStyle(fontFamily = typo.displayFamily, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color(0xFF151729), lineHeight = 24.sp),
+                    )
                 }
-                BasicText(
-                    text = "Hola, $adminFirstName",
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    style = TextStyle(fontFamily = typo.displayFamily, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color(0xFF151729), lineHeight = 24.sp),
-                )
             }
 
             Box(
@@ -603,12 +611,22 @@ internal fun RenderAdminHomeA01(
             }
         }
 
-        val heroTitle = heroEvent?.title ?: "Boda Real Rosa & Dorado"
-        val heroBadge = if (heroEvent != null) buildHeroTimingBadge(heroEvent) else "Este viernes · en 3 días"
-        val heroSubtitle = if (heroEvent != null) {
-            "${heroEvent.clientName} · ${heroEvent.venue}"
-        } else {
-            "Montaje 2:00 p. m. · Jardín Botánico"
+        val isHeroMissing = heroEvent == null
+        val isEmptyLiveHero = if (isHeroMissing) viewModel != null else false
+        val heroTitle = when {
+            heroEvent != null -> heroEvent.title
+            isEmptyLiveHero -> "Sin eventos programados"
+            else -> "Boda Real Rosa & Dorado"
+        }
+        val heroBadge = when {
+            heroEvent != null -> buildHeroTimingBadge(heroEvent)
+            isEmptyLiveHero -> "Agenda disponible"
+            else -> "Este viernes · en 3 días"
+        }
+        val heroSubtitle = when {
+            heroEvent != null -> "${heroEvent.clientName} · ${heroEvent.venue}"
+            isEmptyLiveHero -> "Toca para crear tu primer evento o cotización"
+            else -> "Montaje 2:00 p. m. · Jardín Botánico"
         }
 
         Box(
@@ -628,8 +646,12 @@ internal fun RenderAdminHomeA01(
                     val targetHeroId = heroEvent?.id
                     if (targetHeroId != null) {
                         viewModel?.selectEvent(targetHeroId)
+                        onSelectScreenCode("A13")
+                    } else if (viewModel != null) {
+                        onSelectScreenCode("A04")
+                    } else {
+                        onSelectScreenCode("A13")
                     }
-                    onSelectScreenCode("A13")
                 },
         ) {
             Canvas(modifier = Modifier.fillMaxSize()) {
@@ -3556,7 +3578,20 @@ internal fun RenderAdminRecordPaymentA21(
     }
     val initialSelectedEvent = selectableEvents.firstOrNull { eventItem -> eventItem.id == selectedEventId }
         ?: allEvents.firstOrNull { eventItem -> eventItem.id == selectedEventId }
-        ?: selectableEvents.first()
+        ?: selectableEvents.firstOrNull()
+    if (initialSelectedEvent == null) {
+        RenderAdminEmptyFeatureState(
+            headerTitle = "Registrar pago",
+            emptyTitle = "Sin eventos para cobrar",
+            emptyMessage = "Crea un evento o aprueba una cotización antes de registrar anticipos o saldos.",
+            backTargetCode = "BACK:A20",
+            iconKind = RfIconKind.WALLET,
+            onSelectScreenCode = onSelectScreenCode,
+            ctaLabel = "Crear evento",
+            ctaTargetCode = "A04",
+        )
+        return
+    }
 
     var chosenEventId by remember(selectedEventId) { mutableStateOf(initialSelectedEvent.id) }
     val chosenEvent = allEvents.firstOrNull { eventItem -> eventItem.id == chosenEventId } ?: initialSelectedEvent
@@ -3969,6 +4004,21 @@ internal fun RenderAdminEventDetailA13(
 ) {
     val typo = LocalRfTypography.current
     val eventsList = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
+    if (viewModel != null) {
+        if (eventsList.isEmpty()) {
+            RenderAdminEmptyFeatureState(
+                headerTitle = "Detalle del evento",
+                emptyTitle = "Aún no tienes eventos",
+                emptyMessage = "Crea tu primer evento o aprueba una solicitud para gestionar cliente, pagos, chat, boceto y montaje.",
+                backTargetCode = "BACK:A11",
+                iconKind = RfIconKind.CALENDAR,
+                onSelectScreenCode = onSelectScreenCode,
+                ctaLabel = "Crear evento",
+                ctaTargetCode = "A04",
+            )
+            return
+        }
+    }
     val selectedEventId = viewModel?.selectedEventId?.collectAsState()?.value ?: ""
     val selectedEvent = eventsList.firstOrNull { eventItem -> eventItem.id == selectedEventId }
         ?: viewModel?.activeClientEvent()
@@ -4169,17 +4219,19 @@ internal fun RenderAdminEventDetailA13(
                         )
                     }
 
-                    Box(
-                        modifier = Modifier
-                            .size(44.dp)
-                            .rfIconButtonShadow(CircleShape, isAdmin = true)
-                            .clip(CircleShape)
-                            .background(Color.White)
-                            .border(1.dp, Color(0xFFECECF5), CircleShape)
-                            .clickable { openClientChat() },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        RfIcon(kind = RfIconKind.CHAT, tint = Color(0xFF151729), size = 20.dp)
+                    if (selectedEvent.clientName.isNotBlank()) {
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .rfIconButtonShadow(CircleShape, isAdmin = true)
+                                .clip(CircleShape)
+                                .background(Color.White)
+                                .border(1.dp, Color(0xFFECECF5), CircleShape)
+                                .clickable { openClientChat() },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            RfIcon(kind = RfIconKind.CHAT, tint = Color(0xFF151729), size = 20.dp)
+                        }
                     }
                 }
             }
@@ -4664,6 +4716,21 @@ internal fun RenderAdminExecutionA16(
 ) {
     val typo = LocalRfTypography.current
     val eventsList = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
+    if (viewModel != null) {
+        if (eventsList.isEmpty()) {
+            RenderAdminEmptyFeatureState(
+                headerTitle = "Modo ejecución",
+                emptyTitle = "Aún no tienes eventos",
+                emptyMessage = "Crea un evento para controlar carga, checklist en sitio y entregas.",
+                backTargetCode = "BACK:A11",
+                iconKind = RfIconKind.CALENDAR,
+                onSelectScreenCode = onSelectScreenCode,
+                ctaLabel = "Crear evento",
+                ctaTargetCode = "A04",
+            )
+            return
+        }
+    }
     val selectedEventId = viewModel?.selectedEventId?.collectAsState()?.value ?: ""
     val selectedEvent = eventsList.firstOrNull { eventItem -> eventItem.id == selectedEventId }
         ?: viewModel?.activeClientEvent()
@@ -5188,6 +5255,21 @@ internal fun RenderAdminTasksA17(
 ) {
     val typo = LocalRfTypography.current
     val eventsList = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
+    if (viewModel != null) {
+        if (eventsList.isEmpty()) {
+            RenderAdminEmptyFeatureState(
+                headerTitle = "Tareas del evento",
+                emptyTitle = "Aún no tienes eventos",
+                emptyMessage = "Crea un evento para asignar responsables de montaje, logística y decoración.",
+                backTargetCode = "BACK:A11",
+                iconKind = RfIconKind.CALENDAR,
+                onSelectScreenCode = onSelectScreenCode,
+                ctaLabel = "Crear evento",
+                ctaTargetCode = "A04",
+            )
+            return
+        }
+    }
     val selectedEventId = viewModel?.selectedEventId?.collectAsState()?.value ?: ""
     val selectedEvent = eventsList.firstOrNull { eventItem -> eventItem.id == selectedEventId }
         ?: viewModel?.activeClientEvent()
@@ -5712,6 +5794,21 @@ internal fun RenderAdminSketchA18(
 ) {
     val typo = LocalRfTypography.current
     val eventsList = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
+    if (viewModel != null) {
+        if (eventsList.isEmpty()) {
+            RenderAdminEmptyFeatureState(
+                headerTitle = "Boceto y plano",
+                emptyTitle = "Aún no tienes eventos",
+                emptyMessage = "Crea un evento para editar planos técnicos y puntos de montaje.",
+                backTargetCode = "BACK:A11",
+                iconKind = RfIconKind.CALENDAR,
+                onSelectScreenCode = onSelectScreenCode,
+                ctaLabel = "Crear evento",
+                ctaTargetCode = "A04",
+            )
+            return
+        }
+    }
     val selectedEventId = viewModel?.selectedEventId?.collectAsState()?.value ?: ""
     val selectedEvent = eventsList.firstOrNull { eventItem -> eventItem.id == selectedEventId }
         ?: viewModel?.activeClientEvent()
@@ -6242,6 +6339,21 @@ internal fun RenderAdminCloseoutA19(
 ) {
     val typo = LocalRfTypography.current
     val eventsList = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
+    if (viewModel != null) {
+        if (eventsList.isEmpty()) {
+            RenderAdminEmptyFeatureState(
+                headerTitle = "Cierre e inspección",
+                emptyTitle = "Aún no tienes eventos",
+                emptyMessage = "Crea y completa un evento para registrar devolución de mobiliario e inspección final.",
+                backTargetCode = "BACK:A11",
+                iconKind = RfIconKind.CALENDAR,
+                onSelectScreenCode = onSelectScreenCode,
+                ctaLabel = "Crear evento",
+                ctaTargetCode = "A04",
+            )
+            return
+        }
+    }
     val selectedEventId = viewModel?.selectedEventId?.collectAsState()?.value ?: ""
     val selectedEvent = eventsList.firstOrNull { eventItem -> eventItem.id == selectedEventId }
         ?: viewModel?.activeClientEvent()

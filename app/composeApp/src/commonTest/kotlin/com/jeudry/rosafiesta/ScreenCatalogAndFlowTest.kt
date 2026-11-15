@@ -1045,4 +1045,92 @@ class ScreenCatalogAndFlowTest {
         onNodeWithText("Entrar al panel Admin").assertExists()
         onNodeWithText("Entrar como cliente").assertExists()
     }
+
+    private fun createEmptySeedTestViewModel(): RosaFiestaViewModel = RosaFiestaViewModel(
+        repository = com.jeudry.rosafiesta.data.DefaultRosaFiestaRepository(seedDemoData = false),
+        platformActions = NoOpPlatformActions(),
+        secureStorage = InMemorySecureStorage(),
+    )
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun `pantallas admin y personal vacias muestran estado vacio sin explotar ni mostrar botones falsos`() = runComposeUiTest {
+        val emptyViewModel = createEmptySeedTestViewModel()
+
+        setContent {
+            androidx.compose.foundation.layout.Column {
+                com.jeudry.rosafiesta.ui.RenderScreenSpec(
+                    spec = ScreenCatalog.findByCode("A01"),
+                    viewModel = emptyViewModel,
+                    isFrameHarness = false,
+                    includeBottomBar = false,
+                )
+            }
+        }
+        onNodeWithText("Sin eventos programados").assertExists()
+        onNodeWithText("Boda Real Rosa & Dorado").assertDoesNotExist()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun `detalle A13 chat A15 reembolso A33 pago A21 producto s19 y calendario s63 manejan listas vacias`() = runComposeUiTest {
+        val emptyViewModel = createEmptySeedTestViewModel()
+        val targetCodeState = androidx.compose.runtime.mutableStateOf("A13")
+
+        setContent {
+            com.jeudry.rosafiesta.ui.RenderScreenSpec(
+                spec = ScreenCatalog.findByCode(targetCodeState.value),
+                viewModel = emptyViewModel,
+                isFrameHarness = false,
+                includeBottomBar = false,
+            )
+        }
+
+        onNodeWithText("Aún no tienes eventos").assertExists()
+        onNodeWithText("Modo ejecución").assertDoesNotExist()
+
+        targetCodeState.value = "A15"
+        waitForIdle()
+        onNodeWithText("Sin conversaciones activas").assertExists()
+
+        targetCodeState.value = "A33"
+        waitForIdle()
+        onNodeWithText("Sin solicitudes de reembolso").assertExists()
+
+        targetCodeState.value = "A21"
+        waitForIdle()
+        onNodeWithText("Sin eventos para cobrar").assertExists()
+
+        targetCodeState.value = "s19"
+        waitForIdle()
+        onNodeWithText("Producto no disponible").assertExists()
+
+        targetCodeState.value = "s63"
+        waitForIdle()
+        onNodeWithText("Sin artículos en inventario").assertExists()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun `entrar al panel admin desde A30 navega a vista de login s07 con recuperar usuario`() = runComposeUiTest {
+        val emptyViewModel = createEmptySeedTestViewModel()
+
+        setContent {
+            RosaFiestaApp(
+                initialAppView = AppView.ADMIN,
+                initialScreenCode = "A30",
+                viewModel = emptyViewModel,
+            )
+        }
+
+        onNodeWithTag("admin-onboarding-skip").performClick()
+        waitForIdle()
+        onNodeWithText("Entrar al panel Admin").performClick()
+        waitForIdle()
+
+        onNodeWithTag("screen-s07").assertExists()
+        onNodeWithText("Acceso Admin").assertExists()
+        onNodeWithText("Recuperar usuario").assertExists()
+        onNodeWithText("¿La olvidaste?").assertExists()
+    }
 }

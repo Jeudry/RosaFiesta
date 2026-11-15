@@ -1658,16 +1658,16 @@ private fun AdminHeroEventBanner(
     modifier: Modifier = Modifier,
 ) {
     val typo = LocalRfTypography.current
-    val titleText = heroEvent?.title ?: "Boda Real Rosa & Dorado"
+    val titleText = heroEvent?.title ?: "Sin eventos próximos"
     val subtitleText = if (heroEvent != null) {
         "Montaje 2:00 p. m. · ${heroEvent.venue} · ${heroEvent.guests} invitados"
     } else {
-        "Montaje 2:00 p. m. · Jardín Botánico · 120 invitados"
+        "Crea un evento o cotización para programar montaje y logística"
     }
     val timingText = if (heroEvent != null) {
         "${formatReadableSpanishDateText(heroEvent.dateLabel)} · Próximo montaje"
     } else {
-        "Este viernes · en 3 días"
+        "Agenda disponible"
     }
 
     Column(
@@ -1694,35 +1694,37 @@ private fun AdminHeroEventBanner(
             text = subtitleText,
             style = typo.body.copy(color = Color.White.copy(alpha = 0.9f), fontSize = 14.sp),
         )
-        Spacer(Modifier.height(4.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .height(36.dp)
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(Color.White)
-                    .clickable(onClick = onViewEvent)
-                    .padding(horizontal = 14.dp),
-            ) {
-                BasicText(
-                    text = "Ver evento",
-                    style = typo.buttonLabel.copy(color = Color(0xFF4B47D6), fontSize = 13.5.sp, fontWeight = FontWeight.Bold),
-                )
-            }
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .height(36.dp)
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(Color.White.copy(alpha = 0.2f))
-                    .clickable(onClick = onOpenExecutionMode)
-                    .padding(horizontal = 14.dp),
-            ) {
-                BasicText(
-                    text = "Modo ejecución",
-                    style = typo.buttonLabel.copy(color = Color.White, fontSize = 13.5.sp, fontWeight = FontWeight.Bold),
-                )
+        if (heroEvent != null) {
+            Spacer(Modifier.height(4.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .height(36.dp)
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(Color.White)
+                        .clickable(onClick = onViewEvent)
+                        .padding(horizontal = 14.dp),
+                ) {
+                    BasicText(
+                        text = "Ver evento",
+                        style = typo.buttonLabel.copy(color = Color(0xFF4B47D6), fontSize = 13.5.sp, fontWeight = FontWeight.Bold),
+                    )
+                }
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .height(36.dp)
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(Color.White.copy(alpha = 0.2f))
+                        .clickable(onClick = onOpenExecutionMode)
+                        .padding(horizontal = 14.dp),
+                ) {
+                    BasicText(
+                        text = "Modo ejecución",
+                        style = typo.buttonLabel.copy(color = Color.White, fontSize = 13.5.sp, fontWeight = FontWeight.Bold),
+                    )
+                }
             }
         }
     }
@@ -1877,9 +1879,9 @@ private fun AdminAttentionTodayCard(
 
     val rows = listOf(
         A39AttentionRowData(
-            title = balanceDueEvent?.let { ev -> "Saldo ${ev.title.substringBefore(' ').ifBlank { ev.title }}" } ?: "Saldo Boda Real",
-            subtitle = unverifiedPayment?.let { payment -> "Pago pendiente: ${payment.methodLabel}" } ?: "Vence el jue 22 oct",
-            trailingText = balanceDueEvent?.let { ev -> formatDesktopDop(ev.balanceDop) } ?: "RD$ 3,150",
+            title = balanceDueEvent?.let { ev -> "Saldo ${ev.title.substringBefore(' ').ifBlank { ev.title }}" } ?: "Sin saldos pendientes",
+            subtitle = unverifiedPayment?.let { payment -> "Pago pendiente: ${payment.methodLabel}" } ?: "Pagos y anticipos al día",
+            trailingText = balanceDueEvent?.let { ev -> formatDesktopDop(ev.balanceDop) } ?: "RD$ 0",
             badgeText = null,
             icon = RfIconKind.WALLET,
             tileBg = Color(0xFFFCE3E8),
@@ -1887,18 +1889,18 @@ private fun AdminAttentionTodayCard(
             onClick = onOpenPayments,
         ),
         A39AttentionRowData(
-            title = lowStockArticle?.name ?: "Mesa dulce temática",
-            subtitle = lowStockArticle?.let { article -> "Quedan ${article.availableOct23} · stock bajo" } ?: "Quedan 2 · stock bajo",
+            title = lowStockArticle?.name ?: "Stock al día",
+            subtitle = lowStockArticle?.let { article -> "Quedan ${article.availableOct23} · stock bajo" } ?: "Sin alertas críticas de inventario",
             trailingText = null,
-            badgeText = "Stock bajo",
+            badgeText = if (lowStockArticle != null) "Stock bajo" else "OK",
             icon = RfIconKind.CATALOG,
             tileBg = Color(0xFFFFF2C9),
             tileTint = Color(0xFF7A5700),
             onClick = onOpenInventory,
         ),
         A39AttentionRowData(
-            title = if (cancelledCount > 0) "$cancelledCount cancelaciones por revisar" else "2 cancelaciones por revisar",
-            subtitle = "Bautizo de Lucas · Cumpleaños...",
+            title = if (cancelledCount > 0) "$cancelledCount cancelaciones por revisar" else "Sin cancelaciones pendientes",
+            subtitle = if (cancelledCount > 0) "Revisa solicitudes y reembolsos" else "No hay reembolsos por procesar",
             trailingText = null,
             badgeText = null,
             icon = RfIconKind.CLOCK,

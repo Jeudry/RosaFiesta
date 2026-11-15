@@ -347,6 +347,7 @@ public fun RenderScreenSpec(
                     onPrimaryAction = onPrimaryAction,
                     onSelectScreenCode = onSelectScreenCode,
                     onSwitchAppMode = onSwitchAppMode,
+                    underlyingScreenCode = underlyingScreenCode,
                 )
 
                 "s08" -> RenderRegisterScreenS08(viewModel = viewModel, onPrimaryAction = onPrimaryAction, onSelectScreenCode = onSelectScreenCode)

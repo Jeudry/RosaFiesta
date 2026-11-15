@@ -536,7 +536,8 @@ internal fun RenderPaymentCheckoutScreenS50(
     val selectedId = viewModel?.selectedEventId?.collectAsState()?.value ?: "evt-boda-real"
     val activeEvent = viewModel?.activeClientEvent()
         ?: events.firstOrNull { currentEvent -> currentEvent.id == selectedId }
-        ?: events.first()
+        ?: events.firstOrNull()
+        ?: CanonicalSampleData.events.first()
     val checkoutModeRaw = viewModel?.paymentCheckoutMode?.collectAsState()?.value ?: "DEPOSIT"
     val businessSettings = viewModel?.businessSettings?.collectAsState()?.value ?: BusinessSettings()
     val profileZone = viewModel?.profileZone?.collectAsState()?.value.orEmpty()
@@ -1186,7 +1187,8 @@ internal fun RenderPaymentSuccessScreenS51(
     val selectedId = viewModel?.selectedEventId?.collectAsState()?.value ?: "evt-boda-real"
     val event = viewModel?.activeClientEvent()
         ?: events.firstOrNull { currentEvent -> currentEvent.id == selectedId }
-        ?: events.first()
+        ?: events.firstOrNull()
+        ?: CanonicalSampleData.events.first()
     val clientPayments = viewModel?.clientPaymentsForCurrentUser() ?: payments
     val latestPayment = clientPayments.firstOrNull { paymentItem -> paymentItem.eventId == event.id }
         ?: payments.firstOrNull { paymentItem -> paymentItem.eventId == event.id }
@@ -1603,7 +1605,8 @@ internal fun RenderPostEventReviewScreenS52(
     val selectedId = viewModel?.selectedEventId?.collectAsState()?.value ?: "evt-boda-real"
     val event = viewModel?.activeClientEvent()
         ?: events.firstOrNull { currentEvent -> currentEvent.id == selectedId }
-        ?: events.first()
+        ?: events.firstOrNull()
+        ?: CanonicalSampleData.events.first()
     val damageIncidents = viewModel?.damageIncidents?.collectAsState()?.value ?: CanonicalSampleData.damageIncidents
     val tasks = viewModel?.eventTasksList?.collectAsState()?.value ?: emptyList()
     val timeline = viewModel?.eventTimelineItems?.collectAsState()?.value ?: emptyList()
@@ -2230,6 +2233,9 @@ internal fun RenderUserProfileScreenS54(
     val profileAvatarBytes = viewModel?.profileAvatarBytes?.collectAsState()?.value
     val formError = viewModel?.formError?.collectAsState()?.value
     val formFeedback = viewModel?.formFeedback?.collectAsState()?.value
+    val hasValidSession = viewModel?.hasValidAuthenticatedSession() == true
+    val isStaffOrAdmin = viewModel?.isCurrentSessionAdminOrStaff() == true
+    val isAdminProfileMode = if (hasValidSession) isStaffOrAdmin else false
 
     LaunchedEffect(formFeedback) {
         if (!formFeedback.isNullOrBlank()) {
@@ -2621,29 +2627,55 @@ internal fun RenderUserProfileScreenS54(
                     .background(palette.surface)
                     .border(1.dp, palette.line, RoundedCornerShape(20.dp)),
             ) {
-                ProfileRow54(
-                    label = "Pagos",
-                    icon = RfIconKind.WALLET,
-                    onClick = { onSelectScreenCode("s82") },
-                ) {
-                    RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = palette.muted, size = 18.dp)
-                }
-                ProfileDivider54()
-                ProfileRow54(
-                    label = "Mis reservas",
-                    icon = RfIconKind.CALENDAR,
-                    onClick = { onSelectScreenCode("s53") },
-                ) {
-                    RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = palette.muted, size = 18.dp)
-                }
-                ProfileDivider54()
-                ProfileRow54(
-                    label = "Eliminar cuenta",
-                    icon = RfIconKind.TRASH,
-                    labelColor = Color(0xFFB42345),
-                    onClick = { onSelectScreenCode("s88") },
-                ) {
-                    RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = Color(0xFFB42345), size = 18.dp)
+                if (isAdminProfileMode) {
+                    ProfileRow54(
+                        label = "Pagos del negocio",
+                        icon = RfIconKind.WALLET,
+                        onClick = { onSelectScreenCode("A20") },
+                    ) {
+                        RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = palette.muted, size = 18.dp)
+                    }
+                    ProfileDivider54()
+                    ProfileRow54(
+                        label = "Ajustes del negocio",
+                        icon = RfIconKind.SETTINGS,
+                        onClick = { onSelectScreenCode("A31") },
+                    ) {
+                        RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = palette.muted, size = 18.dp)
+                    }
+                    ProfileDivider54()
+                    ProfileRow54(
+                        label = "Equipo y permisos",
+                        icon = RfIconKind.USER,
+                        onClick = { onSelectScreenCode("A28") },
+                    ) {
+                        RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = palette.muted, size = 18.dp)
+                    }
+                } else {
+                    ProfileRow54(
+                        label = "Pagos",
+                        icon = RfIconKind.WALLET,
+                        onClick = { onSelectScreenCode("s82") },
+                    ) {
+                        RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = palette.muted, size = 18.dp)
+                    }
+                    ProfileDivider54()
+                    ProfileRow54(
+                        label = "Mis reservas",
+                        icon = RfIconKind.CALENDAR,
+                        onClick = { onSelectScreenCode("s53") },
+                    ) {
+                        RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = palette.muted, size = 18.dp)
+                    }
+                    ProfileDivider54()
+                    ProfileRow54(
+                        label = "Eliminar cuenta",
+                        icon = RfIconKind.TRASH,
+                        labelColor = Color(0xFFB42345),
+                        onClick = { onSelectScreenCode("s88") },
+                    ) {
+                        RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = Color(0xFFB42345), size = 18.dp)
+                    }
                 }
             }
 
@@ -2721,7 +2753,8 @@ internal fun RenderUserProfileScreenS54(
                                 .clickable {
                                     showLogoutConfirmModal = false
                                     viewModel?.logoutSession()
-                                    onSelectScreenCode("s06")
+                                    val logoutTargetCode = if (isAdminProfileMode) "A30" else "s06"
+                                    onSelectScreenCode(logoutTargetCode)
                                 },
                             contentAlignment = Alignment.Center,
                         ) {

@@ -2505,7 +2505,20 @@ internal fun RenderAdminChatConversationA15(
     val threadsPool = vmThreads ?: fallbackChatThreadsList()
     val activeThread = threadsPool.firstOrNull { threadItem ->
         isThreadIdentifierMatch(threadItem, selectedThreadId)
-    } ?: viewModel?.selectedChatThread() ?: threadsPool.first()
+    } ?: viewModel?.selectedChatThread() ?: threadsPool.firstOrNull()
+    if (activeThread == null) {
+        RenderAdminEmptyFeatureState(
+            headerTitle = "Chat del evento",
+            emptyTitle = "Sin conversaciones activas",
+            emptyMessage = "Cuando recibas mensajes de clientes o cotizaciones activas, el chat aparecerá aquí.",
+            backTargetCode = "BACK:A14",
+            ctaLabel = "Volver a chats",
+            ctaTargetCode = "BACK:A14",
+            iconKind = RfIconKind.CHAT,
+            onSelectScreenCode = onSelectScreenCode,
+        )
+        return
+    }
 
     var suggestionAdded by remember(activeThread.id) { mutableStateOf(false) }
 
@@ -3659,21 +3672,8 @@ internal fun RenderAdminEntryChoiceA30(
     onSwitchAppMode: () -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
-    val coroutineScope = rememberCoroutineScope()
     var onboardingStep by remember { mutableStateOf(0) }
     var rememberChoice by remember { mutableStateOf(true) }
-    var showAdminLoginForm by remember { mutableStateOf(false) }
-    var fallbackEmail by remember { mutableStateOf("maria@rosafiesta.do") }
-    var fallbackPassword by remember { mutableStateOf("") }
-    var localAuthError by remember { mutableStateOf<String?>(null) }
-    var isSubmittingAdminLogin by remember { mutableStateOf(false) }
-
-    val vmLoginEmail = viewModel?.loginEmail?.collectAsState()?.value
-    val vmLoginPassword = viewModel?.loginPassword?.collectAsState()?.value
-    val vmError = viewModel?.formError?.collectAsState()?.value
-
-    val emailInput = vmLoginEmail ?: fallbackEmail
-    val passwordInput = vmLoginPassword ?: fallbackPassword
     val isInTourSlides = onboardingStep < 4
 
     val onboardingSummary = remember(viewModel) {
@@ -3691,8 +3691,6 @@ internal fun RenderAdminEntryChoiceA30(
             totalArticlesInCatalog = 12,
         )
     }
-
-    val displayedAuthError = localAuthError ?: vmError
 
     Box(
         modifier = Modifier
@@ -3809,70 +3807,20 @@ internal fun RenderAdminEntryChoiceA30(
                 )
             } else {
                 AdminOnboardingEntryStage(
-                    showAdminLoginForm = showAdminLoginForm,
-                    emailInput = emailInput,
-                    passwordInput = passwordInput,
-                    displayedAuthError = displayedAuthError,
-                    isSubmittingAdminLogin = isSubmittingAdminLogin,
                     rememberChoice = rememberChoice,
-                    onEmailChange = { updatedText ->
-                        localAuthError = null
-                        viewModel?.clearFormError()
-                        if (viewModel != null) {
-                            viewModel.setLoginEmail(updatedText)
-                        } else {
-                            fallbackEmail = updatedText
-                        }
-                    },
-                    onPasswordChange = { updatedText ->
-                        localAuthError = null
-                        viewModel?.clearFormError()
-                        if (viewModel != null) {
-                            viewModel.setLoginPassword(updatedText)
-                        } else {
-                            fallbackPassword = updatedText
-                        }
-                    },
                     onPrimaryAdminClick = {
-                        val hasImmediateAdminAccess = viewModel?.isCurrentSessionAdminOrStaff() ?: true
-                        if (hasImmediateAdminAccess) {
-                            localAuthError = null
-                            showAdminLoginForm = false
+                        if (viewModel == null) {
                             onSelectScreenCode("A01")
                         } else {
-                            localAuthError = null
-                            viewModel.clearFormError()
-                            showAdminLoginForm = true
-                        }
-                    },
-                    onSubmitAdminLogin = {
-                        if (!isSubmittingAdminLogin) {
-                            if (viewModel == null) {
-                                localAuthError = null
-                                showAdminLoginForm = false
+                            val hasSession = viewModel.hasValidAuthenticatedSession()
+                            val isAdminOrStaff = viewModel.isCurrentSessionAdminOrStaff()
+                            val canEnterImmediately = bothTrue(hasSession, isAdminOrStaff)
+                            if (canEnterImmediately) {
                                 onSelectScreenCode("A01")
                             } else {
-                                isSubmittingAdminLogin = true
-                                coroutineScope.launch {
-                                    try {
-                                        val loggedIn = viewModel.submitLoginOnline()
-                                        val isAuthorizedAdmin = viewModel.isCurrentSessionAdminOrStaff()
-                                        val canEnterAdmin = bothTrue(loggedIn, isAuthorizedAdmin)
-                                        if (canEnterAdmin) {
-                                            localAuthError = null
-                                            showAdminLoginForm = false
-                                            onSelectScreenCode("A01")
-                                        } else if (loggedIn) {
-                                            val roleDeniedMessage = "Esta cuenta es de cliente y no tiene acceso al panel Admin."
-                                            localAuthError = roleDeniedMessage
-                                            viewModel.postError(roleDeniedMessage)
-                                        } else {
-                                            localAuthError = viewModel.formError.value ?: "Credenciales inválidas. Verifica correo y contraseña."
-                                        }
-                                    } finally {
-                                        isSubmittingAdminLogin = false
-                                    }
-                                }
+                                viewModel.clearFormError()
+                                viewModel.clearFormFeedback()
+                                onSelectScreenCode("s07")
                             }
                         }
                     },
@@ -4718,16 +4666,8 @@ private fun DrawScope.drawAdminStageBlob(
 
 @Composable
 private fun AdminOnboardingEntryStage(
-    showAdminLoginForm: Boolean,
-    emailInput: String,
-    passwordInput: String,
-    displayedAuthError: String?,
-    isSubmittingAdminLogin: Boolean,
     rememberChoice: Boolean,
-    onEmailChange: (String) -> Unit,
-    onPasswordChange: (String) -> Unit,
     onPrimaryAdminClick: () -> Unit,
-    onSubmitAdminLogin: () -> Unit,
     onClientModeClick: () -> Unit,
     onToggleRemember: () -> Unit,
 ) {
@@ -4835,115 +4775,6 @@ private fun AdminOnboardingEntryStage(
                 )
 
                 RfIcon(kind = RfIconKind.ARROW_RIGHT, tint = Color.White, size = 18.dp)
-            }
-        }
-
-        if (showAdminLoginForm) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .rfCardShadow(AdminCardShape20, isAdmin = true)
-                    .clip(AdminCardShape20)
-                    .background(Color.White)
-                    .border(1.dp, Color(0xFFDCE0F5), AdminCardShape20)
-                    .padding(16.dp),
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    BasicText(
-                        text = "Acceso restringido a Staff y Administración",
-                        style = TextStyle(fontFamily = typo.displayFamily, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E324A)),
-                    )
-                    BasicText(
-                        text = "Inicia sesión con una cuenta autorizada para abrir el panel administrativo.",
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF5F6377)),
-                    )
-
-                    if (displayedAuthError != null) {
-                        AdminInlineErrorBanner(message = displayedAuthError)
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp)
-                            .clip(AdminInputShape14)
-                            .background(Color(0xFFF6F6FB))
-                            .border(1.dp, Color(0xFFE3E4EF), AdminInputShape14)
-                            .padding(horizontal = 12.dp),
-                        contentAlignment = Alignment.CenterStart,
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            RfIcon(kind = RfIconKind.MAIL, tint = Color(0xFF5F6377), size = 17.dp)
-                            BasicTextField(
-                                value = emailInput,
-                                onValueChange = onEmailChange,
-                                singleLine = true,
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                                textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.5.sp, color = Color(0xFF2E324A)),
-                                cursorBrush = SolidColor(Color(0xFF5B6CF0)),
-                                modifier = Modifier.fillMaxWidth(),
-                                decorationBox = { innerTextField ->
-                                    if (emailInput.isEmpty()) {
-                                        BasicText(
-                                            text = "Correo corporativo",
-                                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.5.sp, color = Color(0xFF5F6377)),
-                                        )
-                                    }
-                                    innerTextField()
-                                },
-                            )
-                        }
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp)
-                            .clip(AdminInputShape14)
-                            .background(Color(0xFFF6F6FB))
-                            .border(1.dp, Color(0xFFE3E4EF), AdminInputShape14)
-                            .padding(horizontal = 12.dp),
-                        contentAlignment = Alignment.CenterStart,
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            RfIcon(kind = RfIconKind.LOCK, tint = Color(0xFF5F6377), size = 17.dp)
-                            BasicTextField(
-                                value = passwordInput,
-                                onValueChange = onPasswordChange,
-                                singleLine = true,
-                                visualTransformation = PasswordVisualTransformation(),
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                                textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.5.sp, color = Color(0xFF2E324A)),
-                                cursorBrush = SolidColor(Color(0xFF5B6CF0)),
-                                modifier = Modifier.fillMaxWidth(),
-                                decorationBox = { innerTextField ->
-                                    if (passwordInput.isEmpty()) {
-                                        BasicText(
-                                            text = "Contraseña",
-                                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.5.sp, color = Color(0xFF5F6377)),
-                                        )
-                                    }
-                                    innerTextField()
-                                },
-                            )
-                        }
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp)
-                            .clip(AdminButtonShape16)
-                            .background(AdminButtonGradient)
-                            .clickable(onClick = onSubmitAdminLogin),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        BasicText(
-                            text = if (isSubmittingAdminLogin) "Verificando..." else "Iniciar sesión Admin",
-                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.White),
-                        )
-                    }
-                }
             }
         }
 
@@ -5971,7 +5802,20 @@ internal fun RenderAdminRefundA33(
     val refundsPool = vmRefunds ?: fallbackRefundRequestsList()
     val activeRefund = refundsPool.firstOrNull { refundItem -> refundItem.id == selectedRefundId }
         ?: viewModel?.selectedRefund()
-        ?: refundsPool.first()
+        ?: refundsPool.firstOrNull()
+    if (activeRefund == null) {
+        RenderAdminEmptyFeatureState(
+            headerTitle = "Reembolso",
+            emptyTitle = "Sin solicitudes de reembolso",
+            emptyMessage = "No hay cancelaciones o devoluciones pendientes por procesar en este momento.",
+            backTargetCode = "BACK:A32",
+            ctaLabel = "Volver a cancelaciones",
+            ctaTargetCode = "BACK:A32",
+            iconKind = RfIconKind.WALLET,
+            onSelectScreenCode = onSelectScreenCode,
+        )
+        return
+    }
 
     val firstName = activeRefund.clientName.trim().substringBefore(" ")
     var clientMessage by remember(activeRefund.id) {
@@ -7489,6 +7333,110 @@ internal fun RenderAdminSuccessStateA38(
                     onSelectScreenCode("A13")
                 },
             )
+        }
+    }
+}
+
+@Composable
+internal fun RenderAdminEmptyFeatureState(
+    headerTitle: String,
+    emptyTitle: String,
+    emptyMessage: String,
+    backTargetCode: String,
+    iconKind: RfIconKind,
+    onSelectScreenCode: (String) -> Unit,
+    ctaLabel: String? = null,
+    ctaTargetCode: String? = null,
+) {
+    val typo = LocalRfTypography.current
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(top = 16.dp, start = 20.dp, end = 20.dp, bottom = 112.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .rfIconButtonShadow(CircleShape, isAdmin = true)
+                    .clip(CircleShape)
+                    .background(Color.White)
+                    .border(1.dp, Color(0xFFECECF5), CircleShape)
+                    .clickable { onSelectScreenCode(backTargetCode) },
+                contentAlignment = Alignment.Center,
+            ) {
+                RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF151729), size = 22.dp)
+            }
+
+            BasicText(
+                text = headerTitle,
+                style = TextStyle(fontFamily = typo.displayFamily, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E324A)),
+            )
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            contentAlignment = Alignment.Center,
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .rfCardShadow(AdminCardShape20, isAdmin = true)
+                    .clip(AdminCardShape20)
+                    .background(Color.White)
+                    .border(1.dp, Color(0xFFECECF5), AdminCardShape20)
+                    .padding(horizontal = 24.dp, vertical = 28.dp),
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(56.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFF3F4FC)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        RfIcon(kind = iconKind, tint = Color(0xFF5B6CF0), size = 26.dp)
+                    }
+                    BasicText(
+                        text = emptyTitle,
+                        style = TextStyle(fontFamily = typo.displayFamily, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E324A), textAlign = TextAlign.Center),
+                    )
+                    BasicText(
+                        text = emptyMessage,
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.5.sp, lineHeight = 19.sp, color = Color(0xFF5F6377), textAlign = TextAlign.Center),
+                    )
+                    val hasCtaAction = bothTrue(ctaLabel != null, ctaTargetCode != null)
+                    if (hasCtaAction) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(46.dp)
+                                .clip(AdminButtonShape16)
+                                .background(AdminButtonGradient)
+                                .clickable { onSelectScreenCode(ctaTargetCode.orEmpty()) },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            BasicText(
+                                text = ctaLabel.orEmpty(),
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.5.sp, fontWeight = FontWeight.Bold, color = Color.White),
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }

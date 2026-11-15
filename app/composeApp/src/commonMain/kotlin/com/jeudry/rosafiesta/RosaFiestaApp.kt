@@ -131,9 +131,13 @@ public fun RosaFiestaApp(
     }
 
     val spec = ScreenCatalog.findByCode(navigator.currentCode)
+    val sharedUtilityCodes = setOf("s07", "s08", "s09", "s10", "s11", "s12", "s13", "s54")
+    val isSharedUtilityScreen = spec.code in sharedUtilityCodes
     val isAdminApp = initialAppView == AppView.ADMIN
     val isNonAdminVariant = spec.variant != RfThemeVariant.ADMIN
     val isPersonalScreenInAdminApp = isAdminApp && isNonAdminVariant
+    val isNotSharedUtility = !isSharedUtilityScreen
+    val isPreviewBannerEligible = if (navigator.adminPreviewingPersonal) true else isNotSharedUtility
     val isAdminActive = navigator.activeView == AppView.ADMIN
     val isNotPreviewingPersonal = !navigator.adminPreviewingPersonal
     val isNotPersonalScreenInAdminApp = !isPersonalScreenInAdminApp
@@ -159,7 +163,9 @@ public fun RosaFiestaApp(
                 .background(palette.bg)
                 .testTag("rosafiesta-root"),
         ) {
-            val shouldShowReturnBanner = !showDevHeader && isPersonalScreenInAdminApp
+            val hasHiddenDevHeader = !showDevHeader
+            val isPersonalPreviewVisible = if (hasHiddenDevHeader) isPersonalScreenInAdminApp else false
+            val shouldShowReturnBanner = if (isPersonalPreviewVisible) isPreviewBannerEligible else false
             if (shouldShowReturnBanner) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -263,8 +269,15 @@ public fun RosaFiestaApp(
             var showPersonalMoreMenu by remember(spec.code) { mutableStateOf(false) }
             val navigateToCode: (String) -> Unit = { nextCode ->
                 showPersonalMoreMenu = false
+                viewModel.clearFormFeedback()
                 viewModel.soundPlayer.playTap()
-                navigator.navigateTo(nextCode)
+                val isAdminTarget = nextCode == "A01"
+                val shouldEnterAdminRoot = if (isAdminTarget) navigator.activeView != AppView.ADMIN else false
+                if (shouldEnterAdminRoot) {
+                    navigator.switchToAdmin("A01")
+                } else {
+                    navigator.navigateTo(nextCode)
+                }
             }
             val isMobileScreen = !spec.isDesktopWeb
             val isBottomBarScreen = shouldShowBottomBar(spec.code)

@@ -1810,6 +1810,7 @@ internal fun RenderLoginScreenS07(
     onPrimaryAction: () -> Unit,
     onSelectScreenCode: (String) -> Unit,
     onSwitchAppMode: () -> Unit = {},
+    underlyingScreenCode: String? = null,
 ) {
     val typo = LocalRfTypography.current
     val coroutineScope = rememberCoroutineScope()
@@ -1884,6 +1885,7 @@ internal fun RenderLoginScreenS07(
                 .personalTopBarBackground(isStep1 = true)
                 .padding(top = 14.dp, bottom = 10.dp, start = 20.dp, end = 14.dp),
         ) {
+            val isAdminLoginOrigin = underlyingScreenCode == "A30"
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
@@ -1892,7 +1894,10 @@ internal fun RenderLoginScreenS07(
                     .clip(CircleShape)
                     .background(RfThemeState.currentPalette.surface)
                     .border(1.dp, RfThemeState.currentPalette.line, CircleShape)
-                    .clickable { onSelectScreenCode("BACK:s06") },
+                    .clickable {
+                        val backTarget = if (isAdminLoginOrigin) "BACK:A30" else "BACK:s06"
+                        onSelectScreenCode(backTarget)
+                    },
             ) {
                 RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF151729), size = 20.dp)
             }
@@ -1902,7 +1907,7 @@ internal fun RenderLoginScreenS07(
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 BasicText(
-                    text = "Hola de nuevo",
+                    text = if (isAdminLoginOrigin) "Acceso Admin" else "Hola de nuevo",
                     style = typo.heroTitle.copy(
                         fontSize = 24.sp,
                         fontWeight = FontWeight.ExtraBold,
@@ -1911,7 +1916,7 @@ internal fun RenderLoginScreenS07(
                     ),
                 )
                 BasicText(
-                    text = "Entra a tus eventos.",
+                    text = if (isAdminLoginOrigin) "Inicia sesión con tu cuenta autorizada." else "Entra a tus eventos.",
                     style = typo.body.copy(
                         fontSize = 13.5.sp,
                         color = RfThemeState.currentPalette.muted,
@@ -1996,11 +2001,18 @@ internal fun RenderLoginScreenS07(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 BasicText("Contraseña", style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = RfThemeState.currentPalette.ink))
-                BasicText(
-                    text = "¿La olvidaste?",
-                    style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD63F98), textDecoration = TextDecoration.Underline),
-                    modifier = Modifier.clickable { onSelectScreenCode("s09") },
-                )
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    BasicText(
+                        text = "Recuperar usuario",
+                        style = typo.body.copy(fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF5B6CF0), textDecoration = TextDecoration.Underline),
+                        modifier = Modifier.clickable { onSelectScreenCode("s09") },
+                    )
+                    BasicText(
+                        text = "¿La olvidaste?",
+                        style = typo.body.copy(fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD63F98), textDecoration = TextDecoration.Underline),
+                        modifier = Modifier.clickable { onSelectScreenCode("s09") },
+                    )
+                }
             }
             Spacer(Modifier.height(8.dp))
             val passwordBorderColor = if (passwordFieldError != null) RfColors.Error else RfThemeState.currentPalette.line
@@ -2129,7 +2141,7 @@ internal fun RenderLoginScreenS07(
                                 if (success) {
                                     val isAdminOrStaff = viewModel?.isCurrentSessionAdminOrStaff() == true
                                     if (isAdminOrStaff) {
-                                        onSwitchAppMode()
+                                        onSelectScreenCode("A01")
                                     } else {
                                         onSelectScreenCode("s14")
                                     }
@@ -3619,101 +3631,237 @@ internal fun RenderRecoveryAndConfirmationScreens(
                         .verticalScroll(rememberScrollState())
                         .padding(top = 104.dp, start = 24.dp, end = 24.dp, bottom = 20.dp),
                 ) {
-                    BasicText("Correo electrónico", style = typo.fieldLabel.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = RfThemeState.currentPalette.ink))
-                    Spacer(Modifier.height(8.dp))
-                    val recBorderColor = if (liveRecError != null) RfColors.Error else RfThemeState.currentPalette.line
-                    val recBorderWidth = if (liveRecError != null) 1.5.dp else 1.dp
-                    Box(
-                        contentAlignment = Alignment.CenterStart,
+                    var recoverMode by remember { mutableStateOf("password") }
+                    var userLookupInput by remember { mutableStateOf("") }
+                    var userLookupNotice by remember { mutableStateOf<String?>(null) }
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(56.dp)
-                            .rfInputShadow(RoundedCornerShape(16.dp))
-                            .clip(RoundedCornerShape(16.dp))
+                            .clip(RoundedCornerShape(14.dp))
                             .background(RfThemeState.currentPalette.surface)
-                            .border(recBorderWidth, recBorderColor, RoundedCornerShape(16.dp))
-                            .padding(horizontal = 16.dp),
+                            .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(14.dp))
+                            .padding(4.dp),
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            RfIcon(
-                                kind = RfIconKind.MAIL,
-                                tint = if (liveRecError != null) RfColors.Error else Color(0xFF62627A),
-                                size = 20.dp,
+                        val isPasswordMode = recoverMode == "password"
+                        val isUserMode = recoverMode == "user"
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(38.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(if (isPasswordMode) Color(0xFFFDE6F2) else Color.Transparent)
+                                .clickable { recoverMode = "password" },
+                        ) {
+                            BasicText(
+                                text = "Recuperar clave",
+                                style = typo.body.copy(
+                                    fontSize = 13.sp,
+                                    fontWeight = if (isPasswordMode) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (isPasswordMode) Color(0xFFC2338F) else RfThemeState.currentPalette.muted,
+                                ),
                             )
-                            BasicTextField(
-                                value = recoveryEmail,
-                                onValueChange = { nextEmail ->
-                                    recoveryEmail = nextEmail.take(InputValidator.MAX_EMAIL_LENGTH)
-                                    recoveryEmailError = null
-                                },
-                                singleLine = true,
-                                textStyle = typo.body.copy(fontSize = 15.sp, color = RfThemeState.currentPalette.ink),
-                                cursorBrush = SolidColor(Color(0xFFD63F98)),
-                                modifier = Modifier.fillMaxWidth(),
-                                decorationBox = { innerTextField ->
-                                    if (recoveryEmail.isEmpty()) {
-                                        BasicText("tucorreo@ejemplo.com", style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF9A98AD)))
-                                    }
-                                    innerTextField()
-                                },
+                        }
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(38.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(if (isUserMode) Color(0xFFECEBFF) else Color.Transparent)
+                                .clickable { recoverMode = "user" },
+                        ) {
+                            BasicText(
+                                text = "Recuperar usuario",
+                                style = typo.body.copy(
+                                    fontSize = 13.sp,
+                                    fontWeight = if (isUserMode) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (isUserMode) Color(0xFF4B47D6) else RfThemeState.currentPalette.muted,
+                                ),
                             )
                         }
                     }
-                    if (liveRecError != null) {
-                        Spacer(Modifier.height(6.dp))
-                        BasicText(
-                            text = liveRecError,
-                            style = typo.caption.copy(fontSize = 12.sp, color = RfColors.Error, fontWeight = FontWeight.SemiBold),
-                        )
-                    } else if (!formError.isNullOrBlank()) {
-                        Spacer(Modifier.height(6.dp))
-                        BasicText(
-                            text = formError,
-                            style = typo.caption.copy(fontSize = 12.sp, color = RfColors.Error, fontWeight = FontWeight.SemiBold),
-                        )
-                    }
 
-                    Spacer(Modifier.height(20.dp))
+                    Spacer(Modifier.height(14.dp))
 
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp)
-                            .shadow(elevation = 12.dp, shape = RoundedCornerShape(16.dp), spotColor = Color(0xB3C846B4), ambientColor = Color.Transparent)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC))))
-                            .clickable {
-                                val trimmedRec = recoveryEmail.trim()
-                                val emailValidation = InputValidator.validateEmail(trimmedRec)
-                                if (emailValidation != null) {
-                                    recoveryEmailError = emailValidation
-                                    viewModel?.soundPlayer?.playAlertError()
-                                } else {
-                                    recoveryEmailError = null
-                                    viewModel?.setLoginEmail(trimmedRec)
-                                    val sent = if (viewModel != null) {
-                                        viewModel.requestPasswordResetOtp(trimmedRec)
+                    if (recoverMode == "user") {
+                        BasicText("Nombre, teléfono o correo asociado", style = typo.fieldLabel.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = RfThemeState.currentPalette.ink))
+                        Spacer(Modifier.height(8.dp))
+                        Box(
+                            contentAlignment = Alignment.CenterStart,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp)
+                                .rfInputShadow(RoundedCornerShape(16.dp))
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(RfThemeState.currentPalette.surface)
+                                .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(16.dp))
+                                .padding(horizontal = 16.dp),
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                RfIcon(kind = RfIconKind.USER, tint = Color(0xFF62627A), size = 20.dp)
+                                BasicTextField(
+                                    value = userLookupInput,
+                                    onValueChange = { updatedText ->
+                                        userLookupInput = updatedText.take(InputValidator.MAX_EMAIL_LENGTH)
+                                        userLookupNotice = null
+                                    },
+                                    singleLine = true,
+                                    textStyle = typo.body.copy(fontSize = 15.sp, color = RfThemeState.currentPalette.ink),
+                                    cursorBrush = SolidColor(Color(0xFF5B6CF0)),
+                                    modifier = Modifier.fillMaxWidth(),
+                                    decorationBox = { innerTextField ->
+                                        if (userLookupInput.isEmpty()) {
+                                            BasicText("Ej. nombre, teléfono o correo@dominio.com", style = typo.body.copy(fontSize = 14.sp, color = Color(0xFF9A98AD)))
+                                        }
+                                        innerTextField()
+                                    },
+                                )
+                            }
+                        }
+                        if (!userLookupNotice.isNullOrBlank()) {
+                            Spacer(Modifier.height(10.dp))
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(Color(0xFFECEBFF))
+                                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                            ) {
+                                BasicText(
+                                    text = userLookupNotice.orEmpty(),
+                                    style = typo.body.copy(fontSize = 13.sp, lineHeight = 18.sp, color = Color(0xFF2E324A)),
+                                )
+                            }
+                        }
+                        Spacer(Modifier.height(18.dp))
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(54.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(Brush.horizontalGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0), Color(0xFF2FB8C8))))
+                                .clickable {
+                                    val cleanInput = userLookupInput.trim()
+                                    if (cleanInput.length < 3) {
+                                        viewModel?.soundPlayer?.playAlertError()
+                                        userLookupNotice = "Ingresa al menos 3 caracteres de tu nombre, teléfono o correo."
                                     } else {
-                                        true
+                                        val isEmailCandidate = cleanInput.contains("@")
+                                        if (isEmailCandidate) {
+                                            val sent = viewModel?.requestPasswordResetOtp(cleanInput) ?: true
+                                            if (sent) {
+                                                userLookupNotice = "Si esa cuenta existe, enviamos las instrucciones de acceso a tu correo."
+                                            }
+                                        } else {
+                                            viewModel?.soundPlayer?.playTap()
+                                            userLookupNotice = "Por seguridad no exponemos cuentas en pantalla. Usa tu correo registrado en la pestaña Recuperar clave o contacta a Administración."
+                                        }
                                     }
-                                    if (sent) {
-                                        onSelectScreenCode("s12")
+                                },
+                        ) {
+                            BasicText("Verificar recuperación de usuario", style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.White))
+                        }
+                    } else {
+                        BasicText("Correo electrónico", style = typo.fieldLabel.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = RfThemeState.currentPalette.ink))
+                        Spacer(Modifier.height(8.dp))
+                        val recBorderColor = if (liveRecError != null) RfColors.Error else RfThemeState.currentPalette.line
+                        val recBorderWidth = if (liveRecError != null) 1.5.dp else 1.dp
+                        Box(
+                            contentAlignment = Alignment.CenterStart,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp)
+                                .rfInputShadow(RoundedCornerShape(16.dp))
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(RfThemeState.currentPalette.surface)
+                                .border(recBorderWidth, recBorderColor, RoundedCornerShape(16.dp))
+                                .padding(horizontal = 16.dp),
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                RfIcon(
+                                    kind = RfIconKind.MAIL,
+                                    tint = if (liveRecError != null) RfColors.Error else Color(0xFF62627A),
+                                    size = 20.dp,
+                                )
+                                BasicTextField(
+                                    value = recoveryEmail,
+                                    onValueChange = { nextEmail ->
+                                        recoveryEmail = nextEmail.take(InputValidator.MAX_EMAIL_LENGTH)
+                                        recoveryEmailError = null
+                                    },
+                                    singleLine = true,
+                                    textStyle = typo.body.copy(fontSize = 15.sp, color = RfThemeState.currentPalette.ink),
+                                    cursorBrush = SolidColor(Color(0xFFD63F98)),
+                                    modifier = Modifier.fillMaxWidth(),
+                                    decorationBox = { innerTextField ->
+                                        if (recoveryEmail.isEmpty()) {
+                                            BasicText("tucorreo@ejemplo.com", style = typo.body.copy(fontSize = 15.sp, color = Color(0xFF9A98AD)))
+                                        }
+                                        innerTextField()
+                                    },
+                                )
+                            }
+                        }
+                        if (liveRecError != null) {
+                            Spacer(Modifier.height(6.dp))
+                            BasicText(
+                                text = liveRecError,
+                                style = typo.caption.copy(fontSize = 12.sp, color = RfColors.Error, fontWeight = FontWeight.SemiBold),
+                            )
+                        } else if (!formError.isNullOrBlank()) {
+                            Spacer(Modifier.height(6.dp))
+                            BasicText(
+                                text = formError,
+                                style = typo.caption.copy(fontSize = 12.sp, color = RfColors.Error, fontWeight = FontWeight.SemiBold),
+                            )
+                        }
+
+                        Spacer(Modifier.height(20.dp))
+
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp)
+                                .shadow(elevation = 12.dp, shape = RoundedCornerShape(16.dp), spotColor = Color(0xB3C846B4), ambientColor = Color.Transparent)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC))))
+                                .clickable {
+                                    val trimmedRec = recoveryEmail.trim()
+                                    val emailValidation = InputValidator.validateEmail(trimmedRec)
+                                    if (emailValidation != null) {
+                                        recoveryEmailError = emailValidation
+                                        viewModel?.soundPlayer?.playAlertError()
+                                    } else {
+                                        recoveryEmailError = null
+                                        viewModel?.setLoginEmail(trimmedRec)
+                                        val sent = if (viewModel != null) {
+                                            viewModel.requestPasswordResetOtp(trimmedRec)
+                                        } else {
+                                            true
+                                        }
+                                        if (sent) {
+                                            onSelectScreenCode("s12")
+                                        }
                                     }
-                                }
-                            },
-                    ) {
-                        BasicText("Enviar enlace", style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White))
-                    }
+                                },
+                        ) {
+                            BasicText("Enviar enlace", style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White))
+                        }
 
-                    Spacer(Modifier.height(16.dp))
+                        Spacer(Modifier.height(16.dp))
 
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        RfIcon(kind = RfIconKind.INFO, tint = RfThemeState.currentPalette.muted, size = 18.dp)
-                        BasicText("Si no lo ves, revisa la carpeta de spam.", style = typo.body.copy(fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            RfIcon(kind = RfIconKind.INFO, tint = RfThemeState.currentPalette.muted, size = 18.dp)
+                            BasicText("Si no lo ves, revisa la carpeta de spam.", style = typo.body.copy(fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
+                        }
                     }
 
                     Spacer(Modifier.weight(1f).heightIn(min = 24.dp))

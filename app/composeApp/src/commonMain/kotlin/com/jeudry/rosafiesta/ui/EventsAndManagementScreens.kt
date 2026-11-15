@@ -5184,7 +5184,8 @@ internal fun RenderQuoteScreenS48(
 
     val fallbackEvent = viewModel?.activeClientEvent()
         ?: events.firstOrNull { currentEvent -> currentEvent.id == selectedEventId }
-        ?: events.first()
+        ?: events.firstOrNull()
+        ?: CanonicalSampleData.events.first()
 
     val activeQuote: QuoteRecord? = remember(viewModel, observedQuotes, observedQuoteId, fallbackEvent.id) {
         viewModel?.selectedQuote()
