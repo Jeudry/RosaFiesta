@@ -1534,42 +1534,42 @@ public class RosaFiestaViewModel(
     }
 
     public fun setNewEventTitle(value: String) {
-        _newEventTitle.value = value
+        _newEventTitle.value = value.take(InputValidator.MAX_EVENT_NAME_LENGTH)
         _formError.value = null
     }
 
     public fun setNewEventClient(value: String) {
-        _newEventClient.value = value
+        _newEventClient.value = value.take(InputValidator.MAX_FULL_NAME_LENGTH)
         _formError.value = null
     }
 
     public fun setNewEventDate(value: String) {
-        _newEventDate.value = value
+        _newEventDate.value = value.take(40)
         _formError.value = null
     }
 
     public fun setNewEventVenue(value: String) {
-        _newEventVenue.value = value
+        _newEventVenue.value = value.take(InputValidator.MAX_ADDRESS_LENGTH)
         _formError.value = null
     }
 
     public fun setNewEventGuests(value: String) {
-        _newEventGuests.value = value
+        _newEventGuests.value = InputValidator.filterDigitsOnly(value, 5)
         _formError.value = null
     }
 
     public fun setPaymentAmountInput(value: String) {
-        _paymentAmountInput.value = value
+        _paymentAmountInput.value = InputValidator.filterDigitsOnly(value, 7)
         _formError.value = null
     }
 
     public fun setPaymentMethodInput(value: String) {
-        _paymentMethodInput.value = value
+        _paymentMethodInput.value = value.take(60)
         _formError.value = null
     }
 
     public fun setPaymentRefInput(value: String) {
-        _paymentRefInput.value = value
+        _paymentRefInput.value = value.take(InputValidator.MAX_BANK_REFERENCE_LENGTH)
         _formError.value = null
     }
 
@@ -1599,7 +1599,7 @@ public class RosaFiestaViewModel(
     }
 
     public fun setProfilePhone(value: String) {
-        _profilePhone.value = value
+        _profilePhone.value = InputValidator.filterPhoneInput(value)
         _formError.value = null
     }
 
@@ -1659,47 +1659,47 @@ public class RosaFiestaViewModel(
     }
 
     public fun setNewArticleCode(value: String) {
-        _newArticleCode.value = value
+        _newArticleCode.value = value.take(24)
         _formError.value = null
     }
 
     public fun setNewArticleName(value: String) {
-        _newArticleName.value = value
+        _newArticleName.value = value.take(InputValidator.MAX_ARTICLE_NAME_LENGTH)
         _formError.value = null
     }
 
     public fun setNewArticleCategory(value: String) {
-        _newArticleCategory.value = value
+        _newArticleCategory.value = value.take(40)
     }
 
     public fun setNewArticlePrice(value: String) {
-        _newArticlePrice.value = value
+        _newArticlePrice.value = InputValidator.filterDigitsOnly(value, 7)
         _formError.value = null
     }
 
     public fun setNewArticleStock(value: String) {
-        _newArticleStock.value = value
+        _newArticleStock.value = InputValidator.filterDigitsOnly(value, 6)
         _formError.value = null
     }
 
     public fun setPromoCodeInput(value: String) {
-        _promoCodeInput.value = value
+        _promoCodeInput.value = value.take(24)
     }
 
     public fun setPromoDiscountInput(value: String) {
-        _promoDiscountInput.value = value
+        _promoDiscountInput.value = InputValidator.filterDigitsOnly(value, 6)
     }
 
     public fun setDepositPercentInput(value: String) {
-        _depositPercentInput.value = value
+        _depositPercentInput.value = InputValidator.filterDigitsOnly(value, 3)
     }
 
     public fun setDeliveryBaseInput(value: String) {
-        _deliveryBaseInput.value = value
+        _deliveryBaseInput.value = InputValidator.filterDigitsOnly(value, 6)
     }
 
     public fun setCancellationDaysInput(value: String) {
-        _cancellationDaysInput.value = value
+        _cancellationDaysInput.value = InputValidator.filterDigitsOnly(value, 3)
     }
 
     public fun togglePushNotifications() {
@@ -2268,18 +2268,25 @@ public class RosaFiestaViewModel(
             val client = _newEventClient.value.trim()
             val date = _newEventDate.value.trim()
             val venue = _newEventVenue.value.trim()
-            val guests = _newEventGuests.value.trim().toIntOrNull() ?: 0
-            val hasValidInputs = allConditionsTrue(
-                first = title.isNotEmpty(),
-                second = client.isNotEmpty(),
-                third = date.isNotEmpty(),
-                fourth = venue.isNotEmpty(),
-                fifth = guests > 0,
+            val guestsRaw = _newEventGuests.value.trim()
+            val validationError = firstNonBlankError(
+                InputValidator.validateEventName(title, isRequired = true),
+                InputValidator.validateEntityName(
+                    rawValue = client,
+                    fieldLabel = "El nombre del cliente",
+                    minLength = InputValidator.MIN_NAME_LENGTH,
+                    maxLength = InputValidator.MAX_FULL_NAME_LENGTH,
+                    isRequired = true,
+                ),
+                validateEventDateOrSpanishLabel(date, allowPlaceholder = false),
+                InputValidator.validateAddress(venue, fieldLabel = "El lugar", isRequired = true),
+                InputValidator.validateGuestCount(guestsRaw, isRequired = true),
             )
-            if (!hasValidInputs) {
-                _formError.value = "Completa título, cliente, fecha, lugar y un número válido de invitados."
+            if (validationError != null) {
+                _formError.value = validationError
                 return false
             }
+            val guests = guestsRaw.toIntOrNull() ?: 0
             repository.createEvent(title, client, date, venue, guests)
             repository.events.value.lastOrNull()?.id?.let { createdId ->
                 _selectedEventId.value = createdId
@@ -2377,29 +2384,58 @@ public class RosaFiestaViewModel(
             val code = _newArticleCode.value.trim()
             val name = _newArticleName.value.trim()
             val cat = _newArticleCategory.value.trim().ifEmpty { "Mobiliario" }
-            val price = _newArticlePrice.value.trim().toIntOrNull() ?: 0
-            val stock = _newArticleStock.value.trim().toIntOrNull() ?: -1
-            val hasValidInputs = allConditionsTrue(
-                first = code.isNotEmpty(),
-                second = name.isNotEmpty(),
-                third = price > 0,
-                fourth = stock >= 0,
+            val priceRaw = _newArticlePrice.value.trim()
+            val stockRaw = _newArticleStock.value.trim()
+            val cleanDescription = description.trim()
+            val cleanDimensions = dimensions.trim()
+            val cleanMaterial = material.trim()
+            val validationError = firstNonBlankError(
+                validateArticleCode(code),
+                InputValidator.validateArticleName(name, isRequired = true),
+                InputValidator.validateMoneyAmount(
+                    rawValue = priceRaw,
+                    fieldLabel = "El precio diario",
+                    isRequired = true,
+                    minAmount = 1.0,
+                    maxAmount = InputValidator.MAX_MONEY_AMOUNT,
+                ),
+                InputValidator.validateStockCount(stockRaw, isRequired = true),
+                InputValidator.validateNotes(
+                    rawValue = cleanDescription,
+                    fieldLabel = "La descripción",
+                    isRequired = false,
+                    maxLength = InputValidator.MAX_DESCRIPTION_LENGTH,
+                ),
+                InputValidator.validateNotes(
+                    rawValue = cleanDimensions,
+                    fieldLabel = "Las dimensiones",
+                    isRequired = false,
+                    maxLength = 80,
+                ),
+                InputValidator.validateNotes(
+                    rawValue = cleanMaterial,
+                    fieldLabel = "El material",
+                    isRequired = false,
+                    maxLength = 80,
+                ),
             )
-            if (!hasValidInputs) {
-                _formError.value = "Ingresa código, nombre, precio diario (> 0) y stock válido."
+            if (validationError != null) {
+                _formError.value = validationError
                 return false
             }
+            val price = priceRaw.toIntOrNull() ?: 0
+            val stock = stockRaw.toIntOrNull() ?: 0
             val editingId = _editingArticleId.value
             if (editingId != null) {
                 repository.updateArticle(
                     articleId = editingId,
                     name = name,
                     category = cat,
-                    description = description.ifBlank { null },
+                    description = cleanDescription.ifBlank { null },
                     pricePerDayDop = price,
                     totalStock = stock,
-                    dimensions = dimensions.ifBlank { null },
-                    material = material.ifBlank { null },
+                    dimensions = cleanDimensions.ifBlank { null },
+                    material = cleanMaterial.ifBlank { null },
                     visibleInCatalog = visibleInCatalog,
                 )
             } else {
@@ -2408,9 +2444,9 @@ public class RosaFiestaViewModel(
                 if (newlyCreated != null) {
                     repository.updateArticle(
                         articleId = newlyCreated.id,
-                        description = description.ifBlank { null },
-                        dimensions = dimensions.ifBlank { null },
-                        material = material.ifBlank { null },
+                        description = cleanDescription.ifBlank { null },
+                        dimensions = cleanDimensions.ifBlank { null },
+                        material = cleanMaterial.ifBlank { null },
                         visibleInCatalog = visibleInCatalog,
                     )
                 }
@@ -2428,15 +2464,29 @@ public class RosaFiestaViewModel(
         if (_isSubmitting.value) return null
         _isSubmitting.value = true
         try {
-            val amount = _paymentAmountInput.value.trim().filter { character -> character.isDigit() }.toIntOrNull() ?: 0
+            val rawAmountDigits = InputValidator.filterDigitsOnly(_paymentAmountInput.value.trim(), 8)
             val method = _paymentMethodInput.value.trim()
             val ref = _paymentRefInput.value.trim()
-            val hasValidPayment = if (amount > 0) method.isNotEmpty() else false
-            if (!hasValidPayment) {
+            val isCashMethod = method.startsWith("Efectivo", ignoreCase = true)
+            val methodError = if (method.isEmpty()) "Selecciona un método de pago." else null
+            val refError = InputValidator.validateBankReference(ref, isRequired = !isCashMethod)
+            val validationError = firstNonBlankError(
+                InputValidator.validateMoneyAmount(
+                    rawValue = rawAmountDigits,
+                    fieldLabel = "El monto del pago",
+                    isRequired = true,
+                    minAmount = 1.0,
+                    maxAmount = InputValidator.MAX_MONEY_AMOUNT,
+                ),
+                methodError,
+                refError,
+            )
+            if (validationError != null) {
                 soundPlayer.playAlertError()
-                _formError.value = SensitiveDataRedactor.translateBusinessError("PAYMENT_VALIDATION_FAILED", null)
+                _formError.value = validationError
                 return null
             }
+            val amount = rawAmountDigits.toIntOrNull() ?: 0
             val record = repository.registerPayment(eventId, amount, method, ref)
             if (record != null) {
                 soundPlayer.playPaymentSuccess()
@@ -3340,7 +3390,18 @@ public class RosaFiestaViewModel(
         val trimmedReply = rawReplyText.trim()
         val cleanAttachment = attachmentName.trim()
         val isBothEmpty = if (trimmedReply.isEmpty()) cleanAttachment.isEmpty() else false
-        if (isBothEmpty) return
+        if (isBothEmpty) {
+            postError("Escribe un mensaje o adjunta un archivo antes de enviar.")
+            return
+        }
+        val replyValidationError = InputValidator.validateChatMessage(
+            rawValue = trimmedReply,
+            isRequired = cleanAttachment.isEmpty(),
+        )
+        if (replyValidationError != null) {
+            postError(replyValidationError)
+            return
+        }
         soundPlayer.playRosaSend()
         val senderLabel = _profileName.value.trim().ifBlank { "María · Rosa Fiesta" }
         val redactedReply = if (trimmedReply.isNotEmpty()) {
@@ -3450,16 +3511,16 @@ public class RosaFiestaViewModel(
     public fun saveBusinessConfig(updatedSettings: BusinessSettings? = null): Boolean {
         val dep = updatedSettings?.depositPercent ?: (_depositPercentInput.value.trim().toIntOrNull() ?: 0)
         val deliv = _deliveryBaseInput.value.trim().toIntOrNull() ?: 350
-        val validDeposit = dep in 10..90
-        val validDelivery = deliv >= 0
-        val isConfigValid = if (validDeposit) validDelivery else false
-        if (!isConfigValid) {
-            _formError.value = "Anticipo debe estar entre 10% y 90% y tarifa de envío >= 0."
+        val baseSettings = updatedSettings ?: businessSettings.value.copy(depositPercent = dep)
+        val validationError = validateBusinessSettingsConfig(baseSettings, deliv)
+        if (validationError != null) {
+            soundPlayer.playAlertError()
+            _formError.value = validationError
             return false
         }
-        val baseSettings = updatedSettings ?: businessSettings.value.copy(depositPercent = dep)
-        repository.saveBusinessSettings(baseSettings)
-        _depositPercentInput.value = baseSettings.depositPercent.toString()
+        val normalizedSettings = normalizeBusinessSettingsConfig(baseSettings)
+        repository.saveBusinessSettings(normalizedSettings)
+        _depositPercentInput.value = normalizedSettings.depositPercent.toString()
         soundPlayer.playPaymentSuccess()
         _formError.value = null
         _formFeedback.value = "Ajustes del negocio guardados correctamente."
@@ -3520,16 +3581,47 @@ public class RosaFiestaViewModel(
             postError("Agrega al menos una línea a la cotización antes de enviarla.")
             return null
         }
+        val cleanTitle = eventTitle.trim()
+        val cleanClient = clientName.trim()
+        val cleanEmail = clientEmail.trim()
+        val cleanVenue = venue.trim()
+        val cleanDate = dateLabel.trim()
+        val deliveryError = if (deliveryFeeDop in 0..MAX_DELIVERY_FEE_DOP) {
+            null
+        } else {
+            "La tarifa de envío debe estar entre RD$ 0 y RD$ $MAX_DELIVERY_FEE_DOP."
+        }
+        val discountError = if (discountDop >= 0) null else "El descuento no puede ser negativo."
+        val validationError = firstNonBlankError(
+            InputValidator.validateEventName(cleanTitle, isRequired = true),
+            InputValidator.validateEntityName(
+                rawValue = cleanClient,
+                fieldLabel = "El nombre del cliente",
+                minLength = InputValidator.MIN_NAME_LENGTH,
+                maxLength = InputValidator.MAX_FULL_NAME_LENGTH,
+                isRequired = true,
+            ),
+            InputValidator.validateOptionalEmail(cleanEmail),
+            InputValidator.validateAddress(cleanVenue, fieldLabel = "El lugar", isRequired = true),
+            validateEventDateOrSpanishLabel(cleanDate, allowPlaceholder = true),
+            InputValidator.validateGuestCount(guests.toString(), isRequired = true),
+            deliveryError,
+            discountError,
+        )
+        if (validationError != null) {
+            postError(validationError)
+            return null
+        }
         val created = repository.createQuote(
-            eventTitle = eventTitle.trim().ifBlank { "Evento RosaFiesta" },
-            clientName = clientName.trim().ifBlank { "Cliente" },
-            clientEmail = clientEmail.trim(),
-            venue = venue.trim().ifBlank { "Por confirmar" },
-            dateLabel = dateLabel.trim().ifBlank { "Por confirmar" },
-            guests = guests.coerceAtLeast(1),
+            eventTitle = cleanTitle,
+            clientName = cleanClient,
+            clientEmail = cleanEmail.lowercase(),
+            venue = cleanVenue,
+            dateLabel = cleanDate,
+            guests = guests,
             lines = lines,
-            deliveryFeeDop = deliveryFeeDop.coerceAtLeast(0),
-            discountDop = discountDop.coerceAtLeast(0),
+            deliveryFeeDop = deliveryFeeDop,
+            discountDop = discountDop,
         )
         _selectedQuoteId.value = created.id
         soundPlayer.playPaymentSuccess()
@@ -3572,9 +3664,32 @@ public class RosaFiestaViewModel(
         visibleInCatalog: Boolean = true,
     ): EventPackage? {
         val cleanName = name.trim()
-        val hasValidPackageFields = if (cleanName.length >= 3) priceDop > 0 else false
-        if (!hasValidPackageFields) {
-            postError("Indica nombre válido y precio mayor que cero para el paquete.")
+        val cleanSubtitle = subtitle.trim()
+        val validationError = firstNonBlankError(
+            InputValidator.validateEntityName(
+                rawValue = cleanName,
+                fieldLabel = "El nombre del paquete",
+                minLength = 3,
+                maxLength = InputValidator.MAX_PACKAGE_NAME_LENGTH,
+                isRequired = true,
+            ),
+            InputValidator.validateNotes(
+                rawValue = cleanSubtitle,
+                fieldLabel = "El subtítulo",
+                isRequired = false,
+                maxLength = 120,
+            ),
+            InputValidator.validateGuestCount(suggestedGuests.toString(), isRequired = true),
+            InputValidator.validateMoneyAmount(
+                rawValue = priceDop.toString(),
+                fieldLabel = "El precio del paquete",
+                isRequired = true,
+                minAmount = 1.0,
+                maxAmount = InputValidator.MAX_MONEY_AMOUNT,
+            ),
+        )
+        if (validationError != null) {
+            postError(validationError)
             return null
         }
         val editingId = _editingPackageId.value
@@ -3582,9 +3697,9 @@ public class RosaFiestaViewModel(
             repository.updatePackage(
                 packageId = editingId,
                 name = cleanName,
-                subtitle = subtitle.trim(),
+                subtitle = cleanSubtitle,
                 eventType = eventType.trim().ifBlank { "Evento" },
-                suggestedGuests = suggestedGuests.coerceAtLeast(10),
+                suggestedGuests = suggestedGuests,
                 priceDop = priceDop,
                 includedItems = includedItems,
                 visibleInCatalog = visibleInCatalog,
@@ -3592,9 +3707,9 @@ public class RosaFiestaViewModel(
         } else {
             repository.createPackage(
                 name = cleanName,
-                subtitle = subtitle.trim(),
+                subtitle = cleanSubtitle,
                 eventType = eventType.trim().ifBlank { "Evento" },
-                suggestedGuests = suggestedGuests.coerceAtLeast(10),
+                suggestedGuests = suggestedGuests,
                 priceDop = priceDop,
                 includedItems = includedItems,
                 visibleInCatalog = visibleInCatalog,
@@ -3614,15 +3729,42 @@ public class RosaFiestaViewModel(
         notes: String,
     ): ClientProfile? {
         val target = selectedClient() ?: return null
+        val cleanName = fullName.trim()
+        val cleanEmail = email.trim().lowercase()
+        val cleanPhone = phone.trim()
+        val cleanNotes = notes.trim()
+        val validationError = firstNonBlankError(
+            InputValidator.validateEntityName(
+                rawValue = cleanName,
+                fieldLabel = "El nombre del cliente",
+                minLength = InputValidator.MIN_NAME_LENGTH,
+                maxLength = InputValidator.MAX_FULL_NAME_LENGTH,
+                isRequired = true,
+            ),
+            InputValidator.validateEmail(cleanEmail),
+            InputValidator.validateOptionalPhone(cleanPhone),
+            InputValidator.validateNotes(
+                rawValue = cleanNotes,
+                fieldLabel = "Las notas internas",
+                isRequired = false,
+                maxLength = InputValidator.MAX_NOTES_LENGTH,
+            ),
+        )
+        if (validationError != null) {
+            postError(validationError)
+            return null
+        }
+        val formattedPhone = if (cleanPhone.isEmpty()) "" else InputValidator.formatPhoneDisplay(cleanPhone)
         val updated = repository.updateClientProfile(
             clientId = target.id,
-            fullName = fullName.trim().ifBlank { target.fullName },
-            email = email.trim().ifBlank { target.email },
-            phone = phone.trim().ifBlank { target.phone },
-            notes = notes.trim(),
+            fullName = cleanName,
+            email = cleanEmail,
+            phone = formattedPhone,
+            notes = cleanNotes,
         )
         if (updated != null) {
             soundPlayer.playPaymentSuccess()
+            _formError.value = null
             _formFeedback.value = "Ficha de ${updated.fullName} actualizada."
         }
         return updated
@@ -3637,20 +3779,26 @@ public class RosaFiestaViewModel(
     ): StaffMember? {
         val cleanName = fullName.trim()
         val cleanEmail = email.trim().lowercase()
-        val emailErr = InputValidator.validateEmail(cleanEmail)
-        val hasValidInviteFields = if (cleanName.length >= 2) emailErr == null else false
-        if (!hasValidInviteFields) {
-            postError(emailErr ?: "Ingresa el nombre completo del colaborador.")
+        val cleanPhone = phone.trim()
+        val validationError = firstNonBlankError(
+            InputValidator.validateFullName(cleanName),
+            InputValidator.validateEmail(cleanEmail),
+            InputValidator.validateOptionalPhone(cleanPhone),
+        )
+        if (validationError != null) {
+            postError(validationError)
             return null
         }
+        val formattedPhone = if (cleanPhone.isEmpty()) "" else InputValidator.formatPhoneDisplay(cleanPhone)
         val invited = repository.inviteStaffMember(
             fullName = cleanName,
             email = cleanEmail,
             roleLabel = roleLabel.trim().ifBlank { "Operaciones" },
-            phone = phone.trim(),
+            phone = formattedPhone,
             permissions = permissions,
         )
         soundPlayer.playPaymentSuccess()
+        _formError.value = null
         _formFeedback.value = "Invitación enviada a $cleanName ($cleanEmail)."
         return invited
     }
@@ -3712,21 +3860,51 @@ public class RosaFiestaViewModel(
         phone: String = "",
     ): LeadRecord? {
         val cleanClient = clientName.trim()
-        if (cleanClient.length < 2) {
-            postError("Indica el nombre del prospecto.")
+        val cleanDate = dateLabel.trim().ifBlank { "Por confirmar" }
+        val cleanNote = followUpNote.trim()
+        val cleanPhone = phone.trim()
+        val validationError = firstNonBlankError(
+            InputValidator.validateEntityName(
+                rawValue = cleanClient,
+                fieldLabel = "El nombre del prospecto",
+                minLength = InputValidator.MIN_NAME_LENGTH,
+                maxLength = InputValidator.MAX_FULL_NAME_LENGTH,
+                isRequired = true,
+            ),
+            validateEventDateOrSpanishLabel(cleanDate, allowPlaceholder = true),
+            InputValidator.validateGuestCount(guests.toString(), isRequired = true),
+            InputValidator.validateMoneyAmount(
+                rawValue = estimatedDop.toString(),
+                fieldLabel = "El presupuesto estimado",
+                isRequired = true,
+                minAmount = 1.0,
+                maxAmount = InputValidator.MAX_MONEY_AMOUNT,
+            ),
+            InputValidator.validateNotes(
+                rawValue = cleanNote,
+                fieldLabel = "La nota de seguimiento",
+                isRequired = false,
+                maxLength = InputValidator.MAX_NOTES_LENGTH,
+            ),
+            InputValidator.validateOptionalPhone(cleanPhone),
+        )
+        if (validationError != null) {
+            postError(validationError)
             return null
         }
+        val formattedPhone = if (cleanPhone.isEmpty()) "" else InputValidator.formatPhoneDisplay(cleanPhone)
         val created = repository.createLead(
             clientName = cleanClient,
             eventType = eventType.trim().ifBlank { "Evento social" },
-            dateLabel = dateLabel.trim().ifBlank { "Por definir" },
-            guests = guests.coerceAtLeast(10),
-            estimatedDop = estimatedDop.coerceAtLeast(300),
+            dateLabel = cleanDate,
+            guests = guests,
+            estimatedDop = estimatedDop,
             channel = channel,
-            followUpNote = followUpNote.trim(),
-            phone = phone.trim(),
+            followUpNote = cleanNote,
+            phone = formattedPhone,
         )
         soundPlayer.playPaymentSuccess()
+        _formError.value = null
         _formFeedback.value = "Oportunidad registrada para $cleanClient."
         return created
     }
@@ -3823,5 +4001,136 @@ public class RosaFiestaViewModel(
             depositPendingDop = currentMetrics.accountsReceivableDop,
             totalArticlesInCatalog = currentArticles.size,
         )
+    }
+
+    private fun firstNonBlankError(vararg errors: String?): String? = errors.firstOrNull { error -> error != null }
+
+    private fun validateArticleCode(rawCode: String): String? {
+        val trimmed = rawCode.trim()
+        if (trimmed.isEmpty()) return "El código del artículo es obligatorio."
+        if (trimmed.length < 2) return "El código del artículo debe tener al menos 2 caracteres."
+        if (trimmed.length > 24) return "El código del artículo no puede exceder 24 caracteres."
+        val hasInvalidCharacter = trimmed.any { character ->
+            val isAllowedDash = character == '-' || character == '_'
+            val isAllowed = character.isLetterOrDigit() || isAllowedDash
+            !isAllowed
+        }
+        if (hasInvalidCharacter) {
+            return "El código solo permite letras, números y guiones."
+        }
+        return null
+    }
+
+    private fun validateEventDateOrSpanishLabel(
+        rawDate: String,
+        allowPlaceholder: Boolean = false,
+    ): String? {
+        val trimmed = rawDate.trim()
+        if (trimmed.isEmpty()) return "La fecha del evento es obligatoria."
+        if (allowPlaceholder) {
+            val lower = trimmed.lowercase()
+            val isPlaceholder = lower == "por confirmar" || lower == "por definir"
+            if (isPlaceholder) return null
+        }
+        val hasSlash = trimmed.contains('/')
+        val allDigits = trimmed.all { character -> character.isDigit() }
+        if (hasSlash) return InputValidator.validateEventDate(trimmed, isRequired = true)
+        if (allDigits) return InputValidator.validateEventDate(trimmed, isRequired = true)
+        val hasDigit = trimmed.any { character -> character.isDigit() }
+        val hasLetter = trimmed.any { character -> character.isLetter() }
+        val lowerText = trimmed.lowercase()
+        val spanishMonths = listOf("ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic")
+        val hasSpanishMonth = spanishMonths.any { token -> lowerText.contains(token) }
+        val isReadableLabel = allConditionsTrue(
+            first = trimmed.length in 4..40,
+            second = hasDigit,
+            third = hasLetter,
+            fourth = hasSpanishMonth,
+        )
+        if (isReadableLabel) return null
+        return InputValidator.validateEventDate(trimmed, isRequired = true)
+    }
+
+    private fun validateBusinessSettingsConfig(
+        settings: BusinessSettings,
+        deliveryBaseDop: Int,
+    ): String? {
+        val depositError = if (settings.depositPercent in 10..90) {
+            null
+        } else {
+            "El anticipo para reservar debe estar entre 10% y 90%."
+        }
+        val deliveryError = if (deliveryBaseDop in 0..MAX_DELIVERY_FEE_DOP) {
+            null
+        } else {
+            "La tarifa base de envío debe estar entre RD$ 0 y RD$ $MAX_DELIVERY_FEE_DOP."
+        }
+        val baseError = firstNonBlankError(
+            InputValidator.validateBusinessName(settings.businessName, isRequired = true),
+            InputValidator.validateRnc(settings.rnc, isRequired = true),
+            InputValidator.validateDominicanPhone(
+                rawValue = settings.phone,
+                isRequired = true,
+                allowInternational = true,
+                fieldLabel = "El teléfono",
+            ),
+            InputValidator.validateWhatsApp(
+                rawValue = settings.whatsapp,
+                isRequired = true,
+                allowInternational = true,
+            ),
+            InputValidator.validateEmail(settings.email),
+            InputValidator.validateAddress(settings.address, fieldLabel = "La dirección", isRequired = true),
+            InputValidator.validateBusinessHours(settings.businessHours, isRequired = true),
+            depositError,
+            deliveryError,
+        )
+        if (baseError != null) return baseError
+        for (zone in settings.zones) {
+            val zoneNameError = InputValidator.validateEntityName(
+                rawValue = zone.name,
+                fieldLabel = "El nombre de la zona",
+                minLength = 2,
+                maxLength = 50,
+                isRequired = true,
+            )
+            if (zoneNameError != null) return zoneNameError
+            val isFeeInvalid = zone.feeDop !in 0..MAX_DELIVERY_FEE_DOP
+            if (isFeeInvalid) {
+                return "La tarifa de la zona ${zone.name} debe estar entre RD$ 0 y RD$ $MAX_DELIVERY_FEE_DOP."
+            }
+            val isEtaInvalid = zone.etaMinutes !in 5..240
+            if (isEtaInvalid) {
+                return "El tiempo estimado de ${zone.name} debe estar entre 5 y 240 minutos."
+            }
+        }
+        return null
+    }
+
+    private fun normalizeBusinessSettingsConfig(settings: BusinessSettings): BusinessSettings {
+        val formattedPhone = InputValidator.formatPhoneDisplay(settings.phone.trim())
+        val formattedWhatsapp = InputValidator.formatPhoneDisplay(settings.whatsapp.trim())
+        val formattedRnc = InputValidator.formatRncDisplay(settings.rnc.trim())
+        val trimmedZones = settings.zones.map { zone ->
+            zone.copy(
+                name = zone.name.trim(),
+                feeDop = zone.feeDop.coerceIn(0, MAX_DELIVERY_FEE_DOP),
+                etaMinutes = zone.etaMinutes.coerceIn(5, 240),
+            )
+        }
+        return settings.copy(
+            businessName = settings.businessName.trim(),
+            rnc = formattedRnc,
+            address = settings.address.trim(),
+            phone = formattedPhone,
+            whatsapp = formattedWhatsapp,
+            email = settings.email.trim().lowercase(),
+            businessHours = settings.businessHours.trim(),
+            zones = trimmedZones,
+        )
+    }
+
+    private companion object {
+        private const val MAX_DELIVERY_FEE_DOP: Int = 50_000
     }
 }

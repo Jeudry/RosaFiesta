@@ -20,6 +20,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -1909,14 +1910,26 @@ internal fun RenderLoginScreenS07(
     var password by remember { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
     var hasAttemptedLogin by remember { mutableStateOf(false) }
+    var hasInteractedEmail by remember { mutableStateOf(false) }
+    var hasInteractedPassword by remember { mutableStateOf(false) }
     var localLoginError by remember { mutableStateOf<String?>(null) }
     val formError = viewModel?.formError?.collectAsState()?.value
     val isSubmitting = viewModel?.isSubmitting?.collectAsState()?.value ?: false
 
-    val shouldValidateEmail = if (hasAttemptedLogin) true else email.isNotEmpty()
-    val emailFieldError = if (shouldValidateEmail) InputValidator.validateLoginIdentifier(email) else null
-    val shouldValidatePassword = if (hasAttemptedLogin) true else password.isNotEmpty()
-    val passwordFieldError = if (shouldValidatePassword) InputValidator.validatePassword(password) else null
+    val emailFieldError = rememberDebouncedValidationError(
+        value = email,
+        hasInteracted = hasInteractedEmail,
+        forceShowError = hasAttemptedLogin,
+    ) { identifier ->
+        InputValidator.validateLoginIdentifier(identifier)
+    }
+    val passwordFieldError = rememberDebouncedValidationError(
+        value = password,
+        hasInteracted = hasInteractedPassword,
+        forceShowError = hasAttemptedLogin,
+    ) { secret ->
+        InputValidator.validatePassword(secret)
+    }
 
     LaunchedEffect(Unit) {
         viewModel?.clearFormError()
@@ -2067,6 +2080,7 @@ internal fun RenderLoginScreenS07(
                         onValueChange = { nextValue ->
                             val cappedEmail = nextValue.take(InputValidator.MAX_EMAIL_LENGTH)
                             email = cappedEmail
+                            hasInteractedEmail = true
                             localLoginError = null
                             viewModel?.setLoginEmail(cappedEmail)
                         },
@@ -2086,13 +2100,10 @@ internal fun RenderLoginScreenS07(
                     )
                 }
             }
-            if (emailFieldError != null) {
-                Spacer(Modifier.height(4.dp))
-                BasicText(
-                    text = emailFieldError,
-                    style = typo.caption.copy(fontSize = 12.sp, color = RfColors.Error, fontWeight = FontWeight.SemiBold),
-                )
-            }
+            RfValidationErrorText(
+                errorMessage = emailFieldError,
+                modifier = Modifier.padding(top = 4.dp),
+            )
 
             Spacer(Modifier.height(14.dp))
 
@@ -2150,6 +2161,7 @@ internal fun RenderLoginScreenS07(
                             onValueChange = { nextPassword ->
                                 val cappedPassword = nextPassword.take(InputValidator.MAX_PASSWORD_LENGTH)
                                 password = cappedPassword
+                                hasInteractedPassword = true
                                 localLoginError = null
                                 viewModel?.setLoginPassword(cappedPassword)
                             },
@@ -2181,13 +2193,10 @@ internal fun RenderLoginScreenS07(
                     }
                 }
             }
-            if (passwordFieldError != null) {
-                Spacer(Modifier.height(4.dp))
-                BasicText(
-                    text = passwordFieldError,
-                    style = typo.caption.copy(fontSize = 12.sp, color = RfColors.Error, fontWeight = FontWeight.SemiBold),
-                )
-            }
+            RfValidationErrorText(
+                errorMessage = passwordFieldError,
+                modifier = Modifier.padding(top = 4.dp),
+            )
 
             val displayedLoginError = localLoginError ?: formError
             if (!displayedLoginError.isNullOrBlank()) {
@@ -2586,26 +2595,68 @@ internal fun RenderRegisterScreenS08(
     var showBirthDatePicker by remember { mutableStateOf(false) }
     var acceptedTerms by remember { mutableStateOf(false) }
     var hasAttemptedRegister by remember { mutableStateOf(false) }
+    var hasInteractedFirstName by remember { mutableStateOf(false) }
+    var hasInteractedLastName by remember { mutableStateOf(false) }
+    var hasInteractedUsername by remember { mutableStateOf(false) }
+    var hasInteractedPassword by remember { mutableStateOf(false) }
+    var hasInteractedEmail by remember { mutableStateOf(false) }
+    var hasInteractedPhone by remember { mutableStateOf(false) }
+    var hasInteractedBirthDate by remember { mutableStateOf(false) }
     var localRegisterError by remember { mutableStateOf<String?>(null) }
     val vmRegisterPhone = viewModel?.registerPhone?.collectAsState()?.value ?: ""
-    var phone by remember(vmRegisterPhone) { mutableStateOf(vmRegisterPhone) }
+    var phone by remember(vmRegisterPhone) { mutableStateOf(InputValidator.filterPhoneInput(vmRegisterPhone)) }
     val formError = viewModel?.formError?.collectAsState()?.value
     val isSubmitting = viewModel?.isSubmitting?.collectAsState()?.value ?: false
 
-    val shouldCheckFirst = if (hasAttemptedRegister) true else firstName.isNotEmpty()
-    val firstNameError = if (shouldCheckFirst) InputValidator.validatePersonNamePart(firstName, "El nombre") else null
-    val shouldCheckLast = if (hasAttemptedRegister) true else lastName.isNotEmpty()
-    val lastNameError = if (shouldCheckLast) InputValidator.validatePersonNamePart(lastName, "El apellido") else null
-    val shouldCheckUser = if (hasAttemptedRegister) true else username.isNotEmpty()
-    val usernameError = if (shouldCheckUser) InputValidator.validateUsername(username) else null
-    val shouldCheckPass = if (hasAttemptedRegister) true else password.isNotEmpty()
-    val passwordError = if (shouldCheckPass) InputValidator.validatePassword(password) else null
-    val shouldCheckEmail = if (hasAttemptedRegister) true else email.isNotEmpty()
-    val emailError = if (shouldCheckEmail) InputValidator.validateEmail(email) else null
-    val shouldCheckPhone = phone.isNotBlank()
-    val phoneError = if (shouldCheckPhone) InputValidator.validatePhone(phone) else null
-    val shouldCheckBirth = if (hasAttemptedRegister) true else birthDate.isNotEmpty()
-    val birthDateError = if (shouldCheckBirth) InputValidator.validateBirthDate(birthDate, isRequired = true) else null
+    val firstNameError = rememberDebouncedValidationError(
+        value = firstName,
+        hasInteracted = hasInteractedFirstName,
+        forceShowError = hasAttemptedRegister,
+    ) { part ->
+        InputValidator.validatePersonNamePart(part, "El nombre")
+    }
+    val lastNameError = rememberDebouncedValidationError(
+        value = lastName,
+        hasInteracted = hasInteractedLastName,
+        forceShowError = hasAttemptedRegister,
+    ) { part ->
+        InputValidator.validatePersonNamePart(part, "El apellido")
+    }
+    val usernameError = rememberDebouncedValidationError(
+        value = username,
+        hasInteracted = hasInteractedUsername,
+        forceShowError = hasAttemptedRegister,
+    ) { handle ->
+        InputValidator.validateUsername(handle)
+    }
+    val passwordError = rememberDebouncedValidationError(
+        value = password,
+        hasInteracted = hasInteractedPassword,
+        forceShowError = hasAttemptedRegister,
+    ) { secret ->
+        InputValidator.validatePassword(secret)
+    }
+    val emailError = rememberDebouncedValidationError(
+        value = email,
+        hasInteracted = hasInteractedEmail,
+        forceShowError = hasAttemptedRegister,
+    ) { addr ->
+        InputValidator.validateEmail(addr)
+    }
+    val phoneError = rememberDebouncedValidationError(
+        value = phone,
+        hasInteracted = hasInteractedPhone,
+        forceShowError = hasAttemptedRegister,
+    ) { rawPhone ->
+        InputValidator.validateOptionalPhone(rawPhone)
+    }
+    val birthDateError = rememberDebouncedValidationError(
+        value = birthDate,
+        hasInteracted = hasInteractedBirthDate,
+        forceShowError = hasAttemptedRegister,
+    ) { rawBirthDate ->
+        InputValidator.validateBirthDate(rawBirthDate, isRequired = true)
+    }
 
     LaunchedEffect(Unit) {
         viewModel?.clearFormError()
@@ -2703,7 +2754,8 @@ internal fun RenderRegisterScreenS08(
                     BasicTextField(
                         value = firstName,
                         onValueChange = { nextFirstName ->
-                            firstName = nextFirstName.take(InputValidator.MAX_PERSON_NAME_LENGTH)
+                            firstName = InputValidator.filterPersonNameInput(nextFirstName, InputValidator.MAX_PERSON_NAME_LENGTH)
+                            hasInteractedFirstName = true
                             localRegisterError = null
                             viewModel?.clearFormError()
                         },
@@ -2735,7 +2787,8 @@ internal fun RenderRegisterScreenS08(
                     BasicTextField(
                         value = lastName,
                         onValueChange = { nextLastName ->
-                            lastName = nextLastName.take(InputValidator.MAX_PERSON_NAME_LENGTH)
+                            lastName = InputValidator.filterPersonNameInput(nextLastName, InputValidator.MAX_PERSON_NAME_LENGTH)
+                            hasInteractedLastName = true
                             localRegisterError = null
                             viewModel?.clearFormError()
                         },
@@ -2753,13 +2806,10 @@ internal fun RenderRegisterScreenS08(
                 }
             }
             val nameRowError = firstNameError ?: lastNameError
-            if (nameRowError != null) {
-                Spacer(Modifier.height(4.dp))
-                BasicText(
-                    text = nameRowError,
-                    style = typo.caption.copy(fontSize = 11.5.sp, color = RfColors.Error, fontWeight = FontWeight.SemiBold),
-                )
-            }
+            RfValidationErrorText(
+                errorMessage = nameRowError,
+                modifier = Modifier.padding(top = 4.dp),
+            )
 
             Spacer(Modifier.height(10.dp))
 
@@ -2790,7 +2840,8 @@ internal fun RenderRegisterScreenS08(
                         BasicTextField(
                             value = username,
                             onValueChange = { nextUsername ->
-                                username = nextUsername.take(InputValidator.MAX_USERNAME_LENGTH)
+                                username = InputValidator.filterUsernameInput(nextUsername)
+                                hasInteractedUsername = true
                                 localRegisterError = null
                                 viewModel?.clearFormError()
                             },
@@ -2850,6 +2901,7 @@ internal fun RenderRegisterScreenS08(
                                 value = password,
                                 onValueChange = { nextPassword ->
                                     password = nextPassword.take(InputValidator.MAX_PASSWORD_LENGTH)
+                                    hasInteractedPassword = true
                                     localRegisterError = null
                                     viewModel?.clearFormError()
                                 },
@@ -2885,13 +2937,10 @@ internal fun RenderRegisterScreenS08(
                 }
             }
             val credentialsRowError = usernameError ?: passwordError
-            if (credentialsRowError != null) {
-                Spacer(Modifier.height(4.dp))
-                BasicText(
-                    text = credentialsRowError,
-                    style = typo.caption.copy(fontSize = 11.5.sp, color = RfColors.Error, fontWeight = FontWeight.SemiBold),
-                )
-            }
+            RfValidationErrorText(
+                errorMessage = credentialsRowError,
+                modifier = Modifier.padding(top = 4.dp),
+            )
 
             Spacer(Modifier.height(10.dp))
 
@@ -2918,6 +2967,7 @@ internal fun RenderRegisterScreenS08(
                         value = email,
                         onValueChange = { nextEmail ->
                             email = nextEmail.take(InputValidator.MAX_EMAIL_LENGTH)
+                            hasInteractedEmail = true
                             localRegisterError = null
                             viewModel?.clearFormError()
                         },
@@ -2934,13 +2984,10 @@ internal fun RenderRegisterScreenS08(
                     )
                 }
             }
-            if (emailError != null) {
-                Spacer(Modifier.height(4.dp))
-                BasicText(
-                    text = emailError,
-                    style = typo.caption.copy(fontSize = 11.5.sp, color = RfColors.Error, fontWeight = FontWeight.SemiBold),
-                )
-            }
+            RfValidationErrorText(
+                errorMessage = emailError,
+                modifier = Modifier.padding(top = 4.dp),
+            )
 
             Spacer(Modifier.height(10.dp))
 
@@ -2966,10 +3013,11 @@ internal fun RenderRegisterScreenS08(
                     BasicTextField(
                         value = phone,
                         onValueChange = { nextPhone ->
-                            val cappedPhone = nextPhone.take(InputValidator.MAX_PHONE_LENGTH)
-                            phone = cappedPhone
+                            val filteredPhone = InputValidator.filterPhoneInput(nextPhone)
+                            phone = filteredPhone
+                            hasInteractedPhone = true
                             localRegisterError = null
-                            viewModel?.setRegisterPhone(cappedPhone)
+                            viewModel?.setRegisterPhone(filteredPhone)
                             viewModel?.clearFormError()
                         },
                         singleLine = true,
@@ -2985,13 +3033,10 @@ internal fun RenderRegisterScreenS08(
                     )
                 }
             }
-            if (phoneError != null) {
-                Spacer(Modifier.height(4.dp))
-                BasicText(
-                    text = phoneError,
-                    style = typo.caption.copy(fontSize = 11.5.sp, color = RfColors.Error, fontWeight = FontWeight.SemiBold),
-                )
-            }
+            RfValidationErrorText(
+                errorMessage = phoneError,
+                modifier = Modifier.padding(top = 4.dp),
+            )
 
             Spacer(Modifier.height(10.dp))
 
@@ -3028,6 +3073,7 @@ internal fun RenderRegisterScreenS08(
                         value = birthDate,
                         onValueChange = { nextBirthDate ->
                             birthDate = nextBirthDate.take(InputValidator.MAX_BIRTH_DATE_LENGTH)
+                            hasInteractedBirthDate = true
                             localRegisterError = null
                             viewModel?.clearFormError()
                         },
@@ -3042,13 +3088,10 @@ internal fun RenderRegisterScreenS08(
                     )
                 }
             }
-            if (birthDateError != null) {
-                Spacer(Modifier.height(4.dp))
-                BasicText(
-                    text = birthDateError,
-                    style = typo.caption.copy(fontSize = 11.5.sp, color = RfColors.Error, fontWeight = FontWeight.SemiBold),
-                )
-            }
+            RfValidationErrorText(
+                errorMessage = birthDateError,
+                modifier = Modifier.padding(top = 4.dp),
+            )
 
             Spacer(Modifier.height(8.dp))
 
@@ -3139,7 +3182,7 @@ internal fun RenderRegisterScreenS08(
                         val checkUserError = InputValidator.validateUsername(username)
                         val checkPassError = InputValidator.validatePassword(password)
                         val checkEmailError = InputValidator.validateEmail(email)
-                        val checkPhoneError = if (phone.isNotBlank()) InputValidator.validatePhone(phone) else null
+                        val checkPhoneError = InputValidator.validateOptionalPhone(phone)
                         val checkBirthError = InputValidator.validateBirthDate(birthDate, isRequired = true)
                         val termsError = if (!acceptedTerms) "Debes aceptar los Términos y condiciones para continuar." else null
                         val firstValidationError = checkFirstError
@@ -3257,6 +3300,9 @@ internal fun RenderRegisterScreenS08(
                 currentBirthDate = birthDate,
                 onSelectBirthDate = { selectedFormattedDate ->
                     birthDate = selectedFormattedDate
+                    hasInteractedBirthDate = true
+                    localRegisterError = null
+                    viewModel?.clearFormError()
                     showBirthDatePicker = false
                 },
                 onDismiss = { showBirthDatePicker = false },
@@ -3331,7 +3377,10 @@ private fun BirthDateCalendarModal(
     val authColors = rememberAuthScreenColors()
     val initialParts = currentBirthDate.split("/")
     val parsedMonth = initialParts.getOrNull(1)?.toIntOrNull()?.coerceIn(1, 12) ?: 8
-    val parsedYear = initialParts.getOrNull(2)?.toIntOrNull()?.coerceIn(1940, 2008) ?: 1998
+    val parsedYear = initialParts.getOrNull(2)?.toIntOrNull()?.coerceIn(
+        InputValidator.MIN_BIRTH_YEAR,
+        InputValidator.MAX_BIRTH_YEAR,
+    ) ?: 1998
     val initialMaxDays = computeDaysInGregorianMonth(parsedYear, parsedMonth)
     val parsedDay = initialParts.getOrNull(0)?.toIntOrNull()?.coerceIn(1, initialMaxDays) ?: 15
 
@@ -3360,12 +3409,19 @@ private fun BirthDateCalendarModal(
     val leadingWeekdayOffset = computeGregorianMondayFirstOffset(selectedYear, selectedMonth)
     val clampedSelectedDay = selectedDay.coerceIn(1, daysInSelectedMonth)
 
+    val backdropInteractionSource = remember { MutableInteractionSource() }
+    val cardInteractionSource = remember { MutableInteractionSource() }
+
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF151729).copy(alpha = 0.45f))
-            .clickable { onDismiss() }
+            .clickable(
+                interactionSource = backdropInteractionSource,
+                indication = null,
+                onClick = onDismiss,
+            )
             .padding(horizontal = 20.dp),
     ) {
         Column(
@@ -3375,7 +3431,11 @@ private fun BirthDateCalendarModal(
                 .clip(RoundedCornerShape(24.dp))
                 .background(RfThemeState.currentPalette.surface)
                 .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(24.dp))
-                .clickable(enabled = false) {}
+                .clickable(
+                    interactionSource = cardInteractionSource,
+                    indication = null,
+                    onClick = {},
+                )
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
@@ -3473,7 +3533,7 @@ private fun BirthDateCalendarModal(
                             .clip(CircleShape)
                             .background(RfThemeState.currentPalette.surface)
                             .clickable {
-                                val nextYear = (selectedYear - 1).coerceAtLeast(1940)
+                                val nextYear = (selectedYear - 1).coerceAtLeast(InputValidator.MIN_BIRTH_YEAR)
                                 selectedYear = nextYear
                                 selectedDay = selectedDay.coerceAtMost(computeDaysInGregorianMonth(nextYear, selectedMonth))
                             },
@@ -3491,7 +3551,7 @@ private fun BirthDateCalendarModal(
                             .clip(CircleShape)
                             .background(RfThemeState.currentPalette.surface)
                             .clickable {
-                                val nextYear = (selectedYear + 1).coerceAtMost(2008)
+                                val nextYear = (selectedYear + 1).coerceAtMost(InputValidator.MAX_BIRTH_YEAR)
                                 selectedYear = nextYear
                                 selectedDay = selectedDay.coerceAtMost(computeDaysInGregorianMonth(nextYear, selectedMonth))
                             },
@@ -3624,6 +3684,22 @@ private fun BirthDateCalendarModal(
 // s09, s10, s11, s12, s13 · FLUJO DE RECUPERACIÓN Y CONFIRMACIÓN
 // ==============================================================================
 
+private fun validateStrongResetPassword(password: String): String? {
+    val baseError = InputValidator.validatePassword(password)
+    if (baseError != null) {
+        return baseError
+    }
+    val hasMinResetLength = password.length >= 8
+    if (!hasMinResetLength) {
+        return "La nueva contraseña debe tener al menos 8 caracteres."
+    }
+    val hasDigit = password.any { character -> character.isDigit() }
+    if (!hasDigit) {
+        return "La nueva contraseña debe incluir al menos un número."
+    }
+    return null
+}
+
 @Composable
 internal fun RenderRecoveryAndConfirmationScreens(
     spec: ScreenSpec,
@@ -3641,16 +3717,34 @@ internal fun RenderRecoveryAndConfirmationScreens(
     var showNewPassword by remember { mutableStateOf(false) }
     var showConfirmPassword by remember { mutableStateOf(false) }
     var recoveryEmailError by remember { mutableStateOf<String?>(null) }
+    var hasInteractedRecoveryEmail by remember { mutableStateOf(false) }
+    var forceShowRecoveryEmailError by remember { mutableStateOf(false) }
+    var hasInteractedResetOtp by remember { mutableStateOf(false) }
+    var hasInteractedNewPassword by remember { mutableStateOf(false) }
+    var hasInteractedConfirmPassword by remember { mutableStateOf(false) }
+    var forceShowResetErrors by remember { mutableStateOf(false) }
+    var hasInteractedVerificationOtp by remember { mutableStateOf(false) }
+    var forceShowVerificationOtpError by remember { mutableStateOf(false) }
     val formError = viewModel?.formError?.collectAsState()?.value
     val formFeedback = viewModel?.formFeedback?.collectAsState()?.value
     LaunchedEffect(spec.code) {
         recoveryEmailError = null
+        forceShowRecoveryEmailError = false
+        forceShowResetErrors = false
+        forceShowVerificationOtpError = false
         viewModel?.clearFormError()
     }
 
     when (spec.code) {
         "s09" -> {
-            val liveRecError = if (recoveryEmail.isNotEmpty()) InputValidator.validateEmail(recoveryEmail) else recoveryEmailError
+            val debouncedRecoveryEmailError = rememberDebouncedValidationError(
+                value = recoveryEmail,
+                hasInteracted = hasInteractedRecoveryEmail,
+                forceShowError = forceShowRecoveryEmailError,
+            ) { address ->
+                InputValidator.validateEmail(address)
+            }
+            val liveRecError = recoveryEmailError ?: debouncedRecoveryEmailError
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -3726,7 +3820,21 @@ internal fun RenderRecoveryAndConfirmationScreens(
                 ) {
                     var recoverMode by remember { mutableStateOf("password") }
                     var userLookupInput by remember { mutableStateOf("") }
+                    var hasInteractedUserLookup by remember { mutableStateOf(false) }
+                    var forceShowUserLookupError by remember { mutableStateOf(false) }
                     var userLookupNotice by remember { mutableStateOf<String?>(null) }
+                    val userLookupFieldError = rememberDebouncedValidationError(
+                        value = userLookupInput,
+                        hasInteracted = hasInteractedUserLookup,
+                        forceShowError = forceShowUserLookupError,
+                    ) { lookupValue ->
+                        val trimmedLookup = lookupValue.trim()
+                        if (trimmedLookup.length < 3) {
+                            "Ingresa al menos 3 caracteres de tu nombre, teléfono o correo."
+                        } else {
+                            null
+                        }
+                    }
 
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -3782,6 +3890,8 @@ internal fun RenderRecoveryAndConfirmationScreens(
                     if (recoverMode == "user") {
                         BasicText("Nombre, teléfono o correo asociado", style = typo.fieldLabel.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = RfThemeState.currentPalette.ink))
                         Spacer(Modifier.height(8.dp))
+                        val lookupBorderColor = if (userLookupFieldError != null) RfColors.Error else RfThemeState.currentPalette.line
+                        val lookupBorderWidth = if (userLookupFieldError != null) 1.5.dp else 1.dp
                         Box(
                             contentAlignment = Alignment.CenterStart,
                             modifier = Modifier
@@ -3790,15 +3900,21 @@ internal fun RenderRecoveryAndConfirmationScreens(
                                 .rfInputShadow(RoundedCornerShape(16.dp), isAdmin = authColors.isAdmin)
                                 .clip(RoundedCornerShape(16.dp))
                                 .background(RfThemeState.currentPalette.surface)
-                                .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(16.dp))
+                                .border(lookupBorderWidth, lookupBorderColor, RoundedCornerShape(16.dp))
                                 .padding(horizontal = 16.dp),
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                RfIcon(kind = RfIconKind.USER, tint = RfThemeState.currentPalette.muted, size = 20.dp)
+                                RfIcon(
+                                    kind = RfIconKind.USER,
+                                    tint = if (userLookupFieldError != null) RfColors.Error else RfThemeState.currentPalette.muted,
+                                    size = 20.dp,
+                                )
                                 BasicTextField(
                                     value = userLookupInput,
                                     onValueChange = { updatedText ->
                                         userLookupInput = updatedText.take(InputValidator.MAX_EMAIL_LENGTH)
+                                        hasInteractedUserLookup = true
+                                        forceShowUserLookupError = false
                                         userLookupNotice = null
                                     },
                                     singleLine = true,
@@ -3814,6 +3930,10 @@ internal fun RenderRecoveryAndConfirmationScreens(
                                 )
                             }
                         }
+                        RfValidationErrorText(
+                            errorMessage = userLookupFieldError,
+                            modifier = Modifier.padding(top = 6.dp),
+                        )
                         if (!userLookupNotice.isNullOrBlank()) {
                             Spacer(Modifier.height(10.dp))
                             Box(
@@ -3838,10 +3958,12 @@ internal fun RenderRecoveryAndConfirmationScreens(
                                 .clip(RoundedCornerShape(16.dp))
                                 .background(RfColors.AdminHeroAndRosaGradient)
                                 .clickable {
+                                    hasInteractedUserLookup = true
+                                    forceShowUserLookupError = true
                                     val cleanInput = userLookupInput.trim()
                                     if (cleanInput.length < 3) {
                                         viewModel?.soundPlayer?.playAlertError()
-                                        userLookupNotice = "Ingresa al menos 3 caracteres de tu nombre, teléfono o correo."
+                                        userLookupNotice = null
                                     } else {
                                         val isEmailCandidate = cleanInput.contains("@")
                                         if (isEmailCandidate) {
@@ -3884,6 +4006,8 @@ internal fun RenderRecoveryAndConfirmationScreens(
                                     value = recoveryEmail,
                                     onValueChange = { nextEmail ->
                                         recoveryEmail = nextEmail.take(InputValidator.MAX_EMAIL_LENGTH)
+                                        hasInteractedRecoveryEmail = true
+                                        forceShowRecoveryEmailError = false
                                         recoveryEmailError = null
                                     },
                                     singleLine = true,
@@ -3900,16 +4024,14 @@ internal fun RenderRecoveryAndConfirmationScreens(
                             }
                         }
                         if (liveRecError != null) {
-                            Spacer(Modifier.height(6.dp))
-                            BasicText(
-                                text = liveRecError,
-                                style = typo.caption.copy(fontSize = 12.sp, color = RfColors.Error, fontWeight = FontWeight.SemiBold),
+                            RfValidationErrorText(
+                                errorMessage = liveRecError,
+                                modifier = Modifier.padding(top = 6.dp),
                             )
                         } else if (!formError.isNullOrBlank()) {
-                            Spacer(Modifier.height(6.dp))
-                            BasicText(
-                                text = formError,
-                                style = typo.caption.copy(fontSize = 12.sp, color = RfColors.Error, fontWeight = FontWeight.SemiBold),
+                            RfValidationErrorText(
+                                errorMessage = formError,
+                                modifier = Modifier.padding(top = 6.dp),
                             )
                         }
 
@@ -3924,6 +4046,8 @@ internal fun RenderRecoveryAndConfirmationScreens(
                                 .clip(RoundedCornerShape(16.dp))
                                 .background(authColors.primaryButtonBrush)
                                 .clickable {
+                                    hasInteractedRecoveryEmail = true
+                                    forceShowRecoveryEmailError = true
                                     val trimmedRec = recoveryEmail.trim()
                                     val emailValidation = InputValidator.validateEmail(trimmedRec)
                                     if (emailValidation != null) {
@@ -4042,8 +4166,32 @@ internal fun RenderRecoveryAndConfirmationScreens(
                         .verticalScroll(rememberScrollState())
                         .padding(top = 104.dp, start = 24.dp, end = 24.dp, bottom = 20.dp),
                 ) {
+                    val resetOtpError = rememberDebouncedValidationError(
+                        value = otpCode,
+                        hasInteracted = hasInteractedResetOtp,
+                        forceShowError = forceShowResetErrors,
+                    ) { code ->
+                        InputValidator.validateOtpCode(code)
+                    }
+                    val newPasswordError = rememberDebouncedValidationError(
+                        value = newPassword,
+                        hasInteracted = hasInteractedNewPassword,
+                        forceShowError = forceShowResetErrors,
+                    ) { pass ->
+                        validateStrongResetPassword(pass)
+                    }
+                    val confirmPasswordError = rememberDebouncedValidationError(
+                        value = confirmPassword,
+                        hasInteracted = hasInteractedConfirmPassword,
+                        forceShowError = forceShowResetErrors,
+                    ) { confirm ->
+                        InputValidator.validatePasswordConfirmation(newPassword, confirm)
+                    }
+
                     BasicText("Código de verificación (6 dígitos)", style = typo.fieldLabel.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = RfThemeState.currentPalette.ink))
                     Spacer(Modifier.height(8.dp))
+                    val resetOtpBorderColor = if (resetOtpError != null) RfColors.Error else RfThemeState.currentPalette.line
+                    val resetOtpBorderWidth = if (resetOtpError != null) 1.5.dp else 1.dp
                     Box(
                         contentAlignment = Alignment.CenterStart,
                         modifier = Modifier
@@ -4052,7 +4200,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                             .rfInputShadow(RoundedCornerShape(16.dp), isAdmin = authColors.isAdmin)
                             .clip(RoundedCornerShape(16.dp))
                             .background(RfThemeState.currentPalette.surface)
-                            .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(16.dp))
+                            .border(resetOtpBorderWidth, resetOtpBorderColor, RoundedCornerShape(16.dp))
                             .padding(horizontal = 16.dp),
                     ) {
                         Row(
@@ -4060,11 +4208,16 @@ internal fun RenderRecoveryAndConfirmationScreens(
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
                             modifier = Modifier.fillMaxWidth(),
                         ) {
-                            RfIcon(kind = RfIconKind.SHIELD, tint = RfThemeState.currentPalette.muted, size = 20.dp)
+                            RfIcon(
+                                kind = RfIconKind.SHIELD,
+                                tint = if (resetOtpError != null) RfColors.Error else RfThemeState.currentPalette.muted,
+                                size = 20.dp,
+                            )
                             BasicTextField(
                                 value = otpCode,
                                 onValueChange = { nextOtp ->
-                                    otpCode = nextOtp.filter { character -> character.isDigit() }.take(6)
+                                    otpCode = InputValidator.filterDigitsOnly(nextOtp, InputValidator.OTP_LENGTH)
+                                    hasInteractedResetOtp = true
                                     viewModel?.clearFormError()
                                 },
                                 singleLine = true,
@@ -4087,11 +4240,16 @@ internal fun RenderRecoveryAndConfirmationScreens(
                             )
                         }
                     }
+                    RfValidationErrorText(
+                        errorMessage = resetOtpError,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
 
                     Spacer(Modifier.height(14.dp))
 
                     BasicText("Nueva contraseña", style = typo.fieldLabel.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = RfThemeState.currentPalette.ink))
                     Spacer(Modifier.height(8.dp))
+                    val newPassBorderColor = if (newPasswordError != null) RfColors.Error else authColors.activeBorderColor
                     Box(
                         contentAlignment = Alignment.CenterStart,
                         modifier = Modifier
@@ -4100,7 +4258,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                             .rfInputShadow(RoundedCornerShape(16.dp), isAdmin = authColors.isAdmin, isActive = true)
                             .clip(RoundedCornerShape(16.dp))
                             .background(RfThemeState.currentPalette.surface)
-                            .border(2.dp, authColors.activeBorderColor, RoundedCornerShape(16.dp))
+                            .border(2.dp, newPassBorderColor, RoundedCornerShape(16.dp))
                             .padding(start = 16.dp, end = 6.dp),
                     ) {
                         Row(
@@ -4113,7 +4271,11 @@ internal fun RenderRecoveryAndConfirmationScreens(
                                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                                 modifier = Modifier.weight(1f),
                             ) {
-                                RfIcon(kind = RfIconKind.LOCK, tint = RfThemeState.currentPalette.muted, size = 20.dp)
+                                RfIcon(
+                                    kind = RfIconKind.LOCK,
+                                    tint = if (newPasswordError != null) RfColors.Error else RfThemeState.currentPalette.muted,
+                                    size = 20.dp,
+                                )
                                 val newPasswordVisualTransformation = if (showNewPassword) {
                                     VisualTransformation.None
                                 } else {
@@ -4123,6 +4285,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                                     value = newPassword,
                                     onValueChange = { nextPass ->
                                         newPassword = nextPass.take(InputValidator.MAX_PASSWORD_LENGTH)
+                                        hasInteractedNewPassword = true
                                         viewModel?.clearFormError()
                                     },
                                     singleLine = true,
@@ -4151,6 +4314,10 @@ internal fun RenderRecoveryAndConfirmationScreens(
                             }
                         }
                     }
+                    RfValidationErrorText(
+                        errorMessage = newPasswordError,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
 
                     Spacer(Modifier.height(14.dp))
 
@@ -4229,6 +4396,8 @@ internal fun RenderRecoveryAndConfirmationScreens(
 
                     BasicText("Confirmar contraseña", style = typo.fieldLabel.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = RfThemeState.currentPalette.ink))
                     Spacer(Modifier.height(8.dp))
+                    val confirmBorderColor = if (confirmPasswordError != null) RfColors.Error else RfThemeState.currentPalette.line
+                    val confirmBorderWidth = if (confirmPasswordError != null) 1.5.dp else 1.dp
                     Box(
                         contentAlignment = Alignment.CenterStart,
                         modifier = Modifier
@@ -4237,7 +4406,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                             .rfInputShadow(RoundedCornerShape(16.dp), isAdmin = authColors.isAdmin)
                             .clip(RoundedCornerShape(16.dp))
                             .background(RfThemeState.currentPalette.surface)
-                            .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(16.dp))
+                            .border(confirmBorderWidth, confirmBorderColor, RoundedCornerShape(16.dp))
                             .padding(start = 16.dp, end = 6.dp),
                     ) {
                         Row(
@@ -4250,7 +4419,11 @@ internal fun RenderRecoveryAndConfirmationScreens(
                                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                                 modifier = Modifier.weight(1f),
                             ) {
-                                RfIcon(kind = RfIconKind.LOCK, tint = RfThemeState.currentPalette.muted, size = 20.dp)
+                                RfIcon(
+                                    kind = RfIconKind.LOCK,
+                                    tint = if (confirmPasswordError != null) RfColors.Error else RfThemeState.currentPalette.muted,
+                                    size = 20.dp,
+                                )
                                 val confirmPasswordVisualTransformation = if (showConfirmPassword) {
                                     VisualTransformation.None
                                 } else {
@@ -4260,6 +4433,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                                     value = confirmPassword,
                                     onValueChange = { nextPass ->
                                         confirmPassword = nextPass.take(InputValidator.MAX_PASSWORD_LENGTH)
+                                        hasInteractedConfirmPassword = true
                                         viewModel?.clearFormError()
                                     },
                                     singleLine = true,
@@ -4288,6 +4462,10 @@ internal fun RenderRecoveryAndConfirmationScreens(
                             }
                         }
                     }
+                    RfValidationErrorText(
+                        errorMessage = confirmPasswordError,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
 
                     if (!formError.isNullOrBlank()) {
                         Spacer(Modifier.height(8.dp))
@@ -4308,15 +4486,27 @@ internal fun RenderRecoveryAndConfirmationScreens(
                             .clip(RoundedCornerShape(16.dp))
                             .background(authColors.primaryButtonBrush)
                             .clickable {
-                                val targetEmail = recoveryEmail.ifBlank { viewModel?.loginEmail?.value.orEmpty() }
-                                val resetOk = viewModel?.submitPasswordReset(
-                                    identifier = targetEmail,
-                                    newPassword = newPassword,
-                                    confirmPassword = confirmPassword,
-                                    otpCode = otpCode,
-                                ) ?: true
-                                if (resetOk) {
-                                    onSelectScreenCode("s07")
+                                hasInteractedResetOtp = true
+                                hasInteractedNewPassword = true
+                                hasInteractedConfirmPassword = true
+                                forceShowResetErrors = true
+                                val otpError = InputValidator.validateOtpCode(otpCode)
+                                val passError = validateStrongResetPassword(newPassword)
+                                val confirmError = InputValidator.validatePasswordConfirmation(newPassword, confirmPassword)
+                                val firstError = otpError ?: passError ?: confirmError
+                                if (firstError != null) {
+                                    viewModel?.soundPlayer?.playAlertError()
+                                } else {
+                                    val targetEmail = recoveryEmail.ifBlank { viewModel?.loginEmail?.value.orEmpty() }
+                                    val resetOk = viewModel?.submitPasswordReset(
+                                        identifier = targetEmail,
+                                        newPassword = newPassword,
+                                        confirmPassword = confirmPassword,
+                                        otpCode = otpCode,
+                                    ) ?: true
+                                    if (resetOk) {
+                                        onSelectScreenCode("s07")
+                                    }
                                 }
                             },
                     ) {
@@ -4456,6 +4646,14 @@ internal fun RenderRecoveryAndConfirmationScreens(
 
                     Spacer(Modifier.height(18.dp))
 
+                    val verificationOtpError = rememberDebouncedValidationError(
+                        value = verificationOtp,
+                        hasInteracted = hasInteractedVerificationOtp,
+                        forceShowError = forceShowVerificationOtpError,
+                    ) { code ->
+                        InputValidator.validateOtpCode(code)
+                    }
+                    val otpBorderColor = if (verificationOtpError != null) RfColors.Error else authColors.activeBorderColor
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
@@ -4464,13 +4662,15 @@ internal fun RenderRecoveryAndConfirmationScreens(
                             .rfInputShadow(RoundedCornerShape(16.dp), isAdmin = authColors.isAdmin)
                             .clip(RoundedCornerShape(16.dp))
                             .background(RfThemeState.currentPalette.surface)
-                            .border(1.5.dp, authColors.activeBorderColor, RoundedCornerShape(16.dp))
+                            .border(1.5.dp, otpBorderColor, RoundedCornerShape(16.dp))
                             .padding(horizontal = 16.dp),
                     ) {
                         BasicTextField(
                             value = verificationOtp,
                             onValueChange = { nextCode ->
-                                verificationOtp = nextCode.filter { character -> character.isDigit() }.take(6)
+                                verificationOtp = InputValidator.filterDigitsOnly(nextCode, InputValidator.OTP_LENGTH)
+                                hasInteractedVerificationOtp = true
+                                forceShowVerificationOtpError = false
                                 viewModel?.clearFormError()
                             },
                             singleLine = true,
@@ -4503,11 +4703,15 @@ internal fun RenderRecoveryAndConfirmationScreens(
                         )
                     }
 
-                    if (!formError.isNullOrBlank()) {
-                        Spacer(Modifier.height(8.dp))
-                        BasicText(
-                            text = formError,
-                            style = typo.caption.copy(fontSize = 12.5.sp, color = RfColors.Error, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center),
+                    if (verificationOtpError != null) {
+                        RfValidationErrorText(
+                            errorMessage = verificationOtpError,
+                            modifier = Modifier.padding(top = 6.dp),
+                        )
+                    } else if (!formError.isNullOrBlank()) {
+                        RfValidationErrorText(
+                            errorMessage = formError,
+                            modifier = Modifier.padding(top = 6.dp),
                         )
                     } else if (!formFeedback.isNullOrBlank()) {
                         Spacer(Modifier.height(8.dp))
@@ -4544,7 +4748,12 @@ internal fun RenderRecoveryAndConfirmationScreens(
                             .clip(RoundedCornerShape(16.dp))
                             .background(authColors.primaryButtonBrush)
                             .clickable {
-                                if (viewModel != null) {
+                                hasInteractedVerificationOtp = true
+                                forceShowVerificationOtpError = true
+                                val otpError = InputValidator.validateOtpCode(verificationOtp)
+                                if (otpError != null) {
+                                    viewModel?.soundPlayer?.playAlertError()
+                                } else if (viewModel != null) {
                                     viewModel.verifyPasswordResetOtpCode(verificationOtp) { verified ->
                                         if (verified) {
                                             onSelectScreenCode("s10")
@@ -4882,7 +5091,14 @@ internal fun RenderGuestCatalogS01(
         mutableStateOf(vmSelectedCategory.ifBlank { "Todas" })
     }
     val vmSearchQuery = viewModel?.searchQuery?.collectAsState()?.value ?: ""
-    var searchQuery by remember(vmSearchQuery) { mutableStateOf(vmSearchQuery) }
+    var searchQuery by remember(vmSearchQuery) { mutableStateOf(vmSearchQuery.take(InputValidator.MAX_SEARCH_QUERY_LENGTH)) }
+    var hasInteractedSearch by remember { mutableStateOf(false) }
+    val searchFieldError = rememberDebouncedValidationError(
+        value = searchQuery,
+        hasInteracted = hasInteractedSearch,
+    ) { query ->
+        InputValidator.validateSearchQuery(query)
+    }
     val observedArticles = viewModel?.articles?.collectAsState()?.value ?: CanonicalSampleData.articles
     val vmSortOrder = viewModel?.searchSortOrder?.collectAsState()?.value ?: "Más populares"
     var localSortOrder by remember(vmSortOrder) { mutableStateOf(vmSortOrder) }
@@ -4982,6 +5198,7 @@ internal fun RenderGuestCatalogS01(
 
             Spacer(Modifier.height(16.dp))
 
+            val guestSearchBorderColor = if (searchFieldError != null) RfColors.Error else RfThemeState.currentPalette.line
             Box(
                 contentAlignment = Alignment.CenterStart,
                 modifier = Modifier
@@ -4990,7 +5207,7 @@ internal fun RenderGuestCatalogS01(
                     .rfInputShadow(RoundedCornerShape(16.dp), isAdmin = false)
                     .clip(RoundedCornerShape(16.dp))
                     .background(RfThemeState.currentPalette.surface)
-                    .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(16.dp))
+                    .border(1.dp, guestSearchBorderColor, RoundedCornerShape(16.dp))
                     .padding(start = 16.dp, end = 6.dp),
             ) {
                 Row(
@@ -5014,8 +5231,10 @@ internal fun RenderGuestCatalogS01(
                             BasicTextField(
                                 value = searchQuery,
                                 onValueChange = { updatedQuery ->
-                                    searchQuery = updatedQuery
-                                    viewModel?.setSearchQuery(updatedQuery)
+                                    val cappedQuery = updatedQuery.take(InputValidator.MAX_SEARCH_QUERY_LENGTH)
+                                    searchQuery = cappedQuery
+                                    hasInteractedSearch = true
+                                    viewModel?.setSearchQuery(cappedQuery)
                                 },
                                 singleLine = true,
                                 textStyle = typo.body.copy(fontSize = 15.sp, color = RfThemeState.currentPalette.ink),
@@ -5032,6 +5251,7 @@ internal fun RenderGuestCatalogS01(
                                 .background(Color(0xFFFDE6F2))
                                 .clickable {
                                     searchQuery = ""
+                                    hasInteractedSearch = false
                                     viewModel?.setSearchQuery("")
                                 },
                         ) {
@@ -5069,12 +5289,18 @@ internal fun RenderGuestCatalogS01(
                     }
                 }
             }
+            RfValidationErrorText(
+                errorMessage = searchFieldError,
+                modifier = Modifier.padding(top = 4.dp),
+            )
 
             InlineVoiceSearchBanner(
                 viewModel = viewModel,
                 onApplyVoiceQuery = { spokenQuery ->
-                    searchQuery = spokenQuery
-                    viewModel?.setSearchQuery(spokenQuery)
+                    val cappedSpoken = spokenQuery.take(InputValidator.MAX_SEARCH_QUERY_LENGTH)
+                    searchQuery = cappedSpoken
+                    hasInteractedSearch = true
+                    viewModel?.setSearchQuery(cappedSpoken)
                 },
                 modifier = Modifier.padding(top = 10.dp),
             )

@@ -62,6 +62,8 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
@@ -97,6 +99,7 @@ import com.jeudry.rosafiesta.domain.NotificationRecord
 import com.jeudry.rosafiesta.domain.sound.AppAudioConfig
 import com.jeudry.rosafiesta.domain.sound.SoundEffect
 import com.jeudry.rosafiesta.domain.sound.SoundEffectCategory
+import com.jeudry.rosafiesta.domain.validation.InputValidator
 
 private val RosaButtonGradient = Brush.horizontalGradient(
     listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC)),
@@ -577,8 +580,9 @@ internal fun RenderPersonalSearchS80(
                     BasicTextField(
                         value = localQuery,
                         onValueChange = { updatedText ->
-                            localQuery = updatedText
-                            viewModel?.setSearchQuery(updatedText)
+                            val cappedQuery = updatedText.take(InputValidator.MAX_SEARCH_QUERY_LENGTH)
+                            localQuery = cappedQuery
+                            viewModel?.setSearchQuery(cappedQuery)
                         },
                         singleLine = true,
                         textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = RfThemeState.currentPalette.ink),
@@ -1578,17 +1582,52 @@ internal fun RenderAccountSettingsS86(
     var localWhatsapp by remember(vmWhatsappEnabled) { mutableStateOf(vmWhatsappEnabled) }
     var localEmailReceipts by remember(vmEmailReceipts) { mutableStateOf(vmEmailReceipts) }
     var draftEventAddress by remember(vmProfileZone) { mutableStateOf(vmProfileZone) }
+    var hasInteractedAddress by remember { mutableStateOf(false) }
+    var forceShowAddressError by remember { mutableStateOf(false) }
     var showAddressEditor by remember { mutableStateOf(false) }
-    var addressStatusBanner by remember { mutableStateOf<String?>(null) }
+    var addressSuccessBanner by remember { mutableStateOf<String?>(null) }
 
     var showPasswordEditor by remember { mutableStateOf(false) }
     var currentPasswordInput by remember { mutableStateOf("") }
     var newPasswordInput by remember { mutableStateOf("") }
     var confirmPasswordInput by remember { mutableStateOf("") }
+    var hasInteractedCurrentPassword by remember { mutableStateOf(false) }
+    var hasInteractedNewPassword by remember { mutableStateOf(false) }
+    var hasInteractedConfirmPassword by remember { mutableStateOf(false) }
+    var forceShowPasswordErrors by remember { mutableStateOf(false) }
     var passwordErrorBanner by remember { mutableStateOf<String?>(null) }
     var passwordSuccessBanner by remember { mutableStateOf<String?>(null) }
 
     val isEnglish = localLanguage.startsWith("Eng", ignoreCase = true)
+    val visibleCurrentPasswordError = rememberDebouncedValidationError(
+        value = currentPasswordInput,
+        hasInteracted = hasInteractedCurrentPassword,
+        forceShowError = forceShowPasswordErrors,
+    ) { value ->
+        InputValidator.validatePassword(value)
+    }
+    val visibleNewPasswordError = rememberDebouncedValidationError(
+        value = newPasswordInput,
+        hasInteracted = hasInteractedNewPassword,
+        forceShowError = forceShowPasswordErrors,
+    ) { value ->
+        InputValidator.validatePassword(value)
+    }
+    val visibleConfirmPasswordError = rememberDebouncedValidationError(
+        value = confirmPasswordInput,
+        hasInteracted = hasInteractedConfirmPassword,
+        forceShowError = forceShowPasswordErrors,
+    ) { value ->
+        InputValidator.validatePasswordConfirmation(newPasswordInput, value)
+    }
+    val visibleAddressError = rememberDebouncedValidationError(
+        value = draftEventAddress,
+        hasInteracted = hasInteractedAddress,
+        forceShowError = forceShowAddressError,
+    ) { value ->
+        val addressLabel = if (isEnglish) "The address" else "La dirección"
+        InputValidator.validateAddress(value, fieldLabel = addressLabel, isRequired = true)
+    }
     val screenTitle = if (isEnglish) "Settings" else "Ajustes"
     val preferencesHeader = if (isEnglish) "PREFERENCES" else "PREFERENCIAS"
     val audioHeader = if (isEnglish) "AUDIO & SOUND EFFECTS" else "AUDIO Y EFECTOS DE SONIDO"
@@ -1760,6 +1799,10 @@ internal fun RenderAccountSettingsS86(
                         showPasswordEditor = !showPasswordEditor
                         passwordErrorBanner = null
                         passwordSuccessBanner = null
+                        hasInteractedCurrentPassword = false
+                        hasInteractedNewPassword = false
+                        hasInteractedConfirmPassword = false
+                        forceShowPasswordErrors = false
                     },
                 )
                 if (showPasswordEditor) {
@@ -1773,32 +1816,50 @@ internal fun RenderAccountSettingsS86(
                         SettingsInlineInputField86(
                             placeholder = if (isEnglish) "Current password" else "Contraseña actual",
                             value = currentPasswordInput,
+                            isPassword = true,
+                            maxLength = InputValidator.MAX_PASSWORD_LENGTH,
+                            isError = visibleCurrentPasswordError != null,
+                            errorMessage = visibleCurrentPasswordError,
                             onValueChange = { updated ->
-                                currentPasswordInput = updated
+                                currentPasswordInput = updated.take(InputValidator.MAX_PASSWORD_LENGTH)
+                                hasInteractedCurrentPassword = true
                                 passwordErrorBanner = null
+                                passwordSuccessBanner = null
                             },
                         )
                         SettingsInlineInputField86(
-                            placeholder = if (isEnglish) "New password (min 8 chars + number)" else "Nueva contraseña (mín. 8 caract. y número)",
+                            placeholder = if (isEnglish) "New password (6 to 64 chars)" else "Nueva contraseña (6 a 64 caracteres)",
                             value = newPasswordInput,
+                            isPassword = true,
+                            maxLength = InputValidator.MAX_PASSWORD_LENGTH,
+                            isError = visibleNewPasswordError != null,
+                            errorMessage = visibleNewPasswordError,
                             onValueChange = { updated ->
-                                newPasswordInput = updated
+                                newPasswordInput = updated.take(InputValidator.MAX_PASSWORD_LENGTH)
+                                hasInteractedNewPassword = true
                                 passwordErrorBanner = null
+                                passwordSuccessBanner = null
                             },
                         )
                         SettingsInlineInputField86(
                             placeholder = if (isEnglish) "Confirm new password" else "Confirmar nueva contraseña",
                             value = confirmPasswordInput,
+                            isPassword = true,
+                            maxLength = InputValidator.MAX_PASSWORD_LENGTH,
+                            isError = visibleConfirmPasswordError != null,
+                            errorMessage = visibleConfirmPasswordError,
                             onValueChange = { updated ->
-                                confirmPasswordInput = updated
+                                confirmPasswordInput = updated.take(InputValidator.MAX_PASSWORD_LENGTH)
+                                hasInteractedConfirmPassword = true
                                 passwordErrorBanner = null
+                                passwordSuccessBanner = null
                             },
                         )
                         val activePasswordError = passwordErrorBanner ?: vmFormError
                         if (!activePasswordError.isNullOrBlank()) {
                             BasicText(
                                 activePasswordError,
-                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 12.5.sp, color = Color(0xFFB42345)),
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 12.5.sp, color = RfColors.Error),
                             )
                         }
                         if (!passwordSuccessBanner.isNullOrBlank()) {
@@ -1815,6 +1876,16 @@ internal fun RenderAccountSettingsS86(
                                     .clip(RoundedCornerShape(10.dp))
                                     .background(RosaButtonGradient)
                                     .clickable {
+                                        forceShowPasswordErrors = true
+                                        val firstError = InputValidator.validatePassword(currentPasswordInput)
+                                            ?: InputValidator.validatePassword(newPasswordInput)
+                                            ?: InputValidator.validatePasswordConfirmation(newPasswordInput, confirmPasswordInput)
+                                        if (firstError != null) {
+                                            passwordErrorBanner = firstError
+                                            passwordSuccessBanner = null
+                                            viewModel?.soundPlayer?.playAlertError()
+                                            return@clickable
+                                        }
                                         val changed = if (viewModel != null) {
                                             viewModel.changeCurrentPassword(
                                                 currentPassword = currentPasswordInput,
@@ -1828,13 +1899,17 @@ internal fun RenderAccountSettingsS86(
                                             currentPasswordInput = ""
                                             newPasswordInput = ""
                                             confirmPasswordInput = ""
+                                            hasInteractedCurrentPassword = false
+                                            hasInteractedNewPassword = false
+                                            hasInteractedConfirmPassword = false
+                                            forceShowPasswordErrors = false
                                             passwordErrorBanner = null
                                             passwordSuccessBanner = if (isEnglish) "Password updated successfully." else "Contraseña actualizada correctamente."
                                         } else if (viewModel == null) {
                                             passwordErrorBanner = if (isEnglish) {
-                                                "Verify current password, 8+ chars with digit, and matching confirmation."
+                                                "Verify your current password, 6+ characters, and matching confirmation."
                                             } else {
-                                                "Verifica tu contraseña actual, mínimo 8 caracteres con número y confirmación igual."
+                                                "Verifica tu contraseña actual, mínimo 6 caracteres y confirmación igual."
                                             }
                                         }
                                     },
@@ -1862,7 +1937,9 @@ internal fun RenderAccountSettingsS86(
                     icon = RfIconKind.LOCATION,
                     onClick = {
                         showAddressEditor = !showAddressEditor
-                        addressStatusBanner = null
+                        addressSuccessBanner = null
+                        hasInteractedAddress = false
+                        forceShowAddressError = false
                     },
                 ) {
                     BasicText(
@@ -1884,14 +1961,18 @@ internal fun RenderAccountSettingsS86(
                         SettingsInlineInputField86(
                             placeholder = if (isEnglish) "Sector, street & venue reference" else "Sector, calle y referencia de entrega",
                             value = draftEventAddress,
+                            maxLength = InputValidator.MAX_ADDRESS_LENGTH,
+                            isError = visibleAddressError != null,
+                            errorMessage = visibleAddressError,
                             onValueChange = { updated ->
-                                draftEventAddress = updated
-                                addressStatusBanner = null
+                                draftEventAddress = updated.take(InputValidator.MAX_ADDRESS_LENGTH)
+                                hasInteractedAddress = true
+                                addressSuccessBanner = null
                             },
                         )
-                        if (!addressStatusBanner.isNullOrBlank()) {
+                        if (!addressSuccessBanner.isNullOrBlank()) {
                             BasicText(
-                                addressStatusBanner ?: "",
+                                addressSuccessBanner ?: "",
                                 style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 12.5.sp, color = Color(0xFF3F560C)),
                             )
                         }
@@ -1902,19 +1983,23 @@ internal fun RenderAccountSettingsS86(
                                 .clip(RoundedCornerShape(10.dp))
                                 .background(RosaButtonGradient)
                                 .clickable {
+                                    forceShowAddressError = true
                                     val cleanZone = draftEventAddress.trim()
-                                    if (cleanZone.length >= 4) {
+                                    val addressLabel = if (isEnglish) "The address" else "La dirección"
+                                    val addressError = InputValidator.validateAddress(
+                                        rawValue = cleanZone,
+                                        fieldLabel = addressLabel,
+                                        isRequired = true,
+                                    )
+                                    if (addressError == null) {
                                         viewModel?.setProfileZone(cleanZone)
-                                        addressStatusBanner = if (isEnglish) "Default event address saved." else "Dirección guardada correctamente."
+                                        addressSuccessBanner = if (isEnglish) "Default event address saved." else "Dirección guardada correctamente."
+                                        hasInteractedAddress = false
+                                        forceShowAddressError = false
                                         showAddressEditor = false
                                     } else {
-                                        val validationMessage = if (isEnglish) {
-                                            "Enter at least 4 characters for the address."
-                                        } else {
-                                            "Escribe al menos 4 caracteres para la dirección."
-                                        }
-                                        addressStatusBanner = validationMessage
-                                        viewModel?.postFeedback(validationMessage)
+                                        addressSuccessBanner = null
+                                        viewModel?.postFeedback(addressError)
                                     }
                                 },
                             contentAlignment = Alignment.Center,
@@ -2019,11 +2104,9 @@ private fun validateInlinePasswordChange86(
     newPassword: String,
     confirmPassword: String,
 ): Boolean {
-    if (currentPassword.trim().isEmpty()) return false
-    if (newPassword.trim().length < 8) return false
-    val hasDigit = newPassword.any { character -> character.isDigit() }
-    if (!hasDigit) return false
-    return newPassword.trim() == confirmPassword.trim()
+    if (InputValidator.validatePassword(currentPassword) != null) return false
+    if (InputValidator.validatePassword(newPassword) != null) return false
+    return InputValidator.validatePasswordConfirmation(newPassword, confirmPassword) == null
 }
 
 @Composable
@@ -2031,30 +2114,40 @@ private fun SettingsInlineInputField86(
     placeholder: String,
     value: String,
     onValueChange: (String) -> Unit,
+    isPassword: Boolean = false,
+    maxLength: Int = Int.MAX_VALUE,
+    isError: Boolean = false,
+    errorMessage: String? = null,
 ) {
     val typo = LocalRfTypography.current
     val palette = RfThemeState.currentPalette
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(42.dp)
-            .clip(RoundedCornerShape(10.dp))
-            .background(palette.surface)
-            .border(1.dp, palette.line, RoundedCornerShape(10.dp))
-            .padding(horizontal = 12.dp),
-        contentAlignment = Alignment.CenterStart,
-    ) {
-        if (value.isEmpty()) {
-            BasicText(placeholder, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.5.sp, color = palette.muted))
+    val borderColor = if (isError) RfColors.Error else palette.line
+    val visualMask = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(42.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(palette.surface)
+                .border(1.dp, borderColor, RoundedCornerShape(10.dp))
+                .padding(horizontal = 12.dp),
+            contentAlignment = Alignment.CenterStart,
+        ) {
+            if (value.isEmpty()) {
+                BasicText(placeholder, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.5.sp, color = palette.muted))
+            }
+            BasicTextField(
+                value = value,
+                onValueChange = { updatedText -> onValueChange(updatedText.take(maxLength)) },
+                singleLine = true,
+                visualTransformation = visualMask,
+                textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.5.sp, color = palette.ink),
+                cursorBrush = SolidColor(Color(0xFFC2338F)),
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
-        BasicTextField(
-            value = value,
-            onValueChange = onValueChange,
-            singleLine = true,
-            textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.5.sp, color = palette.ink),
-            cursorBrush = SolidColor(Color(0xFFC2338F)),
-            modifier = Modifier.fillMaxWidth(),
-        )
+        RfValidationErrorText(errorMessage = errorMessage)
     }
 }
 
@@ -2708,6 +2801,13 @@ private fun TermsSection87(
     }
 }
 
+private fun validateDeleteConfirmation88(rawValue: String): String? {
+    val trimmed = rawValue.trim()
+    if (trimmed.isEmpty()) return "Escribe ELIMINAR en mayúsculas para confirmar."
+    if (trimmed != "ELIMINAR") return "Debes escribir exactamente ELIMINAR en mayúsculas."
+    return null
+}
+
 @Composable
 internal fun RenderDeleteAccountS88(
     viewModel: RosaFiestaViewModel? = null,
@@ -2715,7 +2815,17 @@ internal fun RenderDeleteAccountS88(
 ) {
     val typo = LocalRfTypography.current
     var confirmationText by remember { mutableStateOf("") }
+    var hasInteractedConfirmation by remember { mutableStateOf(false) }
+    var forceShowConfirmationError by remember { mutableStateOf(false) }
     var deletionErrorText by remember { mutableStateOf<String?>(null) }
+
+    val visibleConfirmationError = rememberDebouncedValidationError(
+        value = confirmationText,
+        hasInteracted = hasInteractedConfirmation,
+        forceShowError = forceShowConfirmationError,
+    ) { value ->
+        validateDeleteConfirmation88(value)
+    }
 
     viewModel?.events?.collectAsState()?.value
     viewModel?.currentAuthenticatedUser?.collectAsState()?.value
@@ -2865,13 +2975,14 @@ internal fun RenderDeleteAccountS88(
 
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 BasicText("Escribe ELIMINAR para confirmar", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF3B3550)))
+                val confirmationBorderColor = if (visibleConfirmationError != null) RfColors.Error else RfThemeState.currentPalette.line
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(52.dp)
                         .clip(RoundedCornerShape(16.dp))
                         .background(RfThemeState.currentPalette.surface)
-                        .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(16.dp))
+                        .border(1.dp, confirmationBorderColor, RoundedCornerShape(16.dp))
                         .padding(horizontal = 16.dp),
                     contentAlignment = Alignment.CenterStart,
                 ) {
@@ -2881,7 +2992,8 @@ internal fun RenderDeleteAccountS88(
                     BasicTextField(
                         value = confirmationText,
                         onValueChange = { updatedText ->
-                            confirmationText = updatedText
+                            confirmationText = updatedText.take(20)
+                            hasInteractedConfirmation = true
                             deletionErrorText = null
                         },
                         singleLine = true,
@@ -2890,13 +3002,8 @@ internal fun RenderDeleteAccountS88(
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
-                val displayedError = deletionErrorText ?: vmFormError
-                if (!displayedError.isNullOrBlank()) {
-                    BasicText(
-                        text = displayedError,
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 12.5.sp, color = Color(0xFFB42345)),
-                    )
-                }
+                val displayedError = visibleConfirmationError ?: deletionErrorText ?: vmFormError
+                RfValidationErrorText(errorMessage = displayedError)
             }
         }
 
@@ -2920,24 +3027,30 @@ internal fun RenderDeleteAccountS88(
                     )
                     .clip(RoundedCornerShape(16.dp))
                     .background(if (canConfirmDeletion) Color(0xFFB42345) else Color(0xFFF1D5DB))
-                    .then(
-                        if (canConfirmDeletion) {
-                            Modifier.clickable {
-                                val deleted = if (viewModel != null) {
-                                    viewModel.deleteCurrentUserAccount()
-                                } else {
-                                    true
-                                }
-                                if (deleted) {
-                                    onSelectScreenCode("s06")
-                                } else {
-                                    deletionErrorText = "No fue posible eliminar la cuenta activa."
-                                }
-                            }
+                    .clickable {
+                        forceShowConfirmationError = true
+                        val confirmationError = validateDeleteConfirmation88(confirmationText)
+                        if (confirmationError != null) {
+                            deletionErrorText = confirmationError
+                            viewModel?.soundPlayer?.playAlertError()
+                            return@clickable
+                        }
+                        if (!hasZeroActiveEvents) {
+                            deletionErrorText = "Cancela tus eventos activos antes de eliminar tu cuenta."
+                            viewModel?.soundPlayer?.playAlertError()
+                            return@clickable
+                        }
+                        val deleted = if (viewModel != null) {
+                            viewModel.deleteCurrentUserAccount()
                         } else {
-                            Modifier
-                        },
-                    ),
+                            true
+                        }
+                        if (deleted) {
+                            onSelectScreenCode("s06")
+                        } else {
+                            deletionErrorText = "No fue posible eliminar la cuenta activa."
+                        }
+                    },
                 contentAlignment = Alignment.Center,
             ) {
                 BasicText(
@@ -3411,33 +3524,133 @@ private fun CatalogProductSkeletonCardS90(
 }
 
 // ==============================================================================
+private fun resolveModalOriginScreenCode(
+    underlyingScreenCode: String?,
+    defaultOrigin: String,
+    excludedOrigins: Set<String> = emptySet(),
+): String {
+    val candidate = underlyingScreenCode?.trim().orEmpty()
+    val hasCandidate = candidate.isNotEmpty()
+    val isAllowed = candidate !in excludedOrigins
+    val shouldUseCandidate = if (hasCandidate) isAllowed else false
+    return if (shouldUseCandidate) candidate else defaultOrigin
+}
+
+private fun resolveModalDismissRoute(originScreenCode: String): String = "BACK:$originScreenCode"
+
+@Composable
+private fun RenderModalOriginBackdrop(
+    originScreenCode: String,
+    viewModel: RosaFiestaViewModel?,
+    onOverlayInteraction: ((String) -> Unit)? = null,
+) {
+    val interactiveCallback = onOverlayInteraction ?: {}
+    Box(modifier = Modifier.fillMaxSize()) {
+        when (originScreenCode) {
+            "s01" -> RenderGuestCatalogS01(viewModel = viewModel, onSelectScreenCode = interactiveCallback)
+
+            "s02" -> RenderGuestFavoritesS02(viewModel = viewModel, onSelectScreenCode = interactiveCallback)
+
+            "s14", "s15" -> RenderPersonalHomeScreen(
+                spec = ScreenCatalog.findByCode(originScreenCode),
+                viewModel = viewModel,
+                onSelectScreenCode = interactiveCallback,
+            )
+
+            "s16" -> RenderAboutScreenS16(viewModel = viewModel, onSelectScreenCode = interactiveCallback)
+
+            "s17" -> RenderCompanyReviewsS17(viewModel = viewModel, onSelectScreenCode = interactiveCallback)
+
+            "s18" -> RenderPersonalCatalogS18(viewModel = viewModel, onSelectScreenCode = interactiveCallback)
+
+            "s19" -> RenderProductDetailS19(viewModel = viewModel, onSelectScreenCode = interactiveCallback)
+
+            "s20" -> RenderCategoriesScreenS20(viewModel = viewModel, onSelectScreenCode = interactiveCallback)
+
+            "s21" -> RenderPackagesScreenS21(viewModel = viewModel, onSelectScreenCode = interactiveCallback)
+
+            "s22" -> RenderPackageDetailScreenS22(viewModel = viewModel, onSelectScreenCode = interactiveCallback)
+
+            "s23" -> RenderShopScreenS23(viewModel = viewModel, onSelectScreenCode = interactiveCallback)
+
+            "s24" -> RenderClientFavoritesScreenS24(viewModel = viewModel, onSelectScreenCode = interactiveCallback)
+
+            "s25" -> RenderMyEventDraftS25(viewModel = viewModel, onSelectScreenCode = interactiveCallback)
+
+            "s37" -> RenderMyEventsScreenS37(viewModel = viewModel, onSelectScreenCode = interactiveCallback)
+
+            "s39" -> RenderCalendarScreenS39(viewModel = viewModel, onSelectScreenCode = interactiveCallback)
+
+            "s40" -> RenderEventDetailScreenS40(viewModel = viewModel, onSelectScreenCode = interactiveCallback)
+
+            "s52" -> RenderPostEventReviewScreenS52(viewModel = viewModel, onSelectScreenCode = interactiveCallback)
+
+            "s53" -> RenderMyReservationsScreenS53(viewModel = viewModel, onSelectScreenCode = interactiveCallback)
+
+            "s80" -> RenderPersonalSearchS80(viewModel = viewModel, onSelectScreenCode = interactiveCallback)
+
+            else -> RenderPersonalCatalogS18(viewModel = viewModel, onSelectScreenCode = interactiveCallback)
+        }
+        val originHasBottomBar = shouldShowBottomBar(originScreenCode)
+        if (originHasBottomBar) {
+            RenderAppBottomBar(
+                spec = ScreenCatalog.findByCode(originScreenCode),
+                onSelectScreenCode = interactiveCallback,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth(),
+            )
+        }
+    }
+}
+
+@Composable
+private fun RenderModalSheetScrim(
+    onDismiss: () -> Unit,
+) {
+    val scrimInteractionSource = remember { MutableInteractionSource() }
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0x731E1432))
+            .clickable(
+                interactionSource = scrimInteractionSource,
+                indication = null,
+                onClick = onDismiss,
+            ),
+    )
+}
+
 @Composable
 internal fun RenderGuestAuthModalS75(
     viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
+    underlyingScreenCode: String? = null,
 ) {
     val typo = LocalRfTypography.current
     val sheetSlideModifier = rememberModalSheetSlideModifier()
+    val originScreenCode = remember(underlyingScreenCode) {
+        resolveModalOriginScreenCode(
+            underlyingScreenCode = underlyingScreenCode,
+            defaultOrigin = "s01",
+            excludedOrigins = setOf("s75"),
+        )
+    }
+    val dismissRoute = remember(originScreenCode) {
+        resolveModalDismissRoute(originScreenCode)
+    }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(RfThemeState.currentPalette.bg),
     ) {
-        RenderGuestCatalogS01(viewModel = viewModel, onSelectScreenCode = {})
-        RenderAppBottomBar(
-            spec = ScreenCatalog.findByCode("s01"),
-            onSelectScreenCode = {},
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth(),
+        RenderModalOriginBackdrop(
+            originScreenCode = originScreenCode,
+            viewModel = viewModel,
         )
-
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0x731E1432))
-                .clickable { onSelectScreenCode("BACK:s01") },
+        RenderModalSheetScrim(
+            onDismiss = { onSelectScreenCode(dismissRoute) },
         )
 
         Box(
@@ -3609,7 +3822,7 @@ internal fun RenderGuestAuthModalS75(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(44.dp)
-                        .clickable { onSelectScreenCode("BACK:s01") },
+                        .clickable { onSelectScreenCode(dismissRoute) },
                 ) {
                     BasicText(
                         "Seguir explorando",
@@ -3630,33 +3843,32 @@ internal fun RenderGuestAuthModalS75(
 internal fun RenderPlanningModalS76(
     onSelectScreenCode: (String) -> Unit = {},
     viewModel: RosaFiestaViewModel? = null,
+    underlyingScreenCode: String? = null,
 ) {
     val typo = LocalRfTypography.current
     val sheetSlideModifier = rememberModalSheetSlideModifier()
+    val originScreenCode = remember(underlyingScreenCode) {
+        resolveModalOriginScreenCode(
+            underlyingScreenCode = underlyingScreenCode,
+            defaultOrigin = "s14",
+            excludedOrigins = setOf("s76"),
+        )
+    }
+    val dismissRoute = remember(originScreenCode) {
+        resolveModalDismissRoute(originScreenCode)
+    }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(RfThemeState.currentPalette.bg),
     ) {
-        RenderPersonalHomeScreen(
-            spec = ScreenCatalog.findByCode("s14"),
+        RenderModalOriginBackdrop(
+            originScreenCode = originScreenCode,
             viewModel = viewModel,
-            onSelectScreenCode = {},
         )
-        RenderAppBottomBar(
-            spec = ScreenCatalog.findByCode("s14"),
-            onSelectScreenCode = {},
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth(),
-        )
-
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0x731E1432))
-                .clickable { onSelectScreenCode("BACK:s14") },
+        RenderModalSheetScrim(
+            onDismiss = { onSelectScreenCode(dismissRoute) },
         )
 
         Box(
@@ -3957,35 +4169,54 @@ internal fun RenderPlanningModalS76(
 internal fun RenderEventReviewsModalS77(
     viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
+    underlyingScreenCode: String? = null,
 ) {
     val typo = LocalRfTypography.current
     val sheetSlideModifier = rememberModalSheetSlideModifier()
+    val originScreenCode = remember(underlyingScreenCode) {
+        resolveModalOriginScreenCode(
+            underlyingScreenCode = underlyingScreenCode,
+            defaultOrigin = "s37",
+            excludedOrigins = setOf("s77"),
+        )
+    }
+    val dismissRoute = remember(originScreenCode) {
+        resolveModalDismissRoute(originScreenCode)
+    }
     val activeEvent = viewModel?.activeClientEvent() ?: CanonicalSampleData.events.last()
     val reviewsState = viewModel?.companyReviews?.collectAsState()?.value ?: emptyList()
     var showComposer by remember { mutableStateOf(false) }
     var selectedStars by remember { mutableStateOf(5) }
     var draftComment by remember { mutableStateOf("") }
+    var hasInteractedComment by remember { mutableStateOf(false) }
+    var forceShowCommentError by remember { mutableStateOf(false) }
     var validationError by remember { mutableStateOf<String?>(null) }
+
+    val debouncedCommentError = rememberDebouncedValidationError(
+        value = draftComment,
+        hasInteracted = hasInteractedComment,
+        forceShowError = forceShowCommentError,
+    ) { value ->
+        InputValidator.validateNotes(
+            rawValue = value,
+            fieldLabel = "Tu reseña",
+            isRequired = true,
+            minLength = 6,
+            maxLength = InputValidator.MAX_NOTES_LENGTH,
+        )
+    }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(RfThemeState.currentPalette.bg),
     ) {
-        RenderMyEventsScreenS37(viewModel = viewModel, onSelectScreenCode = {})
-        RenderAppBottomBar(
-            spec = ScreenCatalog.findByCode("s37"),
-            onSelectScreenCode = {},
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth(),
+        RenderModalOriginBackdrop(
+            originScreenCode = originScreenCode,
+            viewModel = viewModel,
         )
-
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0x731E1432))
-                .clickable { onSelectScreenCode("BACK:s37") },
+        RenderModalSheetScrim(
+            onDismiss = { onSelectScreenCode(dismissRoute) },
         )
 
         Box(
@@ -4045,7 +4276,7 @@ internal fun RenderEventReviewsModalS77(
                             .clip(RoundedCornerShape(14.dp))
                             .background(RfThemeState.currentPalette.surface)
                             .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(14.dp))
-                            .clickable { onSelectScreenCode("BACK:s37") },
+                            .clickable { onSelectScreenCode(dismissRoute) },
                     ) {
                         RfIcon(kind = RfIconKind.CLOSE, tint = RfThemeState.currentPalette.ink, size = 20.dp)
                     }
@@ -4188,13 +4419,15 @@ internal fun RenderEventReviewsModalS77(
                             }
                         }
 
+                        val activeCommentError = debouncedCommentError ?: validationError
+                        val commentBorderColor = if (activeCommentError != null) RfColors.Error else RfThemeState.currentPalette.line
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(82.dp)
                                 .clip(RoundedCornerShape(16.dp))
                                 .background(RfThemeState.currentPalette.surface)
-                                .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(16.dp))
+                                .border(1.dp, commentBorderColor, RoundedCornerShape(16.dp))
                                 .padding(12.dp),
                         ) {
                             if (draftComment.isEmpty()) {
@@ -4206,7 +4439,8 @@ internal fun RenderEventReviewsModalS77(
                             BasicTextField(
                                 value = draftComment,
                                 onValueChange = { updatedText ->
-                                    draftComment = updatedText
+                                    draftComment = updatedText.take(InputValidator.MAX_NOTES_LENGTH)
+                                    hasInteractedComment = true
                                     validationError = null
                                 },
                                 textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.ink),
@@ -4215,12 +4449,7 @@ internal fun RenderEventReviewsModalS77(
                             )
                         }
 
-                        if (!validationError.isNullOrBlank()) {
-                            BasicText(
-                                validationError ?: "",
-                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 12.5.sp, color = Color(0xFFB42345)),
-                            )
-                        }
+                        RfValidationErrorText(errorMessage = activeCommentError)
                     }
                 }
 
@@ -4235,11 +4464,22 @@ internal fun RenderEventReviewsModalS77(
                         .clickable {
                             if (!showComposer) {
                                 showComposer = true
+                                hasInteractedComment = false
+                                forceShowCommentError = false
                                 validationError = null
                             } else {
+                                forceShowCommentError = true
                                 val trimmedComment = draftComment.trim()
-                                if (trimmedComment.length < 6) {
-                                    validationError = "Escribe al menos 6 caracteres en tu reseña antes de publicar."
+                                val commentError = InputValidator.validateNotes(
+                                    rawValue = trimmedComment,
+                                    fieldLabel = "Tu reseña",
+                                    isRequired = true,
+                                    minLength = 6,
+                                    maxLength = InputValidator.MAX_NOTES_LENGTH,
+                                )
+                                if (commentError != null) {
+                                    validationError = commentError
+                                    viewModel?.soundPlayer?.playAlertError()
                                 } else {
                                     val savedReview = if (viewModel != null) {
                                         viewModel.submitCompanyReview(
@@ -4252,8 +4492,10 @@ internal fun RenderEventReviewsModalS77(
                                     if (savedReview) {
                                         showComposer = false
                                         draftComment = ""
+                                        hasInteractedComment = false
+                                        forceShowCommentError = false
                                         validationError = null
-                                        onSelectScreenCode("BACK:s37")
+                                        onSelectScreenCode(dismissRoute)
                                     } else {
                                         validationError = "No fue posible publicar la reseña. Revisa tu comentario."
                                     }
@@ -4303,58 +4545,9 @@ internal fun rememberModalSheetSlideModifier(): Modifier {
         )
 }
 
-@Composable
-private fun RenderUnderlyingScreenForFiltersModal81(
-    originScreenCode: String,
-    viewModel: RosaFiestaViewModel?,
-) {
-    Box(modifier = Modifier.fillMaxSize()) {
-        when (originScreenCode) {
-            "s14", "s15" -> RenderPersonalHomeScreen(
-                spec = ScreenCatalog.findByCode(originScreenCode),
-                viewModel = viewModel,
-                onSelectScreenCode = {},
-            )
+private fun resolveFiltersDismissRoute81(originScreenCode: String): String = resolveModalDismissRoute(originScreenCode)
 
-            "s01" -> RenderGuestCatalogS01(
-                viewModel = viewModel,
-                onSelectScreenCode = {},
-            )
-
-            "s80" -> RenderPersonalSearchS80(
-                viewModel = viewModel,
-                onSelectScreenCode = {},
-            )
-
-            else -> RenderPersonalCatalogS18(
-                viewModel = viewModel,
-                onSelectScreenCode = {},
-            )
-        }
-        val originHasBottomBar = shouldShowBottomBar(originScreenCode)
-        if (originHasBottomBar) {
-            RenderAppBottomBar(
-                spec = ScreenCatalog.findByCode(originScreenCode),
-                onSelectScreenCode = {},
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth(),
-            )
-        }
-    }
-}
-
-private fun resolveFiltersDismissRoute81(originScreenCode: String): String = when (originScreenCode) {
-    "s14", "s15", "s18", "s80", "s01" -> "BACK:$originScreenCode"
-    else -> "BACK:s18"
-}
-
-private fun resolveFiltersApplyRoute81(originScreenCode: String): String = when (originScreenCode) {
-    "s01" -> "BACK:s01"
-    "s80" -> "BACK:s80"
-    "s18" -> "BACK:s18"
-    else -> "s18"
-}
+private fun resolveFiltersApplyRoute81(originScreenCode: String): String = resolveModalDismissRoute(originScreenCode)
 
 @Composable
 internal fun RenderCatalogFiltersModalS81(
@@ -4364,9 +4557,12 @@ internal fun RenderCatalogFiltersModalS81(
 ) {
     val typo = LocalRfTypography.current
     val density = LocalDensity.current
-    val originScreenCode = remember {
-        val candidate = underlyingScreenCode?.trim().orEmpty()
-        if (candidate.isNotEmpty()) candidate else "s18"
+    val originScreenCode = remember(underlyingScreenCode) {
+        resolveModalOriginScreenCode(
+            underlyingScreenCode = underlyingScreenCode,
+            defaultOrigin = "s18",
+            excludedOrigins = setOf("s81"),
+        )
     }
     val dismissRoute = remember(originScreenCode) {
         resolveFiltersDismissRoute81(originScreenCode)
@@ -4391,16 +4587,12 @@ internal fun RenderCatalogFiltersModalS81(
             .fillMaxSize()
             .background(RfThemeState.currentPalette.bg),
     ) {
-        RenderUnderlyingScreenForFiltersModal81(
+        RenderModalOriginBackdrop(
             originScreenCode = originScreenCode,
             viewModel = viewModel,
         )
-
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0x731E1432))
-                .clickable { onSelectScreenCode(dismissRoute) },
+        RenderModalSheetScrim(
+            onDismiss = { onSelectScreenCode(dismissRoute) },
         )
 
         Box(
@@ -4805,8 +4997,20 @@ private fun buildCalendarWeeks84(year: Int, month: Int): List<List<Int?>> {
 internal fun RenderChangeDateModalS84(
     onSelectScreenCode: (String) -> Unit = {},
     viewModel: RosaFiestaViewModel? = null,
+    underlyingScreenCode: String? = null,
 ) {
     val typo = LocalRfTypography.current
+    val sheetSlideModifier = rememberModalSheetSlideModifier()
+    val originScreenCode = remember(underlyingScreenCode) {
+        resolveModalOriginScreenCode(
+            underlyingScreenCode = underlyingScreenCode,
+            defaultOrigin = "s40",
+            excludedOrigins = setOf("s84", "s85"),
+        )
+    }
+    val dismissRoute = remember(originScreenCode) {
+        resolveModalDismissRoute(originScreenCode)
+    }
     val eventsState = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
     val selectedEventId = viewModel?.selectedEventId?.collectAsState()?.value
     val activeEvent = viewModel?.activeClientEvent()
@@ -4834,24 +5038,46 @@ internal fun RenderChangeDateModalS84(
     val weekdayShort = spanishWeekdayShort84(displayedYear, displayedMonth, selectedDayInt)
     val formattedSelection = "$weekdayShort $selectedDayInt $monthShort $displayedYear · $selectedTimeSlot"
     val selectedDaysUntil = DomainClockFormatter.computeDaysUntilEvent("$selectedDayInt $monthShort $displayedYear")
+    val sheetInteractionSource = remember { MutableInteractionSource() }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(RfThemeState.currentPalette.bg),
     ) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            drawRect(Brush.radialGradient(colors = listOf(RfThemeState.currentPalette.radialPrimary, RfThemeState.currentPalette.radialPrimary.copy(alpha = 0f)), center = Offset(0f, 0f), radius = size.width * 0.9f))
-            drawRect(Brush.radialGradient(colors = listOf(RfThemeState.currentPalette.radialSecondary, RfThemeState.currentPalette.radialSecondary.copy(alpha = 0f)), center = Offset(size.width, 0f), radius = size.width * 0.8f))
-        }
+        RenderModalOriginBackdrop(
+            originScreenCode = originScreenCode,
+            viewModel = viewModel,
+        )
+        RenderModalSheetScrim(
+            onDismiss = { onSelectScreenCode(dismissRoute) },
+        )
 
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(top = 16.dp, start = 20.dp, end = 20.dp, bottom = 136.dp),
+                .fillMaxWidth()
+                .heightIn(max = 700.dp)
+                .align(Alignment.BottomCenter)
+                .then(sheetSlideModifier)
+                .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
+                .background(RfThemeState.currentPalette.bg)
+                .clickable(
+                    interactionSource = sheetInteractionSource,
+                    indication = null,
+                    onClick = {},
+                )
+                .padding(top = 12.dp, start = 20.dp, end = 20.dp, bottom = 28.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .width(40.dp)
+                    .height(5.dp)
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(Color(0xFFE3DCE8)),
+            )
+
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -4863,7 +5089,7 @@ internal fun RenderChangeDateModalS84(
                         .shadow(8.dp, CircleShape, spotColor = Color(0x33B450B4))
                         .clip(CircleShape)
                         .background(RfThemeState.currentPalette.surface)
-                        .clickable { onSelectScreenCode("BACK:s40") },
+                        .clickable { onSelectScreenCode(dismissRoute) },
                 ) {
                     RfIcon(kind = RfIconKind.BACK, tint = RfThemeState.currentPalette.ink, size = 22.dp)
                 }
@@ -4873,323 +5099,328 @@ internal fun RenderChangeDateModalS84(
                 }
             }
 
-            Row(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(RfThemeState.currentPalette.chipBg)
-                    .padding(4.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    .weight(1f, fill = false)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Box(
+                Row(
                     modifier = Modifier
-                        .weight(1f)
-                        .height(38.dp)
-                        .shadow(4.dp, RoundedCornerShape(12.dp), spotColor = Color(0x33B450B4))
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(RfThemeState.currentPalette.surface),
-                    contentAlignment = Alignment.Center,
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(RfThemeState.currentPalette.chipBg)
+                        .padding(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    BasicText("Cambiar fecha", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = RfThemeState.currentPalette.ink))
-                }
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(38.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .clickable { onSelectScreenCode("s85") },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    BasicText("Cancelar evento", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Medium, fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
-                }
-            }
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
-                    .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(20.dp))
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(RfThemeState.currentPalette.surface)
-                    .padding(14.dp),
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(38.dp)
+                            .shadow(4.dp, RoundedCornerShape(12.dp), spotColor = Color(0x33B450B4))
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(RfThemeState.currentPalette.surface),
+                        contentAlignment = Alignment.Center,
                     ) {
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier
-                                .size(34.dp)
-                                .clip(CircleShape)
-                                .background(RfThemeState.currentPalette.chipBg)
-                                .clickable {
-                                    if (displayedMonth == 1) {
-                                        if (displayedYear > 2026) {
-                                            displayedYear -= 1
-                                            displayedMonth = 12
-                                        }
-                                    } else {
-                                        displayedMonth -= 1
-                                    }
-                                    val maxDaysNext = computeDaysInGregorianMonth(displayedYear, displayedMonth)
-                                    selectedDayInt = selectedDayInt.coerceIn(1, maxDaysNext)
-                                    feedbackBannerMessage = null
-                                },
-                        ) {
-                            RfIcon(kind = RfIconKind.BACK, tint = RfThemeState.currentPalette.ink, size = 16.dp)
-                        }
-                        BasicText(
-                            "${spanishMonthFull84(displayedMonth)} $displayedYear",
-                            style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = RfThemeState.currentPalette.ink),
-                        )
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier
-                                .size(34.dp)
-                                .clip(CircleShape)
-                                .background(RfThemeState.currentPalette.chipBg)
-                                .clickable {
-                                    if (displayedMonth == 12) {
-                                        if (displayedYear < 2030) {
-                                            displayedYear += 1
-                                            displayedMonth = 1
-                                        }
-                                    } else {
-                                        displayedMonth += 1
-                                    }
-                                    val maxDaysNext = computeDaysInGregorianMonth(displayedYear, displayedMonth)
-                                    selectedDayInt = selectedDayInt.coerceIn(1, maxDaysNext)
-                                    feedbackBannerMessage = null
-                                },
-                        ) {
-                            RfIcon(kind = RfIconKind.ARROW_RIGHT, tint = RfThemeState.currentPalette.ink, size = 16.dp)
-                        }
+                        BasicText("Cambiar fecha", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = RfThemeState.currentPalette.ink))
                     }
-
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
-                        listOf("L", "M", "X", "J", "V", "S", "D").forEach { weekdayLabel ->
-                            BasicText(weekdayLabel, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = RfThemeState.currentPalette.muted))
-                        }
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(38.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable { onSelectScreenCode("s85") },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        BasicText("Cancelar evento", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Medium, fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
                     }
+                }
 
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        weeksGrid.forEach { weekCells ->
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
-                                weekCells.forEach { dayNumber ->
-                                    if (dayNumber == null) {
-                                        Box(modifier = Modifier.size(38.dp))
-                                    } else {
-                                        val daysUntilDay = DomainClockFormatter.computeDaysUntilEvent("$dayNumber $monthShort $displayedYear")
-                                        val isPastDate = daysUntilDay < 0
-                                        val isTooSoon = daysUntilDay in 0..1
-                                        val isBlockedDay = if (isPastDate) true else isTooSoon
-                                        val isToday = daysUntilDay == 0
-                                        val isSelected = dayNumber == selectedDayInt
-                                        val hasLowStockDot = dayNumber.mod(7) == 0
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
+                        .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(20.dp))
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(RfThemeState.currentPalette.surface)
+                        .padding(14.dp),
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier
+                                    .size(34.dp)
+                                    .clip(CircleShape)
+                                    .background(RfThemeState.currentPalette.chipBg)
+                                    .clickable {
+                                        if (displayedMonth == 1) {
+                                            if (displayedYear > 2026) {
+                                                displayedYear -= 1
+                                                displayedMonth = 12
+                                            }
+                                        } else {
+                                            displayedMonth -= 1
+                                        }
+                                        val maxDaysNext = computeDaysInGregorianMonth(displayedYear, displayedMonth)
+                                        selectedDayInt = selectedDayInt.coerceIn(1, maxDaysNext)
+                                        feedbackBannerMessage = null
+                                    },
+                            ) {
+                                RfIcon(kind = RfIconKind.BACK, tint = RfThemeState.currentPalette.ink, size = 16.dp)
+                            }
+                            BasicText(
+                                "${spanishMonthFull84(displayedMonth)} $displayedYear",
+                                style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = RfThemeState.currentPalette.ink),
+                            )
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier
+                                    .size(34.dp)
+                                    .clip(CircleShape)
+                                    .background(RfThemeState.currentPalette.chipBg)
+                                    .clickable {
+                                        if (displayedMonth == 12) {
+                                            if (displayedYear < 2030) {
+                                                displayedYear += 1
+                                                displayedMonth = 1
+                                            }
+                                        } else {
+                                            displayedMonth += 1
+                                        }
+                                        val maxDaysNext = computeDaysInGregorianMonth(displayedYear, displayedMonth)
+                                        selectedDayInt = selectedDayInt.coerceIn(1, maxDaysNext)
+                                        feedbackBannerMessage = null
+                                    },
+                            ) {
+                                RfIcon(kind = RfIconKind.ARROW_RIGHT, tint = RfThemeState.currentPalette.ink, size = 16.dp)
+                            }
+                        }
 
-                                        Box(
-                                            modifier = Modifier
-                                                .size(38.dp)
-                                                .then(
-                                                    if (isSelected) {
-                                                        Modifier
-                                                            .shadow(8.dp, RoundedCornerShape(12.dp), spotColor = Color(0xB3865DEC), ambientColor = Color.Transparent)
-                                                            .clip(RoundedCornerShape(12.dp))
-                                                            .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))))
-                                                    } else if (isToday) {
-                                                        Modifier.clip(RoundedCornerShape(12.dp)).border(1.5.dp, Color(0xFFC2338F), RoundedCornerShape(12.dp))
-                                                    } else {
-                                                        Modifier.clip(RoundedCornerShape(12.dp))
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
+                            listOf("L", "M", "X", "J", "V", "S", "D").forEach { weekdayLabel ->
+                                BasicText(weekdayLabel, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = RfThemeState.currentPalette.muted))
+                            }
+                        }
+
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            weeksGrid.forEach { weekCells ->
+                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
+                                    weekCells.forEach { dayNumber ->
+                                        if (dayNumber == null) {
+                                            Box(modifier = Modifier.size(38.dp))
+                                        } else {
+                                            val daysUntilDay = DomainClockFormatter.computeDaysUntilEvent("$dayNumber $monthShort $displayedYear")
+                                            val isPastDate = daysUntilDay < 0
+                                            val isTooSoon = daysUntilDay in 0..1
+                                            val isBlockedDay = if (isPastDate) true else isTooSoon
+                                            val isToday = daysUntilDay == 0
+                                            val isSelected = dayNumber == selectedDayInt
+                                            val hasLowStockDot = dayNumber.mod(7) == 0
+
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(38.dp)
+                                                    .then(
+                                                        if (isSelected) {
+                                                            Modifier
+                                                                .shadow(8.dp, RoundedCornerShape(12.dp), spotColor = Color(0xB3865DEC), ambientColor = Color.Transparent)
+                                                                .clip(RoundedCornerShape(12.dp))
+                                                                .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))))
+                                                        } else if (isToday) {
+                                                            Modifier.clip(RoundedCornerShape(12.dp)).border(1.5.dp, Color(0xFFC2338F), RoundedCornerShape(12.dp))
+                                                        } else {
+                                                            Modifier.clip(RoundedCornerShape(12.dp))
+                                                        },
+                                                    )
+                                                    .clickable {
+                                                        if (isPastDate) {
+                                                            isFeedbackError = true
+                                                            feedbackBannerMessage = "No puedes reprogramar hacia una fecha pasada."
+                                                        } else if (isTooSoon) {
+                                                            isFeedbackError = true
+                                                            feedbackBannerMessage = "El cambio requiere mínimo 48 horas de anticipación."
+                                                        } else {
+                                                            selectedDayInt = dayNumber
+                                                            isFeedbackError = false
+                                                            feedbackBannerMessage = null
+                                                        }
                                                     },
+                                                contentAlignment = Alignment.Center,
+                                            ) {
+                                                BasicText(
+                                                    dayNumber.toString(),
+                                                    style = TextStyle(
+                                                        fontFamily = typo.bodyFamily,
+                                                        fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.SemiBold,
+                                                        fontSize = 14.sp,
+                                                        color = when {
+                                                            isSelected -> Color.White
+                                                            isBlockedDay -> Color(0xFFC9C3D1)
+                                                            else -> RfThemeState.currentPalette.ink
+                                                        },
+                                                    ),
                                                 )
-                                                .clickable {
-                                                    if (isPastDate) {
-                                                        isFeedbackError = true
-                                                        feedbackBannerMessage = "No puedes reprogramar hacia una fecha pasada."
-                                                    } else if (isTooSoon) {
-                                                        isFeedbackError = true
-                                                        feedbackBannerMessage = "El cambio requiere mínimo 48 horas de anticipación."
-                                                    } else {
-                                                        selectedDayInt = dayNumber
-                                                        isFeedbackError = false
-                                                        feedbackBannerMessage = null
-                                                    }
-                                                },
-                                            contentAlignment = Alignment.Center,
-                                        ) {
-                                            BasicText(
-                                                dayNumber.toString(),
-                                                style = TextStyle(
-                                                    fontFamily = typo.bodyFamily,
-                                                    fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.SemiBold,
-                                                    fontSize = 14.sp,
-                                                    color = when {
-                                                        isSelected -> Color.White
-                                                        isBlockedDay -> Color(0xFFC9C3D1)
-                                                        else -> RfThemeState.currentPalette.ink
-                                                    },
-                                                ),
-                                            )
-                                            val showWarningDot = if (hasLowStockDot) !isBlockedDay else false
-                                            if (showWarningDot) {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .align(Alignment.BottomCenter)
-                                                        .offset(y = (-4).dp)
-                                                        .size(5.dp)
-                                                        .clip(CircleShape)
-                                                        .background(Color(0xFFF7B500)),
-                                                )
+                                                val showWarningDot = if (hasLowStockDot) !isBlockedDay else false
+                                                if (showWarningDot) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .align(Alignment.BottomCenter)
+                                                            .offset(y = (-4).dp)
+                                                            .size(5.dp)
+                                                            .clip(CircleShape)
+                                                            .background(Color(0xFFF7B500)),
+                                                    )
+                                                }
                                             }
                                         }
                                     }
                                 }
                             }
                         }
-                    }
 
-                    Row(horizontalArrangement = Arrangement.spacedBy(14.dp), modifier = Modifier.padding(top = 6.dp)) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Box(modifier = Modifier.size(10.dp).border(1.5.dp, Color(0xFFC2338F), RoundedCornerShape(3.dp)))
-                            BasicText("Hoy", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = RfThemeState.currentPalette.muted))
-                        }
-                        Row(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(Color(0xFFF7B500)))
-                            BasicText("Alta demanda", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = RfThemeState.currentPalette.muted))
+                        Row(horizontalArrangement = Arrangement.spacedBy(14.dp), modifier = Modifier.padding(top = 6.dp)) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Box(modifier = Modifier.size(10.dp).border(1.5.dp, Color(0xFFC2338F), RoundedCornerShape(3.dp)))
+                                BasicText("Hoy", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = RfThemeState.currentPalette.muted))
+                            }
+                            Row(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(Color(0xFFF7B500)))
+                                BasicText("Alta demanda", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = RfThemeState.currentPalette.muted))
+                            }
                         }
                     }
                 }
-            }
 
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                BasicText(
-                    "Horario de montaje · $formattedSelection",
-                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = RfThemeState.currentPalette.ink),
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    BasicText(
+                        "Horario de montaje · $formattedSelection",
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = RfThemeState.currentPalette.ink),
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        timeSlotOptions.forEach { slotOption ->
+                            val isSlotSelected = slotOption == selectedTimeSlot
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(42.dp)
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .background(
+                                        if (isSlotSelected) {
+                                            Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF865DEC)))
+                                        } else {
+                                            SolidColor(RfThemeState.currentPalette.surface)
+                                        },
+                                    )
+                                    .border(
+                                        1.dp,
+                                        if (isSlotSelected) Color.Transparent else RfThemeState.currentPalette.line,
+                                        RoundedCornerShape(14.dp),
+                                    )
+                                    .clickable { selectedTimeSlot = slotOption },
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                BasicText(
+                                    slotOption,
+                                    style = TextStyle(
+                                        fontFamily = typo.bodyFamily,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 13.sp,
+                                        color = if (isSlotSelected) Color.White else RfThemeState.currentPalette.ink,
+                                    ),
+                                )
+                            }
+                        }
+                    }
+                }
+
+                val bannerText = feedbackBannerMessage ?: if (selectedDaysUntil >= 2) {
+                    "Tus $itemCountTotal artículos están disponibles para $formattedSelection. Tu primer cambio de fecha es gratis."
+                } else {
+                    "Selecciona una fecha con al menos 48 horas de anticipación para solicitar el cambio."
+                }
+                val showErrorStyle = if (isFeedbackError) true else selectedDaysUntil < 2
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(if (showErrorStyle) Color(0xFFFCE3E8) else Color(0xFFEEF6D6))
+                        .padding(12.dp, 14.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.Top,
                 ) {
-                    timeSlotOptions.forEach { slotOption ->
-                        val isSlotSelected = slotOption == selectedTimeSlot
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(42.dp)
-                                .clip(RoundedCornerShape(14.dp))
-                                .background(
-                                    if (isSlotSelected) {
-                                        Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF865DEC)))
-                                    } else {
-                                        SolidColor(RfThemeState.currentPalette.surface)
-                                    },
-                                )
-                                .border(
-                                    1.dp,
-                                    if (isSlotSelected) Color.Transparent else RfThemeState.currentPalette.line,
-                                    RoundedCornerShape(14.dp),
-                                )
-                                .clickable { selectedTimeSlot = slotOption },
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            BasicText(
-                                slotOption,
-                                style = TextStyle(
-                                    fontFamily = typo.bodyFamily,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp,
-                                    color = if (isSlotSelected) Color.White else RfThemeState.currentPalette.ink,
-                                ),
-                            )
-                        }
-                    }
+                    RfIcon(
+                        kind = if (showErrorStyle) RfIconKind.WARNING else RfIconKind.CHECK,
+                        tint = if (showErrorStyle) Color(0xFFB42345) else Color(0xFF3F560C),
+                        size = 18.dp,
+                    )
+                    BasicText(
+                        bannerText,
+                        style = TextStyle(
+                            fontFamily = typo.bodyFamily,
+                            fontSize = 13.5.sp,
+                            lineHeight = 19.sp,
+                            color = if (showErrorStyle) Color(0xFFB42345) else Color(0xFF3F560C),
+                        ),
+                    )
                 }
             }
 
-            val bannerText = feedbackBannerMessage ?: if (selectedDaysUntil >= 2) {
-                "Tus $itemCountTotal artículos están disponibles para $formattedSelection. Tu primer cambio de fecha es gratis."
-            } else {
-                "Selecciona una fecha con al menos 48 horas de anticipación para solicitar el cambio."
-            }
-            val showErrorStyle = if (isFeedbackError) true else selectedDaysUntil < 2
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(if (showErrorStyle) Color(0xFFFCE3E8) else Color(0xFFEEF6D6))
-                    .padding(12.dp, 14.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalAlignment = Alignment.Top,
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                RfIcon(
-                    kind = if (showErrorStyle) RfIconKind.WARNING else RfIconKind.CHECK,
-                    tint = if (showErrorStyle) Color(0xFFB42345) else Color(0xFF3F560C),
-                    size = 18.dp,
-                )
                 BasicText(
-                    bannerText,
-                    style = TextStyle(
-                        fontFamily = typo.bodyFamily,
-                        fontSize = 13.5.sp,
-                        lineHeight = 19.sp,
-                        color = if (showErrorStyle) Color(0xFFB42345) else Color(0xFF3F560C),
-                    ),
+                    "RosaFiesta confirmará el cambio en menos de 24 h.",
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.5.sp, color = RfThemeState.currentPalette.muted),
                 )
-            }
-        }
-
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.BottomCenter)
-                .padding(start = 20.dp, end = 20.dp, bottom = 36.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            BasicText(
-                "RosaFiesta confirmará el cambio en menos de 24 h.",
-                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.5.sp, color = RfThemeState.currentPalette.muted),
-            )
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(54.dp)
-                    .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(RosaButtonGradient)
-                    .clickable {
-                        if (selectedDaysUntil < 2) {
-                            isFeedbackError = true
-                            feedbackBannerMessage = "Elige una fecha futura con al menos 48 h de anticipación."
-                        } else if (viewModel != null) {
-                            viewModel.setDateChangeInput(formattedSelection)
-                            val targetId = activeEvent?.id ?: ""
-                            val changeResult = if (targetId.isNotBlank()) {
-                                viewModel.submitDateChange(targetId)
-                            } else {
-                                viewModel.submitDateChange()
-                            }
-                            if (changeResult.allowed) {
-                                isFeedbackError = false
-                                feedbackBannerMessage = null
-                                onSelectScreenCode("BACK:s40")
-                            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(54.dp)
+                        .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(RosaButtonGradient)
+                        .clickable {
+                            if (selectedDaysUntil < 2) {
                                 isFeedbackError = true
-                                feedbackBannerMessage = changeResult.message
+                                feedbackBannerMessage = "Elige una fecha futura con al menos 48 h de anticipación."
+                            } else if (viewModel != null) {
+                                viewModel.setDateChangeInput(formattedSelection)
+                                val targetId = activeEvent?.id ?: ""
+                                val changeResult = if (targetId.isNotBlank()) {
+                                    viewModel.submitDateChange(targetId)
+                                } else {
+                                    viewModel.submitDateChange()
+                                }
+                                if (changeResult.allowed) {
+                                    isFeedbackError = false
+                                    feedbackBannerMessage = null
+                                    onSelectScreenCode(dismissRoute)
+                                } else {
+                                    isFeedbackError = true
+                                    feedbackBannerMessage = changeResult.message
+                                }
+                            } else {
+                                onSelectScreenCode(dismissRoute)
                             }
-                        } else {
-                            onSelectScreenCode("BACK:s40")
-                        }
-                    },
-                contentAlignment = Alignment.Center,
-            ) {
-                BasicText(
-                    "Solicitar cambio de fecha",
-                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White),
-                )
+                        },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    BasicText(
+                        "Solicitar cambio de fecha",
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White),
+                    )
+                }
             }
         }
     }
@@ -5199,8 +5430,20 @@ internal fun RenderChangeDateModalS84(
 internal fun RenderCancelEventModalS85(
     onSelectScreenCode: (String) -> Unit = {},
     viewModel: RosaFiestaViewModel? = null,
+    underlyingScreenCode: String? = null,
 ) {
     val typo = LocalRfTypography.current
+    val sheetSlideModifier = rememberModalSheetSlideModifier()
+    val originScreenCode = remember(underlyingScreenCode) {
+        resolveModalOriginScreenCode(
+            underlyingScreenCode = underlyingScreenCode,
+            defaultOrigin = "s40",
+            excludedOrigins = setOf("s84", "s85"),
+        )
+    }
+    val dismissRoute = remember(originScreenCode) {
+        resolveModalDismissRoute(originScreenCode)
+    }
     val eventsState = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
     val selectedEventId = viewModel?.selectedEventId?.collectAsState()?.value
     val activeEvent = viewModel?.activeClientEvent()
@@ -5221,25 +5464,66 @@ internal fun RenderCancelEventModalS85(
 
     var selectedReason by remember { mutableStateOf("Cambio de planes") }
     var customReasonText by remember { mutableStateOf("") }
+    var hasInteractedReason by remember { mutableStateOf(false) }
+    var forceShowReasonError by remember { mutableStateOf(false) }
     var reasonErrorText by remember { mutableStateOf<String?>(null) }
+    val debouncedReasonError = rememberDebouncedValidationError(
+        value = customReasonText,
+        hasInteracted = hasInteractedReason,
+        forceShowError = forceShowReasonError,
+    ) { candidate ->
+        if (selectedReason != "Otro motivo") {
+            null
+        } else {
+            InputValidator.validateNotes(
+                rawValue = candidate,
+                fieldLabel = "El motivo de cancelación",
+                isRequired = true,
+                minLength = 6,
+                maxLength = InputValidator.MAX_NOTES_LENGTH,
+            )
+        }
+    }
+    val sheetInteractionSource = remember { MutableInteractionSource() }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(RfThemeState.currentPalette.bg),
     ) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            drawRect(Brush.radialGradient(colors = listOf(RfThemeState.currentPalette.radialPrimary, RfThemeState.currentPalette.radialPrimary.copy(alpha = 0f)), center = Offset(0f, 0f), radius = size.width * 0.9f))
-            drawRect(Brush.radialGradient(colors = listOf(RfThemeState.currentPalette.radialSecondary, RfThemeState.currentPalette.radialSecondary.copy(alpha = 0f)), center = Offset(size.width, 0f), radius = size.width * 0.8f))
-        }
+        RenderModalOriginBackdrop(
+            originScreenCode = originScreenCode,
+            viewModel = viewModel,
+        )
+        RenderModalSheetScrim(
+            onDismiss = { onSelectScreenCode(dismissRoute) },
+        )
 
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(top = 16.dp, start = 20.dp, end = 20.dp, bottom = 146.dp),
+                .fillMaxWidth()
+                .heightIn(max = 700.dp)
+                .align(Alignment.BottomCenter)
+                .then(sheetSlideModifier)
+                .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
+                .background(RfThemeState.currentPalette.bg)
+                .clickable(
+                    interactionSource = sheetInteractionSource,
+                    indication = null,
+                    onClick = {},
+                )
+                .padding(top = 12.dp, start = 20.dp, end = 20.dp, bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .width(40.dp)
+                    .height(5.dp)
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(Color(0xFFE3DCE8)),
+            )
+
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -5251,7 +5535,7 @@ internal fun RenderCancelEventModalS85(
                         .shadow(8.dp, CircleShape, spotColor = Color(0x33B450B4))
                         .clip(CircleShape)
                         .background(RfThemeState.currentPalette.surface)
-                        .clickable { onSelectScreenCode("BACK:s40") },
+                        .clickable { onSelectScreenCode(dismissRoute) },
                 ) {
                     RfIcon(kind = RfIconKind.BACK, tint = RfThemeState.currentPalette.ink, size = 22.dp)
                 }
@@ -5261,258 +5545,282 @@ internal fun RenderCancelEventModalS85(
                 }
             }
 
-            Row(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(RfThemeState.currentPalette.chipBg)
-                    .padding(4.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    .weight(1f, fill = false)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Box(
+                Row(
                     modifier = Modifier
-                        .weight(1f)
-                        .height(38.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .clickable { onSelectScreenCode("s84") },
-                    contentAlignment = Alignment.Center,
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(RfThemeState.currentPalette.chipBg)
+                        .padding(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    BasicText("Cambiar fecha", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Medium, fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
-                }
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(38.dp)
-                        .shadow(4.dp, RoundedCornerShape(12.dp), spotColor = Color(0x33B450B4))
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(RfThemeState.currentPalette.surface),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    BasicText("Cancelar evento", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = RfThemeState.currentPalette.ink))
-                }
-            }
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
-                    .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(20.dp))
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(RfThemeState.currentPalette.surface)
-                    .padding(14.dp, 16.dp),
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    val daysStatusSuffix = when {
-                        daysUntilEvent > 1 -> "· faltan $daysUntilEvent días"
-                        daysUntilEvent == 1 -> "· falta 1 día"
-                        daysUntilEvent == 0 -> "· es hoy"
-                        else -> "· fecha vencida"
-                    }
-                    Row {
-                        BasicText("Política de cancelación ", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = RfThemeState.currentPalette.ink))
-                        BasicText(daysStatusSuffix, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
-                    }
-                    CancelTierPolicyRow85(
-                        label = "Más de 7 días antes",
-                        percentText = "90%",
-                        isActive = refundPreview.refundPercent == 90,
-                    )
-                    CancelTierPolicyRow85(
-                        label = "Entre 3 y 7 días",
-                        percentText = "50%",
-                        isActive = refundPreview.refundPercent == 50,
-                    )
-                    CancelTierPolicyRow85(
-                        label = "Menos de 3 días",
-                        percentText = "Sin reembolso",
-                        isActive = refundPreview.refundPercent == 0,
-                    )
-                }
-            }
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
-                    .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(20.dp))
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(RfThemeState.currentPalette.surface)
-                    .padding(horizontal = 16.dp, vertical = 6.dp),
-            ) {
-                Column {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        BasicText("Anticipo pagado", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
-                        BasicText(RosaFiestaEngine.formatDop(paidDepositDop), style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = RfThemeState.currentPalette.ink))
-                    }
-                    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(RfThemeState.currentPalette.lineSoft))
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        BasicText("Cargo por ventana ($retentionPercent%)", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
-                        BasicText("− ${RosaFiestaEngine.formatDop(refundPreview.retainedDop)}", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = RfThemeState.currentPalette.ink))
-                    }
-                    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(RfThemeState.currentPalette.lineSoft))
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        BasicText("Te devolvemos (${refundPreview.refundPercent}%)", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = RfThemeState.currentPalette.ink))
-                        BasicText(
-                            RosaFiestaEngine.formatDop(refundPreview.refundDop),
-                            style = TextStyle(
-                                fontFamily = typo.displayFamily,
-                                fontWeight = FontWeight.ExtraBold,
-                                fontSize = 22.sp,
-                                color = if (refundPreview.refundDop > 0) Color(0xFF4E6A10) else Color(0xFFB42345),
-                            ),
-                        )
-                    }
-                }
-            }
-
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                BasicText("¿Por qué cancelas?", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF3B3550)))
-                val cancelReasons = listOf("Cambio de planes", "Ajuste de presupuesto", "Cambio de fecha sin definir", "Otro motivo")
-                cancelReasons.forEach { reasonOption ->
-                    val isReasonSelected = selectedReason == reasonOption
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(38.dp)
-                            .clickable {
-                                selectedReason = reasonOption
-                                reasonErrorText = null
-                            },
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(20.dp)
-                                .border(
-                                    if (isReasonSelected) 6.dp else 2.dp,
-                                    if (isReasonSelected) Color(0xFFC2338F) else Color(0xFFE3DCE8),
-                                    CircleShape,
-                                ),
-                        )
-                        BasicText(
-                            reasonOption,
-                            style = TextStyle(
-                                fontFamily = typo.bodyFamily,
-                                fontWeight = if (isReasonSelected) FontWeight.SemiBold else FontWeight.Normal,
-                                fontSize = 14.5.sp,
-                                color = RfThemeState.currentPalette.ink,
-                            ),
-                        )
-                    }
-                }
-                if (selectedReason == "Otro motivo") {
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .height(46.dp)
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(RfThemeState.currentPalette.surface)
-                            .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(14.dp))
-                            .padding(horizontal = 14.dp),
-                        contentAlignment = Alignment.CenterStart,
+                            .weight(1f)
+                            .height(38.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable { onSelectScreenCode("s84") },
+                        contentAlignment = Alignment.Center,
                     ) {
-                        if (customReasonText.isEmpty()) {
-                            BasicText("Cuéntanos brevemente el motivo...", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
+                        BasicText("Cambiar fecha", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Medium, fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
+                    }
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(38.dp)
+                            .shadow(4.dp, RoundedCornerShape(12.dp), spotColor = Color(0x33B450B4))
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(RfThemeState.currentPalette.surface),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        BasicText("Cancelar evento", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = RfThemeState.currentPalette.ink))
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
+                        .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(20.dp))
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(RfThemeState.currentPalette.surface)
+                        .padding(14.dp, 16.dp),
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        val daysStatusSuffix = when {
+                            daysUntilEvent > 1 -> "· faltan $daysUntilEvent días"
+                            daysUntilEvent == 1 -> "· falta 1 día"
+                            daysUntilEvent == 0 -> "· es hoy"
+                            else -> "· fecha vencida"
                         }
-                        BasicTextField(
-                            value = customReasonText,
-                            onValueChange = { updated ->
-                                customReasonText = updated
-                                reasonErrorText = null
-                            },
-                            singleLine = true,
-                            textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.ink),
-                            cursorBrush = SolidColor(Color(0xFFC2338F)),
-                            modifier = Modifier.fillMaxWidth(),
+                        Row {
+                            BasicText("Política de cancelación ", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = RfThemeState.currentPalette.ink))
+                            BasicText(daysStatusSuffix, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
+                        }
+                        CancelTierPolicyRow85(
+                            label = "Más de 7 días antes",
+                            percentText = "90%",
+                            isActive = refundPreview.refundPercent == 90,
+                        )
+                        CancelTierPolicyRow85(
+                            label = "Entre 3 y 7 días",
+                            percentText = "50%",
+                            isActive = refundPreview.refundPercent == 50,
+                        )
+                        CancelTierPolicyRow85(
+                            label = "Menos de 3 días",
+                            percentText = "Sin reembolso",
+                            isActive = refundPreview.refundPercent == 0,
                         )
                     }
                 }
-                if (!reasonErrorText.isNullOrBlank()) {
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
+                        .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(20.dp))
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(RfThemeState.currentPalette.surface)
+                        .padding(horizontal = 16.dp, vertical = 6.dp),
+                ) {
+                    Column {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            BasicText("Anticipo pagado", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
+                            BasicText(RosaFiestaEngine.formatDop(paidDepositDop), style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = RfThemeState.currentPalette.ink))
+                        }
+                        Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(RfThemeState.currentPalette.lineSoft))
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            BasicText("Cargo por ventana ($retentionPercent%)", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
+                            BasicText("− ${RosaFiestaEngine.formatDop(refundPreview.retainedDop)}", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = RfThemeState.currentPalette.ink))
+                        }
+                        Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(RfThemeState.currentPalette.lineSoft))
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            BasicText("Te devolvemos (${refundPreview.refundPercent}%)", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = RfThemeState.currentPalette.ink))
+                            BasicText(
+                                RosaFiestaEngine.formatDop(refundPreview.refundDop),
+                                style = TextStyle(
+                                    fontFamily = typo.displayFamily,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 22.sp,
+                                    color = if (refundPreview.refundDop > 0) Color(0xFF4E6A10) else Color(0xFFB42345),
+                                ),
+                            )
+                        }
+                    }
+                }
+
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    BasicText("¿Por qué cancelas?", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF3B3550)))
+                    val cancelReasons = listOf("Cambio de planes", "Ajuste de presupuesto", "Cambio de fecha sin definir", "Otro motivo")
+                    cancelReasons.forEach { reasonOption ->
+                        val isReasonSelected = selectedReason == reasonOption
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(38.dp)
+                                .clickable {
+                                    selectedReason = reasonOption
+                                    reasonErrorText = null
+                                },
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(20.dp)
+                                    .border(
+                                        if (isReasonSelected) 6.dp else 2.dp,
+                                        if (isReasonSelected) Color(0xFFC2338F) else Color(0xFFE3DCE8),
+                                        CircleShape,
+                                    ),
+                            )
+                            BasicText(
+                                reasonOption,
+                                style = TextStyle(
+                                    fontFamily = typo.bodyFamily,
+                                    fontWeight = if (isReasonSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                    fontSize = 14.5.sp,
+                                    color = RfThemeState.currentPalette.ink,
+                                ),
+                            )
+                        }
+                    }
+                    val activeReasonError = if (selectedReason == "Otro motivo") {
+                        reasonErrorText ?: debouncedReasonError
+                    } else {
+                        reasonErrorText
+                    }
+                    if (selectedReason == "Otro motivo") {
+                        val reasonBorderColor = if (activeReasonError != null) RfColors.Error else RfThemeState.currentPalette.line
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(46.dp)
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(RfThemeState.currentPalette.surface)
+                                .border(1.dp, reasonBorderColor, RoundedCornerShape(14.dp))
+                                .padding(horizontal = 14.dp),
+                            contentAlignment = Alignment.CenterStart,
+                        ) {
+                            if (customReasonText.isEmpty()) {
+                                BasicText("Cuéntanos brevemente el motivo...", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
+                            }
+                            BasicTextField(
+                                value = customReasonText,
+                                onValueChange = { updated ->
+                                    customReasonText = updated.take(InputValidator.MAX_NOTES_LENGTH)
+                                    hasInteractedReason = true
+                                    reasonErrorText = null
+                                },
+                                singleLine = true,
+                                textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.ink),
+                                cursorBrush = SolidColor(Color(0xFFC2338F)),
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
+                    }
+                    RfValidationErrorText(errorMessage = activeReasonError)
+                }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Brush.horizontalGradient(listOf(Color(0xFFFCE6F3), Color(0xFFECE4FD))))
+                        .clickable { onSelectScreenCode("s84") }
+                        .padding(10.dp, 14.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    RfIcon(kind = RfIconKind.CALENDAR, tint = Color(0xFF865DEC), size = 18.dp)
                     BasicText(
-                        reasonErrorText ?: "",
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 12.5.sp, color = Color(0xFFB42345)),
+                        "¿Mejor otra fecha? Cambiarla es gratis.",
+                        modifier = Modifier.weight(1f),
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.5.sp, color = RfThemeState.currentPalette.ink),
                     )
+                    RfIcon(kind = RfIconKind.ARROW_RIGHT, tint = Color(0xFF865DEC), size = 16.dp)
                 }
             }
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Brush.horizontalGradient(listOf(Color(0xFFFCE6F3), Color(0xFFECE4FD))))
-                    .clickable { onSelectScreenCode("s84") }
-                    .padding(10.dp, 14.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalAlignment = Alignment.CenterVertically,
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                RfIcon(kind = RfIconKind.CALENDAR, tint = Color(0xFF865DEC), size = 18.dp)
-                BasicText(
-                    "¿Mejor otra fecha? Cambiarla es gratis.",
-                    modifier = Modifier.weight(1f),
-                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.5.sp, color = RfThemeState.currentPalette.ink),
-                )
-                RfIcon(kind = RfIconKind.ARROW_RIGHT, tint = Color(0xFF865DEC), size = 16.dp)
-            }
-        }
-
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.BottomCenter)
-                .padding(start = 20.dp, end = 20.dp, bottom = 30.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(54.dp)
-                    .shadow(12.dp, RoundedCornerShape(16.dp), spotColor = Color(0x99B42345))
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color(0xFFB42345))
-                    .clickable {
-                        val resolvedReason = if (selectedReason == "Otro motivo") {
-                            customReasonText.trim()
-                        } else {
-                            selectedReason.trim()
-                        }
-                        if (resolvedReason.isEmpty()) {
-                            reasonErrorText = "Indica el motivo de cancelación antes de continuar."
-                        } else {
-                            if (activeEvent != null) {
-                                viewModel?.submitCancelEvent(
-                                    eventId = activeEvent.id,
-                                    reason = resolvedReason,
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(54.dp)
+                        .shadow(12.dp, RoundedCornerShape(16.dp), spotColor = Color(0x99B42345))
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color(0xFFB42345))
+                        .clickable {
+                            val isCustomReason = selectedReason == "Otro motivo"
+                            val customValidationError = if (isCustomReason) {
+                                InputValidator.validateNotes(
+                                    rawValue = customReasonText,
+                                    fieldLabel = "El motivo de cancelación",
+                                    isRequired = true,
+                                    minLength = 6,
+                                    maxLength = InputValidator.MAX_NOTES_LENGTH,
                                 )
                             } else {
-                                viewModel?.submitCancelEvent(reason = resolvedReason)
+                                null
                             }
-                            onSelectScreenCode("s37")
-                        }
-                    },
-                contentAlignment = Alignment.Center,
-            ) {
-                BasicText("Confirmar cancelación", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White))
-            }
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(44.dp)
-                    .clickable { onSelectScreenCode("BACK:s40") },
-                contentAlignment = Alignment.Center,
-            ) {
-                BasicText("Mantener mi evento", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = RfThemeState.currentPalette.muted))
+                            if (customValidationError != null) {
+                                forceShowReasonError = true
+                                reasonErrorText = customValidationError
+                            } else {
+                                val resolvedReason = if (isCustomReason) {
+                                    customReasonText.trim()
+                                } else {
+                                    selectedReason.trim()
+                                }
+                                if (resolvedReason.isEmpty()) {
+                                    reasonErrorText = "Indica el motivo de cancelación antes de continuar."
+                                } else {
+                                    if (activeEvent != null) {
+                                        viewModel?.submitCancelEvent(
+                                            eventId = activeEvent.id,
+                                            reason = resolvedReason,
+                                        )
+                                    } else {
+                                        viewModel?.submitCancelEvent(reason = resolvedReason)
+                                    }
+                                    onSelectScreenCode(dismissRoute)
+                                }
+                            }
+                        },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    BasicText("Confirmar cancelación", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White))
+                }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(44.dp)
+                        .clickable { onSelectScreenCode(dismissRoute) },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    BasicText("Mantener mi evento", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = RfThemeState.currentPalette.muted))
+                }
             }
         }
     }
@@ -5701,8 +6009,19 @@ internal fun RenderPersonalOfflineStateS91(
 internal fun RenderPersonalSuccessStateS92(
     onSelectScreenCode: (String) -> Unit = {},
     viewModel: RosaFiestaViewModel? = null,
+    underlyingScreenCode: String? = null,
 ) {
     val typo = LocalRfTypography.current
+    val originScreenCode = remember(underlyingScreenCode) {
+        resolveModalOriginScreenCode(
+            underlyingScreenCode = underlyingScreenCode,
+            defaultOrigin = "s18",
+            excludedOrigins = setOf("s92"),
+        )
+    }
+    val dismissRoute = remember(originScreenCode) {
+        resolveModalDismissRoute(originScreenCode)
+    }
     val draftQuantities = viewModel?.draftQuantities?.collectAsState()?.value ?: emptyMap()
     val totalPieces = draftQuantities.values.sum()
     val summarySubtitle = if (totalPieces > 0) {
@@ -5716,7 +6035,11 @@ internal fun RenderPersonalSuccessStateS92(
             .fillMaxSize()
             .background(RfThemeState.currentPalette.bg),
     ) {
-        RenderPersonalCatalogS18(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+        RenderModalOriginBackdrop(
+            originScreenCode = originScreenCode,
+            viewModel = viewModel,
+            onOverlayInteraction = onSelectScreenCode,
+        )
 
         Box(
             modifier = Modifier
@@ -5769,7 +6092,7 @@ internal fun RenderPersonalSuccessStateS92(
                     modifier = Modifier
                         .clickable {
                             viewModel?.undoLastDraftAddition()
-                            onSelectScreenCode("BACK:s18")
+                            onSelectScreenCode(dismissRoute)
                         }
                         .padding(horizontal = 4.dp, vertical = 6.dp),
                 ) {

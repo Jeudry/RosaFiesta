@@ -233,9 +233,22 @@ object ScreenCatalog {
     fun findByCode(code: String): ScreenSpec = byCode[code] ?: personalScreens.first()
 
     /**
-     * Indica si la pantalla es una hoja inferior modal (`RfBottomSheet`) según las secciones 3 y 4.1.
+     * Returns whether the screen code is presented as a modal bottom sheet or overlay menu.
      */
-    fun isBottomSheet(code: String): Boolean = code in setOf("s75", "s76", "s77", "s81", "s84", "s85")
+    fun isBottomSheet(code: String): Boolean = code in MODAL_SHEET_CODES
+
+    private val MODAL_SHEET_CODES: Set<String> = setOf(
+        "s34",
+        "s75",
+        "s76",
+        "s77",
+        "s81",
+        "s84",
+        "s85",
+        "s92",
+        "A04",
+        "A21",
+    )
 
     /**
      * Indica si la pantalla usa la barra de navegación en modo invitado (`Inicio · Catálogo · Rosa · Paquetes · Entrar`).

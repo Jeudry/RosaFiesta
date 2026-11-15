@@ -1,13 +1,21 @@
 package com.jeudry.rosafiesta.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -68,6 +76,7 @@ import com.jeudry.rosafiesta.domain.EventStatus
 import com.jeudry.rosafiesta.domain.PhotoAsset
 import com.jeudry.rosafiesta.domain.QuoteRecord
 import com.jeudry.rosafiesta.domain.platform.ExternalUrlBuilder
+import com.jeudry.rosafiesta.domain.validation.InputValidator
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
@@ -88,6 +97,54 @@ private data class ParsedCalendarDate(
     val month: Int,
     val day: Int,
 )
+
+@Composable
+private fun RfCenteredAnimatedDialogOverlay(
+    visible: Boolean,
+    onDismiss: () -> Unit,
+    zIndex: Float = 12f,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn(tween(180)) + scaleIn(tween(180), initialScale = 0.94f),
+        exit = fadeOut(tween(140)) + scaleOut(tween(140), targetScale = 0.94f),
+        modifier = Modifier
+            .fillMaxSize()
+            .zIndex(zIndex),
+    ) {
+        val backdropInteractionSource = remember { MutableInteractionSource() }
+        val cardInteractionSource = remember { MutableInteractionSource() }
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.45f))
+                .clickable(
+                    interactionSource = backdropInteractionSource,
+                    indication = null,
+                    onClick = onDismiss,
+                )
+                .padding(horizontal = 20.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(RfThemeState.currentPalette.surface)
+                    .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(24.dp))
+                    .clickable(
+                        interactionSource = cardInteractionSource,
+                        indication = null,
+                        onClick = {},
+                    )
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                content = content,
+            )
+        }
+    }
+}
 
 private fun photoKeyForAsset(photoAsset: PhotoAsset): RfPhotoKey = when (photoAsset) {
     PhotoAsset.SILLA_TIFFANY -> RfPhotoKey.SILLA_TIFFANY
@@ -590,11 +647,47 @@ internal fun RenderNewEventScreenS38(
     var dateInput by remember { mutableStateOf(persistedDate) }
     var venueInput by remember { mutableStateOf(persistedVenue) }
     var guestsInput by remember {
-        val cleanPersistedDigits = persistedGuestsRaw.filter { charItem -> charItem.isDigit() }
+        val cleanPersistedDigits = InputValidator.filterDigitsOnly(persistedGuestsRaw, 5)
         mutableStateOf(cleanPersistedDigits.ifEmpty { defaultGuestsCount.toString() })
     }
     var showCalendarModal by remember { mutableStateOf(false) }
+    var hasInteractedTitle by remember { mutableStateOf(false) }
+    var hasInteractedDate by remember { mutableStateOf(false) }
+    var hasInteractedVenue by remember { mutableStateOf(false) }
+    var hasInteractedGuests by remember { mutableStateOf(false) }
+    var forceShowStepTwoErrors by remember { mutableStateOf(false) }
+    var forceShowStepThreeErrors by remember { mutableStateOf(false) }
     var localValidationError by remember { mutableStateOf<String?>(null) }
+
+    val customTitleError = rememberDebouncedValidationError(
+        value = customEventTitle,
+        hasInteracted = hasInteractedTitle,
+        forceShowError = false,
+    ) { rawTitle ->
+        if (rawTitle.isBlank()) null else InputValidator.validateEventName(rawTitle)
+    }
+    val forceShowAnyStepError = if (forceShowStepTwoErrors) true else forceShowStepThreeErrors
+    val dateFieldError = rememberDebouncedValidationError(
+        value = dateInput,
+        hasInteracted = hasInteractedDate,
+        forceShowError = forceShowAnyStepError,
+    ) { rawDate ->
+        InputValidator.validateEventDate(rawDate, isRequired = true)
+    }
+    val venueFieldError = rememberDebouncedValidationError(
+        value = venueInput,
+        hasInteracted = hasInteractedVenue,
+        forceShowError = forceShowAnyStepError,
+    ) { rawVenue ->
+        InputValidator.validateAddress(rawVenue)
+    }
+    val guestsFieldError = rememberDebouncedValidationError(
+        value = guestsInput,
+        hasInteracted = hasInteractedGuests,
+        forceShowError = forceShowStepThreeErrors,
+    ) { rawGuests ->
+        InputValidator.validateGuestCount(rawGuests)
+    }
 
     val resolvedEventTitle = customEventTitle.trim().ifEmpty { selectedType }
     val activeErrorMessage = localValidationError ?: vmFormError
@@ -838,6 +931,7 @@ internal fun RenderNewEventScreenS38(
                                 color = RfThemeState.currentPalette.ink,
                             ),
                         )
+                        val titleBorderColor = if (customTitleError != null) Color(0xFFB42345) else RfThemeState.currentPalette.line
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -845,14 +939,15 @@ internal fun RenderNewEventScreenS38(
                                 .rfInputShadow(RoundedCornerShape(14.dp))
                                 .clip(RoundedCornerShape(14.dp))
                                 .background(RfThemeState.currentPalette.surface)
-                                .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(14.dp))
+                                .border(1.dp, titleBorderColor, RoundedCornerShape(14.dp))
                                 .padding(horizontal = 14.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             BasicTextField(
                                 value = customEventTitle,
                                 onValueChange = { updatedText ->
-                                    customEventTitle = updatedText
+                                    customEventTitle = updatedText.take(InputValidator.MAX_EVENT_NAME_LENGTH)
+                                    hasInteractedTitle = true
                                     localValidationError = null
                                 },
                                 singleLine = true,
@@ -878,6 +973,7 @@ internal fun RenderNewEventScreenS38(
                                 },
                             )
                         }
+                        RfValidationErrorText(errorMessage = customTitleError)
                     }
 
                     Row(
@@ -953,13 +1049,16 @@ internal fun RenderNewEventScreenS38(
                                 value = dateInput,
                                 onValueChange = { updatedDate ->
                                     dateInput = updatedDate
+                                    hasInteractedDate = true
                                     localValidationError = null
                                     viewModel?.setEventDateInput(updatedDate)
                                 },
                                 onOpenCalendar = { showCalendarModal = true },
                                 placeholder = "Elegir fecha del evento",
+                                hasError = dateFieldError != null,
                                 modifier = Modifier.fillMaxWidth(),
                             )
+                            RfValidationErrorText(errorMessage = dateFieldError)
                         }
 
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -972,13 +1071,14 @@ internal fun RenderNewEventScreenS38(
                                     color = RfThemeState.currentPalette.ink,
                                 ),
                             )
+                            val venueBorderColor = if (venueFieldError != null) Color(0xFFB42345) else Color(0xFFD9B8EC)
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(52.dp)
                                     .clip(RoundedCornerShape(16.dp))
                                     .background(RfThemeState.currentPalette.surface)
-                                    .border(1.5.dp, Color(0xFFD9B8EC), RoundedCornerShape(16.dp))
+                                    .border(1.5.dp, venueBorderColor, RoundedCornerShape(16.dp))
                                     .padding(horizontal = 14.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -987,9 +1087,11 @@ internal fun RenderNewEventScreenS38(
                                 BasicTextField(
                                     value = venueInput,
                                     onValueChange = { updatedVenue ->
-                                        venueInput = updatedVenue
+                                        val cappedVenue = updatedVenue.take(InputValidator.MAX_ADDRESS_LENGTH)
+                                        venueInput = cappedVenue
+                                        hasInteractedVenue = true
                                         localValidationError = null
-                                        viewModel?.setEventVenueInput(updatedVenue)
+                                        viewModel?.setEventVenueInput(cappedVenue)
                                     },
                                     singleLine = true,
                                     textStyle = TextStyle(
@@ -1091,13 +1193,14 @@ internal fun RenderNewEventScreenS38(
                                 color = RfThemeState.currentPalette.ink,
                             ),
                         )
+                        val guestsBorderColor = if (guestsFieldError != null) Color(0xFFB42345) else Color(0xFFD9B8EC)
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(52.dp)
                                 .clip(RoundedCornerShape(16.dp))
                                 .background(RfThemeState.currentPalette.surface)
-                                .border(1.5.dp, Color(0xFFD9B8EC), RoundedCornerShape(16.dp))
+                                .border(1.5.dp, guestsBorderColor, RoundedCornerShape(16.dp))
                                 .padding(horizontal = 14.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -1106,8 +1209,9 @@ internal fun RenderNewEventScreenS38(
                             BasicTextField(
                                 value = guestsInput,
                                 onValueChange = { updatedText ->
-                                    val digitsOnly = updatedText.filter { charItem -> charItem.isDigit() }.take(4)
+                                    val digitsOnly = InputValidator.filterDigitsOnly(updatedText, 5)
                                     guestsInput = digitsOnly
+                                    hasInteractedGuests = true
                                     localValidationError = null
                                     viewModel?.setEventGuestsInput(digitsOnly)
                                 },
@@ -1158,6 +1262,7 @@ internal fun RenderNewEventScreenS38(
                                         .background(if (isPresetSelected) Color(0xFFFDE6F2) else RfThemeState.currentPalette.chipBg)
                                         .clickable {
                                             guestsInput = guestPreset.toString()
+                                            hasInteractedGuests = true
                                             localValidationError = null
                                             viewModel?.setEventGuestsInput(guestPreset.toString())
                                         },
@@ -1175,6 +1280,7 @@ internal fun RenderNewEventScreenS38(
                                 }
                             }
                         }
+                        RfValidationErrorText(errorMessage = guestsFieldError)
                     }
 
                     Column(
@@ -1210,8 +1316,13 @@ internal fun RenderNewEventScreenS38(
                             text = "Categoría: $selectedType",
                             style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = RfThemeState.currentPalette.muted),
                         )
+                        val formattedSummaryDate = if (dateInput.isBlank()) {
+                            "Por definir"
+                        } else {
+                            formatReadableSpanishDateText(dateInput)
+                        }
                         BasicText(
-                            text = "Fecha: ${dateInput.ifBlank { "Por definir" }}",
+                            text = "Fecha: $formattedSummaryDate",
                             style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = RfThemeState.currentPalette.muted),
                         )
                         BasicText(
@@ -1245,20 +1356,29 @@ internal fun RenderNewEventScreenS38(
                 .clickable(enabled = !isSubmitting) {
                     when (currentStep) {
                         1 -> {
-                            localValidationError = null
-                            viewModel?.setEventTypeInput(resolvedEventTitle)
-                            viewModel?.updateRosaParameters(eventType = selectedType)
-                            currentStep = 2
+                            val titleError = if (customEventTitle.isBlank()) null else InputValidator.validateEventName(customEventTitle)
+                            if (titleError != null) {
+                                hasInteractedTitle = true
+                                localValidationError = titleError
+                            } else {
+                                localValidationError = null
+                                viewModel?.setEventTypeInput(resolvedEventTitle)
+                                viewModel?.updateRosaParameters(eventType = selectedType)
+                                currentStep = 2
+                            }
                         }
 
                         2 -> {
+                            hasInteractedDate = true
+                            hasInteractedVenue = true
+                            forceShowStepTwoErrors = true
                             val cleanDate = dateInput.trim()
                             val cleanVenue = venueInput.trim()
-                            val hasDate = cleanDate.isNotEmpty()
-                            val hasVenue = cleanVenue.isNotEmpty()
-                            val canAdvanceToStepThree = if (hasDate) hasVenue else false
-                            if (!canAdvanceToStepThree) {
-                                localValidationError = "Completa la fecha y el lugar de tu evento para continuar."
+                            val dateError = InputValidator.validateEventDate(cleanDate, isRequired = true)
+                            val venueError = InputValidator.validateAddress(cleanVenue)
+                            val stepTwoError = dateError ?: venueError
+                            if (stepTwoError != null) {
+                                localValidationError = stepTwoError
                             } else {
                                 localValidationError = null
                                 viewModel?.setEventDateInput(cleanDate)
@@ -1268,14 +1388,20 @@ internal fun RenderNewEventScreenS38(
                         }
 
                         else -> {
+                            hasInteractedDate = true
+                            hasInteractedVenue = true
+                            hasInteractedGuests = true
+                            forceShowStepThreeErrors = true
                             val cleanDate = dateInput.trim()
                             val cleanVenue = venueInput.trim()
-                            val parsedGuests = guestsInput.trim().toIntOrNull() ?: 0
-                            val hasDateAndVenue = if (cleanDate.isNotEmpty()) cleanVenue.isNotEmpty() else false
-                            val canCreateManualEvent = if (hasDateAndVenue) parsedGuests > 0 else false
-                            if (!canCreateManualEvent) {
-                                localValidationError = "Indica una cantidad de invitados mayor a 0, fecha y lugar válidos."
+                            val dateError = InputValidator.validateEventDate(cleanDate, isRequired = true)
+                            val venueError = InputValidator.validateAddress(cleanVenue)
+                            val guestsError = InputValidator.validateGuestCount(guestsInput)
+                            val stepThreeError = dateError ?: venueError ?: guestsError
+                            if (stepThreeError != null) {
+                                localValidationError = stepThreeError
                             } else {
+                                val parsedGuests = guestsInput.trim().toIntOrNull() ?: 1
                                 localValidationError = null
                                 viewModel?.setEventTypeInput(resolvedEventTitle)
                                 viewModel?.setEventDateInput(cleanDate)
@@ -1305,26 +1431,32 @@ internal fun RenderNewEventScreenS38(
             }
         }
 
-        if (showCalendarModal) {
-            Box(modifier = Modifier.fillMaxSize().zIndex(10f)) {
-                RfInteractiveCalendarModal(
-                    title = "Fecha del evento",
-                    subtitle = "Elige el día de tu celebración",
-                    currentDateText = dateInput,
-                    minYear = 2026,
-                    maxYear = 2032,
-                    defaultYear = 2026,
-                    quickYears = listOf(2026, 2027, 2028, 2029),
-                    isAdmin = false,
-                    onSelectDate = { formattedDate ->
-                        dateInput = formattedDate
-                        localValidationError = null
-                        viewModel?.setEventDateInput(formattedDate)
-                        showCalendarModal = false
-                    },
-                    onDismiss = { showCalendarModal = false },
-                )
-            }
+        AnimatedVisibility(
+            visible = showCalendarModal,
+            enter = fadeIn(tween(180)) + scaleIn(tween(180), initialScale = 0.94f),
+            exit = fadeOut(tween(140)) + scaleOut(tween(140), targetScale = 0.94f),
+            modifier = Modifier
+                .fillMaxSize()
+                .zIndex(10f),
+        ) {
+            RfInteractiveCalendarModal(
+                title = "Fecha del evento",
+                subtitle = "Elige el día de tu celebración",
+                currentDateText = dateInput,
+                minYear = 2026,
+                maxYear = 2032,
+                defaultYear = 2026,
+                quickYears = listOf(2026, 2027, 2028, 2029),
+                isAdmin = false,
+                onSelectDate = { formattedDate ->
+                    dateInput = formattedDate
+                    hasInteractedDate = true
+                    localValidationError = null
+                    viewModel?.setEventDateInput(formattedDate)
+                    showCalendarModal = false
+                },
+                onDismiss = { showCalendarModal = false },
+            )
         }
     }
 }
@@ -2539,21 +2671,32 @@ internal fun RenderEventDetailScreenS40(
                 }
             }
 
-            if (showMoreActionsSheet) {
+            AnimatedVisibility(
+                visible = showMoreActionsSheet,
+                enter = fadeIn(tween(180)),
+                exit = fadeOut(tween(140)),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .zIndex(12f),
+            ) {
+                val sheetBackdropInteraction = remember { MutableInteractionSource() }
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .zIndex(12f)
                         .background(Color.Black.copy(alpha = 0.45f))
-                        .clickable { showMoreActionsSheet = false },
+                        .clickable(
+                            interactionSource = sheetBackdropInteraction,
+                            indication = null,
+                            onClick = { showMoreActionsSheet = false },
+                        ),
                     contentAlignment = Alignment.BottomCenter,
                 ) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .then(rememberModalSheetSlideModifier())
                             .clip(RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp))
                             .background(RfThemeState.currentPalette.surface)
-                            .clickable(enabled = false) {}
                             .padding(horizontal = 20.dp, vertical = 20.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
@@ -2644,107 +2787,91 @@ internal fun RenderEventDetailScreenS40(
                 }
             }
 
-            if (shouldDisplayCalendarModal) {
-                val dismissCalendarPrompt = {
-                    if (activeEventId.isNotEmpty()) {
-                        viewModel?.markCalendarPromptDismissed(activeEventId)
-                    }
-                    showCalendarSyncPopup = false
+            val dismissCalendarPrompt = {
+                if (activeEventId.isNotEmpty()) {
+                    viewModel?.markCalendarPromptDismissed(activeEventId)
                 }
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .zIndex(14f)
-                        .background(Color.Black.copy(alpha = 0.45f))
-                        .clickable(onClick = dismissCalendarPrompt)
-                        .padding(horizontal = 24.dp),
-                    contentAlignment = Alignment.Center,
+                showCalendarSyncPopup = false
+            }
+            RfCenteredAnimatedDialogOverlay(
+                visible = shouldDisplayCalendarModal,
+                onDismiss = dismissCalendarPrompt,
+                zIndex = 14f,
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    Column(
+                    Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(24.dp))
-                            .background(RfThemeState.currentPalette.surface)
-                            .clickable(enabled = false) {}
-                            .padding(20.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                            .size(38.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color(0xFFEEF6D6)),
+                        contentAlignment = Alignment.Center,
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(38.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(Color(0xFFEEF6D6)),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                RfIcon(kind = RfIconKind.CALENDAR, tint = Color(0xFF5E7A12), size = 20.dp)
-                            }
-                            BasicText(
-                                text = "¿Sincronizar con tu calendario?",
-                                style = TextStyle(
-                                    fontFamily = typo.displayFamily,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    fontSize = 17.sp,
-                                    color = RfThemeState.currentPalette.ink,
-                                ),
-                            )
-                        }
+                        RfIcon(kind = RfIconKind.CALENDAR, tint = Color(0xFF5E7A12), size = 20.dp)
+                    }
+                    BasicText(
+                        text = "¿Sincronizar con tu calendario?",
+                        style = TextStyle(
+                            fontFamily = typo.displayFamily,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 17.sp,
+                            color = RfThemeState.currentPalette.ink,
+                        ),
+                    )
+                }
+                BasicText(
+                    text = "Agrega $eventTitle ($eventSubtitle) a tu Google o Apple Calendar para recibir recordatorios del día del evento.",
+                    style = TextStyle(
+                        fontFamily = typo.bodyFamily,
+                        fontSize = 14.sp,
+                        lineHeight = 20.sp,
+                        color = RfThemeState.currentPalette.muted,
+                    ),
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(44.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(RfThemeState.currentPalette.chipBg)
+                            .clickable(onClick = dismissCalendarPrompt),
+                        contentAlignment = Alignment.Center,
+                    ) {
                         BasicText(
-                            text = "Agrega $eventTitle ($eventSubtitle) a tu Google o Apple Calendar para recibir recordatorios del día del evento.",
-                            style = TextStyle(
-                                fontFamily = typo.bodyFamily,
-                                fontSize = 14.sp,
-                                lineHeight = 20.sp,
-                                color = RfThemeState.currentPalette.muted,
-                            ),
+                            text = "Ahora no",
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = RfThemeState.currentPalette.ink),
                         )
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(44.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(RfThemeState.currentPalette.chipBg)
-                                    .clickable(onClick = dismissCalendarPrompt),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                BasicText(
-                                    text = "Ahora no",
-                                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = RfThemeState.currentPalette.ink),
+                    }
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(44.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(RosaButtonGradient)
+                            .clickable {
+                                val calendarUrl = buildGoogleCalendarTemplateUrl(
+                                    eventTitle = eventTitle,
+                                    venue = activeVenue,
+                                    dateSummary = eventSubtitle,
                                 )
-                            }
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(44.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(RosaButtonGradient)
-                                    .clickable {
-                                        val calendarUrl = buildGoogleCalendarTemplateUrl(
-                                            eventTitle = eventTitle,
-                                            venue = activeVenue,
-                                            dateSummary = eventSubtitle,
-                                        )
-                                        val openedCalendar = viewModel?.openExternalUrl(calendarUrl) == true
-                                        if (openedCalendar) {
-                                            localActionFeedback = "Calendario sincronizado para $eventTitle."
-                                        }
-                                        dismissCalendarPrompt()
-                                    },
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                BasicText(
-                                    text = "Sincronizar",
-                                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White),
-                                )
-                            }
-                        }
+                                val openedCalendar = viewModel?.openExternalUrl(calendarUrl) == true
+                                if (openedCalendar) {
+                                    localActionFeedback = "Calendario sincronizado para $eventTitle."
+                                }
+                                dismissCalendarPrompt()
+                            },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        BasicText(
+                            text = "Sincronizar",
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White),
+                        )
                     }
                 }
             }
@@ -3209,7 +3336,47 @@ internal fun RenderTimelineScreenS44(
     var endTimeInput by remember { mutableStateOf("20:00") }
     var blockTitleInput by remember { mutableStateOf("") }
     var blockSubtitleInput by remember { mutableStateOf("") }
+    var hasInteractedStartTime by remember { mutableStateOf(false) }
+    var hasInteractedEndTime by remember { mutableStateOf(false) }
+    var hasInteractedBlockTitle by remember { mutableStateOf(false) }
+    var hasInteractedBlockSubtitle by remember { mutableStateOf(false) }
+    var forceShowBlockErrors by remember { mutableStateOf(false) }
     var blockFormError by remember { mutableStateOf<String?>(null) }
+
+    val startTimeError = rememberDebouncedValidationError(
+        value = startTimeInput,
+        hasInteracted = hasInteractedStartTime,
+        forceShowError = forceShowBlockErrors,
+    ) { rawStart ->
+        InputValidator.validateTime24(rawStart, fieldLabel = "La hora de inicio")
+    }
+    val endTimeError = rememberDebouncedValidationError(
+        value = endTimeInput,
+        hasInteracted = hasInteractedEndTime,
+        forceShowError = forceShowBlockErrors,
+    ) { rawEnd ->
+        val endSyntaxError = InputValidator.validateTime24(rawEnd, fieldLabel = "La hora de fin")
+        endSyntaxError ?: InputValidator.validateTimeRange(startTimeInput, rawEnd)
+    }
+    val blockTitleError = rememberDebouncedValidationError(
+        value = blockTitleInput,
+        hasInteracted = hasInteractedBlockTitle,
+        forceShowError = forceShowBlockErrors,
+    ) { rawTitle ->
+        InputValidator.validateEntityName(
+            rawValue = rawTitle,
+            fieldLabel = "La actividad",
+            minLength = 2,
+            maxLength = InputValidator.MAX_EVENT_NAME_LENGTH,
+        )
+    }
+    val blockSubtitleError = rememberDebouncedValidationError(
+        value = blockSubtitleInput,
+        hasInteracted = hasInteractedBlockSubtitle,
+        forceShowError = forceShowBlockErrors,
+    ) { rawSubtitle ->
+        InputValidator.validateNotes(rawSubtitle)
+    }
 
     val dotPalette = listOf(
         Color(0xFFF7B500) to Color(0xFFFFF2C9),
@@ -3344,226 +3511,236 @@ internal fun RenderTimelineScreenS44(
                 }
             }
 
-            if (showAddBlockModal) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .zIndex(12f)
-                        .background(Color.Black.copy(alpha = 0.45f))
-                        .clickable { showAddBlockModal = false }
-                        .padding(horizontal = 20.dp),
-                    contentAlignment = Alignment.Center,
+            RfCenteredAnimatedDialogOverlay(
+                visible = showAddBlockModal,
+                onDismiss = { showAddBlockModal = false },
+                zIndex = 12f,
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Column(
+                    BasicText(
+                        text = "Agregar bloque horario",
+                        style = TextStyle(
+                            fontFamily = typo.displayFamily,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 18.sp,
+                            color = RfThemeState.currentPalette.ink,
+                        ),
+                    )
+                    Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(24.dp))
-                            .background(RfThemeState.currentPalette.surface)
-                            .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(24.dp))
-                            .clickable(enabled = false) {}
-                            .padding(20.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .background(RfThemeState.currentPalette.chipBg)
+                            .clickable { showAddBlockModal = false },
+                        contentAlignment = Alignment.Center,
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            BasicText(
-                                text = "Agregar bloque horario",
-                                style = TextStyle(
-                                    fontFamily = typo.displayFamily,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    fontSize = 18.sp,
-                                    color = RfThemeState.currentPalette.ink,
-                                ),
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .size(32.dp)
-                                    .clip(CircleShape)
-                                    .background(RfThemeState.currentPalette.chipBg)
-                                    .clickable { showAddBlockModal = false },
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                RfIcon(kind = RfIconKind.CLOSE, tint = RfThemeState.currentPalette.ink, size = 16.dp)
-                            }
-                        }
+                        RfIcon(kind = RfIconKind.CLOSE, tint = RfThemeState.currentPalette.ink, size = 16.dp)
+                    }
+                }
 
-                        if (blockFormError != null) {
-                            BasicText(
-                                text = blockFormError.orEmpty(),
-                                style = TextStyle(
-                                    fontFamily = typo.bodyFamily,
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontSize = 12.sp,
-                                    color = Color(0xFFB42345),
-                                ),
-                            )
-                        }
+                if (blockFormError != null) {
+                    RfValidationErrorText(errorMessage = blockFormError)
+                }
 
-                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                BasicText("Inicio", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = RfThemeState.currentPalette.muted))
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(44.dp)
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(RfThemeState.currentPalette.chipBg)
-                                        .padding(horizontal = 12.dp),
-                                    contentAlignment = Alignment.CenterStart,
-                                ) {
-                                    BasicTextField(
-                                        value = startTimeInput,
-                                        onValueChange = { updatedText ->
-                                            startTimeInput = updatedText
-                                            blockFormError = null
-                                        },
-                                        singleLine = true,
-                                        textStyle = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = RfThemeState.currentPalette.ink),
-                                        cursorBrush = SolidColor(Color(0xFFC2338F)),
-                                        modifier = Modifier.fillMaxWidth(),
-                                    )
-                                }
-                            }
-                            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                BasicText("Fin", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = RfThemeState.currentPalette.muted))
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(44.dp)
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(RfThemeState.currentPalette.chipBg)
-                                        .padding(horizontal = 12.dp),
-                                    contentAlignment = Alignment.CenterStart,
-                                ) {
-                                    BasicTextField(
-                                        value = endTimeInput,
-                                        onValueChange = { updatedText ->
-                                            endTimeInput = updatedText
-                                            blockFormError = null
-                                        },
-                                        singleLine = true,
-                                        textStyle = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = RfThemeState.currentPalette.ink),
-                                        cursorBrush = SolidColor(Color(0xFFC2338F)),
-                                        modifier = Modifier.fillMaxWidth(),
-                                    )
-                                }
-                            }
-                        }
-
-                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            BasicText("Actividad", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = RfThemeState.currentPalette.muted))
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(46.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(RfThemeState.currentPalette.chipBg)
-                                    .padding(horizontal = 12.dp),
-                                contentAlignment = Alignment.CenterStart,
-                            ) {
-                                BasicTextField(
-                                    value = blockTitleInput,
-                                    onValueChange = { updatedText ->
-                                        blockTitleInput = updatedText
-                                        blockFormError = null
-                                    },
-                                    singleLine = true,
-                                    textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.ink),
-                                    cursorBrush = SolidColor(Color(0xFFC2338F)),
-                                    modifier = Modifier.fillMaxWidth(),
-                                    decorationBox = { innerTextField ->
-                                        if (blockTitleInput.isEmpty()) {
-                                            BasicText("Ej. Brindis y entrada de novios", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
-                                        }
-                                        innerTextField()
-                                    },
-                                )
-                            }
-                        }
-
-                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            BasicText("Detalle", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = RfThemeState.currentPalette.muted))
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(46.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(RfThemeState.currentPalette.chipBg)
-                                    .padding(horizontal = 12.dp),
-                                contentAlignment = Alignment.CenterStart,
-                            ) {
-                                BasicTextField(
-                                    value = blockSubtitleInput,
-                                    onValueChange = { updatedText ->
-                                        blockSubtitleInput = updatedText
-                                        blockFormError = null
-                                    },
-                                    singleLine = true,
-                                    textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.ink),
-                                    cursorBrush = SolidColor(Color(0xFFC2338F)),
-                                    modifier = Modifier.fillMaxWidth(),
-                                    decorationBox = { innerTextField ->
-                                        if (blockSubtitleInput.isEmpty()) {
-                                            BasicText("Ej. Coordinación con DJ e iluminación", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
-                                        }
-                                        innerTextField()
-                                    },
-                                )
-                            }
-                        }
-
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        BasicText("Inicio", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = RfThemeState.currentPalette.muted))
+                        val startBorderColor = if (startTimeError != null) Color(0xFFB42345) else Color.Transparent
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(48.dp)
-                                .rfPrimaryButtonShadow(RoundedCornerShape(14.dp), isAdmin = false)
-                                .clip(RoundedCornerShape(14.dp))
-                                .background(RosaButtonGradient)
-                                .clickable {
-                                    val cleanStart = startTimeInput.trim()
-                                    val cleanEnd = endTimeInput.trim()
-                                    val cleanTitle = blockTitleInput.trim()
-                                    val cleanSubtitle = blockSubtitleInput.trim()
-                                    val hasRequiredScheduleFields = if (cleanStart.isNotEmpty()) cleanTitle.isNotEmpty() else false
-                                    if (!hasRequiredScheduleFields) {
-                                        blockFormError = "Escribe al menos la hora de inicio y el título del bloque."
-                                    } else {
-                                        if (viewModel != null) {
-                                            viewModel.addEventTimelineItem(
-                                                startTime = cleanStart,
-                                                endTime = cleanEnd.ifEmpty { cleanStart },
-                                                customTitle = cleanTitle,
-                                                customSubtitle = cleanSubtitle,
-                                            )
-                                        } else {
-                                            val nextNum = fallbackBlocks.size + 1
-                                            fallbackBlocks = fallbackBlocks + TimelineItem44(
-                                                id = "tl-$nextNum",
-                                                start = cleanStart,
-                                                end = cleanEnd.ifEmpty { cleanStart },
-                                                dotColor = Color(0xFF8DB52C),
-                                                ringColor = Color(0xFFEEF6D6),
-                                                title = cleanTitle,
-                                                subtitle = cleanSubtitle.ifEmpty { event.title },
-                                            )
-                                        }
-                                        blockTitleInput = ""
-                                        blockSubtitleInput = ""
-                                        blockFormError = null
-                                        showAddBlockModal = false
-                                    }
-                                },
-                            contentAlignment = Alignment.Center,
+                                .height(44.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(RfThemeState.currentPalette.chipBg)
+                                .border(1.dp, startBorderColor, RoundedCornerShape(12.dp))
+                                .padding(horizontal = 12.dp),
+                            contentAlignment = Alignment.CenterStart,
                         ) {
-                            BasicText(
-                                text = "Guardar bloque",
-                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.White),
+                            BasicTextField(
+                                value = startTimeInput,
+                                onValueChange = { updatedText ->
+                                    startTimeInput = InputValidator.filterTimeInput(updatedText)
+                                    hasInteractedStartTime = true
+                                    blockFormError = null
+                                },
+                                singleLine = true,
+                                textStyle = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = RfThemeState.currentPalette.ink),
+                                cursorBrush = SolidColor(Color(0xFFC2338F)),
+                                modifier = Modifier.fillMaxWidth(),
                             )
                         }
                     }
+                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        BasicText("Fin", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = RfThemeState.currentPalette.muted))
+                        val endBorderColor = if (endTimeError != null) Color(0xFFB42345) else Color.Transparent
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(44.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(RfThemeState.currentPalette.chipBg)
+                                .border(1.dp, endBorderColor, RoundedCornerShape(12.dp))
+                                .padding(horizontal = 12.dp),
+                            contentAlignment = Alignment.CenterStart,
+                        ) {
+                            BasicTextField(
+                                value = endTimeInput,
+                                onValueChange = { updatedText ->
+                                    endTimeInput = InputValidator.filterTimeInput(updatedText)
+                                    hasInteractedEndTime = true
+                                    blockFormError = null
+                                },
+                                singleLine = true,
+                                textStyle = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = RfThemeState.currentPalette.ink),
+                                cursorBrush = SolidColor(Color(0xFFC2338F)),
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
+                    }
+                }
+                RfValidationErrorText(errorMessage = startTimeError ?: endTimeError)
+
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    BasicText("Actividad", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = RfThemeState.currentPalette.muted))
+                    val activityBorderColor = if (blockTitleError != null) Color(0xFFB42345) else Color.Transparent
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(46.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(RfThemeState.currentPalette.chipBg)
+                            .border(1.dp, activityBorderColor, RoundedCornerShape(12.dp))
+                            .padding(horizontal = 12.dp),
+                        contentAlignment = Alignment.CenterStart,
+                    ) {
+                        BasicTextField(
+                            value = blockTitleInput,
+                            onValueChange = { updatedText ->
+                                blockTitleInput = updatedText.take(InputValidator.MAX_EVENT_NAME_LENGTH)
+                                hasInteractedBlockTitle = true
+                                blockFormError = null
+                            },
+                            singleLine = true,
+                            textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.ink),
+                            cursorBrush = SolidColor(Color(0xFFC2338F)),
+                            modifier = Modifier.fillMaxWidth(),
+                            decorationBox = { innerTextField ->
+                                if (blockTitleInput.isEmpty()) {
+                                    BasicText("Ej. Brindis y entrada de novios", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
+                                }
+                                innerTextField()
+                            },
+                        )
+                    }
+                    RfValidationErrorText(errorMessage = blockTitleError)
+                }
+
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    BasicText("Detalle", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = RfThemeState.currentPalette.muted))
+                    val subtitleBorderColor = if (blockSubtitleError != null) Color(0xFFB42345) else Color.Transparent
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(46.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(RfThemeState.currentPalette.chipBg)
+                            .border(1.dp, subtitleBorderColor, RoundedCornerShape(12.dp))
+                            .padding(horizontal = 12.dp),
+                        contentAlignment = Alignment.CenterStart,
+                    ) {
+                        BasicTextField(
+                            value = blockSubtitleInput,
+                            onValueChange = { updatedText ->
+                                blockSubtitleInput = updatedText.take(InputValidator.MAX_NOTES_LENGTH)
+                                hasInteractedBlockSubtitle = true
+                                blockFormError = null
+                            },
+                            singleLine = true,
+                            textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.ink),
+                            cursorBrush = SolidColor(Color(0xFFC2338F)),
+                            modifier = Modifier.fillMaxWidth(),
+                            decorationBox = { innerTextField ->
+                                if (blockSubtitleInput.isEmpty()) {
+                                    BasicText("Ej. Coordinación con DJ e iluminación", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
+                                }
+                                innerTextField()
+                            },
+                        )
+                    }
+                    RfValidationErrorText(errorMessage = blockSubtitleError)
+                }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                        .rfPrimaryButtonShadow(RoundedCornerShape(14.dp), isAdmin = false)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(RosaButtonGradient)
+                        .clickable {
+                            hasInteractedStartTime = true
+                            hasInteractedEndTime = true
+                            hasInteractedBlockTitle = true
+                            hasInteractedBlockSubtitle = true
+                            forceShowBlockErrors = true
+                            val cleanStart = startTimeInput.trim()
+                            val cleanEnd = endTimeInput.trim()
+                            val cleanTitle = blockTitleInput.trim()
+                            val cleanSubtitle = blockSubtitleInput.trim()
+                            val checkStart = InputValidator.validateTime24(cleanStart, fieldLabel = "La hora de inicio")
+                            val checkEnd = InputValidator.validateTime24(cleanEnd, fieldLabel = "La hora de fin")
+                                ?: InputValidator.validateTimeRange(cleanStart, cleanEnd)
+                            val checkTitle = InputValidator.validateEntityName(
+                                rawValue = cleanTitle,
+                                fieldLabel = "La actividad",
+                                minLength = 2,
+                                maxLength = InputValidator.MAX_EVENT_NAME_LENGTH,
+                            )
+                            val checkNotes = InputValidator.validateNotes(cleanSubtitle)
+                            val firstBlockError = checkStart ?: checkEnd ?: checkTitle ?: checkNotes
+                            if (firstBlockError != null) {
+                                blockFormError = firstBlockError
+                            } else {
+                                if (viewModel != null) {
+                                    viewModel.addEventTimelineItem(
+                                        startTime = cleanStart,
+                                        endTime = cleanEnd.ifEmpty { cleanStart },
+                                        customTitle = cleanTitle,
+                                        customSubtitle = cleanSubtitle,
+                                    )
+                                } else {
+                                    val nextNum = fallbackBlocks.size + 1
+                                    fallbackBlocks = fallbackBlocks + TimelineItem44(
+                                        id = "tl-$nextNum",
+                                        start = cleanStart,
+                                        end = cleanEnd.ifEmpty { cleanStart },
+                                        dotColor = Color(0xFF8DB52C),
+                                        ringColor = Color(0xFFEEF6D6),
+                                        title = cleanTitle,
+                                        subtitle = cleanSubtitle.ifEmpty { event.title },
+                                    )
+                                }
+                                blockTitleInput = ""
+                                blockSubtitleInput = ""
+                                hasInteractedStartTime = false
+                                hasInteractedEndTime = false
+                                hasInteractedBlockTitle = false
+                                hasInteractedBlockSubtitle = false
+                                forceShowBlockErrors = false
+                                blockFormError = null
+                                showAddBlockModal = false
+                            }
+                        },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    BasicText(
+                        text = "Guardar bloque",
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.White),
+                    )
                 }
             }
         }
@@ -3689,7 +3866,35 @@ internal fun RenderTasksScreenS45(
     var showAddTaskModal by remember { mutableStateOf(false) }
     var newTaskTitle by remember { mutableStateOf("") }
     var newTaskDueLabel by remember { mutableStateOf("Esta semana") }
+    var hasInteractedTaskTitle by remember { mutableStateOf(false) }
+    var hasInteractedTaskDue by remember { mutableStateOf(false) }
+    var forceShowTaskErrors by remember { mutableStateOf(false) }
     var taskFormError by remember { mutableStateOf<String?>(null) }
+
+    val taskTitleError = rememberDebouncedValidationError(
+        value = newTaskTitle,
+        hasInteracted = hasInteractedTaskTitle,
+        forceShowError = forceShowTaskErrors,
+    ) { rawTitle ->
+        InputValidator.validateEntityName(
+            rawValue = rawTitle,
+            fieldLabel = "La tarea",
+            minLength = 2,
+            maxLength = InputValidator.MAX_EVENT_NAME_LENGTH,
+        )
+    }
+    val taskDueError = rememberDebouncedValidationError(
+        value = newTaskDueLabel,
+        hasInteracted = hasInteractedTaskDue,
+        forceShowError = forceShowTaskErrors,
+    ) { rawDue ->
+        InputValidator.validateEntityName(
+            rawValue = rawDue,
+            fieldLabel = "El plazo",
+            minLength = 2,
+            maxLength = 30,
+        )
+    }
 
     val taskItems = vmTasks?.map { rowItem ->
         EventTaskRowState(
@@ -3994,178 +4199,184 @@ internal fun RenderTasksScreenS45(
                 Spacer(modifier = Modifier.height(20.dp))
             }
 
-            if (showAddTaskModal) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .zIndex(12f)
-                        .background(Color.Black.copy(alpha = 0.45f))
-                        .clickable { showAddTaskModal = false }
-                        .padding(horizontal = 20.dp),
-                    contentAlignment = Alignment.Center,
+            RfCenteredAnimatedDialogOverlay(
+                visible = showAddTaskModal,
+                onDismiss = { showAddTaskModal = false },
+                zIndex = 12f,
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Column(
+                    BasicText(
+                        text = "Nueva tarea del evento",
+                        style = TextStyle(
+                            fontFamily = typo.displayFamily,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 18.sp,
+                            color = RfThemeState.currentPalette.ink,
+                        ),
+                    )
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .background(RfThemeState.currentPalette.chipBg)
+                            .clickable { showAddTaskModal = false },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        RfIcon(kind = RfIconKind.CLOSE, tint = RfThemeState.currentPalette.ink, size = 16.dp)
+                    }
+                }
+
+                if (taskFormError != null) {
+                    RfValidationErrorText(errorMessage = taskFormError)
+                }
+
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    BasicText("Descripción", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = RfThemeState.currentPalette.muted))
+                    val taskTitleBorderColor = if (taskTitleError != null) Color(0xFFB42345) else Color.Transparent
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(24.dp))
-                            .background(RfThemeState.currentPalette.surface)
-                            .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(24.dp))
-                            .clickable(enabled = false) {}
-                            .padding(20.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                            .height(48.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(RfThemeState.currentPalette.chipBg)
+                            .border(1.dp, taskTitleBorderColor, RoundedCornerShape(12.dp))
+                            .padding(horizontal = 12.dp),
+                        contentAlignment = Alignment.CenterStart,
                     ) {
-                        Row(
+                        BasicTextField(
+                            value = newTaskTitle,
+                            onValueChange = { updatedText ->
+                                newTaskTitle = updatedText.take(InputValidator.MAX_EVENT_NAME_LENGTH)
+                                hasInteractedTaskTitle = true
+                                taskFormError = null
+                            },
+                            singleLine = true,
+                            textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.ink),
+                            cursorBrush = SolidColor(Color(0xFFC2338F)),
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            BasicText(
-                                text = "Nueva tarea del evento",
-                                style = TextStyle(
-                                    fontFamily = typo.displayFamily,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    fontSize = 18.sp,
-                                    color = RfThemeState.currentPalette.ink,
-                                ),
-                            )
+                            decorationBox = { innerTextField ->
+                                if (newTaskTitle.isEmpty()) {
+                                    BasicText("Ej. Confirmar playlist de entrada", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
+                                }
+                                innerTextField()
+                            },
+                        )
+                    }
+                    RfValidationErrorText(errorMessage = taskTitleError)
+                }
+
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    BasicText("Plazo / etiqueta", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = RfThemeState.currentPalette.muted))
+                    val taskDueBorderColor = if (taskDueError != null) Color(0xFFB42345) else Color.Transparent
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(46.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(RfThemeState.currentPalette.chipBg)
+                            .border(1.dp, taskDueBorderColor, RoundedCornerShape(12.dp))
+                            .padding(horizontal = 12.dp),
+                        contentAlignment = Alignment.CenterStart,
+                    ) {
+                        BasicTextField(
+                            value = newTaskDueLabel,
+                            onValueChange = { updatedText ->
+                                newTaskDueLabel = updatedText.take(30)
+                                hasInteractedTaskDue = true
+                                taskFormError = null
+                            },
+                            singleLine = true,
+                            textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.ink),
+                            cursorBrush = SolidColor(Color(0xFFC2338F)),
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                    RfValidationErrorText(errorMessage = taskDueError)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                        listOf("Vence hoy", "Mañana", "Esta semana").forEach { duePreset ->
+                            val isPresetChosen = newTaskDueLabel.trim().equals(duePreset, ignoreCase = true)
                             Box(
                                 modifier = Modifier
-                                    .size(32.dp)
-                                    .clip(CircleShape)
-                                    .background(RfThemeState.currentPalette.chipBg)
-                                    .clickable { showAddTaskModal = false },
+                                    .height(30.dp)
+                                    .clip(RoundedCornerShape(999.dp))
+                                    .background(if (isPresetChosen) Color(0xFFFDE6F2) else RfThemeState.currentPalette.chipBg)
+                                    .clickable {
+                                        newTaskDueLabel = duePreset
+                                        hasInteractedTaskDue = true
+                                        taskFormError = null
+                                    }
+                                    .padding(horizontal = 10.dp),
                                 contentAlignment = Alignment.Center,
                             ) {
-                                RfIcon(kind = RfIconKind.CLOSE, tint = RfThemeState.currentPalette.ink, size = 16.dp)
-                            }
-                        }
-
-                        if (taskFormError != null) {
-                            BasicText(
-                                text = taskFormError.orEmpty(),
-                                style = TextStyle(
-                                    fontFamily = typo.bodyFamily,
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontSize = 12.sp,
-                                    color = Color(0xFFB42345),
-                                ),
-                            )
-                        }
-
-                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            BasicText("Descripción", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = RfThemeState.currentPalette.muted))
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(48.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(RfThemeState.currentPalette.chipBg)
-                                    .padding(horizontal = 12.dp),
-                                contentAlignment = Alignment.CenterStart,
-                            ) {
-                                BasicTextField(
-                                    value = newTaskTitle,
-                                    onValueChange = { updatedText ->
-                                        newTaskTitle = updatedText
-                                        taskFormError = null
-                                    },
-                                    singleLine = true,
-                                    textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.ink),
-                                    cursorBrush = SolidColor(Color(0xFFC2338F)),
-                                    modifier = Modifier.fillMaxWidth(),
-                                    decorationBox = { innerTextField ->
-                                        if (newTaskTitle.isEmpty()) {
-                                            BasicText("Ej. Confirmar playlist de entrada", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
-                                        }
-                                        innerTextField()
-                                    },
+                                BasicText(
+                                    text = duePreset,
+                                    style = TextStyle(
+                                        fontFamily = typo.bodyFamily,
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 12.sp,
+                                        color = if (isPresetChosen) Color(0xFFC2338F) else RfThemeState.currentPalette.ink,
+                                    ),
                                 )
                             }
-                        }
-
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            BasicText("Plazo / etiqueta", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = RfThemeState.currentPalette.muted))
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(46.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(RfThemeState.currentPalette.chipBg)
-                                    .padding(horizontal = 12.dp),
-                                contentAlignment = Alignment.CenterStart,
-                            ) {
-                                BasicTextField(
-                                    value = newTaskDueLabel,
-                                    onValueChange = { updatedText ->
-                                        newTaskDueLabel = updatedText
-                                        taskFormError = null
-                                    },
-                                    singleLine = true,
-                                    textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.ink),
-                                    cursorBrush = SolidColor(Color(0xFFC2338F)),
-                                    modifier = Modifier.fillMaxWidth(),
-                                )
-                            }
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                                listOf("Vence hoy", "Mañana", "Esta semana").forEach { duePreset ->
-                                    val isPresetChosen = newTaskDueLabel.trim().equals(duePreset, ignoreCase = true)
-                                    Box(
-                                        modifier = Modifier
-                                            .height(30.dp)
-                                            .clip(RoundedCornerShape(999.dp))
-                                            .background(if (isPresetChosen) Color(0xFFFDE6F2) else RfThemeState.currentPalette.chipBg)
-                                            .clickable { newTaskDueLabel = duePreset }
-                                            .padding(horizontal = 10.dp),
-                                        contentAlignment = Alignment.Center,
-                                    ) {
-                                        BasicText(
-                                            text = duePreset,
-                                            style = TextStyle(
-                                                fontFamily = typo.bodyFamily,
-                                                fontWeight = FontWeight.SemiBold,
-                                                fontSize = 12.sp,
-                                                color = if (isPresetChosen) Color(0xFFC2338F) else RfThemeState.currentPalette.ink,
-                                            ),
-                                        )
-                                    }
-                                }
-                            }
-                        }
-
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(48.dp)
-                                .rfPrimaryButtonShadow(RoundedCornerShape(14.dp), isAdmin = false)
-                                .clip(RoundedCornerShape(14.dp))
-                                .background(RosaButtonGradient)
-                                .clickable {
-                                    val cleanTitle = newTaskTitle.trim()
-                                    val cleanDue = newTaskDueLabel.trim().ifEmpty { "Pendiente" }
-                                    if (cleanTitle.isEmpty()) {
-                                        taskFormError = "Escribe el título de la tarea antes de guardar."
-                                    } else {
-                                        if (viewModel != null) {
-                                            viewModel.addEventTask(customTitle = cleanTitle, badgeLabel = cleanDue)
-                                        } else {
-                                            val nextNum = fallbackTasks.size + 1
-                                            fallbackTasks = listOf(
-                                                EventTaskRowState("tsk-$nextNum", cleanTitle, cleanDue, false, false),
-                                            ) + fallbackTasks
-                                        }
-                                        newTaskTitle = ""
-                                        taskFormError = null
-                                        showAddTaskModal = false
-                                    }
-                                },
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            BasicText(
-                                text = "Guardar tarea",
-                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.White),
-                            )
                         }
                     }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                        .rfPrimaryButtonShadow(RoundedCornerShape(14.dp), isAdmin = false)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(RosaButtonGradient)
+                        .clickable {
+                            hasInteractedTaskTitle = true
+                            hasInteractedTaskDue = true
+                            forceShowTaskErrors = true
+                            val cleanTitle = newTaskTitle.trim()
+                            val cleanDue = newTaskDueLabel.trim().ifEmpty { "Pendiente" }
+                            val titleValidation = InputValidator.validateEntityName(
+                                rawValue = cleanTitle,
+                                fieldLabel = "La tarea",
+                                minLength = 2,
+                                maxLength = InputValidator.MAX_EVENT_NAME_LENGTH,
+                            )
+                            val dueValidation = InputValidator.validateEntityName(
+                                rawValue = cleanDue,
+                                fieldLabel = "El plazo",
+                                minLength = 2,
+                                maxLength = 30,
+                            )
+                            val firstTaskError = titleValidation ?: dueValidation
+                            if (firstTaskError != null) {
+                                taskFormError = firstTaskError
+                            } else {
+                                if (viewModel != null) {
+                                    viewModel.addEventTask(customTitle = cleanTitle, badgeLabel = cleanDue)
+                                } else {
+                                    val nextNum = fallbackTasks.size + 1
+                                    fallbackTasks = listOf(
+                                        EventTaskRowState("tsk-$nextNum", cleanTitle, cleanDue, false, false),
+                                    ) + fallbackTasks
+                                }
+                                newTaskTitle = ""
+                                hasInteractedTaskTitle = false
+                                hasInteractedTaskDue = false
+                                forceShowTaskErrors = false
+                                taskFormError = null
+                                showAddTaskModal = false
+                            }
+                        },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    BasicText(
+                        text = "Guardar tarea",
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.White),
+                    )
                 }
             }
         }
@@ -4500,6 +4711,13 @@ internal fun RenderGuestsScreenS47(
 ) {
     val typo = LocalRfTypography.current
     var searchQuery by remember { mutableStateOf("") }
+    var hasInteractedSearch by remember { mutableStateOf(false) }
+    val searchFieldError = rememberDebouncedValidationError(
+        value = searchQuery,
+        hasInteracted = hasInteractedSearch,
+    ) { rawQuery ->
+        InputValidator.validateSearchQuery(rawQuery)
+    }
     var selectedStatusFilter by remember { mutableStateOf("Todos") }
     val eventsState = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
     val event = viewModel?.activeClientEvent() ?: eventsState.first()
@@ -4524,7 +4742,43 @@ internal fun RenderGuestsScreenS47(
     var tableLabelInput by remember { mutableStateOf("Mesa 5") }
     var partySizeInput by remember { mutableStateOf("2") }
     var newGuestStatus by remember { mutableStateOf("Confirmado") }
+    var hasInteractedGuestName by remember { mutableStateOf(false) }
+    var hasInteractedTableLabel by remember { mutableStateOf(false) }
+    var hasInteractedPartySize by remember { mutableStateOf(false) }
+    var forceShowGuestErrors by remember { mutableStateOf(false) }
     var guestFormError by remember { mutableStateOf<String?>(null) }
+
+    val guestNameError = rememberDebouncedValidationError(
+        value = guestNameInput,
+        hasInteracted = hasInteractedGuestName,
+        forceShowError = forceShowGuestErrors,
+    ) { rawName ->
+        InputValidator.validateFullName(rawName)
+    }
+    val tableLabelError = rememberDebouncedValidationError(
+        value = tableLabelInput,
+        hasInteracted = hasInteractedTableLabel,
+        forceShowError = forceShowGuestErrors,
+    ) { rawTable ->
+        InputValidator.validateEntityName(
+            rawValue = rawTable,
+            fieldLabel = "La mesa",
+            minLength = 1,
+            maxLength = 30,
+        )
+    }
+    val partySizeError = rememberDebouncedValidationError(
+        value = partySizeInput,
+        hasInteracted = hasInteractedPartySize,
+        forceShowError = forceShowGuestErrors,
+    ) { rawSize ->
+        InputValidator.validateIntegerCount(
+            rawValue = rawSize,
+            fieldLabel = "La cantidad de personas",
+            minValue = 1,
+            maxValue = 25,
+        )
+    }
 
     val guestItems = vmGuests?.map { rowItem ->
         GuestRowItem47(
@@ -4716,36 +4970,43 @@ internal fun RenderGuestsScreenS47(
                         }
                     }
 
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp)
-                            .rfInputShadow(RoundedCornerShape(16.dp))
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(RfThemeState.currentPalette.surface)
-                            .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(16.dp))
-                            .padding(horizontal = 16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
-                        RfIcon(kind = RfIconKind.SEARCH, tint = RfThemeState.currentPalette.muted, size = 18.dp)
-                        BasicTextField(
-                            value = searchQuery,
-                            onValueChange = { updatedText -> searchQuery = updatedText },
-                            singleLine = true,
-                            textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.ink),
-                            cursorBrush = SolidColor(Color(0xFFC2338F)),
-                            modifier = Modifier.weight(1f),
-                            decorationBox = { innerTextField ->
-                                if (searchQuery.isEmpty()) {
-                                    BasicText(
-                                        text = "Buscar invitado por nombre o mesa",
-                                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.muted),
-                                    )
-                                }
-                                innerTextField()
-                            },
-                        )
+                    val guestSearchBorderColor = if (searchFieldError != null) Color(0xFFB42345) else RfThemeState.currentPalette.line
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(50.dp)
+                                .rfInputShadow(RoundedCornerShape(16.dp))
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(RfThemeState.currentPalette.surface)
+                                .border(1.dp, guestSearchBorderColor, RoundedCornerShape(16.dp))
+                                .padding(horizontal = 16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            RfIcon(kind = RfIconKind.SEARCH, tint = RfThemeState.currentPalette.muted, size = 18.dp)
+                            BasicTextField(
+                                value = searchQuery,
+                                onValueChange = { updatedText ->
+                                    searchQuery = updatedText.take(InputValidator.MAX_SEARCH_QUERY_LENGTH)
+                                    hasInteractedSearch = true
+                                },
+                                singleLine = true,
+                                textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.ink),
+                                cursorBrush = SolidColor(Color(0xFFC2338F)),
+                                modifier = Modifier.weight(1f),
+                                decorationBox = { innerTextField ->
+                                    if (searchQuery.isEmpty()) {
+                                        BasicText(
+                                            text = "Buscar invitado por nombre o mesa",
+                                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.muted),
+                                        )
+                                    }
+                                    innerTextField()
+                                },
+                            )
+                        }
+                        RfValidationErrorText(errorMessage = searchFieldError)
                     }
 
                     Box(
@@ -4950,218 +5211,229 @@ internal fun RenderGuestsScreenS47(
                 }
             }
 
-            if (showAddGuestModal) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .zIndex(12f)
-                        .background(Color.Black.copy(alpha = 0.45f))
-                        .clickable { showAddGuestModal = false }
-                        .padding(horizontal = 20.dp),
-                    contentAlignment = Alignment.Center,
+            RfCenteredAnimatedDialogOverlay(
+                visible = showAddGuestModal,
+                onDismiss = { showAddGuestModal = false },
+                zIndex = 12f,
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Column(
+                    BasicText(
+                        text = "Registrar invitado",
+                        style = TextStyle(
+                            fontFamily = typo.displayFamily,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 18.sp,
+                            color = RfThemeState.currentPalette.ink,
+                        ),
+                    )
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .background(RfThemeState.currentPalette.chipBg)
+                            .clickable { showAddGuestModal = false },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        RfIcon(kind = RfIconKind.CLOSE, tint = RfThemeState.currentPalette.ink, size = 16.dp)
+                    }
+                }
+
+                if (guestFormError != null) {
+                    RfValidationErrorText(errorMessage = guestFormError)
+                }
+
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    BasicText("Nombre o familia", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = RfThemeState.currentPalette.muted))
+                    val guestNameBorderColor = if (guestNameError != null) Color(0xFFB42345) else Color.Transparent
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(24.dp))
-                            .background(RfThemeState.currentPalette.surface)
-                            .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(24.dp))
-                            .clickable(enabled = false) {}
-                            .padding(20.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                            .height(46.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(RfThemeState.currentPalette.chipBg)
+                            .border(1.dp, guestNameBorderColor, RoundedCornerShape(12.dp))
+                            .padding(horizontal = 12.dp),
+                        contentAlignment = Alignment.CenterStart,
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            BasicText(
-                                text = "Registrar invitado",
-                                style = TextStyle(
-                                    fontFamily = typo.displayFamily,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    fontSize = 18.sp,
-                                    color = RfThemeState.currentPalette.ink,
-                                ),
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .size(32.dp)
-                                    .clip(CircleShape)
-                                    .background(RfThemeState.currentPalette.chipBg)
-                                    .clickable { showAddGuestModal = false },
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                RfIcon(kind = RfIconKind.CLOSE, tint = RfThemeState.currentPalette.ink, size = 16.dp)
-                            }
-                        }
-
-                        if (guestFormError != null) {
-                            BasicText(
-                                text = guestFormError.orEmpty(),
-                                style = TextStyle(
-                                    fontFamily = typo.bodyFamily,
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontSize = 12.sp,
-                                    color = Color(0xFFB42345),
-                                ),
-                            )
-                        }
-
-                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            BasicText("Nombre o familia", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = RfThemeState.currentPalette.muted))
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(46.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(RfThemeState.currentPalette.chipBg)
-                                    .padding(horizontal = 12.dp),
-                                contentAlignment = Alignment.CenterStart,
-                            ) {
-                                BasicTextField(
-                                    value = guestNameInput,
-                                    onValueChange = { updatedText ->
-                                        guestNameInput = updatedText
-                                        guestFormError = null
-                                    },
-                                    singleLine = true,
-                                    textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.ink),
-                                    cursorBrush = SolidColor(Color(0xFFC2338F)),
-                                    modifier = Modifier.fillMaxWidth(),
-                                    decorationBox = { innerTextField ->
-                                        if (guestNameInput.isEmpty()) {
-                                            BasicText("Ej. Familia Rosario", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
-                                        }
-                                        innerTextField()
-                                    },
+                        BasicTextField(
+                            value = guestNameInput,
+                            onValueChange = { updatedText ->
+                                guestNameInput = InputValidator.filterPersonNameInput(
+                                    rawValue = updatedText,
+                                    maxLength = InputValidator.MAX_FULL_NAME_LENGTH,
                                 )
-                            }
-                        }
-
-                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                BasicText("Mesa", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = RfThemeState.currentPalette.muted))
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(44.dp)
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(RfThemeState.currentPalette.chipBg)
-                                        .padding(horizontal = 12.dp),
-                                    contentAlignment = Alignment.CenterStart,
-                                ) {
-                                    BasicTextField(
-                                        value = tableLabelInput,
-                                        onValueChange = { updatedText ->
-                                            tableLabelInput = updatedText
-                                            guestFormError = null
-                                        },
-                                        singleLine = true,
-                                        textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.ink),
-                                        cursorBrush = SolidColor(Color(0xFFC2338F)),
-                                        modifier = Modifier.fillMaxWidth(),
-                                    )
+                                hasInteractedGuestName = true
+                                guestFormError = null
+                            },
+                            singleLine = true,
+                            textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.ink),
+                            cursorBrush = SolidColor(Color(0xFFC2338F)),
+                            modifier = Modifier.fillMaxWidth(),
+                            decorationBox = { innerTextField ->
+                                if (guestNameInput.isEmpty()) {
+                                    BasicText("Ej. Familia Rosario", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
                                 }
-                            }
-                            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                BasicText("Personas", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = RfThemeState.currentPalette.muted))
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(44.dp)
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(RfThemeState.currentPalette.chipBg)
-                                        .padding(horizontal = 12.dp),
-                                    contentAlignment = Alignment.CenterStart,
-                                ) {
-                                    BasicTextField(
-                                        value = partySizeInput,
-                                        onValueChange = { updatedText ->
-                                            partySizeInput = updatedText.filter { charItem -> charItem.isDigit() }.take(2)
-                                            guestFormError = null
-                                        },
-                                        singleLine = true,
-                                        textStyle = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = RfThemeState.currentPalette.ink),
-                                        cursorBrush = SolidColor(Color(0xFFC2338F)),
-                                        modifier = Modifier.fillMaxWidth(),
-                                    )
-                                }
-                            }
-                        }
+                                innerTextField()
+                            },
+                        )
+                    }
+                    RfValidationErrorText(errorMessage = guestNameError)
+                }
 
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            BasicText("Estado RSVP", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = RfThemeState.currentPalette.muted))
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                                listOf("Confirmado", "Pendiente", "Rechazado").forEach { statusOption ->
-                                    val isChosenStatus = newGuestStatus == statusOption
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .height(34.dp)
-                                            .clip(RoundedCornerShape(999.dp))
-                                            .background(if (isChosenStatus) Color(0xFFFDE6F2) else RfThemeState.currentPalette.chipBg)
-                                            .clickable { newGuestStatus = statusOption },
-                                        contentAlignment = Alignment.Center,
-                                    ) {
-                                        BasicText(
-                                            text = statusOption,
-                                            style = TextStyle(
-                                                fontFamily = typo.bodyFamily,
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 12.sp,
-                                                color = if (isChosenStatus) Color(0xFFC2338F) else RfThemeState.currentPalette.ink,
-                                            ),
-                                        )
-                                    }
-                                }
-                            }
-                        }
-
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        BasicText("Mesa", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = RfThemeState.currentPalette.muted))
+                        val tableBorderColor = if (tableLabelError != null) Color(0xFFB42345) else Color.Transparent
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(48.dp)
-                                .rfPrimaryButtonShadow(RoundedCornerShape(14.dp), isAdmin = false)
-                                .clip(RoundedCornerShape(14.dp))
-                                .background(RosaButtonGradient)
-                                .clickable {
-                                    val cleanGuestName = guestNameInput.trim()
-                                    val cleanTable = tableLabelInput.trim().ifEmpty { "Mesa general" }
-                                    val cleanPartySize = (partySizeInput.toIntOrNull() ?: 1).coerceAtLeast(1)
-                                    if (cleanGuestName.isEmpty()) {
-                                        guestFormError = "Escribe el nombre del invitado o familia."
-                                    } else {
-                                        if (viewModel != null) {
-                                            viewModel.addEventGuest(
-                                                guestName = cleanGuestName,
-                                                tableNumberLabel = cleanTable,
-                                                partySize = cleanPartySize,
-                                                status = newGuestStatus,
-                                            )
-                                        } else {
-                                            val nextNum = fallbackGuests.size + 1
-                                            val peopleLabel = if (cleanPartySize == 1) "1 persona" else "$cleanPartySize personas"
-                                            fallbackGuests = fallbackGuests + GuestRowItem47(
-                                                id = "gst-$nextNum",
-                                                name = cleanGuestName,
-                                                details = "$newGuestStatus · $cleanTable · $peopleLabel",
-                                                status = newGuestStatus,
-                                            )
-                                        }
-                                        guestNameInput = ""
-                                        guestFormError = null
-                                        showAddGuestModal = false
-                                    }
-                                },
-                            contentAlignment = Alignment.Center,
+                                .height(44.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(RfThemeState.currentPalette.chipBg)
+                                .border(1.dp, tableBorderColor, RoundedCornerShape(12.dp))
+                                .padding(horizontal = 12.dp),
+                            contentAlignment = Alignment.CenterStart,
                         ) {
-                            BasicText(
-                                text = "Guardar invitado",
-                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.White),
+                            BasicTextField(
+                                value = tableLabelInput,
+                                onValueChange = { updatedText ->
+                                    tableLabelInput = updatedText.take(30)
+                                    hasInteractedTableLabel = true
+                                    guestFormError = null
+                                },
+                                singleLine = true,
+                                textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.ink),
+                                cursorBrush = SolidColor(Color(0xFFC2338F)),
+                                modifier = Modifier.fillMaxWidth(),
                             )
                         }
                     }
+                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        BasicText("Personas", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = RfThemeState.currentPalette.muted))
+                        val partyBorderColor = if (partySizeError != null) Color(0xFFB42345) else Color.Transparent
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(44.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(RfThemeState.currentPalette.chipBg)
+                                .border(1.dp, partyBorderColor, RoundedCornerShape(12.dp))
+                                .padding(horizontal = 12.dp),
+                            contentAlignment = Alignment.CenterStart,
+                        ) {
+                            BasicTextField(
+                                value = partySizeInput,
+                                onValueChange = { updatedText ->
+                                    partySizeInput = InputValidator.filterDigitsOnly(updatedText, 2)
+                                    hasInteractedPartySize = true
+                                    guestFormError = null
+                                },
+                                singleLine = true,
+                                textStyle = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = RfThemeState.currentPalette.ink),
+                                cursorBrush = SolidColor(Color(0xFFC2338F)),
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
+                    }
+                }
+                RfValidationErrorText(errorMessage = tableLabelError ?: partySizeError)
+
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    BasicText("Estado RSVP", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = RfThemeState.currentPalette.muted))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                        listOf("Confirmado", "Pendiente", "Rechazado").forEach { statusOption ->
+                            val isChosenStatus = newGuestStatus == statusOption
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(34.dp)
+                                    .clip(RoundedCornerShape(999.dp))
+                                    .background(if (isChosenStatus) Color(0xFFFDE6F2) else RfThemeState.currentPalette.chipBg)
+                                    .clickable { newGuestStatus = statusOption },
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                BasicText(
+                                    text = statusOption,
+                                    style = TextStyle(
+                                        fontFamily = typo.bodyFamily,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp,
+                                        color = if (isChosenStatus) Color(0xFFC2338F) else RfThemeState.currentPalette.ink,
+                                    ),
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                        .rfPrimaryButtonShadow(RoundedCornerShape(14.dp), isAdmin = false)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(RosaButtonGradient)
+                        .clickable {
+                            hasInteractedGuestName = true
+                            hasInteractedTableLabel = true
+                            hasInteractedPartySize = true
+                            forceShowGuestErrors = true
+                            val cleanGuestName = guestNameInput.trim()
+                            val cleanTable = tableLabelInput.trim().ifEmpty { "Mesa general" }
+                            val checkName = InputValidator.validateFullName(cleanGuestName)
+                            val checkTable = InputValidator.validateEntityName(
+                                rawValue = cleanTable,
+                                fieldLabel = "La mesa",
+                                minLength = 1,
+                                maxLength = 30,
+                            )
+                            val checkSize = InputValidator.validateIntegerCount(
+                                rawValue = partySizeInput,
+                                fieldLabel = "La cantidad de personas",
+                                minValue = 1,
+                                maxValue = 25,
+                            )
+                            val firstGuestError = checkName ?: checkTable ?: checkSize
+                            if (firstGuestError != null) {
+                                guestFormError = firstGuestError
+                            } else {
+                                val cleanPartySize = partySizeInput.toIntOrNull() ?: 1
+                                if (viewModel != null) {
+                                    viewModel.addEventGuest(
+                                        guestName = cleanGuestName,
+                                        tableNumberLabel = cleanTable,
+                                        partySize = cleanPartySize,
+                                        status = newGuestStatus,
+                                    )
+                                } else {
+                                    val nextNum = fallbackGuests.size + 1
+                                    val peopleLabel = if (cleanPartySize == 1) "1 persona" else "$cleanPartySize personas"
+                                    fallbackGuests = fallbackGuests + GuestRowItem47(
+                                        id = "gst-$nextNum",
+                                        name = cleanGuestName,
+                                        details = "$newGuestStatus · $cleanTable · $peopleLabel",
+                                        status = newGuestStatus,
+                                    )
+                                }
+                                guestNameInput = ""
+                                hasInteractedGuestName = false
+                                hasInteractedTableLabel = false
+                                hasInteractedPartySize = false
+                                forceShowGuestErrors = false
+                                guestFormError = null
+                                showAddGuestModal = false
+                            }
+                        },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    BasicText(
+                        text = "Guardar invitado",
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.White),
+                    )
                 }
             }
         }
@@ -5236,6 +5508,15 @@ internal fun RenderQuoteScreenS48(
         }
     }
     var signerName by remember(initialSigner) { mutableStateOf(initialSigner) }
+    var hasInteractedSigner by remember { mutableStateOf(false) }
+    var forceShowSignerError by remember { mutableStateOf(false) }
+    val signerNameError = rememberDebouncedValidationError(
+        value = signerName,
+        hasInteracted = hasInteractedSigner,
+        forceShowError = forceShowSignerError,
+    ) { rawName ->
+        InputValidator.validateFullName(rawName)
+    }
     var isSignatureAccepted by remember(activeQuote?.id) {
         mutableStateOf(activeQuote?.signatureSvg?.isNotBlank() == true)
     }
@@ -5448,20 +5729,25 @@ internal fun RenderQuoteScreenS48(
                     text = "Firma digital del contrato",
                     style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = RfThemeState.currentPalette.ink),
                 )
+                val signerBorderColor = if (signerNameError != null) Color(0xFFB42345) else RfThemeState.currentPalette.line
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(48.dp)
                         .clip(RoundedCornerShape(14.dp))
                         .background(RfThemeState.currentPalette.chipBg)
-                        .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(14.dp))
+                        .border(1.dp, signerBorderColor, RoundedCornerShape(14.dp))
                         .padding(horizontal = 14.dp),
                     contentAlignment = Alignment.CenterStart,
                 ) {
                     BasicTextField(
                         value = signerName,
                         onValueChange = { updatedText ->
-                            signerName = updatedText
+                            signerName = InputValidator.filterPersonNameInput(
+                                rawValue = updatedText,
+                                maxLength = InputValidator.MAX_FULL_NAME_LENGTH,
+                            )
+                            hasInteractedSigner = true
                             localContractError = null
                         },
                         singleLine = true,
@@ -5479,6 +5765,7 @@ internal fun RenderQuoteScreenS48(
                         },
                     )
                 }
+                RfValidationErrorText(errorMessage = signerNameError)
 
                 Box(
                     modifier = Modifier
@@ -5575,11 +5862,13 @@ internal fun RenderQuoteScreenS48(
                     .clip(RoundedCornerShape(16.dp))
                     .background(RosaButtonGradient)
                     .clickable {
+                        hasInteractedSigner = true
+                        forceShowSignerError = true
                         val cleanSigner = signerName.trim()
-                        if (cleanSigner.length < 3) {
-                            val missingSignerMsg = "Escribe tu nombre completo para firmar el contrato."
-                            localContractError = missingSignerMsg
-                            viewModel?.postError(missingSignerMsg)
+                        val signerValidationError = InputValidator.validateFullName(cleanSigner)
+                        if (signerValidationError != null) {
+                            localContractError = signerValidationError
+                            viewModel?.postError(signerValidationError)
                         } else if (!isSignatureAccepted) {
                             val missingCheckMsg = "Marca la firma digital del contrato antes de aprobar."
                             localContractError = missingCheckMsg

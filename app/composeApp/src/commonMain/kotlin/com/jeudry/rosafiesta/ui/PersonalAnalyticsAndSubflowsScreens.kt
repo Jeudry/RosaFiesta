@@ -1,10 +1,17 @@
 package com.jeudry.rosafiesta.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -65,9 +72,11 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import com.jeudry.rosafiesta.core.engine.RosaFiestaEngine
 import com.jeudry.rosafiesta.designsystem.LocalRfPalette
 import com.jeudry.rosafiesta.designsystem.LocalRfTypography
+import com.jeudry.rosafiesta.designsystem.RfColors
 import com.jeudry.rosafiesta.designsystem.RfDimens
 import com.jeudry.rosafiesta.designsystem.RfIcon
 import com.jeudry.rosafiesta.designsystem.RfIconKind
@@ -93,7 +102,53 @@ import com.jeudry.rosafiesta.domain.LeadRecord
 import com.jeudry.rosafiesta.domain.PaymentRecord
 import com.jeudry.rosafiesta.domain.PhotoAsset
 import com.jeudry.rosafiesta.domain.ReviewRecord
+import com.jeudry.rosafiesta.domain.validation.InputValidator
 import kotlin.math.roundToInt
+
+@Composable
+private fun AnimatedCenteredDialogHost(
+    visible: Boolean,
+    onDismiss: () -> Unit,
+    scrimColor: Color = Color(0x770E1020),
+    horizontalPadding: Dp = 20.dp,
+    content: @Composable () -> Unit,
+) {
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn(tween(180)) + scaleIn(tween(180), initialScale = 0.94f),
+        exit = fadeOut(tween(140)) + scaleOut(tween(140), targetScale = 0.94f),
+        modifier = Modifier
+            .fillMaxSize()
+            .zIndex(10f),
+    ) {
+        val scrimInteractionSource = remember { MutableInteractionSource() }
+        val cardInteractionSource = remember { MutableInteractionSource() }
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(scrimColor)
+                .clickable(
+                    interactionSource = scrimInteractionSource,
+                    indication = null,
+                    onClick = onDismiss,
+                )
+                .padding(horizontal = horizontalPadding),
+            contentAlignment = Alignment.Center,
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(
+                        interactionSource = cardInteractionSource,
+                        indication = null,
+                        onClick = {},
+                    ),
+            ) {
+                content()
+            }
+        }
+    }
+}
 
 private fun mergeCompanyAndDomainReviews(
     domainReviews: List<ReviewRecord>,
@@ -773,7 +828,26 @@ internal fun RenderCompanyReviewsS17(
     var showWriteReviewModal by remember { mutableStateOf(false) }
     var draftStars by remember { mutableStateOf(5) }
     var draftComment by remember { mutableStateOf("") }
+    var hasInteractedReviewComment by remember { mutableStateOf(false) }
+    var forceShowReviewError by remember { mutableStateOf(false) }
     var localReviewError by remember { mutableStateOf<String?>(null) }
+    val debouncedReviewError = rememberDebouncedValidationError(
+        value = draftComment,
+        hasInteracted = hasInteractedReviewComment,
+        forceShowError = forceShowReviewError,
+    ) { candidate ->
+        if (!showWriteReviewModal) {
+            null
+        } else {
+            InputValidator.validateNotes(
+                rawValue = candidate,
+                fieldLabel = "La reseña",
+                isRequired = true,
+                minLength = 6,
+                maxLength = InputValidator.MAX_NOTES_LENGTH,
+            )
+        }
+    }
 
     val domainReviews = viewModel?.reviews?.collectAsState()?.value ?: CanonicalSampleData.reviews
     val uiReviews = viewModel?.companyReviews?.collectAsState()?.value.orEmpty()
@@ -1054,19 +1128,31 @@ internal fun RenderCompanyReviewsS17(
         }
 
         if (showWriteReviewModal) {
+            val sheetSlideModifier = rememberModalSheetSlideModifier()
+            val scrimInteractionSource = remember { MutableInteractionSource() }
+            val sheetInteractionSource = remember { MutableInteractionSource() }
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Color(0x88141024))
-                    .clickable { showWriteReviewModal = false },
+                    .clickable(
+                        interactionSource = scrimInteractionSource,
+                        indication = null,
+                        onClick = { showWriteReviewModal = false },
+                    ),
                 contentAlignment = Alignment.BottomCenter,
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .then(sheetSlideModifier)
                         .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
                         .background(palette.surface)
-                        .clickable(enabled = false) {}
+                        .clickable(
+                            interactionSource = sheetInteractionSource,
+                            indication = null,
+                            onClick = {},
+                        )
                         .padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 34.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
@@ -1115,7 +1201,8 @@ internal fun RenderCompanyReviewsS17(
                         }
                     }
 
-                    val commentBorderColor = if (localReviewError != null) Color(0xFFB42345) else palette.line
+                    val activeReviewError = localReviewError ?: debouncedReviewError
+                    val commentBorderColor = if (activeReviewError != null) RfColors.Error else palette.line
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -1134,10 +1221,9 @@ internal fun RenderCompanyReviewsS17(
                         BasicTextField(
                             value = draftComment,
                             onValueChange = { updatedText ->
-                                draftComment = updatedText
-                                if (localReviewError != null) {
-                                    localReviewError = null
-                                }
+                                draftComment = updatedText.take(InputValidator.MAX_NOTES_LENGTH)
+                                hasInteractedReviewComment = true
+                                localReviewError = null
                             },
                             textStyle = typo.body.copy(fontSize = 14.5.sp, color = palette.ink),
                             cursorBrush = SolidColor(Color(0xFFD63F98)),
@@ -1145,13 +1231,7 @@ internal fun RenderCompanyReviewsS17(
                         )
                     }
 
-                    val validationMessage = localReviewError
-                    if (validationMessage != null) {
-                        BasicText(
-                            text = validationMessage,
-                            style = typo.body.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFFB42345)),
-                        )
-                    }
+                    RfValidationErrorText(errorMessage = activeReviewError)
 
                     Box(
                         modifier = Modifier
@@ -1160,19 +1240,28 @@ internal fun RenderCompanyReviewsS17(
                             .clip(RoundedCornerShape(16.dp))
                             .background(Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC))))
                             .clickable {
-                                val trimmedComment = draftComment.trim()
+                                val commentValidationError = InputValidator.validateNotes(
+                                    rawValue = draftComment,
+                                    fieldLabel = "La reseña",
+                                    isRequired = true,
+                                    minLength = 6,
+                                    maxLength = InputValidator.MAX_NOTES_LENGTH,
+                                )
                                 val selectedRating = draftStars.coerceIn(1, 5)
-                                if (trimmedComment.length < 6) {
-                                    localReviewError = "Escribe al menos 6 caracteres para publicar tu reseña."
-                                    viewModel?.postError("Escribe al menos 6 caracteres para publicar tu reseña.")
+                                if (commentValidationError != null) {
+                                    forceShowReviewError = true
+                                    localReviewError = commentValidationError
+                                    viewModel?.postError(commentValidationError)
                                 } else {
                                     val published = viewModel?.submitCompanyReview(
-                                        comment = trimmedComment,
+                                        comment = draftComment.trim(),
                                         rating = selectedRating,
                                     ) ?: true
                                     if (published) {
                                         draftComment = ""
                                         draftStars = 5
+                                        hasInteractedReviewComment = false
+                                        forceShowReviewError = false
                                         localReviewError = null
                                         showWriteReviewModal = false
                                     }
@@ -2052,7 +2141,7 @@ internal fun RenderEventChatTabS41(
                     }
                     BasicTextField(
                         value = draftInputS41,
-                        onValueChange = { updatedText -> draftInputS41 = updatedText },
+                        onValueChange = { updatedText -> draftInputS41 = updatedText.take(InputValidator.MAX_CHAT_MESSAGE_LENGTH) },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                         keyboardActions = KeyboardActions(onSend = { submitMessageS41() }),
@@ -2517,7 +2606,7 @@ internal fun RenderEventChatS42(
                         }
                         BasicTextField(
                             value = draftInputS42,
-                            onValueChange = { updatedText -> draftInputS42 = updatedText },
+                            onValueChange = { updatedText -> draftInputS42 = updatedText.take(InputValidator.MAX_CHAT_MESSAGE_LENGTH) },
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                             keyboardActions = KeyboardActions(onSend = { submitMessageS42() }),
@@ -2568,21 +2657,33 @@ internal fun RenderEventChatS42(
         }
 
         if (showMoreMenuSheet) {
+            val sheetSlideModifier = rememberModalSheetSlideModifier()
+            val scrimInteractionSource = remember { MutableInteractionSource() }
+            val sheetInteractionSource = remember { MutableInteractionSource() }
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Color(0x66151729))
-                    .clickable { showMoreMenuSheet = false },
+                    .clickable(
+                        interactionSource = scrimInteractionSource,
+                        indication = null,
+                        onClick = { showMoreMenuSheet = false },
+                    ),
                 contentAlignment = Alignment.BottomCenter,
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp)
+                        .then(sheetSlideModifier)
                         .clip(RoundedCornerShape(24.dp))
                         .background(palette.surface)
                         .border(1.dp, palette.line, RoundedCornerShape(24.dp))
-                        .clickable { }
+                        .clickable(
+                            interactionSource = sheetInteractionSource,
+                            indication = null,
+                            onClick = {},
+                        )
                         .padding(18.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
@@ -3412,7 +3513,11 @@ internal fun RenderLeadsPipelineS64(
             }
         }
 
-        if (showCreateLeadModal) {
+        AnimatedCenteredDialogHost(
+            visible = showCreateLeadModal,
+            onDismiss = { showCreateLeadModal = false },
+            scrimColor = Color(0x77151729),
+        ) {
             NewCommercialLeadModal(
                 onDismiss = { showCreateLeadModal = false },
                 onSaveLead = { clientName, phone, eventType, guests, budgetDop, followUpNote ->
@@ -3512,115 +3617,256 @@ private fun NewCommercialLeadModal(
     var followUpNoteInput by remember { mutableStateOf("") }
     var localErrorText by remember { mutableStateOf<String?>(null) }
 
-    Box(
+    var hasInteractedClientName by remember { mutableStateOf(false) }
+    var hasInteractedPhone by remember { mutableStateOf(false) }
+    var hasInteractedEventType by remember { mutableStateOf(false) }
+    var hasInteractedGuests by remember { mutableStateOf(false) }
+    var hasInteractedBudget by remember { mutableStateOf(false) }
+    var hasInteractedNote by remember { mutableStateOf(false) }
+    var forceShowLeadErrors by remember { mutableStateOf(false) }
+
+    val debouncedClientNameError = rememberDebouncedValidationError(
+        value = clientNameInput,
+        hasInteracted = hasInteractedClientName,
+        forceShowError = forceShowLeadErrors,
+    ) { candidate ->
+        InputValidator.validateFullName(candidate)
+    }
+    val debouncedPhoneError = rememberDebouncedValidationError(
+        value = phoneInput,
+        hasInteracted = hasInteractedPhone,
+        forceShowError = forceShowLeadErrors,
+    ) { candidate ->
+        InputValidator.validateDominicanPhone(
+            rawValue = candidate,
+            isRequired = true,
+            allowInternational = false,
+            fieldLabel = "El teléfono",
+        )
+    }
+    val debouncedEventTypeError = rememberDebouncedValidationError(
+        value = eventTypeInput,
+        hasInteracted = hasInteractedEventType,
+        forceShowError = forceShowLeadErrors,
+    ) { candidate ->
+        InputValidator.validateEntityName(
+            rawValue = candidate,
+            fieldLabel = "El tipo de evento",
+            minLength = InputValidator.MIN_EVENT_NAME_LENGTH,
+            maxLength = InputValidator.MAX_EVENT_NAME_LENGTH,
+        )
+    }
+    val debouncedGuestsError = rememberDebouncedValidationError(
+        value = guestsInput,
+        hasInteracted = hasInteractedGuests,
+        forceShowError = forceShowLeadErrors,
+    ) { candidate ->
+        InputValidator.validateIntegerCount(
+            rawValue = candidate,
+            fieldLabel = "Los invitados",
+            isRequired = true,
+            minValue = 10,
+            maxValue = InputValidator.MAX_GUEST_COUNT,
+        )
+    }
+    val debouncedBudgetError = rememberDebouncedValidationError(
+        value = budgetDopInput,
+        hasInteracted = hasInteractedBudget,
+        forceShowError = forceShowLeadErrors,
+    ) { candidate ->
+        InputValidator.validateMoneyAmount(
+            rawValue = candidate,
+            fieldLabel = "El presupuesto estimado",
+            isRequired = true,
+            minAmount = 300.0,
+            maxAmount = InputValidator.MAX_MONEY_AMOUNT,
+        )
+    }
+    val debouncedNoteError = rememberDebouncedValidationError(
+        value = followUpNoteInput,
+        hasInteracted = hasInteractedNote,
+        forceShowError = forceShowLeadErrors,
+    ) { candidate ->
+        InputValidator.validateNotes(
+            rawValue = candidate,
+            fieldLabel = "La nota de seguimiento",
+            isRequired = false,
+            minLength = 0,
+            maxLength = InputValidator.MAX_NOTES_LENGTH,
+        )
+    }
+
+    Column(
         modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0x77151729))
-            .clickable { onDismiss() },
-        contentAlignment = Alignment.Center,
+            .fillMaxWidth()
+            .heightIn(max = 640.dp)
+            .clip(RoundedCornerShape(24.dp))
+            .background(RfThemeState.currentPalette.surface)
+            .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(24.dp))
+            .verticalScroll(rememberScrollState())
+            .padding(18.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp)
-                .clip(RoundedCornerShape(24.dp))
-                .background(RfThemeState.currentPalette.surface)
-                .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(24.dp))
-                .clickable { }
-                .padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            BasicText(
-                "Nuevo prospecto / seguimiento",
-                style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = Color(0xFF151729)),
+        BasicText(
+            "Nuevo prospecto / seguimiento",
+            style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = Color(0xFF151729)),
+        )
+        AdminModalLabeledField(
+            label = "Nombre del cliente",
+            value = clientNameInput,
+            placeholder = "Ej. Lucía Fernández",
+            isError = debouncedClientNameError != null,
+            errorMessage = debouncedClientNameError,
+        ) { updatedValue ->
+            clientNameInput = InputValidator.filterPersonNameInput(
+                rawValue = updatedValue,
+                maxLength = InputValidator.MAX_FULL_NAME_LENGTH,
             )
-            AdminModalLabeledField(label = "Nombre del cliente", value = clientNameInput, placeholder = "Ej. Lucía Fernández") { updatedValue ->
-                clientNameInput = updatedValue
-                localErrorText = null
-            }
-            AdminModalLabeledField(label = "Teléfono / WhatsApp", value = phoneInput, placeholder = "+18095550199") { updatedValue ->
-                phoneInput = updatedValue
-                localErrorText = null
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Box(modifier = Modifier.weight(1.2f)) {
-                    AdminModalLabeledField(label = "Tipo de evento", value = eventTypeInput, placeholder = "Boda / Corporativo") { updatedValue ->
-                        eventTypeInput = updatedValue
-                    }
+            hasInteractedClientName = true
+            localErrorText = null
+        }
+        AdminModalLabeledField(
+            label = "Teléfono / WhatsApp",
+            value = phoneInput,
+            placeholder = "809-555-0199",
+            isError = debouncedPhoneError != null,
+            errorMessage = debouncedPhoneError,
+        ) { updatedValue ->
+            phoneInput = InputValidator.filterPhoneInput(updatedValue)
+            hasInteractedPhone = true
+            localErrorText = null
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Box(modifier = Modifier.weight(1.2f)) {
+                AdminModalLabeledField(
+                    label = "Tipo de evento",
+                    value = eventTypeInput,
+                    placeholder = "Boda / Corporativo",
+                    isError = debouncedEventTypeError != null,
+                    errorMessage = debouncedEventTypeError,
+                ) { updatedValue ->
+                    eventTypeInput = updatedValue.take(InputValidator.MAX_EVENT_NAME_LENGTH)
+                    hasInteractedEventType = true
+                    localErrorText = null
                 }
-                Box(modifier = Modifier.weight(0.8f)) {
-                    AdminModalLabeledField(label = "Invitados", value = guestsInput, placeholder = "80") { updatedValue ->
-                        guestsInput = updatedValue
-                        localErrorText = null
-                    }
+            }
+            Box(modifier = Modifier.weight(0.8f)) {
+                AdminModalLabeledField(
+                    label = "Invitados",
+                    value = guestsInput,
+                    placeholder = "80",
+                    isError = debouncedGuestsError != null,
+                    errorMessage = debouncedGuestsError,
+                ) { updatedValue ->
+                    guestsInput = InputValidator.filterDigitsOnly(updatedValue, 5)
+                    hasInteractedGuests = true
+                    localErrorText = null
                 }
             }
-            AdminModalLabeledField(label = "Presupuesto estimado (RD$)", value = budgetDopInput, placeholder = "4500") { updatedValue ->
-                budgetDopInput = updatedValue
-                localErrorText = null
-            }
-            AdminModalLabeledField(label = "Nota de seguimiento", value = followUpNoteInput, placeholder = "Enviar catálogo y confirmar visita") { updatedValue ->
-                followUpNoteInput = updatedValue
-            }
+        }
+        AdminModalLabeledField(
+            label = "Presupuesto estimado (RD$)",
+            value = budgetDopInput,
+            placeholder = "4500",
+            isError = debouncedBudgetError != null,
+            errorMessage = debouncedBudgetError,
+        ) { updatedValue ->
+            budgetDopInput = InputValidator.filterDecimalCurrencyInput(
+                rawValue = updatedValue,
+                maxIntegerDigits = 8,
+            )
+            hasInteractedBudget = true
+            localErrorText = null
+        }
+        AdminModalLabeledField(
+            label = "Nota de seguimiento",
+            value = followUpNoteInput,
+            placeholder = "Enviar catálogo y confirmar visita",
+            isError = debouncedNoteError != null,
+            errorMessage = debouncedNoteError,
+        ) { updatedValue ->
+            followUpNoteInput = updatedValue.take(InputValidator.MAX_NOTES_LENGTH)
+            hasInteractedNote = true
+            localErrorText = null
+        }
 
-            if (localErrorText != null) {
-                BasicText(
-                    text = localErrorText.orEmpty(),
-                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 12.5.sp, color = Color(0xFFB42345)),
-                )
-            }
+        RfValidationErrorText(errorMessage = localErrorText)
 
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(44.dp)
-                        .clip(RoundedCornerShape(999.dp))
-                        .background(Color(0xFFEDEDF5))
-                        .clickable { onDismiss() },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    BasicText("Cancelar", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF151729)))
-                }
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(44.dp)
-                        .clip(RoundedCornerShape(999.dp))
-                        .background(ReportGradient)
-                        .clickable {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(44.dp)
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(Color(0xFFEDEDF5))
+                    .clickable { onDismiss() },
+                contentAlignment = Alignment.Center,
+            ) {
+                BasicText("Cancelar", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF151729)))
+            }
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(44.dp)
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(ReportGradient)
+                    .clickable {
+                        val nameError = InputValidator.validateFullName(clientNameInput)
+                        val phoneError = InputValidator.validateDominicanPhone(
+                            rawValue = phoneInput,
+                            isRequired = true,
+                            allowInternational = false,
+                            fieldLabel = "El teléfono",
+                        )
+                        val eventError = InputValidator.validateEntityName(
+                            rawValue = eventTypeInput,
+                            fieldLabel = "El tipo de evento",
+                            minLength = InputValidator.MIN_EVENT_NAME_LENGTH,
+                            maxLength = InputValidator.MAX_EVENT_NAME_LENGTH,
+                        )
+                        val guestsError = InputValidator.validateIntegerCount(
+                            rawValue = guestsInput,
+                            fieldLabel = "Los invitados",
+                            isRequired = true,
+                            minValue = 10,
+                            maxValue = InputValidator.MAX_GUEST_COUNT,
+                        )
+                        val budgetError = InputValidator.validateMoneyAmount(
+                            rawValue = budgetDopInput,
+                            fieldLabel = "El presupuesto estimado",
+                            isRequired = true,
+                            minAmount = 300.0,
+                            maxAmount = InputValidator.MAX_MONEY_AMOUNT,
+                        )
+                        val noteError = InputValidator.validateNotes(
+                            rawValue = followUpNoteInput,
+                            fieldLabel = "La nota de seguimiento",
+                            isRequired = false,
+                            minLength = 0,
+                            maxLength = InputValidator.MAX_NOTES_LENGTH,
+                        )
+                        val firstValidationError = nameError
+                            ?: phoneError
+                            ?: eventError
+                            ?: guestsError
+                            ?: budgetError
+                            ?: noteError
+                        if (firstValidationError != null) {
+                            forceShowLeadErrors = true
+                            localErrorText = firstValidationError
+                        } else {
                             val trimmedClient = clientNameInput.trim()
                             val trimmedPhone = phoneInput.trim()
-                            val trimmedEvent = eventTypeInput.trim().ifBlank { "Evento social" }
-                            val parsedGuests = guestsInput.trim().toIntOrNull() ?: 0
-                            val parsedBudget = budgetDopInput.trim().toIntOrNull() ?: 0
+                            val trimmedEvent = eventTypeInput.trim()
+                            val parsedGuests = guestsInput.trim().toIntOrNull() ?: 10
+                            val parsedBudget = budgetDopInput.trim().toDoubleOrNull()?.roundToInt() ?: 300
                             val trimmedFollowUp = followUpNoteInput.trim()
-                            when {
-                                trimmedClient.length < 2 -> {
-                                    localErrorText = "Ingresa el nombre completo del prospecto."
-                                }
-
-                                trimmedPhone.length < 7 -> {
-                                    localErrorText = "Ingresa un teléfono válido de al menos 7 dígitos."
-                                }
-
-                                parsedGuests < 10 -> {
-                                    localErrorText = "Indica al menos 10 invitados estimados."
-                                }
-
-                                parsedBudget < 300 -> {
-                                    localErrorText = "El presupuesto estimado mínimo es RD$ 300."
-                                }
-
-                                else -> {
-                                    onSaveLead(trimmedClient, trimmedPhone, trimmedEvent, parsedGuests, parsedBudget, trimmedFollowUp)
-                                }
-                            }
-                        },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    BasicText("Guardar", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White))
-                }
+                            onSaveLead(trimmedClient, trimmedPhone, trimmedEvent, parsedGuests, parsedBudget, trimmedFollowUp)
+                        }
+                    },
+                contentAlignment = Alignment.Center,
+            ) {
+                BasicText("Guardar", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White))
             }
         }
     }
@@ -3631,9 +3877,14 @@ internal fun AdminModalLabeledField(
     label: String,
     value: String,
     placeholder: String,
+    isError: Boolean = false,
+    errorMessage: String? = null,
     onValueChange: (String) -> Unit,
 ) {
     val typo = LocalRfTypography.current
+    val hasFieldError = if (isError) true else errorMessage != null
+    val borderColor = if (hasFieldError) RfColors.Error else Color(0xFFE3E3EF)
+
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         BasicText(
             text = label,
@@ -3645,7 +3896,7 @@ internal fun AdminModalLabeledField(
                 .heightIn(min = 42.dp)
                 .clip(RoundedCornerShape(12.dp))
                 .background(Color(0xFFF6F6FB))
-                .border(1.dp, Color(0xFFE3E3EF), RoundedCornerShape(12.dp))
+                .border(1.dp, borderColor, RoundedCornerShape(12.dp))
                 .padding(horizontal = 12.dp, vertical = 10.dp),
             contentAlignment = Alignment.CenterStart,
         ) {
@@ -3666,6 +3917,7 @@ internal fun AdminModalLabeledField(
                 modifier = Modifier.fillMaxWidth(),
             )
         }
+        RfValidationErrorText(errorMessage = errorMessage)
     }
 }
 
@@ -3849,7 +4101,11 @@ internal fun RenderLeadsFollowupS65(
             }
         }
 
-        if (showCreateLeadModal) {
+        AnimatedCenteredDialogHost(
+            visible = showCreateLeadModal,
+            onDismiss = { showCreateLeadModal = false },
+            scrimColor = Color(0x77151729),
+        ) {
             NewCommercialLeadModal(
                 onDismiss = { showCreateLeadModal = false },
                 onSaveLead = { clientName, phone, eventType, guests, budgetDop, followUpNote ->
@@ -5513,7 +5769,10 @@ internal fun RenderBotQuestionsS72(
             }
         }
 
-        if (showFaqModal) {
+        AnimatedCenteredDialogHost(
+            visible = showFaqModal,
+            onDismiss = { showFaqModal = false },
+        ) {
             BotFaqEditorModal(
                 initialFaq = editingFaq,
                 onDismiss = { showFaqModal = false },
@@ -5544,105 +5803,161 @@ private fun BotFaqEditorModal(
     var categoryInput by remember(initialFaq) { mutableStateOf(initialFaq?.category ?: "Cotizaciones") }
     var enabledFlag by remember(initialFaq) { mutableStateOf(initialFaq?.active ?: true) }
     var validationError by remember { mutableStateOf<String?>(null) }
+
+    var hasInteractedCategory by remember(initialFaq) { mutableStateOf(false) }
+    var hasInteractedQuestion by remember(initialFaq) { mutableStateOf(false) }
+    var hasInteractedAnswer by remember(initialFaq) { mutableStateOf(false) }
+    var forceShowFaqErrors by remember(initialFaq) { mutableStateOf(false) }
+
+    val debouncedCategoryError = rememberDebouncedValidationError(
+        value = categoryInput,
+        hasInteracted = hasInteractedCategory,
+        forceShowError = forceShowFaqErrors,
+    ) { candidate ->
+        InputValidator.validateEntityName(
+            rawValue = candidate,
+            fieldLabel = "La categoría",
+            minLength = 2,
+            maxLength = InputValidator.MAX_BUSINESS_NAME_LENGTH,
+        )
+    }
+    val debouncedQuestionError = rememberDebouncedValidationError(
+        value = questionInput,
+        hasInteracted = hasInteractedQuestion,
+        forceShowError = forceShowFaqErrors,
+    ) { candidate ->
+        InputValidator.validateDescription(
+            rawValue = candidate,
+            fieldLabel = "La pregunta",
+            isRequired = true,
+            minLength = 4,
+            maxLength = InputValidator.MAX_DESCRIPTION_LENGTH,
+        )
+    }
+    val debouncedAnswerError = rememberDebouncedValidationError(
+        value = answerInput,
+        hasInteracted = hasInteractedAnswer,
+        forceShowError = forceShowFaqErrors,
+    ) { candidate ->
+        InputValidator.validateDescription(
+            rawValue = candidate,
+            fieldLabel = "La respuesta automática",
+            isRequired = true,
+            minLength = 4,
+            maxLength = InputValidator.MAX_DESCRIPTION_LENGTH,
+        )
+    }
+
     val modalHeading = if (initialFaq == null) "Nueva pregunta frecuente" else "Editar pregunta frecuente"
 
-    Box(
+    Column(
         modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0x770E1020))
-            .clickable(onClick = onDismiss)
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(24.dp))
+            .background(Color.White)
             .padding(20.dp),
-        contentAlignment = Alignment.Center,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(24.dp))
-                .background(Color.White)
-                .clickable(enabled = false) {}
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            BasicText(
-                text = modalHeading,
-                style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = Color(0xFF151729)),
-            )
-            AdminModalLabeledField(
-                label = "Categoría",
-                value = categoryInput,
-                placeholder = "Cotizaciones, Entregas, Pagos...",
-            ) { updatedValue ->
-                categoryInput = updatedValue
-                validationError = null
+        BasicText(
+            text = modalHeading,
+            style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = Color(0xFF151729)),
+        )
+        AdminModalLabeledField(
+            label = "Categoría",
+            value = categoryInput,
+            placeholder = "Cotizaciones, Entregas, Pagos...",
+            isError = debouncedCategoryError != null,
+            errorMessage = debouncedCategoryError,
+        ) { updatedValue ->
+            categoryInput = updatedValue.take(InputValidator.MAX_BUSINESS_NAME_LENGTH)
+            hasInteractedCategory = true
+            validationError = null
+        }
+        AdminModalLabeledField(
+            label = "Pregunta del cliente",
+            value = questionInput,
+            placeholder = "¿Con cuánta anticipación debo reservar?",
+            isError = debouncedQuestionError != null,
+            errorMessage = debouncedQuestionError,
+        ) { updatedValue ->
+            questionInput = updatedValue.take(InputValidator.MAX_DESCRIPTION_LENGTH)
+            hasInteractedQuestion = true
+            validationError = null
+        }
+        AdminModalLabeledField(
+            label = "Respuesta automática",
+            value = answerInput,
+            placeholder = "Recomendamos reservar al menos 15 días antes con el 30% de abono.",
+            isError = debouncedAnswerError != null,
+            errorMessage = debouncedAnswerError,
+        ) { updatedValue ->
+            answerInput = updatedValue.take(InputValidator.MAX_DESCRIPTION_LENGTH)
+            hasInteractedAnswer = true
+            validationError = null
+        }
+        AdminModalToggleRow(
+            label = "Respuesta activa en WhatsApp",
+            checked = enabledFlag,
+            onToggle = { enabledFlag = !enabledFlag },
+        )
+        RfValidationErrorText(errorMessage = validationError)
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(44.dp)
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(Color(0xFFEDEDF5))
+                    .clickable(onClick = onDismiss),
+                contentAlignment = Alignment.Center,
+            ) {
+                BasicText("Cancelar", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF151729)))
             }
-            AdminModalLabeledField(
-                label = "Pregunta del cliente",
-                value = questionInput,
-                placeholder = "¿Con cuánta anticipación debo reservar?",
-            ) { updatedValue ->
-                questionInput = updatedValue
-                validationError = null
-            }
-            AdminModalLabeledField(
-                label = "Respuesta automática",
-                value = answerInput,
-                placeholder = "Recomendamos reservar al menos 15 días antes con el 30% de abono.",
-            ) { updatedValue ->
-                answerInput = updatedValue
-                validationError = null
-            }
-            AdminModalToggleRow(
-                label = "Respuesta activa en WhatsApp",
-                checked = enabledFlag,
-                onToggle = { enabledFlag = !enabledFlag },
-            )
-            if (validationError != null) {
-                BasicText(
-                    text = validationError.orEmpty(),
-                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 12.5.sp, color = Color(0xFFB42345)),
-                )
-            }
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(44.dp)
-                        .clip(RoundedCornerShape(999.dp))
-                        .background(Color(0xFFEDEDF5))
-                        .clickable(onClick = onDismiss),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    BasicText("Cancelar", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF151729)))
-                }
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(44.dp)
-                        .clip(RoundedCornerShape(999.dp))
-                        .background(ReportGradient)
-                        .clickable {
-                            val cleanQuestion = questionInput.trim()
-                            val cleanAnswer = answerInput.trim()
-                            val cleanCategory = categoryInput.trim().ifBlank { "General" }
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(44.dp)
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(ReportGradient)
+                    .clickable {
+                        val categoryError = InputValidator.validateEntityName(
+                            rawValue = categoryInput,
+                            fieldLabel = "La categoría",
+                            minLength = 2,
+                            maxLength = InputValidator.MAX_BUSINESS_NAME_LENGTH,
+                        )
+                        val questionError = InputValidator.validateDescription(
+                            rawValue = questionInput,
+                            fieldLabel = "La pregunta",
+                            isRequired = true,
+                            minLength = 4,
+                            maxLength = InputValidator.MAX_DESCRIPTION_LENGTH,
+                        )
+                        val answerError = InputValidator.validateDescription(
+                            rawValue = answerInput,
+                            fieldLabel = "La respuesta automática",
+                            isRequired = true,
+                            minLength = 4,
+                            maxLength = InputValidator.MAX_DESCRIPTION_LENGTH,
+                        )
+                        val firstError = categoryError ?: questionError ?: answerError
+                        if (firstError != null) {
+                            forceShowFaqErrors = true
+                            validationError = firstError
+                        } else {
                             val targetId = initialFaq?.id.orEmpty()
-                            when {
-                                cleanQuestion.length < 4 -> {
-                                    validationError = "Escribe una pregunta de al menos 4 caracteres."
-                                }
-
-                                cleanAnswer.length < 4 -> {
-                                    validationError = "Escribe una respuesta automática de al menos 4 caracteres."
-                                }
-
-                                else -> {
-                                    onSaveFaq(targetId, cleanQuestion, cleanAnswer, cleanCategory, enabledFlag)
-                                }
-                            }
-                        },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    BasicText("Guardar", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White))
-                }
+                            onSaveFaq(
+                                targetId,
+                                questionInput.trim(),
+                                answerInput.trim(),
+                                categoryInput.trim(),
+                                enabledFlag,
+                            )
+                        }
+                    },
+                contentAlignment = Alignment.Center,
+            ) {
+                BasicText("Guardar", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White))
             }
         }
     }
@@ -5911,7 +6226,10 @@ internal fun RenderBotKeywordsS73(
             }
         }
 
-        if (showRuleModal) {
+        AnimatedCenteredDialogHost(
+            visible = showRuleModal,
+            onDismiss = { showRuleModal = false },
+        ) {
             BotKeywordEditorModal(
                 initialRule = editingRule,
                 onDismiss = { showRuleModal = false },
@@ -5940,96 +6258,123 @@ private fun BotKeywordEditorModal(
     var autoReplyInput by remember(initialRule) { mutableStateOf(initialRule?.autoReply.orEmpty()) }
     var escalateFlag by remember(initialRule) { mutableStateOf(initialRule?.handoffToHuman ?: false) }
     var validationError by remember { mutableStateOf<String?>(null) }
+
+    var hasInteractedKeyword by remember(initialRule) { mutableStateOf(false) }
+    var hasInteractedAutoReply by remember(initialRule) { mutableStateOf(false) }
+    var forceShowRuleErrors by remember(initialRule) { mutableStateOf(false) }
+
+    val debouncedKeywordError = rememberDebouncedValidationError(
+        value = keywordInput,
+        hasInteracted = hasInteractedKeyword,
+        forceShowError = forceShowRuleErrors,
+    ) { candidate ->
+        InputValidator.validateEntityName(
+            rawValue = candidate,
+            fieldLabel = "La palabra clave",
+            minLength = 2,
+            maxLength = InputValidator.MAX_BUSINESS_NAME_LENGTH,
+        )
+    }
+    val debouncedAutoReplyError = rememberDebouncedValidationError(
+        value = autoReplyInput,
+        hasInteracted = hasInteractedAutoReply,
+        forceShowError = forceShowRuleErrors,
+    ) { candidate ->
+        InputValidator.validateDescription(
+            rawValue = candidate,
+            fieldLabel = "La respuesta automática",
+            isRequired = true,
+            minLength = 4,
+            maxLength = InputValidator.MAX_DESCRIPTION_LENGTH,
+        )
+    }
+
     val modalHeading = if (initialRule == null) "Nueva regla por palabra clave" else "Editar regla por palabra clave"
 
-    Box(
+    Column(
         modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0x770E1020))
-            .clickable(onClick = onDismiss)
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(24.dp))
+            .background(Color.White)
             .padding(20.dp),
-        contentAlignment = Alignment.Center,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(24.dp))
-                .background(Color.White)
-                .clickable(enabled = false) {}
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            BasicText(
-                text = modalHeading,
-                style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = Color(0xFF151729)),
-            )
-            AdminModalLabeledField(
-                label = "Palabra clave",
-                value = keywordInput,
-                placeholder = "precio, catálogo, urgente...",
-            ) { updatedValue ->
-                keywordInput = updatedValue
-                validationError = null
+        BasicText(
+            text = modalHeading,
+            style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = Color(0xFF151729)),
+        )
+        AdminModalLabeledField(
+            label = "Palabra clave",
+            value = keywordInput,
+            placeholder = "precio, catálogo, urgente...",
+            isError = debouncedKeywordError != null,
+            errorMessage = debouncedKeywordError,
+        ) { updatedValue ->
+            keywordInput = updatedValue.take(InputValidator.MAX_BUSINESS_NAME_LENGTH)
+            hasInteractedKeyword = true
+            validationError = null
+        }
+        AdminModalLabeledField(
+            label = "Respuesta automática",
+            value = autoReplyInput,
+            placeholder = "Te compartimos las tarifas base por día y disponibilidad...",
+            isError = debouncedAutoReplyError != null,
+            errorMessage = debouncedAutoReplyError,
+        ) { updatedValue ->
+            autoReplyInput = updatedValue.take(InputValidator.MAX_DESCRIPTION_LENGTH)
+            hasInteractedAutoReply = true
+            validationError = null
+        }
+        AdminModalToggleRow(
+            label = "Derivar conversación a agente humano",
+            checked = escalateFlag,
+            onToggle = { escalateFlag = !escalateFlag },
+        )
+        RfValidationErrorText(errorMessage = validationError)
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(44.dp)
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(Color(0xFFEDEDF5))
+                    .clickable(onClick = onDismiss),
+                contentAlignment = Alignment.Center,
+            ) {
+                BasicText("Cancelar", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF151729)))
             }
-            AdminModalLabeledField(
-                label = "Respuesta automática",
-                value = autoReplyInput,
-                placeholder = "Te compartimos las tarifas base por día y disponibilidad...",
-            ) { updatedValue ->
-                autoReplyInput = updatedValue
-                validationError = null
-            }
-            AdminModalToggleRow(
-                label = "Derivar conversación a agente humano",
-                checked = escalateFlag,
-                onToggle = { escalateFlag = !escalateFlag },
-            )
-            if (validationError != null) {
-                BasicText(
-                    text = validationError.orEmpty(),
-                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 12.5.sp, color = Color(0xFFB42345)),
-                )
-            }
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(44.dp)
-                        .clip(RoundedCornerShape(999.dp))
-                        .background(Color(0xFFEDEDF5))
-                        .clickable(onClick = onDismiss),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    BasicText("Cancelar", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF151729)))
-                }
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(44.dp)
-                        .clip(RoundedCornerShape(999.dp))
-                        .background(ReportGradient)
-                        .clickable {
-                            val cleanKeyword = keywordInput.trim()
-                            val cleanAutoReply = autoReplyInput.trim()
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(44.dp)
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(ReportGradient)
+                    .clickable {
+                        val keywordError = InputValidator.validateEntityName(
+                            rawValue = keywordInput,
+                            fieldLabel = "La palabra clave",
+                            minLength = 2,
+                            maxLength = InputValidator.MAX_BUSINESS_NAME_LENGTH,
+                        )
+                        val autoReplyError = InputValidator.validateDescription(
+                            rawValue = autoReplyInput,
+                            fieldLabel = "La respuesta automática",
+                            isRequired = true,
+                            minLength = 4,
+                            maxLength = InputValidator.MAX_DESCRIPTION_LENGTH,
+                        )
+                        val firstError = keywordError ?: autoReplyError
+                        if (firstError != null) {
+                            forceShowRuleErrors = true
+                            validationError = firstError
+                        } else {
                             val targetRuleId = initialRule?.id.orEmpty()
-                            when {
-                                cleanKeyword.length < 2 -> {
-                                    validationError = "Ingresa una palabra clave de al menos 2 caracteres."
-                                }
-
-                                cleanAutoReply.length < 4 -> {
-                                    validationError = "Ingresa una respuesta automática de al menos 4 caracteres."
-                                }
-
-                                else -> {
-                                    onSaveRule(targetRuleId, cleanKeyword, cleanAutoReply, escalateFlag)
-                                }
-                            }
-                        },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    BasicText("Guardar", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White))
-                }
+                            onSaveRule(targetRuleId, keywordInput.trim(), autoReplyInput.trim(), escalateFlag)
+                        }
+                    },
+                contentAlignment = Alignment.Center,
+            ) {
+                BasicText("Guardar", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White))
             }
         }
     }
@@ -6113,7 +6458,7 @@ internal fun RenderBotConversationsS74(
                         }
                         BasicTextField(
                             value = searchQuery,
-                            onValueChange = { updatedQuery -> searchQuery = updatedQuery },
+                            onValueChange = { updatedQuery -> searchQuery = updatedQuery.take(InputValidator.MAX_SEARCH_QUERY_LENGTH) },
                             singleLine = true,
                             textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF151729)),
                             cursorBrush = SolidColor(Color(0xFF5B6CF0)),
@@ -6197,25 +6542,35 @@ internal fun RenderBotConversationsS74(
             }
         }
 
+        var renderedHandoffThread by remember { mutableStateOf<BotThreadRecord?>(null) }
         if (activeHandoffThread != null) {
-            BotConversationHandoffModal(
-                threadItem = activeHandoffThread,
-                onDismiss = { selectedThreadId = null },
-                onToggleBotPause = {
-                    val nextPausedState = !activeHandoffThread.botPaused
-                    val nextAssignedAgent = if (nextPausedState) "María" else ""
-                    viewModel?.toggleBotThreadPause(activeHandoffThread.id, nextPausedState, nextAssignedAgent)
-                },
-                onOpenAdminChat = {
-                    viewModel?.selectChatThreadForContact(activeHandoffThread.customerName)
-                    selectedThreadId = null
-                    onSelectScreenCode("A15")
-                },
-                onOpenWhatsApp = {
-                    val followUpGreeting = "Hola ${activeHandoffThread.customerName}, te atendemos desde RosaFiesta."
-                    viewModel?.openWhatsAppChat(activeHandoffThread.phone, followUpGreeting)
-                },
-            )
+            renderedHandoffThread = activeHandoffThread
+        }
+        val dialogThread = renderedHandoffThread
+        AnimatedCenteredDialogHost(
+            visible = activeHandoffThread != null,
+            onDismiss = { selectedThreadId = null },
+        ) {
+            if (dialogThread != null) {
+                BotConversationHandoffModal(
+                    threadItem = dialogThread,
+                    onDismiss = { selectedThreadId = null },
+                    onToggleBotPause = {
+                        val nextPausedState = !dialogThread.botPaused
+                        val nextAssignedAgent = if (nextPausedState) "María" else ""
+                        viewModel?.toggleBotThreadPause(dialogThread.id, nextPausedState, nextAssignedAgent)
+                    },
+                    onOpenAdminChat = {
+                        viewModel?.selectChatThreadForContact(dialogThread.customerName)
+                        selectedThreadId = null
+                        onSelectScreenCode("A15")
+                    },
+                    onOpenWhatsApp = {
+                        val followUpGreeting = "Hola ${dialogThread.customerName}, te atendemos desde RosaFiesta."
+                        viewModel?.openWhatsAppChat(dialogThread.phone, followUpGreeting)
+                    },
+                )
+            }
         }
     }
 }
@@ -6248,105 +6603,95 @@ private fun BotConversationHandoffModal(
         "Bot respondiendo automáticamente"
     }
 
-    Box(
+    Column(
         modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0x770E1020))
-            .clickable(onClick = onDismiss)
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(24.dp))
+            .background(Color.White)
             .padding(20.dp),
-        contentAlignment = Alignment.Center,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                BasicText(
+                    text = threadItem.customerName,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = Color(0xFF151729)),
+                )
+                BasicText(
+                    text = "${threadItem.phone} · ${threadItem.updatedAtLabel}",
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF5F6377)),
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFFF3F3FA))
+                    .clickable(onClick = onDismiss),
+                contentAlignment = Alignment.Center,
+            ) {
+                RfIcon(kind = RfIconKind.CLOSE, tint = Color(0xFF5F6377), size = 15.dp)
+            }
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(24.dp))
-                .background(Color.White)
-                .clickable(enabled = false) {}
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+                .clip(RoundedCornerShape(14.dp))
+                .background(Color(0xFFF6F6FB))
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    BasicText(
-                        text = threadItem.customerName,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = Color(0xFF151729)),
-                    )
-                    BasicText(
-                        text = "${threadItem.phone} · ${threadItem.updatedAtLabel}",
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF5F6377)),
-                    )
-                }
-                Box(
-                    modifier = Modifier
-                        .size(32.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFFF3F3FA))
-                        .clickable(onClick = onDismiss),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    RfIcon(kind = RfIconKind.CLOSE, tint = Color(0xFF5F6377), size = 15.dp)
-                }
-            }
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(Color(0xFFF6F6FB))
-                    .padding(12.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                BasicText(
-                    text = "Último mensaje recibido",
-                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 11.5.sp, color = Color(0xFF5F6377)),
-                )
-                BasicText(
-                    text = threadItem.lastMessage,
-                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, lineHeight = 20.sp, color = Color(0xFF151729)),
-                )
-                BasicText(
-                    text = statusDescription,
-                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = Color(0xFF4B47D6)),
-                )
-            }
-
-            AdminModalToggleRow(
-                label = "Pausar bot / Derivar a humano",
-                checked = threadItem.botPaused,
-                onToggle = onToggleBotPause,
+            BasicText(
+                text = "Último mensaje recibido",
+                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 11.5.sp, color = Color(0xFF5F6377)),
             )
+            BasicText(
+                text = threadItem.lastMessage,
+                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, lineHeight = 20.sp, color = Color(0xFF151729)),
+            )
+            BasicText(
+                text = statusDescription,
+                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = Color(0xFF4B47D6)),
+            )
+        }
 
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(44.dp)
-                        .clip(RoundedCornerShape(999.dp))
-                        .background(ReportGradient)
-                        .clickable(onClick = onOpenAdminChat),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    BasicText("Abrir chat Admin", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White))
-                }
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(44.dp)
-                        .clip(RoundedCornerShape(999.dp))
-                        .background(Color(0xFFEEF6D6))
-                        .clickable(onClick = onOpenWhatsApp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        RfIcon(kind = RfIconKind.WHATSAPP, tint = Color(0xFF4E6A10), size = 16.dp)
-                        BasicText("Abrir WhatsApp", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF4E6A10)))
-                    }
+        AdminModalToggleRow(
+            label = "Pausar bot / Derivar a humano",
+            checked = threadItem.botPaused,
+            onToggle = onToggleBotPause,
+        )
+
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(44.dp)
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(ReportGradient)
+                    .clickable(onClick = onOpenAdminChat),
+                contentAlignment = Alignment.Center,
+            ) {
+                BasicText("Abrir chat Admin", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White))
+            }
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(44.dp)
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(Color(0xFFEEF6D6))
+                    .clickable(onClick = onOpenWhatsApp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    RfIcon(kind = RfIconKind.WHATSAPP, tint = Color(0xFF4E6A10), size = 16.dp)
+                    BasicText("Abrir WhatsApp", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF4E6A10)))
                 }
             }
         }
@@ -6534,12 +6879,22 @@ internal fun RenderInsurancePanelS60(
             }
         }
 
+        var renderedSelectedPolicy by remember { mutableStateOf<InsurancePolicyRecord?>(null) }
         val currentSelectedPolicy = selectedPolicy
         if (currentSelectedPolicy != null) {
-            InsurancePolicyDetailModal(
-                policyItem = currentSelectedPolicy,
-                onDismiss = { selectedPolicy = null },
-            )
+            renderedSelectedPolicy = currentSelectedPolicy
+        }
+        val dialogPolicy = renderedSelectedPolicy
+        AnimatedCenteredDialogHost(
+            visible = currentSelectedPolicy != null,
+            onDismiss = { selectedPolicy = null },
+        ) {
+            if (dialogPolicy != null) {
+                InsurancePolicyDetailModal(
+                    policyItem = dialogPolicy,
+                    onDismiss = { selectedPolicy = null },
+                )
+            }
         }
     }
 }
@@ -6607,79 +6962,70 @@ private fun InsurancePolicyDetailModal(
     val maxCoverageFormatted = RosaFiestaEngine.formatDop(policyItem.maxCoverageDop)
     val deductibleDop = (policyItem.maxCoverageDop / 100).coerceAtLeast(5000)
     val deductibleFormatted = RosaFiestaEngine.formatDop(deductibleDop)
+    val formattedValidUntil = formatReadableSpanishDateText(policyItem.validUntilLabel)
 
-    Box(
+    Column(
         modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0x770E1020))
-            .clickable(onClick = onDismiss)
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(24.dp))
+            .background(Color.White)
             .padding(20.dp),
-        contentAlignment = Alignment.Center,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                BasicText(
+                    text = policyItem.policyNumber,
+                    style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 19.sp, color = Color(0xFF151729)),
+                )
+                BasicText(
+                    text = policyItem.providerName,
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.5.sp, color = Color(0xFF5F6377)),
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .height(26.dp)
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(Color(0xFFEEF6D6))
+                    .padding(horizontal = 10.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                BasicText(policyItem.status, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF4E6A10)))
+            }
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(24.dp))
-                .background(Color.White)
-                .clickable(enabled = false) {}
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+                .clip(RoundedCornerShape(16.dp))
+                .background(Color(0xFFF6F6FB))
+                .padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    BasicText(
-                        text = policyItem.policyNumber,
-                        style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 19.sp, color = Color(0xFF151729)),
-                    )
-                    BasicText(
-                        text = policyItem.providerName,
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.5.sp, color = Color(0xFF5F6377)),
-                    )
-                }
-                Box(
-                    modifier = Modifier
-                        .height(26.dp)
-                        .clip(RoundedCornerShape(999.dp))
-                        .background(Color(0xFFEEF6D6))
-                        .padding(horizontal = 10.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    BasicText(policyItem.status, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF4E6A10)))
-                }
-            }
+            PolicyDetailFieldRow(label = "Aseguradora", value = policyItem.providerName)
+            PolicyDetailFieldRow(label = "Número de póliza", value = policyItem.policyNumber)
+            PolicyDetailFieldRow(label = "Tipo de cobertura", value = policyItem.coverageType)
+            PolicyDetailFieldRow(label = "Cobertura máxima", value = maxCoverageFormatted)
+            PolicyDetailFieldRow(label = "Deducible por siniestro", value = deductibleFormatted)
+            PolicyDetailFieldRow(label = "Vigencia hasta", value = formattedValidUntil)
+            PolicyDetailFieldRow(label = "Estado", value = policyItem.status)
+        }
 
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color(0xFFF6F6FB))
-                    .padding(14.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                PolicyDetailFieldRow(label = "Aseguradora", value = policyItem.providerName)
-                PolicyDetailFieldRow(label = "Número de póliza", value = policyItem.policyNumber)
-                PolicyDetailFieldRow(label = "Tipo de cobertura", value = policyItem.coverageType)
-                PolicyDetailFieldRow(label = "Cobertura máxima", value = maxCoverageFormatted)
-                PolicyDetailFieldRow(label = "Deducible por siniestro", value = deductibleFormatted)
-                PolicyDetailFieldRow(label = "Vigencia hasta", value = policyItem.validUntilLabel)
-                PolicyDetailFieldRow(label = "Estado", value = policyItem.status)
-            }
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(44.dp)
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(ReportGradient)
-                    .clickable(onClick = onDismiss),
-                contentAlignment = Alignment.Center,
-            ) {
-                BasicText("Cerrar detalle", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White))
-            }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(44.dp)
+                .clip(RoundedCornerShape(999.dp))
+                .background(ReportGradient)
+                .clickable(onClick = onDismiss),
+            contentAlignment = Alignment.Center,
+        ) {
+            BasicText("Cerrar detalle", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White))
         }
     }
 }

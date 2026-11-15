@@ -82,6 +82,9 @@ public class Navigator(
                 if (targetBackIndex >= 0) {
                     backStack.removeRange(targetBackIndex, backStack.size)
                     lastTransition = backTransitionKind
+                    if (!ScreenCatalog.isBottomSheet(explicitTarget)) {
+                        lastModalOriginCode = null
+                    }
                     currentCode = explicitTarget
                     return
                 }
@@ -90,11 +93,15 @@ public class Navigator(
                 return
             }
             val defaultHomeCode = if (activeView == AppView.ADMIN) "A01" else "s14"
-            val fallbackTarget = explicitTarget.ifBlank { defaultHomeCode }
+            val originFallback = if (leavingModalSheet) lastModalOriginCode.orEmpty() else ""
+            val fallbackTarget = explicitTarget.ifBlank { originFallback }.ifBlank { defaultHomeCode }
             if (fallbackTarget == currentCode) {
                 return
             }
             lastTransition = backTransitionKind
+            if (!ScreenCatalog.isBottomSheet(fallbackTarget)) {
+                lastModalOriginCode = null
+            }
             currentCode = fallbackTarget
             return
         }
@@ -103,11 +110,15 @@ public class Navigator(
         val existingBackIndex = backStack.indexOf(code)
         if (existingBackIndex >= 0) {
             backStack.removeRange(existingBackIndex, backStack.size)
-            val useTabSwitch = isRootTab && !leavingModalSheet
+            val staysInNonModalFlow = !leavingModalSheet
+            val useTabSwitch = if (isRootTab) staysInNonModalFlow else false
             lastTransition = if (useTabSwitch) {
                 resolveTabTransition(currentCode, code)
             } else {
                 backTransitionKind
+            }
+            if (!ScreenCatalog.isBottomSheet(code)) {
+                lastModalOriginCode = null
             }
             currentCode = code
             return
@@ -124,9 +135,12 @@ public class Navigator(
                 lastModalOriginCode = currentCode
             }
         }
-        val isModalTransition = if (enteringModalSheet) true else leavingModalSheet
+        val isReturningToModalOrigin = if (leavingModalSheet) code == lastModalOriginCode else false
+        val isReturningHomeFromModal = if (leavingModalSheet) code in HOME_TAB_CODES else false
+        val isDismissingModal = if (isReturningToModalOrigin) true else isReturningHomeFromModal
         lastTransition = when {
-            isModalTransition -> NavigationTransitionKind.MODAL_SHEET
+            enteringModalSheet -> NavigationTransitionKind.MODAL_SHEET
+            isDismissingModal -> NavigationTransitionKind.MODAL_SHEET
             isRootTab -> resolveTabTransition(currentCode, code)
             else -> NavigationTransitionKind.FORWARD
         }
@@ -141,6 +155,9 @@ public class Navigator(
                 backStack.add(currentCode)
             }
         }
+        if (!enteringModalSheet) {
+            lastModalOriginCode = null
+        }
         currentCode = code
     }
 
@@ -152,7 +169,11 @@ public class Navigator(
         } else {
             NavigationTransitionKind.BACKWARD
         }
-        currentCode = backStack.removeAt(backStack.lastIndex)
+        val poppedCode = backStack.removeAt(backStack.lastIndex)
+        if (!ScreenCatalog.isBottomSheet(poppedCode)) {
+            lastModalOriginCode = null
+        }
+        currentCode = poppedCode
         return true
     }
 

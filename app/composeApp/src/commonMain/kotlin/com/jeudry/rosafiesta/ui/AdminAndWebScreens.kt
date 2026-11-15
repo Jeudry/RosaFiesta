@@ -1,8 +1,15 @@
 package com.jeudry.rosafiesta.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,8 +27,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -44,6 +53,7 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -82,6 +92,32 @@ import com.jeudry.rosafiesta.domain.PaymentRecord
 import com.jeudry.rosafiesta.domain.PhotoAsset
 import com.jeudry.rosafiesta.domain.QuoteRecord
 import com.jeudry.rosafiesta.domain.StaffMember
+import com.jeudry.rosafiesta.domain.validation.InputValidator
+
+private fun firstDesktopValidationError(vararg errors: String?): String? = errors.firstOrNull { message -> !message.isNullOrBlank() }
+
+private fun validateDesktopEventDateText(rawDate: String): String? {
+    val trimmed = rawDate.trim()
+    if (trimmed.isEmpty()) {
+        return "La fecha del evento es obligatoria."
+    }
+    val hasSlashDate = trimmed.contains("/")
+    if (hasSlashDate) {
+        return InputValidator.validateEventDate(trimmed, isRequired = true)
+    }
+    val lower = trimmed.lowercase()
+    val spanishMonths = listOf(
+        "ene", "feb", "mar", "abr", "may", "jun",
+        "jul", "ago", "sep", "oct", "nov", "dic",
+    )
+    val hasMonth = spanishMonths.any { monthToken -> lower.contains(monthToken) }
+    val hasDayDigit = trimmed.any { character -> character.isDigit() }
+    val hasSpanishLabel = if (hasMonth) hasDayDigit else false
+    if (hasSpanishLabel) {
+        return null
+    }
+    return InputValidator.validateEventDate(trimmed, isRequired = true)
+}
 
 private enum class A39DesktopSection(val title: String) {
     INICIO("Inicio"),
@@ -457,24 +493,22 @@ public fun RenderAdminWebDesktopA39(
                     }
                 }
 
-                if (activeModal != A39DesktopModal.NONE) {
-                    val selectedEvent = eventsList.firstOrNull { candidate -> candidate.id == selectedEventId }
-                        ?: eventsList.firstOrNull()
-                    AdminDesktopModalHost(
-                        activeModal = activeModal,
-                        viewModel = viewModel,
-                        notifications = notificationsList,
-                        selectedEvent = selectedEvent,
-                        onDismiss = { activeModal = A39DesktopModal.NONE },
-                        onMarkNotificationRead = { notificationId ->
-                            viewModel?.markNotificationAsRead(notificationId)
-                        },
-                        onSelectScreenCode = { targetCode ->
-                            activeModal = A39DesktopModal.NONE
-                            onSelectScreenCode(targetCode)
-                        },
-                    )
-                }
+                val selectedEvent = eventsList.firstOrNull { candidate -> candidate.id == selectedEventId }
+                    ?: eventsList.firstOrNull()
+                AdminDesktopModalHost(
+                    activeModal = activeModal,
+                    viewModel = viewModel,
+                    notifications = notificationsList,
+                    selectedEvent = selectedEvent,
+                    onDismiss = { activeModal = A39DesktopModal.NONE },
+                    onMarkNotificationRead = { notificationId ->
+                        viewModel?.markNotificationAsRead(notificationId)
+                    },
+                    onSelectScreenCode = { targetCode ->
+                        activeModal = A39DesktopModal.NONE
+                        onSelectScreenCode(targetCode)
+                    },
+                )
             }
         }
     }
@@ -820,7 +854,9 @@ private fun AdminDesktopTopBar(
                     )
                     BasicTextField(
                         value = searchQuery,
-                        onValueChange = onSearchChange,
+                        onValueChange = { updatedQuery ->
+                            onSearchChange(updatedQuery.take(InputValidator.MAX_SEARCH_QUERY_LENGTH))
+                        },
                         singleLine = true,
                         textStyle = typo.body.copy(fontSize = 14.sp, color = Color(0xFF151729)),
                         cursorBrush = SolidColor(Color(0xFF5B6CF0)),
@@ -2289,6 +2325,28 @@ private fun AdminDesktopPaymentsSection(
 
     var amountInput by remember { mutableStateOf("1500") }
     var referenceInput by remember { mutableStateOf("TRF-8841") }
+    var amountTouched by remember { mutableStateOf(false) }
+    var referenceTouched by remember { mutableStateOf(false) }
+    var paymentSubmitAttempted by remember { mutableStateOf(false) }
+    val amountError = rememberDebouncedValidationError(
+        value = amountInput,
+        hasInteracted = amountTouched,
+        forceShowError = paymentSubmitAttempted,
+    ) { candidate ->
+        InputValidator.validateMoneyAmount(
+            rawValue = candidate,
+            minAmount = 1.0,
+            maxAmount = InputValidator.MAX_MONEY_AMOUNT,
+            fieldLabel = "El monto",
+        )
+    }
+    val referenceError = rememberDebouncedValidationError(
+        value = referenceInput,
+        hasInteracted = referenceTouched,
+        forceShowError = paymentSubmitAttempted,
+    ) { candidate ->
+        InputValidator.validateBankReference(candidate, isRequired = true)
+    }
     val trimmed = searchQuery.trim()
     val filtered = remember(paymentsList, trimmed) {
         if (trimmed.isEmpty()) {
@@ -2310,27 +2368,67 @@ private fun AdminDesktopPaymentsSection(
         modifier = modifier,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.verticalScroll(rememberScrollState())) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            Column(
+                verticalArrangement = Arrangement.spacedBy(6.dp),
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(14.dp))
                     .background(Color(0xFFF3F2FE))
                     .padding(12.dp),
             ) {
-                BasicText("Registro rápido:", style = typo.bodyStrong.copy(fontSize = 13.5.sp))
-                DesktopInlineInput(value = amountInput, placeholder = "Monto", onValueChange = { next -> amountInput = next }, modifier = Modifier.width(120.dp))
-                DesktopInlineInput(value = referenceInput, placeholder = "Referencia", onValueChange = { next -> referenceInput = next }, modifier = Modifier.width(180.dp))
-                val targetEvent = eventsList.firstOrNull { ev -> ev.balanceDop > 0 } ?: eventsList.firstOrNull()
-                DesktopGradientPillButton(
-                    label = "Registrar pago",
-                    onClick = {
-                        if (targetEvent != null) {
-                            onRegisterQuickPayment(targetEvent.id, amountInput, "Transferencia bancaria", referenceInput)
-                        }
-                    },
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    BasicText("Registro rápido:", style = typo.bodyStrong.copy(fontSize = 13.5.sp))
+                    DesktopInlineInput(
+                        value = amountInput,
+                        placeholder = "Monto",
+                        isError = amountError != null,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        onValueChange = { next ->
+                            amountTouched = true
+                            paymentSubmitAttempted = false
+                            amountInput = InputValidator.filterDigitsOnly(next, 8)
+                        },
+                        modifier = Modifier.width(120.dp),
+                    )
+                    DesktopInlineInput(
+                        value = referenceInput,
+                        placeholder = "Referencia",
+                        isError = referenceError != null,
+                        onValueChange = { next ->
+                            referenceTouched = true
+                            paymentSubmitAttempted = false
+                            referenceInput = next.take(InputValidator.MAX_BANK_REFERENCE_LENGTH)
+                        },
+                        modifier = Modifier.width(180.dp),
+                    )
+                    val targetEvent = eventsList.firstOrNull { ev -> ev.balanceDop > 0 } ?: eventsList.firstOrNull()
+                    DesktopGradientPillButton(
+                        label = "Registrar pago",
+                        onClick = {
+                            paymentSubmitAttempted = true
+                            val paymentValidation = firstDesktopValidationError(
+                                InputValidator.validateMoneyAmount(
+                                    rawValue = amountInput,
+                                    minAmount = 1.0,
+                                    maxAmount = InputValidator.MAX_MONEY_AMOUNT,
+                                    fieldLabel = "El monto",
+                                ),
+                                InputValidator.validateBankReference(referenceInput, isRequired = true),
+                            )
+                            if (paymentValidation == null) {
+                                if (targetEvent != null) {
+                                    onRegisterQuickPayment(targetEvent.id, amountInput, "Transferencia bancaria", referenceInput)
+                                    paymentSubmitAttempted = false
+                                }
+                            }
+                        },
+                    )
+                }
+                RfValidationErrorText(errorMessage = firstDesktopValidationError(amountError, referenceError))
             }
 
             filtered.forEach { payment ->
@@ -2412,7 +2510,7 @@ private fun AdminDesktopClientsSection(
                     Column(modifier = Modifier.weight(1f)) {
                         BasicText(text = client.fullName, style = typo.bodyStrong.copy(fontSize = 14.5.sp))
                         BasicText(
-                            text = "${client.email} · ${client.phone} · ${client.zone} · ${client.eventsCount} eventos",
+                            text = "${client.email} · ${InputValidator.formatPhoneDisplay(client.phone)} · ${client.zone} · ${client.eventsCount} eventos",
                             style = typo.secondary.copy(fontSize = 12.5.sp, color = Color(0xFF5F6377)),
                         )
                     }
@@ -2439,6 +2537,15 @@ private fun AdminDesktopChatsSection(
 ) {
     val typo = LocalRfTypography.current
     var draftMessage by remember { mutableStateOf("") }
+    var messageTouched by remember { mutableStateOf(false) }
+    var sendAttempted by remember { mutableStateOf(false) }
+    val messageError = rememberDebouncedValidationError(
+        value = draftMessage,
+        hasInteracted = messageTouched,
+        forceShowError = sendAttempted,
+    ) { candidate ->
+        InputValidator.validateChatMessage(candidate, isRequired = true)
+    }
 
     DesktopSectionCardContainer(
         title = "Mensajería centralizada (${threads.size} hilos)",
@@ -2501,22 +2608,34 @@ private fun AdminDesktopChatsSection(
                         }
                     }
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                    DesktopInlineInput(
-                        value = draftMessage,
-                        placeholder = "Responder al cliente...",
-                        onValueChange = { updated -> draftMessage = updated },
-                        modifier = Modifier.weight(1f),
-                    )
-                    DesktopGradientPillButton(
-                        label = "Enviar",
-                        onClick = {
-                            if (draftMessage.isNotBlank()) {
-                                onSendReply(draftMessage)
-                                draftMessage = ""
-                            }
-                        },
-                    )
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                        DesktopInlineInput(
+                            value = draftMessage,
+                            placeholder = "Responder al cliente...",
+                            isError = messageError != null,
+                            onValueChange = { updated ->
+                                messageTouched = true
+                                sendAttempted = false
+                                draftMessage = updated.take(InputValidator.MAX_CHAT_MESSAGE_LENGTH)
+                            },
+                            modifier = Modifier.weight(1f),
+                        )
+                        DesktopGradientPillButton(
+                            label = "Enviar",
+                            onClick = {
+                                sendAttempted = true
+                                val validation = InputValidator.validateChatMessage(draftMessage, isRequired = true)
+                                if (validation == null) {
+                                    onSendReply(draftMessage.trim())
+                                    draftMessage = ""
+                                    messageTouched = false
+                                    sendAttempted = false
+                                }
+                            },
+                        )
+                    }
+                    RfValidationErrorText(errorMessage = messageError)
                 }
             }
         }
@@ -2597,10 +2716,59 @@ private fun AdminDesktopSettingsSection(
 ) {
     val typo = LocalRfTypography.current
     var businessName by remember(initialSettings) { mutableStateOf(initialSettings.businessName) }
-    var rnc by remember(initialSettings) { mutableStateOf(initialSettings.rnc) }
+    var rnc by remember(initialSettings) { mutableStateOf(InputValidator.formatRncDisplay(initialSettings.rnc)) }
     var address by remember(initialSettings) { mutableStateOf(initialSettings.address) }
     var email by remember(initialSettings) { mutableStateOf(initialSettings.email) }
-    var phone by remember(initialSettings) { mutableStateOf(initialSettings.phone) }
+    var phone by remember(initialSettings) { mutableStateOf(InputValidator.formatPhoneDisplay(initialSettings.phone)) }
+
+    var nameTouched by remember { mutableStateOf(false) }
+    var rncTouched by remember { mutableStateOf(false) }
+    var phoneTouched by remember { mutableStateOf(false) }
+    var emailTouched by remember { mutableStateOf(false) }
+    var addressTouched by remember { mutableStateOf(false) }
+    var saveAttempted by remember { mutableStateOf(false) }
+    var localSaveError by remember { mutableStateOf<String?>(null) }
+
+    val nameError = rememberDebouncedValidationError(
+        value = businessName,
+        hasInteracted = nameTouched,
+        forceShowError = saveAttempted,
+    ) { candidate ->
+        InputValidator.validateBusinessName(candidate, isRequired = true)
+    }
+    val rncError = rememberDebouncedValidationError(
+        value = rnc,
+        hasInteracted = rncTouched,
+        forceShowError = saveAttempted,
+    ) { candidate ->
+        InputValidator.validateRnc(candidate, isRequired = true)
+    }
+    val phoneError = rememberDebouncedValidationError(
+        value = phone,
+        hasInteracted = phoneTouched,
+        forceShowError = saveAttempted,
+    ) { candidate ->
+        InputValidator.validateDominicanPhone(
+            rawValue = candidate,
+            isRequired = true,
+            allowInternational = true,
+            fieldLabel = "El teléfono",
+        )
+    }
+    val emailError = rememberDebouncedValidationError(
+        value = email,
+        hasInteracted = emailTouched,
+        forceShowError = saveAttempted,
+    ) { candidate ->
+        InputValidator.validateEmail(candidate)
+    }
+    val addressError = rememberDebouncedValidationError(
+        value = address,
+        hasInteracted = addressTouched,
+        forceShowError = saveAttempted,
+    ) { candidate ->
+        InputValidator.validateAddress(candidate, isRequired = true)
+    }
 
     DesktopSectionCardContainer(
         title = "Configuración comercial y fiscal",
@@ -2609,38 +2777,127 @@ private fun AdminDesktopSettingsSection(
         modifier = modifier,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.verticalScroll(rememberScrollState())) {
-            BasicText(text = "Razón social", style = typo.bodyStrong.copy(fontSize = 13.5.sp))
-            DesktopInlineInput(value = businessName, placeholder = "Nombre del negocio", onValueChange = { next -> businessName = next }, modifier = Modifier.fillMaxWidth())
+            if (!localSaveError.isNullOrBlank()) {
+                BasicText(
+                    text = localSaveError.orEmpty(),
+                    style = typo.bodyStrong.copy(fontSize = 13.sp, color = Color(0xFFD63031)),
+                )
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                BasicText(text = "Razón social", style = typo.bodyStrong.copy(fontSize = 13.5.sp))
+                DesktopInlineInput(
+                    value = businessName,
+                    placeholder = "Nombre del negocio",
+                    isError = nameError != null,
+                    onValueChange = { next ->
+                        nameTouched = true
+                        localSaveError = null
+                        businessName = next.take(InputValidator.MAX_BUSINESS_NAME_LENGTH)
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                RfValidationErrorText(errorMessage = nameError)
+            }
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     BasicText(text = "RNC", style = typo.bodyStrong.copy(fontSize = 13.5.sp))
-                    DesktopInlineInput(value = rnc, placeholder = "1-31-84920-2", onValueChange = { next -> rnc = next }, modifier = Modifier.fillMaxWidth())
+                    DesktopInlineInput(
+                        value = rnc,
+                        placeholder = "1-31-84920-2",
+                        isError = rncError != null,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        onValueChange = { next ->
+                            rncTouched = true
+                            localSaveError = null
+                            rnc = InputValidator.filterRncInput(next)
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    RfValidationErrorText(errorMessage = rncError)
                 }
-                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     BasicText(text = "Teléfono", style = typo.bodyStrong.copy(fontSize = 13.5.sp))
-                    DesktopInlineInput(value = phone, placeholder = "+1809...", onValueChange = { next -> phone = next }, modifier = Modifier.fillMaxWidth())
+                    DesktopInlineInput(
+                        value = phone,
+                        placeholder = "+1809...",
+                        isError = phoneError != null,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                        onValueChange = { next ->
+                            phoneTouched = true
+                            localSaveError = null
+                            phone = InputValidator.filterPhoneInput(next)
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    RfValidationErrorText(errorMessage = phoneError)
                 }
             }
 
-            BasicText(text = "Correo administrativo", style = typo.bodyStrong.copy(fontSize = 13.5.sp))
-            DesktopInlineInput(value = email, placeholder = "hola@rosafiesta.do", onValueChange = { next -> email = next }, modifier = Modifier.fillMaxWidth())
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                BasicText(text = "Correo administrativo", style = typo.bodyStrong.copy(fontSize = 13.5.sp))
+                DesktopInlineInput(
+                    value = email,
+                    placeholder = "hola@rosafiesta.do",
+                    isError = emailError != null,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                    onValueChange = { next ->
+                        emailTouched = true
+                        localSaveError = null
+                        email = next.take(InputValidator.MAX_EMAIL_LENGTH)
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                RfValidationErrorText(errorMessage = emailError)
+            }
 
-            BasicText(text = "Dirección física", style = typo.bodyStrong.copy(fontSize = 13.5.sp))
-            DesktopInlineInput(value = address, placeholder = "Dirección comercial", onValueChange = { next -> address = next }, modifier = Modifier.fillMaxWidth())
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                BasicText(text = "Dirección física", style = typo.bodyStrong.copy(fontSize = 13.5.sp))
+                DesktopInlineInput(
+                    value = address,
+                    placeholder = "Dirección comercial",
+                    isError = addressError != null,
+                    onValueChange = { next ->
+                        addressTouched = true
+                        localSaveError = null
+                        address = next.take(InputValidator.MAX_ADDRESS_LENGTH)
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                RfValidationErrorText(errorMessage = addressError)
+            }
 
             DesktopGradientPillButton(
                 label = "Guardar configuración",
                 onClick = {
-                    onSaveSettings(
-                        initialSettings.copy(
-                            businessName = businessName.trim(),
-                            rnc = rnc.trim(),
-                            phone = phone.trim(),
-                            email = email.trim(),
-                            address = address.trim(),
+                    saveAttempted = true
+                    val validationError = firstDesktopValidationError(
+                        InputValidator.validateBusinessName(businessName, isRequired = true),
+                        InputValidator.validateRnc(rnc, isRequired = true),
+                        InputValidator.validateDominicanPhone(
+                            rawValue = phone,
+                            isRequired = true,
+                            allowInternational = true,
+                            fieldLabel = "El teléfono",
                         ),
+                        InputValidator.validateEmail(email),
+                        InputValidator.validateAddress(address, isRequired = true),
                     )
+                    if (validationError != null) {
+                        localSaveError = validationError
+                    } else {
+                        localSaveError = null
+                        onSaveSettings(
+                            initialSettings.copy(
+                                businessName = businessName.trim(),
+                                rnc = InputValidator.formatRncDisplay(rnc.trim()),
+                                phone = InputValidator.formatPhoneDisplay(phone.trim()),
+                                email = email.trim(),
+                                address = address.trim(),
+                            ),
+                        )
+                    }
                 },
             )
 
@@ -2665,58 +2922,110 @@ private fun AdminDesktopModalHost(
     onMarkNotificationRead: (String) -> Unit,
     onSelectScreenCode: (String) -> Unit,
 ) {
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0x66151729))
-            .padding(24.dp),
+    var renderedModal by remember { mutableStateOf(activeModal) }
+    var showNewEventCalendar by remember { mutableStateOf(false) }
+    if (activeModal != A39DesktopModal.NONE) {
+        renderedModal = activeModal
+    }
+    LaunchedEffect(activeModal) {
+        if (activeModal != A39DesktopModal.NEW_EVENT) {
+            showNewEventCalendar = false
+        }
+    }
+
+    AnimatedVisibility(
+        visible = activeModal != A39DesktopModal.NONE,
+        enter = fadeIn(animationSpec = tween(180)),
+        exit = fadeOut(animationSpec = tween(150)),
     ) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+        val scrimInteraction = remember { MutableInteractionSource() }
+        val cardInteraction = remember { MutableInteractionSource() }
+        val currentEventDate = viewModel?.newEventDate?.collectAsState()?.value.orEmpty()
+        Box(
+            contentAlignment = Alignment.Center,
             modifier = Modifier
-                .width(560.dp)
-                .clip(RoundedCornerShape(22.dp))
-                .background(Color.White)
-                .border(1.dp, Color(0xFFE3E4EF), RoundedCornerShape(22.dp))
+                .fillMaxSize()
+                .background(Color(0x66151729))
+                .clickable(
+                    interactionSource = scrimInteraction,
+                    indication = null,
+                ) {
+                    showNewEventCalendar = false
+                    onDismiss()
+                }
                 .padding(24.dp),
         ) {
-            when (activeModal) {
-                A39DesktopModal.NOTIFICATIONS -> {
-                    AdminDesktopNotificationsModal(
-                        notifications = notifications,
-                        onMarkNotificationRead = onMarkNotificationRead,
-                        onOpenFullCenter = { onSelectScreenCode("A29") },
-                        onDismiss = onDismiss,
+            Column(
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+                modifier = Modifier
+                    .animateEnterExit(
+                        enter = scaleIn(initialScale = 0.94f, animationSpec = tween(200)),
+                        exit = scaleOut(targetScale = 0.94f, animationSpec = tween(150)),
                     )
-                }
+                    .width(560.dp)
+                    .clip(RoundedCornerShape(22.dp))
+                    .background(Color.White)
+                    .border(1.dp, Color(0xFFE3E4EF), RoundedCornerShape(22.dp))
+                    .clickable(
+                        interactionSource = cardInteraction,
+                        indication = null,
+                    ) {}
+                    .padding(24.dp),
+            ) {
+                when (renderedModal) {
+                    A39DesktopModal.NOTIFICATIONS -> {
+                        AdminDesktopNotificationsModal(
+                            notifications = notifications,
+                            onMarkNotificationRead = onMarkNotificationRead,
+                            onOpenFullCenter = { onSelectScreenCode("A29") },
+                            onDismiss = onDismiss,
+                        )
+                    }
 
-                A39DesktopModal.ROSA_AI -> {
-                    AdminDesktopRosaAiModal(
-                        viewModel = viewModel,
-                        onOpenFullScreen = { onSelectScreenCode("A08") },
-                        onDismiss = onDismiss,
-                    )
-                }
+                    A39DesktopModal.ROSA_AI -> {
+                        AdminDesktopRosaAiModal(
+                            viewModel = viewModel,
+                            onOpenFullScreen = { onSelectScreenCode("A08") },
+                            onDismiss = onDismiss,
+                        )
+                    }
 
-                A39DesktopModal.NEW_EVENT -> {
-                    AdminDesktopNewEventModal(
-                        viewModel = viewModel,
-                        onOpenMobileWizard = { onSelectScreenCode("A04") },
-                        onDismiss = onDismiss,
-                    )
-                }
+                    A39DesktopModal.NEW_EVENT -> {
+                        AdminDesktopNewEventModal(
+                            viewModel = viewModel,
+                            onOpenCalendar = { showNewEventCalendar = true },
+                            onOpenMobileWizard = { onSelectScreenCode("A04") },
+                            onDismiss = onDismiss,
+                        )
+                    }
 
-                A39DesktopModal.EVENT_DETAIL -> {
-                    AdminDesktopEventDetailModal(
-                        selectedEvent = selectedEvent,
-                        viewModel = viewModel,
-                        onOpenFullDetail = { onSelectScreenCode("A13") },
-                        onDismiss = onDismiss,
-                    )
-                }
+                    A39DesktopModal.EVENT_DETAIL -> {
+                        AdminDesktopEventDetailModal(
+                            selectedEvent = selectedEvent,
+                            viewModel = viewModel,
+                            onOpenFullDetail = { onSelectScreenCode("A13") },
+                            onDismiss = onDismiss,
+                        )
+                    }
 
-                A39DesktopModal.NONE -> Unit
+                    A39DesktopModal.NONE -> Unit
+                }
+            }
+
+            if (showNewEventCalendar) {
+                RfInteractiveCalendarModal(
+                    title = "Fecha del evento",
+                    currentDateText = currentEventDate,
+                    minYear = 2024,
+                    maxYear = 2030,
+                    defaultYear = 2026,
+                    isAdmin = true,
+                    onSelectDate = { formattedDate ->
+                        viewModel?.setNewEventDate(formattedDate)
+                        showNewEventCalendar = false
+                    },
+                    onDismiss = { showNewEventCalendar = false },
+                )
             }
         }
     }
@@ -2769,17 +3078,40 @@ private fun AdminDesktopRosaAiModal(
     val typo = LocalRfTypography.current
     val rosaReply = viewModel?.rosaProposalMessage?.collectAsState()?.value
     var promptText by remember { mutableStateOf("Boda romántica para 120 personas en Jardín Botánico") }
+    var promptTouched by remember { mutableStateOf(false) }
+    var generateAttempted by remember { mutableStateOf(false) }
+    val promptError = rememberDebouncedValidationError(
+        value = promptText,
+        hasInteracted = promptTouched,
+        forceShowError = generateAttempted,
+    ) { candidate ->
+        InputValidator.validateEntityName(
+            rawValue = candidate,
+            fieldLabel = "La descripción del evento",
+            minLength = 5,
+            maxLength = InputValidator.MAX_DESCRIPTION_LENGTH,
+            isRequired = true,
+        )
+    }
 
     Row(horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
         BasicText(text = "Crear propuesta con Rosa IA", style = typo.cardTitle.copy(fontSize = 18.sp, fontWeight = FontWeight.ExtraBold))
         DesktopSmallPillButton(label = "Cerrar", onClick = onDismiss)
     }
-    DesktopInlineInput(
-        value = promptText,
-        placeholder = "Describe el evento, fecha e invitados...",
-        onValueChange = { updated -> promptText = updated },
-        modifier = Modifier.fillMaxWidth(),
-    )
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        DesktopInlineInput(
+            value = promptText,
+            placeholder = "Describe el evento, fecha e invitados...",
+            isError = promptError != null,
+            onValueChange = { updated ->
+                promptTouched = true
+                generateAttempted = false
+                promptText = updated.take(InputValidator.MAX_DESCRIPTION_LENGTH)
+            },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        RfValidationErrorText(errorMessage = promptError)
+    }
     if (!rosaReply.isNullOrBlank()) {
         Box(
             modifier = Modifier
@@ -2794,7 +3126,19 @@ private fun AdminDesktopRosaAiModal(
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         DesktopGradientPillButton(
             label = "Generar con Rosa",
-            onClick = { viewModel?.sendConversationalRosaPrompt(promptText) },
+            onClick = {
+                generateAttempted = true
+                val validation = InputValidator.validateEntityName(
+                    rawValue = promptText,
+                    fieldLabel = "La descripción del evento",
+                    minLength = 5,
+                    maxLength = InputValidator.MAX_DESCRIPTION_LENGTH,
+                    isRequired = true,
+                )
+                if (validation == null) {
+                    viewModel?.sendConversationalRosaPrompt(promptText.trim())
+                }
+            },
         )
         DesktopSmallPillButton(label = "Abrir pantalla A08", onClick = onOpenFullScreen)
     }
@@ -2803,6 +3147,7 @@ private fun AdminDesktopRosaAiModal(
 @Composable
 private fun AdminDesktopNewEventModal(
     viewModel: RosaFiestaViewModel?,
+    onOpenCalendar: () -> Unit,
     onOpenMobileWizard: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -2813,24 +3158,168 @@ private fun AdminDesktopNewEventModal(
     val venue = viewModel?.newEventVenue?.collectAsState()?.value ?: ""
     val guests = viewModel?.newEventGuests?.collectAsState()?.value ?: ""
 
+    var titleTouched by remember { mutableStateOf(false) }
+    var clientTouched by remember { mutableStateOf(false) }
+    var dateTouched by remember { mutableStateOf(false) }
+    var guestsTouched by remember { mutableStateOf(false) }
+    var venueTouched by remember { mutableStateOf(false) }
+    var submitAttempted by remember { mutableStateOf(false) }
+    var localSubmitError by remember { mutableStateOf<String?>(null) }
+
+    val titleError = rememberDebouncedValidationError(
+        value = title,
+        hasInteracted = titleTouched,
+        forceShowError = submitAttempted,
+    ) { candidate ->
+        InputValidator.validateEventName(candidate, isRequired = true)
+    }
+    val clientError = rememberDebouncedValidationError(
+        value = client,
+        hasInteracted = clientTouched,
+        forceShowError = submitAttempted,
+    ) { candidate ->
+        InputValidator.validateEntityName(
+            rawValue = candidate,
+            fieldLabel = "El nombre del cliente",
+            minLength = InputValidator.MIN_NAME_LENGTH,
+            maxLength = InputValidator.MAX_FULL_NAME_LENGTH,
+        )
+    }
+    val dateError = rememberDebouncedValidationError(
+        value = date,
+        hasInteracted = dateTouched,
+        forceShowError = submitAttempted,
+    ) { candidate ->
+        validateDesktopEventDateText(candidate)
+    }
+    val guestsError = rememberDebouncedValidationError(
+        value = guests,
+        hasInteracted = guestsTouched,
+        forceShowError = submitAttempted,
+    ) { candidate ->
+        InputValidator.validateGuestCount(candidate)
+    }
+    val venueError = rememberDebouncedValidationError(
+        value = venue,
+        hasInteracted = venueTouched,
+        forceShowError = submitAttempted,
+    ) { candidate ->
+        InputValidator.validateAddress(candidate, "El lugar del evento")
+    }
+
     Row(horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
         BasicText(text = "Crear nuevo evento", style = typo.cardTitle.copy(fontSize = 18.sp, fontWeight = FontWeight.ExtraBold))
         DesktopSmallPillButton(label = "Cerrar", onClick = onDismiss)
     }
-    DesktopInlineInput(value = title, placeholder = "Título del evento", onValueChange = { updated -> viewModel?.setNewEventTitle(updated) }, modifier = Modifier.fillMaxWidth())
-    DesktopInlineInput(value = client, placeholder = "Nombre del cliente", onValueChange = { updated -> viewModel?.setNewEventClient(updated) }, modifier = Modifier.fillMaxWidth())
-    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-        DesktopInlineInput(value = date, placeholder = "Fecha (ej. Sáb, 14 de noviembre 2026)", onValueChange = { updated -> viewModel?.setNewEventDate(updated) }, modifier = Modifier.weight(1f))
-        DesktopInlineInput(value = guests, placeholder = "Invitados", onValueChange = { updated -> viewModel?.setNewEventGuests(updated) }, modifier = Modifier.width(120.dp))
+    if (!localSubmitError.isNullOrBlank()) {
+        BasicText(
+            text = localSubmitError.orEmpty(),
+            style = typo.bodyStrong.copy(fontSize = 12.5.sp, color = Color(0xFFD63031)),
+        )
     }
-    DesktopInlineInput(value = venue, placeholder = "Lugar o salón", onValueChange = { updated -> viewModel?.setNewEventVenue(updated) }, modifier = Modifier.fillMaxWidth())
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        DesktopInlineInput(
+            value = title,
+            placeholder = "Título del evento",
+            isError = titleError != null,
+            onValueChange = { updated ->
+                titleTouched = true
+                localSubmitError = null
+                viewModel?.setNewEventTitle(updated.take(InputValidator.MAX_EVENT_NAME_LENGTH))
+            },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        RfValidationErrorText(errorMessage = titleError)
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        DesktopInlineInput(
+            value = client,
+            placeholder = "Nombre del cliente",
+            isError = clientError != null,
+            onValueChange = { updated ->
+                clientTouched = true
+                localSubmitError = null
+                viewModel?.setNewEventClient(updated.take(InputValidator.MAX_FULL_NAME_LENGTH))
+            },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        RfValidationErrorText(errorMessage = clientError)
+    }
+    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            RfMaskedDateField(
+                value = date,
+                onValueChange = { updated ->
+                    dateTouched = true
+                    localSubmitError = null
+                    viewModel?.setNewEventDate(updated)
+                },
+                onOpenCalendar = onOpenCalendar,
+                placeholder = "DD/MM/AAAA",
+                isAdmin = true,
+                compactInline = false,
+                hasError = dateError != null,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            RfValidationErrorText(errorMessage = dateError)
+        }
+        Column(modifier = Modifier.width(140.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            DesktopInlineInput(
+                value = guests,
+                placeholder = "Invitados",
+                isError = guestsError != null,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                onValueChange = { updated ->
+                    guestsTouched = true
+                    localSubmitError = null
+                    viewModel?.setNewEventGuests(InputValidator.filterDigitsOnly(updated, 5))
+                },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            RfValidationErrorText(errorMessage = guestsError)
+        }
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        DesktopInlineInput(
+            value = venue,
+            placeholder = "Lugar o salón",
+            isError = venueError != null,
+            onValueChange = { updated ->
+                venueTouched = true
+                localSubmitError = null
+                viewModel?.setNewEventVenue(updated.take(InputValidator.MAX_ADDRESS_LENGTH))
+            },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        RfValidationErrorText(errorMessage = venueError)
+    }
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         DesktopGradientPillButton(
             label = "Guardar evento",
             onClick = {
-                val createdOk = viewModel?.submitNewEvent() ?: true
-                if (createdOk) {
-                    onDismiss()
+                submitAttempted = true
+                val firstError = firstDesktopValidationError(
+                    InputValidator.validateEventName(title, isRequired = true),
+                    InputValidator.validateEntityName(
+                        rawValue = client,
+                        fieldLabel = "El nombre del cliente",
+                        minLength = InputValidator.MIN_NAME_LENGTH,
+                        maxLength = InputValidator.MAX_FULL_NAME_LENGTH,
+                    ),
+                    validateDesktopEventDateText(date),
+                    InputValidator.validateGuestCount(guests),
+                    InputValidator.validateAddress(venue, "El lugar del evento"),
+                )
+                if (firstError != null) {
+                    localSubmitError = firstError
+                } else {
+                    val createdOk = viewModel?.submitNewEvent() ?: true
+                    if (createdOk) {
+                        localSubmitError = null
+                        onDismiss()
+                    } else {
+                        localSubmitError = viewModel.formError.value ?: "No se pudo guardar el evento."
+                    }
                 }
             },
         )
@@ -2917,6 +3406,8 @@ private fun DesktopInlineInput(
     placeholder: String,
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,
+    isError: Boolean = false,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
 ) {
     val typo = LocalRfTypography.current
     Box(
@@ -2925,13 +3416,14 @@ private fun DesktopInlineInput(
             .height(42.dp)
             .clip(RoundedCornerShape(10.dp))
             .background(Color.White)
-            .border(1.dp, Color(0xFFE3E4EF), RoundedCornerShape(10.dp))
+            .border(1.dp, if (isError) Color(0xFFD63031) else Color(0xFFE3E4EF), RoundedCornerShape(10.dp))
             .padding(horizontal = 12.dp),
     ) {
         BasicTextField(
             value = value,
             onValueChange = onValueChange,
             singleLine = true,
+            keyboardOptions = keyboardOptions,
             textStyle = typo.body.copy(fontSize = 13.5.sp, color = Color(0xFF151729)),
             cursorBrush = SolidColor(Color(0xFF5B6CF0)),
             modifier = Modifier.fillMaxWidth(),

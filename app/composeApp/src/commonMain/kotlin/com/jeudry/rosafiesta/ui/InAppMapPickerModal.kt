@@ -6,6 +6,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -63,6 +64,7 @@ import com.jeudry.rosafiesta.designsystem.RfIconKind
 import com.jeudry.rosafiesta.designsystem.RfThemeState
 import com.jeudry.rosafiesta.designsystem.decodeEncodedImageBitmapOrNull
 import com.jeudry.rosafiesta.domain.MapPlaceSuggestion
+import com.jeudry.rosafiesta.domain.validation.InputValidator
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.PI
@@ -133,7 +135,18 @@ internal fun RfInAppMapPickerModal(
     val mapClient = remember { InteractiveMapClient() }
     val coroutineScope = rememberCoroutineScope()
 
-    var searchQuery by remember(initialQuery) { mutableStateOf(initialQuery.trim()) }
+    var searchQuery by remember(initialQuery) {
+        mutableStateOf(initialQuery.trim().take(InputValidator.MAX_SEARCH_QUERY_LENGTH))
+    }
+    var hasInteractedSearch by remember(initialQuery) { mutableStateOf(false) }
+    var forceShowSearchError by remember(initialQuery) { mutableStateOf(false) }
+    val searchQueryError = rememberDebouncedValidationError(
+        value = searchQuery,
+        hasInteracted = hasInteractedSearch,
+        forceShowError = forceShowSearchError,
+    ) { query ->
+        InputValidator.validateSearchQuery(query)
+    }
     var centerLatitude by remember { mutableStateOf(InteractiveMapClient.DEFAULT_SANTO_DOMINGO_LAT) }
     var centerLongitude by remember { mutableStateOf(InteractiveMapClient.DEFAULT_SANTO_DOMINGO_LON) }
     var mapZoom by remember { mutableStateOf(MAP_DEFAULT_ZOOM) }
@@ -202,10 +215,17 @@ internal fun RfInAppMapPickerModal(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
+        val backdropInteractionSource = remember { MutableInteractionSource() }
+        val cardInteractionSource = remember { MutableInteractionSource() }
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.Black.copy(alpha = 0.50f))
+                .clickable(
+                    interactionSource = backdropInteractionSource,
+                    indication = null,
+                    onClick = onDismiss,
+                )
                 .padding(horizontal = 14.dp, vertical = 22.dp),
             contentAlignment = Alignment.Center,
         ) {
@@ -217,6 +237,11 @@ internal fun RfInAppMapPickerModal(
                     .clip(RoundedCornerShape(26.dp))
                     .background(palette.surface)
                     .border(1.dp, palette.lineSoft, RoundedCornerShape(26.dp))
+                    .clickable(
+                        interactionSource = cardInteractionSource,
+                        indication = null,
+                        onClick = {},
+                    )
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
@@ -227,13 +252,23 @@ internal fun RfInAppMapPickerModal(
                 MapSearchFieldBar(
                     searchQuery = searchQuery,
                     isSearching = isSearching,
+                    errorMessage = searchQueryError,
                     onQueryChange = { updatedQuery ->
-                        searchQuery = updatedQuery
-                        if (updatedQuery.isBlank()) {
+                        val boundedQuery = updatedQuery.take(InputValidator.MAX_SEARCH_QUERY_LENGTH)
+                        searchQuery = boundedQuery
+                        hasInteractedSearch = true
+                        forceShowSearchError = false
+                        if (boundedQuery.isBlank()) {
                             showSuggestions = false
                         }
                     },
                     onSubmitSearch = {
+                        val validationError = InputValidator.validateSearchQuery(searchQuery)
+                        if (validationError != null) {
+                            hasInteractedSearch = true
+                            forceShowSearchError = true
+                            return@MapSearchFieldBar
+                        }
                         coroutineScope.launch {
                             val cleanSearch = searchQuery.trim()
                             if (cleanSearch.isNotBlank()) {
@@ -341,7 +376,9 @@ internal fun RfInAppMapPickerModal(
                                 centerLongitude = chosen.longitude
                                 mapZoom = 16
                                 selectedLabel = chosen.displayName
-                                searchQuery = chosen.shortTitle
+                                searchQuery = chosen.shortTitle.take(InputValidator.MAX_SEARCH_QUERY_LENGTH)
+                                hasInteractedSearch = true
+                                forceShowSearchError = false
                                 showSuggestions = false
                             },
                             modifier = Modifier
@@ -419,81 +456,90 @@ private fun MapPickerHeaderRow(
 private fun MapSearchFieldBar(
     searchQuery: String,
     isSearching: Boolean,
+    errorMessage: String? = null,
     onQueryChange: (String) -> Unit,
     onSubmitSearch: () -> Unit,
 ) {
     val palette = RfThemeState.currentPalette
     val typo = LocalRfTypography.current
+    val hasError = errorMessage != null
+    val borderColor = if (hasError) Color(0xFFE53935) else palette.lineSoft
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(46.dp)
-            .clip(RoundedCornerShape(14.dp))
-            .background(palette.chipBg)
-            .border(1.dp, palette.lineSoft, RoundedCornerShape(14.dp))
-            .padding(horizontal = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        RfIcon(kind = RfIconKind.SEARCH, tint = palette.muted, size = 18.dp)
-        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-            if (searchQuery.isEmpty()) {
-                BasicText(
-                    text = "Buscar salón, jardín, dirección o sector...",
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    style = TextStyle(
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(46.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(palette.chipBg)
+                .border(1.dp, borderColor, RoundedCornerShape(14.dp))
+                .padding(horizontal = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            RfIcon(kind = RfIconKind.SEARCH, tint = palette.muted, size = 18.dp)
+            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                if (searchQuery.isEmpty()) {
+                    BasicText(
+                        text = "Buscar salón, jardín, dirección o sector...",
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        style = TextStyle(
+                            fontFamily = typo.bodyFamily,
+                            fontSize = 14.sp,
+                            color = palette.muted,
+                        ),
+                    )
+                }
+                BasicTextField(
+                    value = searchQuery,
+                    onValueChange = onQueryChange,
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = { onSubmitSearch() }),
+                    cursorBrush = SolidColor(Color(0xFF945AE1)),
+                    textStyle = TextStyle(
                         fontFamily = typo.bodyFamily,
+                        fontWeight = FontWeight.Medium,
                         fontSize = 14.sp,
-                        color = palette.muted,
+                        color = palette.ink,
                     ),
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
-            BasicTextField(
-                value = searchQuery,
-                onValueChange = onQueryChange,
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                keyboardActions = KeyboardActions(onSearch = { onSubmitSearch() }),
-                cursorBrush = SolidColor(Color(0xFF945AE1)),
-                textStyle = TextStyle(
-                    fontFamily = typo.bodyFamily,
-                    fontWeight = FontWeight.Medium,
-                    fontSize = 14.sp,
-                    color = palette.ink,
-                ),
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
-        if (isSearching) {
-            BasicText(
-                text = "Buscando...",
-                style = TextStyle(
-                    fontFamily = typo.bodyFamily,
-                    fontSize = 11.sp,
-                    color = Color(0xFF7A4FD8),
-                ),
-            )
-        } else if (searchQuery.isNotEmpty()) {
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(Color(0xFFECE4FF))
-                    .clickable(onClick = onSubmitSearch)
-                    .padding(horizontal = 10.dp, vertical = 5.dp),
-            ) {
+            if (isSearching) {
                 BasicText(
-                    text = "Ir",
+                    text = "Buscando...",
                     style = TextStyle(
                         fontFamily = typo.bodyFamily,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 12.sp,
+                        fontSize = 11.sp,
                         color = Color(0xFF7A4FD8),
                     ),
                 )
+            } else if (searchQuery.isNotEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color(0xFFECE4FF))
+                        .clickable(onClick = onSubmitSearch)
+                        .padding(horizontal = 10.dp, vertical = 5.dp),
+                ) {
+                    BasicText(
+                        text = "Ir",
+                        style = TextStyle(
+                            fontFamily = typo.bodyFamily,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp,
+                            color = Color(0xFF7A4FD8),
+                        ),
+                    )
+                }
             }
         }
+        RfValidationErrorText(errorMessage = errorMessage)
     }
 }
 

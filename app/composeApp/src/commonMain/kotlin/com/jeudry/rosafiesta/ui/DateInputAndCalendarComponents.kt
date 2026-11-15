@@ -23,11 +23,14 @@ import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -51,11 +54,13 @@ import com.jeudry.rosafiesta.designsystem.LocalRfPalette
 import com.jeudry.rosafiesta.designsystem.LocalRfTypography
 import com.jeudry.rosafiesta.designsystem.RfBitmapPhoto
 import com.jeudry.rosafiesta.designsystem.RfColors
+import com.jeudry.rosafiesta.designsystem.RfField
 import com.jeudry.rosafiesta.designsystem.RfIcon
 import com.jeudry.rosafiesta.designsystem.RfIconKind
 import com.jeudry.rosafiesta.designsystem.RfPhoto
 import com.jeudry.rosafiesta.designsystem.RfPhotoKey
 import com.jeudry.rosafiesta.designsystem.rememberDecodedImageBitmap
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 internal fun computeDaysInGregorianMonth(year: Int, month: Int): Int = when (month) {
@@ -1596,4 +1601,188 @@ private fun spanishMonthNameForProfile(monthNumber: Int): String = when (monthNu
     10 -> "octubre"
     11 -> "noviembre"
     else -> "diciembre"
+}
+
+public const val RF_VALIDATION_DEBOUNCE_DELAY_MS: Long = 2000L
+
+/**
+ * Computes a live validation error for [value] that clears immediately when valid, shows immediately
+ * when [forceShowError] is true, and otherwise waits [delayMs] after typing stops when [hasInteracted] is true.
+ */
+@Composable
+public fun rememberDebouncedValidationError(
+    value: String,
+    hasInteracted: Boolean,
+    forceShowError: Boolean = false,
+    delayMs: Long = RF_VALIDATION_DEBOUNCE_DELAY_MS,
+    validator: (String) -> String?,
+): String? {
+    val latestValidator by rememberUpdatedState(validator)
+    val immediateError = latestValidator(value)
+    var debouncedError by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(value, hasInteracted, forceShowError, delayMs) {
+        if (immediateError == null) {
+            debouncedError = null
+            return@LaunchedEffect
+        }
+        if (forceShowError) {
+            debouncedError = immediateError
+            return@LaunchedEffect
+        }
+        if (!hasInteracted) {
+            debouncedError = null
+            return@LaunchedEffect
+        }
+        debouncedError = null
+        if (delayMs > 0L) {
+            delay(delayMs)
+        }
+        val postDelayError = latestValidator(value)
+        debouncedError = postDelayError
+    }
+
+    if (immediateError == null) return null
+    if (forceShowError) return immediateError
+    if (!hasInteracted) return null
+    return debouncedError
+}
+
+/**
+ * Renders a compact error caption below any custom form control when [errorMessage] is non-blank.
+ */
+@Composable
+public fun RfValidationErrorText(
+    errorMessage: String?,
+    modifier: Modifier = Modifier,
+) {
+    if (errorMessage.isNullOrBlank()) return
+    val typo = LocalRfTypography.current
+    BasicText(
+        text = errorMessage,
+        style = typo.secondary.copy(color = RfColors.Error),
+        modifier = modifier.padding(top = 4.dp, start = 4.dp),
+    )
+}
+
+/**
+ * Holds field text state, interaction status, submit override, and masked input filtering for form inputs.
+ */
+@Stable
+public class RfDebouncedFieldController internal constructor(
+    initialValue: String,
+    private val delayMs: Long,
+    private val inputFilter: ((String) -> String)?,
+    private val validator: (String) -> String?,
+) {
+    public var value: String by mutableStateOf(initialValue)
+        private set
+
+    public var hasInteracted: Boolean by mutableStateOf(false)
+        private set
+
+    public var forceShowError: Boolean by mutableStateOf(false)
+        private set
+
+    /**
+     * Applies any configured input mask/filter and marks the field as interacted.
+     */
+    public fun onValueChange(rawInput: String) {
+        val nextValue = if (inputFilter != null) inputFilter.invoke(rawInput) else rawInput
+        value = nextValue
+        hasInteracted = true
+    }
+
+    /**
+     * Forces immediate error visibility when the user attempts form submission.
+     */
+    public fun markSubmitted() {
+        hasInteracted = true
+        forceShowError = true
+    }
+
+    /**
+     * Resets field content and clears interaction/submission error flags.
+     */
+    public fun reset(newValue: String = "") {
+        value = newValue
+        hasInteracted = false
+        forceShowError = false
+    }
+
+    /**
+     * Evaluates the synchronous validation error for submit guards.
+     */
+    public fun currentImmediateError(): String? = validator(value)
+
+    /**
+     * Observes the debounced validation error suitable for UI feedback while typing.
+     */
+    @Composable
+    public fun currentVisibleError(): String? = rememberDebouncedValidationError(
+        value = value,
+        hasInteracted = hasInteracted,
+        forceShowError = forceShowError,
+        delayMs = delayMs,
+        validator = validator,
+    )
+}
+
+/**
+ * Creates and remembers an [RfDebouncedFieldController] across recompositions.
+ */
+@Composable
+public fun rememberDebouncedFieldController(
+    initialValue: String = "",
+    delayMs: Long = RF_VALIDATION_DEBOUNCE_DELAY_MS,
+    inputFilter: ((String) -> String)? = null,
+    validator: (String) -> String?,
+): RfDebouncedFieldController = remember {
+    RfDebouncedFieldController(
+        initialValue = initialValue,
+        delayMs = delayMs,
+        inputFilter = inputFilter,
+        validator = validator,
+    )
+}
+
+/**
+ * Reusable [RfField] wrapper providing optional input masking and 2-second idle debounced validation.
+ */
+@Composable
+public fun RfValidatedField(
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    validator: (String) -> String?,
+    modifier: Modifier = Modifier,
+    placeholder: String = "",
+    helperText: String? = null,
+    forceShowError: Boolean = false,
+    delayMs: Long = RF_VALIDATION_DEBOUNCE_DELAY_MS,
+    inputFilter: ((String) -> String)? = null,
+) {
+    var hasInteracted by remember { mutableStateOf(false) }
+    val visibleError = rememberDebouncedValidationError(
+        value = value,
+        hasInteracted = hasInteracted,
+        forceShowError = forceShowError,
+        delayMs = delayMs,
+        validator = validator,
+    )
+    val effectiveHelperOrError = visibleError ?: helperText
+    val hasVisibleError = visibleError != null
+    RfField(
+        label = label,
+        value = value,
+        modifier = modifier,
+        helperOrError = effectiveHelperOrError,
+        isError = hasVisibleError,
+        placeholder = placeholder,
+        onValueChange = { rawInput ->
+            hasInteracted = true
+            val filtered = if (inputFilter != null) inputFilter.invoke(rawInput) else rawInput
+            onValueChange(filtered)
+        },
+    )
 }

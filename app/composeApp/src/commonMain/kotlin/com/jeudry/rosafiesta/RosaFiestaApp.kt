@@ -3,6 +3,8 @@ package com.jeudry.rosafiesta
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ContentTransform
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
@@ -298,7 +300,13 @@ public fun RosaFiestaApp(
                 AnimatedContent(
                     targetState = spec,
                     transitionSpec = {
-                        buildScreenTransition(transitionKind).using(SizeTransform(clip = false))
+                        val isEnteringModal = ScreenCatalog.isBottomSheet(targetState.code)
+                        val isLeavingModal = ScreenCatalog.isBottomSheet(initialState.code)
+                        buildScreenTransition(
+                            kind = transitionKind,
+                            isEnteringModal = isEnteringModal,
+                            isLeavingModal = isLeavingModal,
+                        ).using(SizeTransform(clip = false))
                     },
                     contentKey = { screenItem -> screenAnimationGroupKey(screenItem.code) },
                     label = "rf-screen-transition",
@@ -390,17 +398,15 @@ public fun RosaFiestaApp(
     }
 }
 
-private fun buildScreenTransition(kind: NavigationTransitionKind): ContentTransform = when (kind) {
-    NavigationTransitionKind.MODAL_SHEET ->
-        fadeIn(
-            animationSpec = tween(durationMillis = 180, easing = FastOutSlowInEasing),
-        ).togetherWith(
-            fadeOut(
-                animationSpec = tween(durationMillis = 150, easing = FastOutSlowInEasing),
-            ),
-        ).apply {
-            targetContentZIndex = 1f
-        }
+private fun buildScreenTransition(
+    kind: NavigationTransitionKind,
+    isEnteringModal: Boolean,
+    isLeavingModal: Boolean,
+): ContentTransform = when (kind) {
+    NavigationTransitionKind.MODAL_SHEET -> buildModalSheetTransition(
+        isEnteringModal = isEnteringModal,
+        isLeavingModal = isLeavingModal,
+    )
 
     NavigationTransitionKind.TAB_NEXT ->
         slideInHorizontally(
@@ -458,6 +464,41 @@ private fun buildScreenTransition(kind: NavigationTransitionKind): ContentTransf
                 animationSpec = tween(durationMillis = 140, easing = FastOutSlowInEasing),
             ),
         )
+}
+
+private fun buildModalSheetTransition(
+    isEnteringModal: Boolean,
+    isLeavingModal: Boolean,
+): ContentTransform {
+    val enterOnlyModal = if (isEnteringModal) !isLeavingModal else false
+    if (enterOnlyModal) {
+        return fadeIn(
+            animationSpec = tween(durationMillis = 180, easing = FastOutSlowInEasing),
+        ).togetherWith(
+            ExitTransition.None,
+        ).apply {
+            targetContentZIndex = 1f
+        }
+    }
+    val exitOnlyModal = if (isLeavingModal) !isEnteringModal else false
+    if (exitOnlyModal) {
+        return EnterTransition.None.togetherWith(
+            fadeOut(
+                animationSpec = tween(durationMillis = 180, easing = FastOutSlowInEasing),
+            ),
+        ).apply {
+            targetContentZIndex = 0f
+        }
+    }
+    return fadeIn(
+        animationSpec = tween(durationMillis = 180, easing = FastOutSlowInEasing),
+    ).togetherWith(
+        fadeOut(
+            animationSpec = tween(durationMillis = 150, easing = FastOutSlowInEasing),
+        ),
+    ).apply {
+        targetContentZIndex = 1f
+    }
 }
 
 private fun screenAnimationGroupKey(code: String): String = when (code) {

@@ -1,10 +1,17 @@
 package com.jeudry.rosafiesta.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -45,10 +52,15 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.TransformedText
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
@@ -469,34 +481,38 @@ internal fun RenderQuoteHistoryScreenS49(
     }
 }
 
-private fun formatExpiryInputMmYy(rawInput: String): String {
-    val digitsOnly = rawInput.filter { character -> character.isDigit() }.take(4)
-    return if (digitsOnly.length <= 2) {
-        digitsOnly
-    } else {
-        "${digitsOnly.substring(0, 2)}/${digitsOnly.substring(2)}"
-    }
-}
+private class CardNumberVisualTransformation : VisualTransformation {
+    override fun filter(text: AnnotatedString): TransformedText {
+        val rawDigits = text.text
+        val formattedBuilder = StringBuilder()
+        for (index in rawDigits.indices) {
+            val needsSeparator = index > 0 && index % 4 == 0
+            if (needsSeparator) {
+                formattedBuilder.append(' ')
+            }
+            formattedBuilder.append(rawDigits[index])
+        }
+        val offsetMapping = object : OffsetMapping {
+            override fun originalToTransformed(offset: Int): Int {
+                val clampedOffset = offset.coerceIn(0, rawDigits.length)
+                if (clampedOffset == 0) {
+                    return 0
+                }
+                return clampedOffset + (clampedOffset - 1) / 4
+            }
 
-private fun validateCheckoutExpiryMmYy(expiryText: String): String? {
-    val trimmed = expiryText.trim()
-    val parts = trimmed.split("/")
-    if (parts.size != 2) {
-        return "Ingresa el vencimiento de la tarjeta en formato MM/AA."
+            override fun transformedToOriginal(offset: Int): Int {
+                val formattedLength = formattedBuilder.length
+                val clampedOffset = offset.coerceIn(0, formattedLength)
+                val spaceCount = clampedOffset / 5
+                return (clampedOffset - spaceCount).coerceIn(0, rawDigits.length)
+            }
+        }
+        return TransformedText(
+            text = AnnotatedString(formattedBuilder.toString()),
+            offsetMapping = offsetMapping,
+        )
     }
-    val monthPart = parts[0].toIntOrNull() ?: return "El mes de vencimiento no es válido."
-    val yearPart = parts[1].toIntOrNull() ?: return "El año de vencimiento no es válido."
-    val validMonth = monthPart in 1..12
-    if (!validMonth) {
-        return "El mes de vencimiento debe estar entre 01 y 12."
-    }
-    if (parts[1].length != 2) {
-        return "Usa dos dígitos para el año (ej. 28)."
-    }
-    if (yearPart < 26) {
-        return "La tarjeta ingresada se encuentra vencida."
-    }
-    return null
 }
 
 private fun validateCheckoutPaymentInputs(
@@ -507,28 +523,12 @@ private fun validateCheckoutPaymentInputs(
     cardExpiryMmYy: String,
     cardCvvDigits: String,
 ): String? = when (selectedMethod) {
-    "Transferencia" -> {
-        val cleanRef = transferRefInput.trim()
-        if (cleanRef.length < 4) {
-            "Ingresa el número de comprobante o referencia bancaria (mínimo 4 caracteres)."
-        } else {
-            null
-        }
-    }
+    "Transferencia" -> InputValidator.validateBankReference(transferRefInput)
 
-    "Tarjeta" -> {
-        val cleanHolder = cardHolderName.trim()
-        val validCardLength = cardNumberDigits.length in 15..19
-        val expiryError = validateCheckoutExpiryMmYy(cardExpiryMmYy)
-        val validCvvLength = cardCvvDigits.length in 3..4
-        when {
-            cleanHolder.length < 3 -> "Ingresa el nombre del titular tal como aparece en la tarjeta."
-            !validCardLength -> "Ingresa un número de tarjeta válido (15 a 19 dígitos)."
-            expiryError != null -> expiryError
-            !validCvvLength -> "Ingresa el código de seguridad CVV (3 o 4 dígitos)."
-            else -> null
-        }
-    }
+    "Tarjeta" -> InputValidator.validateCardholderName(cardHolderName)
+        ?: InputValidator.validateCardNumber(cardNumberDigits)
+        ?: InputValidator.validateCardExpiry(cardExpiryMmYy)
+        ?: InputValidator.validateCardCvv(cardCvvDigits)
 
     else -> null
 }
@@ -578,13 +578,102 @@ internal fun RenderPaymentCheckoutScreenS50(
     var cardNumberDigits by remember { mutableStateOf("") }
     var cardExpiryMmYy by remember { mutableStateOf("") }
     var cardCvvDigits by remember { mutableStateOf("") }
-    var contactPhoneText by remember(profilePhone) { mutableStateOf(profilePhone) }
+    var contactPhoneText by remember(profilePhone) { mutableStateOf(InputValidator.formatPhoneDisplay(profilePhone)) }
 
     val fallbackAddress = "${activeEvent.venue} · ${activeEvent.zone}"
     val displayedDeliveryAddress = profileZone.ifBlank { fallbackAddress }
     var isEditingAddress by remember { mutableStateOf(false) }
     var draftDeliveryAddress by remember(displayedDeliveryAddress) { mutableStateOf(displayedDeliveryAddress) }
     var localCheckoutError by remember { mutableStateOf<String?>(null) }
+
+    var hasInteractedDeliveryAddress by remember { mutableStateOf(false) }
+    var forceShowAddressError by remember { mutableStateOf(false) }
+    var hasInteractedTransferRef by remember { mutableStateOf(false) }
+    var hasInteractedCardHolder by remember { mutableStateOf(false) }
+    var hasInteractedCardNumber by remember { mutableStateOf(false) }
+    var hasInteractedCardExpiry by remember { mutableStateOf(false) }
+    var hasInteractedCardCvv by remember { mutableStateOf(false) }
+    var hasInteractedContactPhone by remember { mutableStateOf(false) }
+    var forceShowCheckoutErrors by remember { mutableStateOf(false) }
+
+    val debouncedAddressError = rememberDebouncedValidationError(
+        value = draftDeliveryAddress,
+        hasInteracted = hasInteractedDeliveryAddress,
+        forceShowError = forceShowAddressError,
+    ) { candidate ->
+        InputValidator.validateAddress(
+            rawValue = candidate,
+            fieldLabel = "La dirección de entrega",
+            isRequired = true,
+        )
+    }
+    val debouncedTransferRefError = rememberDebouncedValidationError(
+        value = transferRefInput,
+        hasInteracted = hasInteractedTransferRef,
+        forceShowError = forceShowCheckoutErrors,
+    ) { candidate ->
+        if (selectedMethod != "Transferencia") {
+            null
+        } else {
+            InputValidator.validateBankReference(candidate)
+        }
+    }
+    val debouncedCardHolderError = rememberDebouncedValidationError(
+        value = cardHolderName,
+        hasInteracted = hasInteractedCardHolder,
+        forceShowError = forceShowCheckoutErrors,
+    ) { candidate ->
+        if (selectedMethod != "Tarjeta") {
+            null
+        } else {
+            InputValidator.validateCardholderName(candidate)
+        }
+    }
+    val debouncedCardNumberError = rememberDebouncedValidationError(
+        value = cardNumberDigits,
+        hasInteracted = hasInteractedCardNumber,
+        forceShowError = forceShowCheckoutErrors,
+    ) { candidate ->
+        if (selectedMethod != "Tarjeta") {
+            null
+        } else {
+            InputValidator.validateCardNumber(candidate)
+        }
+    }
+    val debouncedCardExpiryError = rememberDebouncedValidationError(
+        value = cardExpiryMmYy,
+        hasInteracted = hasInteractedCardExpiry,
+        forceShowError = forceShowCheckoutErrors,
+    ) { candidate ->
+        if (selectedMethod != "Tarjeta") {
+            null
+        } else {
+            InputValidator.validateCardExpiry(candidate)
+        }
+    }
+    val debouncedCardCvvError = rememberDebouncedValidationError(
+        value = cardCvvDigits,
+        hasInteracted = hasInteractedCardCvv,
+        forceShowError = forceShowCheckoutErrors,
+    ) { candidate ->
+        if (selectedMethod != "Tarjeta") {
+            null
+        } else {
+            InputValidator.validateCardCvv(candidate)
+        }
+    }
+    val debouncedContactPhoneError = rememberDebouncedValidationError(
+        value = contactPhoneText,
+        hasInteracted = hasInteractedContactPhone,
+        forceShowError = forceShowCheckoutErrors,
+    ) { candidate ->
+        InputValidator.validateDominicanPhone(
+            rawValue = candidate,
+            isRequired = false,
+            allowInternational = false,
+            fieldLabel = "El teléfono de contacto",
+        )
+    }
 
     val cashReferenceCode = "EFE-${activeEvent.code}"
     val formattedAmountToPay = RosaFiestaEngine.formatDop(amountToPayDop)
@@ -753,6 +842,8 @@ internal fun RenderPaymentCheckoutScreenS50(
                         text = if (isEditingAddress) "Cancelar" else "Cambiar",
                         modifier = Modifier.clickable {
                             draftDeliveryAddress = displayedDeliveryAddress
+                            hasInteractedDeliveryAddress = false
+                            forceShowAddressError = false
                             isEditingAddress = !isEditingAddress
                         },
                         style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFFC2338F)),
@@ -760,6 +851,7 @@ internal fun RenderPaymentCheckoutScreenS50(
                 }
 
                 if (isEditingAddress) {
+                    val addressBorderColor = if (debouncedAddressError != null) RfColors.Error else Color(0xFFD6B9E8)
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Box(
                             modifier = Modifier
@@ -767,7 +859,7 @@ internal fun RenderPaymentCheckoutScreenS50(
                                 .height(46.dp)
                                 .clip(RoundedCornerShape(12.dp))
                                 .background(palette.bg)
-                                .border(1.dp, Color(0xFFD6B9E8), RoundedCornerShape(12.dp))
+                                .border(1.dp, addressBorderColor, RoundedCornerShape(12.dp))
                                 .padding(horizontal = 12.dp),
                             contentAlignment = Alignment.CenterStart,
                         ) {
@@ -779,13 +871,18 @@ internal fun RenderPaymentCheckoutScreenS50(
                             }
                             BasicTextField(
                                 value = draftDeliveryAddress,
-                                onValueChange = { nextAddress -> draftDeliveryAddress = nextAddress.take(100) },
+                                onValueChange = { nextAddress ->
+                                    draftDeliveryAddress = nextAddress.take(InputValidator.MAX_ADDRESS_LENGTH)
+                                    hasInteractedDeliveryAddress = true
+                                    localCheckoutError = null
+                                },
                                 singleLine = true,
                                 textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = palette.ink),
                                 cursorBrush = SolidColor(Color(0xFFC2338F)),
                                 modifier = Modifier.fillMaxWidth(),
                             )
                         }
+                        RfValidationErrorText(errorMessage = debouncedAddressError)
                         Box(
                             modifier = Modifier
                                 .align(Alignment.End)
@@ -793,11 +890,17 @@ internal fun RenderPaymentCheckoutScreenS50(
                                 .clip(RoundedCornerShape(10.dp))
                                 .background(Color(0xFFC2338F))
                                 .clickable {
-                                    val cleanZone = draftDeliveryAddress.trim()
-                                    if (cleanZone.length < 4) {
-                                        localCheckoutError = "Ingresa una dirección de entrega válida."
+                                    val addressError = InputValidator.validateAddress(
+                                        rawValue = draftDeliveryAddress,
+                                        fieldLabel = "La dirección de entrega",
+                                        isRequired = true,
+                                    )
+                                    if (addressError != null) {
+                                        forceShowAddressError = true
+                                        localCheckoutError = addressError
                                     } else {
-                                        viewModel?.setProfileZone(cleanZone)
+                                        viewModel?.setProfileZone(draftDeliveryAddress.trim())
+                                        forceShowAddressError = false
                                         localCheckoutError = null
                                         isEditingAddress = false
                                     }
@@ -940,8 +1043,11 @@ internal fun RenderPaymentCheckoutScreenS50(
                         value = transferRefInput,
                         placeholder = "Número de referencia o comprobante (ej. BR-994812)",
                         leadingIcon = RfIconKind.ORDERS,
+                        isError = debouncedTransferRefError != null,
+                        errorMessage = debouncedTransferRefError,
                         onValueChange = { nextRef ->
-                            transferRefInput = nextRef.take(36)
+                            transferRefInput = nextRef.take(InputValidator.MAX_BANK_REFERENCE_LENGTH)
+                            hasInteractedTransferRef = true
                             viewModel?.setPaymentRefInput(transferRefInput)
                             localCheckoutError = null
                         },
@@ -986,17 +1092,27 @@ internal fun RenderPaymentCheckoutScreenS50(
                         value = cardHolderName,
                         placeholder = "Nombre del titular en la tarjeta",
                         leadingIcon = RfIconKind.USER,
+                        isError = debouncedCardHolderError != null,
+                        errorMessage = debouncedCardHolderError,
                         onValueChange = { updatedName ->
-                            cardHolderName = updatedName.take(60)
+                            cardHolderName = InputValidator.filterPersonNameInput(
+                                rawValue = updatedName,
+                                maxLength = InputValidator.MAX_FULL_NAME_LENGTH,
+                            )
+                            hasInteractedCardHolder = true
                             localCheckoutError = null
                         },
                     )
                     CheckoutInputBox50(
                         value = cardNumberDigits,
-                        placeholder = "Número de tarjeta (15 a 19 dígitos)",
+                        placeholder = "0000 0000 0000 0000",
                         leadingIcon = RfIconKind.WALLET,
+                        isError = debouncedCardNumberError != null,
+                        errorMessage = debouncedCardNumberError,
+                        visualTransformation = remember { CardNumberVisualTransformation() },
                         onValueChange = { updatedCard ->
-                            cardNumberDigits = updatedCard.filter { character -> character.isDigit() }.take(19)
+                            cardNumberDigits = InputValidator.filterDigitsOnly(updatedCard, InputValidator.MAX_CARD_DIGITS)
+                            hasInteractedCardNumber = true
                             localCheckoutError = null
                         },
                     )
@@ -1006,8 +1122,11 @@ internal fun RenderPaymentCheckoutScreenS50(
                                 value = cardExpiryMmYy,
                                 placeholder = "MM/AA",
                                 leadingIcon = null,
+                                isError = debouncedCardExpiryError != null,
+                                errorMessage = debouncedCardExpiryError,
                                 onValueChange = { updatedExpiry ->
-                                    cardExpiryMmYy = formatExpiryInputMmYy(updatedExpiry)
+                                    cardExpiryMmYy = InputValidator.filterCardExpiryInput(updatedExpiry)
+                                    hasInteractedCardExpiry = true
                                     localCheckoutError = null
                                 },
                             )
@@ -1017,8 +1136,12 @@ internal fun RenderPaymentCheckoutScreenS50(
                                 value = cardCvvDigits,
                                 placeholder = "CVV (3–4 díg.)",
                                 leadingIcon = null,
+                                isError = debouncedCardCvvError != null,
+                                errorMessage = debouncedCardCvvError,
+                                visualTransformation = remember { PasswordVisualTransformation() },
                                 onValueChange = { updatedCvv ->
-                                    cardCvvDigits = updatedCvv.filter { character -> character.isDigit() }.take(4)
+                                    cardCvvDigits = InputValidator.filterDigitsOnly(updatedCvv, InputValidator.MAX_CVV_DIGITS)
+                                    hasInteractedCardCvv = true
                                     localCheckoutError = null
                                 },
                             )
@@ -1031,8 +1154,11 @@ internal fun RenderPaymentCheckoutScreenS50(
                 value = contactPhoneText,
                 placeholder = "Teléfono de contacto (ej. 809-555-0142)",
                 leadingIcon = RfIconKind.PHONE,
+                isError = debouncedContactPhoneError != null,
+                errorMessage = debouncedContactPhoneError,
                 onValueChange = { updatedPhone ->
-                    contactPhoneText = updatedPhone.take(InputValidator.MAX_PHONE_LENGTH)
+                    contactPhoneText = InputValidator.filterPhoneInput(updatedPhone)
+                    hasInteractedContactPhone = true
                     localCheckoutError = null
                 },
             )
@@ -1069,13 +1195,15 @@ internal fun RenderPaymentCheckoutScreenS50(
                             cardExpiryMmYy = cardExpiryMmYy,
                             cardCvvDigits = cardCvvDigits,
                         )
-                        val phoneError = if (contactPhoneText.isNotBlank()) {
-                            InputValidator.validatePhone(contactPhoneText)
-                        } else {
-                            null
-                        }
+                        val phoneError = InputValidator.validateDominicanPhone(
+                            rawValue = contactPhoneText,
+                            isRequired = false,
+                            allowInternational = false,
+                            fieldLabel = "El teléfono de contacto",
+                        )
                         val firstError = methodValidationError ?: phoneError
                         if (firstError != null) {
+                            forceShowCheckoutErrors = true
                             localCheckoutError = firstError
                             viewModel?.soundPlayer?.playAlertError()
                             return@clickable
@@ -1138,49 +1266,61 @@ private fun CheckoutInputBox50(
     value: String,
     placeholder: String,
     leadingIcon: RfIconKind?,
+    isError: Boolean = false,
+    errorMessage: String? = null,
+    visualTransformation: VisualTransformation = VisualTransformation.None,
     onValueChange: (String) -> Unit,
 ) {
     val typo = LocalRfTypography.current
     val palette = RfThemeState.currentPalette
+    val hasFieldError = if (isError) true else errorMessage != null
+    val borderColor = if (hasFieldError) RfColors.Error else palette.line
 
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(52.dp)
-            .rfInputShadow(RoundedCornerShape(14.dp), isAdmin = false)
-            .clip(RoundedCornerShape(14.dp))
-            .background(palette.surface)
-            .border(1.dp, palette.line, RoundedCornerShape(14.dp))
-            .padding(horizontal = 14.dp),
-        contentAlignment = Alignment.CenterStart,
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            modifier = Modifier.fillMaxWidth(),
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp)
+                .rfInputShadow(RoundedCornerShape(14.dp), isAdmin = false)
+                .clip(RoundedCornerShape(14.dp))
+                .background(palette.surface)
+                .border(1.dp, borderColor, RoundedCornerShape(14.dp))
+                .padding(horizontal = 14.dp),
+            contentAlignment = Alignment.CenterStart,
         ) {
-            if (leadingIcon != null) {
-                RfIcon(kind = leadingIcon, tint = palette.muted, size = 18.dp)
-            }
-            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-                if (value.isEmpty()) {
-                    BasicText(
-                        text = placeholder,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.5.sp, color = palette.muted),
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                if (leadingIcon != null) {
+                    RfIcon(kind = leadingIcon, tint = palette.muted, size = 18.dp)
+                }
+                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                    if (value.isEmpty()) {
+                        BasicText(
+                            text = placeholder,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.5.sp, color = palette.muted),
+                        )
+                    }
+                    BasicTextField(
+                        value = value,
+                        onValueChange = onValueChange,
+                        singleLine = true,
+                        visualTransformation = visualTransformation,
+                        textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = palette.ink),
+                        cursorBrush = SolidColor(Color(0xFFC2338F)),
+                        modifier = Modifier.fillMaxWidth(),
                     )
                 }
-                BasicTextField(
-                    value = value,
-                    onValueChange = onValueChange,
-                    singleLine = true,
-                    textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = palette.ink),
-                    cursorBrush = SolidColor(Color(0xFFC2338F)),
-                    modifier = Modifier.fillMaxWidth(),
-                )
             }
         }
+        RfValidationErrorText(errorMessage = errorMessage)
     }
 }
 
@@ -1630,7 +1770,22 @@ internal fun RenderPostEventReviewScreenS52(
 
     var selectedRating by remember { mutableStateOf(5) }
     var reviewComment by remember { mutableStateOf("") }
+    var hasInteractedReviewComment by remember { mutableStateOf(false) }
+    var forceShowReviewError by remember { mutableStateOf(false) }
     var localReviewError by remember { mutableStateOf<String?>(null) }
+    val debouncedReviewCommentError = rememberDebouncedValidationError(
+        value = reviewComment,
+        hasInteracted = hasInteractedReviewComment,
+        forceShowError = forceShowReviewError,
+    ) { candidate ->
+        InputValidator.validateNotes(
+            rawValue = candidate,
+            fieldLabel = "La reseña",
+            isRequired = true,
+            minLength = 6,
+            maxLength = InputValidator.MAX_NOTES_LENGTH,
+        )
+    }
 
     Box(
         modifier = Modifier
@@ -1869,13 +2024,15 @@ internal fun RenderPostEventReviewScreenS52(
                     }
                 }
 
+                val activeReviewCommentError = localReviewError ?: debouncedReviewCommentError
+                val commentBorderColor = if (activeReviewCommentError != null) RfColors.Error else palette.line
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(92.dp)
                         .clip(RoundedCornerShape(14.dp))
                         .background(palette.bg)
-                        .border(1.dp, palette.line, RoundedCornerShape(14.dp))
+                        .border(1.dp, commentBorderColor, RoundedCornerShape(14.dp))
                         .padding(12.dp),
                 ) {
                     if (reviewComment.isEmpty()) {
@@ -1887,7 +2044,8 @@ internal fun RenderPostEventReviewScreenS52(
                     BasicTextField(
                         value = reviewComment,
                         onValueChange = { nextText ->
-                            reviewComment = nextText.take(280)
+                            reviewComment = nextText.take(InputValidator.MAX_NOTES_LENGTH)
+                            hasInteractedReviewComment = true
                             localReviewError = null
                         },
                         textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = palette.ink),
@@ -1896,12 +2054,7 @@ internal fun RenderPostEventReviewScreenS52(
                     )
                 }
 
-                if (localReviewError != null) {
-                    BasicText(
-                        text = localReviewError.orEmpty(),
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 12.5.sp, color = RfColors.Error),
-                    )
-                }
+                RfValidationErrorText(errorMessage = activeReviewCommentError)
             }
         }
 
@@ -1915,12 +2068,20 @@ internal fun RenderPostEventReviewScreenS52(
                 .clip(RoundedCornerShape(16.dp))
                 .background(RosaButtonGradient)
                 .clickable {
-                    val cleanComment = reviewComment.trim()
-                    if (cleanComment.length < 6) {
-                        localReviewError = "Escribe al menos 6 caracteres para publicar tu reseña."
+                    val commentValidationError = InputValidator.validateNotes(
+                        rawValue = reviewComment,
+                        fieldLabel = "La reseña",
+                        isRequired = true,
+                        minLength = 6,
+                        maxLength = InputValidator.MAX_NOTES_LENGTH,
+                    )
+                    if (commentValidationError != null) {
+                        forceShowReviewError = true
+                        localReviewError = commentValidationError
                         viewModel?.soundPlayer?.playAlertError()
                         return@clickable
                     }
+                    val cleanComment = reviewComment.trim()
                     val activeViewModel = viewModel
                     val published = if (activeViewModel != null) {
                         activeViewModel.submitCompanyReview(cleanComment, selectedRating)
@@ -2260,7 +2421,7 @@ internal fun RenderUserProfileScreenS54(
     var isEditing by remember { mutableStateOf(false) }
     var draftName by remember(profileName) { mutableStateOf(profileName) }
     var draftEmail by remember(profileEmail) { mutableStateOf(profileEmail) }
-    var draftPhone by remember(profilePhone) { mutableStateOf(profilePhone) }
+    var draftPhone by remember(profilePhone) { mutableStateOf(InputValidator.formatPhoneDisplay(profilePhone)) }
     var draftBirthDate by remember(profileBirthDate) { mutableStateOf(profileBirthDate) }
     var draftUsername by remember(profileUsername, profileEmail) {
         mutableStateOf(profileUsername.ifBlank { profileEmail.substringBefore("@") })
@@ -2271,19 +2432,85 @@ internal fun RenderUserProfileScreenS54(
     var showLogoutConfirmModal by remember { mutableStateOf(false) }
     var localProfileError by remember { mutableStateOf<String?>(null) }
 
-    val liveNameError = if (isEditing) InputValidator.validateFullName(draftName) else null
-    val liveEmailError = if (isEditing) InputValidator.validateEmail(draftEmail) else null
-    val livePhoneError = if (isEditing) InputValidator.validatePhone(draftPhone) else null
-    val liveBirthDateError = if (isEditing) InputValidator.validateBirthDate(draftBirthDate, isRequired = true) else null
-    val liveUsernameError = if (isEditing) InputValidator.validateUsername(draftUsername) else null
+    var hasInteractedName by remember { mutableStateOf(false) }
+    var hasInteractedEmail by remember { mutableStateOf(false) }
+    var hasInteractedPhone by remember { mutableStateOf(false) }
+    var hasInteractedBirthDate by remember { mutableStateOf(false) }
+    var hasInteractedUsername by remember { mutableStateOf(false) }
+    var forceShowProfileErrors by remember { mutableStateOf(false) }
+
+    val liveNameError = rememberDebouncedValidationError(
+        value = draftName,
+        hasInteracted = hasInteractedName,
+        forceShowError = forceShowProfileErrors,
+    ) { candidate ->
+        if (!isEditing) null else InputValidator.validateFullName(candidate)
+    }
+    val liveEmailError = rememberDebouncedValidationError(
+        value = draftEmail,
+        hasInteracted = hasInteractedEmail,
+        forceShowError = forceShowProfileErrors,
+    ) { candidate ->
+        if (!isEditing) null else InputValidator.validateEmail(candidate)
+    }
+    val livePhoneError = rememberDebouncedValidationError(
+        value = draftPhone,
+        hasInteracted = hasInteractedPhone,
+        forceShowError = forceShowProfileErrors,
+    ) { candidate ->
+        if (!isEditing) {
+            null
+        } else {
+            InputValidator.validateDominicanPhone(
+                rawValue = candidate,
+                isRequired = true,
+                allowInternational = false,
+                fieldLabel = "El teléfono",
+            )
+        }
+    }
+    val liveBirthDateError = rememberDebouncedValidationError(
+        value = draftBirthDate,
+        hasInteracted = hasInteractedBirthDate,
+        forceShowError = forceShowProfileErrors,
+    ) { candidate ->
+        if (!isEditing) null else InputValidator.validateBirthDate(candidate, isRequired = true)
+    }
+    val liveUsernameError = rememberDebouncedValidationError(
+        value = draftUsername,
+        hasInteracted = hasInteractedUsername,
+        forceShowError = forceShowProfileErrors,
+    ) { candidate ->
+        if (!isEditing) null else InputValidator.validateUsername(candidate)
+    }
+
+    val resetProfileEditInteractions = {
+        hasInteractedName = false
+        hasInteractedEmail = false
+        hasInteractedPhone = false
+        hasInteractedBirthDate = false
+        hasInteractedUsername = false
+        forceShowProfileErrors = false
+    }
 
     val saveProfileChanges: () -> Unit = {
-        val firstValidationError = liveNameError
-            ?: liveEmailError
-            ?: livePhoneError
-            ?: liveBirthDateError
-            ?: liveUsernameError
+        val syncNameError = InputValidator.validateFullName(draftName)
+        val syncEmailError = InputValidator.validateEmail(draftEmail)
+        val syncPhoneError = InputValidator.validateDominicanPhone(
+            rawValue = draftPhone,
+            isRequired = true,
+            allowInternational = false,
+            fieldLabel = "El teléfono",
+        )
+        val syncBirthDateError = InputValidator.validateBirthDate(draftBirthDate, isRequired = true)
+        val syncUsernameError = InputValidator.validateUsername(draftUsername)
+        val firstValidationError = syncNameError
+            ?: syncEmailError
+            ?: syncPhoneError
+            ?: syncBirthDateError
+            ?: syncUsernameError
         if (firstValidationError != null) {
+            forceShowProfileErrors = true
             localProfileError = firstValidationError
             viewModel?.soundPlayer?.playAlertError()
         } else {
@@ -2297,6 +2524,7 @@ internal fun RenderUserProfileScreenS54(
                 draftAvatarKey = draftAvatarKey,
             ) ?: true
             if (savedOk) {
+                resetProfileEditInteractions()
                 localProfileError = null
                 isEditing = false
             } else {
@@ -2353,10 +2581,11 @@ internal fun RenderUserProfileScreenS54(
                             .clickable {
                                 draftName = profileName
                                 draftEmail = profileEmail
-                                draftPhone = profilePhone
+                                draftPhone = InputValidator.formatPhoneDisplay(profilePhone)
                                 draftBirthDate = profileBirthDate
                                 draftUsername = profileUsername.ifBlank { profileEmail.substringBefore("@") }
                                 draftAvatarKey = profileAvatarKey
+                                resetProfileEditInteractions()
                                 localProfileError = null
                                 viewModel?.clearFormError()
                                 isEditing = false
@@ -2381,10 +2610,11 @@ internal fun RenderUserProfileScreenS54(
                             if (!isEditing) {
                                 draftName = profileName
                                 draftEmail = profileEmail
-                                draftPhone = profilePhone
+                                draftPhone = InputValidator.formatPhoneDisplay(profilePhone)
                                 draftBirthDate = profileBirthDate
                                 draftUsername = profileUsername.ifBlank { profileEmail.substringBefore("@") }
                                 draftAvatarKey = profileAvatarKey
+                                resetProfileEditInteractions()
                                 localProfileError = null
                                 viewModel?.clearFormError()
                                 isEditing = true
@@ -2480,7 +2710,11 @@ internal fun RenderUserProfileScreenS54(
                             maxLength = InputValidator.MAX_FULL_NAME_LENGTH,
                             isTitleStyle = true,
                             onValueChange = { nextName ->
-                                draftName = nextName.take(InputValidator.MAX_FULL_NAME_LENGTH)
+                                draftName = InputValidator.filterPersonNameInput(
+                                    rawValue = nextName,
+                                    maxLength = InputValidator.MAX_FULL_NAME_LENGTH,
+                                )
+                                hasInteractedName = true
                                 localProfileError = null
                                 viewModel?.clearFormError()
                             },
@@ -2494,6 +2728,7 @@ internal fun RenderUserProfileScreenS54(
                             isTitleStyle = false,
                             onValueChange = { nextEmail ->
                                 draftEmail = nextEmail.take(InputValidator.MAX_EMAIL_LENGTH)
+                                hasInteractedEmail = true
                                 localProfileError = null
                                 viewModel?.clearFormError()
                             },
@@ -2528,19 +2763,23 @@ internal fun RenderUserProfileScreenS54(
                             placeholder = "809-555-0102",
                             hasError = livePhoneError != null,
                             onValueChange = { nextPhone ->
-                                draftPhone = nextPhone.take(InputValidator.MAX_PHONE_LENGTH)
+                                draftPhone = InputValidator.filterPhoneInput(nextPhone)
+                                hasInteractedPhone = true
                                 localProfileError = null
                                 viewModel?.clearFormError()
                             },
                         )
                     } else {
-                        BasicText(profilePhone, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = profileAccentColor))
+                        BasicText(
+                            InputValidator.formatPhoneDisplay(profilePhone),
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = profileAccentColor),
+                        )
                     }
                 }
                 if (isEditing) {
                     ProfileInlineFieldHelper54(
                         errorText = livePhoneError,
-                        hintText = "Formato: 10 a 15 dígitos (ej. 809-555-0102)",
+                        hintText = "Formato dominicano: 809/829/849-555-0102",
                     )
                 }
                 ProfileDivider54()
@@ -2563,6 +2802,7 @@ internal fun RenderUserProfileScreenS54(
                             modifier = Modifier.width(184.dp),
                             onValueChange = { formattedBirthDate ->
                                 draftBirthDate = formattedBirthDate.take(InputValidator.MAX_BIRTH_DATE_LENGTH)
+                                hasInteractedBirthDate = true
                                 localProfileError = null
                                 viewModel?.clearFormError()
                             },
@@ -2589,7 +2829,8 @@ internal fun RenderUserProfileScreenS54(
                             placeholder = "usuario",
                             hasError = liveUsernameError != null,
                             onValueChange = { nextUsername ->
-                                draftUsername = nextUsername.take(InputValidator.MAX_USERNAME_LENGTH)
+                                draftUsername = InputValidator.filterUsernameInput(nextUsername)
+                                hasInteractedUsername = true
                                 localProfileError = null
                                 viewModel?.clearFormError()
                             },
@@ -2711,12 +2952,25 @@ internal fun RenderUserProfileScreenS54(
             Spacer(modifier = Modifier.height(RfDimens.BottomBarContentClearance))
         }
 
-        if (showLogoutConfirmModal) {
+        AnimatedVisibility(
+            visible = showLogoutConfirmModal,
+            enter = fadeIn(tween(180)) + scaleIn(tween(180), initialScale = 0.94f),
+            exit = fadeOut(tween(140)) + scaleOut(tween(140), targetScale = 0.94f),
+            modifier = Modifier
+                .fillMaxSize()
+                .zIndex(10f),
+        ) {
+            val logoutScrimInteractionSource = remember { MutableInteractionSource() }
+            val logoutCardInteractionSource = remember { MutableInteractionSource() }
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Color(0xFF151729).copy(alpha = 0.55f))
-                    .clickable { showLogoutConfirmModal = false }
+                    .clickable(
+                        interactionSource = logoutScrimInteractionSource,
+                        indication = null,
+                        onClick = { showLogoutConfirmModal = false },
+                    )
                     .padding(horizontal = 24.dp),
                 contentAlignment = Alignment.Center,
             ) {
@@ -2727,7 +2981,11 @@ internal fun RenderUserProfileScreenS54(
                         .clip(RoundedCornerShape(24.dp))
                         .background(palette.surface)
                         .border(1.dp, palette.line, RoundedCornerShape(24.dp))
-                        .clickable(enabled = false) {}
+                        .clickable(
+                            interactionSource = logoutCardInteractionSource,
+                            indication = null,
+                            onClick = {},
+                        )
                         .padding(22.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
@@ -3216,7 +3474,7 @@ internal fun RenderSuppliersScreenS55(
                     }
                     BasicTextField(
                         value = searchQuery,
-                        onValueChange = { updatedText -> searchQuery = updatedText },
+                        onValueChange = { updatedText -> searchQuery = updatedText.take(InputValidator.MAX_SEARCH_QUERY_LENGTH) },
                         singleLine = true,
                         textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF151729)),
                         modifier = Modifier.fillMaxWidth(),
@@ -3246,7 +3504,7 @@ internal fun RenderSuppliersScreenS55(
                         initialColor = if (isEvenSupplier) Color(0xFF4B47D6) else Color(0xFF1F8A84),
                         name = supplier.name,
                         contact = supplier.subtitle,
-                        phone = supplier.phone,
+                        phone = InputValidator.formatPhoneDisplay(supplier.phone),
                         onEditClick = { onSelectScreenCode("s56") },
                         onPhoneClick = { viewModel?.dialPhoneNumber(supplier.phone) },
                         onWhatsAppClick = { viewModel?.openWhatsAppChat(supplier.phone, whatsAppGreeting) },
@@ -3383,6 +3641,68 @@ internal fun RenderNewSupplierScreenS56(
     var supplierNotes by remember { mutableStateOf("") }
     var localSupplierError by remember { mutableStateOf<String?>(null) }
 
+    var hasInteractedCompany by remember { mutableStateOf(false) }
+    var hasInteractedContact by remember { mutableStateOf(false) }
+    var hasInteractedPhone by remember { mutableStateOf(false) }
+    var hasInteractedEmail by remember { mutableStateOf(false) }
+    var hasInteractedWebsite by remember { mutableStateOf(false) }
+    var hasInteractedNotes by remember { mutableStateOf(false) }
+    var forceShowSupplierErrors by remember { mutableStateOf(false) }
+
+    val debouncedCompanyError = rememberDebouncedValidationError(
+        value = companyName,
+        hasInteracted = hasInteractedCompany,
+        forceShowError = forceShowSupplierErrors,
+    ) { candidate ->
+        InputValidator.validateSupplierName(candidate, isRequired = true)
+    }
+    val debouncedContactError = rememberDebouncedValidationError(
+        value = contactPerson,
+        hasInteracted = hasInteractedContact,
+        forceShowError = forceShowSupplierErrors,
+    ) { candidate ->
+        InputValidator.validateFullName(candidate)
+    }
+    val debouncedPhoneError = rememberDebouncedValidationError(
+        value = phoneNumber,
+        hasInteracted = hasInteractedPhone,
+        forceShowError = forceShowSupplierErrors,
+    ) { candidate ->
+        InputValidator.validateDominicanPhone(
+            rawValue = candidate,
+            isRequired = true,
+            allowInternational = false,
+            fieldLabel = "El teléfono",
+        )
+    }
+    val debouncedEmailError = rememberDebouncedValidationError(
+        value = emailAddress,
+        hasInteracted = hasInteractedEmail,
+        forceShowError = forceShowSupplierErrors,
+    ) { candidate ->
+        InputValidator.validateOptionalEmail(candidate)
+    }
+    val debouncedWebsiteError = rememberDebouncedValidationError(
+        value = websiteUrl,
+        hasInteracted = hasInteractedWebsite,
+        forceShowError = forceShowSupplierErrors,
+    ) { candidate ->
+        InputValidator.validateWebsiteUrl(candidate, isRequired = false)
+    }
+    val debouncedNotesError = rememberDebouncedValidationError(
+        value = supplierNotes,
+        hasInteracted = hasInteractedNotes,
+        forceShowError = forceShowSupplierErrors,
+    ) { candidate ->
+        InputValidator.validateNotes(
+            rawValue = candidate,
+            fieldLabel = "Las notas",
+            isRequired = false,
+            minLength = 0,
+            maxLength = InputValidator.MAX_NOTES_LENGTH,
+        )
+    }
+
     val categoryOptions = listOf(
         "Flores y follaje",
         "Mobiliario",
@@ -3439,8 +3759,11 @@ internal fun RenderNewSupplierScreenS56(
                         icon = RfIconKind.BOX,
                         required = true,
                         boundValue = companyName,
+                        isError = debouncedCompanyError != null,
+                        errorMessage = debouncedCompanyError,
                         onBoundValueChange = { updatedText ->
-                            companyName = updatedText.take(80)
+                            companyName = updatedText.take(InputValidator.MAX_BUSINESS_NAME_LENGTH)
+                            hasInteractedCompany = true
                             localSupplierError = null
                         },
                     )
@@ -3493,8 +3816,14 @@ internal fun RenderNewSupplierScreenS56(
                         icon = RfIconKind.USER,
                         required = true,
                         boundValue = contactPerson,
+                        isError = debouncedContactError != null,
+                        errorMessage = debouncedContactError,
                         onBoundValueChange = { updatedText ->
-                            contactPerson = updatedText.take(60)
+                            contactPerson = InputValidator.filterPersonNameInput(
+                                rawValue = updatedText,
+                                maxLength = InputValidator.MAX_FULL_NAME_LENGTH,
+                            )
+                            hasInteractedContact = true
                             localSupplierError = null
                         },
                     )
@@ -3502,11 +3831,14 @@ internal fun RenderNewSupplierScreenS56(
                         Box(Modifier.weight(1f)) {
                             AdminField56(
                                 label = "Teléfono",
-                                placeholder = "809 000 0000",
+                                placeholder = "809-000-0000",
                                 required = true,
                                 boundValue = phoneNumber,
+                                isError = debouncedPhoneError != null,
+                                errorMessage = debouncedPhoneError,
                                 onBoundValueChange = { updatedText ->
-                                    phoneNumber = updatedText.take(InputValidator.MAX_PHONE_LENGTH)
+                                    phoneNumber = InputValidator.filterPhoneInput(updatedText)
+                                    hasInteractedPhone = true
                                     localSupplierError = null
                                 },
                             )
@@ -3516,8 +3848,11 @@ internal fun RenderNewSupplierScreenS56(
                                 label = "Correo",
                                 placeholder = "correo@empresa.do",
                                 boundValue = emailAddress,
+                                isError = debouncedEmailError != null,
+                                errorMessage = debouncedEmailError,
                                 onBoundValueChange = { updatedText ->
                                     emailAddress = updatedText.take(InputValidator.MAX_EMAIL_LENGTH)
+                                    hasInteractedEmail = true
                                     localSupplierError = null
                                 },
                             )
@@ -3528,15 +3863,21 @@ internal fun RenderNewSupplierScreenS56(
                         placeholder = "www.ejemplo.com",
                         icon = RfIconKind.SHARE,
                         boundValue = websiteUrl,
+                        isError = debouncedWebsiteError != null,
+                        errorMessage = debouncedWebsiteError,
                         onBoundValueChange = { updatedText ->
-                            websiteUrl = updatedText.take(100)
+                            websiteUrl = updatedText.take(InputValidator.MAX_WEBSITE_LENGTH)
+                            hasInteractedWebsite = true
                             localSupplierError = null
                         },
                     )
                     AdminNotes56(
                         notesValue = supplierNotes,
+                        isError = debouncedNotesError != null,
+                        errorMessage = debouncedNotesError,
                         onNotesChange = { updatedNotes ->
-                            supplierNotes = updatedNotes.take(300)
+                            supplierNotes = updatedNotes.take(InputValidator.MAX_NOTES_LENGTH)
+                            hasInteractedNotes = true
                             localSupplierError = null
                         },
                     )
@@ -3554,24 +3895,31 @@ internal fun RenderNewSupplierScreenS56(
                 .clip(RoundedCornerShape(16.dp))
                 .background(AdminPanelGradient)
                 .clickable {
-                    val cleanCompanyName = companyName.trim()
-                    val cleanContact = contactPerson.trim()
-                    val cleanPhone = phoneNumber.trim()
-                    val cleanEmail = emailAddress.trim()
-                    val emailValidationError = if (cleanEmail.isNotEmpty()) {
-                        InputValidator.validateEmail(cleanEmail)
-                    } else {
-                        null
-                    }
-
-                    val validationError = when {
-                        cleanCompanyName.length < 2 -> "Ingresa el nombre de la empresa proveedora (mínimo 2 caracteres)."
-                        cleanContact.length < 2 -> "Ingresa el nombre de la persona de contacto."
-                        cleanPhone.length < 7 -> "Ingresa un teléfono válido de al menos 7 dígitos."
-                        emailValidationError != null -> emailValidationError
-                        else -> null
-                    }
+                    val companyError = InputValidator.validateSupplierName(companyName, isRequired = true)
+                    val contactError = InputValidator.validateFullName(contactPerson)
+                    val phoneError = InputValidator.validateDominicanPhone(
+                        rawValue = phoneNumber,
+                        isRequired = true,
+                        allowInternational = false,
+                        fieldLabel = "El teléfono",
+                    )
+                    val emailError = InputValidator.validateOptionalEmail(emailAddress)
+                    val websiteError = InputValidator.validateWebsiteUrl(websiteUrl, isRequired = false)
+                    val notesError = InputValidator.validateNotes(
+                        rawValue = supplierNotes,
+                        fieldLabel = "Las notas",
+                        isRequired = false,
+                        minLength = 0,
+                        maxLength = InputValidator.MAX_NOTES_LENGTH,
+                    )
+                    val validationError = companyError
+                        ?: contactError
+                        ?: phoneError
+                        ?: emailError
+                        ?: websiteError
+                        ?: notesError
                     if (validationError != null) {
+                        forceShowSupplierErrors = true
                         localSupplierError = validationError
                         viewModel?.soundPlayer?.playAlertError()
                         return@clickable
@@ -3580,11 +3928,11 @@ internal fun RenderNewSupplierScreenS56(
                     val activeViewModel = viewModel
                     val saved = if (activeViewModel != null) {
                         activeViewModel.addSupplier(
-                            name = cleanCompanyName,
+                            name = companyName.trim(),
                             category = selectedCategory,
-                            phone = cleanPhone,
-                            contactName = cleanContact,
-                            email = cleanEmail,
+                            phone = phoneNumber.trim(),
+                            contactName = contactPerson.trim(),
+                            email = emailAddress.trim(),
                             website = websiteUrl.trim(),
                             notes = supplierNotes.trim(),
                         )
@@ -3613,9 +3961,13 @@ private fun AdminField56(
     icon: RfIconKind? = null,
     required: Boolean = false,
     boundValue: String,
+    isError: Boolean = false,
+    errorMessage: String? = null,
     onBoundValueChange: (String) -> Unit,
 ) {
     val typo = LocalRfTypography.current
+    val hasFieldError = if (isError) true else errorMessage != null
+    val borderColor = if (hasFieldError) RfColors.Error else Color(0xFFE3E4EF)
 
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row {
@@ -3631,7 +3983,7 @@ private fun AdminField56(
                 .shadow(8.dp, RoundedCornerShape(14.dp), spotColor = Color(0x224650B4))
                 .clip(RoundedCornerShape(14.dp))
                 .background(RfThemeState.currentPalette.surface)
-                .border(1.dp, Color(0xFFE3E4EF), RoundedCornerShape(14.dp))
+                .border(1.dp, borderColor, RoundedCornerShape(14.dp))
                 .padding(horizontal = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -3657,15 +4009,20 @@ private fun AdminField56(
                 )
             }
         }
+        RfValidationErrorText(errorMessage = errorMessage)
     }
 }
 
 @Composable
 private fun AdminNotes56(
     notesValue: String,
+    isError: Boolean = false,
+    errorMessage: String? = null,
     onNotesChange: (String) -> Unit,
 ) {
     val typo = LocalRfTypography.current
+    val hasFieldError = if (isError) true else errorMessage != null
+    val borderColor = if (hasFieldError) RfColors.Error else Color(0xFFE3E4EF)
 
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         BasicText("Notas", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Color(0xFF151729)))
@@ -3676,7 +4033,7 @@ private fun AdminNotes56(
                 .shadow(8.dp, RoundedCornerShape(14.dp), spotColor = Color(0x224650B4))
                 .clip(RoundedCornerShape(14.dp))
                 .background(RfThemeState.currentPalette.surface)
-                .border(1.dp, Color(0xFFE3E4EF), RoundedCornerShape(14.dp))
+                .border(1.dp, borderColor, RoundedCornerShape(14.dp))
                 .padding(start = 14.dp, end = 14.dp, top = 14.dp),
         ) {
             if (notesValue.isEmpty()) {
@@ -3692,6 +4049,7 @@ private fun AdminNotes56(
                 modifier = Modifier.fillMaxSize(),
             )
         }
+        RfValidationErrorText(errorMessage = errorMessage)
     }
 }
 

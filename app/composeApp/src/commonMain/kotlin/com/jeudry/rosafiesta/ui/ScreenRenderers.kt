@@ -391,7 +391,11 @@ public fun RenderScreenSpec(
 
                 "s33" -> RenderRosaSubmittedS33(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
 
-                "s34" -> RenderRosaChatS34(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                "s34" -> RenderRosaChatS34(
+                    viewModel = viewModel,
+                    onSelectScreenCode = onSelectScreenCode,
+                    underlyingScreenCode = underlyingScreenCode,
+                )
 
                 "s35" -> RenderRosaVoiceS35(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
 
@@ -457,7 +461,11 @@ public fun RenderScreenSpec(
 
                 "A20" -> RenderAdminPaymentsA20(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
 
-                "A21" -> RenderAdminRecordPaymentA21(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                "A21" -> RenderAdminRecordPaymentA21(
+                    viewModel = viewModel,
+                    onSelectScreenCode = onSelectScreenCode,
+                    underlyingScreenCode = underlyingScreenCode,
+                )
 
                 "A10" -> RenderAdminNewArticleA10(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
 
@@ -483,7 +491,11 @@ public fun RenderScreenSpec(
 
                 "A28" -> RenderAdminTeamA28(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
 
-                "A04" -> RenderAdminCreateEventA04(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                "A04" -> RenderAdminCreateEventA04(
+                    viewModel = viewModel,
+                    onSelectScreenCode = onSelectScreenCode,
+                    underlyingScreenCode = underlyingScreenCode,
+                )
 
                 "A05" -> RenderAdminManualEventA05(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
 
@@ -557,11 +569,23 @@ public fun RenderScreenSpec(
 
                 "s74" -> RenderBotConversationsS74(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
 
-                "s75" -> RenderGuestAuthModalS75(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                "s75" -> RenderGuestAuthModalS75(
+                    viewModel = viewModel,
+                    onSelectScreenCode = onSelectScreenCode,
+                    underlyingScreenCode = underlyingScreenCode,
+                )
 
-                "s76" -> RenderPlanningModalS76(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                "s76" -> RenderPlanningModalS76(
+                    viewModel = viewModel,
+                    onSelectScreenCode = onSelectScreenCode,
+                    underlyingScreenCode = underlyingScreenCode,
+                )
 
-                "s77" -> RenderEventReviewsModalS77(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                "s77" -> RenderEventReviewsModalS77(
+                    viewModel = viewModel,
+                    onSelectScreenCode = onSelectScreenCode,
+                    underlyingScreenCode = underlyingScreenCode,
+                )
 
                 "s79" -> RenderPersonalNotificationsS79(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
 
@@ -575,9 +599,17 @@ public fun RenderScreenSpec(
 
                 "s82" -> RenderPersonalPaymentsS82(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
 
-                "s84" -> RenderChangeDateModalS84(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                "s84" -> RenderChangeDateModalS84(
+                    viewModel = viewModel,
+                    onSelectScreenCode = onSelectScreenCode,
+                    underlyingScreenCode = underlyingScreenCode,
+                )
 
-                "s85" -> RenderCancelEventModalS85(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                "s85" -> RenderCancelEventModalS85(
+                    viewModel = viewModel,
+                    onSelectScreenCode = onSelectScreenCode,
+                    underlyingScreenCode = underlyingScreenCode,
+                )
 
                 "s86" -> RenderAccountSettingsS86(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
 
@@ -591,7 +623,11 @@ public fun RenderScreenSpec(
 
                 "s91" -> RenderPersonalOfflineStateS91(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
 
-                "s92" -> RenderPersonalSuccessStateS92(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                "s92" -> RenderPersonalSuccessStateS92(
+                    viewModel = viewModel,
+                    onSelectScreenCode = onSelectScreenCode,
+                    underlyingScreenCode = underlyingScreenCode,
+                )
             }
             if (showBottomBar) {
                 Box(modifier = Modifier.align(Alignment.BottomCenter)) {

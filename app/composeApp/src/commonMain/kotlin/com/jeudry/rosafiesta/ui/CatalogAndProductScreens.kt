@@ -79,6 +79,7 @@ import com.jeudry.rosafiesta.domain.BalloonProduct
 import com.jeudry.rosafiesta.domain.CanonicalSampleData
 import com.jeudry.rosafiesta.domain.CatalogArticle
 import com.jeudry.rosafiesta.domain.EventPackage
+import com.jeudry.rosafiesta.domain.validation.InputValidator
 import kotlinx.coroutines.delay
 
 private fun resolveCatalogCategoryIcon18(categoryName: String): RfIconKind {
@@ -166,7 +167,14 @@ internal fun RenderPersonalCatalogS18(
         mutableStateOf(normalizedInitial)
     }
     val vmQuery = viewModel?.searchQuery?.collectAsState()?.value ?: ""
-    var searchQuery by remember(vmQuery) { mutableStateOf(vmQuery) }
+    var searchQuery by remember(vmQuery) { mutableStateOf(vmQuery.take(InputValidator.MAX_SEARCH_QUERY_LENGTH)) }
+    var hasInteractedSearch by remember { mutableStateOf(false) }
+    val searchFieldError = rememberDebouncedValidationError(
+        value = searchQuery,
+        hasInteracted = hasInteractedSearch,
+    ) { query ->
+        InputValidator.validateSearchQuery(query)
+    }
     val observedMaxPrice = viewModel?.maxPriceFilterDop?.collectAsState()?.value ?: Int.MAX_VALUE
     val observedOnlyAvailable = viewModel?.onlyAvailableFilter?.collectAsState()?.value ?: false
     val observedSortOrder = viewModel?.searchSortOrder?.collectAsState()?.value ?: "Más populares"
@@ -282,6 +290,7 @@ internal fun RenderPersonalCatalogS18(
 
         Spacer(Modifier.height(14.dp))
 
+        val searchBorderColor = if (searchFieldError != null) Color(0xFFE53935) else RfThemeState.currentPalette.line
         Box(
             contentAlignment = Alignment.CenterStart,
             modifier = Modifier
@@ -290,7 +299,7 @@ internal fun RenderPersonalCatalogS18(
                 .rfInputShadow(RoundedCornerShape(16.dp), isAdmin = false)
                 .clip(RoundedCornerShape(16.dp))
                 .background(RfThemeState.currentPalette.surface)
-                .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(16.dp))
+                .border(1.dp, searchBorderColor, RoundedCornerShape(16.dp))
                 .padding(start = 16.dp, end = 6.dp),
         ) {
             Row(
@@ -311,8 +320,10 @@ internal fun RenderPersonalCatalogS18(
                         BasicTextField(
                             value = searchQuery,
                             onValueChange = { updatedQuery ->
-                                searchQuery = updatedQuery
-                                viewModel?.setSearchQuery(updatedQuery)
+                                val cappedQuery = updatedQuery.take(InputValidator.MAX_SEARCH_QUERY_LENGTH)
+                                searchQuery = cappedQuery
+                                hasInteractedSearch = true
+                                viewModel?.setSearchQuery(cappedQuery)
                             },
                             textStyle = typo.body.copy(fontSize = 15.sp, color = RfThemeState.currentPalette.ink),
                             modifier = Modifier.fillMaxWidth(),
@@ -329,6 +340,7 @@ internal fun RenderPersonalCatalogS18(
                             .background(Color(0xFFF5EAF9))
                             .clickable {
                                 searchQuery = ""
+                                hasInteractedSearch = false
                                 viewModel?.setSearchQuery("")
                             },
                     ) {
@@ -387,12 +399,18 @@ internal fun RenderPersonalCatalogS18(
                 }
             }
         }
+        RfValidationErrorText(
+            errorMessage = searchFieldError,
+            modifier = Modifier.padding(top = 4.dp),
+        )
 
         InlineVoiceSearchBanner(
             viewModel = viewModel,
             onApplyVoiceQuery = { spokenQuery ->
-                searchQuery = spokenQuery
-                viewModel?.setSearchQuery(spokenQuery)
+                val cappedSpoken = spokenQuery.take(InputValidator.MAX_SEARCH_QUERY_LENGTH)
+                searchQuery = cappedSpoken
+                hasInteractedSearch = true
+                viewModel?.setSearchQuery(cappedSpoken)
             },
             modifier = Modifier.padding(top = 10.dp),
         )
@@ -1803,6 +1821,13 @@ internal fun RenderPackagesScreenS21(
     }
     var selectedOccasionFilter by remember { mutableStateOf("Todos") }
     var packageQuery by remember { mutableStateOf("") }
+    var hasInteractedPackageSearch by remember { mutableStateOf(false) }
+    val packageSearchError = rememberDebouncedValidationError(
+        value = packageQuery,
+        hasInteracted = hasInteractedPackageSearch,
+    ) { query ->
+        InputValidator.validateSearchQuery(query)
+    }
     val visiblePackages = remember(allPackages, selectedOccasionFilter, packageQuery) {
         allPackages.filter { packageItem ->
             val isVisible = packageItem.visibleInCatalog
@@ -1920,49 +1945,62 @@ internal fun RenderPackagesScreenS21(
                 }
             }
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp)
-                    .rfInputShadow(RoundedCornerShape(16.dp), isAdmin = false)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(palette.surface)
-                    .border(1.dp, palette.line, RoundedCornerShape(16.dp))
-                    .padding(horizontal = 14.dp),
+            val packageBorderColor = if (packageSearchError != null) Color(0xFFE53935) else palette.line
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                RfIcon(kind = RfIconKind.SEARCH, tint = palette.muted, size = 18.dp)
-                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-                    if (packageQuery.isEmpty()) {
-                        BasicText(
-                            text = "Buscar paquete por ocasión o estilo...",
-                            style = typo.body.copy(fontSize = 14.sp, color = palette.muted),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                        .rfInputShadow(RoundedCornerShape(16.dp), isAdmin = false)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(palette.surface)
+                        .border(1.dp, packageBorderColor, RoundedCornerShape(16.dp))
+                        .padding(horizontal = 14.dp),
+                ) {
+                    RfIcon(kind = RfIconKind.SEARCH, tint = palette.muted, size = 18.dp)
+                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                        if (packageQuery.isEmpty()) {
+                            BasicText(
+                                text = "Buscar paquete por ocasión o estilo...",
+                                style = typo.body.copy(fontSize = 14.sp, color = palette.muted),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                        BasicTextField(
+                            value = packageQuery,
+                            onValueChange = { updatedText ->
+                                packageQuery = updatedText.take(InputValidator.MAX_SEARCH_QUERY_LENGTH)
+                                hasInteractedPackageSearch = true
+                            },
+                            singleLine = true,
+                            textStyle = typo.body.copy(fontSize = 14.5.sp, color = palette.ink),
+                            cursorBrush = SolidColor(Color(0xFFC2338F)),
+                            modifier = Modifier.fillMaxWidth(),
                         )
                     }
-                    BasicTextField(
-                        value = packageQuery,
-                        onValueChange = { updatedText -> packageQuery = updatedText },
-                        singleLine = true,
-                        textStyle = typo.body.copy(fontSize = 14.5.sp, color = palette.ink),
-                        cursorBrush = SolidColor(Color(0xFFC2338F)),
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-                if (packageQuery.isNotEmpty()) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .size(26.dp)
-                            .clip(CircleShape)
-                            .background(palette.chipBg)
-                            .clickable { packageQuery = "" },
-                    ) {
-                        RfIcon(kind = RfIconKind.CLOSE, tint = palette.muted, size = 13.dp)
+                    if (packageQuery.isNotEmpty()) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .size(26.dp)
+                                .clip(CircleShape)
+                                .background(palette.chipBg)
+                                .clickable {
+                                    packageQuery = ""
+                                    hasInteractedPackageSearch = false
+                                },
+                        ) {
+                            RfIcon(kind = RfIconKind.CLOSE, tint = palette.muted, size = 13.dp)
+                        }
                     }
                 }
+                RfValidationErrorText(errorMessage = packageSearchError)
             }
 
             Row(
@@ -2680,6 +2718,13 @@ internal fun RenderShopScreenS23(
     var selectedFilter by remember { mutableStateOf("Todos") }
     var showSearchInput by remember { mutableStateOf(false) }
     var balloonSearchQuery by remember { mutableStateOf("") }
+    var hasInteractedBalloonSearch by remember { mutableStateOf(false) }
+    val balloonSearchError = rememberDebouncedValidationError(
+        value = balloonSearchQuery,
+        hasInteracted = hasInteractedBalloonSearch,
+    ) { query ->
+        InputValidator.validateSearchQuery(query)
+    }
 
     val balloonProducts = viewModel?.balloonProducts?.collectAsState()?.value ?: CanonicalSampleData.balloonProducts
     val favoritesSet = viewModel?.favorites?.collectAsState()?.value ?: emptySet()
@@ -2838,48 +2883,62 @@ internal fun RenderShopScreenS23(
             }
 
             AnimatedVisibility(visible = showSearchInput) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                val balloonBorderColor = if (balloonSearchError != null) Color(0xFFE53935) else palette.line
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 20.dp)
-                        .height(46.dp)
-                        .rfInputShadow(RoundedCornerShape(14.dp), isAdmin = false)
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(palette.surface)
-                        .border(1.dp, palette.line, RoundedCornerShape(14.dp))
-                        .padding(horizontal = 14.dp),
+                        .padding(horizontal = 20.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    RfIcon(kind = RfIconKind.SEARCH, tint = palette.muted, size = 18.dp)
-                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-                        if (balloonSearchQuery.isEmpty()) {
-                            BasicText(
-                                text = "Buscar globos por nombre o código...",
-                                style = typo.body.copy(fontSize = 14.sp, color = palette.muted),
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(46.dp)
+                            .rfInputShadow(RoundedCornerShape(14.dp), isAdmin = false)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(palette.surface)
+                            .border(1.dp, balloonBorderColor, RoundedCornerShape(14.dp))
+                            .padding(horizontal = 14.dp),
+                    ) {
+                        RfIcon(kind = RfIconKind.SEARCH, tint = palette.muted, size = 18.dp)
+                        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                            if (balloonSearchQuery.isEmpty()) {
+                                BasicText(
+                                    text = "Buscar globos por nombre o código...",
+                                    style = typo.body.copy(fontSize = 14.sp, color = palette.muted),
+                                )
+                            }
+                            BasicTextField(
+                                value = balloonSearchQuery,
+                                onValueChange = { updatedQuery ->
+                                    balloonSearchQuery = updatedQuery.take(InputValidator.MAX_SEARCH_QUERY_LENGTH)
+                                    hasInteractedBalloonSearch = true
+                                },
+                                singleLine = true,
+                                textStyle = typo.body.copy(fontSize = 14.sp, color = palette.ink),
+                                cursorBrush = SolidColor(palette.ink),
+                                modifier = Modifier.fillMaxWidth(),
                             )
                         }
-                        BasicTextField(
-                            value = balloonSearchQuery,
-                            onValueChange = { updatedQuery -> balloonSearchQuery = updatedQuery },
-                            singleLine = true,
-                            textStyle = typo.body.copy(fontSize = 14.sp, color = palette.ink),
-                            cursorBrush = SolidColor(palette.ink),
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-                    if (balloonSearchQuery.isNotEmpty()) {
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier
-                                .size(24.dp)
-                                .clip(CircleShape)
-                                .background(palette.chipBg)
-                                .clickable { balloonSearchQuery = "" },
-                        ) {
-                            RfIcon(kind = RfIconKind.CLOSE, tint = palette.muted, size = 13.dp)
+                        if (balloonSearchQuery.isNotEmpty()) {
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier
+                                    .size(24.dp)
+                                    .clip(CircleShape)
+                                    .background(palette.chipBg)
+                                    .clickable {
+                                        balloonSearchQuery = ""
+                                        hasInteractedBalloonSearch = false
+                                    },
+                            ) {
+                                RfIcon(kind = RfIconKind.CLOSE, tint = palette.muted, size = 13.dp)
+                            }
                         }
                     }
+                    RfValidationErrorText(errorMessage = balloonSearchError)
                 }
             }
 

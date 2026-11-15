@@ -7,6 +7,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.jeudry.rosafiesta.core.engine.AppView
@@ -1166,5 +1167,119 @@ class ScreenCatalogAndFlowTest {
         waitForIdle()
         onNodeWithTag("screen-s87").assertExists()
         assertTrue(RfThemeState.currentPalette.isAdmin)
+    }
+
+    @Test
+    fun `hojas inferiores modales registradas preservan origen y transicion MODAL_SHEET`() {
+        val registeredModalCodes = listOf("A04", "A21", "s34", "s75", "s76", "s77", "s81", "s84", "s85", "s92")
+        registeredModalCodes.forEach { modalCode ->
+            assertTrue(ScreenCatalog.isBottomSheet(modalCode), "Expected $modalCode in ScreenCatalog.isBottomSheet")
+        }
+        listOf("s14", "A01", "A11", "A13").forEach { regularCode ->
+            assertFalse(ScreenCatalog.isBottomSheet(regularCode))
+        }
+
+        val adminHomeNav = Navigator(initialAppView = AppView.ADMIN, initialScreenCode = "A01")
+        adminHomeNav.navigateTo("A04")
+        assertEquals("A04", adminHomeNav.currentCode)
+        assertEquals("A01", adminHomeNav.lastModalOriginCode)
+        assertEquals(com.jeudry.rosafiesta.ui.NavigationTransitionKind.MODAL_SHEET, adminHomeNav.lastTransition)
+        adminHomeNav.navigateTo("BACK:A01")
+        assertEquals("A01", adminHomeNav.currentCode)
+        assertEquals(com.jeudry.rosafiesta.ui.NavigationTransitionKind.MODAL_SHEET, adminHomeNav.lastTransition)
+
+        val adminEventsNav = Navigator(initialAppView = AppView.ADMIN, initialScreenCode = "A11")
+        adminEventsNav.navigateTo("A04")
+        assertEquals("A04", adminEventsNav.currentCode)
+        assertEquals("A11", adminEventsNav.lastModalOriginCode)
+        assertEquals(com.jeudry.rosafiesta.ui.NavigationTransitionKind.MODAL_SHEET, adminEventsNav.lastTransition)
+        adminEventsNav.navigateTo("BACK:A11")
+        assertEquals("A11", adminEventsNav.currentCode)
+        assertEquals(com.jeudry.rosafiesta.ui.NavigationTransitionKind.MODAL_SHEET, adminEventsNav.lastTransition)
+
+        val adminDetailNav = Navigator(initialAppView = AppView.ADMIN, initialScreenCode = "A13")
+        adminDetailNav.navigateTo("A21")
+        assertEquals("A21", adminDetailNav.currentCode)
+        assertEquals("A13", adminDetailNav.lastModalOriginCode)
+        assertEquals(com.jeudry.rosafiesta.ui.NavigationTransitionKind.MODAL_SHEET, adminDetailNav.lastTransition)
+        adminDetailNav.navigateTo("BACK:A13")
+        assertEquals("A13", adminDetailNav.currentCode)
+        assertEquals(com.jeudry.rosafiesta.ui.NavigationTransitionKind.MODAL_SHEET, adminDetailNav.lastTransition)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun `abrir A04 desde hero vacio de A01 muestra modal sobre A01 y regresa limpiamente`() = runComposeUiTest {
+        val emptyViewModel = createEmptySeedTestViewModel()
+
+        setContent {
+            RosaFiestaApp(
+                initialAppView = AppView.ADMIN,
+                initialScreenCode = "A01",
+                viewModel = emptyViewModel,
+            )
+        }
+
+        onNodeWithTag("screen-A01").assertExists()
+        onNodeWithText("Sin eventos programados").assertExists()
+        onNodeWithText("Toca para crear tu primer evento o cotización").performClick()
+        waitForIdle()
+
+        onNodeWithTag("screen-A04").assertExists()
+        onNodeWithText("Nuevo evento").assertExists()
+        onNodeWithText("¿Cómo quieres crearlo?").assertExists()
+        onNodeWithText("Sin eventos programados").assertExists()
+
+        onNodeWithText("Cancelar").performClick()
+        waitForIdle()
+
+        onNodeWithTag("screen-A01").assertExists()
+        onNodeWithText("Nuevo evento").assertDoesNotExist()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun `ajustes A31 retrasa errores 2000ms tras escribir telefono y correo invalidos y limpia al corregir`() = runComposeUiTest {
+        val viewModel = RosaFiestaViewModel(
+            repository = com.jeudry.rosafiesta.data.DefaultRosaFiestaRepository(seedDemoData = true),
+            platformActions = NoOpPlatformActions(),
+            secureStorage = InMemorySecureStorage(),
+        )
+        mainClock.autoAdvance = false
+
+        setContent {
+            com.jeudry.rosafiesta.ui.RenderScreenSpec(
+                spec = ScreenCatalog.findByCode("A31"),
+                viewModel = viewModel,
+                isFrameHarness = false,
+                includeBottomBar = false,
+            )
+        }
+
+        mainClock.advanceTimeByFrame()
+
+        val phoneErrorSubstring = "El teléfono debe contener al menos 10 dígitos"
+        val emailErrorSubstring = "Ingresa un correo electrónico válido"
+
+        onNodeWithText("+1 (809) 555-0100").performTextReplacement("809")
+        mainClock.advanceTimeBy(500L)
+        onNodeWithText(phoneErrorSubstring, substring = true).assertDoesNotExist()
+
+        onNodeWithText("hola@rosafiesta.do").performTextReplacement("correo-invalido")
+        mainClock.advanceTimeBy(500L)
+        onNodeWithText(emailErrorSubstring, substring = true).assertDoesNotExist()
+
+        mainClock.advanceTimeBy(2_100L)
+        mainClock.advanceTimeByFrame()
+        onNodeWithText(phoneErrorSubstring, substring = true).assertExists()
+        onNodeWithText(emailErrorSubstring, substring = true).assertExists()
+
+        onNodeWithText("809").performTextReplacement("8095550100")
+        mainClock.advanceTimeByFrame()
+        onNodeWithText(phoneErrorSubstring, substring = true).assertDoesNotExist()
+
+        onNodeWithText("correo-invalido").performTextReplacement("hola@rosafiesta.do")
+        mainClock.advanceTimeByFrame()
+        onNodeWithText(emailErrorSubstring, substring = true).assertDoesNotExist()
     }
 }

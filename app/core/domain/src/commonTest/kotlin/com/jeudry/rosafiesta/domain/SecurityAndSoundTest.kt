@@ -236,6 +236,96 @@ class SecurityAndSoundTest {
         assertNull(InputValidator.validatePassword("rosa2026"))
     }
 
+    @Test
+    fun `verifica mascaras formatos y validaciones extendidas de InputValidator`() {
+        assertEquals("", InputValidator.filterPhoneInput("dfasfasfadsfsa"))
+        assertEquals("(809) 555-0142", InputValidator.filterPhoneInput("8095550142"))
+        assertEquals("+1 (809) 555-0142", InputValidator.filterPhoneInput("18095550142"))
+        assertEquals("(809) 555", InputValidator.filterPhoneInput("809abc555"))
+
+        assertNotNull(InputValidator.validateDominicanPhone("dfasfasfadsfsa"))
+        assertNotNull(InputValidator.validateDominicanPhone("", isRequired = true))
+        assertNull(InputValidator.validateDominicanPhone("", isRequired = false))
+        assertNotNull(InputValidator.validateDominicanPhone("809-555"))
+        assertNotNull(InputValidator.validateDominicanPhone("305-555-0102", allowInternational = false))
+        assertNull(InputValidator.validateDominicanPhone("305-555-0102", allowInternational = true))
+        assertNull(InputValidator.validateDominicanPhone("(809) 555-0102"))
+        assertNull(InputValidator.validateDominicanPhone("(829) 555-0199"))
+        assertNull(InputValidator.validateDominicanPhone("+1 (849) 555-0123"))
+
+        assertEquals("1-31-84920-2", InputValidator.filterRncInput("131849202"))
+        assertEquals("001-1234567-8", InputValidator.filterRncInput("00112345678"))
+        assertEquals("1-31-84920", InputValidator.filterRncInput("131-abc-84920"))
+
+        assertNull(InputValidator.validateRnc("", isRequired = false))
+        assertNotNull(InputValidator.validateRnc("", isRequired = true))
+        assertNull(InputValidator.validateRnc("1-31-84920-2", isRequired = true))
+        assertNull(InputValidator.validateRnc("001-1234567-8", isRequired = true))
+        assertNotNull(InputValidator.validateRnc("000000000", isRequired = true))
+        assertNotNull(InputValidator.validateRnc("12345", isRequired = true))
+        assertNotNull(InputValidator.validateRnc("1-31-ABCDE-2", isRequired = true))
+
+        assertNull(InputValidator.validateEventDate("23/10/2026"))
+        assertNull(InputValidator.validateEventDate("29/02/2028"))
+        assertNotNull(InputValidator.validateEventDate("29/02/2026"))
+        assertNotNull(InputValidator.validateEventDate("32/01/2026"))
+        assertNotNull(InputValidator.validateEventDate("15/13/2026"))
+        assertNotNull(InputValidator.validateEventDate("23/10/2020"))
+        assertNotNull(InputValidator.validateEventDate("23/10/2040"))
+        assertNotNull(InputValidator.validateEventDate("2026-10-23"))
+
+        assertEquals("16:30", InputValidator.filterTimeInput("1630"))
+        assertEquals("09:5", InputValidator.filterTimeInput("09ab5"))
+        assertEquals("08", InputValidator.filterTimeInput("08"))
+
+        assertNull(InputValidator.validateTime24("00:00"))
+        assertNull(InputValidator.validateTime24("16:30"))
+        assertNull(InputValidator.validateTime24("23:59"))
+        assertNotNull(InputValidator.validateTime24("24:00"))
+        assertNotNull(InputValidator.validateTime24("12:60"))
+        assertNotNull(InputValidator.validateTime24("9:30"))
+        assertNotNull(InputValidator.validateTime24("ab:cd"))
+        assertNotNull(InputValidator.validateTime24("", isRequired = true))
+        assertNull(InputValidator.validateTime24("", isRequired = false))
+
+        assertNull(InputValidator.validateCardNumber("4242 4242 4242 4242"))
+        assertNull(InputValidator.validateCardNumber("4532 0151 1283 0366"))
+        assertNotNull(InputValidator.validateCardNumber("4242 4242 4242 4241"))
+        assertNotNull(InputValidator.validateCardNumber("4242"))
+        assertNotNull(InputValidator.validateCardNumber("4242 4242 4242 4242 4242"))
+        assertNotNull(InputValidator.validateCardNumber("4242 ABCD 4242 4242"))
+
+        assertNull(InputValidator.validateCardCvv("123"))
+        assertNull(InputValidator.validateCardCvv("1234"))
+        assertNotNull(InputValidator.validateCardCvv("12"))
+        assertNotNull(InputValidator.validateCardCvv("12345"))
+        assertNotNull(InputValidator.validateCardCvv("12a"))
+        assertNotNull(InputValidator.validateCardCvv("", isRequired = true))
+
+        assertNull(InputValidator.validateMoneyAmount("1500"))
+        assertNull(InputValidator.validateMoneyAmount("RD$ 12,500.50"))
+        assertNotNull(InputValidator.validateMoneyAmount("abc"))
+        assertNotNull(InputValidator.validateMoneyAmount("0"))
+        assertNotNull(InputValidator.validateMoneyAmount("-50"))
+        assertNotNull(InputValidator.validateMoneyAmount("10000001"))
+
+        assertNull(InputValidator.validateGuestCount("1"))
+        assertNull(InputValidator.validateGuestCount("150"))
+        assertNull(InputValidator.validateGuestCount("${InputValidator.MAX_GUEST_COUNT}"))
+        assertNotNull(InputValidator.validateGuestCount("0"))
+        assertNotNull(InputValidator.validateGuestCount("-5"))
+        assertNotNull(InputValidator.validateGuestCount("${InputValidator.MAX_GUEST_COUNT + 1}"))
+        assertNotNull(InputValidator.validateGuestCount("abc"))
+
+        assertEquals("(809) 555-0100", InputValidator.formatPhoneDisplay("8095550100"))
+        assertEquals("+1 (809) 555-0100", InputValidator.formatPhoneDisplay("+18095550100"))
+        assertEquals("1-31-84920-2", InputValidator.formatRncDisplay("131849202"))
+        assertEquals("001-1234567-8", InputValidator.formatRncDisplay("00112345678"))
+        assertEquals("20 de mayo de 2026", InputValidator.formatSpanishDateLabel("20/05/2026", includeYear = true))
+        assertEquals("20 de mayo", InputValidator.formatSpanishDateLabel("20/05/2026", includeYear = false))
+        assertEquals("31/02/2026", InputValidator.formatSpanishDateLabel("31/02/2026"))
+    }
+
     private fun buildSampleServerJwt(
         subjectId: String,
         email: String,
