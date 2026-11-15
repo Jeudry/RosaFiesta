@@ -86,6 +86,14 @@ private val RosaButtonGradient = Brush.horizontalGradient(
     listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC)),
 )
 
+private val AdminProfileButtonGradient = Brush.horizontalGradient(
+    listOf(RfColors.IndigoBrand, RfColors.Teal),
+)
+
+private fun profileEditAccentColor(isAdmin: Boolean): Color = if (isAdmin) RfColors.IndigoTintInk else Color(0xFFC2338F)
+
+private fun profileInputBorderColor(isAdmin: Boolean): Color = if (isAdmin) Color(0xFFC7C5EE) else Color(0xFFD6B9E8)
+
 private data class QuoteHistoryItem49(
     val quoteId: String,
     val eventId: String,
@@ -2236,6 +2244,11 @@ internal fun RenderUserProfileScreenS54(
     val hasValidSession = viewModel?.hasValidAuthenticatedSession() == true
     val isStaffOrAdmin = viewModel?.isCurrentSessionAdminOrStaff() == true
     val isAdminProfileMode = if (hasValidSession) isStaffOrAdmin else false
+    val isAdminVisual = if (palette.isAdmin) true else isAdminProfileMode
+    val profileAccentColor = if (isAdminVisual) RfColors.IndigoTintInk else Color(0xFFC2338F)
+    val profileActiveChipBg = if (isAdminVisual) RfColors.IndigoTint else Color(0xFFFDE6F2)
+    val profilePrimaryGradient = if (isAdminVisual) AdminProfileButtonGradient else RosaButtonGradient
+    val profileBackTarget = if (isAdminVisual) "BACK:A01" else "BACK:s14"
 
     LaunchedEffect(formFeedback) {
         if (!formFeedback.isNullOrBlank()) {
@@ -2311,14 +2324,14 @@ internal fun RenderUserProfileScreenS54(
                 Box(
                     modifier = Modifier
                         .size(44.dp)
-                        .rfIconButtonShadow(CircleShape, isAdmin = false)
+                        .rfIconButtonShadow(CircleShape, isAdmin = isAdminVisual)
                         .clip(CircleShape)
                         .background(palette.surface)
                         .border(1.dp, palette.line, CircleShape)
                         .clickable {
                             viewModel?.clearFormError()
                             viewModel?.clearFormFeedback()
-                            onSelectScreenCode("BACK:s14")
+                            onSelectScreenCode(profileBackTarget)
                         },
                     contentAlignment = Alignment.Center,
                 ) {
@@ -2333,7 +2346,7 @@ internal fun RenderUserProfileScreenS54(
                     Box(
                         modifier = Modifier
                             .size(44.dp)
-                            .rfIconButtonShadow(CircleShape, isAdmin = false)
+                            .rfIconButtonShadow(CircleShape, isAdmin = isAdminVisual)
                             .clip(CircleShape)
                             .background(palette.surface)
                             .border(1.dp, palette.line, CircleShape)
@@ -2360,9 +2373,9 @@ internal fun RenderUserProfileScreenS54(
                 Box(
                     modifier = Modifier
                         .size(44.dp)
-                        .rfIconButtonShadow(CircleShape, isAdmin = false)
+                        .rfIconButtonShadow(CircleShape, isAdmin = isAdminVisual)
                         .clip(CircleShape)
-                        .background(if (isEditing) Color(0xFFFDE6F2) else palette.surface)
+                        .background(if (isEditing) profileActiveChipBg else palette.surface)
                         .border(1.dp, palette.line, CircleShape)
                         .clickable {
                             if (!isEditing) {
@@ -2383,7 +2396,7 @@ internal fun RenderUserProfileScreenS54(
                 ) {
                     RfIcon(
                         kind = if (isEditing) RfIconKind.CHECK else RfIconKind.EDIT,
-                        tint = if (isEditing) Color(0xFFC2338F) else palette.ink,
+                        tint = if (isEditing) profileAccentColor else palette.ink,
                         size = 20.dp,
                     )
                 }
@@ -2521,7 +2534,7 @@ internal fun RenderUserProfileScreenS54(
                             },
                         )
                     } else {
-                        BasicText(profilePhone, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFFC2338F)))
+                        BasicText(profilePhone, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = profileAccentColor))
                     }
                 }
                 if (isEditing) {
@@ -2558,7 +2571,7 @@ internal fun RenderUserProfileScreenS54(
                     } else {
                         BasicText(
                             formatSpanishDateWithWords(profileBirthDate),
-                            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFFC2338F)),
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = profileAccentColor),
                         )
                     }
                 }
@@ -2603,9 +2616,9 @@ internal fun RenderUserProfileScreenS54(
                         .fillMaxWidth()
                         .padding(horizontal = 20.dp)
                         .height(52.dp)
-                        .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
+                        .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = isAdminVisual)
                         .clip(RoundedCornerShape(16.dp))
-                        .background(RosaButtonGradient)
+                        .background(profilePrimaryGradient)
                         .clickable { saveProfileChanges() },
                     contentAlignment = Alignment.Center,
                 ) {
@@ -2777,7 +2790,7 @@ internal fun RenderUserProfileScreenS54(
                 maxYear = InputValidator.MAX_BIRTH_YEAR,
                 defaultYear = 1996,
                 quickYears = listOf(1985, 1990, 1995, 1996, 2000, 2004, 2008),
-                isAdmin = false,
+                isAdmin = isAdminVisual,
                 onSelectDate = { selectedDate ->
                     draftBirthDate = selectedDate
                     localProfileError = null
@@ -2871,7 +2884,7 @@ private fun ProfileHeaderEditableField54(
     val typo = LocalRfTypography.current
     val palette = LocalRfPalette.current
     val hasError = errorText != null
-    val borderColor = if (hasError) RfColors.Error else Color(0xFFD6B9E8)
+    val borderColor = if (hasError) RfColors.Error else profileInputBorderColor(LocalRfPalette.current.isAdmin)
     val bgColor = if (hasError) {
         if (palette.isDark) Color(0xFF3A1D28) else Color(0xFFFFF7F9)
     } else {
@@ -2937,13 +2950,13 @@ private fun ProfileHeaderEditableField54(
                         fontSize = if (isTitleStyle) 15.5.sp else 13.5.sp,
                         color = palette.ink,
                     ),
-                    cursorBrush = SolidColor(Color(0xFFC2338F)),
+                    cursorBrush = SolidColor(profileEditAccentColor(LocalRfPalette.current.isAdmin)),
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
             RfIcon(
                 kind = RfIconKind.EDIT,
-                tint = if (hasError) RfColors.Error else Color(0xFFC2338F),
+                tint = if (hasError) RfColors.Error else profileEditAccentColor(LocalRfPalette.current.isAdmin),
                 size = 14.dp,
             )
         }
@@ -2970,7 +2983,7 @@ private fun ProfileInlineInputBox54(
 ) {
     val typo = LocalRfTypography.current
     val palette = LocalRfPalette.current
-    val borderColor = if (hasError) RfColors.Error else Color(0xFFD6B9E8)
+    val borderColor = if (hasError) RfColors.Error else profileInputBorderColor(LocalRfPalette.current.isAdmin)
     val bgColor = if (hasError) {
         if (palette.isDark) Color(0xFF3A1D28) else Color(0xFFFFF5F7)
     } else if (palette.isDark) {
@@ -3014,13 +3027,13 @@ private fun ProfileInlineInputBox54(
                     fontSize = 13.5.sp,
                     color = palette.ink,
                 ),
-                cursorBrush = SolidColor(Color(0xFFC2338F)),
+                cursorBrush = SolidColor(profileEditAccentColor(LocalRfPalette.current.isAdmin)),
                 modifier = Modifier.fillMaxWidth(),
             )
         }
         RfIcon(
             kind = RfIconKind.EDIT,
-            tint = if (hasError) RfColors.Error else Color(0xFFC2338F),
+            tint = if (hasError) RfColors.Error else profileEditAccentColor(LocalRfPalette.current.isAdmin),
             size = 13.dp,
         )
     }

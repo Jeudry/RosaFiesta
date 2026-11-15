@@ -12,6 +12,8 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import com.jeudry.rosafiesta.core.engine.AppView
 import com.jeudry.rosafiesta.designsystem.AdminTab
 import com.jeudry.rosafiesta.designsystem.PersonalTab
+import com.jeudry.rosafiesta.designsystem.RfThemeState
+import com.jeudry.rosafiesta.designsystem.RfThemeVariant
 import com.jeudry.rosafiesta.domain.RosaFiestaRepository
 import com.jeudry.rosafiesta.domain.platform.NoOpPlatformActions
 import com.jeudry.rosafiesta.domain.platform.PickedMediaFile
@@ -1132,5 +1134,37 @@ class ScreenCatalogAndFlowTest {
         onNodeWithText("Acceso Admin").assertExists()
         onNodeWithText("Recuperar usuario").assertExists()
         onNodeWithText("¿La olvidaste?").assertExists()
+        assertTrue(RfThemeState.currentPalette.isAdmin)
+
+        onNodeWithText("¿La olvidaste?").performClick()
+        waitForIdle()
+
+        onNodeWithTag("screen-s09").assertExists()
+        assertTrue(RfThemeState.currentPalette.isAdmin)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun `pantallas compartidas s54 y s87 conservan paleta admin al recibir override`() = runComposeUiTest {
+        val emptyViewModel = createEmptySeedTestViewModel()
+        val targetCodeState = androidx.compose.runtime.mutableStateOf("s54")
+
+        setContent {
+            com.jeudry.rosafiesta.ui.RenderScreenSpec(
+                spec = ScreenCatalog.findByCode(targetCodeState.value),
+                viewModel = emptyViewModel,
+                isFrameHarness = false,
+                includeBottomBar = false,
+                themeVariantOverride = RfThemeVariant.ADMIN,
+            )
+        }
+
+        onNodeWithTag("screen-s54").assertExists()
+        assertTrue(RfThemeState.currentPalette.isAdmin)
+
+        targetCodeState.value = "s87"
+        waitForIdle()
+        onNodeWithTag("screen-s87").assertExists()
+        assertTrue(RfThemeState.currentPalette.isAdmin)
     }
 }

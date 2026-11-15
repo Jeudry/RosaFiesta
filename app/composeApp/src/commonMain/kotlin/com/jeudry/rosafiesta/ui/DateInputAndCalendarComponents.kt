@@ -1033,22 +1033,31 @@ internal fun RfEditableProfileAvatar(
         bytes = if (isCustomDeviceAvatar) customImageBytes else null,
     )
 
+    val isAdmin = palette.isAdmin
+    val defaultMonogramBg = if (isAdmin) RfColors.IndigoTint else Color(0xFFFDE6F2)
+    val defaultMonogramInk = if (isAdmin) RfColors.IndigoTintInk else Color(0xFFC2338F)
     val innerBgColor = when (avatarKey) {
         "MONO_VIOLET" -> Color(0xFFEFE8FD)
         "MONO_GOLD" -> Color(0xFFFFF2C9)
         "MONO_TEAL" -> Color(0xFFDDF4F3)
-        else -> Color(0xFFFDE6F2)
+        else -> defaultMonogramBg
     }
     val innerTextColor = when (avatarKey) {
         "MONO_VIOLET" -> Color(0xFF7A4FD8)
         "MONO_GOLD" -> Color(0xFF7A5700)
         "MONO_TEAL" -> Color(0xFF1F8A84)
-        else -> Color(0xFFC2338F)
+        else -> defaultMonogramInk
     }
-    val ringBrush = if (isEditing) {
-        Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))
+    val activeGradientColors = if (isAdmin) {
+        listOf(RfColors.IndigoBrand, RfColors.Teal)
     } else {
-        SolidColor(Color(0xFFF9B6D3))
+        listOf(Color(0xFFEA4EA9), Color(0xFF865DEC))
+    }
+    val inactiveRingColor = if (isAdmin) Color(0xFFC5C0FA) else Color(0xFFF9B6D3)
+    val ringBrush = if (isEditing) {
+        Brush.linearGradient(activeGradientColors)
+    } else {
+        SolidColor(inactiveRingColor)
     }
 
     Column(
@@ -1098,7 +1107,11 @@ internal fun RfEditableProfileAvatar(
                                 .clip(CircleShape)
                                 .background(
                                     Brush.linearGradient(
-                                        listOf(Color(0xFFFDE6F2), Color(0xFFEAE6FD)),
+                                        if (isAdmin) {
+                                            listOf(RfColors.IndigoTint, Color(0xFFDDF4F3))
+                                        } else {
+                                            listOf(Color(0xFFFDE6F2), Color(0xFFEAE6FD))
+                                        },
                                     ),
                                 ),
                             contentAlignment = Alignment.Center,
@@ -1110,7 +1123,7 @@ internal fun RfEditableProfileAvatar(
                             ) {
                                 RfIcon(
                                     kind = RfIconKind.CAMERA,
-                                    tint = Color(0xFFC2338F),
+                                    tint = defaultMonogramInk,
                                     size = (size.value * 0.24f).dp,
                                 )
                                 val badgeLabel = customAvatarFileName.ifBlank { initials }
@@ -1155,9 +1168,13 @@ internal fun RfEditableProfileAvatar(
                         .align(Alignment.BottomEnd)
                         .offset(x = 2.dp, y = 2.dp)
                         .size(30.dp)
-                        .shadow(elevation = 6.dp, shape = CircleShape, spotColor = Color(0x80EA4EA9))
+                        .shadow(
+                            elevation = 6.dp,
+                            shape = CircleShape,
+                            spotColor = if (isAdmin) Color(0x805B6CF0) else Color(0x80EA4EA9),
+                        )
                         .clip(CircleShape)
-                        .background(Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC))))
+                        .background(Brush.linearGradient(activeGradientColors))
                         .border(2.dp, palette.surface, CircleShape)
                         .clickable { onClickEditPhoto() },
                     contentAlignment = Alignment.Center,
@@ -1168,11 +1185,26 @@ internal fun RfEditableProfileAvatar(
         }
 
         if (isEditing) {
+            val pillBgColor = if (isAdmin) {
+                if (palette.isDark) Color(0xFF242449) else RfColors.IndigoTint
+            } else {
+                if (palette.isDark) Color(0xFF3A1F3D) else Color(0xFFFDE6F2)
+            }
+            val pillBorderColor = if (isAdmin) RfColors.IndigoBrand else Color(0xFFEA4EA9)
+            val pillTextColor = if (isAdmin) {
+                if (palette.isDark) Color(0xFFB7B3FF) else RfColors.IndigoTintInk
+            } else {
+                if (palette.isDark) Color(0xFFFF9BD6) else Color(0xFFC2338F)
+            }
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(999.dp))
-                    .background(if (palette.isDark) Color(0xFF3A1F3D) else Color(0xFFFDE6F2))
-                    .border(1.dp, Color(0xFFEA4EA9).copy(alpha = 0.45f), RoundedCornerShape(999.dp))
+                    .background(pillBgColor)
+                    .border(
+                        1.dp,
+                        pillBorderColor.copy(alpha = 0.45f),
+                        RoundedCornerShape(999.dp),
+                    )
                     .clickable { onClickEditPhoto() }
                     .padding(horizontal = 10.dp, vertical = 4.dp),
                 contentAlignment = Alignment.Center,
@@ -1181,14 +1213,14 @@ internal fun RfEditableProfileAvatar(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    RfIcon(kind = RfIconKind.CAMERA, tint = Color(0xFFC2338F), size = 12.dp)
+                    RfIcon(kind = RfIconKind.CAMERA, tint = defaultMonogramInk, size = 12.dp)
                     BasicText(
                         text = "Cambiar foto",
                         style = TextStyle(
                             fontFamily = typo.bodyFamily,
                             fontWeight = FontWeight.Bold,
                             fontSize = 11.5.sp,
-                            color = if (palette.isDark) Color(0xFFFF9BD6) else Color(0xFFC2338F),
+                            color = pillTextColor,
                         ),
                     )
                 }
@@ -1238,9 +1270,20 @@ internal fun RfProfilePhotoPickerModal(
         )
     }
 
-    val monogramOptions = remember {
+    val isAdmin = palette.isAdmin
+    val selectedChipBg = if (isAdmin) RfColors.IndigoTint else Color(0xFFFDE6F2)
+    val selectedBorderColor = if (isAdmin) RfColors.IndigoBrand else Color(0xFFEA4EA9)
+    val selectedInkColor = if (isAdmin) RfColors.IndigoTintInk else Color(0xFFC2338F)
+    val unselectedAvatarBorder = if (isAdmin) Color(0xFFDAD9F2) else Color(0xFFE5DCEB)
+    val saveButtonSpotColor = if (isAdmin) Color(0x995B6CF0) else Color(0x99C846B4)
+    val saveButtonGradient = if (isAdmin) {
+        listOf(RfColors.IndigoBrand, RfColors.Teal)
+    } else {
+        listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC))
+    }
+    val monogramOptions = remember(isAdmin) {
         listOf(
-            null to ("Rosa clásico" to Color(0xFFFDE6F2)),
+            null to (if (isAdmin) "Índigo clásico" to RfColors.IndigoTint else "Rosa clásico" to Color(0xFFFDE6F2)),
             "MONO_VIOLET" to ("Violeta" to Color(0xFFEFE8FD)),
             "MONO_GOLD" to ("Sol dorado" to Color(0xFFFFF2C9)),
             "MONO_TEAL" to ("Turquesa" to Color(0xFFDDF4F3)),
@@ -1309,10 +1352,10 @@ internal fun RfProfilePhotoPickerModal(
                     .fillMaxWidth()
                     .height(44.dp)
                     .clip(RoundedCornerShape(14.dp))
-                    .background(if (isCustomPreviewSelected) Color(0xFFFDE6F2) else palette.chipBg)
+                    .background(if (isCustomPreviewSelected) selectedChipBg else palette.chipBg)
                     .border(
                         width = if (isCustomPreviewSelected) 1.5.dp else 1.dp,
-                        color = if (isCustomPreviewSelected) Color(0xFFEA4EA9) else palette.line,
+                        color = if (isCustomPreviewSelected) selectedBorderColor else palette.line,
                         shape = RoundedCornerShape(14.dp),
                     )
                     .clickable {
@@ -1344,7 +1387,7 @@ internal fun RfProfilePhotoPickerModal(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    RfIcon(kind = RfIconKind.CAMERA, tint = Color(0xFFC2338F), size = 18.dp)
+                    RfIcon(kind = RfIconKind.CAMERA, tint = selectedInkColor, size = 18.dp)
                     val uploadButtonText = if (customPreviewFileName.isNotEmpty()) {
                         "Subir foto desde dispositivo ($customPreviewFileName)"
                     } else {
@@ -1358,7 +1401,7 @@ internal fun RfProfilePhotoPickerModal(
                             fontFamily = typo.bodyFamily,
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.5.sp,
-                            color = Color(0xFFC2338F),
+                            color = selectedInkColor,
                         ),
                     )
                 }
@@ -1387,10 +1430,10 @@ internal fun RfProfilePhotoPickerModal(
                             modifier = Modifier
                                 .weight(1f)
                                 .clip(RoundedCornerShape(14.dp))
-                                .background(if (isSelected) Color(0xFFFDE6F2) else palette.chipBg)
+                                .background(if (isSelected) selectedChipBg else palette.chipBg)
                                 .border(
                                     width = if (isSelected) 2.dp else 1.dp,
-                                    color = if (isSelected) Color(0xFFEA4EA9) else palette.line,
+                                    color = if (isSelected) selectedBorderColor else palette.line,
                                     shape = RoundedCornerShape(14.dp),
                                 )
                                 .clickable { previewKey = photoKey.name }
@@ -1411,7 +1454,7 @@ internal fun RfProfilePhotoPickerModal(
                                     fontFamily = typo.bodyFamily,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                     fontSize = 11.sp,
-                                    color = if (isSelected) Color(0xFFC2338F) else palette.ink,
+                                    color = if (isSelected) selectedInkColor else palette.ink,
                                 ),
                             )
                         }
@@ -1446,7 +1489,7 @@ internal fun RfProfilePhotoPickerModal(
                             .background(monoBg)
                             .border(
                                 width = if (isSelected) 2.dp else 1.dp,
-                                color = if (isSelected) Color(0xFFEA4EA9) else Color(0xFFE5DCEB),
+                                color = if (isSelected) selectedBorderColor else unselectedAvatarBorder,
                                 shape = RoundedCornerShape(12.dp),
                             )
                             .clickable { previewKey = monoKey },
@@ -1471,9 +1514,9 @@ internal fun RfProfilePhotoPickerModal(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp)
-                    .shadow(elevation = 10.dp, shape = RoundedCornerShape(14.dp), spotColor = Color(0x99C846B4))
+                    .shadow(elevation = 10.dp, shape = RoundedCornerShape(14.dp), spotColor = saveButtonSpotColor)
                     .clip(RoundedCornerShape(14.dp))
-                    .background(Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC))))
+                    .background(Brush.horizontalGradient(saveButtonGradient))
                     .clickable {
                         onSelectAvatarKey(previewKey)
                     },

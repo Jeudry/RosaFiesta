@@ -83,6 +83,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import com.jeudry.rosafiesta.designsystem.BalloonClusterIllustration
 import com.jeudry.rosafiesta.designsystem.HeartOrbitIllustration
+import com.jeudry.rosafiesta.designsystem.LocalRfPalette
 import com.jeudry.rosafiesta.designsystem.LocalRfTypography
 import com.jeudry.rosafiesta.designsystem.RfBrandWordmark
 import com.jeudry.rosafiesta.designsystem.RfColors
@@ -768,21 +769,108 @@ private fun buildOnboardingStepTransition(isAdvancing: Boolean): ContentTransfor
     )
 }
 
+private data class AuthScreenColors(
+    val isAdmin: Boolean,
+    val primaryLinkColor: Color,
+    val secondaryLinkColor: Color,
+    val cursorColor: Color,
+    val activeBorderColor: Color,
+    val tintBg: Color,
+    val primaryButtonBrush: Brush,
+    val disabledButtonBrush: Brush,
+    val buttonShadowSpot: Color,
+    val backButtonShadowSpot: Color,
+    val cardShadowSpot: Color,
+    val dividerColor: Color,
+)
+
+@Composable
+private fun rememberAuthScreenColors(forceAdmin: Boolean = false): AuthScreenColors {
+    val palette = LocalRfPalette.current
+    val isAdmin = if (forceAdmin) true else palette.isAdmin
+    return if (isAdmin) {
+        AuthScreenColors(
+            isAdmin = true,
+            primaryLinkColor = RfColors.IndigoTintInk,
+            secondaryLinkColor = RfColors.IndigoSecondary,
+            cursorColor = RfColors.IndigoSecondary,
+            activeBorderColor = RfColors.IndigoBrand,
+            tintBg = RfColors.IndigoTint,
+            primaryButtonBrush = RfColors.AdminHeroAndRosaGradient,
+            disabledButtonBrush = Brush.horizontalGradient(
+                listOf(
+                    RfColors.IndigoBrand.copy(alpha = 0.65f),
+                    RfColors.Teal.copy(alpha = 0.65f),
+                ),
+            ),
+            buttonShadowSpot = Color(0x995B6CF0),
+            backButtonShadowSpot = Color(0x334650B4),
+            cardShadowSpot = Color(0x4D4650B4),
+            dividerColor = palette.line,
+        )
+    } else {
+        AuthScreenColors(
+            isAdmin = false,
+            primaryLinkColor = Color(0xFFD63F98),
+            secondaryLinkColor = Color(0xFFC2338F),
+            cursorColor = Color(0xFFD63F98),
+            activeBorderColor = Color(0xFFB754CB),
+            tintBg = Color(0xFFFDE6F2),
+            primaryButtonBrush = Brush.horizontalGradient(
+                listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC)),
+            ),
+            disabledButtonBrush = Brush.horizontalGradient(
+                listOf(
+                    Color(0xFFEA4EA9).copy(alpha = 0.65f),
+                    Color(0xFF865DEC).copy(alpha = 0.65f),
+                ),
+            ),
+            buttonShadowSpot = Color(0xB3C846B4),
+            backButtonShadowSpot = Color(0x66B450B4),
+            cardShadowSpot = Color(0x66C850AA),
+            dividerColor = Color(0xFFE6DEEA),
+        )
+    }
+}
+
+@Composable
+private fun AdminAuthShieldBadge(modifier: Modifier = Modifier) {
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = modifier
+            .clip(CircleShape)
+            .background(RfColors.IndigoTint)
+            .border(1.5.dp, Color(0xFFD3D8FB), CircleShape),
+    ) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .size(44.dp)
+                .clip(CircleShape)
+                .background(RfColors.AdminHeroAndRosaGradient),
+        ) {
+            RfIcon(kind = RfIconKind.SHIELD, tint = Color.White, size = 22.dp)
+        }
+    }
+}
+
 private fun Modifier.personalTopBarBackground(isStep1: Boolean = false): Modifier = this
     .clip(RoundedCornerShape(0.dp))
     .drawBehind {
-        drawRect(RfThemeState.currentPalette.bg)
+        val activePalette = RfThemeState.currentPalette
+        drawRect(activePalette.bg)
         if (isStep1) {
+            val stepOneGlow = if (activePalette.isAdmin) activePalette.radialPrimary else Color(0xFFFADEEB)
             drawRect(
                 brush = Brush.radialGradient(
-                    colors = listOf(Color(0xFFFADEEB), Color(0x00FADEEB)),
+                    colors = listOf(stepOneGlow, stepOneGlow.copy(alpha = 0f)),
                     center = Offset(size.width * 0.2f, 0f),
                     radius = size.width * 0.9f,
                 ),
             )
             drawRect(
                 brush = Brush.radialGradient(
-                    colors = listOf(RfThemeState.currentPalette.radialSecondary, RfThemeState.currentPalette.radialSecondary.copy(alpha = 0f)),
+                    colors = listOf(activePalette.radialSecondary, activePalette.radialSecondary.copy(alpha = 0f)),
                     center = Offset(size.width * 0.9f, 84.dp.toPx()),
                     radius = size.width * 0.8f,
                 ),
@@ -790,14 +878,14 @@ private fun Modifier.personalTopBarBackground(isStep1: Boolean = false): Modifie
         } else {
             drawRect(
                 brush = Brush.radialGradient(
-                    colors = listOf(RfThemeState.currentPalette.radialPrimary, RfThemeState.currentPalette.radialPrimary.copy(alpha = 0f)),
+                    colors = listOf(activePalette.radialPrimary, activePalette.radialPrimary.copy(alpha = 0f)),
                     center = Offset(0f, 0f),
                     radius = size.width * 1.1f,
                 ),
             )
             drawRect(
                 brush = Brush.radialGradient(
-                    colors = listOf(RfThemeState.currentPalette.radialSecondary, RfThemeState.currentPalette.radialSecondary.copy(alpha = 0f)),
+                    colors = listOf(activePalette.radialSecondary, activePalette.radialSecondary.copy(alpha = 0f)),
                     center = Offset(size.width, 126.dp.toPx()),
                     radius = size.width * 0.8f,
                 ),
@@ -1813,6 +1901,9 @@ internal fun RenderLoginScreenS07(
     underlyingScreenCode: String? = null,
 ) {
     val typo = LocalRfTypography.current
+    val palette = LocalRfPalette.current
+    val isAdminLoginOrigin = if (underlyingScreenCode == "A30") true else palette.isAdmin
+    val authColors = rememberAuthScreenColors(forceAdmin = isAdminLoginOrigin)
     val coroutineScope = rememberCoroutineScope()
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -1840,8 +1931,15 @@ internal fun RenderLoginScreenS07(
             drawPersonalAtmosphereBackground()
             val s = size.width / 390f
             scale(s, s, Offset.Zero) {
-                drawCircle(color = Color(0xFFCFE48A), radius = 26f, center = Offset(30f, 660f), style = Stroke(width = 2f))
-                drawCircle(color = Color(0xFFE2CCF4), radius = 34f, center = Offset(356f, 740f), style = Stroke(width = 1.5f))
+                val circleRingColor = if (authColors.isAdmin) Color(0xFFB7E5EC) else Color(0xFFCFE48A)
+                val secondRingColor = if (authColors.isAdmin) Color(0xFFD3D8FA) else Color(0xFFE2CCF4)
+                val primarySquareColor = if (authColors.isAdmin) Color(0xFFC8D0F7) else Color(0xFFC9B6F2)
+                val secondarySquareColor = if (authColors.isAdmin) Color(0xFFBAE6EE) else Color(0xFFF3C4D8)
+                val starAccentColor = if (authColors.isAdmin) Color(0xFF5B6CF0) else Color(0xFFFBCA3F)
+                val miniStarColor = if (authColors.isAdmin) Color(0xFF2FB8C8) else Color(0xFFB9D84A)
+
+                drawCircle(color = circleRingColor, radius = 26f, center = Offset(30f, 660f), style = Stroke(width = 2f))
+                drawCircle(color = secondRingColor, radius = 34f, center = Offset(356f, 740f), style = Stroke(width = 1.5f))
                 val sq1 = Path().apply {
                     moveTo(60f, 752f)
                     lineTo(74f, 748f)
@@ -1849,7 +1947,7 @@ internal fun RenderLoginScreenS07(
                     lineTo(66f, 772f)
                     close()
                 }
-                drawPath(sq1, color = Color(0xFFC9B6F2), style = Stroke(width = 1.5f))
+                drawPath(sq1, color = primarySquareColor, style = Stroke(width = 1.5f))
                 val sq2 = Path().apply {
                     moveTo(260f, 772f)
                     lineTo(286f, 766f)
@@ -1857,8 +1955,8 @@ internal fun RenderLoginScreenS07(
                     lineTo(270f, 794f)
                     close()
                 }
-                drawPath(sq2, color = Color(0xFFF3C4D8), style = Stroke(width = 1.5f))
-                drawSvgStar(center = Offset(190f, 798f), scale = 1f, color = Color(0xFFFBCA3F))
+                drawPath(sq2, color = secondarySquareColor, style = Stroke(width = 1.5f))
+                drawSvgStar(center = Offset(190f, 798f), scale = 1f, color = starAccentColor)
 
                 val starGreen = Path().apply {
                     moveTo(16f, 470f)
@@ -1871,7 +1969,7 @@ internal fun RenderLoginScreenS07(
                     lineTo(13f, 477f)
                     close()
                 }
-                drawPath(starGreen, color = Color(0xFFB9D84A), style = Fill)
+                drawPath(starGreen, color = miniStarColor, style = Fill)
             }
         }
 
@@ -1885,12 +1983,11 @@ internal fun RenderLoginScreenS07(
                 .personalTopBarBackground(isStep1 = true)
                 .padding(top = 14.dp, bottom = 10.dp, start = 20.dp, end = 14.dp),
         ) {
-            val isAdminLoginOrigin = underlyingScreenCode == "A30"
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .size(44.dp)
-                    .shadow(elevation = 6.dp, shape = CircleShape, spotColor = Color(0x334650B4), ambientColor = Color.Transparent)
+                    .shadow(elevation = 6.dp, shape = CircleShape, spotColor = authColors.backButtonShadowSpot, ambientColor = Color.Transparent)
                     .clip(CircleShape)
                     .background(RfThemeState.currentPalette.surface)
                     .border(1.dp, RfThemeState.currentPalette.line, CircleShape)
@@ -1899,7 +1996,7 @@ internal fun RenderLoginScreenS07(
                         onSelectScreenCode(backTarget)
                     },
             ) {
-                RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF151729), size = 20.dp)
+                RfIcon(kind = RfIconKind.BACK, tint = RfThemeState.currentPalette.ink, size = 20.dp)
             }
 
             Column(
@@ -1911,7 +2008,7 @@ internal fun RenderLoginScreenS07(
                     style = typo.heroTitle.copy(
                         fontSize = 24.sp,
                         fontWeight = FontWeight.ExtraBold,
-                        color = Color(0xFF151729),
+                        color = RfThemeState.currentPalette.ink,
                         lineHeight = 26.sp,
                     ),
                 )
@@ -1925,9 +2022,13 @@ internal fun RenderLoginScreenS07(
                 )
             }
 
-            BalloonClusterIllustration(
-                modifier = Modifier.size(68.dp),
-            )
+            if (isAdminLoginOrigin) {
+                AdminAuthShieldBadge(modifier = Modifier.size(60.dp))
+            } else {
+                BalloonClusterIllustration(
+                    modifier = Modifier.size(68.dp),
+                )
+            }
         }
 
         Column(
@@ -1945,7 +2046,7 @@ internal fun RenderLoginScreenS07(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp)
-                    .rfInputShadow(RoundedCornerShape(16.dp))
+                    .rfInputShadow(RoundedCornerShape(16.dp), isAdmin = authColors.isAdmin)
                     .clip(RoundedCornerShape(16.dp))
                     .background(RfThemeState.currentPalette.surface)
                     .border(emailBorderWidth, emailBorderColor, RoundedCornerShape(16.dp))
@@ -1958,7 +2059,7 @@ internal fun RenderLoginScreenS07(
                 ) {
                     RfIcon(
                         kind = RfIconKind.MAIL,
-                        tint = if (emailFieldError != null) RfColors.Error else Color(0xFF62627A),
+                        tint = if (emailFieldError != null) RfColors.Error else RfThemeState.currentPalette.muted,
                         size = 20.dp,
                     )
                     BasicTextField(
@@ -1971,7 +2072,7 @@ internal fun RenderLoginScreenS07(
                         },
                         singleLine = true,
                         textStyle = typo.body.copy(fontSize = 15.sp, color = RfThemeState.currentPalette.ink),
-                        cursorBrush = SolidColor(Color(0xFFD63F98)),
+                        cursorBrush = SolidColor(authColors.cursorColor),
                         modifier = Modifier.weight(1f),
                         decorationBox = { innerTextField ->
                             if (email.isEmpty()) {
@@ -2004,12 +2105,12 @@ internal fun RenderLoginScreenS07(
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     BasicText(
                         text = "Recuperar usuario",
-                        style = typo.body.copy(fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF5B6CF0), textDecoration = TextDecoration.Underline),
+                        style = typo.body.copy(fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold, color = RfColors.IndigoSecondary, textDecoration = TextDecoration.Underline),
                         modifier = Modifier.clickable { onSelectScreenCode("s09") },
                     )
                     BasicText(
                         text = "¿La olvidaste?",
-                        style = typo.body.copy(fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD63F98), textDecoration = TextDecoration.Underline),
+                        style = typo.body.copy(fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = authColors.primaryLinkColor, textDecoration = TextDecoration.Underline),
                         modifier = Modifier.clickable { onSelectScreenCode("s09") },
                     )
                 }
@@ -2022,7 +2123,7 @@ internal fun RenderLoginScreenS07(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp)
-                    .rfInputShadow(RoundedCornerShape(16.dp))
+                    .rfInputShadow(RoundedCornerShape(16.dp), isAdmin = authColors.isAdmin)
                     .clip(RoundedCornerShape(16.dp))
                     .background(RfThemeState.currentPalette.surface)
                     .border(passwordBorderWidth, passwordBorderColor, RoundedCornerShape(16.dp))
@@ -2036,7 +2137,7 @@ internal fun RenderLoginScreenS07(
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.weight(1f)) {
                         RfIcon(
                             kind = RfIconKind.LOCK,
-                            tint = if (passwordFieldError != null) RfColors.Error else Color(0xFF62627A),
+                            tint = if (passwordFieldError != null) RfColors.Error else RfThemeState.currentPalette.muted,
                             size = 20.dp,
                         )
                         val loginPasswordVisualTransformation = if (showPassword) {
@@ -2055,7 +2156,7 @@ internal fun RenderLoginScreenS07(
                             singleLine = true,
                             visualTransformation = loginPasswordVisualTransformation,
                             textStyle = typo.body.copy(fontSize = 15.sp, color = RfThemeState.currentPalette.ink),
-                            cursorBrush = SolidColor(Color(0xFFD63F98)),
+                            cursorBrush = SolidColor(authColors.cursorColor),
                             modifier = Modifier.fillMaxWidth(),
                             decorationBox = { innerTextField ->
                                 Box(contentAlignment = Alignment.CenterStart) {
@@ -2109,9 +2210,9 @@ internal fun RenderLoginScreenS07(
             Spacer(Modifier.height(20.dp))
 
             val loginButtonBrush = if (isSubmitting) {
-                Brush.horizontalGradient(listOf(Color(0xFFEA4EA9).copy(alpha = 0.65f), Color(0xFF865DEC).copy(alpha = 0.65f)))
+                authColors.disabledButtonBrush
             } else {
-                Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC)))
+                authColors.primaryButtonBrush
             }
             val loginButtonLabel = if (isSubmitting) "Ingresando..." else "Ingresar"
 
@@ -2120,7 +2221,7 @@ internal fun RenderLoginScreenS07(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp)
-                    .shadow(elevation = 12.dp, shape = RoundedCornerShape(16.dp), spotColor = Color(0xB3C846B4), ambientColor = Color.Transparent)
+                    .shadow(elevation = 12.dp, shape = RoundedCornerShape(16.dp), spotColor = authColors.buttonShadowSpot, ambientColor = Color.Transparent)
                     .clip(RoundedCornerShape(16.dp))
                     .background(loginButtonBrush)
                     .clickable(enabled = !isSubmitting) {
@@ -2160,49 +2261,38 @@ internal fun RenderLoginScreenS07(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Box(Modifier.weight(1f).height(1.dp).background(Color(0xFFE6DEEA)))
+                Box(Modifier.weight(1f).height(1.dp).background(authColors.dividerColor))
                 BasicText("o continúa con", style = typo.secondary.copy(fontSize = 13.sp, color = RfThemeState.currentPalette.muted))
-                Box(Modifier.weight(1f).height(1.dp).background(Color(0xFFE6DEEA)))
+                Box(Modifier.weight(1f).height(1.dp).background(authColors.dividerColor))
             }
 
             Spacer(Modifier.height(16.dp))
 
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(56.dp)
-                        .rfInputShadow(RoundedCornerShape(16.dp))
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(RfThemeState.currentPalette.surface)
-                        .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(16.dp))
-                        .clickable(enabled = !isSubmitting) {
-                            val socialSuccess = viewModel?.authenticateSocialAccount("Google", "") == true
-                            if (socialSuccess) {
-                                onSelectScreenCode("s14")
-                            }
-                        },
-                ) {
-                    BasicText("Google", style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = RfThemeState.currentPalette.ink))
+            val handleSocialLogin: (String) -> Unit = { providerName ->
+                val socialSuccess = viewModel?.authenticateSocialAccount(providerName, "") == true
+                if (socialSuccess) {
+                    val isAdminSession = viewModel.isCurrentSessionAdminOrStaff()
+                    val targetCode = if (isAdminSession) "A01" else "s14"
+                    onSelectScreenCode(targetCode)
                 }
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(56.dp)
-                        .rfInputShadow(RoundedCornerShape(16.dp))
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(RfThemeState.currentPalette.surface)
-                        .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(16.dp))
-                        .clickable(enabled = !isSubmitting) {
-                            val socialSuccess = viewModel?.authenticateSocialAccount("Apple", "") == true
-                            if (socialSuccess) {
-                                onSelectScreenCode("s14")
-                            }
-                        },
-                ) {
-                    BasicText("Apple", style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = RfThemeState.currentPalette.ink))
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                listOf("Google", "Apple").forEach { providerName ->
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(56.dp)
+                            .rfInputShadow(RoundedCornerShape(16.dp), isAdmin = authColors.isAdmin)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(RfThemeState.currentPalette.surface)
+                            .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(16.dp))
+                            .clickable(enabled = !isSubmitting) {
+                                handleSocialLogin(providerName)
+                            },
+                    ) {
+                        BasicText(providerName, style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = RfThemeState.currentPalette.ink))
+                    }
                 }
             }
 
@@ -2215,7 +2305,7 @@ internal fun RenderLoginScreenS07(
                 BasicText("¿No tienes cuenta? ", style = typo.body.copy(fontSize = 15.sp, color = RfThemeState.currentPalette.muted))
                 BasicText(
                     text = "Regístrate",
-                    style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD63F98), textDecoration = TextDecoration.Underline),
+                    style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = authColors.primaryLinkColor, textDecoration = TextDecoration.Underline),
                     modifier = Modifier.clickable { onSelectScreenCode("s08") },
                 )
             }
@@ -2484,6 +2574,7 @@ internal fun RenderRegisterScreenS08(
     onSelectScreenCode: (String) -> Unit,
 ) {
     val typo = LocalRfTypography.current
+    val authColors = rememberAuthScreenColors()
     val coroutineScope = rememberCoroutineScope()
     var firstName by remember { mutableStateOf("") }
     var lastName by remember { mutableStateOf("") }
@@ -2555,7 +2646,7 @@ internal fun RenderRegisterScreenS08(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .size(44.dp)
-                    .shadow(elevation = 8.dp, shape = CircleShape, spotColor = Color(0x66B450B4))
+                    .shadow(elevation = 8.dp, shape = CircleShape, spotColor = authColors.backButtonShadowSpot)
                     .clip(CircleShape)
                     .background(RfThemeState.currentPalette.surface)
                     .border(1.dp, RfThemeState.currentPalette.line, CircleShape)
@@ -2603,7 +2694,7 @@ internal fun RenderRegisterScreenS08(
                     modifier = Modifier
                         .weight(1f)
                         .height(52.dp)
-                        .rfInputShadow(RoundedCornerShape(16.dp))
+                        .rfInputShadow(RoundedCornerShape(16.dp), isAdmin = authColors.isAdmin)
                         .clip(RoundedCornerShape(16.dp))
                         .background(RfThemeState.currentPalette.surface)
                         .border(firstBorderWidth, firstBorderColor, RoundedCornerShape(16.dp))
@@ -2618,7 +2709,7 @@ internal fun RenderRegisterScreenS08(
                         },
                         singleLine = true,
                         textStyle = typo.body.copy(fontSize = 15.sp, color = RfThemeState.currentPalette.ink),
-                        cursorBrush = SolidColor(Color(0xFFD63F98)),
+                        cursorBrush = SolidColor(authColors.cursorColor),
                         modifier = Modifier.fillMaxWidth(),
                         decorationBox = { inner ->
                             if (firstName.isEmpty()) {
@@ -2635,7 +2726,7 @@ internal fun RenderRegisterScreenS08(
                     modifier = Modifier
                         .weight(1f)
                         .height(52.dp)
-                        .rfInputShadow(RoundedCornerShape(16.dp))
+                        .rfInputShadow(RoundedCornerShape(16.dp), isAdmin = authColors.isAdmin)
                         .clip(RoundedCornerShape(16.dp))
                         .background(RfThemeState.currentPalette.surface)
                         .border(lastBorderWidth, lastBorderColor, RoundedCornerShape(16.dp))
@@ -2650,7 +2741,7 @@ internal fun RenderRegisterScreenS08(
                         },
                         singleLine = true,
                         textStyle = typo.body.copy(fontSize = 15.sp, color = RfThemeState.currentPalette.ink),
-                        cursorBrush = SolidColor(Color(0xFFD63F98)),
+                        cursorBrush = SolidColor(authColors.cursorColor),
                         modifier = Modifier.fillMaxWidth(),
                         decorationBox = { inner ->
                             if (lastName.isEmpty()) {
@@ -2680,7 +2771,7 @@ internal fun RenderRegisterScreenS08(
                     modifier = Modifier
                         .weight(1f)
                         .height(52.dp)
-                        .rfInputShadow(RoundedCornerShape(16.dp))
+                        .rfInputShadow(RoundedCornerShape(16.dp), isAdmin = authColors.isAdmin)
                         .clip(RoundedCornerShape(16.dp))
                         .background(RfThemeState.currentPalette.surface)
                         .border(userBorderWidth, userBorderColor, RoundedCornerShape(16.dp))
@@ -2693,7 +2784,7 @@ internal fun RenderRegisterScreenS08(
                     ) {
                         RfIcon(
                             kind = RfIconKind.USER,
-                            tint = if (usernameError != null) RfColors.Error else Color(0xFF62627A),
+                            tint = if (usernameError != null) RfColors.Error else RfThemeState.currentPalette.muted,
                             size = 18.dp,
                         )
                         BasicTextField(
@@ -2705,7 +2796,7 @@ internal fun RenderRegisterScreenS08(
                             },
                             singleLine = true,
                             textStyle = typo.body.copy(fontSize = 14.sp, color = RfThemeState.currentPalette.ink),
-                            cursorBrush = SolidColor(Color(0xFFD63F98)),
+                            cursorBrush = SolidColor(authColors.cursorColor),
                             modifier = Modifier.fillMaxWidth(),
                             decorationBox = { inner ->
                                 if (username.isEmpty()) {
@@ -2729,7 +2820,7 @@ internal fun RenderRegisterScreenS08(
                     modifier = Modifier
                         .weight(1f)
                         .height(52.dp)
-                        .rfInputShadow(RoundedCornerShape(16.dp))
+                        .rfInputShadow(RoundedCornerShape(16.dp), isAdmin = authColors.isAdmin)
                         .clip(RoundedCornerShape(16.dp))
                         .background(RfThemeState.currentPalette.surface)
                         .border(passBorderWidth, passBorderColor, RoundedCornerShape(16.dp))
@@ -2747,7 +2838,7 @@ internal fun RenderRegisterScreenS08(
                         ) {
                             RfIcon(
                                 kind = RfIconKind.LOCK,
-                                tint = if (passwordError != null) RfColors.Error else Color(0xFF62627A),
+                                tint = if (passwordError != null) RfColors.Error else RfThemeState.currentPalette.muted,
                                 size = 18.dp,
                             )
                             val registerPasswordVisualTransformation = if (showPassword) {
@@ -2765,7 +2856,7 @@ internal fun RenderRegisterScreenS08(
                                 singleLine = true,
                                 visualTransformation = registerPasswordVisualTransformation,
                                 textStyle = typo.body.copy(fontSize = 14.sp, color = RfThemeState.currentPalette.ink),
-                                cursorBrush = SolidColor(Color(0xFFD63F98)),
+                                cursorBrush = SolidColor(authColors.cursorColor),
                                 modifier = Modifier.fillMaxWidth(),
                                 decorationBox = { inner ->
                                     Box(contentAlignment = Alignment.CenterStart) {
@@ -2811,7 +2902,7 @@ internal fun RenderRegisterScreenS08(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp)
-                    .rfInputShadow(RoundedCornerShape(16.dp))
+                    .rfInputShadow(RoundedCornerShape(16.dp), isAdmin = authColors.isAdmin)
                     .clip(RoundedCornerShape(16.dp))
                     .background(RfThemeState.currentPalette.surface)
                     .border(emailBorderWidth, emailBorderColor, RoundedCornerShape(16.dp))
@@ -2820,7 +2911,7 @@ internal fun RenderRegisterScreenS08(
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     RfIcon(
                         kind = RfIconKind.MAIL,
-                        tint = if (emailError != null) RfColors.Error else Color(0xFF62627A),
+                        tint = if (emailError != null) RfColors.Error else RfThemeState.currentPalette.muted,
                         size = 20.dp,
                     )
                     BasicTextField(
@@ -2832,7 +2923,7 @@ internal fun RenderRegisterScreenS08(
                         },
                         singleLine = true,
                         textStyle = typo.body.copy(fontSize = 15.sp, color = RfThemeState.currentPalette.ink),
-                        cursorBrush = SolidColor(Color(0xFFD63F98)),
+                        cursorBrush = SolidColor(authColors.cursorColor),
                         modifier = Modifier.fillMaxWidth(),
                         decorationBox = { inner ->
                             if (email.isEmpty()) {
@@ -2860,7 +2951,7 @@ internal fun RenderRegisterScreenS08(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp)
-                    .rfInputShadow(RoundedCornerShape(16.dp))
+                    .rfInputShadow(RoundedCornerShape(16.dp), isAdmin = authColors.isAdmin)
                     .clip(RoundedCornerShape(16.dp))
                     .background(RfThemeState.currentPalette.surface)
                     .border(phoneBorderWidth, phoneBorderColor, RoundedCornerShape(16.dp))
@@ -2869,7 +2960,7 @@ internal fun RenderRegisterScreenS08(
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     RfIcon(
                         kind = RfIconKind.PHONE,
-                        tint = if (phoneError != null) RfColors.Error else Color(0xFF62627A),
+                        tint = if (phoneError != null) RfColors.Error else RfThemeState.currentPalette.muted,
                         size = 20.dp,
                     )
                     BasicTextField(
@@ -2883,7 +2974,7 @@ internal fun RenderRegisterScreenS08(
                         },
                         singleLine = true,
                         textStyle = typo.body.copy(fontSize = 15.sp, color = RfThemeState.currentPalette.ink),
-                        cursorBrush = SolidColor(Color(0xFFD63F98)),
+                        cursorBrush = SolidColor(authColors.cursorColor),
                         modifier = Modifier.fillMaxWidth(),
                         decorationBox = { innerField ->
                             if (phone.isEmpty()) {
@@ -2911,7 +3002,7 @@ internal fun RenderRegisterScreenS08(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp)
-                    .rfInputShadow(RoundedCornerShape(16.dp))
+                    .rfInputShadow(RoundedCornerShape(16.dp), isAdmin = authColors.isAdmin)
                     .clip(RoundedCornerShape(16.dp))
                     .background(RfThemeState.currentPalette.surface)
                     .border(birthBorderWidth, birthBorderColor, RoundedCornerShape(16.dp))
@@ -2929,7 +3020,7 @@ internal fun RenderRegisterScreenS08(
                     ) {
                         RfIcon(
                             kind = RfIconKind.CALENDAR,
-                            tint = if (birthDateError != null) RfColors.Error else Color(0xFF62627A),
+                            tint = if (birthDateError != null) RfColors.Error else RfThemeState.currentPalette.muted,
                             size = 20.dp,
                         )
                     }
@@ -2943,7 +3034,7 @@ internal fun RenderRegisterScreenS08(
                         onOpenCalendar = { showBirthDatePicker = true },
                         placeholder = "Fecha de nacimiento",
                         hasError = birthDateError != null,
-                        isAdmin = false,
+                        isAdmin = authColors.isAdmin,
                         compactInline = true,
                         embeddedInContainer = true,
                         readableFormatter = ::formatSpanishDateWithWords,
@@ -2973,7 +3064,7 @@ internal fun RenderRegisterScreenS08(
                     modifier = Modifier
                         .size(22.dp)
                         .clip(RoundedCornerShape(6.dp))
-                        .background(if (acceptedTerms) Color(0xFFD63F98) else RfThemeState.currentPalette.line)
+                        .background(if (acceptedTerms) authColors.cursorColor else RfThemeState.currentPalette.line)
                         .clickable {
                             acceptedTerms = !acceptedTerms
                             localRegisterError = null
@@ -2998,7 +3089,7 @@ internal fun RenderRegisterScreenS08(
                             fontSize = 13.5.sp,
                             lineHeight = 19.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFFD63F98),
+                            color = authColors.primaryLinkColor,
                             textDecoration = TextDecoration.Underline,
                         ),
                         modifier = Modifier.clickable { onSelectScreenCode("s87") },
@@ -3027,9 +3118,9 @@ internal fun RenderRegisterScreenS08(
             Spacer(Modifier.height(14.dp))
 
             val registerButtonBrush = if (isSubmitting) {
-                Brush.horizontalGradient(listOf(Color(0xFFEA4EA9).copy(alpha = 0.65f), Color(0xFF865DEC).copy(alpha = 0.65f)))
+                authColors.disabledButtonBrush
             } else {
-                Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC)))
+                authColors.primaryButtonBrush
             }
             val registerButtonLabel = if (isSubmitting) "Creando cuenta..." else "Crear cuenta"
 
@@ -3038,7 +3129,7 @@ internal fun RenderRegisterScreenS08(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(54.dp)
-                    .shadow(elevation = 12.dp, shape = RoundedCornerShape(16.dp), spotColor = Color(0xB3C846B4), ambientColor = Color.Transparent)
+                    .shadow(elevation = 12.dp, shape = RoundedCornerShape(16.dp), spotColor = authColors.buttonShadowSpot, ambientColor = Color.Transparent)
                     .clip(RoundedCornerShape(16.dp))
                     .background(registerButtonBrush)
                     .clickable(enabled = !isSubmitting) {
@@ -3093,9 +3184,9 @@ internal fun RenderRegisterScreenS08(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Box(Modifier.weight(1f).height(1.dp).background(Color(0xFFE6DEEA)))
+                Box(Modifier.weight(1f).height(1.dp).background(authColors.dividerColor))
                 BasicText("o regístrate con", style = typo.body.copy(fontSize = 13.sp, color = RfThemeState.currentPalette.muted))
-                Box(Modifier.weight(1f).height(1.dp).background(Color(0xFFE6DEEA)))
+                Box(Modifier.weight(1f).height(1.dp).background(authColors.dividerColor))
             }
 
             Spacer(Modifier.height(16.dp))
@@ -3106,7 +3197,7 @@ internal fun RenderRegisterScreenS08(
                     modifier = Modifier
                         .weight(1f)
                         .height(48.dp)
-                        .rfInputShadow(RoundedCornerShape(16.dp))
+                        .rfInputShadow(RoundedCornerShape(16.dp), isAdmin = authColors.isAdmin)
                         .clip(RoundedCornerShape(16.dp))
                         .background(RfThemeState.currentPalette.surface)
                         .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(16.dp))
@@ -3124,7 +3215,7 @@ internal fun RenderRegisterScreenS08(
                     modifier = Modifier
                         .weight(1f)
                         .height(48.dp)
-                        .rfInputShadow(RoundedCornerShape(16.dp))
+                        .rfInputShadow(RoundedCornerShape(16.dp), isAdmin = authColors.isAdmin)
                         .clip(RoundedCornerShape(16.dp))
                         .background(RfThemeState.currentPalette.surface)
                         .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(16.dp))
@@ -3148,7 +3239,7 @@ internal fun RenderRegisterScreenS08(
                 BasicText("¿Ya tienes cuenta? ", style = typo.body.copy(fontSize = 15.sp, color = RfThemeState.currentPalette.muted))
                 BasicText(
                     text = "Inicia sesión",
-                    style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFFC2338F), textDecoration = TextDecoration.Underline),
+                    style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = authColors.secondaryLinkColor, textDecoration = TextDecoration.Underline),
                     modifier = Modifier.clickable { onSelectScreenCode("s07") },
                 )
             }
@@ -3237,6 +3328,7 @@ private fun BirthDateCalendarModal(
     onDismiss: () -> Unit,
 ) {
     val typo = LocalRfTypography.current
+    val authColors = rememberAuthScreenColors()
     val initialParts = currentBirthDate.split("/")
     val parsedMonth = initialParts.getOrNull(1)?.toIntOrNull()?.coerceIn(1, 12) ?: 8
     val parsedYear = initialParts.getOrNull(2)?.toIntOrNull()?.coerceIn(1940, 2008) ?: 1998
@@ -3472,7 +3564,7 @@ private fun BirthDateCalendarModal(
                             if (dayValue != null) {
                                 val isDaySelected = dayValue == clampedSelectedDay
                                 val dayBgBrush = if (isDaySelected) {
-                                    Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))
+                                    authColors.primaryButtonBrush
                                 } else {
                                     SolidColor(RfThemeState.currentPalette.bg)
                                 }
@@ -3491,7 +3583,7 @@ private fun BirthDateCalendarModal(
                                         style = typo.body.copy(
                                             fontSize = 13.5.sp,
                                             fontWeight = if (isDaySelected) FontWeight.Bold else FontWeight.Medium,
-                                            color = if (isDaySelected) Color.White else Color(0xFF1A1A2E),
+                                            color = if (isDaySelected) Color.White else RfThemeState.currentPalette.ink,
                                         ),
                                     )
                                 }
@@ -3512,9 +3604,9 @@ private fun BirthDateCalendarModal(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp)
-                    .shadow(elevation = 10.dp, shape = RoundedCornerShape(14.dp), spotColor = Color(0x99C846B4))
+                    .shadow(elevation = 10.dp, shape = RoundedCornerShape(14.dp), spotColor = authColors.buttonShadowSpot)
                     .clip(RoundedCornerShape(14.dp))
-                    .background(Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC))))
+                    .background(authColors.primaryButtonBrush)
                     .clickable {
                         onSelectBirthDate(formattedPreview)
                     },
@@ -3540,6 +3632,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
     onSelectScreenCode: (String) -> Unit,
 ) {
     val typo = LocalRfTypography.current
+    val authColors = rememberAuthScreenColors()
     var recoveryEmail by remember { mutableStateOf("") }
     var otpCode by remember { mutableStateOf("") }
     var verificationOtp by remember { mutableStateOf("") }
@@ -3593,7 +3686,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
                             .size(44.dp)
-                            .shadow(elevation = 8.dp, shape = CircleShape, spotColor = Color(0x66B450B4))
+                            .shadow(elevation = 8.dp, shape = CircleShape, spotColor = authColors.backButtonShadowSpot)
                             .clip(CircleShape)
                             .background(RfThemeState.currentPalette.surface)
                             .border(1.dp, RfThemeState.currentPalette.line, CircleShape)
@@ -3652,7 +3745,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                                 .weight(1f)
                                 .height(38.dp)
                                 .clip(RoundedCornerShape(10.dp))
-                                .background(if (isPasswordMode) Color(0xFFFDE6F2) else Color.Transparent)
+                                .background(if (isPasswordMode) authColors.tintBg else Color.Transparent)
                                 .clickable { recoverMode = "password" },
                         ) {
                             BasicText(
@@ -3660,7 +3753,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                                 style = typo.body.copy(
                                     fontSize = 13.sp,
                                     fontWeight = if (isPasswordMode) FontWeight.Bold else FontWeight.Medium,
-                                    color = if (isPasswordMode) Color(0xFFC2338F) else RfThemeState.currentPalette.muted,
+                                    color = if (isPasswordMode) authColors.secondaryLinkColor else RfThemeState.currentPalette.muted,
                                 ),
                             )
                         }
@@ -3670,7 +3763,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                                 .weight(1f)
                                 .height(38.dp)
                                 .clip(RoundedCornerShape(10.dp))
-                                .background(if (isUserMode) Color(0xFFECEBFF) else Color.Transparent)
+                                .background(if (isUserMode) RfColors.IndigoTint else Color.Transparent)
                                 .clickable { recoverMode = "user" },
                         ) {
                             BasicText(
@@ -3678,7 +3771,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                                 style = typo.body.copy(
                                     fontSize = 13.sp,
                                     fontWeight = if (isUserMode) FontWeight.Bold else FontWeight.Medium,
-                                    color = if (isUserMode) Color(0xFF4B47D6) else RfThemeState.currentPalette.muted,
+                                    color = if (isUserMode) RfColors.IndigoTintInk else RfThemeState.currentPalette.muted,
                                 ),
                             )
                         }
@@ -3694,14 +3787,14 @@ internal fun RenderRecoveryAndConfirmationScreens(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(56.dp)
-                                .rfInputShadow(RoundedCornerShape(16.dp))
+                                .rfInputShadow(RoundedCornerShape(16.dp), isAdmin = authColors.isAdmin)
                                 .clip(RoundedCornerShape(16.dp))
                                 .background(RfThemeState.currentPalette.surface)
                                 .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(16.dp))
                                 .padding(horizontal = 16.dp),
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                RfIcon(kind = RfIconKind.USER, tint = Color(0xFF62627A), size = 20.dp)
+                                RfIcon(kind = RfIconKind.USER, tint = RfThemeState.currentPalette.muted, size = 20.dp)
                                 BasicTextField(
                                     value = userLookupInput,
                                     onValueChange = { updatedText ->
@@ -3710,7 +3803,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                                     },
                                     singleLine = true,
                                     textStyle = typo.body.copy(fontSize = 15.sp, color = RfThemeState.currentPalette.ink),
-                                    cursorBrush = SolidColor(Color(0xFF5B6CF0)),
+                                    cursorBrush = SolidColor(RfColors.IndigoSecondary),
                                     modifier = Modifier.fillMaxWidth(),
                                     decorationBox = { innerTextField ->
                                         if (userLookupInput.isEmpty()) {
@@ -3727,7 +3820,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clip(RoundedCornerShape(12.dp))
-                                    .background(Color(0xFFECEBFF))
+                                    .background(RfColors.IndigoTint)
                                     .padding(horizontal = 12.dp, vertical = 10.dp),
                             ) {
                                 BasicText(
@@ -3743,7 +3836,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                                 .fillMaxWidth()
                                 .height(54.dp)
                                 .clip(RoundedCornerShape(16.dp))
-                                .background(Brush.horizontalGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0), Color(0xFF2FB8C8))))
+                                .background(RfColors.AdminHeroAndRosaGradient)
                                 .clickable {
                                     val cleanInput = userLookupInput.trim()
                                     if (cleanInput.length < 3) {
@@ -3775,7 +3868,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(56.dp)
-                                .rfInputShadow(RoundedCornerShape(16.dp))
+                                .rfInputShadow(RoundedCornerShape(16.dp), isAdmin = authColors.isAdmin)
                                 .clip(RoundedCornerShape(16.dp))
                                 .background(RfThemeState.currentPalette.surface)
                                 .border(recBorderWidth, recBorderColor, RoundedCornerShape(16.dp))
@@ -3784,7 +3877,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                                 RfIcon(
                                     kind = RfIconKind.MAIL,
-                                    tint = if (liveRecError != null) RfColors.Error else Color(0xFF62627A),
+                                    tint = if (liveRecError != null) RfColors.Error else RfThemeState.currentPalette.muted,
                                     size = 20.dp,
                                 )
                                 BasicTextField(
@@ -3795,7 +3888,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                                     },
                                     singleLine = true,
                                     textStyle = typo.body.copy(fontSize = 15.sp, color = RfThemeState.currentPalette.ink),
-                                    cursorBrush = SolidColor(Color(0xFFD63F98)),
+                                    cursorBrush = SolidColor(authColors.cursorColor),
                                     modifier = Modifier.fillMaxWidth(),
                                     decorationBox = { innerTextField ->
                                         if (recoveryEmail.isEmpty()) {
@@ -3827,9 +3920,9 @@ internal fun RenderRecoveryAndConfirmationScreens(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(56.dp)
-                                .shadow(elevation = 12.dp, shape = RoundedCornerShape(16.dp), spotColor = Color(0xB3C846B4), ambientColor = Color.Transparent)
+                                .shadow(elevation = 12.dp, shape = RoundedCornerShape(16.dp), spotColor = authColors.buttonShadowSpot, ambientColor = Color.Transparent)
                                 .clip(RoundedCornerShape(16.dp))
-                                .background(Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC))))
+                                .background(authColors.primaryButtonBrush)
                                 .clickable {
                                     val trimmedRec = recoveryEmail.trim()
                                     val emailValidation = InputValidator.validateEmail(trimmedRec)
@@ -3868,7 +3961,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
 
                     BasicText(
                         text = "Volver a iniciar sesión",
-                        style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFFC2338F), textDecoration = TextDecoration.Underline),
+                        style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = authColors.secondaryLinkColor, textDecoration = TextDecoration.Underline),
                         modifier = Modifier.align(Alignment.CenterHorizontally).clickable { onSelectScreenCode("s07") },
                     )
                 }
@@ -3911,7 +4004,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
                             .size(44.dp)
-                            .shadow(elevation = 8.dp, shape = CircleShape, spotColor = Color(0x66B450B4))
+                            .shadow(elevation = 8.dp, shape = CircleShape, spotColor = authColors.backButtonShadowSpot)
                             .clip(CircleShape)
                             .background(RfThemeState.currentPalette.surface)
                             .border(1.dp, RfThemeState.currentPalette.line, CircleShape)
@@ -3956,7 +4049,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(52.dp)
-                            .rfInputShadow(RoundedCornerShape(16.dp))
+                            .rfInputShadow(RoundedCornerShape(16.dp), isAdmin = authColors.isAdmin)
                             .clip(RoundedCornerShape(16.dp))
                             .background(RfThemeState.currentPalette.surface)
                             .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(16.dp))
@@ -3981,7 +4074,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                                     letterSpacing = 3.sp,
                                     color = RfThemeState.currentPalette.ink,
                                 ),
-                                cursorBrush = SolidColor(Color(0xFFD63F98)),
+                                cursorBrush = SolidColor(authColors.cursorColor),
                                 modifier = Modifier.fillMaxWidth(),
                                 decorationBox = { innerField ->
                                     Box(contentAlignment = Alignment.CenterStart) {
@@ -4004,10 +4097,10 @@ internal fun RenderRecoveryAndConfirmationScreens(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp)
-                            .rfInputShadow(RoundedCornerShape(16.dp), isActive = true)
+                            .rfInputShadow(RoundedCornerShape(16.dp), isAdmin = authColors.isAdmin, isActive = true)
                             .clip(RoundedCornerShape(16.dp))
                             .background(RfThemeState.currentPalette.surface)
-                            .border(2.dp, Color(0xFFB754CB), RoundedCornerShape(16.dp))
+                            .border(2.dp, authColors.activeBorderColor, RoundedCornerShape(16.dp))
                             .padding(start = 16.dp, end = 6.dp),
                     ) {
                         Row(
@@ -4038,7 +4131,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                                         fontSize = 15.sp,
                                         color = RfThemeState.currentPalette.ink,
                                     ),
-                                    cursorBrush = SolidColor(Color(0xFFD63F98)),
+                                    cursorBrush = SolidColor(authColors.cursorColor),
                                     modifier = Modifier.fillMaxWidth(),
                                     decorationBox = { innerTextField ->
                                         Box(contentAlignment = Alignment.CenterStart) {
@@ -4141,7 +4234,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp)
-                            .rfInputShadow(RoundedCornerShape(16.dp))
+                            .rfInputShadow(RoundedCornerShape(16.dp), isAdmin = authColors.isAdmin)
                             .clip(RoundedCornerShape(16.dp))
                             .background(RfThemeState.currentPalette.surface)
                             .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(16.dp))
@@ -4175,7 +4268,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                                         fontSize = 15.sp,
                                         color = RfThemeState.currentPalette.ink,
                                     ),
-                                    cursorBrush = SolidColor(Color(0xFFD63F98)),
+                                    cursorBrush = SolidColor(authColors.cursorColor),
                                     modifier = Modifier.fillMaxWidth(),
                                     decorationBox = { innerTextField ->
                                         Box(contentAlignment = Alignment.CenterStart) {
@@ -4211,9 +4304,9 @@ internal fun RenderRecoveryAndConfirmationScreens(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp)
-                            .rfPrimaryButtonShadow(RoundedCornerShape(16.dp))
+                            .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = authColors.isAdmin)
                             .clip(RoundedCornerShape(16.dp))
-                            .background(Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC))))
+                            .background(authColors.primaryButtonBrush)
                             .clickable {
                                 val targetEmail = recoveryEmail.ifBlank { viewModel?.loginEmail?.value.orEmpty() }
                                 val resetOk = viewModel?.submitPasswordReset(
@@ -4293,9 +4386,9 @@ internal fun RenderRecoveryAndConfirmationScreens(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp)
-                            .shadow(elevation = 12.dp, shape = RoundedCornerShape(16.dp), spotColor = Color(0xB3C846B4))
+                            .shadow(elevation = 12.dp, shape = RoundedCornerShape(16.dp), spotColor = authColors.buttonShadowSpot)
                             .clip(RoundedCornerShape(16.dp))
-                            .background(Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC))))
+                            .background(authColors.primaryButtonBrush)
                             .clickable { onSelectScreenCode("s07") },
                     ) {
                         BasicText("Ir a iniciar sesión", style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White))
@@ -4368,10 +4461,10 @@ internal fun RenderRecoveryAndConfirmationScreens(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp)
-                            .rfInputShadow(RoundedCornerShape(16.dp))
+                            .rfInputShadow(RoundedCornerShape(16.dp), isAdmin = authColors.isAdmin)
                             .clip(RoundedCornerShape(16.dp))
                             .background(RfThemeState.currentPalette.surface)
-                            .border(1.5.dp, Color(0xFFB754CB), RoundedCornerShape(16.dp))
+                            .border(1.5.dp, authColors.activeBorderColor, RoundedCornerShape(16.dp))
                             .padding(horizontal = 16.dp),
                     ) {
                         BasicTextField(
@@ -4388,7 +4481,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                                 color = RfThemeState.currentPalette.ink,
                                 textAlign = TextAlign.Center,
                             ),
-                            cursorBrush = SolidColor(Color(0xFFD63F98)),
+                            cursorBrush = SolidColor(authColors.cursorColor),
                             modifier = Modifier.fillMaxWidth(),
                             decorationBox = { innerField ->
                                 Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxWidth()) {
@@ -4431,7 +4524,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                         style = typo.body.copy(
                             fontSize = 14.5.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFFD63F98),
+                            color = authColors.primaryLinkColor,
                             textDecoration = TextDecoration.Underline,
                         ),
                         modifier = Modifier.clickable {
@@ -4447,9 +4540,9 @@ internal fun RenderRecoveryAndConfirmationScreens(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp)
-                            .shadow(elevation = 12.dp, shape = RoundedCornerShape(16.dp), spotColor = Color(0xB3C846B4))
+                            .shadow(elevation = 12.dp, shape = RoundedCornerShape(16.dp), spotColor = authColors.buttonShadowSpot)
                             .clip(RoundedCornerShape(16.dp))
-                            .background(Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC))))
+                            .background(authColors.primaryButtonBrush)
                             .clickable {
                                 if (viewModel != null) {
                                     viewModel.verifyPasswordResetOtpCode(verificationOtp) { verified ->
@@ -4511,14 +4604,14 @@ internal fun RenderRecoveryAndConfirmationScreens(
                             modifier = Modifier
                                 .size(64.dp)
                                 .clip(CircleShape)
-                                .background(Color(0xFFFDE6F2)),
+                                .background(authColors.tintBg),
                         ) {
                             BasicText(
                                 s13AvatarInitial,
                                 style = typo.heroTitle.copy(
                                     fontSize = 24.sp,
                                     fontWeight = FontWeight.ExtraBold,
-                                    color = Color(0xFFC2338F),
+                                    color = authColors.secondaryLinkColor,
                                 ),
                             )
                         }
@@ -4549,7 +4642,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 20.dp)
-                            .shadow(elevation = 12.dp, shape = RoundedCornerShape(22.dp), spotColor = Color(0x66C850AA))
+                            .shadow(elevation = 12.dp, shape = RoundedCornerShape(22.dp), spotColor = authColors.cardShadowSpot)
                             .clip(RoundedCornerShape(22.dp))
                             .background(RfThemeState.currentPalette.surface)
                             .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(22.dp))
@@ -4603,12 +4696,12 @@ internal fun RenderRecoveryAndConfirmationScreens(
                                                 .weight(1f)
                                                 .height(42.dp)
                                                 .clip(RoundedCornerShape(12.dp))
-                                                .background(Color(0xFFFDE6F2))
+                                                .background(authColors.tintBg)
                                                 .clickable { onSelectScreenCode("s18") },
                                         ) {
                                             BasicText(
                                                 text = "Explorar catálogo",
-                                                style = typo.body.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFFC2338F)),
+                                                style = typo.body.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = authColors.secondaryLinkColor),
                                             )
                                         }
                                         Box(
@@ -4638,9 +4731,9 @@ internal fun RenderRecoveryAndConfirmationScreens(
                                         if (isLetters) !isPreposition else false
                                     }?.take(3)?.uppercase() ?: "OCT"
                                     val dateBg = when (eventIndex % 3) {
-                                        0 -> Color(0xFFFDE6F2)
-                                        1 -> Color(0xFFEFE8FD)
-                                        else -> Color(0xFFDDF4F3)
+                                        0 -> authColors.tintBg
+                                        1 -> RfColors.VioletaTint
+                                        else -> RfColors.TealTint
                                     }
                                     val isConfirmed = eventItem.statusLabel.contains("Confirmad", ignoreCase = true)
                                     val isPendingPay = eventItem.statusLabel.contains("pagar", ignoreCase = true)
@@ -4681,10 +4774,13 @@ internal fun RenderRecoveryAndConfirmationScreens(
                             .fillMaxWidth()
                             .padding(horizontal = 24.dp)
                             .height(56.dp)
-                            .shadow(elevation = 12.dp, shape = RoundedCornerShape(16.dp), spotColor = Color(0xB3C846B4))
+                            .shadow(elevation = 12.dp, shape = RoundedCornerShape(16.dp), spotColor = authColors.buttonShadowSpot)
                             .clip(RoundedCornerShape(16.dp))
-                            .background(Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC))))
-                            .clickable { onSelectScreenCode("s14") },
+                            .background(authColors.primaryButtonBrush)
+                            .clickable {
+                                val nextHome = if (authColors.isAdmin) "A01" else "s14"
+                                onSelectScreenCode(nextHome)
+                            },
                     ) {
                         BasicText("Continuar al inicio", style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White))
                     }

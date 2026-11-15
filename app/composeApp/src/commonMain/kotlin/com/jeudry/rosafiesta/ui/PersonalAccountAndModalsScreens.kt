@@ -2527,7 +2527,7 @@ internal fun RenderTermsS87(
                     Box(
                         modifier = Modifier
                             .size(44.dp)
-                            .rfIconButtonShadow(CircleShape, isAdmin = false)
+                            .rfIconButtonShadow(CircleShape, isAdmin = RfThemeState.currentPalette.isAdmin)
                             .clip(CircleShape)
                             .background(RfThemeState.currentPalette.surface)
                             .clickable { onSelectScreenCode("BACK:s86") },
@@ -2581,7 +2581,7 @@ internal fun RenderTermsS87(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .rfCardShadow(cardShape, isAdmin = false)
+                        .rfCardShadow(cardShape, isAdmin = RfThemeState.currentPalette.isAdmin)
                         .clip(cardShape)
                         .background(RfThemeState.currentPalette.surface)
                         .padding(18.dp),
@@ -2659,7 +2659,7 @@ private fun TermsSegment87(
             .then(
                 if (selected) {
                     Modifier
-                        .rfCardShadow(RoundedCornerShape(12.dp), isAdmin = false)
+                        .rfCardShadow(RoundedCornerShape(12.dp), isAdmin = RfThemeState.currentPalette.isAdmin)
                         .background(RfThemeState.currentPalette.surface)
                 } else {
                     Modifier.background(Color.Transparent)

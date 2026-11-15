@@ -131,19 +131,20 @@ public fun RosaFiestaApp(
     }
 
     val spec = ScreenCatalog.findByCode(navigator.currentCode)
-    val sharedUtilityCodes = setOf("s07", "s08", "s09", "s10", "s11", "s12", "s13", "s54")
+    val sharedUtilityCodes = setOf("s07", "s08", "s09", "s10", "s11", "s12", "s13", "s54", "s87")
     val isSharedUtilityScreen = spec.code in sharedUtilityCodes
     val isAdminApp = initialAppView == AppView.ADMIN
     val isNonAdminVariant = spec.variant != RfThemeVariant.ADMIN
-    val isPersonalScreenInAdminApp = isAdminApp && isNonAdminVariant
-    val isNotSharedUtility = !isSharedUtilityScreen
-    val isPreviewBannerEligible = if (navigator.adminPreviewingPersonal) true else isNotSharedUtility
     val isAdminActive = navigator.activeView == AppView.ADMIN
     val isNotPreviewingPersonal = !navigator.adminPreviewingPersonal
+    val isSharedAdminUtility = isAdminActive && isSharedUtilityScreen && isNotPreviewingPersonal
+    val isPersonalScreenInAdminApp = isAdminApp && isNonAdminVariant && !isSharedAdminUtility
+    val isNotSharedUtility = !isSharedUtilityScreen
+    val isPreviewBannerEligible = if (navigator.adminPreviewingPersonal) true else isNotSharedUtility
     val isNotPersonalScreenInAdminApp = !isPersonalScreenInAdminApp
     val shouldUseAdminTheme = isAdminActive && isNotPreviewingPersonal && isNotPersonalScreenInAdminApp
     val isDarkThemeEnabled by viewModel.isDarkTheme.collectAsState()
-    val usePersonalDark = isDarkThemeEnabled && isNonAdminVariant
+    val usePersonalDark = isDarkThemeEnabled && isNonAdminVariant && !isSharedAdminUtility
     val themeVariant = if (shouldUseAdminTheme) {
         RfThemeVariant.ADMIN
     } else if (usePersonalDark) {
@@ -312,6 +313,7 @@ public fun RosaFiestaApp(
                         isFrameHarness = false,
                         includeBottomBar = false,
                         underlyingScreenCode = navigator.previousCode,
+                        themeVariantOverride = themeVariant,
                         onSelectScreenCode = navigateToCode,
                         onSwitchAppMode = {
                             showPersonalMoreMenu = false

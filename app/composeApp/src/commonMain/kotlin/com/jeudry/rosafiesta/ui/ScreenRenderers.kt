@@ -274,6 +274,7 @@ public fun RenderScreenSpec(
     isFrameHarness: Boolean = true,
     includeBottomBar: Boolean = true,
     underlyingScreenCode: String? = null,
+    themeVariantOverride: RfThemeVariant? = null,
     modifier: Modifier = Modifier,
 ) {
     if (spec.isDesktopWeb) {
@@ -289,10 +290,12 @@ public fun RenderScreenSpec(
         return
     }
 
-    val isAdmin = spec.variant == RfThemeVariant.ADMIN
+    val baseVariant = themeVariantOverride
+        ?: if (underlyingScreenCode == "A30") RfThemeVariant.ADMIN else spec.variant
+    val isAdmin = baseVariant == RfThemeVariant.ADMIN
     val isDarkThemeEnabled = viewModel?.isDarkTheme?.collectAsState()?.value ?: false
     val usePersonalDark = if (isAdmin) false else isDarkThemeEnabled
-    val resolvedVariant = if (usePersonalDark) RfThemeVariant.PERSONAL_DARK else spec.variant
+    val resolvedVariant = if (usePersonalDark) RfThemeVariant.PERSONAL_DARK else baseVariant
     val activeRoleValue = viewModel?.activeRole?.collectAsState()?.value
     val staffMembersValue = viewModel?.staffMembers?.collectAsState()?.value
     val isRestrictedForActiveStaff = remember(spec.code, activeRoleValue, staffMembersValue) {
